@@ -1,7 +1,197 @@
 @import 'tailwindcss';
 
-/*
- * Design tokens (colors, type scale, spacing, radii) and theme definitions
- * will live here / in a dedicated tokens module after plan approval.
- * Kept minimal during scaffolding on purpose.
- */
+/* =========================================================================
+ * DESIGN TOKENS — the ONE place to re-skin the product.
+ * Semantic CSS variables are defined per-theme below, then exposed to
+ * Tailwind via `@theme inline` so utilities (bg-canvas, text-fg, …) resolve
+ * to the live variable and swap instantly when [data-theme] changes.
+ * Fonts are loaded via Google Fonts <link> in index.html.
+ * ========================================================================= */
+
+/* ---- Default theme: refined dark, amber/gold accent ---- */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* surfaces (near-black with a faint cool cast, deliberately off slate-900) */
+  --ct-canvas: #0b0b11;
+  --ct-surface: #14141f;
+  --ct-surface-2: #1c1c2b;
+  --ct-border: #262635;
+  --ct-border-strong: #353548;
+
+  /* text */
+  --ct-fg: #f4f3f7;
+  --ct-muted: #a8a6b8;
+  --ct-subtle: #726f86;
+
+  /* accent — warm amber/gold (off the violet cliché) */
+  --ct-accent: #f3b84e;
+  --ct-accent-hover: #f7c66c;
+  --ct-accent-contrast: #1a1505;
+  --ct-accent-soft: rgba(243, 184, 78, 0.12);
+  --ct-accent-ring: rgba(243, 184, 78, 0.5);
+
+  /* brand surface tint (used sparingly) */
+  --ct-brand: #f3b84e;
+
+  /* status */
+  --ct-success: #4ec9a5;
+  --ct-warning: #e7a93a;
+  --ct-danger: #f0676b;
+  --ct-info: #5aa9f0;
+
+  /* provenance — first-class everywhere dates appear */
+  --ct-prov-official: #4ec9a5;
+  --ct-prov-confirmed: #5aa9f0;
+  --ct-prov-unverified: #cf9a52;
+
+  /* elevation */
+  --ct-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -10px rgba(0, 0, 0, 0.55);
+}
+
+/* ---- Concordia maroon / gold theme ---- */
+[data-theme='maroon'] {
+  color-scheme: dark;
+
+  --ct-canvas: #150a0e;
+  --ct-surface: #20121a; /* lighter maroon-tinted surface for contrast on near-black */
+  --ct-surface-2: #2c1722;
+  --ct-border: #3a212c;
+  --ct-border-strong: #4f2f3a;
+
+  --ct-fg: #f8f0f1;
+  --ct-muted: #cdaab2;
+  --ct-subtle: #9a7882;
+
+  --ct-accent: #e8b84b;
+  --ct-accent-hover: #f1c869;
+  --ct-accent-contrast: #1b0d04;
+  --ct-accent-soft: rgba(232, 184, 75, 0.14);
+  --ct-accent-ring: rgba(232, 184, 75, 0.55);
+
+  --ct-brand: #912338; /* Concordia maroon */
+
+  --ct-success: #5bbf9b;
+  --ct-warning: #e7a93a;
+  --ct-danger: #e7696d;
+  --ct-info: #6aa6e0;
+
+  --ct-prov-official: #5bbf9b;
+  --ct-prov-confirmed: #6aa6e0;
+  --ct-prov-unverified: #d49f57;
+
+  --ct-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -10px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- Expose tokens to Tailwind (inline = runtime swappable) ---- */
+@theme inline {
+  --color-canvas: var(--ct-canvas);
+  --color-surface: var(--ct-surface);
+  --color-surface-2: var(--ct-surface-2);
+  --color-border: var(--ct-border);
+  --color-border-strong: var(--ct-border-strong);
+
+  --color-fg: var(--ct-fg);
+  --color-muted: var(--ct-muted);
+  --color-subtle: var(--ct-subtle);
+
+  --color-accent: var(--ct-accent);
+  --color-accent-hover: var(--ct-accent-hover);
+  --color-accent-contrast: var(--ct-accent-contrast);
+  --color-accent-soft: var(--ct-accent-soft);
+  --color-brand: var(--ct-brand);
+
+  --color-success: var(--ct-success);
+  --color-warning: var(--ct-warning);
+  --color-danger: var(--ct-danger);
+  --color-info: var(--ct-info);
+
+  --color-prov-official: var(--ct-prov-official);
+  --color-prov-confirmed: var(--ct-prov-confirmed);
+  --color-prov-unverified: var(--ct-prov-unverified);
+
+  /* typography: Inter is the workhorse; Fraunces is display-only (used sparingly) */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+
+  /* radii */
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* ---- Base layer ---- */
+@layer base {
+  html {
+    background-color: var(--ct-canvas);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100svh;
+    background-color: var(--ct-canvas);
+    color: var(--ct-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible focus states everywhere (a11y requirement) */
+  :focus-visible {
+    outline: 2px solid var(--ct-accent-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--ct-accent-soft);
+    color: var(--ct-fg);
+  }
+}
+
+/* ---- Motion utilities (functional, fast: 150–250ms). The richer
+ * syllabus parse-reveal is built later and lives with that feature. ---- */
+@keyframes ct-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ct-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ct-animate-fade {
+  animation: ct-fade-in 160ms ease-out;
+}
+
+.ct-animate-pop {
+  animation: ct-pop-in 190ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---- Motion: restraint + respect prefers-reduced-motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

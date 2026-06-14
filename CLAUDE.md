@@ -146,3 +146,29 @@ If cutting a corner that would make this hard to build on, **flag it**.
 - **2026-06-14** — Added `@/*` → `src/*` path alias for clean imports. `baseUrl`
   omitted (deprecated in TS 6); `paths` resolves from tsconfig location.
 - **2026-06-14** — Scaffold complete; awaiting plan approval before building screens.
+- **2026-06-14** — Plan approved. Git author set locally: Alex Degryse
+  <alexxdegryse@gmail.com>.
+- **2026-06-14** — Added `lucide-react` for icons (only non-core runtime dep;
+  tree-shakeable, no animation deps). Approved.
+- **2026-06-14** — Tokens live in `src/index.css`: semantic `--ct-*` vars per
+  theme on `:root` / `[data-theme="maroon"]`, exposed to Tailwind via
+  `@theme inline` so utilities (`bg-canvas`, `text-fg`, `bg-accent-soft`, …)
+  swap at runtime. Reskin = edit that one file. Token utility names:
+  canvas / surface / surface-2 / border / border-strong / fg / muted / subtle /
+  accent(+hover/contrast/soft) / brand / success/warning/danger/info /
+  prov-official/confirmed/unverified.
+- **2026-06-14** — Theme state is **in-memory** (no localStorage), per the
+  mock-only rule — resets to `dark` on full reload; persists across SPA nav.
+- **2026-06-14** — Fraunces (display) is applied **deliberately via `font-display`
+  only** (wordmark, page hero titles), never globally on heading tags, to honor
+  "use Fraunces sparingly — never body/UI labels."
+- **2026-06-14** — Mobile nav = bottom bar with the 4 destinations **+** a Search
+  item that opens the palette as a bottom sheet (the "bottom search bar on mobile").
+- **2026-06-14** — `currentUser.plan` starts `'free'` (in `src/data/mock.ts`) so
+  the free-vs-paid line + paywall nudge are demonstrable. **Open question for
+  Settings/billing:** spec says Settings shows the semester pass as active —
+  decide then whether to flip the user to `'semester'` or show an upgrade state.
+- **2026-06-14** — Step 1 shipped: tokens + 2 themes, 3-context routing, sidebar
+  (4 dests), command palette (Ctrl/Cmd+K, kbd nav, focus trap, Esc, mobile sheet),
+  avatar menu (Settings/Teacher/Marketing/theme), placeholder pages. Build + lint
+  clean; browser-verified.
