@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
+import { term } from '@/data/mock'
 import type { Assessment } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
 import { groupDue, PAIN_THRESHOLD } from './due'
@@ -44,12 +45,13 @@ export function TodayPage() {
 
   const firstName = user.name.split(' ')[0]
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
+  const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-7 sm:px-6">
-      <header className="mb-4">
+    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
+      <header className="mb-3">
         <p className="text-[12px] text-subtle">{TODAY_LABEL.format(new Date())}</p>
-        <h1 className="mt-0.5 font-display text-[28px] leading-tight font-medium text-fg">
+        <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
           {greeting()}, {firstName}
         </h1>
       </header>
@@ -65,12 +67,17 @@ export function TodayPage() {
           />
         </main>
 
-        <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[292px] lg:shrink-0">
+        <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
           <GlanceStrip
+            term={term}
             gpa={gpa}
+            overdue={groups.overdue.length}
             itemsLeft={groups.count}
             nextUp={groups.nextUp}
             nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+            doneToday={completed.length}
+            courseCount={courses.length}
+            credits={credits}
           />
           {showPain && <PainNudge count={groups.count} />}
         </aside>

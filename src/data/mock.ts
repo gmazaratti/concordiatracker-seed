@@ -16,6 +16,15 @@ export const currentUser: User = {
   plan: 'free',
 }
 
+/** The active term. Bounds are runtime-relative (like the due dates) so the
+ * "Week X of Y" progress reads correctly whenever the demo is opened — today
+ * lands ~6 weeks into a 13-week term. */
+export const term = {
+  name: 'Summer 2026',
+  start: daysFromNow(-41, 0, 0),
+  end: daysFromNow(50, 0, 0),
+}
+
 export const courses: Course[] = [
   { id: 'comm217', code: 'COMM 217', title: 'Financial Accounting', term: 'Summer 2026', credits: 3 },
   { id: 'comp248', code: 'COMP 248', title: 'Object-Oriented Programming I', term: 'Summer 2026', credits: 3.5 },

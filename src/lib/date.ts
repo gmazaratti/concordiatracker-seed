@@ -45,6 +45,22 @@ export function relativeDueLabel(due: string): string {
   return `Due ${MONTH_DAY.format(new Date(due))}`
 }
 
+/** Where "now" sits within a term: current week, total weeks, and % elapsed
+ * (clamped to the term bounds). */
+export function termProgress(
+  start: string,
+  end: string,
+): { week: number; totalWeeks: number; percent: number } {
+  const s = new Date(start).getTime()
+  const e = new Date(end).getTime()
+  const now = Date.now()
+  const totalWeeks = Math.max(1, Math.round((e - s) / (7 * DAY_MS)))
+  const elapsedDays = (now - s) / DAY_MS
+  const week = Math.min(totalWeeks, Math.max(1, Math.floor(elapsedDays / 7) + 1))
+  const percent = Math.min(100, Math.max(0, ((now - s) / (e - s)) * 100))
+  return { week, totalWeeks, percent }
+}
+
 /** Full date for tooltips / secondary lines: "Fri, Jun 20". */
 export function formatFull(due: string): string {
   return new Intl.DateTimeFormat('en-US', {
