@@ -1,0 +1,148 @@
+# ConcordiaTracker — Project Memory (read this first every session)
+
+This file is the **source of truth** that survives context resets. If a decision
+isn't written here, assume it'll be forgotten. Keep it updated as we go.
+
+## What this is
+
+The **SEED** of a real product: a school-specific academic hub for Concordia
+University students. A front-end skeleton with **real navigation and
+interactions, mock data, no backend, no auth, no real AI**. If it's good enough,
+it becomes the production foundation — so code quality and structure matter.
+
+Not affiliated with Concordia University (must appear on the landing page).
+
+## Stack (standard on purpose)
+
+- **Vite 8** + **React 19** + **TypeScript 6** (strict mode ON)
+- **Tailwind CSS v4** via `@tailwindcss/vite` (CSS-first config, no `tailwind.config.js`)
+- **React Router 7** (`react-router-dom`)
+- State: **React Context + hooks only**. No Redux.
+- Data: a **single mock-data module**, in-memory only. No persistence.
+- `@/*` path alias → `src/*` (configured in `vite.config.ts` + `tsconfig.app.json`)
+
+## Architecture — three separate authenticated contexts (NEVER blended into one nav)
+
+1. **Public marketing site** (Landing, pricing)
+2. **Student app** (the core product)
+3. **Teacher portal** (a deliberately plain, distinct context)
+
+### Student app: EXACTLY FOUR top-level destinations
+
+`Today` · `Courses` · `Calendar` · `Community`. **Nothing else gets a tab.**
+The AI parser and GPA predictor are **actions/panels inside Courses, NOT tabs**.
+
+### Command palette is the real navigation spine
+
+- `Cmd/Ctrl+K` → centered modal on desktop; bottom search bar on mobile.
+- Typeahead suggestions like "Add course COMM 217", "Change grade for
+  Assignment 2", "Import blueprint".
+- **Keyboard a11y required**: full keyboard nav, visible focus states, Escape to
+  close, focus trapped while open.
+
+## Screens
+
+- **Landing (public)**: dark, value-first. Hero = the syllabus-parse demo.
+  Pricing with **SEMESTER pass ($15) as hero**, monthly ($5) secondary. Small
+  "Not affiliated with Concordia University" line.
+- **Today**: launch view — what's due, what's next, GPA at a glance, polished
+  empty state. Minimal.
+- **Courses + course detail**: editable mock grades, notes tab, **provenance
+  badges on every date** (official / confirmed by N students / unverified), a
+  WORKING grade-needed-to-pass calculator (real arithmetic), a GPA what-if
+  slider (real arithmetic). Grade-needed = **FREE**; GPA prediction = **PAID**
+  (made tangible in the UI).
+- **Calendar**: month + week views; personal and university as **toggleable
+  LAYERS, not separate tabs**.
+- **Community**: intentionally **LIGHT** — read-only partnered-org event feed
+  stub. NOT a social network.
+- **Teacher portal**: one deliberately plain screen — search/create a class,
+  upload a blueprint, post an announcement. Just enough to show a distinct context.
+- **Settings**: clean profile, transparent billing (shows semester pass), usage
+  stats, theme switcher.
+
+## Design system
+
+- **ALL tokens** (colors, type scale, spacing, radii) live in **ONE place** so
+  re-skinning is a one-file change. Tailwind v4 `@theme` + CSS custom properties.
+- Dark base, deliberately **OFF** the default Tailwind look (avoid slate-900
+  `#0f172a` + violet-600 `#7c3aed`). Near-black with a faint cast; non-generic accent.
+- **Theme switcher**, ≥2 themes: refined default dark, and a Concordia
+  maroon/gold theme. Themes swap from the tokens file + a context.
+- **Typography-led hierarchy**: a characterful display face for headings, a
+  clean workhorse for UI. Load via Google Fonts CDN.
+
+## Motion philosophy — restraint
+
+- **ONE hero moment**: the syllabus-parse reveal. Click "Upload syllabus" → a
+  scripted animation cascades dates into the course. Richer, deliberate treatment.
+- Everything else functional and fast: **150–250ms** transitions, hover/active
+  states, command palette open, task check-off.
+- **Respect `prefers-reduced-motion`.** **CSS transitions/keyframes ONLY** — no
+  animation library, no framer-motion.
+
+## Real vs mocked
+
+- **Real/interactive**: routing, command palette + typeahead, grade-needed calc,
+  GPA what-if, theme switching, parse-reveal animation, task check-off, calendar
+  layer toggles, contextual paywall nudge.
+- **Faked**: AI extraction (scripted on a sample syllabus), auth, persistence
+  (in-memory), Google Calendar sync (success state), teacher uploads, Stripe
+  checkout (mock success).
+
+## Product ideas to include
+
+- Provenance badges as a visible, first-class system everywhere dates appear.
+- A **"pain-moment" paywall**: a mock midterm-week state with many due items
+  where the upgrade nudge appears contextually.
+- Free/paid line made tangible (grade-needed free, GPA prediction paid).
+- Credits-for-contributions in blueprint import ("contribute your outline → earn
+  theme credits"). **NO leaderboard.**
+- Deliberate, polished empty states.
+
+## DO NOT BUILD
+
+A backend · auth · a database · a leaderboard · a real friends graph (Community
+stays a stub) · a full teacher portal (one representative screen) · a real parser.
+
+## Discipline
+
+- TypeScript **strict** on. Keep every file **under ~250 lines**; split larger
+  into smaller components.
+- When a design/structural decision is ambiguous, **STOP and ask one question**
+  rather than guessing.
+- After each screen: **commit to git** with a clear message and tell the user
+  what to run to see it.
+
+## "Good enough to be the SEED"
+
+Clean component boundaries, all tokens in one file, no duplicated layout code;
+the four carrier screens (Today, Course detail, Calendar, Landing) feel polished;
+the parse-reveal animation lands. Rough edges on Community and Teacher are fine.
+If cutting a corner that would make this hard to build on, **flag it**.
+
+## Build order (commit after each)
+
+1. scaffold + tokens/theme + app shell (sidebar + command palette)
+2. Today
+3. Courses + course detail
+4. Calendar
+5. Community stub
+6. Teacher
+7. Settings
+8. Landing
+
+## How to run
+
+- `npm run dev` — dev server
+- `npm run build` — typecheck (`tsc -b`) + production build
+- `npm run preview` — preview the production build
+
+## Decisions log
+
+- **2026-06-14** — Tailwind **v4** (current standard) chosen over v3; its
+  CSS-first `@theme` + CSS variables fit the "all tokens in one file" + theme
+  switching requirement naturally. No `tailwind.config.js`.
+- **2026-06-14** — Added `@/*` → `src/*` path alias for clean imports. `baseUrl`
+  omitted (deprecated in TS 6); `paths` resolves from tsconfig location.
+- **2026-06-14** — Scaffold complete; awaiting plan approval before building screens.
