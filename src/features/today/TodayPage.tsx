@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
-import type { Assessment } from '@/data/types'
+import type { Assessment, AssessmentStatus } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
+import { isOpen } from '@/lib/status'
 import { groupDue, PAIN_THRESHOLD } from './due'
 import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
@@ -24,23 +25,24 @@ function greeting(): string {
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
 export function TodayPage() {
-  const { user, plan, courses, assessments, toggleDone, courseById } = useAppData()
-  const [completedIds, setCompletedIds] = useState<string[]>([])
+  const { user, plan, courses, assessments, setStatus, courseById } = useAppData()
+  // Items the student resolved this session — surfaced under "Completed today".
+  const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
   const groups = useMemo(() => groupDue(assessments), [assessments])
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
 
-  const completed = completedIds
+  const completed = resolvedIds
     .map((id) => assessments.find((a) => a.id === id))
-    .filter((a): a is Assessment => !!a && a.done)
+    .filter((a): a is Assessment => !!a && !isOpen(a.status))
 
-  function complete(id: string) {
-    setCompletedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
-    toggleDone(id)
+  function resolve(id: string, status: AssessmentStatus) {
+    setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
+    setStatus(id, status)
   }
   function undo(id: string) {
-    setCompletedIds((prev) => prev.filter((x) => x !== id))
-    toggleDone(id)
+    setResolvedIds((prev) => prev.filter((x) => x !== id))
+    setStatus(id, 'not-started')
   }
 
   const firstName = user.name.split(' ')[0]
@@ -62,7 +64,7 @@ export function TodayPage() {
             groups={groups}
             completed={completed}
             courseById={courseById}
-            onComplete={complete}
+            onResolve={resolve}
             onUndo={undo}
           />
         </main>

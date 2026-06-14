@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { AppDataContext } from './app-data'
 import { courses, currentUser, seedAssessments } from '@/data/mock'
-import type { Course, Plan } from '@/data/types'
+import type { AssessmentStatus, Course, Grade, Plan } from '@/data/types'
 
 /** Holds the cloned seed so UI mutations never touch the module-level data. */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
@@ -10,9 +10,22 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     seedAssessments.map((a) => ({ ...a })),
   )
 
-  const toggleDone = useCallback((id: string) => {
+  // Shared write surface: Today flips status; Courses edits status/grade/notes.
+  const setStatus = useCallback((id: string, status: AssessmentStatus) => {
     setAssessments((list) =>
-      list.map((a) => (a.id === id ? { ...a, done: !a.done } : a)),
+      list.map((a) => (a.id === id ? { ...a, status } : a)),
+    )
+  }, [])
+
+  const setGrade = useCallback((id: string, grade: Grade | null) => {
+    setAssessments((list) =>
+      list.map((a) => (a.id === id ? { ...a, grade } : a)),
+    )
+  }, [])
+
+  const setNotes = useCallback((id: string, notes: string) => {
+    setAssessments((list) =>
+      list.map((a) => (a.id === id ? { ...a, notes } : a)),
     )
   }, [])
 
@@ -28,10 +41,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setPlan,
       courses,
       assessments,
-      toggleDone,
+      setStatus,
+      setGrade,
+      setNotes,
       courseById,
     }),
-    [plan, assessments, toggleDone, courseById],
+    [plan, assessments, setStatus, setGrade, setNotes, courseById],
   )
 
   return <AppDataContext value={value}>{children}</AppDataContext>

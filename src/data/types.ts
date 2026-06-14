@@ -35,6 +35,37 @@ export type AssessmentKind =
   | 'reading'
   | 'project'
 
+/**
+ * Lifecycle / timeliness of an assessment. Shared by Today (which surfaces only
+ * the lightweight done/late/missed transitions) and the Courses grade editor
+ * (which can set any of these). `not-started` and `extension` are still "open"
+ * — i.e. they need action and appear on Today's due list.
+ */
+export type AssessmentStatus =
+  | 'not-started'
+  | 'done'
+  | 'late'
+  | 'missed'
+  | 'extension'
+  | 'awaiting-grade'
+
+/** How a grade was entered. */
+export type GradeMode = 'percent' | 'raw'
+
+/**
+ * A grade accepts either a direct percentage OR a raw score (earned / total,
+ * e.g. 12/15) that derives a percentage. Both forms live here so the editor can
+ * round-trip exactly what the student typed; use `gradeToPercent` to read it.
+ */
+export interface Grade {
+  mode: GradeMode
+  /** Used when `mode === 'percent'`. */
+  percent: number | null
+  /** Used when `mode === 'raw'` (earned out of total). */
+  earned: number | null
+  total: number | null
+}
+
 export interface Assessment {
   id: string
   courseId: string
@@ -45,9 +76,11 @@ export interface Assessment {
   /** Percentage of the final grade this is worth (0–100). */
   weight: number
   provenance: Provenance
-  /** Earned percentage once graded; `null` while still outstanding. */
-  score: number | null
-  done: boolean
+  status: AssessmentStatus
+  /** Present once graded; `null` while outstanding or awaiting a grade. */
+  grade: Grade | null
+  /** Free-form per-assessment notes (edited in Courses). */
+  notes: string
 }
 
 export interface Course {

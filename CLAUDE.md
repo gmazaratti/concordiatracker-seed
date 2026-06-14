@@ -173,8 +173,9 @@ If cutting a corner that would make this hard to build on, **flag it**.
   in `src/data/types.ts`; the single mock module `src/data/mock.ts` seeds 5 courses
   + assessments with dates **relative to the runtime clock** (`daysFromNow`) so the
   overdue/this-week story is always true. `AppDataProvider` clones the seed and owns
-  `toggleDone` + `setPlan` (in-memory). Helpers: `lib/date.ts` (relative due labels),
-  `lib/gpa.ts` (Concordia 4.30 scale, weighted course % + credit-weighted GPA).
+  the assessment write surface + `setPlan` (in-memory). Helpers: `lib/date.ts`
+  (relative due labels), `lib/gpa.ts` (Concordia 4.30 scale, weighted course % +
+  credit-weighted GPA).
 - **2026-06-14** — Step 1 shipped: tokens + 2 themes, 3-context routing, sidebar
   (4 dests), command palette (Ctrl/Cmd+K, kbd nav, focus trap, Esc, mobile sheet),
   avatar menu (Settings/Teacher/Marketing/theme), placeholder pages. Build + lint
@@ -186,3 +187,27 @@ If cutting a corner that would make this hard to build on, **flag it**.
   working check-off → "Completed today" disclosure with undo, polished "All caught
   up" empty state). `ProvenanceBadge` is a reusable first-class component. Build +
   lint clean; browser-verified (check-off, plan toggle, themes, mobile).
+- **2026-06-14** — Today layout revised to a **two-column** shell (max-w-5xl): the
+  `DueList` is the wide main column, a ~272px right rail holds the full "At a glance"
+  panel + optional `PainNudge`. Collapses to one column on narrow with the rail on
+  top (`order` swap). Rail is a proper glance panel: term-progress (Week X of Y) +
+  today's-progress bars (`lib/date.ts → termProgress`) over GPA / Overdue / Due this
+  week / Next up / This term. "Minimal but FULL," no new features.
+- **2026-06-14** — **Shared status + grade model** (defined once, used by Today now +
+  Courses editor in step 3). `AssessmentStatus` = not-started / done / late / missed /
+  extension / awaiting-grade (`not-started` + `extension` are "open" → on Today's due
+  list, via `lib/status.ts → isOpen`). `Grade` accepts a percentage OR a raw score
+  (earned/total) → resolved by `lib/grade.ts → gradeToPercent` (the GPA single source
+  of truth); plus a per-assessment `notes` field. Provider exposes `setStatus` /
+  `setGrade` / `setNotes` (replaced `toggleDone`). `STATUS_META` (label+colors) lives
+  in `lib/status.ts` so non-component modules can read it; `StatusBadge` renders it.
+- **2026-06-14** — Today surfaces only the **lightweight** slice of that model: a
+  round check (fast path → done) with a clearer affordance (hover check + accent ring,
+  "Mark done" title) and an inline "more" control revealing quick statuses
+  (done/late/missed, `QUICK_STATUSES`). Resolving plays a restrained ~320ms completion
+  micro-animation (`ct-animate-complete` accent wash + lift, `ct-animate-check` burst)
+  then moves the row into "Completed today" (StatusBadge + Undo). Reduced-motion safe:
+  the global block only zeroes `animation-duration`, so `animationend` still fires and
+  the row never sticks. The **full** grade/score/notes/extension editor is step 3
+  (Courses). Build + lint clean; browser-verified (done + late/missed paths, undo,
+  glance updates, mobile, GPA stays 3.68).

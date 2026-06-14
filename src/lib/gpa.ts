@@ -1,4 +1,5 @@
 import type { Assessment, Course } from '@/data/types'
+import { gradeToPercent } from './grade'
 
 /** Concordia's 4.30 letter scale. Percentage cutoffs follow the common
  * undergraduate mapping (departments vary slightly — fine for a demo). */
@@ -33,11 +34,13 @@ export function percentToGrade(percent: number): { letter: string; points: numbe
  * weight actually graded so far (so a partial term still reads sensibly).
  * Returns null when nothing in the course is graded yet. */
 export function coursePercent(assessments: Assessment[]): number | null {
-  const graded = assessments.filter((a) => a.score !== null)
+  const graded = assessments
+    .map((a) => ({ percent: gradeToPercent(a.grade), weight: a.weight }))
+    .filter((g): g is { percent: number; weight: number } => g.percent !== null)
   if (graded.length === 0) return null
-  const totalWeight = graded.reduce((sum, a) => sum + a.weight, 0)
+  const totalWeight = graded.reduce((sum, g) => sum + g.weight, 0)
   if (totalWeight === 0) return null
-  const earned = graded.reduce((sum, a) => sum + a.score! * a.weight, 0)
+  const earned = graded.reduce((sum, g) => sum + g.percent * g.weight, 0)
   return earned / totalWeight
 }
 

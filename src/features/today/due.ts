@@ -1,5 +1,6 @@
 import type { Assessment } from '@/data/types'
 import { daysUntil } from '@/lib/date'
+import { isOpen } from '@/lib/status'
 
 /** Items due within this horizon count toward "this week". */
 const WEEK_HORIZON_DAYS = 7
@@ -23,7 +24,7 @@ const byDue = (a: Assessment, b: Assessment) =>
 /** Split outstanding work into the buckets Today cares about. Anything done, or
  * due beyond the week horizon, is intentionally left off this screen. */
 export function groupDue(assessments: Assessment[]): DueGroups {
-  const outstanding = assessments.filter((a) => !a.done)
+  const outstanding = assessments.filter((a) => isOpen(a.status))
 
   const overdue = outstanding.filter((a) => daysUntil(a.due) < 0).sort(byDue)
   const thisWeek = outstanding
