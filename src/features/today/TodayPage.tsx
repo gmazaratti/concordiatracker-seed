@@ -46,29 +46,34 @@ export function TodayPage() {
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6">
-      <header className="mb-6">
+    <div className="mx-auto w-full max-w-5xl px-5 py-7 sm:px-6">
+      <header className="mb-4">
         <p className="text-[12px] text-subtle">{TODAY_LABEL.format(new Date())}</p>
-        <h1 className="mt-1 font-display text-[28px] leading-tight font-medium text-fg">
+        <h1 className="mt-0.5 font-display text-[28px] leading-tight font-medium text-fg">
           {greeting()}, {firstName}
         </h1>
       </header>
 
-      <div className="space-y-5">
-        <GlanceStrip
-          gpa={gpa}
-          itemsLeft={groups.count}
-          nextUp={groups.nextUp}
-          nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
-        />
-        {showPain && <PainNudge count={groups.count} />}
-        <DueList
-          groups={groups}
-          completed={completed}
-          courseById={courseById}
-          onComplete={complete}
-          onUndo={undo}
-        />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <main className="order-2 min-w-0 flex-1 lg:order-1">
+          <DueList
+            groups={groups}
+            completed={completed}
+            courseById={courseById}
+            onComplete={complete}
+            onUndo={undo}
+          />
+        </main>
+
+        <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[292px] lg:shrink-0">
+          <GlanceStrip
+            gpa={gpa}
+            itemsLeft={groups.count}
+            nextUp={groups.nextUp}
+            nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+          />
+          {showPain && <PainNudge count={groups.count} />}
+        </aside>
       </div>
     </div>
   )
