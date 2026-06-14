@@ -164,11 +164,25 @@ If cutting a corner that would make this hard to build on, **flag it**.
   "use Fraunces sparingly — never body/UI labels."
 - **2026-06-14** — Mobile nav = bottom bar with the 4 destinations **+** a Search
   item that opens the palette as a bottom sheet (the "bottom search bar on mobile").
-- **2026-06-14** — `currentUser.plan` starts `'free'` (in `src/data/mock.ts`) so
-  the free-vs-paid line + paywall nudge are demonstrable. **Open question for
-  Settings/billing:** spec says Settings shows the semester pass as active —
-  decide then whether to flip the user to `'semester'` or show an upgrade state.
+- **2026-06-14** — `plan` starts `'free'` so the free-vs-paid line + paywall nudge
+  are demonstrable. A **dev-only segmented toggle** (Free | Semester) lives in the
+  avatar menu, wired to `AppDataProvider.setPlan`, so BOTH monetization states are
+  demonstrable without a backend. `'free'` shows paywall nudges; `'semester'` will
+  show the active pass in Settings (step 7). Resets to `'free'` on reload.
+- **2026-06-14** — Data layer: domain types (`Provenance`, `Assessment`, `Course`)
+  in `src/data/types.ts`; the single mock module `src/data/mock.ts` seeds 5 courses
+  + assessments with dates **relative to the runtime clock** (`daysFromNow`) so the
+  overdue/this-week story is always true. `AppDataProvider` clones the seed and owns
+  `toggleDone` + `setPlan` (in-memory). Helpers: `lib/date.ts` (relative due labels),
+  `lib/gpa.ts` (Concordia 4.30 scale, weighted course % + credit-weighted GPA).
 - **2026-06-14** — Step 1 shipped: tokens + 2 themes, 3-context routing, sidebar
   (4 dests), command palette (Ctrl/Cmd+K, kbd nav, focus trap, Esc, mobile sheet),
   avatar menu (Settings/Teacher/Marketing/theme), placeholder pages. Build + lint
   clean; browser-verified.
+- **2026-06-14** — Step 2 (Today) shipped. Three zones only: a compact GlanceStrip
+  (GPA / due-this-week / next upcoming deadline), an optional pain-moment `PainNudge`
+  (shown ONLY when `plan==='free'` AND ≥5 items active → links to the Courses GPA
+  predictor), and the scannable `DueList` centerpiece (Overdue + This week, grouped,
+  working check-off → "Completed today" disclosure with undo, polished "All caught
+  up" empty state). `ProvenanceBadge` is a reusable first-class component. Build +
+  lint clean; browser-verified (check-off, plan toggle, themes, mobile).

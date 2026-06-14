@@ -7,7 +7,8 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react'
-import { currentUser } from '@/data/mock'
+import { useAppData } from '@/app/providers/app-data'
+import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
 
@@ -23,6 +24,7 @@ export function AvatarMenu({
   align?: 'bottom' | 'top'
   compact?: boolean
 }) {
+  const { user, plan, setPlan } = useAppData()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -56,15 +58,15 @@ export function AvatarMenu({
         )}
       >
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-          {currentUser.initials}
+          {user.initials}
         </span>
         {!compact && (
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] font-medium text-fg">
-              {currentUser.name}
+              {user.name}
             </span>
             <span className="block truncate text-[11px] text-subtle">
-              {currentUser.plan === 'free' ? 'Free plan' : 'Semester pass'}
+              {plan === 'free' ? 'Free plan' : 'Semester pass'}
             </span>
           </span>
         )}
@@ -94,6 +96,16 @@ export function AvatarMenu({
             <ThemeSwitcher />
           </div>
 
+          <div className="my-1.5 px-1">
+            <p className="flex items-center gap-1.5 px-1 pb-1 text-[11px] text-subtle">
+              Demo plan
+              <span className="rounded bg-surface-2 px-1 py-0.5 text-[9px] font-medium tracking-wide text-subtle uppercase">
+                Dev
+              </span>
+            </p>
+            <PlanToggle plan={plan} onChange={setPlan} />
+          </div>
+
           <button
             type="button"
             role="menuitem"
@@ -106,6 +118,49 @@ export function AvatarMenu({
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+const PLAN_OPTIONS: { value: Plan; label: string }[] = [
+  { value: 'free', label: 'Free' },
+  { value: 'semester', label: 'Semester' },
+]
+
+/** Dev-only segmented control to demo both monetization states without a backend. */
+function PlanToggle({
+  plan,
+  onChange,
+}: {
+  plan: Plan
+  onChange: (plan: Plan) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Demo plan"
+      className="flex gap-1 rounded-lg bg-surface-2 p-1"
+    >
+      {PLAN_OPTIONS.map((opt) => {
+        const active = plan === opt.value
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'flex-1 rounded-md px-2 py-1 text-[12px] font-medium transition-colors duration-150',
+              active
+                ? 'bg-accent text-accent-contrast'
+                : 'text-muted hover:text-fg',
+            )}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

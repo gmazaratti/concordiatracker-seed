@@ -1,14 +1,14 @@
 import { ThemeProvider } from './ThemeProvider'
 import { CommandPaletteProvider } from './CommandPaletteProvider'
+import { AppDataProvider } from './AppDataProvider'
 
-/**
- * Single composition point for cross-cutting providers.
- * AppDataProvider (in-memory mock data) is added when screens need it.
- */
+/** Single composition point for cross-cutting providers. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <CommandPaletteProvider>{children}</CommandPaletteProvider>
+      <AppDataProvider>
+        <CommandPaletteProvider>{children}</CommandPaletteProvider>
+      </AppDataProvider>
     </ThemeProvider>
   )
 }
