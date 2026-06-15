@@ -19,6 +19,7 @@ export const QUICK_STATUSES: AssessmentStatus[] = ['done', 'late', 'missed']
 export const EDITOR_STATUSES: AssessmentStatus[] = [
   'not-started',
   'in-progress',
+  'extension',
   'done',
   'late',
   'missed',

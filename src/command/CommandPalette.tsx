@@ -3,7 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useCommandPalette } from '@/app/providers/command-palette'
 import { useTheme } from '@/app/providers/theme'
-import { matchCommands, type Command } from './commands'
+import { useAppData } from '@/app/providers/app-data'
+import { useQuickActions } from '@/app/providers/quick-actions'
+import { CourseChip } from '@/components/CourseChip'
+import {
+  dynamicCommands,
+  matchCommands,
+  STATIC_COMMANDS,
+  type Command,
+} from './commands'
 
 const GROUP_ORDER = ['Navigate', 'Actions'] as const
 
@@ -18,14 +26,30 @@ function CommandPaletteDialog() {
   const { closePalette } = useCommandPalette()
   const navigate = useNavigate()
   const { toggleTheme } = useTheme()
+  const { courses, assessments } = useAppData()
+  const { openAssessment, openCourse } = useQuickActions()
 
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const restoreRef = useRef<Element | null>(null)
 
-  const results = useMemo(() => matchCommands(query), [query])
+  const commands = useMemo(
+    () => [...STATIC_COMMANDS, ...dynamicCommands(courses, assessments)],
+    [courses, assessments],
+  )
+  const results = useMemo(
+    () => matchCommands(query, commands),
+    [query, commands],
+  )
   const activeIndex = results.length ? Math.min(active, results.length - 1) : 0
+
+  /** Autofill: rewrite the query and re-home the selection at the top. */
+  function fillQuery(text: string) {
+    setQuery(text)
+    setActive(0)
+    inputRef.current?.focus()
+  }
 
   // Focus the input on open; restore focus + unlock scroll on close.
   useEffect(() => {
@@ -40,7 +64,14 @@ function CommandPaletteDialog() {
   }, [])
 
   function run(cmd: Command | undefined) {
-    cmd?.perform({ navigate, close: closePalette, toggleTheme })
+    cmd?.perform({
+      navigate,
+      close: closePalette,
+      toggleTheme,
+      setQuery: fillQuery,
+      openAssessment,
+      openCourse,
+    })
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -98,7 +129,7 @@ function CommandPaletteDialog() {
             aria-activedescendant={
               results[activeIndex] ? `cmd-${results[activeIndex].id}` : undefined
             }
-            placeholder="Search or jump to…  (try “Import blueprint”)"
+            placeholder="Search or jump to…  (try “Change grade for…”)"
             className="w-full bg-transparent py-4 text-[15px] text-fg outline-none placeholder:text-subtle"
           />
           <kbd className="hidden shrink-0 rounded border border-border bg-canvas px-1.5 py-0.5 text-[11px] text-muted sm:block">
@@ -178,7 +209,12 @@ function Row({
         className={active ? 'text-accent' : 'text-subtle'}
         aria-hidden
       />
-      <span className="flex-1 text-[14px] text-fg">{cmd.title}</span>
+      <span className="min-w-0 flex-1 truncate text-[14px] text-fg">
+        {cmd.title}
+      </span>
+      {cmd.badge && cmd.accentColor && (
+        <CourseChip code={cmd.badge} color={cmd.accentColor} />
+      )}
       {cmd.hint && <span className="text-[11px] text-subtle">{cmd.hint}</span>}
     </button>
   )

@@ -84,6 +84,12 @@ export interface Assessment {
   notes: string
 }
 
+/** A teaching contact — instructor or TA. Editable inline on the course detail. */
+export interface Contact {
+  name: string
+  email: string
+}
+
 export interface Course {
   id: string
   code: string
@@ -93,4 +99,15 @@ export interface Course {
   /** Class accent color — an id into `COURSE_COLORS` (lib/course-color). Editable
    * in-session, the Google-Classroom-style per-class color. */
   color: string
+  /** Logistics shown (and inline-editable) in the course-detail side panel. */
+  section: string
+  instructor: Contact
+  /** Some classes list no TA — then this is null. */
+  ta: Contact | null
+  /** Building + room, e.g. "MB 3.430". */
+  location: string
+  /** Meeting schedule, e.g. "Mon · Wed 10:15–11:30". */
+  meetingTimes: string
+  /** Syllabus link (mock — an external URL the student pasted). */
+  syllabusUrl: string
 }

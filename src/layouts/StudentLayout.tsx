@@ -4,11 +4,12 @@ import { MobileNav } from '@/components/MobileNav'
 import { Logo } from '@/components/Logo'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
+import { QuickActionLayer } from '@/command/QuickActionLayer'
 
 /** Chrome for the authenticated student app context. */
 export function StudentLayout() {
   return (
-    <div className="flex min-h-svh">
+    <div className="flex h-svh overflow-hidden">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -25,6 +26,7 @@ export function StudentLayout() {
 
       <MobileNav />
       <CommandPalette />
+      <QuickActionLayer />
     </div>
   )
 }

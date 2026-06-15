@@ -265,3 +265,42 @@ If cutting a corner that would make this hard to build on, **flag it**.
   visible, though the seed has none). Build + lint clean; browser-verified: grid/list +
   sticky toggle, recolor propagation + persistence, smart field live-resolve, stage →
   Save recomputes standing (92%→85% A) + GPA (3.68→3.61), mobile wrap, maroon theme.
+- **2026-06-14** — **Course-detail panel rework** (user ask: a real left meta panel,
+  not a cramped rail). Course detail is now `aside` (LEFT, `lg:w-[300px] lg:shrink-0`,
+  aside-first DOM so it stacks on top on mobile) + `min-w-0 flex-1` main with the
+  `AssessmentTable`. The aside holds: `CourseInfoPanel` (accent-themed, collapsible on
+  mobile via a chevron header — inline-editable instructor/TA/section/meets/location/
+  credits/syllabus through the new click-to-edit `EditableField` primitive, "+ Add a
+  TA" affordance when none), `GradeBreakdown` (groups assessments by kind → weight /
+  graded-weight / average, course-hex bars), then `GradeNeeded` (FREE) + `PaywallLock`(
+  `GpaWhatIf`, PAID). Provider gained `updateCourse(id, patch)` for the inline edits;
+  mock courses seeded with full logistics (instructor/ta/email/section/meetingTimes/
+  location/syllabusUrl). `EDITOR_STATUSES` gained `extension`. Deleted `CourseStanding`
+  (replaced by `GradeBreakdown`).
+- **2026-06-14** — **Sidebar lock fix** (user: "the sidebar shouldn't ever have to be
+  scrolled on"). `StudentLayout` outer wrap `min-h-svh` → `h-svh overflow-hidden`, so
+  the rail is bounded to the viewport and `main`'s `overflow-y-auto` is the only scroll
+  region — the avatar/plan footer stays pinned. Verified: at 1280×600 the document is
+  not scrollable, aside height = 600, main scrolls (746>600), profile pinned at bottom.
+- **2026-06-14** — **Command palette → autofill + quick-action popups + undo** (the big
+  user ask). The palette is now a real typeahead nav spine: (1) **Generic verbs** that
+  autofill the query instead of navigating — "Change grade for…" fills `"Change grade
+  for "`, "Open a class…" fills `"Open "` (`fill(text) = ctx.setQuery(text)`, keeps the
+  palette open + re-homes selection). (2) **Dynamic commands** (`dynamicCommands(courses,
+  assessments)`): one per course (`Open ${code} — ${title}`, badge=code, accentColor=
+  course color) + one per assessment (`Change grade for ${title}`, course code/title in
+  keywords). A token-AND matcher means typing "Change grade for Assignment 1" surfaces
+  every Assignment-1-ish item across courses, each tagged with its **`CourseChip`** (the
+  new shared fixed-hex chip) to disambiguate — exactly the requested "see both until you
+  pick one" behavior. Dynamic commands are hidden when the query is empty. (3) **Enter/
+  click → a focused popup**, not a full navigation: a new app-level `QuickActionsProvider`
+  +`QuickActionLayer` (mounted in `StudentLayout` so popups outlive the palette) renders
+  `AssessmentDetailModal` (status + smart-grade editor, live letter preview, Save → commit)
+  or `CourseDetailModal` (class glance: gradient banner, standing, logistics, Open-course
+  CTA), built on a shared `ModalShell` (backdrop blur, Esc, Tab focus trap, scroll lock,
+  focus restore). (4) **Gmail-style undo**: saving an assessment edit `flashUndo(label,
+  revert)` → a transient `UndoToast` (6s auto-dismiss, keyed remount per flash) whose Undo
+  restores the prior status+grade. Build + lint clean; browser-verified in BOTH themes:
+  sidebar lock, "Change grade for" multi-match with chips, edit→Save→undo restores 70→95,
+  "Open a class…"→course popup→Open course navigates, course chip stays its fixed identity
+  hex under maroon (accent token follows the theme to gold).

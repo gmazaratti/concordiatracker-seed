@@ -3,7 +3,8 @@ import { useAppData } from '@/app/providers/app-data'
 import { hist203Syllabus } from '@/data/mock'
 import { courseStanding } from '@/lib/gpa'
 import { CourseHeader } from './CourseHeader'
-import { CourseStandingPanel } from './CourseStanding'
+import { CourseInfoPanel } from './CourseInfoPanel'
+import { GradeBreakdown } from './GradeBreakdown'
 import { AssessmentTable } from './AssessmentTable'
 import { GradeNeeded } from './GradeNeeded'
 import { GpaWhatIf } from './GpaWhatIf'
@@ -11,8 +12,9 @@ import { PaywallLock } from './Paywall'
 import { SyllabusParseReveal } from './SyllabusParseReveal'
 
 /** Course detail — the grade workspace. An empty course leads with the syllabus
- * parse-reveal (the hero); a populated one is the two-column editor + calculator
- * rail (standing, grade-needed FREE, GPA what-if PAID), in Today's layout language. */
+ * parse-reveal (the hero); a populated one is a two-column editor: a LEFT panel
+ * (class details + grade breakdown + grade-needed FREE + GPA what-if PAID) beside
+ * the assignment list, stacked on mobile in Today's layout language. */
 export function CourseDetailPage() {
   const { courseId } = useParams()
   const { plan, courses, assessments, courseById, addAssessments } = useAppData()
@@ -41,12 +43,12 @@ export function CourseDetailPage() {
         )
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <main className="order-2 min-w-0 flex-1 lg:order-1">
-            <AssessmentTable assessments={courseAssessments} />
-          </main>
-
-          <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[280px] lg:shrink-0">
-            <CourseStandingPanel standing={standing} />
+          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+            <CourseInfoPanel
+              course={course}
+              totalAssessments={courseAssessments.length}
+            />
+            <GradeBreakdown assessments={courseAssessments} color={course.color} />
             <GradeNeeded assessments={courseAssessments} />
             <PaywallLock locked={plan === 'free'} feature="GPA prediction">
               <GpaWhatIf
@@ -56,6 +58,10 @@ export function CourseDetailPage() {
               />
             </PaywallLock>
           </aside>
+
+          <main className="min-w-0 flex-1">
+            <AssessmentTable assessments={courseAssessments} />
+          </main>
         </div>
       )}
     </div>

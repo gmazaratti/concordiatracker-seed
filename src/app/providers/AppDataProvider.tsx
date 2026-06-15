@@ -47,6 +47,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
+  const updateCourse = useCallback((id: string, patch: Partial<Course>) => {
+    setCourses((list) =>
+      list.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    )
+  }, [])
+
   const courseById = useCallback(
     (id: string): Course | undefined => courses.find((c) => c.id === id),
     [courses],
@@ -64,6 +70,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setNotes,
       addAssessments,
       setCourseColor,
+      updateCourse,
       courseById,
       coursesView,
       setCoursesView,
@@ -77,6 +84,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setNotes,
       addAssessments,
       setCourseColor,
+      updateCourse,
       courseById,
       coursesView,
     ],

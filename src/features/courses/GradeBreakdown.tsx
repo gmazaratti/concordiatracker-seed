@@ -1,0 +1,120 @@
+import type { Assessment, AssessmentKind } from '@/data/types'
+import { Card } from '@/components/ui/Card'
+import { KIND_LABEL } from '@/lib/assessment'
+import { gradeToPercent } from '@/lib/grade'
+import { courseStanding } from '@/lib/gpa'
+import { courseColor } from '@/lib/course-color'
+
+interface CategoryRow {
+  kind: AssessmentKind
+  weight: number
+  gradedWeight: number
+  /** Weighted average % over the category's graded work, or null. */
+  average: number | null
+}
+
+function breakdown(assessments: Assessment[]): CategoryRow[] {
+  const map = new Map<AssessmentKind, { weight: number; gw: number; pts: number }>()
+  for (const a of assessments) {
+    const acc = map.get(a.kind) ?? { weight: 0, gw: 0, pts: 0 }
+    acc.weight += a.weight
+    const pct = gradeToPercent(a.grade)
+    if (pct !== null) {
+      acc.gw += a.weight
+      acc.pts += (pct * a.weight) / 100
+    }
+    map.set(a.kind, acc)
+  }
+  return [...map.entries()]
+    .map(([kind, v]) => ({
+      kind,
+      weight: v.weight,
+      gradedWeight: v.gw,
+      average: v.gw === 0 ? null : (v.pts / v.gw) * 100,
+    }))
+    .sort((a, b) => b.weight - a.weight)
+}
+
+/** Course-detail LEFT panel: the grade's composition — every category by weight
+ * (with its graded average so far), over a graded-vs-remaining summary. Replaces
+ * the bare standing card; accent-tinted to the class color. */
+export function GradeBreakdown({
+  assessments,
+  color,
+}: {
+  assessments: Assessment[]
+  color: string
+}) {
+  const rows = breakdown(assessments)
+  const standing = courseStanding(assessments)
+  const { hex } = courseColor(color)
+  const gradedPct =
+    standing.totalWeight === 0
+      ? 0
+      : (standing.gradedWeight / standing.totalWeight) * 100
+
+  return (
+    <Card className="overflow-hidden">
+      <p className="border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+        Grade breakdown
+      </p>
+
+      <div className="px-3.5 py-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[12px] text-subtle">Graded so far</span>
+          <span className="text-[12px] font-medium text-fg">
+            {Math.round(gradedPct)}% of the grade
+          </span>
+        </div>
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <div
+            className="h-full rounded-full transition-[width] duration-200"
+            style={{ width: `${gradedPct}%`, backgroundColor: hex }}
+          />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+          <div className="rounded-lg bg-surface-2 px-2 py-2">
+            <div className="text-[15px] font-semibold text-fg">
+              {standing.gradedWeight}%
+            </div>
+            <div className="text-[11px] text-subtle">locked in</div>
+          </div>
+          <div className="rounded-lg bg-surface-2 px-2 py-2">
+            <div className="text-[15px] font-semibold text-fg">
+              {standing.remainingWeight}%
+            </div>
+            <div className="text-[11px] text-subtle">still to play for</div>
+          </div>
+        </div>
+      </div>
+
+      <ul className="border-t border-border">
+        {rows.map((r) => (
+          <li
+            key={r.kind}
+            className="flex items-center justify-between gap-3 border-b border-border/60 px-3.5 py-2 last:border-b-0"
+          >
+            <span className="flex items-center gap-2 text-[13px] text-fg">
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: hex }}
+                aria-hidden
+              />
+              {KIND_LABEL[r.kind]}
+            </span>
+            <span className="flex items-center gap-2 text-[12px] tabular-nums">
+              {r.average !== null && (
+                <span className="font-medium text-muted">
+                  {Math.round(r.average)}%
+                </span>
+              )}
+              <span className="w-9 text-right font-semibold text-fg">
+                {r.weight}%
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}

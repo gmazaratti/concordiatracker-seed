@@ -28,6 +28,8 @@ export interface AppDataContextValue {
   addAssessments: (items: Assessment[]) => void
   /** Recolor a class (the Google-Classroom per-class color). In-memory. */
   setCourseColor: (id: string, color: string) => void
+  /** Inline-edit a course's logistics (instructor, TA, location, credits…). */
+  updateCourse: (id: string, patch: Partial<Course>) => void
   courseById: (id: string) => Course | undefined
   /** Courses-list layout preference — sticky across SPA nav, resets on reload. */
   coursesView: CoursesView
