@@ -40,6 +40,11 @@ export function TodayPage() {
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
   }
+  // An open status (in-progress / extension) annotates the item without
+  // resolving it — it stays on the due list, so it never enters resolvedIds.
+  function changeStatus(id: string, status: AssessmentStatus) {
+    setStatus(id, status)
+  }
   function undo(id: string) {
     setResolvedIds((prev) => prev.filter((x) => x !== id))
     setStatus(id, 'not-started')
@@ -65,6 +70,7 @@ export function TodayPage() {
             completed={completed}
             courseById={courseById}
             onResolve={resolve}
+            onSetStatus={changeStatus}
             onUndo={undo}
           />
         </main>

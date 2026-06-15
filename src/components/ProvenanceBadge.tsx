@@ -31,9 +31,13 @@ const META: Record<
 export function ProvenanceBadge({
   provenance,
   className,
+  tone = 'color',
 }: {
   provenance: Provenance
   className?: string
+  /** 'color' tints the label its status color; 'quiet' keeps the colored dot
+   * but neutralizes the label so dense rows don't turn into a rainbow. */
+  tone?: 'color' | 'quiet'
 }) {
   const meta = META[provenance.status]
   const count =
@@ -45,7 +49,7 @@ export function ProvenanceBadge({
       title={meta.tip}
       className={cn(
         'inline-flex items-center gap-1.5 text-[11px] font-medium',
-        meta.text,
+        tone === 'quiet' ? 'text-subtle' : meta.text,
         className,
       )}
     >

@@ -13,17 +13,18 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  /* surfaces (near-black with a faint cool cast, deliberately off slate-900) */
-  --ct-canvas: #0b0b11;
-  --ct-surface: #14141f;
-  --ct-surface-2: #1c1c2b;
-  --ct-border: #262635;
-  --ct-border-strong: #353548;
+  /* surfaces — dark grey with a faint cool cast (lifted off pure black to ease
+   * eye strain; still deliberately off slate-900) */
+  --ct-canvas: #0f0f16;
+  --ct-surface: #191926;
+  --ct-surface-2: #222231;
+  --ct-border: #2c2c3d;
+  --ct-border-strong: #3b3b50;
 
-  /* text */
+  /* text — subtle is tuned to clear WCAG AA (4.5:1) on the surfaces above */
   --ct-fg: #f4f3f7;
-  --ct-muted: #a8a6b8;
-  --ct-subtle: #726f86;
+  --ct-muted: #b2b0c2;
+  --ct-subtle: #8b8898;
 
   /* accent — warm amber/gold (off the violet cliché) */
   --ct-accent: #f3b84e;
@@ -55,15 +56,15 @@
 [data-theme='maroon'] {
   color-scheme: dark;
 
-  --ct-canvas: #150a0e;
-  --ct-surface: #20121a; /* lighter maroon-tinted surface for contrast on near-black */
-  --ct-surface-2: #2c1722;
-  --ct-border: #3a212c;
-  --ct-border-strong: #4f2f3a;
+  --ct-canvas: #1a0d12;
+  --ct-surface: #261620; /* maroon-tinted surface, lifted off near-black for less strain */
+  --ct-surface-2: #321b28;
+  --ct-border: #422530;
+  --ct-border-strong: #56333f;
 
   --ct-fg: #f8f0f1;
-  --ct-muted: #cdaab2;
-  --ct-subtle: #9a7882;
+  --ct-muted: #d3b2ba;
+  --ct-subtle: #b08d97; /* tuned to clear WCAG AA on the maroon surfaces */
 
   --ct-accent: #e8b84b;
   --ct-accent-hover: #f1c869;

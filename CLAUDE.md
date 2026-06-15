@@ -304,3 +304,31 @@ If cutting a corner that would make this hard to build on, **flag it**.
   sidebar lock, "Change grade for" multi-match with chips, edit→Save→undo restores 70→95,
   "Open a class…"→course popup→Open course navigates, course chip stays its fixed identity
   hex under maroon (accent token follows the theme to gold).
+- **2026-06-14** — **Today readability + per-row declutter** (user: rows showed too much
+  at equal weight; "the class tag names aren't color coded, and the colors on the text add
+  to the cluttered feel"; raise contrast / WCAG AA; make the due list primary and the rail
+  secondary — *without* changing the layout or removing information). Four moves: (1)
+  **Readability tokens lifted** (`index.css`, both themes) — base off pure-black to a dark
+  grey to cut eye strain (dark `--ct-canvas #0f0f16` / `--ct-surface #191926`; maroon
+  `#1a0d12` / `#261620`), and `--ct-subtle` raised to **WCAG-AA body contrast** (dark
+  `#8b8898` ≈ 5.0:1 on surface; maroon `#b08d97` ≈ 5.8:1). These are shared tokens → every
+  page benefits. (2) **Two-tier `DueRow`**: the **title** + **due label** are primary
+  (`text-fg`, due colored only when urgent — danger overdue / warning today, else `text-fg`);
+  the course chip, kind·weight, and provenance recede to one quiet `text-subtle` secondary
+  line. The single intended color signal is the **color-coded `CourseChip`** (fixed identity
+  hex, same across themes); provenance switches to a new `ProvenanceBadge tone="quiet"` (keeps
+  the colored dot, neutralizes the label to subtle) so colored *text* no longer competes.
+  (3) **`…` menu does more** (`DueRowMenu`, rendered **inline** in normal flow — not an
+  absolute popover — so the list Card's `overflow-hidden` never crops it): all status changes
+  (in-progress / extension / done / late / missed) + **Edit details** (→ `openAssessment`
+  modal, which carries grade/notes/extension) + **Open in course**. The quick round check
+  stays on the row as the fast path to done. **No `delete`** — the data model has none and it
+  would be destructive on seed data (flagged to user). (4) **Rail recedes**: `GlanceStrip`
+  drops the solid `Card` for a semi-transparent `bg-surface/50` + `border-border/60` panel so
+  the solid due list reads as primary. `CompletedRow` now uses the same `CourseChip`. Row
+  separation stays light (subtle `divide-y`, no per-item cards); an Overdue→This-week group
+  divider was added. `TodayPage` gained `changeStatus` (open-status annotation that stays on
+  the list, vs `resolve` which lifts to Completed). Build + lint clean; browser-verified in
+  BOTH themes + mobile: AA contrast, color chips (rose/gold/teal/blue/purple per class) fixed
+  under maroon, quiet provenance dots, the enriched inline menu, check-off reward → "Completed
+  today · 1" with chip + Undo, live "1 done · 7 to go" progress, recessed rail.

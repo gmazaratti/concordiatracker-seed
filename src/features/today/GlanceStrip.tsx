@@ -1,5 +1,4 @@
 import type { Assessment, Course } from '@/data/types'
-import { Card } from '@/components/ui/Card'
 import { relativeDueLabel, termProgress } from '@/lib/date'
 import { cn } from '@/lib/cn'
 
@@ -24,12 +23,12 @@ export function GlanceStrip(data: GlanceData) {
   const todayPercent = totalToday === 0 ? 100 : (data.doneToday / totalToday) * 100
 
   return (
-    <Card className="overflow-hidden">
-      <p className="border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-surface/50">
+      <p className="border-b border-border/60 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         At a glance
       </p>
 
-      <div className="space-y-3 border-b border-border px-3.5 py-3">
+      <div className="space-y-3 border-b border-border/60 px-3.5 py-3">
         <Progress
           label={data.term.name}
           value={`Week ${week} of ${totalWeeks}`}
@@ -43,7 +42,7 @@ export function GlanceStrip(data: GlanceData) {
         />
       </div>
 
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border/60">
         <Row label="Current GPA" value={data.gpa === null ? '—' : data.gpa.toFixed(2)} hint="/ 4.30" />
         <Row label="Overdue" value={String(data.overdue)} danger={data.overdue > 0} />
         <Row label="Due this week" value={String(data.itemsLeft)} />
@@ -62,7 +61,7 @@ export function GlanceStrip(data: GlanceData) {
           sub={`${data.credits} credits`}
         />
       </div>
-    </Card>
+    </div>
   )
 }
 

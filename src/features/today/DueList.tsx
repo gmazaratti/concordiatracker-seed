@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown } from 'lucide-react'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/StatusBadge'
+import { CourseChip } from '@/components/CourseChip'
 import { cn } from '@/lib/cn'
 import { DueRow } from './DueRow'
 import type { DueGroups } from './due'
@@ -12,12 +13,14 @@ export function DueList({
   completed,
   courseById,
   onResolve,
+  onSetStatus,
   onUndo,
 }: {
   groups: DueGroups
   completed: Assessment[]
   courseById: (id: string) => Course | undefined
   onResolve: (id: string, status: AssessmentStatus) => void
+  onSetStatus: (id: string, status: AssessmentStatus) => void
   onUndo: (id: string) => void
 }) {
   return (
@@ -45,18 +48,24 @@ export function DueList({
                   assessment={a}
                   course={courseById(a.courseId)}
                   onResolve={(status) => onResolve(a.id, status)}
+                  onSetStatus={(status) => onSetStatus(a.id, status)}
                 />
               ))}
             </Section>
           )}
           {groups.thisWeek.length > 0 && (
-            <Section label="This week" tone="muted">
+            <Section
+              label="This week"
+              tone="muted"
+              divider={groups.overdue.length > 0}
+            >
               {groups.thisWeek.map((a) => (
                 <DueRow
                   key={a.id}
                   assessment={a}
                   course={courseById(a.courseId)}
                   onResolve={(status) => onResolve(a.id, status)}
+                  onSetStatus={(status) => onSetStatus(a.id, status)}
                 />
               ))}
             </Section>
@@ -78,23 +87,25 @@ export function DueList({
 function Section({
   label,
   tone,
+  divider = false,
   children,
 }: {
   label: string
   tone: 'danger' | 'muted'
+  divider?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section>
+    <section className={cn(divider && 'border-t border-border')}>
       <p
         className={cn(
-          'px-4 pt-3 pb-1 text-[11px] font-medium tracking-wide uppercase',
+          'px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide uppercase',
           tone === 'danger' ? 'text-danger' : 'text-subtle',
         )}
       >
         {label}
       </p>
-      <ul className="divide-y divide-border/60">{children}</ul>
+      <ul className="divide-y divide-border">{children}</ul>
     </section>
   )
 }
@@ -171,12 +182,10 @@ function CompletedRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <StatusBadge status={assessment.status} />
-          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
-            {course?.code ?? '—'}
-          </span>
+          {course && <CourseChip code={course.code} color={course.color} />}
           <span
             className={cn(
-              'truncate text-[13px] text-subtle',
+              'truncate text-[13px] text-muted',
               assessment.status === 'done' && 'line-through',
             )}
           >

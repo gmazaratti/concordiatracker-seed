@@ -1,41 +1,55 @@
 import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, MoreHorizontal } from 'lucide-react'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
+import { useQuickActions } from '@/app/providers/quick-actions'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
-import { QUICK_STATUSES, STATUS_META } from '@/lib/status'
+import { CourseChip } from '@/components/CourseChip'
+import { isOpen, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { DueRowMenu } from './DueRowMenu'
 
-/** Due labels lean on color only as reinforcement — the text says it too. */
+/** Due labels lean on color only as urgency reinforcement — the text says it too,
+ * and everything that isn't urgent stays neutral so the row reads calm. */
 function dueTone(due: string): string {
   const days = daysUntil(due)
   if (days < 0) return 'text-danger'
   if (days === 0) return 'text-warning'
-  return 'text-muted'
+  return 'text-fg'
 }
 
 /** An active (still-open) item. The round check is the fast path to "done"; the
- * overflow control reveals the other quick statuses (late / missed). Picking any
- * one plays a brief reward, then `onResolve` lifts the row into Completed today. */
+ * "…" menu holds everything else (other statuses, the full editor, the course
+ * link) so the row surface stays a clean title + due line. A terminal status
+ * plays a brief reward, then `onResolve` lifts the row into Completed today; an
+ * open status (in-progress / extension) just annotates it in place. */
 export function DueRow({
   assessment,
   course,
   onResolve,
+  onSetStatus,
 }: {
   assessment: Assessment
   course: Course | undefined
   onResolve: (status: AssessmentStatus) => void
+  onSetStatus: (status: AssessmentStatus) => void
 }) {
+  const navigate = useNavigate()
+  const { openAssessment } = useQuickActions()
   const [resolving, setResolving] = useState<AssessmentStatus | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const fired = useRef(false)
-  const heavy = assessment.kind === 'midterm' || assessment.kind === 'final'
 
   function pick(status: AssessmentStatus) {
     if (resolving) return
     setMenuOpen(false)
-    setResolving(status)
+    if (isOpen(status)) {
+      onSetStatus(status)
+    } else {
+      setResolving(status)
+    }
   }
 
   function handleAnimationEnd() {
@@ -49,7 +63,7 @@ export function DueRow({
   return (
     <li
       className={cn(
-        'group relative px-3 py-3',
+        'group relative px-3 py-2.5',
         resolving && 'ct-animate-complete pointer-events-none',
       )}
       onAnimationEnd={resolving ? handleAnimationEnd : undefined}
@@ -76,27 +90,21 @@ export function DueRow({
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
-              {course?.code ?? '—'}
-            </span>
-            <span
-              className={cn('truncate text-[14px] text-fg', heavy && 'font-medium')}
-            >
-              {assessment.title}
-            </span>
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-subtle">
+          <p className="truncate text-[14px] font-medium text-fg">
+            {assessment.title}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-subtle">
+            {course && <CourseChip code={course.code} color={course.color} />}
             <span>
-              {KIND_LABEL[assessment.kind]} · {assessment.weight}% of grade
+              {KIND_LABEL[assessment.kind]} · {assessment.weight}%
             </span>
-            <ProvenanceBadge provenance={assessment.provenance} />
+            <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
           </div>
         </div>
 
         <span
           className={cn(
-            'shrink-0 pt-0.5 text-[12px] font-medium',
+            'shrink-0 pt-px text-[13px] font-semibold',
             dueTone(assessment.due),
           )}
         >
@@ -108,8 +116,8 @@ export function DueRow({
           onClick={() => setMenuOpen((o) => !o)}
           disabled={!!resolving}
           aria-expanded={menuOpen}
-          aria-label={`Set status for "${assessment.title}"`}
-          title="Set status"
+          aria-label={`More actions for "${assessment.title}"`}
+          title="More actions"
           className={cn(
             'mt-0.5 grid size-6 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg focus-visible:opacity-100',
             'opacity-60 group-hover:opacity-100',
@@ -121,26 +129,17 @@ export function DueRow({
       </div>
 
       {menuOpen && !resolving && (
-        <div className="ct-animate-fade mt-2 flex items-center gap-1.5 pl-8">
-          <span className="text-[11px] text-subtle">Mark as</span>
-          {QUICK_STATUSES.map((s) => {
-            const meta = STATUS_META[s]
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => pick(s)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
-              >
-                <span
-                  className={cn('size-1.5 rounded-full', meta.dot)}
-                  aria-hidden
-                />
-                {meta.label}
-              </button>
-            )
-          })}
-        </div>
+        <DueRowMenu
+          onPick={pick}
+          onEdit={() => {
+            setMenuOpen(false)
+            openAssessment(assessment.id)
+          }}
+          onOpenCourse={() => {
+            setMenuOpen(false)
+            navigate(`/app/courses/${assessment.courseId}`)
+          }}
+        />
       )}
     </li>
   )
