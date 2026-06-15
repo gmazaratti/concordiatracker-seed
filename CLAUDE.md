@@ -241,3 +241,27 @@ If cutting a corner that would make this hard to build on, **flag it**.
   list, editor (both grade modes, resolved letters, status, provenance, mobile wrap),
   grade-needed, what-if locked (free) → unlocked + live projection (semester), the
   parse-reveal empty→populated, maroon theme, and Today still intact.
+- **2026-06-14** — **Courses redesign → a Google-Classroom feel** (user feedback: the
+  first cut "felt bland"). Four changes: (1) **Color-coded classes** — `Course.color`
+  is an id into the new `lib/course-color.ts` palette (8 fixed hex swatches, NOT theme
+  tokens, so a class keeps its identity color across both themes like Classroom). The
+  course-detail `CourseHeader` is now a gradient **banner** carrying code/title in white
+  with a `CourseColorPicker` popover (recolors in-memory via `setCourseColor`; every
+  surface — grid card, list stripe, banner — recolors at once). (2) **List | Grid layout
+  toggle** on the Courses page: Grid = `CourseGridCard` (the Classroom card, colored
+  banner + standing), List = the dense `CourseCard` (now with a left color stripe).
+  Preference lives in the provider (`coursesView`, default `'grid'`) so it's **sticky
+  across SPA nav**, resets on reload. (3) **Smart grade field** replaces the `%`/`#`
+  toggle (`GradeInput` deleted): one text input where `15/20` resolves to `75%` live as
+  you type (`lib/grade.ts → parseGradeInput`/`gradeToInput` — a slash means raw, else
+  percent). (4) **Confirm-to-save** — `AssessmentRow` now **stages** status + grade
+  locally and writes to the store only on a ✓ Save button (✗ discards; Enter/Esc as
+  shortcuts; the row tints while dirty). Status picker trimmed to `EDITOR_STATUSES`
+  (not-started / in-progress / done / late / missed — "overdue" stays date-derived). A
+  **fixed-width kind column** aligns every title regardless of kind-label width (the
+  alignment bug). Note: the detail banner drops `overflow-hidden` so the color popover
+  isn't clipped (rounded corners still clip the gradient via `border-radius`). `Course`
+  gained `color`; `AssessmentStatus` gained `in-progress` (an "open" status → Today-
+  visible, though the seed has none). Build + lint clean; browser-verified: grid/list +
+  sticky toggle, recolor propagation + persistence, smart field live-resolve, stage →
+  Save recomputes standing (92%→85% A) + GPA (3.68→3.61), mobile wrap, maroon theme.

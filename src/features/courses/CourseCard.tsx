@@ -4,6 +4,7 @@ import type { Assessment, Course } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { courseStanding, percentToGrade } from '@/lib/gpa'
 import { relativeDueLabel } from '@/lib/date'
+import { courseColor } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
 import { courseStats } from './course-stats'
 
@@ -24,12 +25,18 @@ export function CourseCard({
     standing.totalWeight === 0
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
+  const { hex } = courseColor(course.color)
 
   return (
     <Link
       to={`/app/courses/${course.id}`}
-      className="group block rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
+      className="group relative block overflow-hidden rounded-xl border border-border bg-surface py-3.5 pr-4 pl-5 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
     >
+      <span
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: hex }}
+        aria-hidden
+      />
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -63,8 +70,8 @@ export function CourseCard({
         <div className="mt-3">
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-2 group-hover:bg-surface">
             <div
-              className="h-full rounded-full bg-accent transition-[width] duration-200"
-              style={{ width: `${gradedPct}%` }}
+              className="h-full rounded-full transition-[width] duration-200"
+              style={{ width: `${gradedPct}%`, backgroundColor: hex }}
             />
           </div>
           <p className="mt-1 text-[11px] text-subtle">

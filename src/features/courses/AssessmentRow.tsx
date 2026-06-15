@@ -1,23 +1,14 @@
+import { useState } from 'react'
+import { Check, X } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { useAppData } from '@/app/providers/app-data'
-import { STATUS_META } from '@/lib/status'
+import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
-import { gradeToPercent } from '@/lib/grade'
+import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
-import { GradeInput } from './GradeInput'
-
-/** Order the status menu reads top-to-bottom — lifecycle, not alphabetical. */
-const STATUS_ORDER: AssessmentStatus[] = [
-  'not-started',
-  'awaiting-grade',
-  'done',
-  'late',
-  'extension',
-  'missed',
-]
 
 function dueTone(due: string): string {
   const days = daysUntil(due)
@@ -26,9 +17,12 @@ function dueTone(due: string): string {
   return 'text-subtle'
 }
 
-/** One row of the course grade editor. In the Grades tab it owns the full write
- * surface — status (all six), and a grade in either entry form; in the Notes tab
- * it's a free-form note. Every row carries its date's provenance, first-class. */
+/** One row of the course grade editor. In the Grades tab, status and grade are
+ * STAGED locally and committed together on the confirm button — nothing writes
+ * to the store until you save. The grade field is smart: "15/20" resolves to
+ * 75% live as you type. The Notes tab is a free-form note (writes live). Every
+ * row carries its date's provenance, first-class. A fixed-width kind column
+ * keeps every title aligned regardless of the kind label's length. */
 export function AssessmentRow({
   assessment,
   tab,
@@ -37,26 +31,49 @@ export function AssessmentRow({
   tab: 'grades' | 'notes'
 }) {
   const { setStatus, setGrade, setNotes } = useAppData()
-  const meta = STATUS_META[assessment.status]
-  const pct = gradeToPercent(assessment.grade)
-  const resolved = pct === null ? null : percentToGrade(pct)
+  const [draftStatus, setDraftStatus] = useState<AssessmentStatus>(assessment.status)
+  const [draftGrade, setDraftGrade] = useState(() => gradeToInput(assessment.grade))
+
+  const committedGradeText = gradeToInput(assessment.grade)
+  const parsedDraft = parseGradeInput(draftGrade)
+  const gradeDirty = gradeToInput(parsedDraft) !== committedGradeText
+  const statusDirty = draftStatus !== assessment.status
+  const dirty = gradeDirty || statusDirty
+
+  const draftPct = gradeToPercent(parsedDraft)
+  const resolved = draftPct === null ? null : percentToGrade(draftPct)
+  const statusMeta = STATUS_META[draftStatus]
+
+  function commit() {
+    if (statusDirty) setStatus(assessment.id, draftStatus)
+    if (gradeDirty) setGrade(assessment.id, parsedDraft)
+  }
+
+  function revert() {
+    setDraftStatus(assessment.status)
+    setDraftGrade(committedGradeText)
+  }
 
   return (
-    <div className="px-3.5 py-3">
+    <div className={cn('px-3.5 py-3 transition-colors duration-150', dirty && 'bg-accent-soft/40')}>
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5">
-        <div className="min-w-0 flex-1 basis-[200px]">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
+        <div className="flex min-w-0 flex-1 basis-[240px] items-start gap-3">
+          <div className="w-[76px] shrink-0 pt-0.5">
+            <span className="inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
               {KIND_LABEL[assessment.kind]}
             </span>
-            <span className="text-[14px] text-fg">{assessment.title}</span>
-            <span className="text-[12px] text-subtle">· {assessment.weight}%</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
-            <span className={cn('font-medium', dueTone(assessment.due))}>
-              {relativeDueLabel(assessment.due)}
-            </span>
-            <ProvenanceBadge provenance={assessment.provenance} />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-[14px] text-fg">{assessment.title}</span>
+              <span className="text-[12px] text-subtle">· {assessment.weight}%</span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
+              <span className={cn('font-medium', dueTone(assessment.due))}>
+                {relativeDueLabel(assessment.due)}
+              </span>
+              <ProvenanceBadge provenance={assessment.provenance} />
+            </div>
           </div>
         </div>
 
@@ -69,19 +86,17 @@ export function AssessmentRow({
               <span
                 className={cn(
                   'pointer-events-none absolute top-1/2 left-2.5 size-1.5 -translate-y-1/2 rounded-full',
-                  meta.dot,
+                  statusMeta.dot,
                 )}
                 aria-hidden
               />
               <select
                 id={`status-${assessment.id}`}
-                value={assessment.status}
-                onChange={(e) =>
-                  setStatus(assessment.id, e.target.value as AssessmentStatus)
-                }
+                value={draftStatus}
+                onChange={(e) => setDraftStatus(e.target.value as AssessmentStatus)}
                 className="appearance-none rounded-md border border-border-strong bg-surface-2 py-1 pr-6 pl-6 text-[12px] font-medium text-fg focus-visible:outline-none"
               >
-                {STATUS_ORDER.map((s) => (
+                {EDITOR_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {STATUS_META[s].label}
                   </option>
@@ -89,31 +104,70 @@ export function AssessmentRow({
               </select>
             </div>
 
-            <GradeInput
-              grade={assessment.grade}
-              onChange={(g) => setGrade(assessment.id, g)}
+            <input
+              type="text"
+              inputMode="decimal"
+              value={draftGrade}
+              placeholder="15/20 or 82"
+              aria-label={`Grade for ${assessment.title}`}
+              onChange={(e) => setDraftGrade(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && dirty) commit()
+                if (e.key === 'Escape' && dirty) revert()
+              }}
+              className="w-[104px] rounded-md border border-border-strong bg-surface-2 px-2 py-1 text-center text-[13px] font-medium text-fg tabular-nums focus-visible:outline-none"
             />
 
-            <span className="w-14 shrink-0 text-right text-[12px] font-medium tabular-nums">
+            <span className="w-12 shrink-0 text-right text-[12px] leading-tight font-medium tabular-nums">
               {resolved ? (
-                <span className="text-fg">
-                  {resolved.letter}
-                  <span className="text-subtle"> · {resolved.points.toFixed(1)}</span>
-                </span>
+                <>
+                  <span className="block text-fg">{Math.round(draftPct!)}%</span>
+                  <span className="block text-[10px] text-subtle">
+                    {resolved.letter} · {resolved.points.toFixed(1)}
+                  </span>
+                </>
               ) : (
                 <span className="text-subtle">—</span>
               )}
             </span>
+
+            <div className="flex w-[58px] shrink-0 items-center justify-end gap-1">
+              {dirty && (
+                <>
+                  <button
+                    type="button"
+                    onClick={revert}
+                    title="Discard changes"
+                    aria-label="Discard changes"
+                    className="grid size-7 place-items-center rounded-md border border-border-strong text-subtle transition-colors duration-150 hover:text-fg"
+                  >
+                    <X size={14} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={commit}
+                    title="Save changes"
+                    aria-label="Save changes"
+                    className="grid size-7 place-items-center rounded-md bg-accent text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
+                  >
+                    <Check size={15} aria-hidden />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         ) : (
           <span
             className={cn(
               'inline-flex items-center gap-1.5 text-[11px] font-medium',
-              meta.text,
+              STATUS_META[assessment.status].text,
             )}
           >
-            <span className={cn('size-1.5 rounded-full', meta.dot)} aria-hidden />
-            {meta.label}
+            <span
+              className={cn('size-1.5 rounded-full', STATUS_META[assessment.status].dot)}
+              aria-hidden
+            />
+            {STATUS_META[assessment.status].label}
           </span>
         )}
       </div>

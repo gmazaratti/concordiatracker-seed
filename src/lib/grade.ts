@@ -27,3 +27,35 @@ export function rawGrade(earned: number, total: number): Grade {
 export function percentGrade(percent: number): Grade {
   return { mode: 'percent', percent, earned: null, total: null }
 }
+
+/** Editable text for a grade — what the single smart field shows: "15 / 20" for a
+ * raw score, "82" for a percent, "" when ungraded. */
+export function gradeToInput(grade: Grade | null): string {
+  if (!grade) return ''
+  if (grade.mode === 'raw') {
+    if (grade.earned == null && grade.total == null) return ''
+    return `${grade.earned ?? ''} / ${grade.total ?? ''}`
+  }
+  return grade.percent == null ? '' : `${grade.percent}`
+}
+
+/** Parse what the student typed into the smart grade field. A slash means a raw
+ * score ("15/20" → 75%); anything else is a percent ("82" or "82%"). Returns
+ * null for empty (clears the grade) or unparseable input. */
+export function parseGradeInput(text: string): Grade | null {
+  const t = text.trim().replace(/%$/, '').trim()
+  if (t === '') return null
+
+  if (t.includes('/')) {
+    const [rawEarned, rawTotal] = t.split('/').map((s) => s.trim())
+    const earned = rawEarned === '' ? null : Number(rawEarned)
+    const total = rawTotal === '' ? null : Number(rawTotal)
+    if (earned !== null && !Number.isFinite(earned)) return null
+    if (total !== null && !Number.isFinite(total)) return null
+    if (earned === null && total === null) return null
+    return { mode: 'raw', earned, total, percent: null }
+  }
+
+  const n = Number(t)
+  return Number.isFinite(n) ? percentGrade(n) : null
+}

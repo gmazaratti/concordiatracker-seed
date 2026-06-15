@@ -27,13 +27,13 @@ export const term = {
 }
 
 export const courses: Course[] = [
-  { id: 'comm217', code: 'COMM 217', title: 'Financial Accounting', term: 'Summer 2026', credits: 3 },
-  { id: 'comp248', code: 'COMP 248', title: 'Object-Oriented Programming I', term: 'Summer 2026', credits: 3.5 },
-  { id: 'math205', code: 'MATH 205', title: 'Differential & Integral Calculus II', term: 'Summer 2026', credits: 3 },
-  { id: 'engl233', code: 'ENGL 233', title: 'Introduction to Fiction', term: 'Summer 2026', credits: 3 },
-  { id: 'poli202', code: 'POLI 202', title: 'Introduction to Political Science', term: 'Summer 2026', credits: 3 },
+  { id: 'comm217', code: 'COMM 217', title: 'Financial Accounting', term: 'Summer 2026', credits: 3, color: 'teal' },
+  { id: 'comp248', code: 'COMP 248', title: 'Object-Oriented Programming I', term: 'Summer 2026', credits: 3.5, color: 'blue' },
+  { id: 'math205', code: 'MATH 205', title: 'Differential & Integral Calculus II', term: 'Summer 2026', credits: 3, color: 'purple' },
+  { id: 'engl233', code: 'ENGL 233', title: 'Introduction to Fiction', term: 'Summer 2026', credits: 3, color: 'rose' },
+  { id: 'poli202', code: 'POLI 202', title: 'Introduction to Political Science', term: 'Summer 2026', credits: 3, color: 'amber' },
   // Freshly added, no dates yet — the home of the syllabus parse-reveal hero.
-  { id: 'hist203', code: 'HIST 203', title: 'Canada Since Confederation', term: 'Summer 2026', credits: 3 },
+  { id: 'hist203', code: 'HIST 203', title: 'Canada Since Confederation', term: 'Summer 2026', credits: 3, color: 'orange' },
 ]
 
 /** Seed assessments. The AppDataProvider clones this so editing status/grades in

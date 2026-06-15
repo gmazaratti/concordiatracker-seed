@@ -1,21 +1,25 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { LayoutGrid, Rows3, Upload } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
 import { coursePercent, currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
+import { cn } from '@/lib/cn'
 import { CourseCard } from './CourseCard'
+import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 
 const IMPORT_TARGET = 'hist203'
 
-/** Courses — the grade hub. A scannable list of course cards (main column) with
- * a term-standing rail, in the same two-column language as Today. */
+/** Courses — the grade hub. The class list switches between a dense List (rows)
+ * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
+ * A term-standing rail sits alongside, in the same two-column language as Today. */
 export function CoursesPage() {
-  const { plan, courses, assessments } = useAppData()
+  const { plan, courses, assessments, coursesView, setCoursesView } = useAppData()
 
   const byCourse = useMemo(() => {
     const map = new Map<string, typeof assessments>()
@@ -40,26 +44,41 @@ export function CoursesPage() {
             Courses
           </h1>
         </div>
-        <Link
-          to={`/app/courses/${IMPORT_TARGET}`}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
-        >
-          <Upload size={15} aria-hidden />
-          Import syllabus
-        </Link>
+        <div className="flex items-center gap-2">
+          <ViewToggle view={coursesView} onChange={setCoursesView} />
+          <Link
+            to={`/app/courses/${IMPORT_TARGET}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
+          >
+            <Upload size={15} aria-hidden />
+            Import syllabus
+          </Link>
+        </div>
       </header>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <main className="order-2 min-w-0 flex-1 lg:order-1">
-          <div className="flex flex-col gap-2.5">
-            {courses.map((c) => (
-              <CourseCard
-                key={c.id}
-                course={c}
-                assessments={byCourse.get(c.id) ?? []}
-              />
-            ))}
-          </div>
+          {coursesView === 'grid' ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {courses.map((c) => (
+                <CourseGridCard
+                  key={c.id}
+                  course={c}
+                  assessments={byCourse.get(c.id) ?? []}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {courses.map((c) => (
+                <CourseCard
+                  key={c.id}
+                  course={c}
+                  assessments={byCourse.get(c.id) ?? []}
+                />
+              ))}
+            </div>
+          )}
         </main>
 
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
@@ -75,6 +94,52 @@ export function CoursesPage() {
           {plan === 'free' && <PaywallCallout />}
         </aside>
       </div>
+    </div>
+  )
+}
+
+const VIEW_OPTIONS: { value: CoursesView; label: string; icon: typeof LayoutGrid }[] = [
+  { value: 'grid', label: 'Grid', icon: LayoutGrid },
+  { value: 'list', label: 'List', icon: Rows3 },
+]
+
+/** Segmented List | Grid switch — the Courses layout option. */
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: CoursesView
+  onChange: (view: CoursesView) => void
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Course layout"
+      className="flex gap-1 rounded-lg border border-border bg-surface p-1"
+    >
+      {VIEW_OPTIONS.map((opt) => {
+        const active = view === opt.value
+        const Icon = opt.icon
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={`${opt.label} view`}
+            title={`${opt.label} view`}
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'grid size-7 place-items-center rounded-md transition-colors duration-150',
+              active
+                ? 'bg-surface-2 text-fg'
+                : 'text-subtle hover:text-fg',
+            )}
+          >
+            <Icon size={15} aria-hidden />
+          </button>
+        )
+      })}
     </div>
   )
 }

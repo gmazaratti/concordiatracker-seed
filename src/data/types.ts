@@ -43,6 +43,7 @@ export type AssessmentKind =
  */
 export type AssessmentStatus =
   | 'not-started'
+  | 'in-progress'
   | 'done'
   | 'late'
   | 'missed'
@@ -89,4 +90,7 @@ export interface Course {
   title: string
   term: string
   credits: number
+  /** Class accent color — an id into `COURSE_COLORS` (lib/course-color). Editable
+   * in-session, the Google-Classroom-style per-class color. */
+  color: string
 }

@@ -12,6 +12,9 @@ import type {
  * grade, or note — or flipping the plan — lives only for the session, matching
  * the seed's no-backend rule. These mutations are the shared write surface for
  * both Today (status only) and the Courses grade editor. */
+/** How the Courses list lays out — dense rows or the Classroom-style card grid. */
+export type CoursesView = 'list' | 'grid'
+
 export interface AppDataContextValue {
   user: User
   plan: Plan
@@ -23,7 +26,12 @@ export interface AppDataContextValue {
   setNotes: (id: string, notes: string) => void
   /** Append parsed assessments (the syllabus parse-reveal commits through here). */
   addAssessments: (items: Assessment[]) => void
+  /** Recolor a class (the Google-Classroom per-class color). In-memory. */
+  setCourseColor: (id: string, color: string) => void
   courseById: (id: string) => Course | undefined
+  /** Courses-list layout preference — sticky across SPA nav, resets on reload. */
+  coursesView: CoursesView
+  setCoursesView: (view: CoursesView) => void
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null)

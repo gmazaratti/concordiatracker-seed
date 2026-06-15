@@ -1,11 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
-import { AppDataContext } from './app-data'
-import { courses, currentUser, seedAssessments } from '@/data/mock'
+import { AppDataContext, type CoursesView } from './app-data'
+import { courses as seedCourses, currentUser, seedAssessments } from '@/data/mock'
 import type { Assessment, AssessmentStatus, Course, Grade, Plan } from '@/data/types'
 
 /** Holds the cloned seed so UI mutations never touch the module-level data. */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan>(currentUser.plan)
+  const [courses, setCourses] = useState<Course[]>(() =>
+    seedCourses.map((c) => ({ ...c })),
+  )
+  const [coursesView, setCoursesView] = useState<CoursesView>('grid')
   const [assessments, setAssessments] = useState(() =>
     seedAssessments.map((a) => ({ ...a })),
   )
@@ -37,9 +41,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const setCourseColor = useCallback((id: string, color: string) => {
+    setCourses((list) =>
+      list.map((c) => (c.id === id ? { ...c, color } : c)),
+    )
+  }, [])
+
   const courseById = useCallback(
     (id: string): Course | undefined => courses.find((c) => c.id === id),
-    [],
+    [courses],
   )
 
   const value = useMemo(
@@ -53,9 +63,23 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setGrade,
       setNotes,
       addAssessments,
+      setCourseColor,
       courseById,
+      coursesView,
+      setCoursesView,
     }),
-    [plan, assessments, setStatus, setGrade, setNotes, addAssessments, courseById],
+    [
+      plan,
+      courses,
+      assessments,
+      setStatus,
+      setGrade,
+      setNotes,
+      addAssessments,
+      setCourseColor,
+      courseById,
+      coursesView,
+    ],
   )
 
   return <AppDataContext value={value}>{children}</AppDataContext>
