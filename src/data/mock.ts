@@ -32,6 +32,8 @@ export const courses: Course[] = [
   { id: 'math205', code: 'MATH 205', title: 'Differential & Integral Calculus II', term: 'Summer 2026', credits: 3 },
   { id: 'engl233', code: 'ENGL 233', title: 'Introduction to Fiction', term: 'Summer 2026', credits: 3 },
   { id: 'poli202', code: 'POLI 202', title: 'Introduction to Political Science', term: 'Summer 2026', credits: 3 },
+  // Freshly added, no dates yet — the home of the syllabus parse-reveal hero.
+  { id: 'hist203', code: 'HIST 203', title: 'Canada Since Confederation', term: 'Summer 2026', credits: 3 },
 ]
 
 /** Seed assessments. The AppDataProvider clones this so editing status/grades in
@@ -63,4 +65,19 @@ export const seedAssessments: Assessment[] = [
   { id: 'comm217-fin', courseId: 'comm217', title: 'Final exam', kind: 'final', due: daysFromNow(25), weight: 35, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
   { id: 'comp248-proj', courseId: 'comp248', title: 'Final project — Console app', kind: 'project', due: daysFromNow(28), weight: 30, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
   { id: 'math205-fin', courseId: 'math205', title: 'Final exam', kind: 'final', due: daysFromNow(30), weight: 40, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+]
+
+/**
+ * The scripted "parse" output for HIST 203 — what the syllabus parse-reveal
+ * cascades into the empty course. NOT in `seedAssessments`: it lands in the
+ * store only after the (mock) upload, so the empty → populated story is real.
+ * Weights total 100; dates are runtime-relative like the rest of the seed.
+ */
+export const hist203Syllabus: Assessment[] = [
+  { id: 'hist203-r1', courseId: 'hist203', title: 'Reading response — Confederation debates', kind: 'reading', due: daysFromNow(3), weight: 10, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+  { id: 'hist203-q1', courseId: 'hist203', title: 'Map quiz — Provinces & territories', kind: 'quiz', due: daysFromNow(8), weight: 10, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+  { id: 'hist203-mid', courseId: 'hist203', title: 'Midterm exam', kind: 'midterm', due: daysFromNow(16), weight: 25, provenance: { status: 'confirmed', confirmations: 7 }, status: 'not-started', grade: null, notes: '' },
+  { id: 'hist203-src', courseId: 'hist203', title: 'Primary-source analysis', kind: 'assignment', due: daysFromNow(22), weight: 10, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+  { id: 'hist203-e1', courseId: 'hist203', title: 'Research essay — Post-war Canada', kind: 'project', due: daysFromNow(34), weight: 20, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+  { id: 'hist203-fin', courseId: 'hist203', title: 'Final exam', kind: 'final', due: daysFromNow(46), weight: 25, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
 ]

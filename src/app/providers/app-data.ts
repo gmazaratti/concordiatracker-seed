@@ -21,6 +21,8 @@ export interface AppDataContextValue {
   setStatus: (id: string, status: AssessmentStatus) => void
   setGrade: (id: string, grade: Grade | null) => void
   setNotes: (id: string, notes: string) => void
+  /** Append parsed assessments (the syllabus parse-reveal commits through here). */
+  addAssessments: (items: Assessment[]) => void
   courseById: (id: string) => Course | undefined
 }
 

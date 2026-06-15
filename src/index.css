@@ -222,6 +222,52 @@
   animation: ct-check-burst 300ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 
+/* ---- THE hero moment: syllabus parse-reveal. A scan line sweeps the document,
+ * then the extracted dates cascade into the course one at a time. Richer and
+ * more deliberate than the functional motion above — but still CSS-only and
+ * reduced-motion safe (the global block zeroes durations; the JS stagger that
+ * drives onComplete is gated on the reduced-motion hook, not on CSS). ---- */
+@keyframes ct-scan-sweep {
+  0% {
+    transform: translateY(-8%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(108%);
+    opacity: 0;
+  }
+}
+
+@keyframes ct-reveal-item {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  55% {
+    opacity: 1;
+    background-color: var(--ct-accent-soft);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    background-color: transparent;
+  }
+}
+
+.ct-scan-sweep {
+  animation: ct-scan-sweep 1100ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.ct-reveal-item {
+  animation: ct-reveal-item 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

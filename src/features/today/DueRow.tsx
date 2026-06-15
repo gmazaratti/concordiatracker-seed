@@ -1,25 +1,11 @@
 import { useRef, useState } from 'react'
 import { Check, MoreHorizontal } from 'lucide-react'
-import type {
-  Assessment,
-  AssessmentKind,
-  AssessmentStatus,
-  Course,
-} from '@/data/types'
+import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { QUICK_STATUSES, STATUS_META } from '@/lib/status'
+import { KIND_LABEL } from '@/lib/assessment'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
-
-const KIND_LABEL: Record<AssessmentKind, string> = {
-  assignment: 'Assignment',
-  quiz: 'Quiz',
-  midterm: 'Midterm',
-  final: 'Final',
-  lab: 'Lab',
-  reading: 'Reading',
-  project: 'Project',
-}
 
 /** Due labels lean on color only as reinforcement — the text says it too. */
 function dueTone(due: string): string {

@@ -211,3 +211,33 @@ If cutting a corner that would make this hard to build on, **flag it**.
   the row never sticks. The **full** grade/score/notes/extension editor is step 3
   (Courses). Build + lint clean; browser-verified (done + late/missed paths, undo,
   glance updates, mobile, GPA stays 3.68).
+- **2026-06-14** — Step 3 (Courses + course detail) shipped. **Calculator math**
+  (`lib/gpa.ts`, real arithmetic): `courseStanding` decomposes a course into
+  graded/remaining weight + `earnedPoints` (Σ percentᵢ·weightᵢ/100); `gradeNeeded`
+  (FREE) solves `earnedPoints + x/100·R = target/100·W` for the average `x` needed,
+  with secured / unreachable / no-remaining branches; `projectedCoursePercent` +
+  `projectedGpa` drive the PAID what-if; `GRADE_TARGETS` (scale minus F) feeds the
+  free picker. **Courses list** = the two-column Today language (max-w-5xl): scannable
+  `CourseCard`s (standing, graded-weight bar, next-due + provenance) in the main
+  column; a `TermGlance` rail (credit-weighted GPA, courses graded, open/overdue) +
+  `PaywallCallout` (free only). **Course detail** = `CourseHeader` hero + two columns:
+  main is `AssessmentTable` with **Grades | Notes** tabs (the full editor — status over
+  all six, grade in percent OR raw via `GradeInput`→`percentGrade`/`rawGrade`, notes via
+  `setNotes`); rail is `CourseStandingPanel` + `GradeNeeded` (FREE) + `GpaWhatIf` (PAID)
+  wrapped in `PaywallLock` (blurred behind a Semester CTA when `plan==='free'`).
+- **2026-06-14** — **Parse-reveal hero** (`SyllabusParseReveal`): an empty course
+  (HIST 203, seeded with no assessments) leads with the import hero. "Upload & parse"
+  runs a scripted scan (a `ct-scan-sweep` line over a faux document) → the extracted
+  dates cascade in (`ct-reveal-item`, staggered) → `onComplete` commits them via
+  `addAssessments` and the course flips to its populated view. **Reduced-motion safe by
+  construction**: the stagger + `onComplete` run on JS `setTimeout` (gated on the
+  `usePrefersReducedMotion` hook → shorter delays), NOT on CSS `animationend`, so the
+  reveal always completes regardless of motion settings. `hist203Syllabus` lives outside
+  `seedAssessments` so the empty→populated story is real (resets on reload).
+- **2026-06-14** — Shared `KIND_LABEL` extracted to `lib/assessment.ts` (was duplicated
+  in `DueRow`) so Today + Courses read one vocabulary. Command-palette action stubs now
+  route to the real screens: "Change grade…" → `/app/courses/comp248`, "Import blueprint"
+  → `/app/courses/hist203` (the parse-reveal). Build + lint clean; browser-verified:
+  list, editor (both grade modes, resolved letters, status, provenance, mobile wrap),
+  grade-needed, what-if locked (free) → unlocked + live projection (semester), the
+  parse-reveal empty→populated, maroon theme, and Today still intact.

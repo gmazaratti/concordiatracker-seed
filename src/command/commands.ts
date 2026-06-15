@@ -124,8 +124,8 @@ export const COMMANDS: Command[] = [
     hint: 'Action',
     group: 'Actions',
     icon: BookOpen,
-    keywords: ['edit', 'mark', 'score'],
-    perform: go('/app/courses'),
+    keywords: ['edit', 'mark', 'score', 'comp 248'],
+    perform: go('/app/courses/comp248'),
   },
   {
     id: 'action-import-blueprint',
@@ -133,8 +133,8 @@ export const COMMANDS: Command[] = [
     hint: 'Action',
     group: 'Actions',
     icon: Upload,
-    keywords: ['syllabus', 'outline', 'parse', 'contribute'],
-    perform: go('/app/courses'),
+    keywords: ['syllabus', 'outline', 'parse', 'contribute', 'hist 203'],
+    perform: go('/app/courses/hist203'),
   },
   {
     id: 'action-switch-theme',
