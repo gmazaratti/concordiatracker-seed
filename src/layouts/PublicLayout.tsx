@@ -24,7 +24,7 @@ export function PublicLayout() {
             >
               Pricing
             </a>
-            <Link to="/teacher">
+            <Link to="/teacher" className="hidden sm:block">
               <Button variant="ghost" size="sm">
                 For teachers
               </Button>

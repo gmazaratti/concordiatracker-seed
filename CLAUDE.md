@@ -357,3 +357,23 @@ If cutting a corner that would make this hard to build on, **flag it**.
   legend, pricing, final CTA, footer; maroon theme (canvas warms, accent→gold, course chips keep
   fixed identity hex); mobile (hero stacks, CTAs full-width, header anchors collapse, preview
   sidebar/rail hide); reduced-motion end-state holds (`.ct-rise` opacity 1 / identity transform).
+- **2026-06-15** — **Landing composition refine** (user: "close but reads slightly templated/
+  AI-generated"; Linear-influenced — asymmetry, per-section rhythm, confident negative space;
+  **keep** serif headline / gold accent / dark base / browser-framed preview / the ParseShowcase
+  beat). Four moves, all in `LandingPage.tsx` (ParseShowcase + PricingSection untouched): (1) the
+  generic **status pill is gone** → a plain tracked-uppercase eyebrow ("For Concordia students").
+  (2) **Hero is now asymmetric**: copy left (`lg:w-[46%]`, left-aligned H1 + subtext + CTAs), the
+  real-DOM `AppPreview` in its browser frame offset right at `lg:w-[60vw]` so it **overruns the
+  right viewport edge** (frame `lg:rounded-r-none`; the glance rail clips off — the Linear "board
+  bleeds" depth cue). The bleed is contained by the hero `overflow-hidden` (verified: no page
+  horizontal scroll); the bottom `to-canvas` fade now shows on **mobile only** (`lg:hidden`),
+  where the hero stacks. (3) **Feature trio de-carded** → an editorial row: an asymmetric header
+  (serif H2 left + eyebrow/paragraph right, Linear screenshot 2), then three **numbered**
+  (01/02/03) columns separated by vertical `border-l` dividers + a hairline rule, no rounded
+  boxes. (4) **Final CTA de-banded** → asymmetric `lg:grid-cols-[1.2fr_0.8fr]`, baseline-aligned
+  (`items-end`): big serif headline left, supporting line + CTA right, generous `py-28 sm:py-36`
+  negative space — no card. Net section rhythm: asymmetric → left → left → **centered pricing**
+  (deliberate break) → asymmetric. Also fixed a **pre-existing** mobile header overflow (logo +
+  two buttons > 375px): "For teachers" is now `hidden sm:block`, leaving logo + "Open app" on
+  mobile. Build + lint clean; browser-verified both themes + mobile (no horizontal scroll either
+  axis), bleed clips at the viewport, course chips keep fixed hex under maroon.
