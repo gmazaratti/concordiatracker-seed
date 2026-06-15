@@ -332,3 +332,28 @@ If cutting a corner that would make this hard to build on, **flag it**.
   BOTH themes + mobile: AA contrast, color chips (rose/gold/teal/blue/purple per class) fixed
   under maroon, quiet provenance dots, the enriched inline menu, check-off reward → "Completed
   today · 1" with chip + Undo, live "1 done · 7 to go" progress, recessed rail.
+- **2026-06-15** — Step 8 (**Landing**) shipped — bold/clean, **Linear/Electron feel** (user
+  ask: "not vibecoded… bold but aesthetic", a dashboard that **peeks above the fold and reveals
+  on scroll**). The peek is **real DOM, not an image** — `features/landing/AppPreview.tsx` is a
+  static, non-interactive recreation of the Today screen built from the **actual mock data +
+  shared components** (`CourseChip`, `ProvenanceBadge`), so the hero shows the genuine product
+  (crisp, theme-aware) rather than a screenshot. It's wrapped in a browser-chrome frame
+  (`concordiatracker.app/today`) clipped to `h-[440px] sm:h-[520px] overflow-hidden` with a
+  bottom `to-canvas` gradient fade → reads as "more below the fold." **The reveal is pure
+  layout** (tall frame + viewport clip + fade), no scroll JS. `LandingPage.tsx` composes: hero
+  (eyebrow pill, `font-display` clamp H1 "Stop guessing what's *due*.", two CTAs → `/app` +
+  `#how`) over the peek, a feature trio, `ParseShowcase` (the CLAUDE hero beat: a faux syllabus
+  with a `ct-scan-sweep` line → an extracted/dated/provenanced plan from `hist203Syllabus`, plus
+  a 3-card provenance legend), `PricingSection` (Free $0 vs featured **Semester pass $15** "Best
+  value" / "or $5 / month" — per spec), and a final CTA band. **New `index.css` utilities**:
+  `.ct-grid-bg` (faint 56px blueprint grid on the border token, radial `mask-image` fade) +
+  `@keyframes ct-rise`/`.ct-rise` (600ms hero lift, `both`-fill so the global reduced-motion
+  duration-zero holds the visible end state — same safe pattern as the parse-reveal).
+  `PublicLayout` header gained `#how`/`#pricing` anchor links (sm+; the public layout only wraps
+  Landing so anchors always resolve); the "Not affiliated with Concordia University" line was
+  already in its footer. Marketing context is **outside `AppDataProvider`** → Landing imports
+  `courses`/`term`/`seedAssessments`/`hist203Syllabus` statically from `mock.ts` (no store).
+  Build + lint clean; browser-verified: desktop hero + peek, feature trio, parse beat, provenance
+  legend, pricing, final CTA, footer; maroon theme (canvas warms, accent→gold, course chips keep
+  fixed identity hex); mobile (hero stacks, CTAs full-width, header anchors collapse, preview
+  sidebar/rail hide); reduced-motion end-state holds (`.ct-rise` opacity 1 / identity transform).

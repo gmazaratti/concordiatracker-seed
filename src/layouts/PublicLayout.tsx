@@ -11,7 +11,19 @@ export function PublicLayout() {
           <Link to="/" aria-label="ConcordiaTracker home">
             <Logo />
           </Link>
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <a
+              href="#how"
+              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
+            >
+              How it works
+            </a>
+            <a
+              href="#pricing"
+              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
+            >
+              Pricing
+            </a>
             <Link to="/teacher">
               <Button variant="ghost" size="sm">
                 For teachers

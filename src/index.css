@@ -269,6 +269,44 @@
   animation: ct-reveal-item 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* ---- Landing hero: the dashboard "peek" rises into the fold on load. A touch
+ * longer than the functional motion (it's a first-impression beat), still CSS-
+ * only and reduced-motion safe via the global duration zero-out below. ---- */
+@keyframes ct-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ct-rise {
+  animation: ct-rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Faint blueprint grid behind the landing hero — two hairline gradients on the
+ * border token, masked to fade out before it reaches the content below. Reads as
+ * texture, never as lines you actually look at. */
+.ct-grid-bg {
+  background-image:
+    linear-gradient(to right, var(--ct-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ct-border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 55% at 50% 0%,
+    rgba(0, 0, 0, 0.5),
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    ellipse 70% 55% at 50% 0%,
+    rgba(0, 0, 0, 0.5),
+    transparent 75%
+  );
+}
+
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,
