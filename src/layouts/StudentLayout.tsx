@@ -19,7 +19,7 @@ export function StudentLayout() {
           <AvatarMenu align="top" compact />
         </header>
 
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main className="relative flex-1 overflow-y-auto pb-20 md:pb-0">
           <Outlet />
         </main>
       </div>
