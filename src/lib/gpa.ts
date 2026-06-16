@@ -1,4 +1,4 @@
-import type { Assessment, Course } from '@/data/types'
+import type { Assessment, AssessmentKind, Course } from '@/data/types'
 import { gradeToPercent } from './grade'
 
 /** Concordia's 4.30 letter scale. Percentage cutoffs follow the common
@@ -35,18 +35,50 @@ export const GRADE_TARGETS: { letter: string; min: number }[] = GRADE_SCALE.filt
   (b) => b.points > 0,
 ).map((b) => ({ letter: b.letter, min: b.min }))
 
-/** Weighted percentage across a course's graded assessments, normalized by the
- * weight actually graded so far (so a partial term still reads sensibly).
- * Returns null when nothing in the course is graded yet. */
-export function coursePercent(assessments: Assessment[]): number | null {
-  const graded = assessments
-    .map((a) => ({ percent: gradeToPercent(a.grade), weight: a.weight }))
-    .filter((g): g is { percent: number; weight: number } => g.percent !== null)
-  if (graded.length === 0) return null
-  const totalWeight = graded.reduce((sum, g) => sum + g.weight, 0)
+/** One weighted term in a course grade: a category (assessment kind), the weight
+ * points it contributes so far, and its average score. A course's grade is the
+ * weighted average of these terms. */
+export interface GradeTerm {
+  kind: AssessmentKind
+  /** Graded weight this category contributes (grade-percent points). */
+  weight: number
+  /** The category's weighted-average score. */
+  percent: number
+}
+
+/** The graded categories behind a course's current grade. THE single source of
+ * truth for the weighted average: both `coursePercent` (which drives the header
+ * grade + GPA) and the "How is this calculated?" panel read from this, so the
+ * shown formula can never drift from the computed result. */
+export function gradeTerms(assessments: Assessment[]): GradeTerm[] {
+  const byKind = new Map<AssessmentKind, { weight: number; points: number }>()
+  for (const a of assessments) {
+    const percent = gradeToPercent(a.grade)
+    if (percent === null) continue
+    const acc = byKind.get(a.kind) ?? { weight: 0, points: 0 }
+    acc.weight += a.weight
+    acc.points += (percent * a.weight) / 100
+    byKind.set(a.kind, acc)
+  }
+  return [...byKind.entries()]
+    .map(([kind, v]) => ({ kind, weight: v.weight, percent: (v.points / v.weight) * 100 }))
+    .sort((a, b) => b.weight - a.weight)
+}
+
+/** Weighted average of grade terms: Σ(weightᵢ · percentᵢ) ÷ Σ(weightᵢ).
+ * Null when nothing is graded. */
+export function weightedAverage(terms: GradeTerm[]): number | null {
+  const totalWeight = terms.reduce((sum, t) => sum + t.weight, 0)
   if (totalWeight === 0) return null
-  const earned = graded.reduce((sum, g) => sum + g.percent * g.weight, 0)
+  const earned = terms.reduce((sum, t) => sum + t.weight * t.percent, 0)
   return earned / totalWeight
+}
+
+/** Weighted percentage across a course's graded assessments, normalized by the
+ * weight graded so far. Null when nothing is graded yet. Delegates to the shared
+ * `gradeTerms` / `weightedAverage` definition (so display + calc never drift). */
+export function coursePercent(assessments: Assessment[]): number | null {
+  return weightedAverage(gradeTerms(assessments))
 }
 
 /** Credit-weighted GPA across courses that have at least one graded assessment. */

@@ -1,9 +1,12 @@
+import { useState } from 'react'
+import { ChevronDown, Info } from 'lucide-react'
 import type { Assessment, AssessmentKind } from '@/data/types'
 import { Card } from '@/components/ui/Card'
 import { KIND_LABEL } from '@/lib/assessment'
 import { gradeToPercent } from '@/lib/grade'
-import { courseStanding } from '@/lib/gpa'
+import { courseStanding, gradeTerms, weightedAverage } from '@/lib/gpa'
 import { courseColor } from '@/lib/course-color'
+import { cn } from '@/lib/cn'
 
 interface CategoryRow {
   kind: AssessmentKind
@@ -115,6 +118,95 @@ export function GradeBreakdown({
           </li>
         ))}
       </ul>
+
+      <HowCalculated assessments={assessments} />
     </Card>
+  )
+}
+
+const round1 = (n: number) => (Math.round(n * 10) / 10).toString()
+
+/** Collapsed-by-default disclosure: the exact weighted-average behind the course
+ * grade — general form + the student's real plugged-in numbers. Reads from the
+ * shared `gradeTerms` / `weightedAverage`, so it mirrors the computed grade. */
+function HowCalculated({ assessments }: { assessments: Assessment[] }) {
+  const [open, setOpen] = useState(false)
+  const terms = gradeTerms(assessments)
+  const result = weightedAverage(terms)
+  const totalWeight = terms.reduce((sum, t) => sum + t.weight, 0)
+
+  return (
+    <div className="border-t border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-1.5 px-3.5 py-2.5 text-[12px] text-subtle transition-colors hover:text-fg"
+      >
+        <Info size={13} aria-hidden />
+        How is this calculated?
+        <ChevronDown
+          size={14}
+          className={cn('ml-auto transition-transform duration-150', open && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+
+      {open && (
+        <div className="space-y-3 px-3.5 pb-3.5 text-[12px] leading-relaxed text-muted">
+          <p>
+            Your grade is a <span className="font-medium text-fg">weighted average</span> —
+            each category counts in proportion to its weight, divided by the weight
+            graded so far.
+          </p>
+
+          <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+            <p className="text-[10px] font-semibold tracking-wide text-subtle uppercase">
+              The method
+            </p>
+            <p className="mt-1 text-fg">
+              grade = ( weight × score + … ) ÷ ( sum of weights )
+            </p>
+          </div>
+
+          {result === null ? (
+            <p className="text-subtle">
+              Nothing is graded yet — enter a grade and the worked-out math appears here.
+            </p>
+          ) : (
+            <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+              <p className="text-[10px] font-semibold tracking-wide text-subtle uppercase">
+                Your numbers
+              </p>
+              <p className="mt-1.5 text-fg">
+                ={' '}
+                {terms.map((t, i) => (
+                  <span key={t.kind}>
+                    {i > 0 && <span className="text-subtle"> + </span>}
+                    <span className="text-subtle">(</span>
+                    {KIND_LABEL[t.kind]} <span className="font-medium">{t.weight}</span>
+                    <span className="text-subtle"> × </span>
+                    <span className="font-medium">{round1(t.percent)}</span>
+                    <span className="text-subtle">)</span>
+                  </span>
+                ))}{' '}
+                <span className="text-subtle">÷ {totalWeight}</span>
+              </p>
+              <p className="mt-1.5 text-[13px] font-semibold text-fg">
+                = {round1(result)}%
+                <span className="ml-1.5 text-[11px] font-normal text-subtle">
+                  your current grade (rounds to {Math.round(result)}%)
+                </span>
+              </p>
+              <p className="mt-2 text-[11px] text-subtle">
+                <span className="font-medium">weight</span> = the category’s share of the
+                grade · <span className="font-medium">score</span> = your average in that
+                category
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

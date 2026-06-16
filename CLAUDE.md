@@ -377,3 +377,160 @@ If cutting a corner that would make this hard to build on, **flag it**.
   two buttons > 375px): "For teachers" is now `hidden sm:block`, leaving logo + "Open app" on
   mobile. Build + lint clean; browser-verified both themes + mobile (no horizontal scroll either
   axis), bleed clips at the viewport, course chips keep fixed hex under maroon.
+- **2026-06-15** — **Avatar menu: "Back to landing page"** (user ask). Relabeled the existing
+  `AvatarMenu` "/" link from "Marketing site" (`ExternalLink` icon) to "Back to landing page"
+  (`ArrowLeft`) — did NOT add a second "/" entry (avoids a duplicate). Menu order unchanged:
+  Settings · Teacher portal · Back to landing page · Sign out.
+- **2026-06-15** — **Landing hero load animation** (user ask: the embed should "slide in from the
+  right, no longer than 0.5s, one-shot — and once it lands, type out 'Good morning, Alex' once
+  (not loop); also fade the embed's right edge like the bottom fade in its old position"). Three
+  coordinated pieces: (1) **Slide-in** — replaced the old `ct-rise` hero-lift with
+  `@keyframes ct-slide-in-right` (`translateX(48px)→0`, **480ms** ≤0.5s, `both`-fill); class moved
+  onto the preview frame in `LandingPage.tsx`. `ct-rise` is now fully removed from code (older log
+  entries mentioning it are history). (2) **Typewriter** — `AppPreview.tsx` static greeting `<h3>`
+  → a `TypedGreeting` component: **JS-sequenced** (`setTimeout`, NOT a CSS width hack — Fraunces is
+  proportional so ch-based reveals mis-render), **540ms** start delay (waits for the slide to land)
+  then **48ms/char**; a `.ct-caret` (new in `index.css`, blinks on `--ct-accent` → theme-aware
+  gold) renders only while typing (`!reduced && !done`) so it never loops past completion.
+  **Reduced-motion safe by construction**: initial `count` is full when reduced, the effect only
+  schedules `setTimeout`s (no synchronous `setState` in the effect body — lint `set-state-in-effect`;
+  the reduced branch settles via a 0ms timeout), and the slide-in's `both`-fill + the global
+  duration-zero block hold the landed/full state instantly. (3) **Right-edge fade** — a desktop-only
+  (`lg:block`) `to-canvas` gradient (`inset-y-0 right-0 w-40`) over the bleeding embed, mirroring the
+  mobile-only bottom fade. Build + lint clean; browser-verified: slide-in `0.48s`, typewriter
+  caught mid-type (`''`→`Go`→`Good`→…→`Good morning, Alex`, caret removed at completion, no loop),
+  right fade desktop / bottom fade mobile, no mobile horizontal overflow, caret accent follows
+  maroon (gold `#e8b84b`).
+- **2026-06-15** — ~~TEMPORARY DEV CODE~~ **RESOLVED.** `features/landing/DevControls.tsx` was a
+  throwaway floating panel for comparing accent colors + headline fonts live on the real page. The
+  user picked **Hanken Grotesk** + **Sage/eucalyptus** (see next entry); the panel, its mount/import
+  in `LandingPage.tsx`, and the file were **deleted**. No dev code remains on the landing.
+- **2026-06-15** — **Landing hero preview width capped** (user: the embed "extends WAY too long
+  on a bigger screen"). The preview frame was `lg:w-[60vw]` uncapped → on ultra-wide monitors 60vw
+  ballooned and the dashboard content stretched. Fix in `LandingPage.tsx`: added `lg:max-w-[820px]`
+  to the preview wrapper, and **removed `lg:rounded-r-none`** from the frame (now full `rounded-2xl`).
+  The rounded right corner trick: while the embed bleeds off the right viewport edge (≲~1630px wide)
+  the rounded corner sits off-screen and reads as a flat continuation; once the 820px cap turns it
+  into a contained card on very wide screens the corner becomes visible, so it looks like an intended
+  card — no breakpoint hacks. Verified: 1425px bleeds ~101px off-right (corner hidden); 1985px is a
+  contained 820px rounded card (right edge 1806, ~179px gap, right-edge canvas fade as vignette); no
+  page horizontal overflow at either.
+- **2026-06-15** — **Landing "Drop your syllabus" beat → scroll-triggered live parse animation**
+  (user ask: on scroll into the ParseShowcase section, play the real parse-reveal — a PDF drops into
+  the scanner, then the assessments cascade in on the right, same choreography as the in-app
+  `SyllabusParseReveal`; use the uploaded **COMM 221 GG — Financial Markets** syllabus as the filler
+  data). New `features/landing/ParseRevealDemo.tsx` replaces ParseShowcase's old static two-column
+  block (heading + provenance legend kept). **Choreography** (a 5-phase machine on `setTimeout`,
+  gated on `usePrefersReducedMotion`): `armed` → `dropping` (the PDF "file" drops into the scanner
+  bed via new `@keyframes ct-drop-in` in `index.css`, 560ms settle) → `scanning` (the shared
+  `ct-scan-sweep` line over the raw page, ~1s) → `revealing` (the 6 assessments cascade one at a time,
+  `ct-reveal-item`, 230ms stagger) → `done`. **Left** = the raw PDF: chip `Comm 221_GG_Winter
+  2026.pdf` + a mono page showing John Molson / Dept of Finance / COMM 221 GG · Financial Markets ·
+  Winter 2026 / the Grade Composition table (Quiz 1–5 @ 8% on Feb 8 / Feb 22 / Mar 15 / Mar 29 /
+  Apr 5, Final Common Exam @ 60% TBA) + the "40% required on the common final" note. **Right** = the
+  structured plan: Quiz 1 Time value & NPV … Quiz 5 Finance history & regulation (Quiz · 8% ·
+  Official, topic titles inferred from the weekly schedule) + Final Common Exam (Final · 60% ·
+  Confirmed · 9). Weights total 100. **Trigger**: IntersectionObserver (threshold 0.35) **plus** a
+  scroll/resize bounding-box fallback + a deferred initial in-view check (the fallback is genuinely
+  more robust *and* the only path observable in the preview harness, which services neither IO
+  callbacks nor programmatic-scroll `scroll` events — both work in real browsers). Data is **local to
+  the landing** (not in `mock.ts`) because it uses the syllabus's own calendar dates (Feb/Mar/Apr),
+  which would violate mock.ts's runtime-relative-dates invariant. ParseShowcase no longer imports
+  `hist203Syllabus`/`relativeDueLabel`/`KIND_LABEL`/`FileText` (still used elsewhere). Build + lint
+  clean; browser-verified via DOM timeline (armed→dropped→scanned→6 staggered reveals→done) + a
+  done-state screenshot (raw PDF left, 6 dated/weighted/provenanced assessments right). Reduced-motion
+  safe (timers collapse to ~0; `ct-drop-in` `both`-fill holds the landed state).
+- **2026-06-15** — **Display font + accent finalized (replaces the dev-panel comparison).** After
+  comparing live, the user chose **Hanken Grotesk** as the display/headline face (was Fraunces serif)
+  and **Sage / eucalyptus** green as the accent (was amber/gold). Applied to the **whole product**
+  (landing + app), all from the token system: `index.html` now loads `Hanken Grotesk:400;500;600;700;800`
+  + Inter (Fraunces dropped); `index.css` `--font-display` → `'Hanken Grotesk', 'Inter', system-ui,
+  sans-serif`, and the **default dark theme** accent set → `--ct-accent #8fb39a` / hover `#a6c6af` /
+  contrast `#0e1c14` / soft `rgba(143,179,154,0.14)` / ring `rgba(143,179,154,0.5)` / brand `#8fb39a`.
+  The **maroon theme is deliberately left on its gold accent** (`#e8b84b`) + maroon brand (`#912338`)
+  — it stays the Concordia-branded alternate; flagged to the user (they can ask to make it sage too).
+  Body stays Inter; course-chip identity hexes unchanged. Also fixed the hero embed's browser-chrome
+  URL `concordiatracker.app/today` → **`.com`**. Logo.tsx comment de-Frauncesed. Build + lint clean;
+  browser-verified both landing + app: accent `#8fb39a`, primary CTA + active-nav + glance bars render
+  sage, headlines computed `"Hanken Grotesk"` (weights 500/600 loaded), URL reads `.com`, dev panel
+  gone, maroon still gold.
+- **2026-06-15** — Step 7 (**Settings + legal**) shipped. **Settings is a floating panel, not a
+  route** (Claude-desktop layout: left section nav + scrollable content). Context-driven via
+  `SettingsProvider` (`open`/`section`/`openSettings(section?)`) + `SettingsLayer` (mounted in
+  `StudentLayout` alongside QuickActionLayer). **Entry points all open the same modal**: a new **gear
+  button right of the sidebar profile block** (the requested affordance), the avatar-menu "Settings"
+  (now a button, not a link), the ⌘K "Settings" command (`ctx.openSettings`), and the Paywall CTAs
+  (→ `openSettings('billing')`). The old `/app/settings` route + `SettingsPage` placeholder were
+  **retired**. A11y lives in a shared `app/hooks/useModalDismiss.ts` (focus trap / Esc / scroll-lock /
+  focus-restore, extracted from ModalShell's pattern) — it **filters to visible focusables**
+  (`offsetParent !== null`) so the mobile-only close button doesn't swallow focus on desktop, and
+  focuses via `setTimeout(0)` not rAF. Sections (`features/settings/sections/*`, built on
+  `controls.tsx` = Group/Row/Switch/Segmented/Flag): **General** (theme · prefs · notifications ·
+  EN/FR stub), **Account** (Google-synced identity — "Connected with Google", display-name input,
+  inline Delete-account confirm referenced by the privacy policy; all mock), **Privacy** (links to the
+  3 legal docs + Law 25 data-rights/contact), **Billing** (plan card + **explicit auto-renewal
+  callout**; Upgrade/Cancel flip the in-memory `plan` so both states demo; Stripe portal + invoices),
+  **Usage** (data-driven meter list — `buildMeters(plan, courseCount)` so new limited features are a
+  one-row add; free shows scans 1/3, GPA "Semester only" locked; semester = Unlimited). Mobile: the
+  panel is a full-screen sheet and the nav collapses to a horizontal scroll row. **Legal docs are real
+  routes** `/legal/:doc` (terms · privacy · educator), rendered from structured data
+  (`legal/legal-content.ts`) by a thin `LegalPage` reading-column matching the user's reference
+  (numbered sections, callouts, the green "we'll never sell your data" highlight) in the LOCKED theme;
+  invalid `:doc` → redirect to `/`. All three carry a **DRAFT — pending review** banner + "Last updated
+  June 15, 2026", and a `withFlags()` renderer highlights every bracketed placeholder. **User-decision
+  placeholders (NOT silently chosen):** `[AGE_MINIMUM — TBD]` (privacy §9 + ToS §3, was 13),
+  `[REFUND POLICY — NEEDS REVIEW]` (ToS §5 — the "non-refundable" wording was **removed**, verified
+  absent), a new **Auto-Renewal** clause (ToS §5) with `[NOTICE PERIOD — TBD]`, and `[VERIFY]` on
+  Supabase/Vercel/Stripe (privacy §4/§7/§8 + Billing). Educator Agreement has **no provided content →
+  five `[PLACEHOLDER]` section stubs** (no invented clauses). Also: `THEMES` dark swatch accent →
+  sage; public footer gained Privacy/Terms/Educators links. Build + lint clean; browser-verified
+  (explicit viewports — the harness reports 0-width on the native preset): no console errors, focus
+  enters on open + Tab/Shift-Tab wrap + Esc closes, mobile sheet collapses with no horizontal overflow,
+  all three docs render with their flags, billing free↔semester round-trips. **Open for the user:** set
+  the age minimum (recommend 16+, or 14+ with parental consent given minors' grades under Quebec law),
+  the refund policy, the renewal notice period, and confirm the Supabase/Vercel/Stripe stack.
+- **2026-06-15** — Settings polish (user feedback): (1) **Themed scrollbars** — `index.css` base layer
+  now styles `::-webkit-scrollbar` (10px, `--ct-border-strong` thumb on a transparent track, inset via
+  a transparent border + `background-clip: padding-box`, `--ct-subtle` on hover) + Firefox
+  `scrollbar-width: thin` / `scrollbar-color`; token-based so it swaps per theme. (2) **Account gained
+  School/Faculty** (a `<select>`: Gina Cody · JMSB · Arts & Science · Fine Arts) **+ Major/Program**
+  (text input), both in-memory like the display name. (3) **Switch knob fix** — the toggle was
+  `absolute` with no `left`, so the knob escaped the pill; rebuilt as `inline-flex items-center` +
+  `px-0.5` with the knob translating `0 → translate-x-4` (settles 2px inside each edge). (4) **Clean
+  legal URLs** — added top-level routes `/terms`, `/privacy`, `/privacypolicy` (alias), `/educator`
+  alongside `/legal/:doc`; `LegalPage` takes an explicit `doc` prop or the route param. Privacy-section
+  + public-footer links now use the clean URLs. Build + lint clean; server restarted; browser-verified
+  (knob stays inside the pill both states, scrollbar tokens applied, school/major present, all four
+  clean routes resolve, no console errors).
+- **2026-06-15** — **Custom dropdown — `components/ui/Select.tsx` (CONVENTION: no native `<select>`
+  anywhere; custom scrollbars + custom dropdowns only).** Token-styled, keyboard-accessible combobox:
+  the option list is **portaled to `<body>` with `position: fixed`** (repositions on scroll/resize) so
+  it never clips against `overflow-hidden`/scroll ancestors — the reason a plain absolute menu wouldn't
+  work in the course table / rail / modals. Focus stays on the trigger (aria-activedescendant pattern),
+  so it composes with modal focus traps; handled keys (`Esc`, `Enter`, `Space`) `stopPropagation` so
+  the dropdown closes without also closing the surrounding modal. Full keyboard model (↑/↓/Home/End/
+  Enter/Esc/Tab), `role=combobox`+`listbox`/`option`, hover+selected states, optional per-option `dot`
+  (a `bg-*` class — used for the status colors), `size` (sm/md) + `tone` (field=canvas / control=
+  surface-2) variants; the list inherits the global themed scrollbar. **All four native selects were
+  replaced**: Account School/Faculty, the Courses `AssessmentRow` status picker, the palette
+  `AssessmentDetailModal` status picker (both with colored dots), and `GradeNeeded`'s target picker
+  (numeric value ↔ string). Build + lint clean; browser-verified: list portals out of the dialog +
+  out of `overflow-hidden` course containers (not clipped), ↓ opens / activedescendant moves / Enter
+  selects / Esc closes the dropdown but keeps the modal open, status options render their 6 dots, no
+  console errors. Preview reset to native size.
+- **2026-06-15** — **"How is this calculated?" grade disclosure** (user ask: let students see + verify
+  the math behind their grade; the shown formula must never drift from the computed number). New
+  **single source of truth** in `lib/gpa.ts`: `gradeTerms(assessments)` → graded categories as
+  `{kind, weight, percent}`, and `weightedAverage(terms)` → `Σ(wᵢ·pᵢ)/Σwᵢ`. `coursePercent()` (which
+  drives the `CourseHeader` banner grade **and** GPA) was **refactored to delegate** to
+  `weightedAverage(gradeTerms(...))` — mathematically identical (per-category vs per-assessment grouping
+  yields the same weighted average), so GPA is unchanged. The disclosure (new `HowCalculated` in
+  `GradeBreakdown.tsx`, **collapsed by default**) renders from the *same* `gradeTerms`/`weightedAverage`,
+  so the formula can't diverge from the grade. It shows the **general form** (`grade = (weight × score
+  + …) ÷ (sum of weights)`) **and** the plugged-in numbers from the student's real categories/weights
+  (e.g. COMP 248 → `(Assignment 10 × 90) + (Lab 5 × 95) ÷ 15 = 91.7% (rounds to 92%)`), with a
+  plain-language legend (weight = category share, score = your category average). Deliberate deviation
+  from the user's fractional-weight example: the *current* grade divides by the weight graded **so far**
+  (denominator → 100 once fully graded), shown honestly. Build + lint clean; browser-verified: collapsed
+  by default, expands to the worked math, result rounds to the banner's 92%, no console errors, layout
+  intact.
