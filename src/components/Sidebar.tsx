@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
+import { Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
+import { useSettings } from '@/app/providers/settings'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
 import { AvatarMenu } from './AvatarMenu'
@@ -52,7 +54,28 @@ export function Sidebar() {
 
       <div className="flex-1" />
 
-      <AvatarMenu align="bottom" />
+      <div className="flex items-center gap-1.5">
+        <div className="min-w-0 flex-1">
+          <AvatarMenu align="bottom" />
+        </div>
+        <SettingsGearButton />
+      </div>
     </aside>
+  )
+}
+
+/** The settings affordance beside the profile block — opens the floating panel. */
+function SettingsGearButton() {
+  const { openSettings } = useSettings()
+  return (
+    <button
+      type="button"
+      onClick={() => openSettings()}
+      aria-label="Open settings"
+      title="Settings"
+      className="grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+    >
+      <Settings size={18} aria-hidden />
+    </button>
   )
 }

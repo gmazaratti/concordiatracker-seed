@@ -41,9 +41,22 @@ export function PublicLayout() {
       </main>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-5 py-6 text-[12px] text-subtle">
-          <p>Not affiliated with Concordia University.</p>
-          <p>ConcordiaTracker — a student-built academic hub. Mock seed build.</p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-5 py-6 text-[12px] text-subtle sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <p>Not affiliated with Concordia University.</p>
+            <p>ConcordiaTracker — a student-built academic hub. Mock seed build.</p>
+          </div>
+          <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <Link to="/privacy" className="transition-colors hover:text-fg">
+              Privacy
+            </Link>
+            <Link to="/terms" className="transition-colors hover:text-fg">
+              Terms
+            </Link>
+            <Link to="/educator" className="transition-colors hover:text-fg">
+              Educators
+            </Link>
+          </nav>
         </div>
       </footer>
     </div>

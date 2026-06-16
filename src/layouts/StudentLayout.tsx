@@ -5,6 +5,7 @@ import { Logo } from '@/components/Logo'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
+import { SettingsLayer } from '@/features/settings/SettingsLayer'
 
 /** Chrome for the authenticated student app context. */
 export function StudentLayout() {
@@ -27,6 +28,7 @@ export function StudentLayout() {
       <MobileNav />
       <CommandPalette />
       <QuickActionLayer />
+      <SettingsLayer />
     </div>
   )
 }

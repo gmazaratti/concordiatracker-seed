@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Assessment } from '@/data/types'
 import { Card } from '@/components/ui/Card'
+import { Select } from '@/components/ui/Select'
 import { gradeNeeded, GRADE_TARGETS } from '@/lib/gpa'
 
 /** FREE calculator — the honest, useful free tier: pick a target letter, see the
@@ -20,20 +21,21 @@ export function GradeNeeded({ assessments }: { assessments: Assessment[] }) {
         </span>
       </div>
       <div className="px-3.5 py-3">
-        <label className="flex items-center justify-between gap-2 text-[12px] text-subtle">
+        <div className="flex items-center justify-between gap-2 text-[12px] text-subtle">
           To finish with
-          <select
-            value={target}
-            onChange={(e) => setTarget(Number(e.target.value))}
-            className="rounded-md border border-border-strong bg-surface-2 px-2 py-1 text-[13px] font-medium text-fg focus-visible:outline-none"
-          >
-            {GRADE_TARGETS.map((t) => (
-              <option key={t.letter} value={t.min}>
-                {t.letter} ({t.min}%+)
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select
+            ariaLabel="Target grade"
+            value={String(target)}
+            onChange={(v) => setTarget(Number(v))}
+            size="sm"
+            tone="control"
+            className="w-[120px]"
+            options={GRADE_TARGETS.map((t) => ({
+              value: String(t.min),
+              label: `${t.letter} (${t.min}%+)`,
+            }))}
+          />
+        </div>
 
         <div className="mt-3 rounded-lg bg-surface-2 px-3 py-2.5 text-[13px]">
           <ResultLine result={result} />

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ExternalLink,
+  ArrowLeft,
   GraduationCap,
   LogOut,
   Settings,
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { useSettings } from '@/app/providers/settings'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
@@ -25,6 +26,7 @@ export function AvatarMenu({
   compact?: boolean
 }) {
   const { user, plan, setPlan } = useAppData()
+  const { openSettings } = useSettings()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -81,14 +83,20 @@ export function AvatarMenu({
             align === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2',
           )}
         >
-          <MenuLink to="/app/settings" icon={Settings} onSelect={() => setOpen(false)}>
+          <MenuButton
+            icon={Settings}
+            onSelect={() => {
+              setOpen(false)
+              openSettings()
+            }}
+          >
             Settings
-          </MenuLink>
+          </MenuButton>
           <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
             Teacher portal
           </MenuLink>
-          <MenuLink to="/" icon={ExternalLink} onSelect={() => setOpen(false)}>
-            Marketing site
+          <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
+            Back to landing page
           </MenuLink>
 
           <div className="my-1.5 px-1">
@@ -186,5 +194,28 @@ function MenuLink({
       <Icon size={16} aria-hidden />
       {children}
     </Link>
+  )
+}
+
+/** A menu row that fires an action instead of navigating (e.g. open Settings). */
+function MenuButton({
+  icon: Icon,
+  onSelect,
+  children,
+}: {
+  icon: LucideIcon
+  onSelect: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onSelect}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+    >
+      <Icon size={16} aria-hidden />
+      {children}
+    </button>
   )
 }

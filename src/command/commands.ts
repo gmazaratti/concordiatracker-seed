@@ -25,6 +25,8 @@ export interface CommandContext {
   /** Open a focused popup for a specific assessment / course. */
   openAssessment: (id: string) => void
   openCourse: (id: string) => void
+  /** Open the floating settings panel (optionally on a section). */
+  openSettings: () => void
 }
 
 export interface Command {
@@ -64,7 +66,7 @@ export const STATIC_COMMANDS: Command[] = [
   { id: 'nav-courses', title: 'Courses', hint: 'Go to', group: 'Navigate', icon: BookOpen, keywords: ['grades', 'classes', 'gpa'], perform: go('/app/courses') },
   { id: 'nav-calendar', title: 'Calendar', hint: 'Go to', group: 'Navigate', icon: CalendarDays, keywords: ['month', 'week', 'schedule', 'dates'], perform: go('/app/calendar') },
   { id: 'nav-community', title: 'Community', hint: 'Go to', group: 'Navigate', icon: Users, keywords: ['events', 'orgs', 'clubs'], perform: go('/app/community') },
-  { id: 'nav-settings', title: 'Settings', hint: 'Go to', group: 'Navigate', icon: Settings, keywords: ['profile', 'billing', 'theme', 'account'], perform: go('/app/settings') },
+  { id: 'nav-settings', title: 'Settings', hint: 'Open', group: 'Navigate', icon: Settings, keywords: ['profile', 'billing', 'theme', 'account', 'usage', 'privacy'], perform: (ctx) => { ctx.openSettings(); ctx.close() } },
   { id: 'nav-teacher', title: 'Teacher portal', hint: 'Go to', group: 'Navigate', icon: GraduationCap, keywords: ['instructor', 'class', 'blueprint', 'announcement'], perform: go('/teacher') },
   { id: 'nav-landing', title: 'Marketing site', hint: 'Go to', group: 'Navigate', icon: Sparkles, keywords: ['landing', 'home', 'pricing', 'public'], perform: go('/') },
 

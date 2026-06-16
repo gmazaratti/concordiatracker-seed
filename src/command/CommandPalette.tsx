@@ -5,6 +5,7 @@ import { useCommandPalette } from '@/app/providers/command-palette'
 import { useTheme } from '@/app/providers/theme'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
+import { useSettings } from '@/app/providers/settings'
 import { CourseChip } from '@/components/CourseChip'
 import {
   dynamicCommands,
@@ -28,6 +29,7 @@ function CommandPaletteDialog() {
   const { toggleTheme } = useTheme()
   const { courses, assessments } = useAppData()
   const { openAssessment, openCourse } = useQuickActions()
+  const { openSettings } = useSettings()
 
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
@@ -71,6 +73,7 @@ function CommandPaletteDialog() {
       setQuery: fillQuery,
       openAssessment,
       openCourse,
+      openSettings,
     })
   }
 

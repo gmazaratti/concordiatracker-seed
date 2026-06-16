@@ -12,7 +12,7 @@ import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
 import { relativeDueLabel } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
-import { cn } from '@/lib/cn'
+import { Select } from '@/components/ui/Select'
 import { ModalShell } from './ModalShell'
 
 /** The popup the command palette opens for a specific assessment ("Change grade
@@ -89,27 +89,17 @@ export function AssessmentDetailModal({ id }: { id: string }) {
             <span className="mb-1 block text-[11px] font-medium tracking-wide text-subtle uppercase">
               Status
             </span>
-            <div className="relative">
-              <span
-                className={cn(
-                  'pointer-events-none absolute top-1/2 left-2.5 size-1.5 -translate-y-1/2 rounded-full',
-                  STATUS_META[status].dot,
-                )}
-                aria-hidden
-              />
-              <select
-                value={status}
-                aria-label="Status"
-                onChange={(e) => setDraftStatus(e.target.value as AssessmentStatus)}
-                className="w-full appearance-none rounded-lg border border-border-strong bg-surface-2 py-2 pr-3 pl-6 text-[13px] font-medium text-fg focus-visible:outline-none"
-              >
-                {EDITOR_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_META[s].label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              ariaLabel="Status"
+              value={status}
+              onChange={(v) => setDraftStatus(v as AssessmentStatus)}
+              tone="control"
+              options={EDITOR_STATUSES.map((s) => ({
+                value: s,
+                label: STATUS_META[s].label,
+                dot: STATUS_META[s].dot,
+              }))}
+            />
           </label>
 
           <label className="block">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, X } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
+import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
@@ -42,7 +43,6 @@ export function AssessmentRow({
 
   const draftPct = gradeToPercent(parsedDraft)
   const resolved = draftPct === null ? null : percentToGrade(draftPct)
-  const statusMeta = STATUS_META[draftStatus]
 
   function commit() {
     if (statusDirty) setStatus(assessment.id, draftStatus)
@@ -79,30 +79,19 @@ export function AssessmentRow({
 
         {tab === 'grades' ? (
           <div className="flex flex-wrap items-center gap-2">
-            <label className="sr-only" htmlFor={`status-${assessment.id}`}>
-              Status for {assessment.title}
-            </label>
-            <div className="relative">
-              <span
-                className={cn(
-                  'pointer-events-none absolute top-1/2 left-2.5 size-1.5 -translate-y-1/2 rounded-full',
-                  statusMeta.dot,
-                )}
-                aria-hidden
-              />
-              <select
-                id={`status-${assessment.id}`}
-                value={draftStatus}
-                onChange={(e) => setDraftStatus(e.target.value as AssessmentStatus)}
-                className="appearance-none rounded-md border border-border-strong bg-surface-2 py-1 pr-6 pl-6 text-[12px] font-medium text-fg focus-visible:outline-none"
-              >
-                {EDITOR_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_META[s].label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              ariaLabel={`Status for ${assessment.title}`}
+              value={draftStatus}
+              onChange={(v) => setDraftStatus(v as AssessmentStatus)}
+              size="sm"
+              tone="control"
+              className="w-[148px]"
+              options={EDITOR_STATUSES.map((s) => ({
+                value: s,
+                label: STATUS_META[s].label,
+                dot: STATUS_META[s].dot,
+              }))}
+            />
 
             <input
               type="text"

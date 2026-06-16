@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight, Lock, Sparkles } from 'lucide-react'
+import { useSettings } from '@/app/providers/settings'
 
 /** Wraps a paid feature: when locked, the real UI shows blurred behind a lock +
  * Semester-pass CTA, so the value is visible but gated (the tangible paid line).
@@ -13,6 +13,7 @@ export function PaywallLock({
   feature: string
   children: React.ReactNode
 }) {
+  const { openSettings } = useSettings()
   if (!locked) return <>{children}</>
   return (
     <div className="relative overflow-hidden rounded-xl">
@@ -28,13 +29,14 @@ export function PaywallLock({
             <Lock size={16} aria-hidden />
           </span>
           <p className="text-[13px] font-medium text-fg">{feature} is a paid feature</p>
-          <Link
-            to="/app/settings"
+          <button
+            type="button"
+            onClick={() => openSettings('billing')}
             className="mt-0.5 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
           >
             Unlock with Semester pass
             <ArrowRight size={14} aria-hidden />
-          </Link>
+          </button>
         </div>
       </div>
     </div>
@@ -44,10 +46,12 @@ export function PaywallLock({
 /** Compact contextual teaser for the course-list rail — points free users at the
  * paid GPA predictor where its value is felt. */
 export function PaywallCallout() {
+  const { openSettings } = useSettings()
   return (
-    <Link
-      to="/app/settings"
-      className="group flex items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 transition-colors duration-150 hover:border-accent/50"
+    <button
+      type="button"
+      onClick={() => openSettings('billing')}
+      className="group flex w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
         <Sparkles size={18} aria-hidden />
@@ -63,6 +67,6 @@ export function PaywallCallout() {
         className="shrink-0 text-accent transition-transform duration-150 group-hover:translate-x-0.5"
         aria-hidden
       />
-    </Link>
+    </button>
   )
 }
