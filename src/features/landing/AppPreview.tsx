@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   BookOpen,
   CalendarDays,
@@ -11,6 +12,7 @@ import type { Assessment } from '@/data/types'
 import { daysUntil, relativeDueLabel, termProgress } from '@/lib/date'
 import { currentGpa } from '@/lib/gpa'
 import { KIND_LABEL } from '@/lib/assessment'
+import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
@@ -81,9 +83,7 @@ export function AppPreview() {
       <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
         <header className="mb-3">
           <p className="text-[10px] text-subtle">Monday, June 15</p>
-          <h3 className="font-display text-[18px] leading-tight font-medium text-fg">
-            Good morning, Alex
-          </h3>
+          <TypedGreeting />
         </header>
 
         <div className="flex min-h-0 flex-1 gap-3">
@@ -133,6 +133,45 @@ export function AppPreview() {
         </div>
       </div>
     </div>
+  )
+}
+
+const GREETING = 'Good morning, Alex'
+
+/** Types the greeting out once after the embed has slid in. Plain JS sequencing
+ * (no animation lib), gated on reduced-motion: when motion is reduced the full
+ * greeting is shown immediately and no caret renders. */
+function TypedGreeting() {
+  const reduced = usePrefersReducedMotion()
+  const [count, setCount] = useState(() => (reduced ? GREETING.length : 0))
+
+  useEffect(() => {
+    if (reduced) {
+      const settle = setTimeout(() => setCount(GREETING.length), 0)
+      return () => clearTimeout(settle)
+    }
+    let i = 0
+    let typeTimer: ReturnType<typeof setTimeout>
+    const type = () => {
+      i += 1
+      setCount(i)
+      if (i < GREETING.length) typeTimer = setTimeout(type, 48)
+    }
+    // wait for the slide-in (~480ms) to land before the first keystroke
+    const startTimer = setTimeout(type, 540)
+    return () => {
+      clearTimeout(startTimer)
+      clearTimeout(typeTimer)
+    }
+  }, [reduced])
+
+  const done = count >= GREETING.length
+
+  return (
+    <h3 className="font-display text-[18px] leading-tight font-medium text-fg">
+      {GREETING.slice(0, count)}
+      {!reduced && !done && <span className="ct-caret" aria-hidden />}
+    </h3>
   )
 }
 

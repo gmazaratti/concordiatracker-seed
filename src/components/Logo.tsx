@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn'
 
-/** Brand mark + wordmark. The wordmark is one of the few deliberate
- *  Fraunces (display) moments; everything else in the UI stays Inter. */
+/** Brand mark + wordmark. The wordmark uses the display face (Hanken Grotesk);
+ *  everything else in the UI stays Inter. */
 export function Logo({
   showText = true,
   className,

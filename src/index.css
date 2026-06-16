@@ -26,15 +26,15 @@
   --ct-muted: #b2b0c2;
   --ct-subtle: #8b8898;
 
-  /* accent — warm amber/gold (off the violet cliché) */
-  --ct-accent: #f3b84e;
-  --ct-accent-hover: #f7c66c;
-  --ct-accent-contrast: #1a1505;
-  --ct-accent-soft: rgba(243, 184, 78, 0.12);
-  --ct-accent-ring: rgba(243, 184, 78, 0.5);
+  /* accent — sage / eucalyptus green (off the violet cliché, calm + organic) */
+  --ct-accent: #8fb39a;
+  --ct-accent-hover: #a6c6af;
+  --ct-accent-contrast: #0e1c14;
+  --ct-accent-soft: rgba(143, 179, 154, 0.14);
+  --ct-accent-ring: rgba(143, 179, 154, 0.5);
 
   /* brand surface tint (used sparingly) */
-  --ct-brand: #f3b84e;
+  --ct-brand: #8fb39a;
 
   /* status */
   --ct-success: #4ec9a5;
@@ -114,9 +114,9 @@
   --color-prov-confirmed: var(--ct-prov-confirmed);
   --color-prov-unverified: var(--ct-prov-unverified);
 
-  /* typography: Inter is the workhorse; Fraunces is display-only (used sparingly) */
+  /* typography: Inter is the workhorse; Hanken Grotesk is the display/headline face */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-display: 'Hanken Grotesk', 'Inter', system-ui, sans-serif;
 
   /* radii */
   --radius-md: 0.625rem;
@@ -152,6 +152,33 @@
   ::selection {
     background-color: var(--ct-accent-soft);
     color: var(--ct-fg);
+  }
+
+  /* Themed scrollbars — the default chrome clashes with the dark surfaces, so a
+   * slim, token-colored thumb on a transparent track (swaps per theme). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ct-border-strong) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--ct-border-strong);
+    border-radius: 9999px;
+    /* transparent border + padding-box clip = inset thumb with breathing room */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ct-subtle);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
@@ -269,13 +296,37 @@
   animation: ct-reveal-item 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* ---- Landing hero: the dashboard "peek" rises into the fold on load. A touch
- * longer than the functional motion (it's a first-impression beat), still CSS-
- * only and reduced-motion safe via the global duration zero-out below. ---- */
-@keyframes ct-rise {
+/* A PDF "file" dropping into the scanner bed — lands with a small settle. Used
+ * by the landing's scroll-triggered ParseRevealDemo. `both` fill holds the
+ * landed state when the reduced-motion block zeroes the duration. */
+@keyframes ct-drop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-34px) scale(0.96) rotate(-1.5deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(5px) scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.ct-drop-in {
+  animation: ct-drop-in 560ms cubic-bezier(0.2, 0.85, 0.3, 1.15) both;
+}
+
+/* ---- Landing hero: the dashboard embed slides in from the right on load
+ * (≤0.5s, one-shot), then its greeting types out once (the typing itself is
+ * JS-driven in AppPreview). Reduced-motion safe: `both` fill holds the landed
+ * state when the global block below zeroes the duration, and the typewriter is
+ * gated on the reduced-motion hook (renders the full greeting immediately). ---- */
+@keyframes ct-slide-in-right {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateX(48px);
   }
   to {
     opacity: 1;
@@ -283,8 +334,30 @@
   }
 }
 
-.ct-rise {
-  animation: ct-rise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.ct-slide-in-right {
+  animation: ct-slide-in-right 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Typewriter caret — a thin accent bar that blinks while the greeting types and
+ * is removed (in JS) once it finishes, so it never loops past completion. */
+@keyframes ct-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.ct-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background-color: var(--ct-accent);
+  animation: ct-caret-blink 800ms step-end infinite;
 }
 
 /* Faint blueprint grid behind the landing hero — two hairline gradients on the

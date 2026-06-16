@@ -75,9 +75,12 @@ export function LandingPage() {
             </p>
           </div>
 
-          {/* Preview — overruns the right viewport edge to signal depth */}
-          <div className="relative w-full lg:w-[60vw] lg:flex-none">
-            <div className="ct-rise overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_-1px_0_0_var(--ct-border-strong),0_40px_120px_-40px_rgba(0,0,0,0.8)] lg:rounded-r-none">
+          {/* Preview — overruns the right viewport edge to signal depth, but capped
+              so it never stretches the dashboard on ultra-wide screens. The right
+              rounded corner sits off-screen while it bleeds and only becomes visible
+              once the cap turns it into a contained card on very wide viewports. */}
+          <div className="relative w-full lg:w-[60vw] lg:max-w-[820px] lg:flex-none">
+            <div className="ct-slide-in-right overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_-1px_0_0_var(--ct-border-strong),0_40px_120px_-40px_rgba(0,0,0,0.8)]">
               <div className="flex items-center gap-2 border-b border-border bg-surface-2/60 px-4 py-2.5">
                 <span className="flex gap-1.5">
                   <span className="size-2.5 rounded-full bg-danger/70" />
@@ -85,7 +88,7 @@ export function LandingPage() {
                   <span className="size-2.5 rounded-full bg-success/70" />
                 </span>
                 <span className="ml-3 flex items-center gap-1.5 rounded-md border border-border bg-canvas/60 px-3 py-1 text-[11px] text-subtle">
-                  concordiatracker.app/today
+                  concordiatracker.com/today
                 </span>
               </div>
               <div className="h-[440px] overflow-hidden sm:h-[520px] lg:h-[560px]" aria-hidden>
@@ -94,10 +97,16 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            {/* on mobile, fade the foot so it reads as "more below"; on desktop the bleed does that job */}
+            {/* on mobile, fade the foot so it reads as "more below" */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-canvas lg:hidden" />
           </div>
         </div>
+
+        {/* on desktop, soften the embed's bleeding right edge into the canvas */}
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-40 bg-gradient-to-r from-transparent to-canvas lg:block"
+          aria-hidden
+        />
       </section>
 
       {/* ---- Features: an editorial, divider-ruled row — not cards ---- */}

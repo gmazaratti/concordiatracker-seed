@@ -10,8 +10,8 @@ export interface ThemeOption {
 }
 
 export const THEMES: ThemeOption[] = [
-  { id: 'dark', label: 'Refined Dark', swatch: ['#0b0b11', '#f3b84e'] },
-  { id: 'maroon', label: 'Concordia Maroon', swatch: ['#150a0e', '#e8b84b'] },
+  { id: 'dark', label: 'Refined Dark', swatch: ['#0f0f16', '#8fb39a'] },
+  { id: 'maroon', label: 'Concordia Maroon', swatch: ['#1a0d12', '#e8b84b'] },
 ]
 
 export interface ThemeContextValue {
