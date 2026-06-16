@@ -534,3 +534,38 @@ If cutting a corner that would make this hard to build on, **flag it**.
   (denominator → 100 once fully graded), shown honestly. Build + lint clean; browser-verified: collapsed
   by default, expands to the worked math, result rounds to the banner's 92%, no console errors, layout
   intact.
+- **2026-06-15** — **Landing parse beat → fake cursor drag-and-drop intro** (user ask: when the "Drop
+  your syllabus" section is in frame, show a mouse click the syllabus, pick up the PDF, and drag-drop it
+  into the scanner, which then scans). Reworked `ParseRevealDemo.tsx` from "PDF drops from above" to an
+  8-phase machine: `armed → reach` (a fake SVG cursor slides in to the loose file) `→ grab` (a
+  `.ct-click-ping` ripple — new keyframe, replaced the now-unused `ct-drop-in`) `→ drag` (cursor + the
+  `Comm 221_GG_Winter 2026.pdf` FileCard travel down into the dashed scanner bed) `→ drop` (bed
+  highlights, file fades in) `→ scanning` (the raw page + `ct-scan-sweep`) `→ revealing` (6 assessments
+  cascade) `→ done`. The scanner panel is fixed `h-[340px]` so the cursor/file positions are
+  deterministic; both are `pointer-events-none` decoration driven by CSS transitions on phase-keyed
+  `top`/`transform`/`opacity` (no animation lib). Trigger (IntersectionObserver + scroll/resize
+  fallback) and the COMM 221 data are unchanged. **Reduced-motion safe**: dwell times collapse to ~0 and
+  the cursor/file overlay isn't rendered (`!reduced`), so it jumps straight to scan → cascade. Phase
+  machine deps are primitives `[phase, revealed, reduced]` (an earlier `MS`-object-in-deps caused a
+  React "deps array changed size" warning during HMR — fixed). Build + lint clean; browser-verified via
+  DOM timeline (reach → click-ping → drag → drop → scan-sweep → 6 staggered reveals → done) + a mid-drag
+  screenshot (cursor dragging the PDF card into the bed); no console errors on a fresh server.
+- **2026-06-16** — **Parse beat reworked → cursor drags the PDF out of the heading word** (user: "the
+  cursor appears smoothly and drags the PDF out of the word syllabus"; preview name should be
+  `syllabus.pdf`). Split the demo: shared data/types moved to `parse-demo-data.ts` (also fixes a
+  `react-refresh/only-export-components` lint from exporting a const beside a component);
+  `ParseRevealDemo.tsx` is now a **presentational** two-column view (scanner + plan cascade) driven by
+  `phase`/`revealed` props with a `scannerRef`; `ParseShowcase.tsx` owns the phase machine, the scroll
+  trigger, and the **cursor + dragged-PDF overlay**. Choreography: `reach` (a fake SVG cursor glides to
+  the dashed-underlined word "syllabus" in the H2) → `grab` (`.ct-click-ping` ripple; a `syllabus.pdf`
+  card lifts out of the word) → `drag` (cursor + card travel to the scanner bed) → `drop` → `scanning`
+  → `revealing` → `done`. The overlay is **declarative**, not imperative: the word + scanner anchor
+  points are measured into `coords` state (deferred in an effect; re-measured on resize) and the
+  cursor/PDF `style` (left/top/transform/opacity + a per-phase `transition`) is computed from `phase` +
+  `coords`, so React owns the style — an earlier imperative version fought React's `style` prop and the
+  cursor never showed. Raw page + file card now read `syllabus.pdf` (was the long filename). Reduced-
+  motion safe (overlay gated on `!reduced`, dwell ~0). Build + lint clean; verified via the **inline-
+  style** timeline (cursor op 0→1 at the word → ping + PDF lifts out → both travel to the bed `top`
+  76→448 → scan → 6 reveals). NOTE for future verification: this preview harness returns **stale
+  `getComputedStyle` opacity for in-flight CSS transitions** and its screenshot pipeline can hang —
+  read overlay state from **inline** `style` values, not computed.

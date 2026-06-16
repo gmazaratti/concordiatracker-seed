@@ -296,26 +296,21 @@
   animation: ct-reveal-item 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* A PDF "file" dropping into the scanner bed — lands with a small settle. Used
- * by the landing's scroll-triggered ParseRevealDemo. `both` fill holds the
- * landed state when the reduced-motion block zeroes the duration. */
-@keyframes ct-drop-in {
+/* Click ripple — a ring that pings out where the fake cursor clicks the syllabus
+ * in the landing's scroll-triggered ParseRevealDemo. One-shot. */
+@keyframes ct-click-ping {
   0% {
-    opacity: 0;
-    transform: translateY(-34px) scale(0.96) rotate(-1.5deg);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(5px) scale(1) rotate(0deg);
+    transform: scale(0.5);
+    opacity: 0.55;
   }
   100% {
-    opacity: 1;
-    transform: translateY(0) scale(1) rotate(0deg);
+    transform: scale(1.9);
+    opacity: 0;
   }
 }
 
-.ct-drop-in {
-  animation: ct-drop-in 560ms cubic-bezier(0.2, 0.85, 0.3, 1.15) both;
+.ct-click-ping {
+  animation: ct-click-ping 440ms ease-out forwards;
 }
 
 /* ---- Landing hero: the dashboard embed slides in from the right on load
