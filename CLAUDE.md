@@ -892,3 +892,205 @@ If cutting a corner that would make this hard to build on, **flag it**.
   5-of-6 prompt; the three strengths render honestly (weak 1 bar / medium 2 / strong 3); Update yours
   applies + clears + syncs the modal date; Dismiss clears without touching the assignment; broadcast toast
   on date edit; mobile no overflow.
+- **2026-06-18** — Step 5 (**Community**) shipped — the last core tab. ONE job: "what's happening around
+  me that isn't my own coursework." NOT a social feed (no posts/reactions/comments/friends/presence).
+  **Data**: one loadable `data/community.ts` — `CampusEvent {id,title,start,location,org,category,
+  relevantTo?}` (categories clubs/career/academic/official; `relevantTo` tags drive personalization) +
+  `Announcement {id,courseId,title,body,postedDaysAgo}` (course is the source of truth) + `isRelevantTo`.
+  Events are runtime-relative (`daysFromNow`) so "upcoming" stays true. **Layout** (the two-column app
+  language, `max-w-5xl`, events lead on mobile): **main = events feed (the hero)**, **aside = announcements
+  digest (recessed `bg-surface/50`, quieter)**. **EventsFeed**: a compact filter row (All + the 4 category
+  chips, each a fixed-hex dot via `features/community/category.ts` so categories read the same across
+  themes) + an opt-in **"For my program"** toggle; events sort ascending and group **This week / Later this
+  term**; calm empty state ("A quiet week on campus" / context-aware when the program filter empties). Each
+  `EventCard` shows a category tag, title, date·time, location, host, a quiet **"For your program"** badge
+  when it matches, and **Add to my calendar** → reuses the personal-calendar `addTask` (drops into the
+  "My calendar" layer) and flips to an "Added — view in calendar" link. **AnnouncementsDigest**: compact
+  cross-course rows (CourseChip + instructor + title + 1-line snippet + relative time) each linking to
+  `/app/courses/:id`; calm empty state. **Personalization is real, not guessed**: lifted `school`/`program`
+  off local `AccountSection` state into the **provider** (User gained `school`+`program`; `updateProfile`;
+  `user` merges a `profile` state seeded from `currentUser` = Gina Cody / Computer Science). Settings →
+  Account now writes to it and Community reads `user.program`/`user.school` for relevance (hay = program +
+  school, case-insensitive substring). Build + lint clean; browser-verified (desktop + mobile, no console
+  errors): 11 events grouped This week/Later, category filter (Career→3), "For my program" honest filter
+  (Career+forMe → only the CS-relevant Tech Fair), Add→event appears in the Calendar personal layer + flips
+  to Added, **Settings program change is live** (set Major=Business → JMSB event gains "For your program",
+  4→5 badges), announcement → course detail, empty state, mobile events-lead + compact filters + no
+  overflow. **Note:** the JS bundle now trips Vite's >500 kB advisory (no code-splitting yet) — fine for a
+  seed; revisit with route-level `lazy()` if it grows. The announcement links land on the course detail,
+  which doesn't yet render the announcement body (the digest is the aggregated view per spec; the snippet
+  is shown there).
+- **2026-06-18** — **Community refined → richer events + announcements moved out.** Community is now a
+  **pure outward-facing events aggregator** (no announcements). (1) **Announcements relocated to Today** —
+  it's the student's OWN coursework, which clashes with Community's "beyond your own coursework" purpose.
+  Moved `Announcement`/`ANNOUNCEMENTS` to a new `data/announcements.ts`; new `features/today/Announcements
+  Digest.tsx` renders a quiet "Announcements" panel **below the due list** in Today's main column. (2)
+  **View toggle** — card vs dense row, sticky in the provider (`communityView`, default `card`, resets on
+  reload like `coursesView`). (3) **Author + verification** — `CampusEvent.org` is now an `EventOrg
+  {name, handle, verified, glyph, color}`; the row/card shows `@handle` + a `BadgeCheck` for **verified**
+  orgs (credible source, like teacher-verified blueprints), and the expanded view has a full host block.
+  (4) **In-person vs online** — `mode` field → a "In person · H 920" (MapPin) / "Online" (Video) tag near
+  the meta + a location-detail line in the expanded view. (5) **Click-to-expand** — each `EventItem` is a
+  toggle `<button>` (aria-expanded) that expands **in place** via a `grid-rows-[0fr↔1fr]` height animation
+  (smooth, CSS-only); the collapsed body is `inert` so it's keyboard-skippable; reveals full description,
+  location detail, host info. The add-to-calendar action is a **sibling overlay** (top-right, stopPropagation)
+  so it isn't nested in the toggle button. (6) **Event media** (`EventMedia`, `banner`/`thumb`): two
+  deliberate states — an org poster (a GENERATED branded graphic: org color + gradient sheen + glyph
+  watermark + handle; **no sourced/stock photos** — licensing) for the 3 events with `poster: true`, else a
+  clean **branded color-block fallback** (soft org-tint + glyph). Never an empty/broken box. **Production
+  note:** event posters are SUPPLIED BY THE HOSTING ORG as part of submitted event data (consistent with
+  the aggregator model) — we don't source/generate them; the color-block fallback covers events with none.
+  **No RSVP/attendance** (per spec — social-graph + cold-start + privacy surface). **Deferred, not
+  rejected:** RSVP / "attending" counts are a **GROWTH-STAGE** feature — revisit once a typical event would
+  show a healthy count (~20+ attending) so low numbers don't make events look dead; personal intent is
+  already captured by "Add to my calendar." Layout: Community is now a single reading column (`max-w-3xl`).
+  Build + lint clean; browser-verified (fresh server, desktop + mobile, no console errors): events-only (no
+  announcements panel), 7 verified badges + handles, in-person/online tags, click-to-expand reveals
+  description/host (grid-rows 1fr, inert off when open / on when collapsed), poster events show the gradient
+  graphic + no-poster show the branded fallback, view toggle switches card↔row + stays sticky across nav,
+  Add (overlay, no accidental expand) → Added link → Calendar personal layer, announcements now on Today
+  below the due list, mobile no overflow + expand works. (Stale Vite HMR `ANNOUNCEMENTS`-export errors
+  appeared mid-edit — cleared by a dev-server restart; build was always clean. Bundle still trips the >500
+  kB advisory.)
+- **2026-06-18** — **Community refine v2 — full-screen detail, real grid, host-leads, animated filters.**
+  Four moves (the inline accordion `EventItem` was **deleted**; replaced by `EventTile` + a full-screen
+  `EventDetail`). (1) **Full-screen detail overlay (posh.vip feel), URL-driven.** Clicking an event opens
+  `EventDetail` — a `fixed inset-0 bg-canvas` overlay (NOT a dropdown) via `?event=<id>` (`useSearchParams`
+  in `EventsFeed`), so it's **linkable, back-button-friendly, and preserves feed scroll** (the feed stays
+  mounted underneath). Built on `useModalDismiss` (focus trap / Esc / scroll-lock / focus-restore); a sticky
+  header has a "← Events" back + X (both `onClose`). The reusable `EventDetailView` (split out so it can
+  become a real route later) renders: hero `EventMedia`, `CategoryTag` + "For your program" pill, the full
+  title, date/time + mode/location, **add-to-calendar** (accent → "Added — view in calendar" link, reuses
+  `addTask`), an **About** section, a mode-aware section — **"Where"** = static `MapPlaceholder` (`ct-grid-bg`
+  + pin + "Map preview — static in this build", **no live map**) for in-person, **"How to join"** =
+  `OnlineNote` for online — and a **"Hosted by" `HostCard`** (big org logo, full name + `VerifiedBadge` +
+  handle, Follow/Contact buttons — Follow toggles local state, and **"More from this host"** = other upcoming
+  events by the same `org.handle` via new `moreFromHost(event, now)`, each navigating in-place with a
+  scroll-reset). (2) **Card view = a real multi-column grid** — `grid grid-cols-1 sm:grid-cols-2
+  lg:grid-cols-3` (media-on-top tiles); row view stays a dense single column (`flex max-w-3xl flex-col`);
+  `CommunityPage` widened `max-w-3xl → max-w-5xl` for the grid. (3) **Host identity LEADS each tile**
+  (`HostRow`: org logo + name + handle, with the verified seal, ABOVE the title — "who's it from" before
+  "what is it"). The **`VerifiedBadge`** is a custom **filled** Twitter-style seal (scalloped disc in
+  `text-info` + white check, an inline SVG — not the hollow `BadgeCheck`); meaning = an authenticated real
+  org. `EventMedia` gained a `hero` variant for the detail. (4) **Filters: icons + FLIP animation.** Each
+  category chip now carries its `CATEGORY_META.icon` tinted the category hex (color as subtle accent, not a
+  bare dot) + a press animation (`active:scale-95`, transition incl. transform). When a filter changes,
+  the new **`AnimatedEventList`** keeps the full (date-sorted) set, marks non-matching entries `exiting`
+  (fade + `scale-0.96` in place, `inert`), removes them after `EXIT_MS`, and **FLIP-glides survivors** to
+  their new slots (Web Animations API: translate-delta for movers, opacity/translateY fade for newcomers) —
+  no hard snap. Reconcile is **adjust-state-during-render** but tracks the previous `visibleIds` in **state**
+  (not a ref) to satisfy `react-hooks/refs`. Remounted on view change (`key={communityView}`) to avoid
+  cross-layout FLIP jank. **Reduced-motion safe**: WAAPI gated on `!reduced`, exit timer collapses to 0, and
+  the global block zeroes the CSS fades. Build + lint clean; browser-verified (desktop + mobile, no console
+  errors): 13-card responsive grid (1/2/3 cols), 8 verified seals, host-leads tiles; Career filter 13→4 with
+  FLIP exit; detail overlay opens `?event=` with About/Where(map)/Hosted-by; online event → "How to join"
+  not a map; "More from this host" navigates in-detail + resets scroll; Esc closes + clears the URL; row
+  view remounts to dense single column; mobile 1-col grid + full-screen detail, no horizontal overflow.
+  (Stale Vite HMR errors about the deleted `EventItem` — cleared by a dev-server restart; build was always
+  clean.)
+- **2026-06-18** — **Community card consistency — equal-size cards + one uniform no-image banner.** Two
+  fixes (user, with brand-asset screenshots). (1) **Equal-size cards** — every `EventTile` card now has a
+  FIXED internal layout so the whole grid is uniform (not just per-row), with the Add button and bottom
+  edge in the same place on every card regardless of content: fixed `h-32` banner, fixed 2-line `HostRow`,
+  a **2-line-reserved clamped title** (`line-clamp-2 min-h-[2.75rem]` — over-long titles truncate cleanly),
+  a **single-line meta row** with a **reserved height** (`min-h-[1.375rem]`, so the optional "For you" pill
+  no longer adds 3px — date kept whole, location truncates, pill pinned right), and a bottom-pinned footer
+  (`mt-auto`) on an `h-full flex-col` article. Verified: all 15 cards exactly 311px (one unique height),
+  Add button 13px from the bottom on every card, row bottoms align; row view uniformly 110px. (2) **One
+  uniform no-image banner** — `EventMedia` had TWO fallbacks (a gradient+monogram "poster" vs a small-logo
+  tile on a plain banner). Collapsed to ONE: every image-less event renders the **org-brand-colored gradient
+  + large faded org-initials monogram** (the HackConcordia/Gina Cody look) in card, row (thumb shows the
+  centered initials), AND detail hero — so each org's events read with a **consistent identity colour**
+  (`org.color`, fixed hex → same across themes). Real images render via a NEW **`CampusEvent.image?`** field
+  (`<img object-cover>`); a broken image **hides itself on error** → the branded banner shows beneath, so
+  it's never an empty box. `CampusEvent.poster?: boolean` was removed (the 4 `poster:true` flags deleted);
+  the second "color-block fallback" branch + its `withAlpha` tint are gone. Added a **CASA JMSB** org
+  (maroon `#9b2335`, `CJ`, verified) + two events (Stock Pitch / CASA Cares) so the org-identity colouring
+  is demonstrable with a real Concordia entity. Build + lint clean; browser-verified (desktop + mobile, no
+  console errors): 15 uniform 311px cards, 11 distinct org-colored banners (no plain-banner variant left),
+  CASA shows maroon `CJ` in card + maroon hero in the detail, row thumbs org-colored, mobile 1-col uniform
+  311px no overflow.
+- **2026-06-18** — **Real brand images wired (user-supplied ImgBB links).** The user provided 5 hosted
+  images (resolved each `ibb.co/…` PAGE link to its direct `i.ibb.co/…` file via WebFetch's og:image).
+  Three integration points, all with a graceful **`onError` → branded fallback** (the `<img>` hides itself,
+  revealing the gradient/initials beneath — never a broken box): (1) **Event banners** — `CampusEvent.image`
+  set on the two CASA events (Stock Pitch = the photo banner, CASA Cares = the basic banner) → real image
+  in card, row, AND detail hero (+ the "more from this host" thumb). (2) **Org logos** — `EventOrg` gained
+  `logo?`; set on **JMSB**, **CASA JMSB**, and **JMIS** → the host avatar tile (`HostRow` size-7 + detail
+  `HostCard` size-11) shows the real logo (object-cover) instead of coloured initials. JMSB's `color` moved
+  blue → Concordia **maroon `#912338`** to match its real brand (distinct from CASA `#9b2335` by logo +
+  content). (3) **New org: John Molson Investment Society (JMIS)** — added to the `ORG` map (navy `#1f4e8c`,
+  glyph `JI`, the JMIS logo, verified) with a "JMIS Speaker Series" career event, so JMIS is a proper HOST
+  in the feed. (Initial misread — first wired the JMIS logo as the *user's* profile picture via a
+  `User.avatarUrl`; the user clarified JMIS is an org, so that was fully reverted — `avatarUrl` removed from
+  the type + `currentUser`, `AvatarMenu` back to initials-only — and JMIS added as an org instead.) Images
+  are **hot-linked** (runtime URLs, not in the repo) — fine for the seed; swap to `public/` assets for a
+  self-contained build. Build + lint clean; browser-verified (desktop + mobile, no console errors): both
+  CASA banners load (640px) in card/row/detail, JMSB + CASA + JMIS host logos load, the JMIS card renders
+  navy with its logo, the user avatar is initials again, cards still uniform 311px, no overflow.
+- **2026-06-18** — **Community: org profiles + profile search + a STUBBED follow/notifications system.**
+  Two parts BUILT FULLY (work on mock data) and one part deliberately a UI SHELL (needs a backend). (A)
+  **Org profile page** — new route `community/org/:handle` (`OrgProfilePage`), keyed by the handle (sans
+  `@`) as a URL-safe slug; a real page in the app shell (sidebar stays), linkable + back-button friendly.
+  Layout: an org-brand-colour **cover band** + overlapping logo (ring-4), name + `VerifiedBadge`, handle,
+  **bio**, **stats = real event counts only** ("N upcoming · M past" — NO fabricated follower count), a
+  **`FollowButton` + Contact**, then **Upcoming** and **Past** sections of REUSED `EventTile` cards, each
+  with a "Posted Xd ago" caption (`postedAgoLabel`). Opening an event uses the SAME `?event=` detail
+  overlay as the feed (via the new shared `useEventActions` hook). The event-detail **host card** now
+  links its header to the profile (`ChevronRight` affordance) and uses `FollowButton`. (B) **Profile
+  search** (`OrgSearch`) — a keyboard-accessible combobox (↑/↓/Enter/Esc, `role=combobox`/`listbox`/
+  `option`, `aria-activedescendant`) in the Community header; matches orgs by name/handle (`searchOrgs`),
+  results link to profiles. (C) **Follow + pinned bar + notifications — STUB, CONNECTION-PHASE.** A real
+  follow graph + notification generation/delivery need a **multi-user backend** and CANNOT function on
+  single-user mock data — so this is the *interaction* only. Follow state lives behind ONE swappable
+  helper: **`app/providers/follows.tsx` (`FollowsProvider` + `useFollows`)** — an in-memory `Set<handle>`
+  (seeded with `@hackconcordia` + `@ginacody` so the bar/notifications populate on load; resets on reload).
+  **Re-implement that single file against Supabase and nothing else changes** — `FollowButton`,
+  `FollowingBar` (pinned followed-org chips atop Community → profiles), and `NotificationsBell` all read
+  through `useFollows`. The **notifications panel** is a shell: items are derived from followed orgs'
+  upcoming events (`recentEventsFromOrgs` → "‹Org› posted a new event"), an unread dot clears on open,
+  clicking an item opens that event's detail; a footer line + CLAUDE note flag it as mocked. **Data
+  (`community.ts`):** `EventOrg` gained `bio`; `CampusEvent` gained `postedDaysAgo`; added 5 **past events**
+  (negative `daysFromNow`, surfaced only on profiles since the feed filters to upcoming); **fixed a latent
+  bug** — `president` + `university` both used `@concordia` (would collide when keying profiles by handle)
+  → President's Office is now `@concordia.president`/glyph `OP`. New exports: `ORGS`, `orgSlug`,
+  `orgBySlug`, `orgByHandle`, `eventsByOrg`, `searchOrgs`, `recentEventsFromOrgs`, `postedAgoLabel`. New
+  shared bits: **`OrgLogo`** (the logo-or-initials tile, now reused by `HostRow`/`HostCard`/profile/search/
+  following-bar) and **`useEventActions`** (open/close `?event=`, plus `isAdded` now **derived from
+  `personalTasks`** so "Added" is consistent across feed + profile — replaced the feed's local `addedIds`).
+  `FollowsProvider` mounted in `AppProviders` (inside `AppDataProvider`). Build + lint clean; browser-
+  verified (desktop + mobile, no console errors): search "molson" → 2 orgs → profile; profile header +
+  stats (2 upcoming/1 past) + Upcoming/Past cards w/ "Posted 1w ago"; Follow on profile → "Following" →
+  pinned bar gains the chip (state propagates across surfaces); host-card link → profile; bell shows
+  unread, panel lists 3–5 mock items, click → event detail, dot clears on open; mobile no overflow, panel
+  fits, profile cards uniform 311px. **Lint note:** `setActive(0)` was moved out of a `useEffect` into the
+  input `onChange` (`react-hooks/set-state-in-effect`).
+- **2026-06-18** — **Community feedback: Twitter/X-style profile header, "Remind me", Following LIST.**
+  (1) **Profile header reworked to an X profile** (user gave an X screenshot as the layout reference;
+  asked to keep the horizontal upcoming-event cards) — replaced the cover-band+card with a full-width
+  **banner**, an **overlapping circular avatar** (`OrgLogo rounded-full`, `-mt-12`, `ring-4 ring-canvas`),
+  **Follow + Contact top-right** on the row below the banner, then name + `VerifiedBadge` / handle / bio /
+  stats — no surface card, sits on canvas like X. `EventOrg` gained **`banner?`**; **CASA JMSB's banner is
+  the nicer CASA photo banner** (per request); orgs without one fall back to the brand-colour cover
+  (gradient), and a broken banner `onError`-hides to reveal the colour. The Upcoming/Past **card grids are
+  unchanged** (kept per request). (2) **"Remind me" button** beside "Add to my calendar" in the event
+  detail (`RemindButton`, Bell→BellRing, "Remind me"↔"Reminder set") — STUB backed by new in-memory app
+  store state **`isReminderSet`/`toggleReminder`** (persists across the session + reopen; real reminder
+  delivery is connection-phase). (3) **Pinned chip bar → a Following LIST** (user: the chip bar "looks
+  odd" / clutters with many follows). Deleted `FollowingBar`; new **`FollowingMenu`** = a "Following N"
+  button opening a scrollable popover list (org logo + name + handle + inline unfollow `FollowButton`,
+  each row links to the profile) — same popover pattern as the bell, so it scales and **works on mobile**
+  (the "Following" label collapses to just the count on `<sm`). Lives in the header controls row beside
+  the search + bell. Build + lint clean; browser-verified (desktop + mobile, no console errors): CASA
+  profile shows the photo banner + circular dot-logo avatar + X-style header; Remind toggles + persists on
+  reopen; Following list shows the 2 seeded follows w/ inline unfollow; controls row + profile fit 375px
+  with no overflow, cards still uniform 311px.
+  **Follow-up (same day):** user feedback — "lack of divider" + "awkward empty space on the right below
+  Follow and Contact." Both came from the profile using the feed's wide `max-w-5xl` column (buttons pinned
+  far-right of a 1024px column → big right-side void; few events → empty grid cells; no header/section
+  separation). Fix: narrowed the **profile** to `max-w-3xl` (the events grid drops to `grid-cols-1
+  sm:grid-cols-2` — still the horizontal cards, now filling the row; the bio reaches under the buttons so
+  the void mostly closes) and gave each event group a **full-width divider** (`border-t border-border
+  pt-5`, replacing the old margin-only `Section` helper) — a Twitter-style rule under the header and above
+  Past. The main FEED stays `max-w-5xl`/3-col. Verified: 768px column, 2-col→1-col on mobile, 1px dividers
+  above Upcoming + Past, no overflow, cards uniform 311px, no console errors.

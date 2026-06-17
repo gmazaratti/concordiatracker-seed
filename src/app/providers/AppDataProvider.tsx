@@ -4,6 +4,7 @@ import {
   DEFAULT_CALENDAR_PREFS,
   DEFAULT_TODAY_PREFS,
   type CalendarPrefs,
+  type CommunityView,
   type CoursesView,
   type TodayPrefs,
 } from './app-data'
@@ -26,10 +27,15 @@ import type {
 /** Holds the cloned seed so UI mutations never touch the module-level data. */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<Plan>(currentUser.plan)
+  const [profile, setProfile] = useState({
+    school: currentUser.school,
+    program: currentUser.program,
+  })
   const [courses, setCourses] = useState<Course[]>(() =>
     seedCourses.map((c) => ({ ...c })),
   )
   const [coursesView, setCoursesView] = useState<CoursesView>('grid')
+  const [communityView, setCommunityView] = useState<CommunityView>('card')
   const [todayPrefs, setTodayPrefs] = useState<TodayPrefs>(DEFAULT_TODAY_PREFS)
   const [calendarPrefs, setCalendarPrefs] = useState<CalendarPrefs>(DEFAULT_CALENDAR_PREFS)
   const [assessments, setAssessments] = useState(() =>
@@ -42,6 +48,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>(() =>
     seedPeerCorrections.map((c) => ({ ...c })),
   )
+  const [reminderIds, setReminderIds] = useState<Set<string>>(() => new Set())
+
+  const toggleReminder = useCallback((eventId: string) => {
+    setReminderIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(eventId)) next.delete(eventId)
+      else next.add(eventId)
+      return next
+    })
+  }, [])
 
   const updateTodayPrefs = useCallback(
     (patch: Partial<TodayPrefs>) => setTodayPrefs((p) => ({ ...p, ...patch })),
@@ -149,11 +165,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setPeerCorrections((list) => list.filter((x) => x.assessmentId !== assessmentId))
   }, [])
 
+  const updateProfile = useCallback(
+    (patch: Partial<{ school: string; program: string }>) =>
+      setProfile((p) => ({ ...p, ...patch })),
+    [],
+  )
+
   const value = useMemo(
     () => ({
-      user: { ...currentUser, plan },
+      user: { ...currentUser, plan, ...profile },
       plan,
       setPlan,
+      updateProfile,
       courses,
       assessments,
       setStatus,
@@ -167,12 +190,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       courseById,
       coursesView,
       setCoursesView,
+      communityView,
+      setCommunityView,
       todayPrefs,
       updateTodayPrefs,
       personalTasks,
       addTask,
       toggleTask,
       removeTask,
+      isReminderSet: (eventId: string) => reminderIds.has(eventId),
+      toggleReminder,
       calendarPrefs,
       updateCalendarPrefs,
       peerCorrections,
@@ -181,6 +208,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       plan,
+      profile,
+      updateProfile,
       courses,
       assessments,
       setStatus,
@@ -193,12 +222,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateCourse,
       courseById,
       coursesView,
+      communityView,
       todayPrefs,
       updateTodayPrefs,
       personalTasks,
       addTask,
       toggleTask,
       removeTask,
+      reminderIds,
+      toggleReminder,
       calendarPrefs,
       updateCalendarPrefs,
       peerCorrections,

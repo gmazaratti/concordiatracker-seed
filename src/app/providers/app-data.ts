@@ -17,6 +17,9 @@ import type { PeerCorrection } from '@/data/peer-corrections'
 /** How the Courses list lays out — dense rows or the Classroom-style card grid. */
 export type CoursesView = 'list' | 'grid'
 
+/** How the Community events feed lays out — rich cards or dense rows. */
+export type CommunityView = 'card' | 'row'
+
 /** "Customize Today" preferences — calm defaults, tailored per user. Sticky
  * across SPA nav (like `coursesView`), resets on reload. */
 export interface TodayPrefs {
@@ -55,6 +58,9 @@ export interface AppDataContextValue {
   user: User
   plan: Plan
   setPlan: (plan: Plan) => void
+  /** Edit the in-session profile (school / program) — set in Settings, read by
+   * Community for the "for your program" relevance. */
+  updateProfile: (patch: Partial<{ school: string; program: string }>) => void
   courses: Course[]
   assessments: Assessment[]
   setStatus: (id: string, status: AssessmentStatus) => void
@@ -75,6 +81,9 @@ export interface AppDataContextValue {
   /** Courses-list layout preference — sticky across SPA nav, resets on reload. */
   coursesView: CoursesView
   setCoursesView: (view: CoursesView) => void
+  /** Community events layout preference — sticky across SPA nav, resets on reload. */
+  communityView: CommunityView
+  setCommunityView: (view: CommunityView) => void
   /** "Customize Today" preferences — sticky across SPA nav, resets on reload. */
   todayPrefs: TodayPrefs
   updateTodayPrefs: (patch: Partial<TodayPrefs>) => void
@@ -84,6 +93,11 @@ export interface AppDataContextValue {
   addTask: (task: { title: string; due: string; note?: string }) => void
   toggleTask: (id: string) => void
   removeTask: (id: string) => void
+
+  /** "Remind me" subscriptions for Community events (the detail button). STUB —
+   * in-memory; real reminder delivery is CONNECTION-PHASE. */
+  isReminderSet: (eventId: string) => boolean
+  toggleReminder: (eventId: string) => void
   /** Calendar view + layer preferences — sticky across SPA nav. */
   calendarPrefs: CalendarPrefs
   updateCalendarPrefs: (patch: Partial<CalendarPrefs>) => void

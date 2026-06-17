@@ -10,6 +10,7 @@ import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
+import { AnnouncementsDigest } from './AnnouncementsDigest'
 
 const TODAY_LABEL = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -92,6 +93,7 @@ export function TodayPage() {
             onUndo={undo}
             onPrefsChange={updateTodayPrefs}
           />
+          <AnnouncementsDigest />
         </main>
 
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">

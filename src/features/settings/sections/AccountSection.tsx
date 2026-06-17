@@ -14,10 +14,8 @@ const SCHOOLS = [
 ]
 
 export function AccountSection() {
-  const { user } = useAppData()
+  const { user, updateProfile } = useAppData()
   const [name, setName] = useState(user.name)
-  const [school, setSchool] = useState(SCHOOLS[0])
-  const [major, setMajor] = useState('Computer Science')
 
   return (
     <div>
@@ -46,19 +44,19 @@ export function AccountSection() {
         <Row label="Email address" description="Connected through Google — not editable here.">
           <span className="text-[13px] text-muted">{user.email}</span>
         </Row>
-        <Row label="School / Faculty" description="Used to tailor your dashboard." stacked>
+        <Row label="School / Faculty" description="Used to tailor your dashboard and Community feed." stacked>
           <Select
             ariaLabel="School or faculty"
-            value={school}
-            onChange={setSchool}
+            value={user.school}
+            onChange={(v) => updateProfile({ school: v })}
             options={SCHOOLS}
             className="max-w-sm"
           />
         </Row>
         <Row label="Major / Program" description="Your primary program of study." stacked>
           <input
-            value={major}
-            onChange={(e) => setMajor(e.target.value)}
+            value={user.program}
+            onChange={(e) => updateProfile({ program: e.target.value })}
             aria-label="Major or program"
             placeholder="e.g. Computer Science"
             className="w-full max-w-xs rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors focus:border-border-strong"

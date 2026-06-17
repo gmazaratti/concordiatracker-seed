@@ -15,6 +15,8 @@ export const currentUser: User = {
   email: 'alex.degryse@live.concordia.ca',
   initials: 'AD',
   plan: 'free',
+  school: 'Gina Cody School of Engineering & Computer Science',
+  program: 'Computer Science',
 }
 
 /** The active term. Bounds are runtime-relative (like the due dates) so the

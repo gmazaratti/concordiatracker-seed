@@ -9,6 +9,7 @@ import { CourseDetailPage } from '@/features/courses/CourseDetailPage'
 import { BlueprintBrowserPage } from '@/features/courses/BlueprintBrowserPage'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
+import { OrgProfilePage } from '@/features/community/OrgProfilePage'
 import { TeacherPage } from '@/features/teacher/TeacherPage'
 import { LegalPage } from '@/features/legal/LegalPage'
 import { DemoReel } from '@/features/demo/DemoReel'
@@ -31,6 +32,7 @@ export function AppRoutes() {
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="community" element={<CommunityPage />} />
+        <Route path="community/org/:handle" element={<OrgProfilePage />} />
       </Route>
 
       {/* Teacher portal context */}

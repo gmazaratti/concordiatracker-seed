@@ -10,6 +10,11 @@ export interface User {
   email: string
   initials: string
   plan: Plan
+  /** School / faculty (set in Settings) — drives the Community "for your program"
+   * relevance. Editable in-session. */
+  school: string
+  /** Major / program of study (set in Settings). */
+  program: string
 }
 
 /**
