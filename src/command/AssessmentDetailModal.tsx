@@ -6,6 +6,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
+import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
 import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
@@ -20,12 +21,13 @@ import { ModalShell } from './ModalShell'
  * status (incl. "awaiting grade"), grade, and notes in one place. Saving writes a
  * single patch to the store and flashes a reversible Undo. */
 export function AssessmentDetailModal({ id }: { id: string }) {
-  const { assessments, courseById, updateAssessment } = useAppData()
+  const { assessments, courseById, updateAssessment, peerCorrections } = useAppData()
   const { closeTarget, flashUndo } = useQuickActions()
   const navigate = useNavigate()
 
   const assessment = assessments.find((a) => a.id === id)
   const course = assessment ? courseById(assessment.courseId) : undefined
+  const correction = peerCorrections.find((c) => c.assessmentId === id)
 
   const [status, setStatusDraft] = useState<AssessmentStatus>(
     assessment?.status ?? 'not-started',
@@ -62,7 +64,12 @@ export function AssessmentDetailModal({ id }: { id: string }) {
     }
     updateAssessment(assessment.id, patch)
     closeTarget()
-    flashUndo(`Updated ${assessment.title}`, () => updateAssessment(assessment.id, prev))
+    // Changing a date "broadcasts" the correction back to the section (mocked) —
+    // the contribute half of the peer-correction loop.
+    const label = dueDirty
+      ? `Date shared with your ${course?.code ?? 'class'} section`
+      : `Updated ${assessment.title}`
+    flashUndo(label, () => updateAssessment(assessment.id, prev))
   }
 
   function openInCourse() {
@@ -88,6 +95,12 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <span>{assessment.weight}% of grade</span>
           <ProvenanceBadge provenance={assessment.provenance} />
         </div>
+
+        {correction && (
+          <div className="mt-4">
+            <PeerSuggestion correction={correction} onApplied={setDueISO} />
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-3">
           <Field label="Status">

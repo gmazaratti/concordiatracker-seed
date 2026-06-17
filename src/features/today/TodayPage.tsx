@@ -9,6 +9,7 @@ import { groupDue, PAIN_THRESHOLD } from './due'
 import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
+import { PeerNudge } from './PeerNudge'
 
 const TODAY_LABEL = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -79,7 +80,8 @@ export function TodayPage() {
       </header>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <main className="order-2 min-w-0 flex-1 lg:order-1">
+        <main className="order-2 flex min-w-0 flex-1 flex-col gap-3 lg:order-1">
+          <PeerNudge />
           <DueList
             groups={groups}
             completed={completed}

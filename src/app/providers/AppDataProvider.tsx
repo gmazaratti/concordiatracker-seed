@@ -13,6 +13,7 @@ import {
   seedAssessments,
   seedTasks,
 } from '@/data/mock'
+import { seedPeerCorrections, type PeerCorrection } from '@/data/peer-corrections'
 import type {
   Assessment,
   AssessmentStatus,
@@ -38,6 +39,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     seedTasks.map((t) => ({ ...t })),
   )
   const taskSeq = useRef(seedTasks.length)
+  const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>(() =>
+    seedPeerCorrections.map((c) => ({ ...c })),
+  )
 
   const updateTodayPrefs = useCallback(
     (patch: Partial<TodayPrefs>) => setTodayPrefs((p) => ({ ...p, ...patch })),
@@ -119,6 +123,32 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [courses],
   )
 
+  // Peer-correction stub: accepting a crowd correction moves the date and marks
+  // it confirmed-by-N (the suggestion clears); dismissing just clears it.
+  const applyPeerCorrection = useCallback(
+    (assessmentId: string) => {
+      const c = peerCorrections.find((x) => x.assessmentId === assessmentId)
+      if (!c) return
+      setAssessments((list) =>
+        list.map((a) =>
+          a.id === assessmentId
+            ? {
+                ...a,
+                due: c.proposedDue,
+                provenance: { status: 'confirmed', confirmations: c.changedCount },
+              }
+            : a,
+        ),
+      )
+      setPeerCorrections((list) => list.filter((x) => x.assessmentId !== assessmentId))
+    },
+    [peerCorrections],
+  )
+
+  const dismissPeerCorrection = useCallback((assessmentId: string) => {
+    setPeerCorrections((list) => list.filter((x) => x.assessmentId !== assessmentId))
+  }, [])
+
   const value = useMemo(
     () => ({
       user: { ...currentUser, plan },
@@ -145,6 +175,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       removeTask,
       calendarPrefs,
       updateCalendarPrefs,
+      peerCorrections,
+      applyPeerCorrection,
+      dismissPeerCorrection,
     }),
     [
       plan,
@@ -168,6 +201,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       removeTask,
       calendarPrefs,
       updateCalendarPrefs,
+      peerCorrections,
+      applyPeerCorrection,
+      dismissPeerCorrection,
     ],
   )
 

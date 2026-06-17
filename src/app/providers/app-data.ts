@@ -8,6 +8,7 @@ import type {
   Plan,
   User,
 } from '@/data/types'
+import type { PeerCorrection } from '@/data/peer-corrections'
 
 /** The in-memory app store. Everything is mock + ephemeral: editing a status,
  * grade, or note — or flipping the plan — lives only for the session, matching
@@ -86,6 +87,14 @@ export interface AppDataContextValue {
   /** Calendar view + layer preferences — sticky across SPA nav. */
   calendarPrefs: CalendarPrefs
   updateCalendarPrefs: (patch: Partial<CalendarPrefs>) => void
+
+  /** Pending peer date-corrections (the "Waze for academics" stub). In-memory. */
+  peerCorrections: PeerCorrection[]
+  /** Accept a crowd correction: moves the date + marks it confirmed-by-N, then
+   * clears the suggestion. */
+  applyPeerCorrection: (assessmentId: string) => void
+  /** Dismiss a suggestion without changing the date. */
+  dismissPeerCorrection: (assessmentId: string) => void
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null)

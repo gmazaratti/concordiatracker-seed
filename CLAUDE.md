@@ -688,3 +688,207 @@ If cutting a corner that would make this hard to build on, **flag it**.
   forward-looking from today, so overdue items don't appear there — they remain red in Month/Week, and
   Today centralizes overdue. **Reduced-motion:** views are static (no entrance motion); the only
   animations are the reused ModalShell/DateTimePicker, already reduced-motion safe.
+- **2026-06-17** — **Contextual upgrade prompts → responsive (slim on mobile).** The three in-context
+  Pro nudges (Today `PainNudge`, Courses `PaywallCallout`, Calendar free-state `SyncButton`) ate too
+  much vertical space on phones. New shared `components/UpgradeChip.tsx` = the slim single-line form
+  (accent-soft bar: feature icon + short label + a "Pro" tag + arrow; supports either a `to` Link or an
+  `onClick`, so it stands in for both navigation nudges and the billing-modal ones). Each prompt now
+  renders BOTH forms and swaps purely with `sm:` classes — chip `sm:hidden`, the **unchanged** full card
+  `hidden … sm:flex` — so desktop is byte-identical and **< 640px** collapses to one ~38px line. Still
+  present, contextual, and tappable on mobile (not hidden behind a tap); same Pro-gating + placement.
+  Deliberately scoped to the **free/upsell** states only — the **semester** sync button stays a full
+  card because it's a real action, not an upgrade prompt. Build + lint clean; browser-verified at 375px
+  (all three show the 38px chip, full card hidden, no horizontal overflow) and 1280px (full cards back —
+  Today 139px / Calendar 82px — chip hidden) across Today/Courses/Calendar. (Harness screenshot pipeline
+  hung as before — verified via DOM measurements, not screenshot.)
+- **2026-06-17** — **Update / version system shipped** (persistent history + non-intrusive "what's new").
+  **Mock data**: `data/releases.ts` — `Release {version (semver), name, date YYYY-MM-DD, changes[]}` where
+  each `ReleaseChange` is `{kind: 'new'|'improved'|'fixed', text}`; `RELEASES` is newest-first (add new
+  entries at the TOP), `CURRENT_VERSION = RELEASES[0].version`, plus a `compareVersions` semver helper.
+  Seeded with 4 real-ish releases (1.0.0 → 1.3.0). **State**: new `UpdatesProvider` (in `AppProviders`,
+  inside Settings) owns `lastSeenVersion` (in-memory, **seeded to the PREVIOUS release** so an unseen
+  update is demonstrable on load — resets on reload like the rest of the seed), `notificationsEnabled`
+  (opt-out, default on), and the history-modal open state. Derived: `hasUnseen` (current > lastSeen),
+  `showIndicator` (hasUnseen && notifications), `showToast` (showIndicator && !dismissed). `openHistory()`
+  marks seen (clears the dot) + opens; `dismissToast()` hides the toast but **does NOT** mark seen (the
+  dot persists — "not missed if the toast is gone"). **Toast** (`WhatsNewToast`): one line "New in
+  v1.3.0 — see what's changed", bottom-right (`right-4 bottom-20 md:bottom-4` so it clears the mobile
+  bottom nav), `ct-animate-pop` entrance (reduced-motion safe via the global duration-zero block), 6s
+  auto-dismiss (a plain timer, motion-independent), `role=status`/`aria-live=polite`, click→history, X→
+  dismiss. **History** (`WhatsNewModal`, reuses `ModalShell`): every release newest-first, changes grouped
+  New/Improved/Fixed (colored dot+label), version badge + name + date + a "Latest" tag on index 0;
+  Esc/backdrop close. **Persistent indicators** (all clear on view, persist on toast-dismiss, suppressed
+  when the toggle is off): a small accent dot on the **profile avatar** — both the desktop sidebar footer
+  and the mobile top bar — positioned **over the avatar circle so it never shifts layout**, whose
+  destination is a **"What's new"** item in the avatar menu; and the **Settings → General "Updates"** group (a "What's
+  new" `vX.Y.Z` button + the **"Show update notifications"** opt-out `Switch`, on by default). **Layer**:
+  `UpdatesLayer` (toast + modal) mounted in `StudentLayout` alongside the quick-action/settings layers.
+  Build + lint clean; browser-verified (desktop + mobile, no console errors): toast renders bottom-right /
+  above the mobile nav with the right copy + a11y roles; X dismisses toast but keeps the dot; clicking the
+  toast / version link / avatar item opens the history (4 releases, grouped changes, Latest tag) and
+  clears the dot; Settings toggle OFF suppresses toast + all dots while history stays reachable; mobile
+  avatar shows the unseen dot, "What's new" opens the bottom-sheet history, no horizontal overflow.
+  (Verified the toast via a temporary longer auto-dismiss — the 6s timer outruns the eval round-trip —
+  then reverted to 6s.)
+- **2026-06-17** — **Update indicator relocated off the sidebar** (user: the standalone `vX.Y.Z` footer
+  row "pushes up the user name and settings card"). Deleted `features/updates/VersionLink.tsx` and its
+  Sidebar row; the desktop persistent cue now rides on the **profile avatar** dot (dropped the
+  `compact`-only gate so it shows in the sidebar footer too — it's absolutely positioned over the avatar
+  circle, so the profile/settings card stays pinned to the bottom edge, no layout shift). Destinations
+  unchanged: the avatar-menu **"What's new"** item and **Settings → General → Updates** (which still shows
+  the version number + history + the opt-out). Build + lint clean; verified: footer version row gone
+  (profile card back at the bottom, 12px = sidebar padding), avatar shows the dot on desktop, avatar-menu
+  "What's new" opens the history and clears the dot.
+- **2026-06-17** — **Avatar-menu polish** (user nits). (1) `ThemeSwitcher` gained `showLabels` (default
+  true); the avatar menu now uses `showLabels={false}` → **swatch circles only** (the long "Concordia
+  Maroon" label was overflowing the narrow menu; name is preserved as title/aria-label, switching still
+  works). Settings → Appearance keeps the labelled form. (2) Avatar-menu **"Back to landing page" →
+  "Landing page"** (was wrapping to two lines while every other item is one). (3) Swapped the update
+  system's **`Sparkles` → `Megaphone`** (toast + avatar "What's new" item) — the star read as
+  AI-generated. Build + lint clean; verified: theme circles don't overflow (maroon right edge 185 ≤ menu
+  189) + still switch theme, all menu items single-line (36px), no Sparkles left under features/updates.
+- **2026-06-17** — **Promo "demo reel" at `/demo`** (throwaway full-bleed presentation surface for
+  screen-recording a marketing video — NOT in app nav). Top-level route (no layout), `fixed inset-0`
+  over `bg-canvas` + a faint `ct-grid-bg`; locked tokens (default dark theme via the root ThemeProvider).
+  **Six timed scenes auto-advance** on a fixed `DWELL` timeline (`[4.2, 4.2, 7.8, 3.4, 5.6, 6.0]s`;
+  scene 3 longest for the cascade; holds on the last). Manual stepping: **← →** (or click) step, **Space**
+  play/pause, **R** restart; a **"Play from start"** control (a `runKey` bump re-arms the timeline even
+  from scene 0). **All chrome auto-hides**: cursor (`cursor-none`) + the controls bar fade out after 2.6s
+  idle, return on mousemove. **Motion is GPU-only** (opacity + transform; `will-change`), never layout —
+  shared `DemoPrimitives`: `Stage` (per-scene crossfade, all scenes stay mounted, `active` toggles
+  opacity+scale) and `Reveal` (staggered inner entrance via per-element `transitionDelay`, delay→0 on
+  exit so Play-from-start restarts clean). **Scenes reuse the REAL app** per spec: **S3** drives the real
+  `ParseRevealDemo` (landing's scanner+cascade) via a JS phase machine gated on `active`
+  (scan→cascade→done) with the three pillars ("Every deadline, dated." / "…weight, calculated." / "…GPA,
+  projected.") easing in as the plan lands; **S5** mounts the real `AppPreview` (the actual Today screen
+  built from mock data + shared components) in a browser-chrome frame, remounted on entry (a `mountKey`)
+  so its greeting types in on cue. S1 hook ("…five different places." → "Until now."), S2 scattered
+  source tags (Moodle/eConcordia/MyLab/PDF/Email, rotated + staggered) "Five syllabi. One overwhelmed
+  student.", S4 "The calmest way to run a semester.", S6 outro (big `Logo` → "Stop guessing what's due."
+  → "Built for Concordia students."). Files: `features/demo/{DemoReel,DemoScenes,DemoParseScene,
+  DemoPrimitives}.tsx`. **To record a clean run:** open `/demo` (full-screen the browser, e.g. F11) →
+  click **Play from start** → stop moving the mouse; after ~2.6s the cursor + controls vanish and the
+  reel plays through (~31s) and holds on the outro. Build + lint clean; browser-verified (fresh server,
+  no console errors): all 6 scenes mounted with correct copy, crossfade (active opacity 1 / others 0),
+  auto-advance + hold-on-last, R/Space/arrows, S3 reaches done with 6 cascaded rows, S5 shows the framed
+  Today (greeting + due list + caption), S6 outro, idle hides cursor+controls and mousemove restores
+  them, Play-from-start resets to scene 0. **Reduced-motion caveat (flagged):** the global block zeroes
+  transition/animation durations, so under OS "reduce motion" the reel hard-cuts between scenes instead
+  of easing — fine for recording on a normal machine; noted in case the user records with it on.
+- **2026-06-17** — **Demo-reel feedback pass** (user, with screenshots). (1) **S2 cards were piling
+  top-left** — bug: each `Reveal` wrapper was `absolute` with no offset (0×0 box), so the cards' `left/top`
+  percentages resolved against nothing. Rewrote S2 to position the cards directly (no `Reveal`):
+  `left/top` clustered around centre + `translate(-50%,-50%) rotate scale`, opacity/scale **POP** in on a
+  back-ease (`cubic-bezier(0.34,1.56,0.64,1)`), 110ms stagger → centred + overwhelming (verified card
+  centres span x≈539–741 around the 640 viewport centre). Labels shortened + `whitespace-nowrap` (no more
+  4-line "Email from your prof"). (2) **Parse columns were unequal height** (left fixed 340, right grew
+  with the 6 rows) — fixed in the shared `ParseRevealDemo` (so the **landing** gets it too, per request):
+  grid `[1fr_1.2fr]`→`grid-cols-2` (equal width) and **both columns a fixed `h-[384px]`** (right is now
+  `flex flex-col`, placeholder `flex-1`); 6 rows fit with no clip and nothing reflows as they cascade.
+  Verified equal on both surfaces (demo 504×384 / landing 568×384). (3) **Outro spacing uneven** (logo→
+  text gap larger than text→text) — S6 is now one `flex flex-col gap-8`; the logo renders at **real size**
+  via a new `Logo size="lg"` (`size-14` mark + `text-[34px]`, no transform-scale) and its `Reveal` is
+  `flex` to kill the inline baseline strut → all gaps exactly equal (measured 32/32). (4) **"Drop-in"
+  feel** — word scenes now ease in from **above** (`Reveal from="down"`, hidden offset bumped to
+  `-translate-y-8`, duration 720ms) for the SaaS launch-video look. Build + lint clean; no console errors;
+  landing parse beat re-verified (equal columns, no errors).
+- **2026-06-18** — **Blueprint browser shipped** (a marketplace inside Courses — NOT a sidebar tab).
+  **Mock data**: `data/blueprints.ts` — `Blueprint {id,courseId,section,teacherVerified,author,upvotes,
+  downvotes,uploadedDaysAgo,dates[]}`; helpers `netVotes`, `blueprintsForCourse`, `dateProvenance` (the
+  accuracy summary), `blueprintToAssessments` (materialize → import), `agoLabel`. Seeded for coverage:
+  teacher-verified + community (COMP 248, POLI 202), community-only ranked (MATH 205, ENGL 233, HIST 203),
+  and **none** (COMM 217) for the empty state. **Two entry points, one browser** (route
+  `courses/blueprints`, placed before `courses/:courseId` so the static segment wins): the Courses
+  **"Import syllabus"** button → unfiltered; **empty course cards** (`assessments.length === 0`) now link
+  to `…/blueprints?course=<id>` **pre-filtered** with a clear Upload CTA (whole card = the door, avoids
+  invalid nested links; graded cards untouched → grid stays clean). **Browser** (`BlueprintBrowserPage`):
+  a prominent search → when no course is picked, a `BlueprintCoursePicker` (your courses filtered live,
+  each with blueprint count + a "Verified" hint); editing the search returns to the picker, an X clears.
+  Pick → `BlueprintList`: groups by **section**, **teacher-verified pinned** (`ShieldCheck` badge +
+  accent ring) and community **collapsed** behind a quiet "N community versions" expander (hidden, not
+  deleted); no teacher → community ranked by **net votes**. **`BlueprintRow`** keeps the two credibility
+  axes visually separate: a left **vote column** (▲/net/▼, toggles, `aria-pressed`) for popularity, and a
+  **date-provenance summary** ("N dates · X confirmed · Y unverified", colored prov dots) for accuracy,
+  plus author/handle, upload date, and an **Import** button. Votes are local to the page (in-memory,
+  reset on leave — fine for the mock). **Import** → `navigate('/app/courses/:id', { state:{ importItems }})`
+  → `CourseDetailPage` plays the **reused `SyllabusParseReveal`** (gained an `autoStart` prop so an import
+  scans immediately instead of showing the idle "Upload & parse" CTA) → `onComplete` commits via
+  `addAssessments` and `navigate(replace)` clears the import state so the reveal can't replay. Empty
+  course detail (direct visit) shows a placeholder linking to the pre-filtered browser. **Empty state**:
+  "No blueprint yet for COMM 217 — contribute one and earn theme credits" → `BlueprintContributeModal`
+  (ModalShell, mock faux-upload → success "+50 theme credits"); a quiet "Contribute your outline" link
+  also sits under every list. Build + lint clean; browser-verified (desktop + mobile, no console errors):
+  both entry points, picker counts, teacher-pin + "3 community versions" collapse → expand ranks by net
+  (maya 25 › devon 9 › sam 5), vote toggle (25→26 up, flip → 24 down), import → auto-play reveal →
+  HIST 203 populated with the 6 blueprint dates (no replay), COMM 217 empty → contribute → "+50 theme
+  credits", mobile single-column with full-width search and no horizontal overflow. **Lint note:** reading
+  a `ref.current` during render is now an error (`react-hooks/refs`) — used `navigate(replace)` to clear
+  the import state instead of a render-read ref.
+- **2026-06-18** — **Blueprint browser — feedback pass** (sections, recency, back-nav, previews). (1)
+  **Sections are first-class.** `Blueprint` gained `section` (already), `instructor`, `term`, `imports`;
+  seeded **multiple sections** per class (COMP 248 BB+BC, HIST 203 AA+AB) with **different dates** per
+  section. `BlueprintList` now leads with a **section switcher** (tabs), defaulting to the student's
+  enrolled `course.section` (marked "yours"); viewing another section shows a **warning banner** ("you're
+  in BB — these are for BC, dates may differ" + a "Show section BB" jump) and every row badges "Section X
+  · not yours". The teacher-pin + community-collapse rule applies **per active section**. `key={course.id}`
+  on the list resets section/votes when the course changes. (2) **Recency surfaced** — each row shows the
+  **absolute upload date** ("Uploaded May 28, 2026", `uploadedOn`) and a **term badge**: current term
+  (`=== mock term.name`) renders neutral, past terms render warning ("Winter 2026 · past term"); seeded a
+  few past-term low-vote blueprints. (3) **Back-nav bug fixed** — selecting a course was in-page state, so
+  browser Back skipped it to Courses. The selected course now lives in the **URL (`?course=`)** via
+  `useSearchParams` (picking pushes a history entry; editing the search clears it); verified Courses →
+  Import syllabus → pick a class → Back returns to the **picker**, Back again → Courses. Search input
+  shows the code when selected and `select()`s on focus so typing replaces it. (4) **Expandable preview** —
+  each row expands ("Preview outline") to show exactly what imports: instructor, section, term, item count
+  + **weight total** (green ≥100 / warning if under), and the full date list (kind · title · date ·
+  weight% · provenance dot). (5) **Counts** — the collapsed row shows **N items** and **M imports**
+  (adoption, `Download` icon), kept separate from the vote column (approval) and the provenance summary
+  (accuracy). Build + lint clean; browser-verified (desktop + mobile, no console errors): BB default with
+  "yours" + teacher-pin + collapse and no warning; switch to BC → warning + community-ranked + "not yours"
+  rows; preview shows instructor/assignments/weights/dates/totals; past-term badge on @sam.le (Winter
+  2026); import still auto-plays into HIST 203 (6 rows); Back returns to picker; mobile no overflow.
+  (`agoLabel` kept as an exported helper though the row now shows the absolute date.)
+- **2026-06-18** — **Blueprint provenance correction** (user: per-date confirmed/unverified on COMMUNITY
+  uploads claims certainty the system doesn't have — there's no ground truth at upload time). (1) **No
+  per-date provenance shown anywhere in the browser** — deleted the row "N dates · X confirmed · Y
+  unverified" summary AND the per-date provenance dot in the expand preview (preview now shows kind ·
+  title · date · weight only). Removed `dateProvenance`/`DateProvenanceSummary`/`ProvenanceSummary` and
+  the `cf` (confirmed) constructor. **Votes** are the community-credibility signal (kept). (2) **Data
+  honesty** — all COMMUNITY blueprint dates are now `unverified` (single-source); only **teacher-verified**
+  dates are `official`, and that's conveyed by the **badge**, not repeated per date. So importing a
+  community blueprint lands its dates as **Unverified** in the course (verified: HIST 203 import shows
+  "Unverified", never "Confirmed"); teacher imports stay official. (3) **Past-term hidden by default** —
+  within the active section, current-term blueprints rank (teacher-pin + community collapse) and past-term
+  ones move into a new "N from past terms · older — dates may have changed" `Collapser` (collapsed by
+  default; @sam.le / Winter 2026 no longer inline). (4) **Section filter — no guessed default** — the
+  filter now lands on the student's **enrolled** `course.section` always (known, not guessed; dropped the
+  prior "fall back to first populated section" guess); the enrolled tab is always present + marked
+  "yours". Build + lint clean; browser-verified (fresh server, no console errors): COMP 248 BB shows
+  teacher-pin + "2 community versions" + "1 from past term", zero provenance words/dots anywhere, preview
+  shows assignments/weights/dates/instructor only, past-term expands to @sam.le, community import →
+  Unverified in the course, mobile no overflow. (Stale Vite HMR errors about a missing `dateProvenance`
+  export appeared mid-edit — cleared by a dev-server restart; build was always clean.)
+- **2026-06-18** — **Peer date-correction stub ("Waze for academics")** — **CONNECTION-PHASE feature,
+  mocked in the seed.** Real convergence needs many real users + a backend (you can't infer a crowd date
+  from one local user), so the seed only demonstrates the *interaction*; the convergence logic itself is
+  deliberately deferred to the connection phase. **Data**: `data/peer-corrections.ts` — `PeerCorrection
+  {assessmentId, proposedDue, changedCount, sectionSize}` + `correctionStrength` (a single voice is always
+  weak; ≥60% of the section = strong, ≥34% = medium). Seeded 3 on upcoming imported assignments to cover
+  the range: **strong** (comp248-a2, 5 of 6), **medium** (poli202-q1, 3 of 8), **weak** (engl233-e1,
+  1 of 5). **Honesty is the point**: the prompt shows the raw "**N of M classmates**" + a 1/2/3-bar signal
+  meter — never a fabricated "consensus" — so a one-person change reads thin and a majority reads strong.
+  **Provider** (`AppDataProvider`): `peerCorrections` (in-memory, resets on reload), `applyPeerCorrection`
+  (moves the date + marks it `confirmed`-by-N, then clears the suggestion) and `dismissPeerCorrection`
+  (clears, no date change). **The change is always SUGGESTED, never automatic** — every prompt says "You
+  decide — nothing changes automatically" with **Update yours** / **Dismiss**. **Component**:
+  `components/PeerSuggestion.tsx` (icon + strength meter + "N of M … moved [old → new]" + the two
+  buttons); an optional `onApplied` lets the edit modal sync its date field when you accept. **Surfaces**:
+  (1) **Today** — a calm one-line `PeerNudge` ("N classmate date changes to review") that opens the first
+  suggestion; (2) **Course detail** — full `PeerSuggestion` cards above the `AssessmentTable` for that
+  course's pending corrections; (3) **Edit modal** (`AssessmentDetailModal`) — the prompt inline; accepting
+  syncs `dueISO`. **Contribute half (mocked)**: changing a date in the edit modal flashes "Date shared with
+  your <CODE> section" (the broadcast you'd send to classmates) instead of the generic "Updated …". Build +
+  lint clean; browser-verified (desktop + mobile, no console errors): Today nudge → modal with the strong
+  5-of-6 prompt; the three strengths render honestly (weak 1 bar / medium 2 / strong 3); Update yours
+  applies + clears + syncs the modal date; Dismiss clears without touching the assignment; broadcast toast
+  on date edit; mobile no overflow.
