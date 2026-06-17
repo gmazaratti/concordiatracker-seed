@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Upload } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { courseStanding, percentToGrade } from '@/lib/gpa'
@@ -26,10 +27,14 @@ export function CourseGridCard({
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
+  const empty = assessments.length === 0
+  const to = empty
+    ? `/app/courses/blueprints?course=${course.id}`
+    : `/app/courses/${course.id}`
 
   return (
     <Link
-      to={`/app/courses/${course.id}`}
+      to={to}
       className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow duration-150 hover:shadow-lg"
     >
       <div
@@ -87,8 +92,11 @@ export function CourseGridCard({
                 <span className="text-danger"> · {stats.overdueCount} overdue</span>
               )}
             </span>
-          ) : standing.totalWeight === 0 ? (
-            <span className="text-accent">Import a syllabus</span>
+          ) : empty ? (
+            <span className="flex items-center gap-1.5 font-medium text-accent">
+              <Upload size={13} aria-hidden />
+              Import a syllabus
+            </span>
           ) : (
             <span className="text-success">All caught up</span>
           )}

@@ -13,8 +13,6 @@ import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 
-const IMPORT_TARGET = 'hist203'
-
 /** Courses — the grade hub. The class list switches between a dense List (rows)
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
  * A term-standing rail sits alongside, in the same two-column language as Today. */
@@ -47,7 +45,7 @@ export function CoursesPage() {
         <div className="flex items-center gap-2">
           <ViewToggle view={coursesView} onChange={setCoursesView} />
           <Link
-            to={`/app/courses/${IMPORT_TARGET}`}
+            to="/app/courses/blueprints"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />

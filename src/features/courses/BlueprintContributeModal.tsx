@@ -1,0 +1,86 @@
+import { useState } from 'react'
+import { Check, FileUp, Sparkles } from 'lucide-react'
+import type { Course } from '@/data/types'
+import { ModalShell } from '@/command/ModalShell'
+
+/** The mock contributor upload flow — a Courses action opened from the blueprint
+ * browser. No real upload: "submitting" shows a success + a theme-credit reward
+ * (the credits-for-contributions idea, made tangible). */
+export function BlueprintContributeModal({
+  course,
+  onClose,
+}: {
+  course: Course
+  onClose: () => void
+}) {
+  const [submitted, setSubmitted] = useState(false)
+
+  return (
+    <ModalShell label={`Contribute a blueprint for ${course.code}`} onClose={onClose}>
+      <div className="border-b border-border px-5 py-4">
+        <p className="text-[11px] font-medium tracking-wide text-subtle uppercase">
+          Contribute · {course.code}
+        </p>
+        <h2 className="mt-0.5 font-display text-[20px] leading-tight font-medium text-fg">
+          {submitted ? 'Thanks for sharing' : 'Share your syllabus'}
+        </h2>
+      </div>
+
+      {submitted ? (
+        <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+          <span className="grid size-12 place-items-center rounded-full bg-success/15 text-success">
+            <Check size={26} aria-hidden />
+          </span>
+          <p className="text-[14px] font-medium text-fg">Your outline is in review</p>
+          <p className="max-w-xs text-[13px] text-muted">
+            We'll parse it and a TA will confirm the dates. You earned
+          </p>
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-accent-soft px-3 py-1.5 text-[13px] font-semibold text-accent">
+            <Sparkles size={15} aria-hidden />
+            +50 theme credits
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+          >
+            Done
+          </button>
+        </div>
+      ) : (
+        <div className="px-5 py-4">
+          <button
+            type="button"
+            onClick={() => setSubmitted(true)}
+            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface-2/40 px-6 py-8 text-center transition-colors duration-150 hover:border-accent hover:bg-accent-soft/40"
+          >
+            <FileUp size={24} className="text-accent" aria-hidden />
+            <span className="text-[13px] font-medium text-fg">Drop your syllabus PDF</span>
+            <span className="text-[12px] text-subtle">or click to browse — mock, nothing is uploaded</span>
+          </button>
+          <p className="mt-3 text-[12px] text-subtle">
+            We lift out every assessment, weight, and deadline. Parsed dates land as
+            <span className="text-prov-unverified"> unverified</span> until classmates
+            confirm them — contributors earn theme credits.
+          </p>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubmitted(true)}
+              className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
+            >
+              Submit outline
+            </button>
+          </div>
+        </div>
+      )}
+    </ModalShell>
+  )
+}

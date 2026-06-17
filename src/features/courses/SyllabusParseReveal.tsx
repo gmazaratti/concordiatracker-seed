@@ -19,13 +19,17 @@ export function SyllabusParseReveal({
   course,
   items,
   onComplete,
+  autoStart = false,
 }: {
   course: Course
   items: Assessment[]
   onComplete: (items: Assessment[]) => void
+  /** Skip the idle CTA and begin the scan immediately — used when an import has
+   * already been chosen from the blueprint browser. */
+  autoStart?: boolean
 }) {
   const reduced = usePrefersReducedMotion()
-  const [phase, setPhase] = useState<Phase>('idle')
+  const [phase, setPhase] = useState<Phase>(autoStart ? 'scanning' : 'idle')
   const [revealed, setRevealed] = useState(0)
   const committed = useRef(false)
 

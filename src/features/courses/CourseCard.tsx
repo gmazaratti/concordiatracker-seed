@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Upload } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { courseStanding, percentToGrade } from '@/lib/gpa'
@@ -26,10 +26,16 @@ export function CourseCard({
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
+  // Empty courses send you to the blueprint browser (pre-filtered) to import a
+  // syllabus; populated ones open the grade detail.
+  const empty = assessments.length === 0
+  const to = empty
+    ? `/app/courses/blueprints?course=${course.id}`
+    : `/app/courses/${course.id}`
 
   return (
     <Link
-      to={`/app/courses/${course.id}`}
+      to={to}
       className="group relative block overflow-hidden rounded-xl border border-border bg-surface py-3.5 pr-4 pl-5 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
     >
       <span
@@ -91,8 +97,11 @@ export function CourseCard({
                 )}
               </span>
             </>
-          ) : standing.totalWeight === 0 ? (
-            <span className="text-accent">Import a syllabus to add dates</span>
+          ) : empty ? (
+            <span className="flex items-center gap-1.5 font-medium text-accent">
+              <Upload size={13} aria-hidden />
+              Import a syllabus
+            </span>
           ) : (
             <span className="text-success">All caught up</span>
           )}
