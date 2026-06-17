@@ -25,11 +25,13 @@ export function ParseRevealDemo({
   const total = COMM221_PARSED.length
 
   return (
-    <div className="mt-12 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      {/* The scanner — receives the dragged syllabus, then sweeps the raw page */}
+    <div className="mt-12 grid gap-4 lg:grid-cols-2">
+      {/* The scanner — receives the dragged syllabus, then sweeps the raw page.
+       * Both columns share one fixed height so they read as an even, balanced
+       * pair (and so nothing reflows as the plan cascades in). */}
       <div
         ref={scannerRef}
-        className="relative h-[340px] overflow-hidden rounded-2xl border border-border bg-surface p-4"
+        className="relative h-[384px] overflow-hidden rounded-2xl border border-border bg-surface p-4"
       >
         {showRaw ? (
           <RawPage scanning={scanning} parsed={parsed} total={total} />
@@ -56,8 +58,8 @@ export function ParseRevealDemo({
       </div>
 
       {/* The extracted plan — assessments cascade in one at a time */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-        <div className="flex items-center justify-between border-b border-border bg-surface-2/50 px-5 py-3">
+      <div className="flex h-[384px] flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-2/50 px-5 py-3">
           <span className="text-[13px] font-semibold text-fg">Financial Markets</span>
           <span className="text-[12px] text-subtle">
             {parsed ? (phase === 'done' ? `${total} dates found` : `${revealed} of ${total}`) : 'Waiting…'}
@@ -65,7 +67,7 @@ export function ParseRevealDemo({
         </div>
 
         {!parsed ? (
-          <div className="flex min-h-[296px] items-center justify-center px-5 text-[12px] text-subtle">
+          <div className="flex flex-1 items-center justify-center px-5 text-center text-[12px] text-subtle">
             {scanning ? 'Lifting dates off the page…' : 'The plan appears as the scan completes.'}
           </div>
         ) : (
