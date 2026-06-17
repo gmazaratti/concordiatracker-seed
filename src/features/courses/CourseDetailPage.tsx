@@ -1,4 +1,4 @@
-import { Navigate, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
 import { useAppData } from '@/app/providers/app-data'
 import { hist203Syllabus } from '@/data/mock'
 import { courseStanding } from '@/lib/gpa'
@@ -17,6 +17,8 @@ import { SyllabusParseReveal } from './SyllabusParseReveal'
  * the assignment list, stacked on mobile in Today's layout language. */
 export function CourseDetailPage() {
   const { courseId } = useParams()
+  const location = useLocation()
+  const focusId = (location.state as { focus?: string } | null)?.focus
   const { plan, courses, assessments, courseById, addAssessments } = useAppData()
   const course = courseId ? courseById(courseId) : undefined
   if (!course) return <Navigate to="/app/courses" replace />
@@ -60,7 +62,7 @@ export function CourseDetailPage() {
           </aside>
 
           <main className="min-w-0 flex-1">
-            <AssessmentTable assessments={courseAssessments} />
+            <AssessmentTable assessments={courseAssessments} focusId={focusId} />
           </main>
         </div>
       )}

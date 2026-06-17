@@ -1,7 +1,26 @@
-import { useCallback, useMemo, useState } from 'react'
-import { AppDataContext, type CoursesView } from './app-data'
-import { courses as seedCourses, currentUser, seedAssessments } from '@/data/mock'
-import type { Assessment, AssessmentStatus, Course, Grade, Plan } from '@/data/types'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import {
+  AppDataContext,
+  DEFAULT_CALENDAR_PREFS,
+  DEFAULT_TODAY_PREFS,
+  type CalendarPrefs,
+  type CoursesView,
+  type TodayPrefs,
+} from './app-data'
+import {
+  courses as seedCourses,
+  currentUser,
+  seedAssessments,
+  seedTasks,
+} from '@/data/mock'
+import type {
+  Assessment,
+  AssessmentStatus,
+  CalendarTask,
+  Course,
+  Grade,
+  Plan,
+} from '@/data/types'
 
 /** Holds the cloned seed so UI mutations never touch the module-level data. */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
@@ -10,9 +29,38 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     seedCourses.map((c) => ({ ...c })),
   )
   const [coursesView, setCoursesView] = useState<CoursesView>('grid')
+  const [todayPrefs, setTodayPrefs] = useState<TodayPrefs>(DEFAULT_TODAY_PREFS)
+  const [calendarPrefs, setCalendarPrefs] = useState<CalendarPrefs>(DEFAULT_CALENDAR_PREFS)
   const [assessments, setAssessments] = useState(() =>
     seedAssessments.map((a) => ({ ...a })),
   )
+  const [personalTasks, setPersonalTasks] = useState<CalendarTask[]>(() =>
+    seedTasks.map((t) => ({ ...t })),
+  )
+  const taskSeq = useRef(seedTasks.length)
+
+  const updateTodayPrefs = useCallback(
+    (patch: Partial<TodayPrefs>) => setTodayPrefs((p) => ({ ...p, ...patch })),
+    [],
+  )
+  const updateCalendarPrefs = useCallback(
+    (patch: Partial<CalendarPrefs>) => setCalendarPrefs((p) => ({ ...p, ...patch })),
+    [],
+  )
+
+  const addTask = useCallback((task: { title: string; due: string; note?: string }) => {
+    taskSeq.current += 1
+    const next: CalendarTask = { id: `task-${taskSeq.current}`, done: false, ...task }
+    setPersonalTasks((list) => [...list, next])
+  }, [])
+  const toggleTask = useCallback((id: string) => {
+    setPersonalTasks((list) =>
+      list.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+    )
+  }, [])
+  const removeTask = useCallback((id: string) => {
+    setPersonalTasks((list) => list.filter((t) => t.id !== id))
+  }, [])
 
   // Shared write surface: Today flips status; Courses edits status/grade/notes.
   const setStatus = useCallback((id: string, status: AssessmentStatus) => {
@@ -33,12 +81,25 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
+  const updateAssessment = useCallback(
+    (id: string, patch: Partial<Assessment>) => {
+      setAssessments((list) =>
+        list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+      )
+    },
+    [],
+  )
+
   const addAssessments = useCallback((items: Assessment[]) => {
     setAssessments((list) => {
       const existing = new Set(list.map((a) => a.id))
       const fresh = items.filter((a) => !existing.has(a.id))
       return fresh.length === 0 ? list : [...list, ...fresh]
     })
+  }, [])
+
+  const removeAssessment = useCallback((id: string) => {
+    setAssessments((list) => list.filter((a) => a.id !== id))
   }, [])
 
   const setCourseColor = useCallback((id: string, color: string) => {
@@ -68,12 +129,22 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setStatus,
       setGrade,
       setNotes,
+      updateAssessment,
       addAssessments,
+      removeAssessment,
       setCourseColor,
       updateCourse,
       courseById,
       coursesView,
       setCoursesView,
+      todayPrefs,
+      updateTodayPrefs,
+      personalTasks,
+      addTask,
+      toggleTask,
+      removeTask,
+      calendarPrefs,
+      updateCalendarPrefs,
     }),
     [
       plan,
@@ -82,11 +153,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setStatus,
       setGrade,
       setNotes,
+      updateAssessment,
       addAssessments,
+      removeAssessment,
       setCourseColor,
       updateCourse,
       courseById,
       coursesView,
+      todayPrefs,
+      updateTodayPrefs,
+      personalTasks,
+      addTask,
+      toggleTask,
+      removeTask,
+      calendarPrefs,
+      updateCalendarPrefs,
     ],
   )
 

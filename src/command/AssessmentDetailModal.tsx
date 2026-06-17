@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
-import type { AssessmentStatus } from '@/data/types'
+import type { Assessment, AssessmentStatus } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseChip } from '@/components/CourseChip'
@@ -10,62 +10,69 @@ import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
 import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
-import { relativeDueLabel } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
 import { Select } from '@/components/ui/Select'
+import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { ModalShell } from './ModalShell'
 
-/** The popup the command palette opens for a specific assessment ("Change grade
- * for…"). Shows the item's details and a focused status + smart-grade editor;
- * saving commits to the store and flashes a reversible Undo. */
+/** The Edit popup for one assessment (opened from the row "⋮" menu and the
+ * command palette). A small card — not a full page — to edit the due date + time,
+ * status (incl. "awaiting grade"), grade, and notes in one place. Saving writes a
+ * single patch to the store and flashes a reversible Undo. */
 export function AssessmentDetailModal({ id }: { id: string }) {
-  const { assessments, courseById, setStatus, setGrade } = useAppData()
+  const { assessments, courseById, updateAssessment } = useAppData()
   const { closeTarget, flashUndo } = useQuickActions()
   const navigate = useNavigate()
 
   const assessment = assessments.find((a) => a.id === id)
   const course = assessment ? courseById(assessment.courseId) : undefined
 
-  const [status, setDraftStatus] = useState<AssessmentStatus>(
+  const [status, setStatusDraft] = useState<AssessmentStatus>(
     assessment?.status ?? 'not-started',
   )
-  const [gradeText, setGradeText] = useState(() =>
-    gradeToInput(assessment?.grade ?? null),
-  )
+  const [gradeText, setGradeText] = useState(() => gradeToInput(assessment?.grade ?? null))
+  const [dueISO, setDueISO] = useState(assessment?.due ?? '')
+  const [notes, setNotes] = useState(assessment?.notes ?? '')
 
   if (!assessment || !course) return null
 
   const parsed = parseGradeInput(gradeText)
   const pct = gradeToPercent(parsed)
   const resolved = pct === null ? null : percentToGrade(pct)
-  const gradeDirty = gradeToInput(parsed) !== gradeToInput(assessment.grade)
-  const statusDirty = status !== assessment.status
-  const dirty = gradeDirty || statusDirty
   const { hex } = courseColor(course.color)
 
+  const statusDirty = status !== assessment.status
+  const gradeDirty = gradeToInput(parsed) !== gradeToInput(assessment.grade)
+  const dueDirty = !!dueISO && dueISO !== assessment.due
+  const notesDirty = notes !== assessment.notes
+  const dirty = statusDirty || gradeDirty || dueDirty || notesDirty
+
   function save() {
-    if (!assessment) return
-    const prevStatus = assessment.status
-    const prevGrade = assessment.grade
-    if (statusDirty) setStatus(assessment.id, status)
-    if (gradeDirty) setGrade(assessment.id, parsed)
-    closeTarget()
-    if (dirty) {
-      flashUndo(`Updated ${assessment.title}`, () => {
-        setStatus(assessment.id, prevStatus)
-        setGrade(assessment.id, prevGrade)
-      })
+    if (!assessment || !dirty) return
+    const patch: Partial<Assessment> = {}
+    if (statusDirty) patch.status = status
+    if (gradeDirty) patch.grade = parsed
+    if (dueDirty) patch.due = dueISO
+    if (notesDirty) patch.notes = notes
+    const prev: Partial<Assessment> = {
+      status: assessment.status,
+      grade: assessment.grade,
+      due: assessment.due,
+      notes: assessment.notes,
     }
+    updateAssessment(assessment.id, patch)
+    closeTarget()
+    flashUndo(`Updated ${assessment.title}`, () => updateAssessment(assessment.id, prev))
   }
 
   function openInCourse() {
     if (!assessment) return
-    navigate(`/app/courses/${assessment.courseId}`)
+    navigate(`/app/courses/${assessment.courseId}`, { state: { focus: assessment.id } })
     closeTarget()
   }
 
   return (
-    <ModalShell label={`Change grade for ${assessment.title}`} onClose={closeTarget}>
+    <ModalShell label={`Edit ${assessment.title}`} onClose={closeTarget}>
       <div className="h-1.5" style={{ backgroundColor: hex }} aria-hidden />
       <div className="px-5 py-4">
         <div className="flex items-center gap-2">
@@ -79,20 +86,15 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <span>{KIND_LABEL[assessment.kind]}</span>
           <span aria-hidden>·</span>
           <span>{assessment.weight}% of grade</span>
-          <span aria-hidden>·</span>
-          <span>{relativeDueLabel(assessment.due)}</span>
           <ProvenanceBadge provenance={assessment.provenance} />
         </div>
 
         <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-3">
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-medium tracking-wide text-subtle uppercase">
-              Status
-            </span>
+          <Field label="Status">
             <Select
               ariaLabel="Status"
               value={status}
-              onChange={(v) => setDraftStatus(v as AssessmentStatus)}
+              onChange={(v) => setStatusDraft(v as AssessmentStatus)}
               tone="control"
               options={EDITOR_STATUSES.map((s) => ({
                 value: s,
@@ -100,12 +102,9 @@ export function AssessmentDetailModal({ id }: { id: string }) {
                 dot: STATUS_META[s].dot,
               }))}
             />
-          </label>
+          </Field>
 
-          <label className="block">
-            <span className="mb-1 block text-[11px] font-medium tracking-wide text-subtle uppercase">
-              Grade
-            </span>
+          <Field label="Grade">
             <input
               type="text"
               inputMode="decimal"
@@ -118,7 +117,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               }}
               className="w-[124px] rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-center text-[14px] font-medium text-fg tabular-nums focus-visible:outline-none"
             />
-          </label>
+          </Field>
         </div>
 
         <p className="mt-2 text-[12px] text-subtle">
@@ -132,6 +131,29 @@ export function AssessmentDetailModal({ id }: { id: string }) {
             'No grade yet — leave blank to keep it ungraded.'
           )}
         </p>
+
+        <div className="mt-4">
+          <Field label="Due date & time">
+            <DateTimePicker
+              value={dueISO}
+              onChange={setDueISO}
+              ariaLabel="Due date and time"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4">
+          <Field label="Notes">
+            <textarea
+              value={notes}
+              rows={3}
+              placeholder="Anything to remember about this one…"
+              aria-label="Notes"
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-[13px] leading-relaxed text-fg focus-visible:outline-none"
+            />
+          </Field>
+        </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <button
@@ -162,5 +184,16 @@ export function AssessmentDetailModal({ id }: { id: string }) {
         </div>
       </div>
     </ModalShell>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[11px] font-medium tracking-wide text-subtle uppercase">
+        {label}
+      </span>
+      {children}
+    </label>
   )
 }

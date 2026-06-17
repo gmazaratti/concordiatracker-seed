@@ -1,4 +1,4 @@
-import type { Assessment, Course, User } from './types'
+import type { Assessment, CalendarTask, Course, User } from './types'
 import { daysFromNow } from '@/lib/date'
 import { percentGrade, rawGrade } from '@/lib/grade'
 
@@ -143,6 +143,14 @@ export const seedAssessments: Assessment[] = [
   { id: 'comm217-fin', courseId: 'comm217', title: 'Final exam', kind: 'final', due: daysFromNow(25), weight: 35, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
   { id: 'comp248-proj', courseId: 'comp248', title: 'Final project — Console app', kind: 'project', due: daysFromNow(28), weight: 30, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
   { id: 'math205-fin', courseId: 'math205', title: 'Final exam', kind: 'final', due: daysFromNow(30), weight: 40, provenance: { status: 'official' }, status: 'not-started', grade: null, notes: '' },
+]
+
+/** Seed personal calendar tasks/notes (the "My calendar" layer beyond
+ * assignments). Cloned by the provider; dates are runtime-relative. */
+export const seedTasks: CalendarTask[] = [
+  { id: 'task-1', title: 'Office hours — COMP 248 Q&A', due: daysFromNow(1, 14, 0), done: false, note: 'Bring Assignment 2 questions.' },
+  { id: 'task-2', title: 'Form study group for finals', due: daysFromNow(4, 17, 0), done: false },
+  { id: 'task-3', title: 'Buy MATH 205 exam booklet', due: daysFromNow(-1, 12, 0), done: true },
 ]
 
 /**

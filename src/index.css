@@ -313,6 +313,27 @@
   animation: ct-click-ping 440ms ease-out forwards;
 }
 
+/* "Open in course" lands on a row and glows briefly so you can spot it — an
+ * accent wash + inset ring that fades out over ~2.2s. */
+@keyframes ct-highlight {
+  0% {
+    background-color: var(--ct-accent-soft);
+    box-shadow: inset 0 0 0 2px var(--ct-accent-ring);
+  }
+  70% {
+    background-color: var(--ct-accent-soft);
+    box-shadow: inset 0 0 0 2px var(--ct-accent-ring);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+}
+
+.ct-highlight {
+  animation: ct-highlight 2200ms ease-out;
+}
+
 /* ---- Landing hero: the dashboard embed slides in from the right on load
  * (≤0.5s, one-shot), then its greeting types out once (the typing itself is
  * JS-driven in AppPreview). Reduced-motion safe: `both` fill holds the landed

@@ -84,6 +84,17 @@ export interface Assessment {
   notes: string
 }
 
+/** A personal calendar task/note the user adds (the "My calendar" layer, beyond
+ * assignment deadlines). In-memory only, like everything else in the seed. */
+export interface CalendarTask {
+  id: string
+  title: string
+  /** ISO 8601 timestamp the task is pinned to. */
+  due: string
+  done: boolean
+  note?: string
+}
+
 /** A teaching contact — instructor or TA. Editable inline on the course detail. */
 export interface Contact {
   name: string

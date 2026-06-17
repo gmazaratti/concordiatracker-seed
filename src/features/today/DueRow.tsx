@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, MoreHorizontal } from 'lucide-react'
+import { ArrowUpRight, Check, CircleDashed, Pencil, Trash2 } from 'lucide-react'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
+import type { TodayPrefs } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
-import { CourseChip } from '@/components/CourseChip'
-import { isOpen, STATUS_META } from '@/lib/status'
+import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
 import { KIND_LABEL } from '@/lib/assessment'
+import { courseColor } from '@/lib/course-color'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
-import { DueRowMenu } from './DueRowMenu'
 
 /** Due labels lean on color only as urgency reinforcement — the text says it too,
  * and everything that isn't urgent stays neutral so the row reads calm. */
@@ -20,50 +20,76 @@ function dueTone(due: string): string {
   return 'text-fg'
 }
 
-/** An active (still-open) item. The round check is the fast path to "done"; the
- * "…" menu holds everything else (other statuses, the full editor, the course
- * link) so the row surface stays a clean title + due line. A terminal status
- * plays a brief reward, then `onResolve` lifts the row into Completed today; an
- * open status (in-progress / extension) just annotates it in place. */
+/** A calm active row: title + course + due (primary). The course reads as a small
+ * identity DOT + plain code (no full-color pill); saturated color is reserved for
+ * urgency. Provenance is intentionally off here (it belongs on Courses + the
+ * detail editor) — the one exception is a quiet "unverified" marker so a shaky
+ * date still whispers caution. The round check is the fast path to done; the "…"
+ * menu holds enter-grade / open-in-course / delete so the surface stays clean. */
 export function DueRow({
   assessment,
   course,
+  prefs,
   onResolve,
-  onSetStatus,
+  onDelete,
 }: {
   assessment: Assessment
   course: Course | undefined
+  prefs: TodayPrefs
   onResolve: (status: AssessmentStatus) => void
-  onSetStatus: (status: AssessmentStatus) => void
+  onDelete: () => void
 }) {
   const navigate = useNavigate()
   const { openAssessment } = useQuickActions()
-  const [resolving, setResolving] = useState<AssessmentStatus | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [resolving, setResolving] = useState(false)
   const fired = useRef(false)
 
-  function pick(status: AssessmentStatus) {
+  function markDone() {
     if (resolving) return
-    setMenuOpen(false)
-    if (isOpen(status)) {
-      onSetStatus(status)
-    } else {
-      setResolving(status)
-    }
+    setResolving(true)
   }
 
   function handleAnimationEnd() {
     if (!resolving || fired.current) return
     fired.current = true
-    onResolve(resolving)
+    onResolve('done')
   }
 
-  const tone = resolving ? STATUS_META[resolving] : null
+  const compact = prefs.density === 'compact'
+  const hex = course ? courseColor(course.color).hex : undefined
+  const unverified = assessment.provenance.status === 'unverified'
+
+  const menuItems: MenuItem[] = [
+    {
+      id: 'edit',
+      label: 'Edit',
+      icon: Pencil,
+      onSelect: () => openAssessment(assessment.id),
+    },
+    {
+      id: 'open',
+      label: 'Open in course',
+      icon: ArrowUpRight,
+      onSelect: () =>
+        navigate(`/app/courses/${assessment.courseId}`, {
+          state: { focus: assessment.id },
+        }),
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: Trash2,
+      danger: true,
+      separated: true,
+      onSelect: onDelete,
+    },
+  ]
 
   return (
     <li
       className={cn(
-        'group relative px-3 py-2.5',
+        'group relative px-3',
+        compact ? 'py-1.5' : 'py-2.5',
         resolving && 'ct-animate-complete pointer-events-none',
       )}
       onAnimationEnd={resolving ? handleAnimationEnd : undefined}
@@ -71,76 +97,75 @@ export function DueRow({
       <div className="flex items-start gap-3">
         <button
           type="button"
-          onClick={() => pick('done')}
-          disabled={!!resolving}
+          onClick={markDone}
+          disabled={resolving}
           title="Mark done"
           aria-label={`Mark "${assessment.title}" done`}
           className={cn(
             'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150',
             resolving
-              ? cn('border-transparent text-accent-contrast', tone?.dot)
+              ? 'border-transparent bg-success text-accent-contrast'
               : 'border-border-strong text-transparent hover:border-accent hover:bg-accent-soft hover:text-accent',
           )}
         >
-          <Check
-            size={12}
-            strokeWidth={3}
-            className={resolving ? 'ct-animate-check' : ''}
-          />
+          <Check size={12} strokeWidth={3} className={resolving ? 'ct-animate-check' : ''} />
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-medium text-fg">
-            {assessment.title}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-subtle">
-            {course && <CourseChip code={course.code} color={course.color} />}
+          <p className="truncate text-[14px] font-medium text-fg">{assessment.title}</p>
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-subtle',
+              compact ? 'mt-0.5' : 'mt-1',
+            )}
+          >
+            {course && (
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: hex }}
+                  aria-hidden
+                />
+                <span>{course.code}</span>
+              </span>
+            )}
             <span>
-              {KIND_LABEL[assessment.kind]} · {assessment.weight}%
+              {KIND_LABEL[assessment.kind]}
+              {prefs.showWeight && ` · ${assessment.weight}%`}
             </span>
-            <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
+            {prefs.showProvenance ? (
+              <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
+            ) : (
+              unverified && (
+                <span
+                  className="inline-flex items-center gap-1 text-subtle/80"
+                  title="Unverified date — not yet corroborated"
+                >
+                  <CircleDashed size={12} aria-hidden />
+                  <span className="sr-only">unverified date</span>
+                </span>
+              )
+            )}
           </div>
         </div>
 
         <span
-          className={cn(
-            'shrink-0 pt-px text-[13px] font-semibold',
-            dueTone(assessment.due),
-          )}
+          className={cn('shrink-0 pt-px text-[13px] font-semibold', dueTone(assessment.due))}
         >
           {relativeDueLabel(assessment.due)}
         </span>
 
-        <button
-          type="button"
-          onClick={() => setMenuOpen((o) => !o)}
-          disabled={!!resolving}
-          aria-expanded={menuOpen}
-          aria-label={`More actions for "${assessment.title}"`}
-          title="More actions"
-          className={cn(
-            'mt-0.5 grid size-6 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg focus-visible:opacity-100',
-            'opacity-60 group-hover:opacity-100',
-            menuOpen && 'bg-surface-2 text-fg opacity-100',
+        <DropdownMenu
+          ariaLabel={`More actions for "${assessment.title}"`}
+          disabled={resolving}
+          items={menuItems}
+          triggerClassName={cn(
+            'mt-0.5 grid size-6 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
+            'opacity-60 group-hover:opacity-100 focus-visible:opacity-100',
+            'data-[state=open]:bg-surface-2 data-[state=open]:text-fg data-[state=open]:opacity-100',
           )}
-        >
-          <MoreHorizontal size={16} />
-        </button>
-      </div>
-
-      {menuOpen && !resolving && (
-        <DueRowMenu
-          onPick={pick}
-          onEdit={() => {
-            setMenuOpen(false)
-            openAssessment(assessment.id)
-          }}
-          onOpenCourse={() => {
-            setMenuOpen(false)
-            navigate(`/app/courses/${assessment.courseId}`)
-          }}
         />
-      )}
+      </div>
     </li>
   )
 }

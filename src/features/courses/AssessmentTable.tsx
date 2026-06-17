@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Assessment } from '@/data/types'
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/cn'
@@ -11,11 +11,37 @@ const byDue = (a: Assessment, b: Assessment) =>
 
 /** The course's full assessment list, in due order. Two views over the same
  * rows: Grades (the status + grade editor) and Notes (per-assessment notes).
- * The shared model means both write straight to the store. */
-export function AssessmentTable({ assessments }: { assessments: Assessment[] }) {
+ * The shared model means both write straight to the store. `focusId` (set by
+ * "Open in course") scrolls that row into view and glows it briefly. */
+export function AssessmentTable({
+  assessments,
+  focusId,
+}: {
+  assessments: Assessment[]
+  focusId?: string
+}) {
   const [tab, setTab] = useState<Tab>('grades')
+  const [highlightId, setHighlightId] = useState<string | null>(null)
   const sorted = [...assessments].sort(byDue)
   const noted = assessments.filter((a) => a.notes.trim() !== '').length
+
+  useEffect(() => {
+    if (!focusId) return
+    // defer (avoids a sync setState in the effect body) so the row is laid out,
+    // then switch to the grades view, scroll to it, and glow it.
+    const scroll = setTimeout(() => {
+      setTab('grades')
+      document
+        .getElementById(`assess-${focusId}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      setHighlightId(focusId)
+    }, 60)
+    const clear = setTimeout(() => setHighlightId(null), 2400)
+    return () => {
+      clearTimeout(scroll)
+      clearTimeout(clear)
+    }
+  }, [focusId])
 
   return (
     <Card className="overflow-hidden">
@@ -40,7 +66,12 @@ export function AssessmentTable({ assessments }: { assessments: Assessment[] }) 
 
       <div className="divide-y divide-border">
         {sorted.map((a) => (
-          <AssessmentRow key={a.id} assessment={a} tab={tab} />
+          <AssessmentRow
+            key={a.id}
+            assessment={a}
+            tab={tab}
+            highlighted={a.id === highlightId}
+          />
         ))}
       </div>
     </Card>

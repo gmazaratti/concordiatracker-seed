@@ -14,13 +14,15 @@ export function isOpen(status: AssessmentStatus): boolean {
 /** The lightweight transitions Today's quick-status control offers. */
 export const QUICK_STATUSES: AssessmentStatus[] = ['done', 'late', 'missed']
 
-/** The statuses the course grade editor offers, in lifecycle order. "Overdue"
- * isn't here — it's derived from the due date, not set by hand. */
+/** The statuses the editor offers, in lifecycle order. "Overdue" isn't here —
+ * it's derived from the due date, not set by hand. `awaiting-grade` = handed in,
+ * waiting on a mark. */
 export const EDITOR_STATUSES: AssessmentStatus[] = [
   'not-started',
   'in-progress',
   'extension',
   'done',
+  'awaiting-grade',
   'late',
   'missed',
 ]

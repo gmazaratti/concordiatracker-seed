@@ -69,3 +69,14 @@ export function formatFull(due: string): string {
     day: 'numeric',
   }).format(new Date(due))
 }
+
+/** Human due date + time for the editor summary: "Fri, Jun 20 · 11:59 PM". */
+export function formatDueDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}

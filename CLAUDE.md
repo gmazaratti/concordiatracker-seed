@@ -569,3 +569,122 @@ If cutting a corner that would make this hard to build on, **flag it**.
   76→448 → scan → 6 reveals). NOTE for future verification: this preview harness returns **stale
   `getComputedStyle` opacity for in-flight CSS transitions** and its screenshot pipeline can hang —
   read overlay state from **inline** `style` values, not computed.
+- **2026-06-16** — **Today refined for calm + provenance removed from the default view** (user: reduce
+  visual weight; provenance belongs on Courses + the assessment detail editor, not repeated daily on
+  Today). Rows are now: title + **course as a small identity DOT + plain code** (not a full-color
+  `CourseChip` pill — saturated color is reserved for urgency, e.g. overdue due text) + due. Kind shows
+  always; **weight % is toggleable**. **No provenance badge by default**; the lone exception is a quiet
+  `CircleDashed` "unverified" marker (title tooltip + sr-only text) so a shaky date still whispers
+  caution — official/confirmed show nothing. The full `ProvenanceBadge` stays on Courses cards and the
+  `AssessmentDetailModal` (unchanged). The `…` menu is trimmed to three quick actions — **Enter grade**
+  (opens the detail editor), **Open in course**, **Delete** — and the round check is the fast path to
+  done; the old status pills are gone (status is set via the editor). **Delete** is new: provider gained
+  `removeAssessment(id)`; `TodayPage.deleteItem` removes it and `flashUndo`s a restore via
+  `addAssessments([item])` (the existing Gmail-style toast). **"Customize Today"** = a small inline panel
+  (toggled from the Due header, rendered in-flow so the Card clip never crops it) with exactly four
+  controls: show weight %, show provenance (power-user opt-in), density (comfortable/compact → row
+  padding), group by (time → overdue/this-week, or course → one section per class, soonest-due first).
+  Backed by sticky `todayPrefs` in `AppDataProvider` (`DEFAULT_TODAY_PREFS`, resets on reload, like
+  `coursesView`); reuses the settings `Switch`/`Segmented`. `DueList` builds its sections from the
+  groupBy pref; the two-column layout + GlanceStrip rail are untouched. The landing `AppPreview` (a
+  static marketing snapshot of Today) deliberately keeps its old look. Build + lint clean; browser-
+  verified: calm default (no full badges, dot+code, 2 unverified markers), all four toggles work
+  (weight hide, provenance show, compact padding 10→6px, group-by-course sections), menu = Enter
+  grade/Open in course/Delete, delete→Undo restores (6→5→6), mobile no horizontal overflow + icon-only
+  Customize button, no console errors.
+- **2026-06-16** — **Row "⋮" menu → floating popover (`components/ui/DropdownMenu.tsx`)** (user: make
+  it a real Gmail-style dropdown, not an inline panel that reflows the list; vertical dots). Reusable
+  overflow menu: a **portaled, `position:fixed` popover** anchored to its trigger (right edge aligned),
+  so it floats above content and **never reflows the list** (verified: Due card height unchanged on
+  open). Closes on outside-click + Escape; **one open at a time** (opening another trigger's mousedown
+  dismisses the first). Full menu-button keyboard model — ↓/↑/Home/End move focus (roving tabindex,
+  real DOM focus on items), Enter/Space select, **Esc closes and restores focus to the trigger**, Tab
+  is trapped. **Flips upward** when there isn't room below (`computePos` estimates height, checks
+  `spaceBelow`) so it's never clipped (verified at a 420px viewport: menu sits above the trigger, in
+  view). Items are data-driven (`MenuItem[]` = id/label/icon/onSelect/`danger`/`separated`); **Delete is
+  destructive (red) with a divider above**. Trigger exposes `data-state=open|closed` so callers style
+  the open state (Tailwind `data-[state=open]:`). The triple-dot is now **vertical** (`MoreVertical`).
+  Replaced Today's inline `DueRowMenu` (deleted) in `DueRow` with `<DropdownMenu>` (Enter grade / Open
+  in course / Delete) — the only "⋮" in the app. Build + lint clean; browser-verified: portaled (not in
+  the card), no reflow, divider + red Delete, focus enters/Arrow/Enter/Esc+restore, outside-click +
+  one-at-a-time, flip-up, no console errors.
+- **2026-06-16** — **Today row actions: full "Edit" card + "Open in course" scroll-to-glow** (user
+  ask). (1) **Edit** — the row "⋮" menu's "Enter grade" became **Edit**, opening the (extended)
+  `AssessmentDetailModal` as a small popup card (ModalShell, `sm:max-w-md` — not full-page): edit the
+  **due date + time** (`<input type="datetime-local">`, ISO↔local via new `toDateTimeLocal`/
+  `fromDateTimeLocal`), **status** (now includes **`awaiting-grade`** = "completed, pending a grade";
+  added to `EDITOR_STATUSES`), **grade**, and **notes** (textarea). Save writes ONE patch via the new
+  provider `updateAssessment(id, patch)` and flashes a reversible Undo (reverts the whole patch). The
+  command palette opens the same modal. (2) **Open in course** — navigates with React-Router
+  `state:{ focus: id }`; `CourseDetailPage` reads `location.state.focus` and passes `focusId` to
+  `AssessmentTable`, which switches to the Grades tab, `scrollIntoView({block:'center', smooth})` the
+  row (`id="assess-${id}"`), and glows it via a new `ct-highlight` keyframe (accent wash + inset ring,
+  ~2.2s, then cleared). Build + lint clean; browser-verified: menu = Edit/Open in course/Delete, Edit
+  modal has datetime + status (incl. Awaiting grade) + grade + notes, Save persists (row due → "Due
+  Fri", Undo toast), Open-in-course lands on `/app/courses/:id` with the row scrolled into view +
+  `ct-highlight` applied then cleared; no console errors.
+- **2026-06-16** — **Custom date+time picker (`components/ui/DateTimePicker.tsx`) replaces the native
+  `datetime-local`** (user: "Use a custom date and time, not the default computer's one"). Token-themed,
+  works in ISO (value in / value out). Trigger = a themed button showing `formatDueDateTime` + a
+  calendar icon; clicking opens a **portaled, `position:fixed`** popover (flips up near the viewport
+  bottom, repositions on scroll/resize, outside-click + Esc dismiss). Popover holds a **6×7 month grid**
+  (prev/next month nav, selected = accent fill, today = accent text, adjacent-month days muted) + a
+  **12-hour time row** (hour + minute custom `Select`s — minute options are the 5-min steps plus the
+  item's actual minute so e.g. `:59` stays selectable — and an AM/PM segmented). Day clicks keep the
+  time; time changes keep the day. Keyboard: ←/→/↑/↓ move the focused day (roving tabindex, rolls the
+  month at edges), Esc closes; keys `stopPropagation` so the surrounding modal's focus trap doesn't
+  hijack them. **z-index**: popover `z-[55]` (above the modal's `z-50`); the nested hour/minute Select
+  lists are `z-[60]` so they layer **above** the popover. Wired into the Edit modal (`dueISO` state, no
+  more local↔ISO conversion); the dead `toDateTimeLocal`/`fromDateTimeLocal` helpers were removed.
+  Build + lint clean; browser-verified: no native input, 42-cell grid + month nav, day pick →
+  "Sat, Jun 20", AM/PM toggle updates the value, Save persists (row → "Due Sat"), nested minute dropdown
+  layers above the calendar, mobile popover fits (292px in a 375 viewport, no horizontal overflow), no
+  console errors.
+- **2026-06-16** — Step 4 (**Calendar**) shipped — built FRESH against the current mock model (the
+  old calendar-sync code was abandoned). **Two layers, independently toggleable** (per spec, NOT
+  separate tabs): **"My calendar"** (assignment deadlines from `assessments` + personal `tasks`) and
+  **"Concordia"** (the official academic calendar). The Concordia dataset is **real** —
+  `data/academic-calendar.ts` transcribes the registrar PDF the user provided (Summer 2026 · Fall 2026
+  · Winter 2027): `AcademicEvent {id,title,start,end?,kind}` with **absolute** `YYYY-MM-DD` dates (a
+  curated student-relevant subset — term bounds, exam periods, reading weeks, closures, add/drop +
+  withdrawal + grad deadlines; niche grad-admin rows omitted for calm). Multi-day events use `end`
+  (inclusive) and render as a chip on **each** day in range (no spanning-bar engine). Swap the array to
+  load a different year/program. Approved decision (Concordia layer = **info-blue + per-kind icon**, NOT
+  maroon brand — `ACADEMIC_META` maps term→Flag / exam→FileText / break→Coffee / holiday→PartyPopper /
+  deadline→AlarmClock). **Personal tasks** are a new in-memory layer: `CalendarTask {id,title,due,done,
+  note?}` seeded in `mock.ts` (`seedTasks`, runtime-relative), provider gained `personalTasks` +
+  `addTask`/`toggleTask`/`removeTask` (`taskSeq` ref for ids). **Three views** (Month / Week / Agenda)
+  as a `Segmented` toggle (NOT tabs), state in sticky `calendarPrefs` (`DEFAULT_CALENDAR_PREFS` = month
+  + both layers on; resets on reload, like `coursesView`/`todayPrefs`). **Mobile defaults to Agenda**
+  (approved): a module-level `mobileInitDone` flag + one-shot effect switches view→agenda on first
+  calendar visit when `matchMedia('(max-width:1023px)')` and the view is still the `month` default — so
+  it never fights a deliberate sticky desktop choice. Day-bucketing math lives in `features/calendar/
+  calendar.ts` (`ymd` LOCAL key, `parseDay` no-UTC-shift, `monthGrid` 42-cell, `weekDays`, `dayItems`
+  honoring the layer prefs, `agendaDays`). **Layout** = the Today/Courses two-column language
+  (`max-w-5xl`: view in `main`, a recessed `CalendarRail` aside `lg:w-[272px]` — `bg-surface/50`
+  glance-panel style — with the two layer `Switch`es + a university-dates legend + the gated Sync
+  button). Period nav (‹ ›, Today, month/week label) shows for Month/Week; Agenda is forward-only so
+  its nav is hidden. **Views**: `MonthView` (6×7 grid, ≤3 `EventPill`s/day + "+N more", today = accent
+  circle, day cell = button → day modal); `WeekView` (7 day columns, horizontal-scroll on narrow, a
+  pill → assignment opens its detail popover, else the day modal); `AgendaView` (phone-first; day-
+  grouped `ItemRow` list over the next 60 days, only days with items, calm empty state). **`EventPill`**
+  = the calm one-line marker (course identity dot for assignments, info-blue icon for Concordia, neutral
+  dot for tasks; saturated red only for an overdue-and-open assignment). **`ItemRow`** (shared by Agenda
+  + the day modal) = the detailed row: assignments carry a done-check + `CourseChip` + **full
+  `ProvenanceBadge`** (provenance is shown in full here, consistent with Courses — only Today suppresses
+  it) and open the **same** `AssessmentDetailModal` popover used everywhere; tasks toggle done + delete
+  inline; Concordia events are read-only. **`DayDetailModal`** (reuses `ModalShell`) lists the day's
+  items + an **add-task** form (title input + the custom `DateTimePicker` defaulting to that day at
+  noon); opening an assignment from it calls `onClose` FIRST so the editor never stacks on the day
+  modal. **Sync button (stub, Pro-gated)**: free → `openSettings('billing')` upgrade nudge; semester →
+  click flips to a mock "Sync set up · Two-way sync coming soon" success (no real sync). Build + lint
+  clean; browser-verified (desktop + mobile, no console errors): month grid (42 cells, today=16 ringed,
+  course-color dots, info-blue academic icons, multi-day finals/reading-week ranges, "+N more", done =
+  strikethrough); week (7 cols, pill→`Edit …` popover opens directly); agenda (forward day-groups, nav
+  hidden); day modal (items + add-task + DateTimePicker, open-assignment closes the day modal then opens
+  the editor — no stacking); layer toggle (Concordia off removes academic, keeps assignments); sync
+  free→Billing, semester→"Sync set up"; mobile reload auto-selects Agenda, month grid + bottom-sheet
+  modal fit 375px with no horizontal overflow. **Note (defensible scope choice):** the Agenda view is
+  forward-looking from today, so overdue items don't appear there — they remain red in Month/Week, and
+  Today centralizes overdue. **Reduced-motion:** views are static (no entrance motion); the only
+  animations are the reused ModalShell/DateTimePicker, already reduced-motion safe.

@@ -27,9 +27,12 @@ function dueTone(due: string): string {
 export function AssessmentRow({
   assessment,
   tab,
+  highlighted = false,
 }: {
   assessment: Assessment
   tab: 'grades' | 'notes'
+  /** Briefly glow this row (e.g. after "Open in course" scrolls to it). */
+  highlighted?: boolean
 }) {
   const { setStatus, setGrade, setNotes } = useAppData()
   const [draftStatus, setDraftStatus] = useState<AssessmentStatus>(assessment.status)
@@ -55,7 +58,14 @@ export function AssessmentRow({
   }
 
   return (
-    <div className={cn('px-3.5 py-3 transition-colors duration-150', dirty && 'bg-accent-soft/40')}>
+    <div
+      id={`assess-${assessment.id}`}
+      className={cn(
+        'px-3.5 py-3 transition-colors duration-150',
+        dirty && 'bg-accent-soft/40',
+        highlighted && 'ct-highlight',
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5">
         <div className="flex min-w-0 flex-1 basis-[240px] items-start gap-3">
           <div className="w-[76px] shrink-0 pt-0.5">

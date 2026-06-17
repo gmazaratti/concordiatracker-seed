@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
+import { useQuickActions } from '@/app/providers/quick-actions'
 import { term } from '@/data/mock'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
@@ -25,7 +26,19 @@ function greeting(): string {
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
 export function TodayPage() {
-  const { user, plan, courses, assessments, setStatus, courseById } = useAppData()
+  const {
+    user,
+    plan,
+    courses,
+    assessments,
+    setStatus,
+    removeAssessment,
+    addAssessments,
+    courseById,
+    todayPrefs,
+    updateTodayPrefs,
+  } = useAppData()
+  const { flashUndo } = useQuickActions()
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
@@ -40,14 +53,16 @@ export function TodayPage() {
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
   }
-  // An open status (in-progress / extension) annotates the item without
-  // resolving it — it stays on the due list, so it never enters resolvedIds.
-  function changeStatus(id: string, status: AssessmentStatus) {
-    setStatus(id, status)
-  }
   function undo(id: string) {
     setResolvedIds((prev) => prev.filter((x) => x !== id))
     setStatus(id, 'not-started')
+  }
+  // Delete removes the item from the store; a transient Undo restores it intact.
+  function deleteItem(id: string) {
+    const item = assessments.find((a) => a.id === id)
+    setResolvedIds((prev) => prev.filter((x) => x !== id))
+    removeAssessment(id)
+    if (item) flashUndo(`Deleted ${item.title}`, () => addAssessments([item]))
   }
 
   const firstName = user.name.split(' ')[0]
@@ -68,10 +83,12 @@ export function TodayPage() {
           <DueList
             groups={groups}
             completed={completed}
+            prefs={todayPrefs}
             courseById={courseById}
             onResolve={resolve}
-            onSetStatus={changeStatus}
+            onDelete={deleteItem}
             onUndo={undo}
+            onPrefsChange={updateTodayPrefs}
           />
         </main>
 
