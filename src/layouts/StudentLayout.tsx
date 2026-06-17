@@ -6,6 +6,7 @@ import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
+import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 
 /** Chrome for the authenticated student app context. */
 export function StudentLayout() {
@@ -29,6 +30,7 @@ export function StudentLayout() {
       <CommandPalette />
       <QuickActionLayer />
       <SettingsLayer />
+      <UpdatesLayer />
     </div>
   )
 }

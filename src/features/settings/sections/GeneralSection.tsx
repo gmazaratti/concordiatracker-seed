@@ -1,12 +1,16 @@
 import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { useUpdates } from '@/app/providers/updates'
 import { Group, Row, Switch, Segmented } from '../controls'
 
 type Lang = 'en' | 'fr'
 
-/** General: appearance, lightweight preferences, notifications, and the
+/** General: appearance, lightweight preferences, notifications, updates, and the
  * English/French toggle (i18n stubbed — full translation lands later). */
 export function GeneralSection() {
+  const { currentVersion, showIndicator, notificationsEnabled, setNotificationsEnabled, openHistory } =
+    useUpdates()
   const [reducedMotion, setReducedMotion] = useState(false)
   const [weekStartMon, setWeekStartMon] = useState(true)
   const [deadlineReminders, setDeadlineReminders] = useState(true)
@@ -40,6 +44,33 @@ export function GeneralSection() {
         </Row>
         <Row label="Product updates" description="Occasional notes on what's new.">
           <Switch checked={productUpdates} onChange={setProductUpdates} label="Product updates" />
+        </Row>
+      </Group>
+
+      <Group label="Updates">
+        <Row
+          label="What's new"
+          description="See what changed in each release."
+        >
+          <button
+            type="button"
+            onClick={openHistory}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-fg transition-colors duration-150 hover:bg-surface-2"
+          >
+            <span className="tabular-nums">v{currentVersion}</span>
+            {showIndicator && <span className="size-1.5 rounded-full bg-accent" aria-hidden />}
+            <ChevronRight size={14} className="text-subtle" aria-hidden />
+          </button>
+        </Row>
+        <Row
+          label="Show update notifications"
+          description="A toast and a dot when a new version ships."
+        >
+          <Switch
+            checked={notificationsEnabled}
+            onChange={setNotificationsEnabled}
+            label="Show update notifications"
+          />
         </Row>
       </Group>
 

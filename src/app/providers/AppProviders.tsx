@@ -3,6 +3,7 @@ import { CommandPaletteProvider } from './CommandPaletteProvider'
 import { AppDataProvider } from './AppDataProvider'
 import { QuickActionsProvider } from './QuickActionsProvider'
 import { SettingsProvider } from './SettingsProvider'
+import { UpdatesProvider } from './UpdatesProvider'
 
 /** Single composition point for cross-cutting providers. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -10,9 +11,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <AppDataProvider>
         <SettingsProvider>
-          <QuickActionsProvider>
-            <CommandPaletteProvider>{children}</CommandPaletteProvider>
-          </QuickActionsProvider>
+          <UpdatesProvider>
+            <QuickActionsProvider>
+              <CommandPaletteProvider>{children}</CommandPaletteProvider>
+            </QuickActionsProvider>
+          </UpdatesProvider>
         </SettingsProvider>
       </AppDataProvider>
     </ThemeProvider>

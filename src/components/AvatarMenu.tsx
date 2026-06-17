@@ -4,11 +4,13 @@ import {
   ArrowLeft,
   GraduationCap,
   LogOut,
+  Megaphone,
   Settings,
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useSettings } from '@/app/providers/settings'
+import { useUpdates } from '@/app/providers/updates'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
@@ -27,6 +29,7 @@ export function AvatarMenu({
 }) {
   const { user, plan, setPlan } = useAppData()
   const { openSettings } = useSettings()
+  const { showIndicator, openHistory } = useUpdates()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -59,8 +62,17 @@ export function AvatarMenu({
           compact ? 'p-0.5' : 'w-full p-1.5',
         )}
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
+        <span className="relative grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
           {user.initials}
+          {/* Persistent unseen-update cue on the always-visible profile avatar
+           * (both the mobile top bar and the desktop sidebar footer), so it never
+           * shifts layout. The "What's new" menu item below is its destination. */}
+          {showIndicator && (
+            <span
+              className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-accent ring-2 ring-canvas"
+              aria-hidden
+            />
+          )}
         </span>
         {!compact && (
           <span className="min-w-0 flex-1">
@@ -92,16 +104,26 @@ export function AvatarMenu({
           >
             Settings
           </MenuButton>
+          <MenuButton
+            icon={Megaphone}
+            indicator={showIndicator}
+            onSelect={() => {
+              setOpen(false)
+              openHistory()
+            }}
+          >
+            What's new
+          </MenuButton>
           <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
             Teacher portal
           </MenuLink>
           <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
-            Back to landing page
+            Landing page
           </MenuLink>
 
           <div className="my-1.5 px-1">
             <p className="px-1 pb-1 text-[11px] text-subtle">Theme</p>
-            <ThemeSwitcher />
+            <ThemeSwitcher showLabels={false} />
           </div>
 
           <div className="my-1.5 px-1">
@@ -197,14 +219,17 @@ function MenuLink({
   )
 }
 
-/** A menu row that fires an action instead of navigating (e.g. open Settings). */
+/** A menu row that fires an action instead of navigating (e.g. open Settings).
+ * An optional trailing dot surfaces an unseen state (the "what's new" cue). */
 function MenuButton({
   icon: Icon,
   onSelect,
+  indicator = false,
   children,
 }: {
   icon: LucideIcon
   onSelect: () => void
+  indicator?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -215,7 +240,8 @@ function MenuButton({
       className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
     >
       <Icon size={16} aria-hidden />
-      {children}
+      <span className="flex-1">{children}</span>
+      {indicator && <span className="size-1.5 rounded-full bg-accent" aria-hidden />}
     </button>
   )
 }
