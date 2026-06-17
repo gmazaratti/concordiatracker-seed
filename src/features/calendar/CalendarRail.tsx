@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, RefreshCw, Sparkles } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useSettings } from '@/app/providers/settings'
+import { UpgradeChip } from '@/components/UpgradeChip'
 import { Switch } from '@/features/settings/controls'
 import { ACADEMIC_META } from './calendar'
 import { cn } from '@/lib/cn'
@@ -90,11 +91,18 @@ function SyncButton({ pro }: { pro: boolean }) {
 
   if (!pro) {
     return (
-      <button
-        type="button"
-        onClick={() => openSettings('billing')}
-        className="group flex w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50"
-      >
+      <>
+        <UpgradeChip
+          icon={RefreshCw}
+          label="Sync your calendar"
+          onClick={() => openSettings('billing')}
+          className="sm:hidden"
+        />
+        <button
+          type="button"
+          onClick={() => openSettings('billing')}
+          className="group hidden w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50 sm:flex"
+        >
         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
           <RefreshCw size={17} aria-hidden />
         </span>
@@ -105,7 +113,8 @@ function SyncButton({ pro }: { pro: boolean }) {
           </span>
         </span>
         <Sparkles size={15} className="shrink-0 text-accent" aria-hidden />
-      </button>
+        </button>
+      </>
     )
   }
 

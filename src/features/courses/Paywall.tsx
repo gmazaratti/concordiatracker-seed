@@ -1,5 +1,6 @@
 import { ArrowRight, Lock, Sparkles } from 'lucide-react'
 import { useSettings } from '@/app/providers/settings'
+import { UpgradeChip } from '@/components/UpgradeChip'
 
 /** Wraps a paid feature: when locked, the real UI shows blurred behind a lock +
  * Semester-pass CTA, so the value is visible but gated (the tangible paid line).
@@ -44,15 +45,23 @@ export function PaywallLock({
 }
 
 /** Compact contextual teaser for the course-list rail — points free users at the
- * paid GPA predictor where its value is felt. */
+ * paid GPA predictor where its value is felt. Collapses to a slim one-line chip
+ * on mobile so it stays discoverable without dominating the top of the page. */
 export function PaywallCallout() {
   const { openSettings } = useSettings()
   return (
-    <button
-      type="button"
-      onClick={() => openSettings('billing')}
-      className="group flex w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50"
-    >
+    <>
+      <UpgradeChip
+        icon={Sparkles}
+        label="Predict your GPA"
+        onClick={() => openSettings('billing')}
+        className="sm:hidden"
+      />
+      <button
+        type="button"
+        onClick={() => openSettings('billing')}
+        className="group hidden w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50 sm:flex"
+      >
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
         <Sparkles size={18} aria-hidden />
       </span>
@@ -67,6 +76,7 @@ export function PaywallCallout() {
         className="shrink-0 text-accent transition-transform duration-150 group-hover:translate-x-0.5"
         aria-hidden
       />
-    </button>
+      </button>
+    </>
   )
 }

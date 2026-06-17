@@ -1,15 +1,24 @@
 import { Link } from 'react-router-dom'
 import { Sparkles, ArrowRight } from 'lucide-react'
+import { UpgradeChip } from '@/components/UpgradeChip'
 
 /** Shown ONLY in the pain moment: lots due at once, on the free plan. It points
  * to the GPA predictor (a paid feature that lives in Courses) so the value prop
- * lands when it's actually felt, not as a persistent banner. */
+ * lands when it's actually felt, not as a persistent banner. On mobile it
+ * collapses to a slim one-line chip so it stays visible without eating space. */
 export function PainNudge({ count }: { count: number }) {
   return (
-    <Link
-      to="/app/courses"
-      className="ct-animate-fade group flex items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 transition-colors duration-150 hover:border-accent/50"
-    >
+    <>
+      <UpgradeChip
+        icon={Sparkles}
+        label="Predict your GPA"
+        to="/app/courses"
+        className="ct-animate-fade sm:hidden"
+      />
+      <Link
+        to="/app/courses"
+        className="ct-animate-fade group hidden items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 transition-colors duration-150 hover:border-accent/50 sm:flex"
+      >
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
         <Sparkles size={18} aria-hidden />
       </span>
@@ -27,6 +36,7 @@ export function PainNudge({ count }: { count: number }) {
         className="shrink-0 text-accent transition-transform duration-150 group-hover:translate-x-0.5"
         aria-hidden
       />
-    </Link>
+      </Link>
+    </>
   )
 }
