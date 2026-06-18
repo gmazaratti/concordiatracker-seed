@@ -10,7 +10,11 @@ import { BlueprintBrowserPage } from '@/features/courses/BlueprintBrowserPage'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
-import { TeacherPage } from '@/features/teacher/TeacherPage'
+import { TeacherHome } from '@/features/teacher/TeacherHome'
+import { TeacherInvitePage } from '@/features/teacher/TeacherInvitePage'
+import { TeacherRequestPage } from '@/features/teacher/TeacherRequestPage'
+import { TeacherCourseWorkspace } from '@/features/teacher/TeacherCourseWorkspace'
+import { TeacherAdminPage } from '@/features/teacher/TeacherAdminPage'
 import { LegalPage } from '@/features/legal/LegalPage'
 import { DemoReel } from '@/features/demo/DemoReel'
 import { NotFoundPage } from '@/features/NotFoundPage'
@@ -35,9 +39,13 @@ export function AppRoutes() {
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
       </Route>
 
-      {/* Teacher portal context */}
+      {/* Teacher portal context — a separate, invite-based auth context */}
       <Route path="/teacher" element={<TeacherLayout />}>
-        <Route index element={<TeacherPage />} />
+        <Route index element={<TeacherHome />} />
+        <Route path="invite/:token" element={<TeacherInvitePage />} />
+        <Route path="request" element={<TeacherRequestPage />} />
+        <Route path="course/:courseId" element={<TeacherCourseWorkspace />} />
+        <Route path="admin" element={<TeacherAdminPage />} />
       </Route>
 
       {/* Standalone legal documents — clean top-level URLs + a /legal/:doc form */}

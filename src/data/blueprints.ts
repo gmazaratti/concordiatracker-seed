@@ -12,6 +12,10 @@ import { daysFromNow } from '@/lib/date'
  * `unverified` (single-source), and votes are the community-credibility signal.
  * Only a teacher-verified blueprint's dates are `official`; that's conveyed by
  * the verified badge, not repeated per date.
+ *
+ * SUPPLY PIPE: teacher-verified blueprints are NOT hard-coded here — they are
+ * published from the TEACHER PORTAL (`TeacherProvider`) and merged in by the
+ * components that read these. This module holds the COMMUNITY uploads only.
  */
 export interface BlueprintDate {
   title: string
@@ -43,24 +47,10 @@ export interface Blueprint {
   dates: BlueprintDate[]
 }
 
-const off: Provenance = { status: 'official' }
 const uv: Provenance = { status: 'unverified' }
 
 export const BLUEPRINTS: Blueprint[] = [
-  // ── COMP 248 · section BB — teacher-verified pins; community collapse ──
-  {
-    id: 'comp248-bb-official', courseId: 'comp248', section: 'BB', instructor: 'Dr. Aiman Hanna',
-    term: 'Summer 2026', teacherVerified: true, author: 'Dr. Aiman Hanna',
-    upvotes: 64, downvotes: 1, imports: 412, uploadedDaysAgo: 38,
-    dates: [
-      { title: 'Lab 1 — Environment setup', kind: 'lab', weight: 5, due: daysFromNow(-18), provenance: off },
-      { title: 'Assignment 1 — Methods & arrays', kind: 'assignment', weight: 10, due: daysFromNow(-8), provenance: off },
-      { title: 'Assignment 2 — Inheritance', kind: 'assignment', weight: 10, due: daysFromNow(2), provenance: off },
-      { title: 'Midterm exam', kind: 'midterm', weight: 25, due: daysFromNow(9), provenance: off },
-      { title: 'Final project — Console app', kind: 'project', weight: 20, due: daysFromNow(28), provenance: off },
-      { title: 'Final exam', kind: 'final', weight: 30, due: daysFromNow(40), provenance: off },
-    ],
-  },
+  // ── COMP 248 · section BB — teacher-verified pin comes from the portal ──
   {
     id: 'comp248-bb-c1', courseId: 'comp248', section: 'BB', instructor: 'Dr. Aiman Hanna',
     term: 'Summer 2026', teacherVerified: false, author: '@maya.codes',
@@ -209,19 +199,7 @@ export const BLUEPRINTS: Blueprint[] = [
     ],
   },
 
-  // ── POLI 202 · section D — teacher-verified pins; community collapse ──
-  {
-    id: 'poli202-d-official', courseId: 'poli202', section: 'D', instructor: 'Dr. Daniel Salée',
-    term: 'Summer 2026', teacherVerified: true, author: 'Dr. Daniel Salée',
-    upvotes: 47, downvotes: 0, imports: 263, uploadedDaysAgo: 33,
-    dates: [
-      { title: 'Response paper 1 — Social contract', kind: 'assignment', weight: 10, due: daysFromNow(-9), provenance: off },
-      { title: 'Discussion post — Federalism', kind: 'assignment', weight: 5, due: daysFromNow(-1), provenance: off },
-      { title: 'Reading quiz — Comparative systems', kind: 'quiz', weight: 5, due: daysFromNow(6), provenance: off },
-      { title: 'Midterm exam', kind: 'midterm', weight: 30, due: daysFromNow(14), provenance: off },
-      { title: 'Final exam', kind: 'final', weight: 50, due: daysFromNow(32), provenance: off },
-    ],
-  },
+  // ── POLI 202 · section D — teacher-verified pin comes from the portal ──
   {
     id: 'poli202-d-c1', courseId: 'poli202', section: 'D', instructor: 'Dr. Daniel Salée',
     term: 'Summer 2026', teacherVerified: false, author: '@polisci.nerd',

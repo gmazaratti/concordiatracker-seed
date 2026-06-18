@@ -1,6 +1,7 @@
 import { ChevronRight, ShieldCheck } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { blueprintsForCourse } from '@/data/blueprints'
+import { useTeacher } from '@/app/providers/teacher'
 import { courseColor } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
 
@@ -16,6 +17,7 @@ export function BlueprintCoursePicker({
   query: string
   onPick: (id: string) => void
 }) {
+  const { publishedBlueprints, absorbedBlueprintIds } = useTeacher()
   const q = query.trim().toLowerCase()
   const matches = q
     ? courses.filter(
@@ -36,7 +38,10 @@ export function BlueprintCoursePicker({
       ) : (
         <ul className="flex flex-col gap-2">
           {matches.map((c) => {
-            const bps = blueprintsForCourse(c.id)
+            const bps = [
+              ...blueprintsForCourse(c.id).filter((b) => !absorbedBlueprintIds.includes(b.id)),
+              ...publishedBlueprints.filter((b) => b.courseId === c.id),
+            ]
             const hasTeacher = bps.some((b) => b.teacherVerified)
             const { hex } = courseColor(c.color)
             return (

@@ -41,6 +41,7 @@ export const courses: Course[] = [
     ta: { name: 'Marc Lavoie', email: 'marc.lavoie@mail.concordia.ca' },
     location: 'MB 3.430',
     meetingTimes: 'Mon · Wed 10:15–11:30',
+    officeHours: 'Wed 13:00–15:00 · MB 12.225',
     syllabusUrl: 'https://moodle.concordia.ca/comm217/syllabus.pdf',
   },
   {
@@ -55,6 +56,7 @@ export const courses: Course[] = [
     ta: { name: 'Priya Nair', email: 'priya.nair@mail.concordia.ca' },
     location: 'H 937',
     meetingTimes: 'Tue · Thu 13:15–14:30',
+    officeHours: 'Thu 15:00–16:30 · H 911',
     syllabusUrl: 'https://moodle.concordia.ca/comp248/outline.pdf',
   },
   {

@@ -6,10 +6,10 @@ import {
   blueprintToAssessments,
   blueprintsForCourse,
   netVotes,
-  sectionsForCourse,
   type Blueprint,
 } from '@/data/blueprints'
 import { term } from '@/data/mock'
+import { useTeacher } from '@/app/providers/teacher'
 import { cn } from '@/lib/cn'
 import { BlueprintRow } from './BlueprintRow'
 import { BlueprintContributeModal } from './BlueprintContributeModal'
@@ -24,11 +24,20 @@ const byNet = (a: Blueprint, b: Blueprint) => netVotes(b) - netVotes(a)
  * versions are hidden behind an expander (dates may have moved). */
 export function BlueprintList({ course }: { course: Course }) {
   const navigate = useNavigate()
+  const { publishedBlueprints, absorbedBlueprintIds } = useTeacher()
   const [votes, setVotes] = useState<Record<string, Dir>>({})
   const [contributeOpen, setContributeOpen] = useState(false)
 
-  const blueprints = useMemo(() => blueprintsForCourse(course.id), [course.id])
-  const sections = useMemo(() => sectionsForCourse(course.id), [course.id])
+  // Community uploads (minus any a teacher has verified into their own) + the
+  // teacher-verified blueprints published from the portal.
+  const blueprints = useMemo(
+    () => [
+      ...blueprintsForCourse(course.id).filter((b) => !absorbedBlueprintIds.includes(b.id)),
+      ...publishedBlueprints.filter((b) => b.courseId === course.id),
+    ],
+    [course.id, publishedBlueprints, absorbedBlueprintIds],
+  )
+  const sections = useMemo(() => [...new Set(blueprints.map((b) => b.section))], [blueprints])
   const yourSection = course.section
   // Tabs: every section with blueprints, the enrolled one first (and always shown).
   const ordered = useMemo(() => {

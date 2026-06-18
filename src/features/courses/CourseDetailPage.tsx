@@ -9,6 +9,7 @@ import { CourseHeader } from './CourseHeader'
 import { CourseInfoPanel } from './CourseInfoPanel'
 import { GradeBreakdown } from './GradeBreakdown'
 import { AssessmentTable } from './AssessmentTable'
+import { CourseAnnouncements } from './CourseAnnouncements'
 import { GradeNeeded } from './GradeNeeded'
 import { GpaWhatIf } from './GpaWhatIf'
 import { PaywallLock } from './Paywall'
@@ -57,8 +58,10 @@ export function CourseDetailPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6">
       <CourseHeader course={course} currentPercent={standing.currentPercent} />
+
+      <CourseAnnouncements courseId={course.id} />
 
       {revealItems ? (
         <SyllabusParseReveal

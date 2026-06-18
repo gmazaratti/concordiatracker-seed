@@ -1094,3 +1094,108 @@ If cutting a corner that would make this hard to build on, **flag it**.
   pt-5`, replacing the old margin-only `Section` helper) — a Twitter-style rule under the header and above
   Past. The main FEED stays `max-w-5xl`/3-col. Verified: 768px column, 2-col→1-col on mobile, 1px dividers
   above Upcoming + Past, no overflow, cards uniform 311px, no console errors.
+- **2026-06-18** — Step 6 (**Teacher portal**) shipped — the THIRD context (student / teacher / public),
+  an invite-based, publish-only dashboard for professors. **Layout proposed + approved first.** Distinct
+  chrome (`TeacherLayout` = plain top-bar dashboard, no student sidebar/command palette; shows the
+  signed-in teacher + status + Sign out + an Admin link). Routes under `/teacher`: `index` (sign-in when
+  signed out, dashboard when in), `invite/:token`, `course/:courseId`, `admin`. **State = one swappable
+  helper** `app/providers/TeacherProvider.tsx` (`useTeacher`) — in-memory, resets on reload; data + seeds
+  + pure helpers in `data/teacher.ts`. **CONNECTION-PHASE (flagged):** invite-email delivery, the
+  email-confirmation step, approval, and verification are all stubs — the seed builds the UX shape only;
+  swap the provider for Supabase and the screens are untouched (no real auth/passwords). **ACCESS MODEL —
+  two gates:** (1) an admin **originates an invite** (`createInvite` pre-fills the teacher name from the
+  course's instructor) → a **single-use, expiring, email-bound** token (`inviteStatus` → valid/expired/
+  used/notfound; `TeacherInvitePage` shows the pre-scaffolded course + a stubbed "confirm your email to
+  h••••@…" step; accepting creates a **pending** account, consumes the token, signs in). (2) **approval** —
+  a pending teacher can prepare an outline but **cannot publish/post**; the admin `approveTeacher`s, and
+  the dashboard/workspace flip to enabled. **Admin console** (`/teacher/admin`, openly reachable = your
+  mock control panel): create-invite form, a teachers list (pending rows get **Approve**), an invites
+  list (Used/Expired/expires-in labels). **Teacher dashboard**: managed-course cards (Published / Draft·N /
+  empty) + a **`LinkCourseModal`** (link an existing catalog section OR create a new course). **Course
+  workspace** (`TeacherCourseWorkspace`): build the outline via **the same two input paths students have**
+  — **Upload syllabus** (reuses `SyllabusParseReveal`, `autoStart`, → fills the editor) or **enter
+  manually** via `OutlineEditor` (kind `Select` / title / `DateTimePicker` / weight / remove rows + a
+  **running weight total**); a **Publish** button (gated while pending); plus an **announcement composer**.
+  **Publish-only** — a footer states no student grades/standings/import-counts are shown. **THE SUPPLY
+  PIPE (key):** a published outline IS the teacher-verified `Blueprint`, NOT a separate record — the 2
+  hard-coded teacher-verified blueprints were **removed from `data/blueprints.ts`** (it now holds COMMUNITY
+  uploads only) and are now **published from the portal** (`outlineToBlueprint`); `publishedBlueprints` is
+  derived in the provider and **merged into the student browser** (`BlueprintList` + `BlueprintCoursePicker`
+  read `[...community, ...publishedBlueprints]`) so a portal publish **pins + collapses community** exactly
+  as before. **Announcement pipe:** `postAnnouncement` → merged into Today's `AnnouncementsDigest` AND a
+  new course-detail `CourseAnnouncements` panel. **Seed (resets on reload):** 2 approved teachers
+  (Hanna→COMP 248, Salée→POLI 202, both published → they SOURCE the two verified pins now), 1 pending
+  (Dafni→MATH 205, draft) for the approve demo, a **valid** invite `demo-comm217` (COMM 217 has no
+  blueprints → the publish→student-browser pipe is visibly new) + an **expired** one; session starts
+  signed-out. Build + lint clean; browser-verified (desktop + mobile, no console errors): sign-in →
+  demo dashboard (Hanna, approved, COMP 248 published); workspace 6-row outline @100% + published-live;
+  the seeded pipe (COMP 248 student browser pins "Dr. Aiman Hanna" from the portal); the **full runtime
+  flow** — accept `demo-comm217` → pending Tremblay (publish gated) → admin **Approve** → parse fills 5
+  rows @100% → **Publish** → student COMM 217 browser flips empty→"Dr. Hélène Tremblay · Teacher-verified ·
+  5 items" pinned; announcement post → Today digest + course-detail panel; admin shows Used/Expired
+  invites; mobile workspace rows stack with no overflow. **Note:** publishing makes the outline LIVE
+  (edits to a published outline update the blueprint immediately — there's no draft-vs-published diff; that
+  snapshotting is connection-phase). Bundle now ~578 kB (still no code-splitting — fine for the seed). The
+  teacher portal is intentionally a bit more "tool/dashboard" than the student app.
+  **Follow-up (same day):** three teacher-side additions. (1) **Preview as student** (`StudentPreviewModal`,
+  a workspace header button, disabled on an empty outline) — a read-only view of the outline as students
+  see it once imported: kind · title · `formatDueDateTime` · weight · an **Official** `ProvenanceBadge` +
+  the weight total. (2) **Past announcements** — the workspace's announcement list now MERGES the seeded
+  `ANNOUNCEMENTS` with the teacher's posts for that course (sorted, labeled "Past announcements"), so a
+  course's history shows even before the teacher posts (e.g. Hanna's COMP 248 shows "Assignment 2 deadline
+  extended"). (3) **Verify a student blueprint** (`CommunityBlueprintsPanel`) — a new workspace panel lists
+  the COMMUNITY blueprints for the teacher's section (current-term, ranked by net votes, with items/weight/
+  ▲votes/imports). **Verify** (a 2-click confirm; gated while pending) **adopts that blueprint's dates as
+  the teacher's PUBLISHED outline** (it becomes the teacher-verified pin, authored by them) AND **absorbs**
+  the original out of the student community pool — exactly "it becomes the teacher's blueprint, no longer
+  the student's, granting it verification." Provider gained `absorbedBlueprintIds` + `verifyCommunityBlueprint`
+  (adopt→`updateOutline`+publish, add the id to absorbed); the student browser (`BlueprintList` +
+  `BlueprintCoursePicker`) **filters absorbed** community ids from the merge. Build + lint clean; browser-
+  verified (desktop + mobile, no console errors): preview modal shows the 6-row outline w/ Official badges
+  @100%; past-announcements label + seeded item render; verifying @maya.codes on COMP 248 BB **adopted her
+  5 dates** as Hanna's outline (published) and **removed her from the panel** → the student COMP 248 BB
+  browser then pins "Dr. Aiman Hanna" with those dates and community versions dropped 2→1 (maya absorbed),
+  with no console errors. (Harness screenshot pipeline hung again — verified via DOM.)
+  **Follow-up 2 (same day):** five workspace refinements. (1) **`LinkCourseModal` → search + grouped by
+  course → sections** (was one row per course-section): a search bar filters the catalog; each course
+  shows its code/title with its **sections as pickable chips** (`[course.section, …sectionsForCourse]`),
+  already-linked courses excluded (HIST 203 surfaces AA+AB). (2) **Verify → review FIRST**: each
+  `CommunityBlueprintsPanel` row now **expands ("Review")** to show the blueprint's full dated assessments
+  before a "Verify & make it your outline" button — no blind verify. (3) **Preview → a REAL embed**
+  (`StudentCoursePreview`, a full-screen overlay replacing the old summary modal) renders the actual
+  student course-detail components — `CourseHeader` banner + the editable `CourseInfoPanel` + `GradeBreakdown`
+  + a read-only assessment list — fed by the teacher's outline (`outlineItemToAssessment` / `teacherCourseToCourse`
+  moved to `data/teacher.ts` so the parse path + preview share them). (4) **Edit course info students see** —
+  the embedded `CourseInfoPanel` is the same inline-editable one (writes via `updateCourse`), so the teacher
+  sets instructor/TA/section/meets/**office hours**/location/credits/syllabus right in the preview; verified
+  the edit flows to the student course detail. Added an optional **`Course.officeHours`** field (seeded on
+  COMP 248 + COMM 217) shown as an editable row in `CourseInfoPanel`. (5) **Section order** is now
+  Announcements (composer) → Past announcements → Course outline → Verify blueprints (per request). Build +
+  lint clean; browser-verified (desktop + mobile, no console errors): link search + section chips,
+  review-expand → verify absorbs (community 2→1, outline adopts the 5 dates), the full embed renders the
+  real course view, editing office hours in the preview updates the student course detail, reordered
+  sections, mobile no overflow.
+  **Follow-up 3 (same day):** editable/deletable announcements + a self-serve access-request flow.
+  (A) **Announcements are now mutable + carry provenance.** `Announcement` gained `editedDaysAgo?`; the
+  **seeded `ANNOUNCEMENTS` are cloned into provider state** (so every announcement — seeded or posted — is
+  editable), and ALL surfaces now read `teacherAnnouncements` only (no more static merge). New provider
+  `editAnnouncement` (stamps `editedDaysAgo: 0`) + `deleteAnnouncement`. A shared **`AnnouncementMeta`**
+  (`components/`) renders "**Posted {absolute date}**" + an "**Edited · {when}**" tag — shown identically to
+  students (Today `AnnouncementsDigest` + course-detail `CourseAnnouncements`) and teachers. The workspace
+  past-announcements list (`TeacherAnnouncementList`) gives each row inline **Edit** (title+body, re-stamps
+  Edited) and **Delete** (2-click confirm), gated while pending. (B) **Self-serve access requests**
+  (STUB/connection-phase). New `data/teacher.ts` `AccessRequest {caseId, name, email, message, status:
+  pending|accepted|denied, requestedDaysAgo}` + `SEED_REQUESTS` + sortable `caseIdFor`/`FIRST_CASE_NUMBER`
+  (REQ-1043…, a `useRef` counter). Provider: `accessRequests`, `submitAccessRequest` (assigns the Case ID,
+  returns it), `setRequestStatus`, `getRequest`. New route **`/teacher/request`** (`TeacherRequestPage`):
+  a **Request access** form (name/email/what-you-teach) → a success card with the **Case ID** + an
+  instruction to also email **concordiatracker@gmail.com** (a `mailto:` with the Case ID in the subject) to
+  speed up + verify identity; and a **Check a request** tab (enter Case ID → status + "Requested {ago}").
+  The sign-in page links "Request teacher access". The **admin console** gained an **Access requests**
+  block — **search** (case ID / name / email) + a **sort-by-Case-ID** toggle (numeric, default newest-first)
+  + per-row **Accept/Deny** (pending only). Build + lint clean; browser-verified (desktop + mobile, no
+  console errors): edit a seeded announcement → new title + "Edited · today" on the workspace AND the
+  student Today digest (with "Posted {date}"); delete removes it everywhere; submit a request → REQ-1043 +
+  mailto + pending; admin search/sort + Accept flips it; the requester's Check-status shows "accepted —
+  invite sent". **Note:** Accept just sets the request status (the admin still sends the actual invite via
+  the Create-invite form); auto-linking an accepted request to a pre-filled invite is connection-phase.

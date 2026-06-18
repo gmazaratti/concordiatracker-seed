@@ -112,6 +112,15 @@ export function CourseInfoPanel({
             />
           </Row>
 
+          <Row label="Office hours">
+            <EditableField
+              value={course.officeHours ?? ''}
+              onCommit={(officeHours) => patch({ officeHours })}
+              ariaLabel="Office hours"
+              placeholder="Add office hours"
+            />
+          </Row>
+
           <Row label="Location">
             <EditableField
               value={course.location}

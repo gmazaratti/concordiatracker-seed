@@ -3,6 +3,10 @@
  * lives on TODAY (a quiet academic-glance digest), not Community (which is
  * outward-facing, beyond your own courses). The course detail is the source of
  * truth; the digest just aggregates a recent glance and links back.
+ *
+ * These are the SEED — the `TeacherProvider` clones them into mutable state so a
+ * teacher can edit/delete them (and post new ones); every surface reads from the
+ * provider, not this array.
  */
 export interface Announcement {
   id: string
@@ -12,6 +16,25 @@ export interface Announcement {
   /** Short snippet shown in the digest. */
   body: string
   postedDaysAgo: number
+  /** Set when a teacher edits it → drives the "Edited" tag + when, shown to
+   * students and teachers alike. Undefined = never edited. */
+  editedDaysAgo?: number
+}
+
+const POSTED_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+
+/** Absolute posted/edited date, e.g. "Jun 15". */
+export function postedOn(daysAgo: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - Math.max(0, daysAgo))
+  return POSTED_FMT.format(d)
+}
+
+/** "today" / "yesterday" / "3d ago" — for the relative "Edited …" label. */
+export function agoLabel(daysAgo: number): string {
+  if (daysAgo <= 0) return 'today'
+  if (daysAgo === 1) return 'yesterday'
+  return `${daysAgo}d ago`
 }
 
 export const ANNOUNCEMENTS: Announcement[] = [

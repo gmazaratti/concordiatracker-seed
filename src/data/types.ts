@@ -124,6 +124,9 @@ export interface Course {
   location: string
   /** Meeting schedule, e.g. "Mon · Wed 10:15–11:30". */
   meetingTimes: string
+  /** Instructor office hours, e.g. "Tue 14:00–16:00 · MB 12.225". Optional —
+   * teachers set this from the portal; students see it in the course panel. */
+  officeHours?: string
   /** Syllabus link (mock — an external URL the student pasted). */
   syllabusUrl: string
 }
