@@ -26,6 +26,49 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.7.0',
+    name: 'Make it yours',
+    date: '2026-06-18',
+    changes: [
+      { kind: 'new', text: 'Add a course your way — find a blueprint, upload a syllabus, or create one by hand.' },
+      { kind: 'new', text: 'Build a course from scratch: edit the class details and add assessments inline.' },
+      { kind: 'improved', text: 'Dates you enter yourself are clearly marked unverified, so provenance stays honest.' },
+    ],
+  },
+  {
+    version: '1.6.0',
+    name: 'Share & connect',
+    date: '2026-06-18',
+    changes: [
+      { kind: 'new', text: 'Share any event with a direct link — anyone can open it, no account needed.' },
+      { kind: 'new', text: 'Org profiles now link out to Instagram, X, LinkedIn, and a custom site.' },
+      { kind: 'improved', text: 'A custom colour picker and image-upload tips when you set up a profile.' },
+      { kind: 'improved', text: 'Outbound links tell you before they open an external site in a new tab.' },
+    ],
+  },
+  {
+    version: '1.5.0',
+    name: 'For organizers',
+    date: '2026-06-18',
+    changes: [
+      { kind: 'new', text: 'An Organizer portal for clubs and student orgs to post and manage their events.' },
+      { kind: 'new', text: 'Invite teammates to help run your org’s dashboard.' },
+      { kind: 'new', text: 'See your reach — followers, calendar adds, and views (aggregate only, never per-student).' },
+    ],
+  },
+  {
+    version: '1.4.0',
+    name: 'Teachers & community',
+    date: '2026-06-18',
+    changes: [
+      { kind: 'new', text: 'A Community tab — campus events from clubs, faculties, and student orgs.' },
+      { kind: 'new', text: 'Follow an org and get a heads-up when it posts something new.' },
+      { kind: 'new', text: 'Teacher portal — professors publish their outline as a verified blueprint.' },
+      { kind: 'new', text: 'Blueprint browser — import a classmate’s or teacher’s syllabus in a tap.' },
+      { kind: 'new', text: 'Peer date-corrections — when classmates move a date, you decide whether to follow.' },
+    ],
+  },
+  {
     version: '1.3.0',
     name: 'Calendar, in context',
     date: '2026-06-17',
