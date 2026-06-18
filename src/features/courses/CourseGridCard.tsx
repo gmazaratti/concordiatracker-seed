@@ -28,7 +28,10 @@ export function CourseGridCard({
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
   const empty = assessments.length === 0
-  const to = empty
+  const manual = course.origin === 'manual'
+  // Empty seeded courses send you to the blueprint browser to import; a manual
+  // course always opens its own detail (where you fill it in by hand).
+  const to = empty && !manual
     ? `/app/courses/blueprints?course=${course.id}`
     : `/app/courses/${course.id}`
 
@@ -45,12 +48,12 @@ export function CourseGridCard({
       >
         <div className="flex items-center gap-2">
           <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
-            {course.code}
+            {course.code || 'New course'}
           </span>
           <span className="text-[11px] text-white/80">{course.credits} cr</span>
         </div>
         <h3 className="mt-1.5 truncate font-display text-[17px] font-medium text-white">
-          {course.title}
+          {course.title || 'Untitled course'}
         </h3>
       </div>
 
@@ -95,7 +98,7 @@ export function CourseGridCard({
           ) : empty ? (
             <span className="flex items-center gap-1.5 font-medium text-accent">
               <Upload size={13} aria-hidden />
-              Import a syllabus
+              {manual ? 'Add assessments' : 'Import a syllabus'}
             </span>
           ) : (
             <span className="text-success">All caught up</span>

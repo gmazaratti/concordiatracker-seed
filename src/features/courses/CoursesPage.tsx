@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LayoutGrid, Rows3, Upload } from 'lucide-react'
+import { LayoutGrid, Plus, Rows3, Upload } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
@@ -12,12 +12,14 @@ import { CourseCard } from './CourseCard'
 import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
+import { AddCourseChooser } from './AddCourseChooser'
 
 /** Courses — the grade hub. The class list switches between a dense List (rows)
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
  * A term-standing rail sits alongside, in the same two-column language as Today. */
 export function CoursesPage() {
   const { plan, courses, assessments, coursesView, setCoursesView } = useAppData()
+  const [chooserOpen, setChooserOpen] = useState(false)
 
   const byCourse = useMemo(() => {
     const map = new Map<string, typeof assessments>()
@@ -44,8 +46,10 @@ export function CoursesPage() {
         </div>
         <div className="flex items-center gap-2">
           <ViewToggle view={coursesView} onChange={setCoursesView} />
+          {/* Shortcut straight to the upload-syllabus path — names a specific
+              method, so it skips the chooser the "+" card opens. */}
           <Link
-            to="/app/courses/blueprints"
+            to="/app/courses/hist203"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />
@@ -65,6 +69,7 @@ export function CoursesPage() {
                   assessments={byCourse.get(c.id) ?? []}
                 />
               ))}
+              <AddCourseCard onClick={() => setChooserOpen(true)} />
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -75,6 +80,7 @@ export function CoursesPage() {
                   assessments={byCourse.get(c.id) ?? []}
                 />
               ))}
+              <AddCourseRow onClick={() => setChooserOpen(true)} />
             </div>
           )}
         </main>
@@ -92,7 +98,46 @@ export function CoursesPage() {
           {plan === 'free' && <PaywallCallout />}
         </aside>
       </div>
+
+      {chooserOpen && <AddCourseChooser onClose={() => setChooserOpen(false)} />}
     </div>
+  )
+}
+
+/** The "+" tile at the end of the grid — matches a course card's footprint, but
+ * dashed + muted so it reads as an action, not a class. Opens the add chooser. */
+function AddCourseCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-5 text-center transition-colors duration-150 hover:border-accent/60 hover:bg-surface-2"
+    >
+      <span className="grid size-10 place-items-center rounded-full bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-accent-soft group-hover:text-accent">
+        <Plus size={20} aria-hidden />
+      </span>
+      <span className="text-[13px] font-medium text-muted transition-colors duration-150 group-hover:text-fg">
+        Add a course
+      </span>
+    </button>
+  )
+}
+
+/** The List-view counterpart to the "+" card — a dashed action row. */
+function AddCourseRow({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-3 text-left transition-colors duration-150 hover:border-accent/60 hover:bg-surface-2"
+    >
+      <span className="grid size-7 place-items-center rounded-full bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-accent-soft group-hover:text-accent">
+        <Plus size={16} aria-hidden />
+      </span>
+      <span className="text-[13px] font-medium text-muted transition-colors duration-150 group-hover:text-fg">
+        Add a course
+      </span>
+    </button>
   )
 }
 

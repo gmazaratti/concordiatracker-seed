@@ -13,9 +13,13 @@ import { EditableField } from './EditableField'
 export function CourseInfoPanel({
   course,
   totalAssessments,
+  editableIdentity = false,
 }: {
   course: Course
   totalAssessments: number
+  /** Manual courses: also let the code + name be edited here (seeded courses get
+   * those from the catalog, so they're read-only on the banner). */
+  editableIdentity?: boolean
 }) {
   const { updateCourse } = useAppData()
   const [open, setOpen] = useState(false)
@@ -54,6 +58,27 @@ export function CourseInfoPanel({
 
       <div className={cn('lg:block', open ? 'block' : 'hidden')}>
         <dl className="divide-y divide-border/70">
+          {editableIdentity && (
+            <>
+              <Row label="Code">
+                <EditableField
+                  value={course.code}
+                  onCommit={(code) => patch({ code })}
+                  ariaLabel="Course code"
+                  placeholder="e.g. COMP 248"
+                />
+              </Row>
+              <Row label="Name">
+                <EditableField
+                  value={course.title}
+                  onCommit={(title) => patch({ title })}
+                  ariaLabel="Course name"
+                  placeholder="e.g. Object-Oriented Programming"
+                />
+              </Row>
+            </>
+          )}
+
           <Row label="Instructor">
             <EditableField
               value={course.instructor.name}

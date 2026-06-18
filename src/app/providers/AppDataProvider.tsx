@@ -13,7 +13,10 @@ import {
   currentUser,
   seedAssessments,
   seedTasks,
+  term,
 } from '@/data/mock'
+import { COURSE_COLORS } from '@/lib/course-color'
+import { daysFromNow } from '@/lib/date'
 import { seedPeerCorrections, type PeerCorrection } from '@/data/peer-corrections'
 import type {
   Assessment,
@@ -45,6 +48,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     seedTasks.map((t) => ({ ...t })),
   )
   const taskSeq = useRef(seedTasks.length)
+  const courseSeq = useRef(0)
+  const assessmentSeq = useRef(0)
   const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>(() =>
     seedPeerCorrections.map((c) => ({ ...c })),
   )
@@ -134,6 +139,52 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     )
   }, [])
 
+  // Manual course creation — a blank, student-made course filled by hand. Picks
+  // the next palette color so it stays visually distinct in the grid.
+  const createCourse = useCallback(() => {
+    courseSeq.current += 1
+    const id = `manual-course-${courseSeq.current}`
+    const color = COURSE_COLORS[(seedCourses.length + courseSeq.current - 1) % COURSE_COLORS.length].id
+    const course: Course = {
+      id,
+      code: '',
+      title: '',
+      term: term.name,
+      credits: 3,
+      color,
+      section: '',
+      instructor: { name: '', email: '' },
+      ta: null,
+      location: '',
+      meetingTimes: '',
+      syllabusUrl: '',
+      origin: 'manual',
+    }
+    setCourses((list) => [...list, course])
+    return id
+  }, [])
+
+  // A blank, SELF-ENTERED assessment for the manual editor (unverified provenance,
+  // honest about being student-entered). Returns its id so the row can focus.
+  const addBlankAssessment = useCallback((courseId: string) => {
+    assessmentSeq.current += 1
+    const id = `manual-a-${courseId}-${assessmentSeq.current}`
+    const next: Assessment = {
+      id,
+      courseId,
+      title: '',
+      kind: 'assignment',
+      due: daysFromNow(14, 23, 59),
+      weight: 0,
+      provenance: { status: 'unverified' },
+      status: 'not-started',
+      grade: null,
+      notes: '',
+    }
+    setAssessments((list) => [...list, next])
+    return id
+  }, [])
+
   const courseById = useCallback(
     (id: string): Course | undefined => courses.find((c) => c.id === id),
     [courses],
@@ -187,6 +238,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       removeAssessment,
       setCourseColor,
       updateCourse,
+      createCourse,
+      addBlankAssessment,
       courseById,
       coursesView,
       setCoursesView,
@@ -220,6 +273,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       removeAssessment,
       setCourseColor,
       updateCourse,
+      createCourse,
+      addBlankAssessment,
       courseById,
       coursesView,
       communityView,

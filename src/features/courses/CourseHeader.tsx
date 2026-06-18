@@ -38,14 +38,16 @@ export function CourseHeader({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="rounded bg-white/20 px-1.5 py-0.5 text-[12px] font-semibold tracking-wide text-white">
-                {course.code}
+                {course.code || 'New course'}
               </span>
               <span className="text-[12px] text-white/80">
                 {course.term} · {course.credits} credits
               </span>
             </div>
             <h1 className="mt-1.5 font-display text-[26px] leading-tight font-medium text-white">
-              {course.title}
+              {course.title || (
+                <span className="text-white/70">Untitled course</span>
+              )}
             </h1>
             <div className="mt-3">
               <CourseColorPicker courseId={course.id} color={course.color} />

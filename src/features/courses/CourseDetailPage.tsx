@@ -9,6 +9,7 @@ import { CourseHeader } from './CourseHeader'
 import { CourseInfoPanel } from './CourseInfoPanel'
 import { GradeBreakdown } from './GradeBreakdown'
 import { AssessmentTable } from './AssessmentTable'
+import { ManualAssessmentEditor } from './ManualAssessmentEditor'
 import { CourseAnnouncements } from './CourseAnnouncements'
 import { GradeNeeded } from './GradeNeeded'
 import { GpaWhatIf } from './GpaWhatIf'
@@ -37,14 +38,17 @@ export function CourseDetailPage() {
   )
   const standing = courseStanding(courseAssessments)
   const empty = courseAssessments.length === 0
+  const manual = course.origin === 'manual'
 
   // The parse-reveal plays for an in-flight blueprint import, or for the empty
-  // HIST 203 sample.
-  const revealItems = importItems
-    ? importItems
-    : empty && course.id === 'hist203'
-      ? hist203Syllabus
-      : null
+  // HIST 203 sample. Manual courses are filled by hand, so they never parse.
+  const revealItems = manual
+    ? null
+    : importItems
+      ? importItems
+      : empty && course.id === 'hist203'
+        ? hist203Syllabus
+        : null
 
   function completeImport(items: Assessment[]) {
     addAssessments(items)
@@ -70,6 +74,27 @@ export function CourseDetailPage() {
           onComplete={completeImport}
           autoStart={!!importItems}
         />
+      ) : manual ? (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+            <CourseInfoPanel
+              course={course}
+              totalAssessments={courseAssessments.length}
+              editableIdentity
+            />
+            {!empty && <GradeBreakdown assessments={courseAssessments} color={course.color} />}
+            {!empty && <GradeNeeded assessments={courseAssessments} />}
+            {!empty && (
+              <PaywallLock locked={plan === 'free'} feature="GPA prediction">
+                <GpaWhatIf courses={courses} assessments={assessments} courseId={course.id} />
+              </PaywallLock>
+            )}
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <ManualAssessmentEditor courseId={course.id} />
+          </main>
+        </div>
       ) : empty ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
           <p className="text-[13px] text-subtle">No assessments yet for {course.code}.</p>

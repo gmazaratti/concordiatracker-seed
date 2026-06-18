@@ -129,4 +129,8 @@ export interface Course {
   officeHours?: string
   /** Syllabus link (mock — an external URL the student pasted). */
   syllabusUrl: string
+  /** How the class entered the app. `manual` = the student created it by hand
+   * (vs the seeded catalog) → the detail view leads with the fill-by-hand editor
+   * and lets the code/name be edited. Omitted for seeded courses. */
+  origin?: 'manual'
 }

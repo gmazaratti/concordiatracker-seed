@@ -77,6 +77,11 @@ export interface AppDataContextValue {
   setCourseColor: (id: string, color: string) => void
   /** Inline-edit a course's logistics (instructor, TA, location, credits…). */
   updateCourse: (id: string, patch: Partial<Course>) => void
+  /** Create a blank, student-made course (manual entry). Returns its id. */
+  createCourse: () => string
+  /** Add a blank SELF-ENTERED assessment to a course (the manual editor). Lands
+   * with `unverified` provenance. Returns its id. */
+  addBlankAssessment: (courseId: string) => string
   courseById: (id: string) => Course | undefined
   /** Courses-list layout preference — sticky across SPA nav, resets on reload. */
   coursesView: CoursesView

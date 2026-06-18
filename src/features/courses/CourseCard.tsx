@@ -26,10 +26,11 @@ export function CourseCard({
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
-  // Empty courses send you to the blueprint browser (pre-filtered) to import a
-  // syllabus; populated ones open the grade detail.
+  // Empty seeded courses send you to the blueprint browser (pre-filtered) to
+  // import; a manual course always opens its own fill-by-hand detail.
   const empty = assessments.length === 0
-  const to = empty
+  const manual = course.origin === 'manual'
+  const to = empty && !manual
     ? `/app/courses/blueprints?course=${course.id}`
     : `/app/courses/${course.id}`
 
@@ -47,12 +48,12 @@ export function CourseCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-muted group-hover:bg-surface">
-              {course.code}
+              {course.code || 'New course'}
             </span>
             <span className="text-[12px] text-subtle">{course.credits} cr</span>
           </div>
           <h3 className="mt-1 truncate text-[15px] font-medium text-fg">
-            {course.title}
+            {course.title || 'Untitled course'}
           </h3>
         </div>
 
@@ -100,7 +101,7 @@ export function CourseCard({
           ) : empty ? (
             <span className="flex items-center gap-1.5 font-medium text-accent">
               <Upload size={13} aria-hidden />
-              Import a syllabus
+              {manual ? 'Add assessments' : 'Import a syllabus'}
             </span>
           ) : (
             <span className="text-success">All caught up</span>
