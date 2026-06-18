@@ -1,8 +1,14 @@
 import { createContext, useContext } from 'react'
 import type { Announcement } from '@/data/announcements'
 import type { Blueprint } from '@/data/blueprints'
+import type { CampusEvent, EventOrg } from '@/data/community'
 import type {
   AccessRequest,
+  ManagedEvent,
+  OrgAccount,
+  OrgInvite,
+  OrgMember,
+  OrgRole,
   OutlineItem,
   RequestStatus,
   TeacherAccount,
@@ -67,10 +73,52 @@ export interface TeacherContextValue {
   // Self-serve access requests (before any invite) — STUB/CONNECTION-PHASE
   accessRequests: AccessRequest[]
   /** Submit a request → returns it (with its assigned Case ID). */
-  submitAccessRequest: (input: { name: string; email: string; message: string }) => AccessRequest
+  submitAccessRequest: (input: {
+    role: 'teacher' | 'organizer'
+    name: string
+    email: string
+    message: string
+  }) => AccessRequest
   /** Admin accept/deny. */
   setRequestStatus: (caseId: string, status: RequestStatus) => void
   getRequest: (caseId: string) => AccessRequest | undefined
+
+  // ── ORGANIZER role — same shell, different payload ──────────────────────
+  /** The signed-in organizer (null if signed out or signed in as a teacher). */
+  currentOrg: OrgAccount | null
+  orgs: OrgAccount[]
+  signInDemoOrg: () => void
+  approveOrg: (id: string) => void
+  orgInvites: OrgInvite[]
+  getOrgInvite: (token: string) => OrgInvite | undefined
+  createOrgInvite: (input: {
+    orgName: string
+    orgHandle: string
+    glyph: string
+    color: string
+    recipientEmail: string
+  }) => OrgInvite
+  acceptOrgInvite: (token: string) => OrgAccount | null
+
+  // Event management (operate on the signed-in organizer's OWN events)
+  createEvent: () => string
+  updateEvent: (id: string, patch: Partial<ManagedEvent>) => void
+  deleteEvent: (id: string) => void
+  updateOrgProfile: (patch: Partial<EventOrg>) => void
+  /** Push a notification to followers (STUB — real delivery is connection-phase). */
+  notifyFollowers: (eventId: string) => number
+
+  // Team — who can manage the signed-in org's dashboard (invite-based, STUB)
+  /** Invite a teammate → adds a PENDING member with a single-use link; returns it. */
+  inviteOrgMember: (input: { name: string; email: string; role: OrgRole }) => OrgMember
+  /** Accept a teammate invite link → activates the member + signs into that org. */
+  acceptOrgMemberInvite: (token: string) => OrgAccount | null
+  /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */
+  removeOrgMember: (id: string) => void
+
+  // Supply pipe → the student Community (approved orgs only)
+  communityOrgs: EventOrg[]
+  communityEvents: CampusEvent[]
 }
 
 export const TeacherContext = createContext<TeacherContextValue | null>(null)

@@ -1,13 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import {
-  eventsByOrg,
-  isRelevantTo,
-  orgBySlug,
-  postedAgoLabel,
-  type CampusEvent,
-} from '@/data/community'
+import { isRelevantTo, postedAgoLabel, type CampusEvent, type OrgLinks } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { EventTile } from './EventTile'
@@ -15,7 +9,9 @@ import { EventDetail } from './EventDetail'
 import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { VerifiedBadge } from './VerifiedBadge'
+import { SocialLinks } from './SocialLinks'
 import { useEventActions } from './useEventActions'
+import { useCommunity } from './useCommunity'
 
 /** Full org profile — the host card expanded to a page: identity, bio, stats,
  * follow/contact, and ALL the org's events (upcoming + past, with when posted).
@@ -24,6 +20,7 @@ import { useEventActions } from './useEventActions'
 export function OrgProfilePage() {
   const { handle } = useParams()
   const { user } = useAppData()
+  const { orgBySlug, eventsByOrg } = useCommunity()
   const { isAdded, add, openEvent, closeEvent, selectedEvent } = useEventActions()
 
   const org = handle ? orgBySlug(handle) : undefined
@@ -102,8 +99,11 @@ export function OrgProfilePage() {
         </div>
       </div>
 
-      {/* Events — each group sits under a full-width divider (Twitter-style). */}
-      <section className="mt-5 border-t border-border pt-5">
+      {/* Divider — the social links sit ON it, right-aligned: the line ends,
+          then the buttons, then a short segment continues to the right edge. */}
+      <LinksDivider links={org.links} />
+
+      <section className="pt-5">
         <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
         {upcoming.length > 0 ? (
           <EventGrid events={upcoming} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} />
@@ -130,6 +130,22 @@ export function OrgProfilePage() {
           onOpenEvent={openEvent}
         />
       )}
+    </div>
+  )
+}
+
+/** The section divider with the org's social links embedded on the right: a long
+ * line, the link buttons, then a short segment continuing to the right edge. With
+ * no links it's just a plain full-width rule (so it never looks broken). */
+function LinksDivider({ links }: { links?: OrgLinks }) {
+  const hasLinks = !!links && Object.values(links).some((v) => v && v.trim())
+  if (!hasLinks) return <div className="mt-5 border-t border-border" />
+
+  return (
+    <div className="mt-5 flex items-center gap-3">
+      <span className="h-px flex-1 bg-border" aria-hidden />
+      <SocialLinks links={links} className="flex items-center gap-2" />
+      <span className="h-px w-12 shrink-0 bg-border" aria-hidden />
     </div>
   )
 }

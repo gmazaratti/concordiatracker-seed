@@ -1,5 +1,7 @@
 import type { Assessment, AssessmentKind, Course } from './types'
 import type { Blueprint } from './blueprints'
+import { CAMPUS_EVENTS, ORGS } from './community'
+import type { CampusEvent, EventCategory, EventOrg } from './community'
 import { term } from './mock'
 import { daysFromNow } from '@/lib/date'
 
@@ -16,6 +18,11 @@ import { daysFromNow } from '@/lib/date'
  * UX shape, in-memory, behind `useTeacher` (swap to Supabase later).
  */
 export type TeacherStatus = 'pending' | 'approved'
+
+/** The portal is one shell with two account roles — teachers manage course
+ * outlines, organizers manage Community events. They share the auth context,
+ * invite/approval mechanics, admin console, and layout. */
+export type PortalRole = 'teacher' | 'organizer'
 
 export interface OutlineItem {
   id: string
@@ -69,16 +76,18 @@ export type RequestStatus = 'pending' | 'accepted' | 'denied'
 export interface AccessRequest {
   /** Human-friendly sortable ticket, e.g. "REQ-1043". */
   caseId: string
+  /** Teacher or organizer access. */
+  role: PortalRole
   name: string
   email: string
-  /** Optional note (what they teach) to help the admin. */
+  /** Optional note (what they teach / their org) to help the admin. */
   message: string
   status: RequestStatus
   requestedDaysAgo: number
 }
 
-/** Next case-id number the provider counts up from (seeds use the ones below). */
-export const FIRST_CASE_NUMBER = 1043
+/** Next case-id number the provider counts up from (seeds use 1041–1043). */
+export const FIRST_CASE_NUMBER = 1044
 export const caseIdFor = (n: number) => `REQ-${n}`
 
 let seq = 0
@@ -96,14 +105,17 @@ export function outlineWeight(items: OutlineItem[]): number {
   return items.reduce((sum, i) => sum + (Number.isFinite(i.weight) ? i.weight : 0), 0)
 }
 
-export function inviteStatus(invite: TeacherInvite | undefined): InviteStatus {
+/** Works for any invite (teacher or org) — just the timing fields. */
+type InviteTiming = { used: boolean; createdDaysAgo: number; expiresInDays: number }
+
+export function inviteStatus(invite: InviteTiming | undefined): InviteStatus {
   if (!invite) return 'notfound'
   if (invite.used) return 'used'
   if (invite.createdDaysAgo > invite.expiresInDays) return 'expired'
   return 'valid'
 }
 
-export function expiresInLabel(invite: TeacherInvite): string {
+export function expiresInLabel(invite: InviteTiming): string {
   const left = invite.expiresInDays - invite.createdDaysAgo
   if (left <= 0) return 'Expired'
   if (left === 1) return 'Expires tomorrow'
@@ -255,11 +267,225 @@ export const SEED_INVITES: TeacherInvite[] = [
 
 export const SEED_REQUESTS: AccessRequest[] = [
   {
-    caseId: 'REQ-1041', name: 'Dr. Liang Wu', email: 'liang.wu@concordia.ca',
+    caseId: 'REQ-1041', role: 'teacher', name: 'Dr. Liang Wu', email: 'liang.wu@concordia.ca',
     message: 'I teach COMP 352 — Data Structures & Algorithms.', status: 'pending', requestedDaysAgo: 2,
   },
   {
-    caseId: 'REQ-1042', name: 'Prof. Renée Bélanger', email: 'renee.belanger@concordia.ca',
+    caseId: 'REQ-1042', role: 'organizer', name: 'Concordia Robotics Society', email: 'robotics@concordia.ca',
+    message: 'Student robotics club — we run builds, comps, and workshops.', status: 'pending', requestedDaysAgo: 3,
+  },
+  {
+    caseId: 'REQ-1043', role: 'teacher', name: 'Prof. Renée Bélanger', email: 'renee.belanger@concordia.ca',
     message: 'POLI 311 instructor, hoping to publish my outline.', status: 'accepted', requestedDaysAgo: 6,
+  },
+]
+
+/* =========================================================================
+ * ORGANIZER role — student orgs/clubs that manage their Community events.
+ * Same portal shell (invite + approval + admin + layout), different payload:
+ * an editable org profile + a list of managed events with AGGREGATE-ONLY
+ * mock metrics (never per-user). Real metrics are CONNECTION-PHASE.
+ * ========================================================================= */
+export interface EventMetrics {
+  /** Aggregate counts ONLY — never which students. Intent (adds, follows) leads. */
+  views: number
+  follows: number
+  calendarAdds: number
+}
+
+/** An event an organizer manages — the Community `CampusEvent` fields (minus the
+ * org, which is the account's) plus private aggregate metrics. */
+export interface ManagedEvent {
+  id: string
+  title: string
+  start: string
+  mode: 'in-person' | 'online'
+  location: string
+  category: EventCategory
+  description: string
+  image?: string
+  relevantTo?: string[]
+  postedDaysAgo: number
+  metrics: EventMetrics
+}
+
+/** Who can manage an org's dashboard. Owners can't be removed; members are
+ * invited by anyone already on the team (the access model below is a stub). */
+export type OrgRole = 'owner' | 'admin' | 'member'
+
+export interface OrgMember {
+  id: string
+  name: string
+  email: string
+  role: OrgRole
+  /** `active` = accepted; `invited` = link sent, not yet accepted. */
+  status: 'active' | 'invited'
+  /** Days since they joined (for active members). */
+  joinedDaysAgo: number
+  /** The single-use link token while `invited`. */
+  inviteToken?: string
+}
+
+export interface OrgAccount {
+  id: string
+  email: string
+  status: TeacherStatus
+  /** The org profile the organizer edits — feeds the student org profile page. */
+  org: EventOrg
+  events: ManagedEvent[]
+  /** Aggregate follower count (mock) — org-level, shown in totals + "notify". */
+  followers: number
+  /** People with access to this org's dashboard (team). */
+  members: OrgMember[]
+}
+
+export interface OrgInvite {
+  token: string
+  recipientEmail: string
+  orgName: string
+  orgHandle: string
+  glyph: string
+  color: string
+  createdDaysAgo: number
+  expiresInDays: number
+  used: boolean
+}
+
+/** A managed event → the student-facing `CampusEvent` (metrics dropped). */
+export function eventToCommunity(m: ManagedEvent, org: EventOrg): CampusEvent {
+  return {
+    id: m.id,
+    title: m.title,
+    start: m.start,
+    mode: m.mode,
+    location: m.location,
+    org,
+    category: m.category,
+    description: m.description,
+    image: m.image,
+    relevantTo: m.relevantTo,
+    postedDaysAgo: m.postedDaysAgo,
+  }
+}
+
+export function metricsTotals(events: ManagedEvent[]): EventMetrics {
+  return events.reduce(
+    (t, e) => ({
+      views: t.views + e.metrics.views,
+      follows: t.follows + e.metrics.follows,
+      calendarAdds: t.calendarAdds + e.metrics.calendarAdds,
+    }),
+    { views: 0, follows: 0, calendarAdds: 0 },
+  )
+}
+
+/** A blank event for the "create event" form (defaults to a week out). */
+export function newManagedEvent(): ManagedEvent {
+  return {
+    id: uid('ev'),
+    title: '',
+    start: daysFromNow(7, 18, 0),
+    mode: 'in-person',
+    location: '',
+    category: 'clubs',
+    description: '',
+    postedDaysAgo: 0,
+    metrics: { views: 0, follows: 0, calendarAdds: 0 },
+  }
+}
+
+/** A pending team-member invite (the org admin fills name + email + role). */
+export function newOrgMemberInvite(input: { name: string; email: string; role: OrgRole }): OrgMember {
+  return {
+    id: uid('mem'),
+    name: input.name,
+    email: input.email,
+    role: input.role,
+    status: 'invited',
+    joinedDaysAgo: 0,
+    inviteToken: uid('join'),
+  }
+}
+
+/** Scaffold an editable org profile from an invite (unverified until approved). */
+export function orgFromInvite(invite: OrgInvite): EventOrg {
+  return {
+    name: invite.orgName,
+    handle: invite.orgHandle,
+    verified: false,
+    glyph: invite.glyph,
+    color: invite.color,
+    bio: '',
+  }
+}
+
+const orgIdentity = (handle: string): EventOrg => {
+  const o = ORGS.find((x) => x.handle === handle)
+  if (!o) throw new Error(`Unknown org ${handle}`)
+  return { ...o }
+}
+
+// Seed an approved org's events from the existing Community data so there's no
+// duplication — the merge then sources managed orgs from the provider.
+const seededEvents = (handle: string, metricsById: Record<string, EventMetrics>): ManagedEvent[] =>
+  CAMPUS_EVENTS.filter((e) => e.org.handle === handle).map((e) => ({
+    id: e.id,
+    title: e.title,
+    start: e.start,
+    mode: e.mode,
+    location: e.location,
+    category: e.category,
+    description: e.description,
+    image: e.image,
+    relevantTo: e.relevantTo,
+    postedDaysAgo: e.postedDaysAgo,
+    metrics: metricsById[e.id] ?? { views: 0, follows: 0, calendarAdds: 0 },
+  }))
+
+const HACK_METRICS: Record<string, EventMetrics> = {
+  'ev-hackathon': { views: 1920, follows: 41, calendarAdds: 148 },
+  'ev-hack-apis': { views: 642, follows: 12, calendarAdds: 53 },
+  'ev-hack-past-conuhacks': { views: 5240, follows: 96, calendarAdds: 412 },
+  'ev-hack-past-git': { views: 884, follows: 9, calendarAdds: 31 },
+}
+
+export const SEED_ORGS: OrgAccount[] = [
+  {
+    id: 'org-hack',
+    email: 'team@hackconcordia.org',
+    status: 'approved',
+    org: { ...orgIdentity('@hackconcordia'), verified: true },
+    events: seededEvents('@hackconcordia', HACK_METRICS),
+    followers: 1240,
+    members: [
+      { id: 'm-hack-1', name: 'Priya Nair', email: 'team@hackconcordia.org', role: 'owner', status: 'active', joinedDaysAgo: 240 },
+      { id: 'm-hack-2', name: 'Marc Tremblay', email: 'marc@hackconcordia.org', role: 'admin', status: 'active', joinedDaysAgo: 96 },
+      { id: 'm-hack-3', name: 'Wei Chen', email: 'wei@hackconcordia.org', role: 'member', status: 'active', joinedDaysAgo: 28 },
+    ],
+  },
+  {
+    id: 'org-outdoors',
+    email: 'outdoors@cua.concordia.ca',
+    status: 'pending',
+    org: { ...orgIdentity('@conu.outdoors') },
+    events: seededEvents('@conu.outdoors', {}),
+    followers: 318,
+    members: [
+      { id: 'm-out-1', name: 'Sophie Gagnon', email: 'outdoors@cua.concordia.ca', role: 'owner', status: 'active', joinedDaysAgo: 60 },
+    ],
+  },
+]
+
+export const SEED_ORG_INVITES: OrgInvite[] = [
+  {
+    token: 'demo-robotics',
+    recipientEmail: 'robotics@concordia.ca',
+    orgName: 'Concordia Robotics Society',
+    orgHandle: '@conu.robotics',
+    glyph: 'RS',
+    color: '#5b9cf6',
+    createdDaysAgo: 0,
+    expiresInDays: 7,
+    used: false,
   },
 ]

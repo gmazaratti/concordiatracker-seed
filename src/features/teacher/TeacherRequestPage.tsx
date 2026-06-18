@@ -19,9 +19,12 @@ function reqAgo(days: number): string {
 /** Self-serve access request for prospective teachers + a Case-ID status check.
  * STUB / CONNECTION-PHASE: there's no real review pipeline; the admin flips the
  * status in-memory and the requester checks back by Case ID. */
-export function TeacherRequestPage() {
+/** `role` lets the SAME page serve teachers and organizers — the access model
+ * is identical (invite + approval), so the request flow is shared. */
+export function TeacherRequestPage({ role = 'teacher' }: { role?: 'teacher' | 'organizer' }) {
   const { submitAccessRequest, getRequest } = useTeacher()
   const [mode, setMode] = useState<'request' | 'check'>('request')
+  const isOrg = role === 'organizer'
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col px-5 py-14">
@@ -30,10 +33,12 @@ export function TeacherRequestPage() {
           <UserPlus size={22} aria-hidden />
         </span>
         <h1 className="mt-4 font-display text-[22px] leading-tight font-semibold text-fg">
-          Request teacher access
+          {isOrg ? 'Request organizer access' : 'Request teacher access'}
         </h1>
         <p className="mt-1 text-[13px] text-subtle">
-          Teachers join by invitation — request one and we'll review it.
+          {isOrg
+            ? `Student groups & campus orgs join by invitation — request one and we'll review it.`
+            : `Teachers join by invitation — request one and we'll review it.`}
         </p>
 
         <div role="tablist" className="mt-4 mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">
@@ -55,7 +60,7 @@ export function TeacherRequestPage() {
         </div>
 
         {mode === 'request' ? (
-          <RequestForm onSubmit={submitAccessRequest} />
+          <RequestForm role={role} onSubmit={submitAccessRequest} />
         ) : (
           <CheckForm onLookup={getRequest} />
         )}
@@ -63,7 +68,7 @@ export function TeacherRequestPage() {
 
       <p className="mt-4 text-center text-[12px] text-subtle">
         Already approved?{' '}
-        <Link to="/teacher" className="text-accent hover:underline">
+        <Link to={isOrg ? '/organizer' : '/teacher'} className="text-accent hover:underline">
           Sign in
         </Link>
       </p>
@@ -72,10 +77,18 @@ export function TeacherRequestPage() {
 }
 
 function RequestForm({
+  role,
   onSubmit,
 }: {
-  onSubmit: (input: { name: string; email: string; message: string }) => AccessRequest
+  role: 'teacher' | 'organizer'
+  onSubmit: (input: {
+    role: 'teacher' | 'organizer'
+    name: string
+    email: string
+    message: string
+  }) => AccessRequest
 }) {
+  const isOrg = role === 'organizer'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
@@ -103,13 +116,18 @@ function RequestForm({
       </label>
       <label className="block">
         <span className="mb-1 block text-[12px] font-medium text-muted">
-          What do you teach? <span className="text-subtle">(optional)</span>
+          {isOrg ? 'What does your group organize?' : 'What do you teach?'}{' '}
+          <span className="text-subtle">(optional)</span>
         </span>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={2}
-          placeholder="e.g. COMP 352 — Data Structures, section AA"
+          placeholder={
+            isOrg
+              ? 'e.g. HackConcordia — hackathons, workshops & socials'
+              : 'e.g. COMP 352 — Data Structures, section AA'
+          }
           className={cn(field, 'resize-none')}
         />
       </label>
@@ -118,7 +136,10 @@ function RequestForm({
         className="mt-1 w-full"
         disabled={!valid}
         onClick={() =>
-          valid && setDone(onSubmit({ name: name.trim(), email: email.trim(), message: message.trim() }))
+          valid &&
+          setDone(
+            onSubmit({ role, name: name.trim(), email: email.trim(), message: message.trim() }),
+          )
         }
       >
         Submit request

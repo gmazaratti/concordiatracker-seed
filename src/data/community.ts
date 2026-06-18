@@ -13,6 +13,15 @@ import { daysFromNow } from '@/lib/date'
  */
 export type EventCategory = 'clubs' | 'career' | 'academic' | 'official'
 
+/** Optional outbound links shown on the org profile (only the ones that are set
+ * render). `website` is a generic custom link (homepage, Linktree, etc.). */
+export interface OrgLinks {
+  website?: string
+  instagram?: string
+  x?: string
+  linkedin?: string
+}
+
 export interface EventOrg {
   name: string
   /** Public handle, e.g. "@jmsb". */
@@ -31,6 +40,8 @@ export interface EventOrg {
   banner?: string
   /** Short description shown on the org profile page. */
   bio: string
+  /** Optional social + custom links — only the set ones render on the profile. */
+  links?: OrgLinks
 }
 
 export interface CampusEvent {
@@ -70,7 +81,7 @@ const ORG = {
   university: { name: 'Concordia University', handle: '@concordia', verified: true, glyph: 'CU', color: '#c2566e', bio: 'Official news, open houses, and university-wide events from Concordia University.' },
   jmsb: { name: 'John Molson School of Business', handle: '@jmsb', verified: true, glyph: 'JM', color: '#912338', logo: 'https://i.ibb.co/HLVRHtf9/JMSB-Profile-Picture.png', bio: 'The John Molson School of Business — networking nights, case competitions, and career events for business students.' },
   casajmsb: { name: 'CASA JMSB', handle: '@casa.jmsb', verified: true, glyph: 'CJ', color: '#9b2335', logo: 'https://i.ibb.co/jkRyPXL8/CASA-JMSB-Profile-Picture.png', banner: 'https://i.ibb.co/mC78DnR1/CASA-JMSB-Banner.webp', bio: "The Commerce and Administration Students' Association — the official undergraduate association of JMSB." },
-  jmis: { name: 'John Molson Investment Society', handle: '@jmis', verified: true, glyph: 'JI', color: '#1f4e8c', logo: 'https://i.ibb.co/4qqLLxq/JMIS-Profile-Picture.png', bio: 'A student-run investment society at John Molson — speaker series, stock pitches, and portfolio workshops.' },
+  jmis: { name: 'John Molson Investment Society', handle: '@jmis', verified: true, glyph: 'JI', color: '#1f4e8c', logo: 'https://i.ibb.co/4qqLLxq/JMIS-Profile-Picture.png', bio: 'A student-run investment society at John Molson — speaker series, stock pitches, and portfolio workshops.', links: { linkedin: 'https://www.linkedin.com/company/jmis-ca/', instagram: 'https://www.instagram.com/jmis.ca/', website: 'https://linktr.ee/jmis.ca' } },
   mathhelp: { name: 'Math & Stats Help Centre', handle: '@conu.mathhelp', verified: false, glyph: 'MS', color: '#e0853c', bio: 'Free peer tutoring and exam-prep sessions in mathematics and statistics.' },
 } satisfies Record<string, EventOrg>
 

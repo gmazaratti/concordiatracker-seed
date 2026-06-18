@@ -1,15 +1,17 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
-import { searchOrgs, orgSlug, type EventOrg } from '@/data/community'
+import { orgSlug, type EventOrg } from '@/data/community'
 import { cn } from '@/lib/cn'
 import { OrgLogo } from './OrgLogo'
 import { VerifiedBadge } from './VerifiedBadge'
+import { useCommunity } from './useCommunity'
 
 /** Search organizations by name or handle (like the blueprint search). Results
  * link to org profile pages. Keyboard-accessible combobox (↑/↓/Enter/Esc). */
 export function OrgSearch() {
   const navigate = useNavigate()
+  const { searchOrgs } = useCommunity()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)

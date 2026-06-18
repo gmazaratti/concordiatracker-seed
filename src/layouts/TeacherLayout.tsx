@@ -1,45 +1,75 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { GraduationCap, LogOut, ShieldCheck } from 'lucide-react'
+import { CalendarDays, GraduationCap, LayoutDashboard, LogOut, ShieldCheck, UserCircle, Users } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import type { PortalRole } from '@/data/teacher'
 import { cn } from '@/lib/cn'
 
 /**
- * Distinct chrome for the Teacher portal — a plain top-bar "dashboard" (no
- * student sidebar or command palette), so it reads as a separate context for a
- * different audience.
+ * Distinct chrome for the portal — a plain top-bar "dashboard" (no student
+ * sidebar or command palette), so it reads as a separate context for a different
+ * audience. ONE shell, two roles: teachers manage course outlines, organizers
+ * manage Community events; the role only swaps the labels, icon, and nav.
  */
-export function TeacherLayout() {
-  const { currentTeacher, signOut } = useTeacher()
+export function PortalLayout({ role }: { role: PortalRole }) {
+  const { currentTeacher, currentOrg, signOut } = useTeacher()
   const { pathname } = useLocation()
-  const onAdmin = pathname.startsWith('/teacher/admin')
+  const isOrg = role === 'organizer'
+  const base = isOrg ? '/organizer' : '/teacher'
+
+  const account = isOrg ? currentOrg : currentTeacher
+  const accountName = isOrg ? currentOrg?.org.name : currentTeacher?.name
+  const BrandIcon = isOrg ? CalendarDays : GraduationCap
+
+  const nav = isOrg
+    ? [
+        { to: '/organizer', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+        { to: '/organizer/profile', label: 'Profile', icon: UserCircle },
+        { to: '/organizer/team', label: 'Team', icon: Users },
+        { to: '/organizer/admin', label: 'Admin', icon: ShieldCheck },
+      ]
+    : [{ to: '/teacher/admin', label: 'Admin', icon: ShieldCheck }]
 
   return (
     <div className="flex min-h-svh flex-col bg-canvas">
       <header className="border-b border-border bg-surface/40">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/teacher" className="flex items-center gap-2 text-[14px] font-medium text-fg">
-            <GraduationCap size={18} className="text-accent" aria-hidden />
+          <Link to={base} className="flex items-center gap-2 text-[14px] font-medium text-fg">
+            <BrandIcon size={18} className="text-accent" aria-hidden />
             ConcordiaTracker
-            <span className="hidden text-subtle sm:inline">· Teacher portal</span>
+            <span className="hidden text-subtle sm:inline">
+              · {isOrg ? 'Organizer portal' : 'Teacher portal'}
+            </span>
           </Link>
 
-          <div className="flex items-center gap-2">
-            <Link
-              to="/teacher/admin"
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150',
-                onAdmin ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-surface-2 hover:text-fg',
-              )}
-            >
-              <ShieldCheck size={14} aria-hidden />
-              Admin
-            </Link>
+          <div className="flex items-center gap-1.5">
+            {account &&
+              nav.map((item) => {
+                const Icon = item.icon
+                const active = item.exact ? pathname === item.to : pathname.startsWith(item.to)
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150',
+                      active
+                        ? 'bg-accent-soft text-accent'
+                        : 'text-muted hover:bg-surface-2 hover:text-fg',
+                    )}
+                  >
+                    <Icon size={14} aria-hidden />
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </Link>
+                )
+              })}
 
-            {currentTeacher ? (
+            {account ? (
               <>
                 <span className="hidden items-center gap-2 border-l border-border pl-3 sm:flex">
-                  <span className="text-[13px] font-medium text-fg">{currentTeacher.name}</span>
-                  <StatusChip status={currentTeacher.status} />
+                  <span className="max-w-[180px] truncate text-[13px] font-medium text-fg">
+                    {accountName}
+                  </span>
+                  <StatusChip status={account.status} />
                 </span>
                 <button
                   type="button"
@@ -47,7 +77,7 @@ export function TeacherLayout() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
                 >
                   <LogOut size={14} aria-hidden />
-                  Sign out
+                  <span className="hidden sm:inline">Sign out</span>
                 </button>
               </>
             ) : (

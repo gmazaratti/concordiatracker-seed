@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -10,11 +10,13 @@ import {
   Clock,
   Mail,
   MapPin,
+  Share2,
+  UserPlus,
   Video,
   X,
 } from 'lucide-react'
 import type { CampusEvent } from '@/data/community'
-import { isRelevantTo, moreFromHost, orgSlug } from '@/data/community'
+import { isRelevantTo, orgSlug } from '@/data/community'
 import { useAppData } from '@/app/providers/app-data'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { formatDueDateTime, startOfToday } from '@/lib/date'
@@ -24,6 +26,8 @@ import { CategoryTag } from './EventTile'
 import { VerifiedBadge } from './VerifiedBadge'
 import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
+import { ShareEventModal } from './ShareEventModal'
+import { useCommunity } from './useCommunity'
 
 /** Full-screen event detail — an overlay that fills the viewport (closable, not a
  * dropdown). The content (`EventDetailView`) is split out so it could become a
@@ -42,6 +46,7 @@ export function EventDetail({
   onOpenEvent: (id: string) => void
 }) {
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
+  const [shareOpen, setShareOpen] = useState(false)
 
   // Reset scroll when navigating between events (e.g. "more from this host").
   useEffect(() => {
@@ -49,52 +54,70 @@ export function EventDetail({
   }, [event.id, ref])
 
   return (
-    <div className="ct-animate-fade fixed inset-0 z-50 bg-canvas" onKeyDown={onKeyDown}>
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-label={event.title}
-        tabIndex={-1}
-        className="h-full overflow-y-auto outline-none"
-      >
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-canvas/85 px-4 py-3 backdrop-blur">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <ArrowLeft size={16} aria-hidden />
-            Events
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <X size={18} aria-hidden />
-          </button>
-        </header>
+    <>
+      <div className="ct-animate-fade fixed inset-0 z-50 bg-canvas" onKeyDown={onKeyDown}>
+        <div
+          ref={ref}
+          role="dialog"
+          aria-modal="true"
+          aria-label={event.title}
+          tabIndex={-1}
+          className="h-full overflow-y-auto outline-none"
+        >
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-canvas/85 px-4 py-3 backdrop-blur">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            >
+              <ArrowLeft size={16} aria-hidden />
+              Events
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            >
+              <X size={18} aria-hidden />
+            </button>
+          </header>
 
-        <EventDetailView event={event} added={added} onAdd={onAdd} onOpenEvent={onOpenEvent} />
+          <EventDetailView
+            event={event}
+            added={added}
+            onAdd={onAdd}
+            onOpenEvent={onOpenEvent}
+            onShare={() => setShareOpen(true)}
+          />
+        </div>
       </div>
-    </div>
+      {shareOpen && <ShareEventModal event={event} onClose={() => setShareOpen(false)} />}
+    </>
   )
 }
 
-function EventDetailView({
+/** The event content, shared by the in-app overlay AND the public `/e/:id` page.
+ * `gate` puts it in PUBLIC mode: any interaction (add / remind / follow / contact
+ * / view host) calls `gate()` (→ a signup prompt) instead of acting. Sharing and
+ * viewing other events stay open to everyone. */
+export function EventDetailView({
   event,
   added,
   onAdd,
   onOpenEvent,
+  onShare,
+  gate,
 }: {
   event: CampusEvent
   added: boolean
   onAdd: () => void
   onOpenEvent: (id: string) => void
+  onShare: () => void
+  gate?: () => void
 }) {
   const { user } = useAppData()
+  const { moreFromHost } = useCommunity()
   const online = event.mode === 'online'
   const relevant = isRelevantTo(event, user.program, user.school)
   const more = moreFromHost(event, startOfToday())
@@ -105,7 +128,7 @@ function EventDetailView({
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <CategoryTag category={event.category} />
-        {relevant && (
+        {relevant && !gate && (
           <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent">
             For your program
           </span>
@@ -132,7 +155,7 @@ function EventDetailView({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {added ? (
+        {!gate && added ? (
           <Link
             to="/app/calendar"
             className="inline-flex items-center gap-2 rounded-lg bg-success/15 px-4 py-2.5 text-[14px] font-medium text-success transition-colors duration-150 hover:bg-success/25"
@@ -143,14 +166,22 @@ function EventDetailView({
         ) : (
           <button
             type="button"
-            onClick={onAdd}
+            onClick={gate ?? onAdd}
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-[14px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <CalendarPlus size={16} aria-hidden />
             Add to my calendar
           </button>
         )}
-        <RemindButton eventId={event.id} />
+        <RemindButton eventId={event.id} gate={gate} />
+        <button
+          type="button"
+          onClick={onShare}
+          className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-[14px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <Share2 size={16} aria-hidden />
+          Share
+        </button>
       </div>
 
       <Section label="About">
@@ -162,7 +193,7 @@ function EventDetailView({
       </Section>
 
       <Section label="Hosted by">
-        <HostCard event={event} more={more} onOpenEvent={onOpenEvent} />
+        <HostCard event={event} more={more} onOpenEvent={onOpenEvent} gate={gate} />
       </Section>
     </div>
   )
@@ -170,13 +201,13 @@ function EventDetailView({
 
 /** "Remind me" toggle — a STUB (in-memory, via the app store); real reminder
  * delivery is connection-phase. Sits beside "Add to my calendar". */
-function RemindButton({ eventId }: { eventId: string }) {
+function RemindButton({ eventId, gate }: { eventId: string; gate?: () => void }) {
   const { isReminderSet, toggleReminder } = useAppData()
-  const on = isReminderSet(eventId)
+  const on = !gate && isReminderSet(eventId)
   return (
     <button
       type="button"
-      onClick={() => toggleReminder(eventId)}
+      onClick={gate ?? (() => toggleReminder(eventId))}
       aria-pressed={on}
       title={on ? 'Reminder set (mocked in this build)' : 'Remind me before this event (mocked)'}
       className={cn(
@@ -237,41 +268,65 @@ function HostCard({
   event,
   more,
   onOpenEvent,
+  gate,
 }: {
   event: CampusEvent
   more: CampusEvent[]
   onOpenEvent: (id: string) => void
+  gate?: () => void
 }) {
   const { org } = event
+  const identity = (
+    <>
+      <OrgLogo org={org} className="size-11" rounded="rounded-xl" textClass="text-[15px]" />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5 text-[15px] font-semibold text-fg">
+          <span className="truncate">{org.name}</span>
+          {org.verified && <VerifiedBadge size={15} />}
+        </p>
+        <p className="truncate text-[12px] text-subtle">
+          {org.handle}
+          {org.verified && ' · Verified org'}
+        </p>
+      </div>
+      <ChevronRight
+        size={16}
+        className="shrink-0 text-subtle transition-transform duration-150 group-hover:translate-x-0.5"
+        aria-hidden
+      />
+    </>
+  )
+  const identityClass =
+    'group -m-1 flex items-center gap-3 rounded-lg p-1 text-left transition-colors duration-150 hover:bg-surface-2'
 
   return (
     <div className="rounded-2xl border border-border bg-surface-2/30 p-4">
-      <Link
-        to={`/app/community/org/${orgSlug(org)}`}
-        className="group -m-1 flex items-center gap-3 rounded-lg p-1 transition-colors duration-150 hover:bg-surface-2"
-      >
-        <OrgLogo org={org} className="size-11" rounded="rounded-xl" textClass="text-[15px]" />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-[15px] font-semibold text-fg">
-            <span className="truncate">{org.name}</span>
-            {org.verified && <VerifiedBadge size={15} />}
-          </p>
-          <p className="truncate text-[12px] text-subtle">
-            {org.handle}
-            {org.verified && ' · Verified org'}
-          </p>
-        </div>
-        <ChevronRight
-          size={16}
-          className="shrink-0 text-subtle transition-transform duration-150 group-hover:translate-x-0.5"
-          aria-hidden
-        />
-      </Link>
+      {gate ? (
+        <button type="button" onClick={gate} className={cn(identityClass, 'w-full')}>
+          {identity}
+        </button>
+      ) : (
+        <Link to={`/app/community/org/${orgSlug(org)}`} className={identityClass}>
+          {identity}
+        </Link>
+      )}
 
       <div className="mt-3 flex gap-2">
-        <FollowButton handle={org.handle} className="flex-1" />
+        {gate ? (
+          <button
+            type="button"
+            onClick={gate}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+          >
+            <UserPlus size={14} aria-hidden />
+            Follow
+          </button>
+        ) : (
+          <FollowButton handle={org.handle} className="flex-1" />
+        )}
         <button
           type="button"
+          onClick={gate}
           title="Contact (mocked in this build)"
           className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
         >

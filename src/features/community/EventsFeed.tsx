@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { CalendarRange, LayoutGrid, Rows3, type LucideIcon } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
-import { CAMPUS_EVENTS, isRelevantTo, type EventCategory } from '@/data/community'
+import { isRelevantTo, type EventCategory } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { CATEGORY_META, CATEGORY_ORDER } from './category'
@@ -13,6 +13,7 @@ import { OrgSearch } from './OrgSearch'
 import { NotificationsBell } from './NotificationsBell'
 import { FollowingMenu } from './FollowingMenu'
 import { useEventActions } from './useEventActions'
+import { useCommunity } from './useCommunity'
 
 type CatFilter = 'all' | EventCategory
 
@@ -23,6 +24,7 @@ type CatFilter = 'all' | EventCategory
 export function EventsFeed() {
   const { user, communityView, setCommunityView } = useAppData()
   const reduced = usePrefersReducedMotion()
+  const { events } = useCommunity()
   const { isAdded, add, openEvent, closeEvent, selectedEvent } = useEventActions()
   const [filter, setFilter] = useState<CatFilter>('all')
   const [forYou, setForYou] = useState(false)
@@ -30,10 +32,10 @@ export function EventsFeed() {
   const today = startOfToday()
   const upcoming = useMemo(
     () =>
-      CAMPUS_EVENTS.filter((e) => new Date(e.start) >= today).sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
-      ),
-    [today],
+      events
+        .filter((e) => new Date(e.start) >= today)
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
+    [events, today],
   )
   const visibleIds = useMemo(
     () =>

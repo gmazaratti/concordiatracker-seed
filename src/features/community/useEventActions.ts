@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useAppData } from '@/app/providers/app-data'
-import { CAMPUS_EVENTS, type CampusEvent } from '@/data/community'
+import type { CampusEvent } from '@/data/community'
+import { useCommunity } from './useCommunity'
 
 /** Shared event interactions for the feed AND the org profile page: whether an
  * event is already on your calendar (derived from `personalTasks`, so "Added"
@@ -8,6 +9,7 @@ import { CAMPUS_EVENTS, type CampusEvent } from '@/data/community'
  * open/close (preserving any other query params, e.g. the org route). */
 export function useEventActions() {
   const { addTask, personalTasks } = useAppData()
+  const { eventById } = useCommunity()
   const [params, setParams] = useSearchParams()
 
   const isAdded = (e: CampusEvent) =>
@@ -37,7 +39,7 @@ export function useEventActions() {
     )
 
   const selectedId = params.get('event')
-  const selectedEvent = selectedId ? CAMPUS_EVENTS.find((e) => e.id === selectedId) : undefined
+  const selectedEvent = selectedId ? eventById(selectedId) : undefined
 
   return { isAdded, add, openEvent, closeEvent, selectedEvent }
 }

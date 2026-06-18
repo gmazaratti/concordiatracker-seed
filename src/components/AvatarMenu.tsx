@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
+  CalendarDays,
   GraduationCap,
   LogOut,
   Megaphone,
@@ -116,6 +117,9 @@ export function AvatarMenu({
           </MenuButton>
           <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
             Teacher portal
+          </MenuLink>
+          <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
+            Organizer portal
           </MenuLink>
           <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
             Landing page

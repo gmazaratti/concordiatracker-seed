@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { useFollows } from '@/app/providers/follows'
-import { recentEventsFromOrgs, postedAgoLabel } from '@/data/community'
+import { postedAgoLabel } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { OrgLogo } from './OrgLogo'
+import { useCommunity } from './useCommunity'
 
 /** Notifications panel — a UI SHELL. Items are mocked from the orgs you follow
  * ("‹Org› posted a new event"). CONNECTION-PHASE: real notification generation +
@@ -11,6 +12,7 @@ import { OrgLogo } from './OrgLogo'
  * the single-user mock so the interaction is demonstrable. */
 export function NotificationsBell({ onOpenEvent }: { onOpenEvent: (id: string) => void }) {
   const { followedHandles } = useFollows()
+  const { recentEventsFromOrgs } = useCommunity()
   const [open, setOpen] = useState(false)
   const [seenCount, setSeenCount] = useState(0)
   const ref = useRef<HTMLDivElement>(null)

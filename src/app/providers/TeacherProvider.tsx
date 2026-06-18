@@ -1,16 +1,27 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { ANNOUNCEMENTS, type Announcement } from '@/data/announcements'
 import type { Blueprint } from '@/data/blueprints'
+import { CAMPUS_EVENTS, ORGS, type CampusEvent, type EventOrg } from '@/data/community'
 import {
   FIRST_CASE_NUMBER,
   SEED_INVITES,
+  SEED_ORG_INVITES,
+  SEED_ORGS,
   SEED_REQUESTS,
   SEED_TEACHERS,
   caseIdFor,
+  eventToCommunity,
   inviteStatus,
+  newManagedEvent,
+  newOrgMemberInvite,
+  orgFromInvite,
   outlineToBlueprint,
   uid,
   type AccessRequest,
+  type ManagedEvent,
+  type OrgAccount,
+  type OrgInvite,
+  type OrgRole,
   type OutlineItem,
   type RequestStatus,
   type TeacherAccount,
@@ -26,6 +37,17 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     SEED_TEACHERS.map((t) => ({ ...t, courses: t.courses.map((c) => ({ ...c })) })),
   )
   const [invites, setInvites] = useState<TeacherInvite[]>(() => SEED_INVITES.map((i) => ({ ...i })))
+  const [orgs, setOrgs] = useState<OrgAccount[]>(() =>
+    SEED_ORGS.map((o) => ({
+      ...o,
+      org: { ...o.org },
+      events: o.events.map((e) => ({ ...e })),
+      members: o.members.map((m) => ({ ...m })),
+    })),
+  )
+  const [orgInvites, setOrgInvites] = useState<OrgInvite[]>(() =>
+    SEED_ORG_INVITES.map((i) => ({ ...i })),
+  )
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [announcements, setAnnouncements] = useState<Announcement[]>(() =>
     ANNOUNCEMENTS.map((a) => ({ ...a })),
@@ -40,6 +62,24 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     () => teachers.find((t) => t.id === sessionId) ?? null,
     [teachers, sessionId],
   )
+  const currentOrg = useMemo(() => orgs.find((o) => o.id === sessionId) ?? null, [orgs, sessionId])
+
+  // Supply pipe → the student Community: approved orgs source from the provider
+  // (so edits/creates flow live); their static counterparts are shadowed.
+  const communityOrgs = useMemo<EventOrg[]>(() => {
+    const approved = orgs.filter((o) => o.status === 'approved')
+    const handles = new Set(approved.map((o) => o.org.handle))
+    return [...ORGS.filter((o) => !handles.has(o.handle)), ...approved.map((o) => o.org)]
+  }, [orgs])
+
+  const communityEvents = useMemo<CampusEvent[]>(() => {
+    const approved = orgs.filter((o) => o.status === 'approved')
+    const handles = new Set(approved.map((o) => o.org.handle))
+    return [
+      ...CAMPUS_EVENTS.filter((e) => !handles.has(e.org.handle)),
+      ...approved.flatMap((o) => o.events.map((e) => eventToCommunity(e, o.org))),
+    ]
+  }, [orgs])
 
   const publishedBlueprints = useMemo(
     () =>
@@ -49,17 +89,26 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [teachers],
   )
 
-  // ── Session ──────────────────────────────────────────────────────────────
+  // ── Session (a teacher OR an organizer account) ───────────────────────────
   const signIn = useCallback(
     (email: string) => {
-      const match = teachers.find((t) => t.email.toLowerCase() === email.trim().toLowerCase())
-      if (!match) return false
-      setSessionId(match.id)
-      return true
+      const e = email.trim().toLowerCase()
+      const t = teachers.find((x) => x.email.toLowerCase() === e)
+      if (t) {
+        setSessionId(t.id)
+        return true
+      }
+      const o = orgs.find((x) => x.email.toLowerCase() === e)
+      if (o) {
+        setSessionId(o.id)
+        return true
+      }
+      return false
     },
-    [teachers],
+    [teachers, orgs],
   )
   const signInDemo = useCallback(() => setSessionId('t-hanna'), [])
+  const signInDemoOrg = useCallback(() => setSessionId('org-hack'), [])
   const signOut = useCallback(() => setSessionId(null), [])
 
   // ── Admin ────────────────────────────────────────────────────────────────
@@ -212,7 +261,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   // ── Access requests ───────────────────────────────────────────────────────
   const submitAccessRequest = useCallback(
-    (input: { name: string; email: string; message: string }) => {
+    (input: { role: 'teacher' | 'organizer'; name: string; email: string; message: string }) => {
       const req: AccessRequest = {
         caseId: caseIdFor(caseSeq.current),
         ...input,
@@ -228,6 +277,159 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const setRequestStatus = useCallback((caseId: string, status: RequestStatus) => {
     setAccessRequests((prev) => prev.map((r) => (r.caseId === caseId ? { ...r, status } : r)))
   }, [])
+
+  // ── Organizer: admin (invite/approve orgs) ────────────────────────────────
+  const approveOrg = useCallback((id: string) => {
+    setOrgs((prev) =>
+      prev.map((o) =>
+        o.id === id ? { ...o, status: 'approved', org: { ...o.org, verified: true } } : o,
+      ),
+    )
+  }, [])
+
+  const createOrgInvite = useCallback(
+    (input: {
+      orgName: string
+      orgHandle: string
+      glyph: string
+      color: string
+      recipientEmail: string
+    }) => {
+      const invite: OrgInvite = {
+        token: uid('inv'),
+        recipientEmail: input.recipientEmail,
+        orgName: input.orgName,
+        orgHandle: input.orgHandle,
+        glyph: input.glyph,
+        color: input.color,
+        createdDaysAgo: 0,
+        expiresInDays: 7,
+        used: false,
+      }
+      setOrgInvites((prev) => [invite, ...prev])
+      return invite
+    },
+    [],
+  )
+
+  const acceptOrgInvite = useCallback(
+    (token: string) => {
+      const invite = orgInvites.find((i) => i.token === token)
+      if (inviteStatus(invite) !== 'valid' || !invite) return null
+      const account: OrgAccount = {
+        id: uid('org'),
+        email: invite.recipientEmail,
+        status: 'pending',
+        org: orgFromInvite(invite),
+        events: [],
+        followers: 0,
+        members: [
+          {
+            id: uid('mem'),
+            name: invite.orgName,
+            email: invite.recipientEmail,
+            role: 'owner',
+            status: 'active',
+            joinedDaysAgo: 0,
+          },
+        ],
+      }
+      setOrgs((prev) => [...prev, account])
+      setOrgInvites((prev) => prev.map((i) => (i.token === token ? { ...i, used: true } : i)))
+      setSessionId(account.id)
+      return account
+    },
+    [orgInvites],
+  )
+
+  // ── Organizer: event + profile management (the signed-in org's OWN events) ─
+  const updateCurrentOrg = useCallback(
+    (fn: (o: OrgAccount) => OrgAccount) => {
+      setOrgs((prev) => prev.map((o) => (o.id === sessionId ? fn(o) : o)))
+    },
+    [sessionId],
+  )
+
+  const createEvent = useCallback(() => {
+    const ev = newManagedEvent()
+    updateCurrentOrg((o) => ({ ...o, events: [ev, ...o.events] }))
+    return ev.id
+  }, [updateCurrentOrg])
+
+  const updateEvent = useCallback(
+    (id: string, patch: Partial<ManagedEvent>) => {
+      updateCurrentOrg((o) => ({
+        ...o,
+        events: o.events.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      }))
+    },
+    [updateCurrentOrg],
+  )
+
+  const deleteEvent = useCallback(
+    (id: string) => {
+      updateCurrentOrg((o) => ({ ...o, events: o.events.filter((e) => e.id !== id) }))
+    },
+    [updateCurrentOrg],
+  )
+
+  const updateOrgProfile = useCallback(
+    (patch: Partial<EventOrg>) => {
+      updateCurrentOrg((o) => ({ ...o, org: { ...o.org, ...patch } }))
+    },
+    [updateCurrentOrg],
+  )
+
+  // Notify followers — STUB. Real delivery is connection-phase; returns the
+  // (mock) follower count for the confirmation toast.
+  const notifyFollowers = useCallback(
+    () => orgs.find((o) => o.id === sessionId)?.followers ?? 0,
+    [orgs, sessionId],
+  )
+
+  // ── Organizer: team (who can manage the dashboard) — invite-based STUB ─────
+  const inviteOrgMember = useCallback(
+    (input: { name: string; email: string; role: OrgRole }) => {
+      const member = newOrgMemberInvite(input)
+      updateCurrentOrg((o) => ({ ...o, members: [...o.members, member] }))
+      return member
+    },
+    [updateCurrentOrg],
+  )
+
+  const acceptOrgMemberInvite = useCallback(
+    (token: string) => {
+      const org = orgs.find((o) => o.members.some((m) => m.inviteToken === token))
+      if (!org) return null
+      setOrgs((prev) =>
+        prev.map((o) =>
+          o.id === org.id
+            ? {
+                ...o,
+                members: o.members.map((m) =>
+                  m.inviteToken === token
+                    ? { ...m, status: 'active', joinedDaysAgo: 0, inviteToken: undefined }
+                    : m,
+                ),
+              }
+            : o,
+        ),
+      )
+      setSessionId(org.id)
+      return org
+    },
+    [orgs],
+  )
+
+  const removeOrgMember = useCallback(
+    (id: string) => {
+      updateCurrentOrg((o) => ({
+        ...o,
+        members: o.members.filter((m) => m.id !== id || m.role === 'owner'),
+      }))
+    },
+    [updateCurrentOrg],
+  )
 
   const value = useMemo<TeacherContextValue>(
     () => ({
@@ -256,6 +458,25 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       submitAccessRequest,
       setRequestStatus,
       getRequest: (caseId: string) => accessRequests.find((r) => r.caseId === caseId),
+      // organizer
+      currentOrg,
+      orgs,
+      signInDemoOrg,
+      approveOrg,
+      orgInvites,
+      getOrgInvite: (token: string) => orgInvites.find((i) => i.token === token),
+      createOrgInvite,
+      acceptOrgInvite,
+      createEvent,
+      updateEvent,
+      deleteEvent,
+      updateOrgProfile,
+      notifyFollowers,
+      inviteOrgMember,
+      acceptOrgMemberInvite,
+      removeOrgMember,
+      communityOrgs,
+      communityEvents,
     }),
     [
       currentTeacher,
@@ -281,6 +502,23 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       accessRequests,
       submitAccessRequest,
       setRequestStatus,
+      currentOrg,
+      orgs,
+      signInDemoOrg,
+      approveOrg,
+      orgInvites,
+      createOrgInvite,
+      acceptOrgInvite,
+      createEvent,
+      updateEvent,
+      deleteEvent,
+      updateOrgProfile,
+      notifyFollowers,
+      inviteOrgMember,
+      acceptOrgMemberInvite,
+      removeOrgMember,
+      communityOrgs,
+      communityEvents,
     ],
   )
 

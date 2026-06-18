@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import { useFollows } from '@/app/providers/follows'
-import { orgByHandle, orgSlug } from '@/data/community'
+import { orgSlug } from '@/data/community'
 import { OrgLogo } from './OrgLogo'
 import { VerifiedBadge } from './VerifiedBadge'
 import { FollowButton } from './FollowButton'
+import { useCommunity } from './useCommunity'
 
 /** The orgs you follow, as a scrollable LIST behind a "Following N" button —
  * replaces the pinned chip bar (which got cluttered with many follows). Each row
@@ -13,6 +14,7 @@ import { FollowButton } from './FollowButton'
  * notifications bell, so it works identically on mobile. */
 export function FollowingMenu() {
   const { followedHandles } = useFollows()
+  const { orgByHandle } = useCommunity()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
