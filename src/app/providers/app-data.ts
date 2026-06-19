@@ -64,8 +64,13 @@ export interface AppDataContextValue {
   /** Whether the signed-in user finished onboarding. `null` = profile still
    * loading (the gate waits, so returning users never flash the app). */
   onboardingCompleted: boolean | null
-  /** Save the onboarding profile (name/handle/major) + mark it complete. */
-  completeOnboarding: (data: { name?: string; handle?: string; major?: string }) => Promise<void>
+  /** Save the onboarding profile (name/handle/major) + mark it complete.
+   * Returns `error: 'handle-taken'` if the @handle is already in use. */
+  completeOnboarding: (data: {
+    name?: string
+    handle?: string
+    major?: string
+  }) => Promise<{ error: 'handle-taken' | 'save-failed' | null }>
   courses: Course[]
   assessments: Assessment[]
   /** True while the signed-in user's courses + assignments are still loading.

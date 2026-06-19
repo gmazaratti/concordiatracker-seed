@@ -1,0 +1,14 @@
+# ConcordiaTracker — allow search engines to crawl the public pages.
+User-agent: *
+Allow: /
+
+# Keep crawlers out of the signed-in app, portals, and throwaway routes.
+Disallow: /app
+Disallow: /admin
+Disallow: /teacher
+Disallow: /organizer
+Disallow: /onboarding
+Disallow: /feedback
+Disallow: /demo
+
+Sitemap: https://concordiatracker.com/sitemap.xml

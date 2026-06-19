@@ -6,6 +6,7 @@ import { ModalShell } from '@/command/ModalShell'
 import { EventDetailView } from './EventDetail'
 import { ShareEventModal } from './ShareEventModal'
 import { useCommunity } from './useCommunity'
+import { usePageMeta } from '@/app/hooks/usePageMeta'
 
 /**
  * Public, shareable event page (`/e/:id`) — viewable by ANYONE, no account
@@ -21,6 +22,12 @@ export function PublicEventPage() {
   const [gateOpen, setGateOpen] = useState(false)
 
   const event = eventId ? eventById(eventId) : undefined
+
+  usePageMeta({
+    title: event ? `${event.title} · ConcordiaTracker` : 'Event · ConcordiaTracker',
+    description: event ? `${event.title} — hosted by ${event.org.name}. View on ConcordiaTracker.` : undefined,
+    path: `/e/${eventId ?? ''}`,
+  })
 
   // Scroll to top when navigating between events ("more from this host").
   useEffect(() => {

@@ -172,15 +172,23 @@ export function useSupabaseProfile() {
   /** Save the onboarding profile + mark it complete (so it never re-shows). Used
    * on both Finish (full data) and Skip (whatever was collected). */
   const completeOnboarding = useCallback(
-    async (data: { name?: string; handle?: string; major?: string }) => {
+    async (
+      data: { name?: string; handle?: string; major?: string },
+    ): Promise<{ error: 'handle-taken' | 'save-failed' | null }> => {
+      if (!authUser) return { error: null }
       const patch: Partial<ProfileRow> = { onboarding_completed: true }
       if (data.name) patch.name = data.name
       if (data.handle) patch.handle = data.handle
       if (data.major) patch.program = data.major
-      setRow((r) => (r ? { ...r, ...patch } : r))
-      if (authUser) {
-        await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
+      // Write FIRST, then reflect locally — so a rejected handle (unique
+      // violation) never leaves the app thinking onboarding succeeded.
+      const { error } = await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
+      if (error) {
+        // 23505 = unique_violation; handle is the only unique field on this row.
+        return { error: error.code === '23505' ? 'handle-taken' : 'save-failed' }
       }
+      setRow((r) => (r ? { ...r, ...patch } : r))
+      return { error: null }
     },
     [authUser],
   )

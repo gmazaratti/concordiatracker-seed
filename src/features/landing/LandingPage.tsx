@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { AppPreview } from './AppPreview'
 import { ParseShowcase } from './ParseShowcase'
 import { PricingSection } from './PricingSection'
+import { usePageMeta } from '@/app/hooks/usePageMeta'
 
 const FEATURES = [
   {
@@ -28,6 +29,12 @@ const FEATURES = [
  * Today dashboard bleeds off the right edge for depth, an editorial divider-ruled
  * feature row (no cards), the syllabus parse beat, pricing, and an offset CTA. */
 export function LandingPage() {
+  usePageMeta({
+    title: 'ConcordiaTracker — Concordia syllabus, deadline & GPA tracker',
+    description:
+      'ConcordiaTracker is the academic hub for Concordia University students — import any course syllabus, track every assignment and deadline, predict your GPA, and plan your semester in one place.',
+    path: '/',
+  })
   return (
     <>
       {/* ---- Hero: copy left, the real dashboard bleeds off the right ---- */}

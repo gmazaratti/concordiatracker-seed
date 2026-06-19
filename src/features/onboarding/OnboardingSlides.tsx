@@ -1,6 +1,7 @@
 import { Check, MessagesSquare } from 'lucide-react'
 import { AppPreview } from '@/features/landing/AppPreview'
 import { Logo } from '@/components/Logo'
+import { useAppData } from '@/app/providers/app-data'
 
 /** Shared slide frame: a visual on top, then a tight headline + a line or two. */
 function Slide({ visual, headline, sub, extra }: { visual: React.ReactNode; headline: React.ReactNode; sub: string; extra?: React.ReactNode }) {
@@ -29,9 +30,10 @@ export function WelcomeSlide() {
 }
 
 export function TodaySlide() {
+  const { user } = useAppData()
   return (
     <Slide
-      visual={<FramedPreview />}
+      visual={<FramedPreview name={user.name} />}
       headline="It all lands on Today"
       sub="Your deadlines surface here automatically, across every course, with your GPA at a glance."
     />
@@ -62,7 +64,7 @@ export function DoneSlide() {
 }
 
 /** The real Today recreation in a browser-chrome frame, clipped with a fade. */
-function FramedPreview() {
+function FramedPreview({ name }: { name?: string }) {
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-border bg-surface">
       <div className="flex items-center gap-1.5 border-b border-border bg-surface-2/60 px-3 py-2">
@@ -73,7 +75,7 @@ function FramedPreview() {
       </div>
       <div className="relative h-[190px] overflow-hidden sm:h-[300px]">
         <div className="pointer-events-none origin-top scale-[0.78] sm:scale-[0.92]">
-          <AppPreview />
+          <AppPreview name={name} />
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-surface" />
       </div>

@@ -37,10 +37,15 @@ function dueTone(due: string): string {
   return 'text-fg'
 }
 
-export function AppPreview() {
+export function AppPreview({ name }: { name?: string }) {
   const { week, totalWeeks, percent } = termProgress(term.start, term.end)
   const overdue = dueItems.filter((a) => daysUntil(a.due) < 0)
   const thisWeek = dueItems.filter((a) => daysUntil(a.due) >= 0)
+  // Landing keeps the default sample identity; onboarding passes the real user.
+  const displayName = name?.trim() || 'Alex Degryse'
+  const firstName = displayName.split(/\s+/)[0]
+  const initials =
+    displayName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U'
 
   return (
     <div className="flex h-full min-h-0 text-left">
@@ -70,10 +75,10 @@ export function AppPreview() {
 
         <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
           <span className="grid size-7 place-items-center rounded-full bg-accent-soft text-[10px] font-semibold text-accent">
-            AD
+            {initials}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[11px] font-medium text-fg">Alex Degryse</span>
+            <span className="block truncate text-[11px] font-medium text-fg">{displayName}</span>
             <span className="block text-[10px] text-subtle">Free plan</span>
           </span>
         </div>
@@ -83,7 +88,7 @@ export function AppPreview() {
       <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
         <header className="mb-3">
           <p className="text-[10px] text-subtle">Monday, June 15</p>
-          <TypedGreeting />
+          <TypedGreeting text={`Good morning, ${firstName}`} />
         </header>
 
         <div className="flex min-h-0 flex-1 gap-3">
@@ -136,18 +141,16 @@ export function AppPreview() {
   )
 }
 
-const GREETING = 'Good morning, Alex'
-
 /** Types the greeting out once after the embed has slid in. Plain JS sequencing
  * (no animation lib), gated on reduced-motion: when motion is reduced the full
  * greeting is shown immediately and no caret renders. */
-function TypedGreeting() {
+function TypedGreeting({ text }: { text: string }) {
   const reduced = usePrefersReducedMotion()
-  const [count, setCount] = useState(() => (reduced ? GREETING.length : 0))
+  const [count, setCount] = useState(() => (reduced ? text.length : 0))
 
   useEffect(() => {
     if (reduced) {
-      const settle = setTimeout(() => setCount(GREETING.length), 0)
+      const settle = setTimeout(() => setCount(text.length), 0)
       return () => clearTimeout(settle)
     }
     let i = 0
@@ -155,7 +158,7 @@ function TypedGreeting() {
     const type = () => {
       i += 1
       setCount(i)
-      if (i < GREETING.length) typeTimer = setTimeout(type, 48)
+      if (i < text.length) typeTimer = setTimeout(type, 48)
     }
     // wait for the slide-in (~480ms) to land before the first keystroke
     const startTimer = setTimeout(type, 540)
@@ -163,13 +166,13 @@ function TypedGreeting() {
       clearTimeout(startTimer)
       clearTimeout(typeTimer)
     }
-  }, [reduced])
+  }, [reduced, text])
 
-  const done = count >= GREETING.length
+  const done = count >= text.length
 
   return (
     <h3 className="font-display text-[18px] leading-tight font-medium text-fg">
-      {GREETING.slice(0, count)}
+      {text.slice(0, count)}
       {!reduced && !done && <span className="ct-caret" aria-hidden />}
     </h3>
   )

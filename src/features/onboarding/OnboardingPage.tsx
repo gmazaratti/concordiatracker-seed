@@ -7,6 +7,7 @@ import { DoneSlide, TodaySlide, WelcomeSlide } from './OnboardingSlides'
 import { AddFirstCourse } from './AddFirstCourse'
 import { CommunityStep } from './CommunityStep'
 import { cn } from '@/lib/cn'
+import { supabase } from '@/lib/supabase'
 
 // 3 setup steps + 5 tour steps (welcome, add-course, today, community, done).
 const SETUP_COUNT = 3
@@ -25,6 +26,8 @@ export function OnboardingPage() {
   const [major, setMajor] = useState('')
   const [addedCourse, setAddedCourse] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const handleStatus = useHandleCheck(handle)
 
   const isSetup = step < SETUP_COUNT
   const isLast = step === STEP_DONE
@@ -32,7 +35,7 @@ export function OnboardingPage() {
     step === 0
       ? name.trim().length > 0
       : step === 1
-        ? HANDLE_RE.test(handle)
+        ? HANDLE_RE.test(handle) && handleStatus !== 'taken'
         : step === 2
           ? major.trim().length > 0
           : step === STEP_COURSE
@@ -40,17 +43,33 @@ export function OnboardingPage() {
             : true
 
   const finish = async () => {
+    setSubmitError('')
     setLeaving(true)
-    await completeOnboarding({ name: name.trim(), handle, major: major.trim() })
+    const { error } = await completeOnboarding({ name: name.trim(), handle, major: major.trim() })
+    if (error === 'handle-taken') {
+      setLeaving(false)
+      setSubmitError('That handle was just taken — please pick another.')
+      setStep(1)
+      return
+    }
+    if (error) {
+      setLeaving(false)
+      setSubmitError('Something went wrong saving — please try again.')
+      return
+    }
     navigate('/app', { replace: true })
   }
   const skip = async () => {
     setLeaving(true)
-    await completeOnboarding({
-      name: name.trim() || undefined,
-      handle: HANDLE_RE.test(handle) ? handle : undefined,
-      major: major.trim() || undefined,
-    })
+    const base = { name: name.trim() || undefined, major: major.trim() || undefined }
+    let res = await completeOnboarding({ ...base, handle: HANDLE_RE.test(handle) ? handle : undefined })
+    // Skipping with a taken handle → finish without it rather than block the exit.
+    if (res.error === 'handle-taken') res = await completeOnboarding(base)
+    if (res.error) {
+      setLeaving(false)
+      setSubmitError('Something went wrong — please try again.')
+      return
+    }
     navigate('/app', { replace: true })
   }
   const advance = () => {
@@ -134,6 +153,7 @@ export function OnboardingPage() {
                 major={major}
                 setMajor={setMajor}
                 avatarUrl={user.avatarUrl}
+                handleStatus={handleStatus}
                 onEnter={advance}
               />
             ) : step === 3 ? (
@@ -152,6 +172,7 @@ export function OnboardingPage() {
       </main>
 
       <footer className="flex shrink-0 flex-col items-center gap-3 border-t border-border bg-canvas px-6 pt-4 pb-6 sm:gap-4 sm:pb-9">
+        {submitError && <p className="text-[12px] font-medium text-danger">{submitError}</p>}
         <Button className="min-w-[200px]" disabled={!canAdvance} onClick={advance}>
           {label}
           {!isLast && <ArrowRight size={16} aria-hidden />}
@@ -169,6 +190,28 @@ export function OnboardingPage() {
       </footer>
     </div>
   )
+}
+
+/** Debounced live check of whether a handle is free (via the handle_available
+ * RPC). Degrades to 'idle' if the RPC isn't present yet, so onboarding still
+ * works — the submit-time unique-violation catch is the backstop. */
+function useHandleCheck(handle: string): 'idle' | 'free' | 'taken' {
+  const [checked, setChecked] = useState<{ handle: string; available: boolean } | null>(null)
+  useEffect(() => {
+    if (!HANDLE_RE.test(handle)) return
+    let active = true
+    const t = setTimeout(() => {
+      void supabase.rpc('handle_available', { p_handle: handle }).then(({ data, error }) => {
+        if (active && !error) setChecked({ handle, available: data === true })
+      })
+    }, 450)
+    return () => {
+      active = false
+      clearTimeout(t)
+    }
+  }, [handle])
+  if (checked == null || checked.handle !== handle) return 'idle'
+  return checked.available ? 'free' : 'taken'
 }
 
 function Stepper({ total, current }: { total: number; current: number }) {
@@ -202,6 +245,7 @@ function SetupStep({
   major,
   setMajor,
   avatarUrl,
+  handleStatus,
   onEnter,
 }: {
   step: number
@@ -212,6 +256,7 @@ function SetupStep({
   major: string
   setMajor: (v: string) => void
   avatarUrl?: string
+  handleStatus: 'idle' | 'free' | 'taken'
   onEnter: () => void
 }) {
   if (step === 0) {
@@ -239,6 +284,8 @@ function SetupStep({
           />
         </div>
         {handle.length > 0 && !valid && <p className="mt-2 text-[12px] text-warning">A little longer — at least 3 characters.</p>}
+        {valid && handleStatus === 'taken' && <p className="mt-2 text-[12px] text-danger">@{handle} is taken — try another.</p>}
+        {valid && handleStatus === 'free' && <p className="mt-2 text-[12px] text-success">@{handle} is available.</p>}
       </Centered>
     )
   }

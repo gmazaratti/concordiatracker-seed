@@ -2,6 +2,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, ExternalLink } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { LEGAL_DOCS, type Block, type LegalDoc, type ListItem } from './legal-content'
+import { usePageMeta } from '@/app/hooks/usePageMeta'
 
 /** Highlights bracketed review placeholders ([AGE_MINIMUM — TBD], [VERIFY]…) so
  * unresolved items are impossible to miss in the draft. */
@@ -29,6 +30,11 @@ export function LegalPage({ doc: docProp }: { doc?: LegalDoc['slug'] }) {
   const navigate = useNavigate()
   const slug = docProp ?? params.doc
   const data = slug ? LEGAL_DOCS[slug as LegalDoc['slug']] : undefined
+  usePageMeta({
+    title: data ? `${data.title} · ConcordiaTracker` : 'ConcordiaTracker',
+    description: data?.intro,
+    path: `/${slug ?? ''}`,
+  })
   if (!data) return <Navigate to="/" replace />
 
   return (

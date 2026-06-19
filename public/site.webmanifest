@@ -1,0 +1,10 @@
+{
+  "name": "ConcordiaTracker",
+  "short_name": "ConcordiaTracker",
+  "description": "Concordia syllabus, deadline & GPA tracker for Concordia University students.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f16",
+  "theme_color": "#0f0f16",
+  "icons": [{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }]
+}
