@@ -5,7 +5,7 @@ import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { COMM221_PARSED, RAW_ROWS, type Phase } from '@/features/landing/parse-demo-data'
 import { useAllBlueprintCourses } from '@/features/courses/useBlueprints'
 import { blueprintToAssessments, netVotes } from '@/data/blueprints'
-import { blueprintFromRow, type BlueprintRow } from '@/lib/supabase-adapters'
+import { blueprintFromRow, normalizeCode, type BlueprintRow } from '@/lib/supabase-adapters'
 import { supabase } from '@/lib/supabase'
 import type { Assessment } from '@/data/types'
 import { ONBOARD_COURSES, toAssessments } from './onboarding-data'
@@ -16,12 +16,20 @@ const DAY = 86_400_000
 /** Interactive first-course add — search for a course to import its outline, OR
  * upload a syllabus to parse. Both create a real course + assessments. */
 export function AddFirstCourse({ onAdded }: { onAdded: () => void }) {
-  const { createCourse, addAssessments } = useAppData()
+  const { createCourse, addAssessments, courses } = useAppData()
   const [mode, setMode] = useState<Mode>('choose')
-  const [added, setAdded] = useState<{ code: string; count: number } | null>(null)
+  const [added, setAdded] = useState<{ code: string; count: number; already?: boolean } | null>(null)
   const [busy, setBusy] = useState(false)
 
   const commit = async (code: string, title: string, items: Assessment[]) => {
+    // Already enrolled in this code (e.g. replaying onboarding)? Don't create a
+    // duplicate course or re-insert its assignments — just acknowledge it.
+    if (courses.some((c) => c.code && normalizeCode(c.code) === normalizeCode(code))) {
+      setAdded({ code, count: 0, already: true })
+      setMode('done')
+      onAdded()
+      return
+    }
     const id = await createCourse({ code, title })
     if (!id) return
     await addAssessments(items.map((a) => ({ ...a, id: crypto.randomUUID(), courseId: id })))
@@ -52,7 +60,13 @@ export function AddFirstCourse({ onAdded }: { onAdded: () => void }) {
   }
 
   if (mode === 'done' && added) {
-    return (
+    return added.already ? (
+      <Centered heading={`You're already in ${added.code}`} sub="It's already on your Today — no need to add it twice.">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">
+          <Check size={30} aria-hidden />
+        </span>
+      </Centered>
+    ) : (
       <Centered heading={`${added.code} is in`} sub={`${added.count} deadlines just landed on your calendar — you'll see them on Today.`}>
         <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-success/15 text-success">
           <Check size={30} aria-hidden />
