@@ -135,12 +135,18 @@ export function AvatarMenu({
           <MenuLink to="/feedback" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             Feedback
           </MenuLink>
-          <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
-            Teacher portal
-          </MenuLink>
-          <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
-            Organizer portal
-          </MenuLink>
+          {/* Deferred contexts — admin-only so regular users don't wander into the
+           * half-wired teacher/organizer flows. (Their routes also gate access.) */}
+          {isAdmin && (
+            <>
+              <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
+                Teacher portal
+              </MenuLink>
+              <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
+                Organizer portal
+              </MenuLink>
+            </>
+          )}
           {/* Admin-only — hidden for everyone but the platform administrator. The
            * route + every RPC are independently gated, so this is the UX layer only. */}
           {isAdmin && (
@@ -157,15 +163,19 @@ export function AvatarMenu({
             <ThemeSwitcher showLabels={false} />
           </div>
 
-          <div className="my-1.5 px-1">
-            <p className="flex items-center gap-1.5 px-1 pb-1 text-[11px] text-subtle">
-              Demo plan
-              <span className="rounded bg-surface-2 px-1 py-0.5 text-[9px] font-medium tracking-wide text-subtle uppercase">
-                Dev
-              </span>
-            </p>
-            <PlanToggle plan={plan} onChange={setPlan} />
-          </div>
+          {/* Dev-only plan switch (self-grants "Semester") — admin-only so real
+           * users can't flip their own plan. Real upgrades go through Settings → Billing. */}
+          {isAdmin && (
+            <div className="my-1.5 px-1">
+              <p className="flex items-center gap-1.5 px-1 pb-1 text-[11px] text-subtle">
+                Demo plan
+                <span className="rounded bg-surface-2 px-1 py-0.5 text-[9px] font-medium tracking-wide text-subtle uppercase">
+                  Dev
+                </span>
+              </p>
+              <PlanToggle plan={plan} onChange={setPlan} />
+            </div>
+          )}
 
           <button
             type="button"

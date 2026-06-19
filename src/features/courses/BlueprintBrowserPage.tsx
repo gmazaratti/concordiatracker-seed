@@ -203,11 +203,15 @@ function OutlineRow({
         className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
       >
         {mine ? (
+          // Enrolled: keep the book icon, but tint it in the course's identity
+          // color (with a soft matching halo) so it reads as "yours" at a glance.
           <span
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: courseColor(mine.color).hex }}
+            className="grid size-7 shrink-0 place-items-center rounded-full"
+            style={{ backgroundColor: `${courseColor(mine.color).hex}1f`, color: courseColor(mine.color).hex }}
             aria-hidden
-          />
+          >
+            <Library size={14} aria-hidden />
+          </span>
         ) : (
           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-subtle group-hover:text-muted">
             <Library size={14} aria-hidden />
