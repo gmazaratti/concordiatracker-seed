@@ -7,6 +7,7 @@ import { relativeDueLabel } from '@/lib/date'
 import { courseColor, withAlpha } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
 import { courseStats } from './course-stats'
+import { CourseCardMenu } from './CourseCardMenu'
 
 /** A course as a Google-Classroom-style card: a colored banner carries the
  * class identity, the body holds standing + the next thing due. The grid layout
@@ -46,7 +47,13 @@ export function CourseGridCard({
           backgroundImage: `linear-gradient(125deg, ${hex}, ${withAlpha(hex, 0.8)})`,
         }}
       >
-        <div className="flex items-center gap-2">
+        <CourseCardMenu
+          course={course}
+          assessmentCount={assessments.length}
+          className="absolute top-2 right-2 z-10"
+          triggerClassName="grid size-7 place-items-center rounded-md text-white/80 transition-colors duration-150 hover:bg-white/20 hover:text-white data-[state=open]:bg-white/20"
+        />
+        <div className="flex items-center gap-2 pr-8">
           <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
             {course.code || 'New course'}
           </span>

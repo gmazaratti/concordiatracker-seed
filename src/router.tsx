@@ -15,7 +15,9 @@ import { TeacherHome } from '@/features/teacher/TeacherHome'
 import { TeacherInvitePage } from '@/features/teacher/TeacherInvitePage'
 import { TeacherRequestPage } from '@/features/teacher/TeacherRequestPage'
 import { TeacherCourseWorkspace } from '@/features/teacher/TeacherCourseWorkspace'
-import { TeacherAdminPage } from '@/features/teacher/TeacherAdminPage'
+import { AdminConsole } from '@/features/admin/AdminConsole'
+import { FeedbackPage } from '@/features/feedback/FeedbackPage'
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { OrganizerHome } from '@/features/organizer/OrganizerHome'
 import { OrganizerEventEditor } from '@/features/organizer/OrganizerEventEditor'
 import { OrgProfileEditor } from '@/features/organizer/OrgProfileEditor'
@@ -52,7 +54,6 @@ export function AppRoutes() {
         <Route path="invite/:token" element={<TeacherInvitePage />} />
         <Route path="request" element={<TeacherRequestPage role="teacher" />} />
         <Route path="course/:courseId" element={<TeacherCourseWorkspace />} />
-        <Route path="admin" element={<TeacherAdminPage />} />
       </Route>
 
       {/* Organizer portal context — same shell, organizer role (Community events) */}
@@ -64,8 +65,20 @@ export function AppRoutes() {
         <Route path="event/:eventId" element={<OrganizerEventEditor />} />
         <Route path="profile" element={<OrgProfileEditor />} />
         <Route path="team" element={<OrganizerTeam />} />
-        <Route path="admin" element={<TeacherAdminPage />} />
       </Route>
+
+      {/* Admin console — STANDALONE, admin-only. Gated three ways: the menu entry
+          is hidden for non-admins, this page shows "Not authorized" to non-admins,
+          and every underlying RPC is denied at the database unless is_admin(). */}
+      <Route path="/admin" element={<AdminConsole />} />
+
+      {/* Feedback — feature-request board + private bug submission. Reached from the
+          avatar menu and Today; not a sidebar tab. */}
+      <Route path="/feedback" element={<FeedbackPage />} />
+
+      {/* First-login student onboarding (full-screen). The /app gate redirects
+          un-onboarded users here. */}
+      <Route path="/onboarding" element={<OnboardingPage />} />
 
       {/* Standalone legal documents — clean top-level URLs + a /legal/:doc form */}
       <Route path="/terms" element={<LegalPage doc="terms" />} />

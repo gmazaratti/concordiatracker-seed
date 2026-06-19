@@ -43,11 +43,14 @@ export function DropdownMenu({
   ariaLabel,
   triggerClassName,
   disabled = false,
+  icon: Icon = MoreVertical,
 }: {
   items: MenuItem[]
   ariaLabel: string
   triggerClassName?: string
   disabled?: boolean
+  /** Trigger glyph (defaults to the vertical ⋮). */
+  icon?: LucideIcon
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<Pos | null>(null)
@@ -141,7 +144,7 @@ export function DropdownMenu({
         onKeyDown={onTriggerKeyDown}
         className={triggerClassName}
       >
-        <MoreVertical size={16} aria-hidden />
+        <Icon size={16} aria-hidden />
       </button>
 
       {open &&

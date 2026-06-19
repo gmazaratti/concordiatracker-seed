@@ -324,6 +324,8 @@ export interface OrgMember {
   joinedDaysAgo: number
   /** The single-use link token while `invited`. */
   inviteToken?: string
+  /** True for the current logged-in user — pinned + badged "You" in the team list. */
+  isYou?: boolean
 }
 
 export interface OrgAccount {

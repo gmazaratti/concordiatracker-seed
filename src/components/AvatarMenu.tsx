@@ -6,12 +6,16 @@ import {
   GraduationCap,
   LogOut,
   Megaphone,
+  MessagesSquare,
   Settings,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
 import { useUpdates } from '@/app/providers/updates'
+import { useIsAdmin } from '@/features/admin/admin-data'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
@@ -29,8 +33,10 @@ export function AvatarMenu({
   compact?: boolean
 }) {
   const { user, plan, setPlan } = useAppData()
+  const { signOut } = useAuth()
   const { openSettings } = useSettings()
   const { showIndicator, openHistory } = useUpdates()
+  const { isAdmin } = useIsAdmin()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -63,8 +69,19 @@ export function AvatarMenu({
           compact ? 'p-0.5' : 'w-full p-1.5',
         )}
       >
-        <span className="relative grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-          {user.initials}
+        <span className="relative size-8 shrink-0">
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-8 rounded-full bg-surface-2 object-cover"
+            />
+          ) : (
+            <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
+              {user.initials}
+            </span>
+          )}
           {/* Persistent unseen-update cue on the always-visible profile avatar
            * (both the mobile top bar and the desktop sidebar footer), so it never
            * shifts layout. The "What's new" menu item below is its destination. */}
@@ -115,12 +132,22 @@ export function AvatarMenu({
           >
             What's new
           </MenuButton>
+          <MenuLink to="/feedback" icon={MessagesSquare} onSelect={() => setOpen(false)}>
+            Feedback
+          </MenuLink>
           <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
             Teacher portal
           </MenuLink>
           <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
             Organizer portal
           </MenuLink>
+          {/* Admin-only — hidden for everyone but the platform administrator. The
+           * route + every RPC are independently gated, so this is the UX layer only. */}
+          {isAdmin && (
+            <MenuLink to="/admin" icon={ShieldCheck} onSelect={() => setOpen(false)}>
+              Admin Panel
+            </MenuLink>
+          )}
           <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
             Landing page
           </MenuLink>
@@ -143,9 +170,11 @@ export function AvatarMenu({
           <button
             type="button"
             role="menuitem"
-            disabled
-            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-subtle"
-            title="Auth is mocked in this seed"
+            onClick={() => {
+              setOpen(false)
+              void signOut()
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
           >
             <LogOut size={16} aria-hidden />
             Sign out

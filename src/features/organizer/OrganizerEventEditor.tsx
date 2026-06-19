@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, CalendarPlus, Check, Eye, Lock, Trash2, UserPlus } from 'lucide-react'
+import { ArrowLeft, Bell, CalendarPlus, Check, Eye, Lock, RotateCcw, Trash2, UserPlus } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { eventToCommunity, type EventMetrics, type ManagedEvent } from '@/data/teacher'
 import type { EventCategory, EventOrg } from '@/data/community'
@@ -45,8 +45,9 @@ function EventEditorForm({
   org: EventOrg
   pending: boolean
 }) {
-  const { updateEvent, deleteEvent, notifyFollowers } = useTeacher()
+  const { updateEvent, deleteEvent, notifyFollowers, isEventNotified, revertNotify } = useTeacher()
   const navigate = useNavigate()
+  const notified = isEventNotified(event.id)
 
   const [title, setTitle] = useState(event.title)
   const [start, setStart] = useState(event.start)
@@ -59,7 +60,6 @@ function EventEditorForm({
 
   const [saved, setSaved] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [notified, setNotified] = useState<number | null>(null)
 
   function touch() {
     setSaved(false)
@@ -230,16 +230,29 @@ function EventEditorForm({
                 'Save changes'
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              title={pending ? 'Available once your org is approved' : undefined}
-              onClick={() => setNotified(notifyFollowers(event.id))}
-            >
-              <Bell size={14} aria-hidden />
-              Notify followers
-            </Button>
+            {notified ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-[12px] font-medium text-success">
+                  <Check size={14} aria-hidden />
+                  Followers notified
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => revertNotify(event.id)}>
+                  <RotateCcw size={14} aria-hidden />
+                  Revert
+                </Button>
+              </span>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                title={pending ? 'Available once your org is approved' : undefined}
+                onClick={() => notifyFollowers(event.id)}
+              >
+                <Bell size={14} aria-hidden />
+                Notify followers
+              </Button>
+            )}
             <button
               type="button"
               onClick={onDelete}
@@ -254,9 +267,9 @@ function EventEditorForm({
               {confirmDelete ? 'Click again to delete' : 'Delete'}
             </button>
           </div>
-          {notified !== null && (
-            <p className="text-[12px] text-success">
-              Notified {notified.toLocaleString()} followers · delivery is stubbed in this build.
+          {notified && (
+            <p className="text-[12px] text-subtle">
+              Followers were notified · delivery is stubbed in this build. Revert to send again.
             </p>
           )}
         </div>

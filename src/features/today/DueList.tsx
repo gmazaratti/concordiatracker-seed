@@ -29,7 +29,7 @@ function buildSections(
 ): RowSection[] {
   if (groupBy === 'course') {
     const map = new Map<string, Assessment[]>()
-    for (const a of [...groups.active].sort(byDue)) {
+    for (const a of [...groups.active, ...groups.later].sort(byDue)) {
       const arr = map.get(a.courseId) ?? []
       arr.push(a)
       map.set(a.courseId, arr)
@@ -58,6 +58,8 @@ function buildSections(
     out.push({ key: 'overdue', label: 'Overdue', tone: 'danger', items: groups.overdue })
   if (groups.thisWeek.length)
     out.push({ key: 'thisweek', label: 'This week', tone: 'muted', items: groups.thisWeek })
+  if (groups.later.length)
+    out.push({ key: 'later', label: 'Coming up', tone: 'muted', items: groups.later })
   return out
 }
 
@@ -88,9 +90,9 @@ export function DueList({
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-[13px] font-semibold tracking-wide text-fg uppercase">Due</h2>
         <div className="flex items-center gap-1.5">
-          {groups.count > 0 && (
+          {groups.total > 0 && (
             <span className="text-[12px] text-subtle">
-              {groups.count} {groups.count === 1 ? 'item' : 'items'}
+              {groups.total} {groups.total === 1 ? 'item' : 'items'}
             </span>
           )}
           <button
@@ -112,7 +114,7 @@ export function DueList({
 
       {customizeOpen && <CustomizeToday prefs={prefs} onChange={onPrefsChange} />}
 
-      {groups.count === 0 ? (
+      {sections.length === 0 ? (
         <EmptyState />
       ) : (
         sections.map((section, i) => (
@@ -172,7 +174,7 @@ function EmptyState() {
       </span>
       <h3 className="font-display text-xl font-medium text-fg">All caught up</h3>
       <p className="max-w-xs text-sm text-muted">
-        Nothing due in the next week. Enjoy the breathing room — new deadlines show up
+        Nothing outstanding right now. Enjoy the breathing room — new deadlines show up
         here the moment they land.
       </p>
     </div>

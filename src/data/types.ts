@@ -9,6 +9,10 @@ export interface User {
   name: string
   email: string
   initials: string
+  /** Google profile picture URL (from sign-in), if any. */
+  avatarUrl?: string
+  /** Public handle (set in onboarding) — shown on feedback posts as @handle. */
+  handle?: string
   plan: Plan
   /** School / faculty (set in Settings) — drives the Community "for your program"
    * relevance. Editable in-session. */

@@ -1,80 +1,93 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ChevronDown, Sprout } from 'lucide-react'
+import { AlertTriangle, ChevronDown, Loader2, Sprout } from 'lucide-react'
 import type { Course } from '@/data/types'
-import {
-  blueprintToAssessments,
-  blueprintsForCourse,
-  netVotes,
-  type Blueprint,
-} from '@/data/blueprints'
+import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
-import { useTeacher } from '@/app/providers/teacher'
+import { useAppData } from '@/app/providers/app-data'
 import { cn } from '@/lib/cn'
 import { BlueprintRow } from './BlueprintRow'
 import { BlueprintContributeModal } from './BlueprintContributeModal'
+import { useCourseBlueprints } from './useBlueprints'
 
-type Dir = 1 | -1 | 0
 const byNet = (a: Blueprint, b: Blueprint) => netVotes(b) - netVotes(a)
+const ALL = 'all'
 
 /** The ranked blueprint list for one course, scoped to a SECTION. The filter
  * defaults to the student's enrolled section (known from enrollment, not guessed)
  * and warns when they view another. Within the active section: current-term
  * blueprints rank with a teacher-verified pin + community collapse; past-term
- * versions are hidden behind an expander (dates may have moved). */
+ * versions are hidden behind an expander (dates may have moved).
+ *
+ * Data is REAL (Phase 5): blueprints are fetched from `shared_blueprints` by the
+ * course code, votes persist to `blueprint_votes`, and importing materializes the
+ * outline as real assignments on THIS course. */
 export function BlueprintList({ course }: { course: Course }) {
   const navigate = useNavigate()
-  const { publishedBlueprints, absorbedBlueprintIds } = useTeacher()
-  const [votes, setVotes] = useState<Record<string, Dir>>({})
+  const { user, assessments } = useAppData()
+  const { blueprints, votes, loading, castVote, recordImport, contribute } =
+    useCourseBlueprints(course)
   const [contributeOpen, setContributeOpen] = useState(false)
 
-  // Community uploads (minus any a teacher has verified into their own) + the
-  // teacher-verified blueprints published from the portal.
-  const blueprints = useMemo(
-    () => [
-      ...blueprintsForCourse(course.id).filter((b) => !absorbedBlueprintIds.includes(b.id)),
-      ...publishedBlueprints.filter((b) => b.courseId === course.id),
-    ],
-    [course.id, publishedBlueprints, absorbedBlueprintIds],
+  const sections = useMemo(
+    () => [...new Set(blueprints.map((b) => b.section))].filter(Boolean),
+    [blueprints],
   )
-  const sections = useMemo(() => [...new Set(blueprints.map((b) => b.section))], [blueprints])
   const yourSection = course.section
-  // Tabs: every section with blueprints, the enrolled one first (and always shown).
-  const ordered = useMemo(() => {
-    const rest = sections.filter((s) => s !== yourSection)
-    return [yourSection, ...rest]
+  // Section tabs put the enrolled section first IF it's known + has blueprints.
+  const orderedSections = useMemo(() => {
+    if (yourSection && sections.includes(yourSection))
+      return [yourSection, ...sections.filter((s) => s !== yourSection)]
+    return sections
   }, [sections, yourSection])
 
-  // No guessed default — the filter lands on the student's enrolled section.
-  const [activeSection, setActiveSection] = useState(yourSection)
+  // Default to ALL — show every section's outlines; don't assume your section
+  // (it's often unknown for a course added from the marketplace). Sections are an
+  // optional filter you can click.
+  const [activeSection, setActiveSection] = useState<string>(ALL)
 
-  const sectionBps = blueprints.filter((b) => b.section === activeSection)
+  const courseAssessments = assessments.filter((a) => a.courseId === course.id)
+
+  const sectionBps =
+    activeSection === ALL ? blueprints : blueprints.filter((b) => b.section === activeSection)
   const current = sectionBps.filter((b) => b.term === term.name)
   const past = sectionBps.filter((b) => b.term !== term.name).sort(byNet)
   const teacher = current.find((b) => b.teacherVerified) ?? null
   const community = current.filter((b) => !b.teacherVerified).sort(byNet)
-  const mismatch = activeSection !== yourSection
+  // Only a real, known mismatch warns — never when viewing "All" or with no section.
+  const mismatch = activeSection !== ALL && !!yourSection && activeSection !== yourSection
 
-  function vote(id: string, dir: 1 | -1) {
-    setVotes((v) => ({ ...v, [id]: v[id] === dir ? 0 : dir }))
-  }
   function importBlueprint(b: Blueprint) {
+    recordImport(b.id)
+    // CourseDetailPage's import handler stamps the real course id on each item.
     navigate(`/app/courses/${course.id}`, { state: { importItems: blueprintToAssessments(b) } })
   }
   const rowProps = (b: Blueprint) => ({
     blueprint: b,
     yourSection,
     userVote: votes[b.id] ?? 0,
-    onVote: (dir: 1 | -1) => vote(b.id, dir),
+    onVote: (dir: 1 | -1) => castVote(b.id, dir),
     onImport: () => importBlueprint(b),
   })
+
+  if (loading) {
+    return (
+      <div className="grid place-items-center rounded-xl border border-dashed border-border bg-surface/50 py-14">
+        <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading blueprints" />
+      </div>
+    )
+  }
 
   if (blueprints.length === 0) {
     return (
       <>
         <BlueprintEmptyState course={course} onContribute={() => setContributeOpen(true)} />
         {contributeOpen && (
-          <BlueprintContributeModal course={course} onClose={() => setContributeOpen(false)} />
+          <BlueprintContributeModal
+            course={course}
+            onSubmit={() => contribute(courseAssessments, user.name)}
+            onClose={() => setContributeOpen(false)}
+          />
         )}
       </>
     )
@@ -82,33 +95,18 @@ export function BlueprintList({ course }: { course: Course }) {
 
   return (
     <div>
-      {ordered.length > 1 && (
+      {sections.length > 1 && (
         <div role="tablist" aria-label="Section" className="mb-3 flex flex-wrap gap-1.5">
-          {ordered.map((s) => {
-            const active = s === activeSection
-            return (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setActiveSection(s)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors duration-150',
-                  active
-                    ? 'border-accent bg-accent-soft text-fg'
-                    : 'border-border bg-surface text-muted hover:text-fg',
-                )}
-              >
-                Section {s}
-                {s === yourSection && (
-                  <span className="rounded bg-accent/15 px-1 py-0.5 text-[9px] font-bold tracking-wide text-accent uppercase">
-                    yours
-                  </span>
-                )}
-              </button>
-            )
-          })}
+          <SectionTab label="All" active={activeSection === ALL} onClick={() => setActiveSection(ALL)} />
+          {orderedSections.map((s) => (
+            <SectionTab
+              key={s}
+              label={`Section ${s}`}
+              yours={!!yourSection && s === yourSection}
+              active={activeSection === s}
+              onClick={() => setActiveSection(s)}
+            />
+          ))}
         </div>
       )}
 
@@ -132,10 +130,11 @@ export function BlueprintList({ course }: { course: Course }) {
       <div className="flex flex-col gap-2">
         {current.length === 0 && past.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-4 py-8 text-center text-[13px] text-subtle">
-            No blueprints for section {activeSection} yet.
+            No blueprints {activeSection === ALL ? 'yet' : `for section ${activeSection} yet`}.
           </p>
         ) : (
           <>
+            {/* Current-term: teacher-verified pinned, community collapsed behind it. */}
             {teacher ? (
               <>
                 <BlueprintRow {...rowProps(teacher)} pinned />
@@ -152,22 +151,30 @@ export function BlueprintList({ course }: { course: Course }) {
               </>
             ) : current.length > 0 ? (
               community.map((b) => <BlueprintRow key={b.id} {...rowProps(b)} />)
-            ) : (
-              <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-4 py-6 text-center text-[13px] text-subtle">
-                No current-term blueprints for section {activeSection}.
-              </p>
-            )}
+            ) : null}
 
-            {past.length > 0 && (
-              <Collapser
-                summary={`${past.length} from past term${past.length === 1 ? '' : 's'}`}
-                hint="older — dates may have changed"
-              >
-                {past.map((b) => (
-                  <BlueprintRow key={b.id} {...rowProps(b)} />
-                ))}
-              </Collapser>
-            )}
+            {/* Past-term: collapsed when there are also current ones; shown directly
+                (so they don't read as "empty") when they're all that's available. */}
+            {past.length > 0 &&
+              (current.length > 0 ? (
+                <Collapser
+                  summary={`${past.length} from past term${past.length === 1 ? '' : 's'}`}
+                  hint="older — dates may have changed"
+                >
+                  {past.map((b) => (
+                    <BlueprintRow key={b.id} {...rowProps(b)} />
+                  ))}
+                </Collapser>
+              ) : (
+                <>
+                  <p className="px-1 text-[12px] text-subtle">
+                    From a past term — dates may have changed.
+                  </p>
+                  {past.map((b) => (
+                    <BlueprintRow key={b.id} {...rowProps(b)} />
+                  ))}
+                </>
+              ))}
           </>
         )}
       </div>
@@ -182,9 +189,49 @@ export function BlueprintList({ course }: { course: Course }) {
       </button>
 
       {contributeOpen && (
-        <BlueprintContributeModal course={course} onClose={() => setContributeOpen(false)} />
+        <BlueprintContributeModal
+          course={course}
+          onSubmit={() => contribute(courseAssessments, user.name)}
+          onClose={() => setContributeOpen(false)}
+        />
       )}
     </div>
+  )
+}
+
+/** One section-filter tab ("All" + each section), with an optional "yours" badge
+ * when the section matches the student's known enrollment. */
+function SectionTab({
+  label,
+  active,
+  yours = false,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  yours?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors duration-150',
+        active
+          ? 'border-accent bg-accent-soft text-fg'
+          : 'border-border bg-surface text-muted hover:text-fg',
+      )}
+    >
+      {label}
+      {yours && (
+        <span className="rounded bg-accent/15 px-1 py-0.5 text-[9px] font-bold tracking-wide text-accent uppercase">
+          yours
+        </span>
+      )}
+    </button>
   )
 }
 

@@ -1,19 +1,17 @@
 import { useMemo } from 'react'
-import { useTeacher } from '@/app/providers/teacher'
+import { useCommunityData } from '@/app/providers/community-data'
 import type { CampusEvent, EventOrg } from '@/data/community'
 
 /**
- * The single read surface for student-facing Community data. It serves the
- * MERGE of the static seed and any organizer-portal content (approved orgs +
- * their events) — see `TeacherProvider`'s `communityOrgs`/`communityEvents`.
- *
- * Every Community screen reads through this hook (not `@/data/community`
- * directly) so a portal publish shows up in the feed/profiles/search/follow
- * with no extra wiring. The helpers mirror the pure ones in `data/community.ts`
- * but operate over the merged arrays.
+ * The single read surface for student-facing Community data — now backed by the
+ * real `organizations` + `events` tables via `CommunityProvider` (Phase 8). Every
+ * Community screen reads through this hook (not `@/data/community` directly), so
+ * the swap from the in-memory seed to Supabase touched only the provider. The
+ * helpers mirror the pure ones in `data/community.ts` but operate over the loaded
+ * arrays. (Organizer-portal-created events join the feed in Phase 10.)
  */
 export function useCommunity() {
-  const { communityOrgs, communityEvents } = useTeacher()
+  const { orgs: communityOrgs, events: communityEvents, loading } = useCommunityData()
 
   return useMemo(() => {
     const orgs = communityOrgs
@@ -24,6 +22,7 @@ export function useCommunity() {
     return {
       orgs,
       events,
+      loading,
       eventById: (id: string): CampusEvent | undefined => events.find((e) => e.id === id),
       orgBySlug: (s: string): EventOrg | undefined => orgs.find((o) => slug(o) === s),
       orgByHandle: (handle: string): EventOrg | undefined =>
@@ -59,5 +58,5 @@ export function useCommunity() {
           .sort((a, b) => a.postedDaysAgo - b.postedDaysAgo)
       },
     }
-  }, [communityOrgs, communityEvents])
+  }, [communityOrgs, communityEvents, loading])
 }

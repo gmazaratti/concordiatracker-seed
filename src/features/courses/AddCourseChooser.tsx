@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Library, PencilLine, Upload, type LucideIcon } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { hist203Syllabus } from '@/data/mock'
 import { ModalShell } from '@/command/ModalShell'
 
 /** "Add a course — choose your method." The grid's "+" card opens this; the
  * three methods all end at a course detail, just by different on-ramps. (The
- * header "Import syllabus" button skips this and goes straight to the upload
- * path, so the two entry points stay distinct.) */
+ * header "Import syllabus" button skips this and goes straight to the blueprint
+ * browser, so the two entry points stay distinct.) */
 export function AddCourseChooser({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   const { createCourse } = useAppData()
@@ -15,10 +16,17 @@ export function AddCourseChooser({ onClose }: { onClose: () => void }) {
     onClose()
     navigate(path)
   }
-  function createManually() {
-    const id = createCourse()
+  async function createManually() {
+    const id = await createCourse()
     onClose()
-    navigate(`/app/courses/${id}`)
+    if (id) navigate(`/app/courses/${id}`)
+  }
+  // The scripted parse-reveal demo (real AI parse is a later phase): make a fresh
+  // course and cascade the sample syllabus into it.
+  async function uploadSyllabus() {
+    const id = await createCourse()
+    onClose()
+    if (id) navigate(`/app/courses/${id}`, { state: { importItems: hist203Syllabus } })
   }
 
   return (
@@ -37,8 +45,8 @@ export function AddCourseChooser({ onClose }: { onClose: () => void }) {
           <Option
             icon={Upload}
             title="Upload a syllabus"
-            desc="Drop the PDF and we'll lift out every assessment, weight, and deadline."
-            onClick={() => go('/app/courses/hist203')}
+            desc="Watch a sample syllabus's dates cascade in — a preview of AI parsing."
+            onClick={uploadSyllabus}
           />
           <Option
             icon={PencilLine}

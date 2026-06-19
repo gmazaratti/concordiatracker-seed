@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+import { Lightbulb } from 'lucide-react'
 import { useUpdates } from '@/app/providers/updates'
 import {
   RELEASES,
@@ -43,6 +45,19 @@ export function WhatsNewModal() {
         {RELEASES.map((release, i) => (
           <ReleaseEntry key={release.version} release={release} latest={i === 0} />
         ))}
+      </div>
+
+      {/* Cross-link → the requests board (the listen → build → proof loop). */}
+      <div className="border-t border-border bg-surface-2/40 px-5 py-4">
+        <Link
+          to="/feedback?tab=requests"
+          onClick={closeHistory}
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
+        >
+          <Lightbulb size={14} aria-hidden />
+          Got an idea? Request a feature →
+        </Link>
+        <p className="mt-1 text-[12px] text-subtle">Many of these shipped from community requests.</p>
       </div>
     </ModalShell>
   )

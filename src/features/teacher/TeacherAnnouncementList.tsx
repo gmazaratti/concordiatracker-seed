@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Megaphone, Pencil, Trash2 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import type { Announcement } from '@/data/announcements'
+import { normalizeCode } from '@/lib/supabase-adapters'
 import { AnnouncementMeta } from '@/components/AnnouncementMeta'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
@@ -12,15 +13,16 @@ const field =
 /** The teacher's past announcements for a course — each editable (stamps "Edited")
  * or deletable. Edits/deletes flow to the student digest + course detail. */
 export function TeacherAnnouncementList({
-  courseId,
+  courseCode,
   disabled,
 }: {
-  courseId: string
+  courseCode: string
   disabled: boolean
 }) {
   const { teacherAnnouncements } = useTeacher()
+  const code = normalizeCode(courseCode)
   const items = teacherAnnouncements
-    .filter((a) => a.courseId === courseId)
+    .filter((a) => a.courseCode === code)
     .sort((a, b) => a.postedDaysAgo - b.postedDaysAgo)
 
   if (items.length === 0) return null

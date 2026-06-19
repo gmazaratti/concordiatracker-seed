@@ -45,9 +45,8 @@ export function OrganizerDashboard() {
 
       {pending && (
         <div className="mt-4 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
-          <strong className="font-semibold">Pending approval.</strong> An admin will review your org
-          shortly. You can set up your profile and draft events now — they go live in Community once
-          you're approved.
+          <strong className="font-semibold">Pending approval.</strong> You can set up your profile and
+          draft events now — they go live in Community once an admin approves your org.
         </div>
       )}
 

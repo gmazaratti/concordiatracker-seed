@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { useAuth } from '@/app/providers/auth'
 import { Select } from '@/components/ui/Select'
 import { Group, Row } from '../controls'
 
@@ -15,7 +16,7 @@ const SCHOOLS = [
 
 export function AccountSection() {
   const { user, updateProfile } = useAppData()
-  const [name, setName] = useState(user.name)
+  const { signOut } = useAuth()
 
   return (
     <div>
@@ -35,8 +36,8 @@ export function AccountSection() {
       <Group label="Profile">
         <Row label="Display name" description="Shown across your dashboard." stacked>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={user.name}
+            onChange={(e) => updateProfile({ name: e.target.value })}
             aria-label="Display name"
             className="w-full max-w-xs rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors focus:border-border-strong"
           />
@@ -70,11 +71,11 @@ export function AccountSection() {
       </Group>
 
       <Group label="Account">
-        <Row label="Sign out" description="Auth is mocked in this seed.">
+        <Row label="Sign out" description="End your session on this device.">
           <button
             type="button"
-            disabled
-            className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-subtle"
+            onClick={() => void signOut()}
+            className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
           >
             Sign out
           </button>

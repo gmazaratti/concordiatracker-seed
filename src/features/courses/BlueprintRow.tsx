@@ -32,7 +32,8 @@ export function BlueprintRow({
   const [open, setOpen] = useState(false)
   const net = netVotes(blueprint) + userVote
   const isCurrentTerm = blueprint.term === term.name
-  const wrongSection = blueprint.section !== yourSection
+  // Only flag a section mismatch when we actually know the student's section.
+  const wrongSection = yourSection !== '' && blueprint.section !== yourSection
   const total = blueprintWeight(blueprint)
 
   return (

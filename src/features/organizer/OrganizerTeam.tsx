@@ -163,6 +163,11 @@ function MemberRow({ member, onRemove }: { member: OrgMember; onRemove: () => vo
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[13px] font-medium text-fg">{member.name}</span>
+          {member.isYou && (
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-contrast">
+              You
+            </span>
+          )}
           <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLE_STYLE[member.role])}>
             {ROLE_LABEL[member.role]}
           </span>

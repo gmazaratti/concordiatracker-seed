@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppDataContext,
   DEFAULT_CALENDAR_PREFS,
@@ -8,61 +8,183 @@ import {
   type CoursesView,
   type TodayPrefs,
 } from './app-data'
+import { term } from '@/data/mock'
+import { useAuth } from './auth'
+import { useSupabaseProfile } from './useSupabaseProfile'
+import { supabase, fireWrite } from '@/lib/supabase'
 import {
-  courses as seedCourses,
-  currentUser,
-  seedAssessments,
-  seedTasks,
-  term,
-} from '@/data/mock'
+  assessmentFromRow,
+  assessmentPatchToRow,
+  assessmentToInsert,
+  blueprintToInsert,
+  courseFromRow,
+  courseToRow,
+  taskFromRow,
+  taskToInsert,
+  type AssignmentRow,
+  type CourseRow,
+  type TodoRow,
+} from '@/lib/supabase-adapters'
 import { COURSE_COLORS } from '@/lib/course-color'
 import { daysFromNow } from '@/lib/date'
-import { seedPeerCorrections, type PeerCorrection } from '@/data/peer-corrections'
+import type { PeerCorrection } from '@/data/peer-corrections'
 import type {
   Assessment,
   AssessmentStatus,
   CalendarTask,
   Course,
   Grade,
-  Plan,
 } from '@/data/types'
 
-/** Holds the cloned seed so UI mutations never touch the module-level data. */
+// Stable empty refs so a signed-out / loading state doesn't churn consumers.
+const NO_COURSES: Course[] = []
+const NO_ASSESSMENTS: Assessment[] = []
+const NO_TASKS: CalendarTask[] = []
+
+interface Loaded {
+  ownerId: string
+  courses: Course[]
+  assessments: Assessment[]
+  tasks: CalendarTask[]
+}
+
+/** The app's data store. Phase 3: courses + assessments are the signed-in user's
+ * real Supabase rows (read on sign-in, every edit written through). Tasks / peer
+ * corrections / reminders remain in-memory until their phases (4 / 11 / 8). */
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const [plan, setPlan] = useState<Plan>(currentUser.plan)
-  const [profile, setProfile] = useState({
-    school: currentUser.school,
-    program: currentUser.program,
-  })
-  const [courses, setCourses] = useState<Course[]>(() =>
-    seedCourses.map((c) => ({ ...c })),
+  const { user: authUser } = useAuth()
+  // Phase 2: real profile + plan.
+  const { user, plan, setPlan, updateProfile, onboardingCompleted, completeOnboarding } =
+    useSupabaseProfile()
+
+  // Phase 3: the loaded rows, tagged with their owner so a different user never
+  // briefly sees the previous user's data (the derivation gates on ownerId).
+  const [loaded, setLoaded] = useState<Loaded | null>(null)
+  const dataReady = !!loaded && loaded.ownerId === authUser?.id
+  const courses = dataReady ? loaded!.courses : NO_COURSES
+  const assessments = dataReady ? loaded!.assessments : NO_ASSESSMENTS
+  const personalTasks = dataReady ? loaded!.tasks : NO_TASKS
+  // Signed in, but the first fetch for this user hasn't landed yet.
+  const dataLoading = !!authUser && !dataReady
+
+  const updateCourses = useCallback(
+    (fn: (c: Course[]) => Course[]) => setLoaded((d) => (d ? { ...d, courses: fn(d.courses) } : d)),
+    [],
   )
+  const updateAssessments = useCallback(
+    (fn: (a: Assessment[]) => Assessment[]) =>
+      setLoaded((d) => (d ? { ...d, assessments: fn(d.assessments) } : d)),
+    [],
+  )
+  const updateTasks = useCallback(
+    (fn: (t: CalendarTask[]) => CalendarTask[]) =>
+      setLoaded((d) => (d ? { ...d, tasks: fn(d.tasks) } : d)),
+    [],
+  )
+
+  // Assessment writes are coalesced per-row + debounced, so per-keystroke title
+  // / weight / notes edits become one DB update (and status+grade saved together
+  // merge into one), instead of a request per change.
+  const writeTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const writePending = useRef<Map<string, Record<string, unknown>>>(new Map())
+
+  const flushAssessmentWrite = useCallback((id: string) => {
+    const cols = writePending.current.get(id)
+    writePending.current.delete(id)
+    writeTimers.current.delete(id)
+    if (cols && Object.keys(cols).length) {
+      fireWrite(supabase.from('assignments').update(cols).eq('id', id))
+    }
+  }, [])
+
+  const queueAssessmentWrite = useCallback(
+    (id: string, cols: Record<string, unknown>) => {
+      writePending.current.set(id, { ...(writePending.current.get(id) ?? {}), ...cols })
+      const existing = writeTimers.current.get(id)
+      if (existing) clearTimeout(existing)
+      writeTimers.current.set(id, setTimeout(() => flushAssessmentWrite(id), 350))
+    },
+    [flushAssessmentWrite],
+  )
+
+  // Load the user's courses + assignments on sign-in.
+  useEffect(() => {
+    if (!authUser) return
+    let active = true
+    Promise.all([
+      supabase.from('courses').select('*').eq('user_id', authUser.id),
+      supabase.from('assignments').select('*').eq('user_id', authUser.id).eq('deleted', false),
+      supabase.from('todos').select('*').eq('user_id', authUser.id),
+    ]).then(([cRes, aRes, tRes]) => {
+      if (!active) return
+      setLoaded({
+        ownerId: authUser.id,
+        courses: ((cRes.data as CourseRow[]) ?? []).map(courseFromRow),
+        assessments: ((aRes.data as AssignmentRow[]) ?? []).map(assessmentFromRow),
+        tasks: ((tRes.data as TodoRow[]) ?? []).map(taskFromRow),
+      })
+    })
+    return () => {
+      active = false
+    }
+  }, [authUser])
+
   const [coursesView, setCoursesView] = useState<CoursesView>('grid')
   const [communityView, setCommunityView] = useState<CommunityView>('card')
   const [todayPrefs, setTodayPrefs] = useState<TodayPrefs>(DEFAULT_TODAY_PREFS)
   const [calendarPrefs, setCalendarPrefs] = useState<CalendarPrefs>(DEFAULT_CALENDAR_PREFS)
-  const [assessments, setAssessments] = useState(() =>
-    seedAssessments.map((a) => ({ ...a })),
-  )
-  const [personalTasks, setPersonalTasks] = useState<CalendarTask[]>(() =>
-    seedTasks.map((t) => ({ ...t })),
-  )
-  const taskSeq = useRef(seedTasks.length)
-  const courseSeq = useRef(0)
-  const assessmentSeq = useRef(0)
-  const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>(() =>
-    seedPeerCorrections.map((c) => ({ ...c })),
-  )
+  const colorSeq = useRef(0)
+  // In-memory until later phases.
+  const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>([])
+  // "Remind me" subscriptions, backed by `event_reminders` (per-user, own-row RLS).
   const [reminderIds, setReminderIds] = useState<Set<string>>(() => new Set())
 
-  const toggleReminder = useCallback((eventId: string) => {
-    setReminderIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(eventId)) next.delete(eventId)
-      else next.add(eventId)
-      return next
-    })
-  }, [])
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      if (!authUser) {
+        if (active) setReminderIds(new Set())
+        return
+      }
+      const { data } = await supabase
+        .from('event_reminders')
+        .select('event_id')
+        .eq('user_id', authUser.id)
+      if (!active) return
+      setReminderIds(new Set((data as { event_id: string }[] | null)?.map((r) => r.event_id) ?? []))
+    })()
+    return () => {
+      active = false
+    }
+  }, [authUser])
+
+  const toggleReminder = useCallback(
+    (eventId: string) => {
+      if (!authUser) return
+      setReminderIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(eventId)) {
+          next.delete(eventId)
+          fireWrite(
+            supabase
+              .from('event_reminders')
+              .delete()
+              .eq('user_id', authUser.id)
+              .eq('event_id', eventId),
+          )
+        } else {
+          next.add(eventId)
+          fireWrite(
+            supabase
+              .from('event_reminders')
+              .upsert({ user_id: authUser.id, event_id: eventId }, { onConflict: 'user_id,event_id' }),
+          )
+        }
+        return next
+      })
+    },
+    [authUser],
+  )
 
   const updateTodayPrefs = useCallback(
     (patch: Partial<TodayPrefs>) => setTodayPrefs((p) => ({ ...p, ...patch })),
@@ -73,163 +195,231 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [],
   )
 
-  const addTask = useCallback((task: { title: string; due: string; note?: string }) => {
-    taskSeq.current += 1
-    const next: CalendarTask = { id: `task-${taskSeq.current}`, done: false, ...task }
-    setPersonalTasks((list) => [...list, next])
-  }, [])
-  const toggleTask = useCallback((id: string) => {
-    setPersonalTasks((list) =>
-      list.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-    )
-  }, [])
-  const removeTask = useCallback((id: string) => {
-    setPersonalTasks((list) => list.filter((t) => t.id !== id))
-  }, [])
+  // Personal calendar tasks → the `todos` table (insert DB-generated id, adopt it).
+  const addTask = useCallback(
+    async (task: { title: string; due: string; note?: string }) => {
+      if (!authUser) return
+      const { data } = await supabase
+        .from('todos')
+        .insert(taskToInsert(task, authUser.id))
+        .select('*')
+        .maybeSingle()
+      if (data) updateTasks((list) => [...list, taskFromRow(data as TodoRow)])
+    },
+    [authUser, updateTasks],
+  )
+  const toggleTask = useCallback(
+    (id: string) => {
+      const t = personalTasks.find((x) => x.id === id)
+      if (!t) return
+      const done = !t.done
+      updateTasks((list) => list.map((x) => (x.id === id ? { ...x, done } : x)))
+      fireWrite(supabase.from('todos').update({ done }).eq('id', id))
+    },
+    [personalTasks, updateTasks],
+  )
+  const removeTask = useCallback(
+    (id: string) => {
+      updateTasks((list) => list.filter((t) => t.id !== id))
+      fireWrite(supabase.from('todos').delete().eq('id', id))
+    },
+    [updateTasks],
+  )
 
-  // Shared write surface: Today flips status; Courses edits status/grade/notes.
-  const setStatus = useCallback((id: string, status: AssessmentStatus) => {
-    setAssessments((list) =>
-      list.map((a) => (a.id === id ? { ...a, status } : a)),
-    )
-  }, [])
+  // ── Assessment edits — optimistic local update + write-through to Supabase ──
+  const setStatus = useCallback(
+    (id: string, status: AssessmentStatus) => {
+      updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, status } : a)))
+      queueAssessmentWrite(id, assessmentPatchToRow({ status }))
+    },
+    [updateAssessments, queueAssessmentWrite],
+  )
 
-  const setGrade = useCallback((id: string, grade: Grade | null) => {
-    setAssessments((list) =>
-      list.map((a) => (a.id === id ? { ...a, grade } : a)),
-    )
-  }, [])
+  const setGrade = useCallback(
+    (id: string, grade: Grade | null) => {
+      updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, grade } : a)))
+      queueAssessmentWrite(id, assessmentPatchToRow({ grade }))
+    },
+    [updateAssessments, queueAssessmentWrite],
+  )
 
-  const setNotes = useCallback((id: string, notes: string) => {
-    setAssessments((list) =>
-      list.map((a) => (a.id === id ? { ...a, notes } : a)),
-    )
-  }, [])
+  const setNotes = useCallback(
+    (id: string, notes: string) => {
+      updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, notes } : a)))
+      queueAssessmentWrite(id, { notes })
+    },
+    [updateAssessments, queueAssessmentWrite],
+  )
 
   const updateAssessment = useCallback(
     (id: string, patch: Partial<Assessment>) => {
-      setAssessments((list) =>
-        list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-      )
+      updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+      queueAssessmentWrite(id, assessmentPatchToRow(patch))
     },
-    [],
+    [updateAssessments, queueAssessmentWrite],
   )
 
-  const addAssessments = useCallback((items: Assessment[]) => {
-    setAssessments((list) => {
-      const existing = new Set(list.map((a) => a.id))
-      const fresh = items.filter((a) => !existing.has(a.id))
-      return fresh.length === 0 ? list : [...list, ...fresh]
-    })
-  }, [])
+  // Insert new assessments (the DB generates the uuid ids; we adopt them back).
+  const addAssessments = useCallback(
+    async (items: Assessment[]) => {
+      if (!authUser || items.length === 0) return
+      const rows = items.map((a) => assessmentToInsert(a, authUser.id))
+      const { data } = await supabase.from('assignments').insert(rows).select('*')
+      if (data) updateAssessments((list) => [...list, ...(data as AssignmentRow[]).map(assessmentFromRow)])
+    },
+    [authUser, updateAssessments],
+  )
 
-  const removeAssessment = useCallback((id: string) => {
-    setAssessments((list) => list.filter((a) => a.id !== id))
-  }, [])
+  const removeAssessment = useCallback(
+    (id: string) => {
+      // Cancel any pending edit-write for this row before deleting it.
+      const t = writeTimers.current.get(id)
+      if (t) clearTimeout(t)
+      writeTimers.current.delete(id)
+      writePending.current.delete(id)
+      updateAssessments((list) => list.filter((a) => a.id !== id))
+      fireWrite(supabase.from('assignments').delete().eq('id', id))
+    },
+    [updateAssessments],
+  )
 
-  const setCourseColor = useCallback((id: string, color: string) => {
-    setCourses((list) =>
-      list.map((c) => (c.id === id ? { ...c, color } : c)),
-    )
-  }, [])
+  const setCourseColor = useCallback(
+    (id: string, color: string) => {
+      updateCourses((list) => list.map((c) => (c.id === id ? { ...c, color } : c)))
+      fireWrite(supabase.from('courses').update({ color }).eq('id', id))
+    },
+    [updateCourses],
+  )
 
-  const updateCourse = useCallback((id: string, patch: Partial<Course>) => {
-    setCourses((list) =>
-      list.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-    )
-  }, [])
+  const updateCourse = useCallback(
+    (id: string, patch: Partial<Course>) => {
+      updateCourses((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', id))
+    },
+    [updateCourses],
+  )
 
-  // Manual course creation — a blank, student-made course filled by hand. Picks
-  // the next palette color so it stays visually distinct in the grid.
-  const createCourse = useCallback(() => {
-    courseSeq.current += 1
-    const id = `manual-course-${courseSeq.current}`
-    const color = COURSE_COLORS[(seedCourses.length + courseSeq.current - 1) % COURSE_COLORS.length].id
-    const course: Course = {
-      id,
-      code: '',
-      title: '',
-      term: term.name,
-      credits: 3,
-      color,
-      section: '',
-      instructor: { name: '', email: '' },
-      ta: null,
-      location: '',
-      meetingTimes: '',
-      syllabusUrl: '',
-      origin: 'manual',
-    }
-    setCourses((list) => [...list, course])
-    return id
-  }, [])
+  // Course creation — insert a course (DB-generated id), adopt it. Blank for a
+  // manual add; pre-filled code/title/section when added from a blueprint.
+  const createCourse = useCallback(
+    async (init?: { code?: string; title?: string; section?: string }) => {
+      if (!authUser) return ''
+      const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
+      colorSeq.current += 1
+      const { data } = await supabase
+        .from('courses')
+        .insert({
+          user_id: authUser.id,
+          code: init?.code ?? '',
+          name: init?.title ?? '',
+          term: term.name,
+          credits: 3,
+          color,
+          section: init?.section ?? '',
+          professor: '',
+          prof_email: '',
+          location: '',
+          time: '',
+          syllabus_url: '',
+          origin: 'manual',
+        })
+        .select('*')
+        .maybeSingle()
+      if (!data) return ''
+      const course = courseFromRow(data as CourseRow)
+      updateCourses((list) => [...list, course])
+      return course.id
+    },
+    [authUser, updateCourses],
+  )
 
-  // A blank, SELF-ENTERED assessment for the manual editor (unverified provenance,
-  // honest about being student-entered). Returns its id so the row can focus.
-  const addBlankAssessment = useCallback((courseId: string) => {
-    assessmentSeq.current += 1
-    const id = `manual-a-${courseId}-${assessmentSeq.current}`
-    const next: Assessment = {
-      id,
-      courseId,
-      title: '',
-      kind: 'assignment',
-      due: daysFromNow(14, 23, 59),
-      weight: 0,
-      provenance: { status: 'unverified' },
-      status: 'not-started',
-      grade: null,
-      notes: '',
-    }
-    setAssessments((list) => [...list, next])
-    return id
-  }, [])
+  // Delete a course and its assessments. Assignments go first (the FK references
+  // the course) so the course delete can't be blocked.
+  const removeCourse = useCallback(
+    async (id: string) => {
+      updateCourses((list) => list.filter((c) => c.id !== id))
+      updateAssessments((list) => list.filter((a) => a.courseId !== id))
+      await supabase.from('assignments').delete().eq('course_id', id)
+      fireWrite(supabase.from('courses').delete().eq('id', id))
+    },
+    [updateCourses, updateAssessments],
+  )
+
+  // OPT-IN share: publish this course's current outline to the shared blueprint
+  // pool (the only path that writes there — courses are private by default).
+  const shareCourseAsBlueprint = useCallback(
+    async (courseId: string) => {
+      if (!authUser) return
+      const course = courses.find((c) => c.id === courseId)
+      if (!course) return
+      const items = assessments.filter((a) => a.courseId === courseId)
+      await supabase
+        .from('shared_blueprints')
+        .insert(blueprintToInsert({ userId: authUser.id, course, author: user.name, assessments: items }))
+    },
+    [authUser, courses, assessments, user.name],
+  )
+
+  // A blank, SELF-ENTERED assessment for the manual editor (unverified provenance).
+  const addBlankAssessment = useCallback(
+    async (courseId: string) => {
+      if (!authUser) return
+      const blank: Assessment = {
+        id: '',
+        courseId,
+        title: '',
+        kind: 'assignment',
+        due: daysFromNow(14, 23, 59),
+        weight: 0,
+        provenance: { status: 'unverified' },
+        status: 'not-started',
+        grade: null,
+        notes: '',
+      }
+      const { data } = await supabase
+        .from('assignments')
+        .insert(assessmentToInsert(blank, authUser.id))
+        .select('*')
+        .maybeSingle()
+      if (data) updateAssessments((list) => [...list, assessmentFromRow(data as AssignmentRow)])
+    },
+    [authUser, updateAssessments],
+  )
 
   const courseById = useCallback(
     (id: string): Course | undefined => courses.find((c) => c.id === id),
     [courses],
   )
 
-  // Peer-correction stub: accepting a crowd correction moves the date and marks
-  // it confirmed-by-N (the suggestion clears); dismissing just clears it.
+  // Peer-correction stub (Phase 11 — empty against real data). Local-only.
   const applyPeerCorrection = useCallback(
     (assessmentId: string) => {
       const c = peerCorrections.find((x) => x.assessmentId === assessmentId)
       if (!c) return
-      setAssessments((list) =>
-        list.map((a) =>
-          a.id === assessmentId
-            ? {
-                ...a,
-                due: c.proposedDue,
-                provenance: { status: 'confirmed', confirmations: c.changedCount },
-              }
-            : a,
-        ),
-      )
+      updateAssessment(assessmentId, {
+        due: c.proposedDue,
+        provenance: { status: 'confirmed', confirmations: c.changedCount },
+      })
       setPeerCorrections((list) => list.filter((x) => x.assessmentId !== assessmentId))
     },
-    [peerCorrections],
+    [peerCorrections, updateAssessment],
   )
 
   const dismissPeerCorrection = useCallback((assessmentId: string) => {
     setPeerCorrections((list) => list.filter((x) => x.assessmentId !== assessmentId))
   }, [])
 
-  const updateProfile = useCallback(
-    (patch: Partial<{ school: string; program: string }>) =>
-      setProfile((p) => ({ ...p, ...patch })),
-    [],
-  )
-
   const value = useMemo(
     () => ({
-      user: { ...currentUser, plan, ...profile },
+      user,
       plan,
       setPlan,
       updateProfile,
+      onboardingCompleted,
+      completeOnboarding,
       courses,
       assessments,
+      dataLoading,
       setStatus,
       setGrade,
       setNotes,
@@ -239,6 +429,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setCourseColor,
       updateCourse,
       createCourse,
+      removeCourse,
+      shareCourseAsBlueprint,
       addBlankAssessment,
       courseById,
       coursesView,
@@ -260,11 +452,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       dismissPeerCorrection,
     }),
     [
+      user,
       plan,
-      profile,
+      setPlan,
       updateProfile,
+      onboardingCompleted,
+      completeOnboarding,
       courses,
       assessments,
+      dataLoading,
       setStatus,
       setGrade,
       setNotes,
@@ -274,6 +470,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       setCourseColor,
       updateCourse,
       createCourse,
+      removeCourse,
+      shareCourseAsBlueprint,
       addBlankAssessment,
       courseById,
       coursesView,

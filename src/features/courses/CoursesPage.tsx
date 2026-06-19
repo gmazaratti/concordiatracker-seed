@@ -46,10 +46,10 @@ export function CoursesPage() {
         </div>
         <div className="flex items-center gap-2">
           <ViewToggle view={coursesView} onChange={setCoursesView} />
-          {/* Shortcut straight to the upload-syllabus path — names a specific
-              method, so it skips the chooser the "+" card opens. */}
+          {/* Shortcut straight to the blueprint browser — the real import path
+              (find a classmate's/teacher's outline). */}
           <Link
-            to="/app/courses/hist203"
+            to="/app/courses/blueprints"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />

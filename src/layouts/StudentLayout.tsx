@@ -1,4 +1,8 @@
-import { Outlet } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
+import { useAuth } from '@/app/providers/auth'
+import { useAppData } from '@/app/providers/app-data'
+import { LoginScreen } from '@/features/auth/LoginScreen'
 import { Sidebar } from '@/components/Sidebar'
 import { MobileNav } from '@/components/MobileNav'
 import { Logo } from '@/components/Logo'
@@ -8,8 +12,24 @@ import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 
-/** Chrome for the authenticated student app context. */
+/** Chrome for the authenticated student app context. Gated: the whole `/app`
+ * area requires a signed-in session — otherwise the login screen takes over. */
 export function StudentLayout() {
+  const { user, loading } = useAuth()
+  const { onboardingCompleted } = useAppData()
+
+  // First-login onboarding gate. Wait for the profile to load (null) so a
+  // returning, already-onboarded user never flashes the app before redirecting.
+  if (loading || (user && onboardingCompleted === null)) {
+    return (
+      <div className="grid h-svh place-items-center bg-canvas">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
+  if (!user) return <LoginScreen />
+  if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />
+
   return (
     <div className="flex h-svh overflow-hidden">
       <Sidebar />

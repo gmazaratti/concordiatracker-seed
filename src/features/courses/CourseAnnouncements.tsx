@@ -1,13 +1,15 @@
 import { Megaphone } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { normalizeCode } from '@/lib/supabase-adapters'
 import { AnnouncementMeta } from '@/components/AnnouncementMeta'
 
 /** This course's announcements on the course detail — posted/edited from the
- * teacher portal. Renders nothing when there are none. */
-export function CourseAnnouncements({ courseId }: { courseId: string }) {
+ * teacher portal. Matched by course code. Renders nothing when there are none. */
+export function CourseAnnouncements({ courseCode }: { courseCode: string }) {
   const { teacherAnnouncements } = useTeacher()
+  const code = normalizeCode(courseCode)
   const items = teacherAnnouncements
-    .filter((a) => a.courseId === courseId)
+    .filter((a) => a.courseCode === code)
     .sort((a, b) => a.postedDaysAgo - b.postedDaysAgo)
 
   if (items.length === 0) return null

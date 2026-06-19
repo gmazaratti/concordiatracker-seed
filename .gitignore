@@ -26,3 +26,8 @@ dist-ssr
 # Claude Code — local dev notes + tooling (not part of the app)
 CLAUDE.md
 .claude/
+
+# Go-live dev notes + verification scripts (local only — not part of the app)
+connection_plan.md
+backend_infrastructure_audit.md
+scripts/

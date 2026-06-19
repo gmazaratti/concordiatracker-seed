@@ -10,7 +10,6 @@ import type {
   OrgMember,
   OrgRole,
   OutlineItem,
-  RequestStatus,
   TeacherAccount,
   TeacherInvite,
 } from '@/data/teacher'
@@ -22,8 +21,14 @@ import type {
  * approval, and verification are CONNECTION-PHASE (see CLAUDE.md).
  */
 export interface TeacherContextValue {
-  // Session (mock auth — no passwords)
+  // Session
   currentTeacher: TeacherAccount | null
+  /** True when signed into a DEMO/seed account (not your own SELF account) — drives
+   * the "sandbox, nothing is saved" banner. */
+  isDemoSession: boolean
+  /** Enter the portal as YOUR real logged-in account (a persistent, approved
+   * teacher whose courses are saved to `teacher_courses`). */
+  signInSelf: () => void
   /** Sign in by email; returns false if no account matches. */
   signIn: (email: string) => boolean
   /** Convenience: sign in as the approved demo teacher. */
@@ -63,30 +68,41 @@ export interface TeacherContextValue {
    * and absorb the original out of the community list. */
   verifyCommunityBlueprint: (courseId: string, blueprint: Blueprint) => void
 
-  // Announcements → Today digest + course detail (seeded + posted, all mutable)
+  // Announcements → Today digest + course detail (real `announcements` table)
   teacherAnnouncements: Announcement[]
-  postAnnouncement: (input: { courseId: string; title: string; body: string }) => void
+  postAnnouncement: (input: { courseCode: string; title: string; body: string }) => void
   /** Edit an announcement → stamps it "Edited" (editedDaysAgo = 0). */
   editAnnouncement: (id: string, patch: { title: string; body: string }) => void
   deleteAnnouncement: (id: string) => void
 
-  // Self-serve access requests (before any invite) — STUB/CONNECTION-PHASE
-  accessRequests: AccessRequest[]
-  /** Submit a request → returns it (with its assigned Case ID). */
+  // Self-serve access requests → the real access_requests table (via RPCs).
+  /** Submit a request → returns it with its assigned Case ID. */
   submitAccessRequest: (input: {
     role: 'teacher' | 'organizer'
     name: string
     email: string
     message: string
-  }) => AccessRequest
-  /** Admin accept/deny. */
-  setRequestStatus: (caseId: string, status: RequestStatus) => void
-  getRequest: (caseId: string) => AccessRequest | undefined
+  }) => Promise<AccessRequest>
+  /** Look up a request's status by Case ID (public). */
+  getRequest: (caseId: string) => Promise<AccessRequest | null>
 
   // ── ORGANIZER role — same shell, different payload ──────────────────────
   /** The signed-in organizer (null if signed out or signed in as a teacher). */
   currentOrg: OrgAccount | null
   orgs: OrgAccount[]
+  /** Manage YOUR own real org (persisted) — null if you don't own one yet. */
+  myOrg: OrgAccount | null
+  /** Create your own organization (persisted to `organizations`, owned by you).
+   * Returns the new id, or '' if it failed (e.g. the handle is taken). */
+  createOrg: (input: {
+    name: string
+    handle: string
+    glyph: string
+    color: string
+    bio?: string
+  }) => Promise<string>
+  /** Enter the portal managing your own org. */
+  signInSelfOrg: () => void
   signInDemoOrg: () => void
   approveOrg: (id: string) => void
   orgInvites: OrgInvite[]
@@ -105,14 +121,20 @@ export interface TeacherContextValue {
   updateEvent: (id: string, patch: Partial<ManagedEvent>) => void
   deleteEvent: (id: string) => void
   updateOrgProfile: (patch: Partial<EventOrg>) => void
-  /** Push a notification to followers (STUB — real delivery is connection-phase). */
+  /** Push a notification to followers ONCE (STUB — real delivery is connection-
+   * phase). Marks the event notified + returns the follower count. */
   notifyFollowers: (eventId: string) => number
+  /** Whether this event has already been notified (persists across re-entering). */
+  isEventNotified: (eventId: string) => boolean
+  /** Undo a notification so it can be fired again. */
+  revertNotify: (eventId: string) => void
 
-  // Team — who can manage the signed-in org's dashboard (invite-based, STUB)
+  // Team — who can manage the signed-in org's dashboard. Your real org persists
+  // members to org_members; demo/seed orgs keep them in memory.
   /** Invite a teammate → adds a PENDING member with a single-use link; returns it. */
   inviteOrgMember: (input: { name: string; email: string; role: OrgRole }) => OrgMember
-  /** Accept a teammate invite link → activates the member + signs into that org. */
-  acceptOrgMemberInvite: (token: string) => OrgAccount | null
+  /** Accept a teammate invite link → activates the member; resolves true on success. */
+  acceptOrgMemberInvite: (token: string) => Promise<boolean>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */
   removeOrgMember: (id: string) => void
 

@@ -3,17 +3,32 @@ import { Check, FileUp, Sparkles } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { ModalShell } from '@/command/ModalShell'
 
-/** The mock contributor upload flow — a Courses action opened from the blueprint
- * browser. No real upload: "submitting" shows a success + a theme-credit reward
- * (the credits-for-contributions idea, made tangible). */
+/** The contributor flow — a Courses action opened from the blueprint browser.
+ * The PDF drop is still mock (no real parse), but submitting REALLY shares this
+ * course's current outline as a community blueprint (`onSubmit` inserts it into
+ * `shared_blueprints`), then shows the theme-credit reward. */
 export function BlueprintContributeModal({
   course,
+  onSubmit,
   onClose,
 }: {
   course: Course
+  onSubmit: () => Promise<void> | void
   onClose: () => void
 }) {
   const [submitted, setSubmitted] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function submit() {
+    if (busy) return
+    setBusy(true)
+    try {
+      await onSubmit()
+      setSubmitted(true)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <ModalShell label={`Contribute a blueprint for ${course.code}`} onClose={onClose}>
@@ -51,15 +66,18 @@ export function BlueprintContributeModal({
         <div className="px-5 py-4">
           <button
             type="button"
-            onClick={() => setSubmitted(true)}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface-2/40 px-6 py-8 text-center transition-colors duration-150 hover:border-accent hover:bg-accent-soft/40"
+            onClick={submit}
+            disabled={busy}
+            className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface-2/40 px-6 py-8 text-center transition-colors duration-150 hover:border-accent hover:bg-accent-soft/40 disabled:opacity-60"
           >
             <FileUp size={24} className="text-accent" aria-hidden />
-            <span className="text-[13px] font-medium text-fg">Drop your syllabus PDF</span>
-            <span className="text-[12px] text-subtle">or click to browse — mock, nothing is uploaded</span>
+            <span className="text-[13px] font-medium text-fg">Share {course.code}'s outline</span>
+            <span className="text-[12px] text-subtle">
+              your current assessments become a community blueprint
+            </span>
           </button>
           <p className="mt-3 text-[12px] text-subtle">
-            We lift out every assessment, weight, and deadline. Parsed dates land as
+            We share every assessment, weight, and deadline you've added. Shared dates land as
             <span className="text-prov-unverified"> unverified</span> until classmates
             confirm them — contributors earn theme credits.
           </p>
@@ -73,10 +91,11 @@ export function BlueprintContributeModal({
             </button>
             <button
               type="button"
-              onClick={() => setSubmitted(true)}
-              className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
+              onClick={submit}
+              disabled={busy}
+              className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
             >
-              Submit outline
+              {busy ? 'Sharing…' : 'Share outline'}
             </button>
           </div>
         </div>

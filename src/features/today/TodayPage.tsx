@@ -11,6 +11,7 @@ import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
+import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 
 const TODAY_LABEL = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -111,6 +112,8 @@ export function TodayPage() {
           {showPain && <PainNudge count={groups.count} />}
         </aside>
       </div>
+
+      <FeedbackPrompt />
     </div>
   )
 }

@@ -100,9 +100,9 @@ export function TeacherCourseWorkspace() {
         />
         <AnnouncementComposer
           disabled={pending}
-          onPost={(title, body) => postAnnouncement({ courseId: course.courseId, title, body })}
+          onPost={(title, body) => postAnnouncement({ courseCode: course.code, title, body })}
         />
-        <TeacherAnnouncementList courseId={course.courseId} disabled={pending} />
+        <TeacherAnnouncementList courseCode={course.code} disabled={pending} />
       </section>
 
       {/* Outline */}

@@ -95,8 +95,8 @@ export const STATIC_COMMANDS: Command[] = [
     hint: 'Action',
     group: 'Actions',
     icon: Upload,
-    keywords: ['blueprint', 'outline', 'parse', 'contribute', 'hist 203'],
-    perform: go('/app/courses/hist203'),
+    keywords: ['blueprint', 'outline', 'parse', 'contribute', 'import'],
+    perform: go('/app/courses/blueprints'),
   },
   {
     id: 'action-switch-theme',

@@ -11,11 +11,16 @@ export const PAIN_THRESHOLD = 5
 export interface DueGroups {
   overdue: Assessment[]
   thisWeek: Assessment[]
-  /** Outstanding items that feed Today (overdue + this week), oldest-due first. */
+  /** Outstanding work due beyond the week horizon — the "Coming up" section. */
+  later: Assessment[]
+  /** Overdue + this week, oldest-due first — the near-term pressure (pain nudge). */
   active: Assessment[]
   /** Soonest outstanding item across everything — drives "next up". */
   nextUp: Assessment | null
+  /** Near-term count (overdue + this week) — drives the pain nudge + glance. */
   count: number
+  /** All outstanding (overdue + this week + later) — the due-list size. */
+  total: number
 }
 
 const byDue = (a: Assessment, b: Assessment) =>
@@ -33,6 +38,7 @@ export function groupDue(assessments: Assessment[]): DueGroups {
       return d >= 0 && d < WEEK_HORIZON_DAYS
     })
     .sort(byDue)
+  const later = outstanding.filter((a) => daysUntil(a.due) >= WEEK_HORIZON_DAYS).sort(byDue)
 
   const active = [...overdue, ...thisWeek]
 
@@ -42,5 +48,13 @@ export function groupDue(assessments: Assessment[]): DueGroups {
   const upcoming = outstanding.filter((a) => daysUntil(a.due) >= 0).sort(byDue)
   const nextUp = upcoming[0] ?? [...outstanding].sort(byDue)[0] ?? null
 
-  return { overdue, thisWeek, active, nextUp, count: active.length }
+  return {
+    overdue,
+    thisWeek,
+    later,
+    active,
+    nextUp,
+    count: active.length,
+    total: active.length + later.length,
+  }
 }

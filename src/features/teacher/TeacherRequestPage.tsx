@@ -86,17 +86,32 @@ function RequestForm({
     name: string
     email: string
     message: string
-  }) => AccessRequest
+  }) => Promise<AccessRequest>
 }) {
   const isOrg = role === 'organizer'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
   const [done, setDone] = useState<AccessRequest | null>(null)
 
   if (done) return <Submitted req={done} />
 
   const valid = name.trim() && email.trim()
+
+  const submit = async () => {
+    if (!valid) return
+    setBusy(true)
+    setErr(null)
+    try {
+      setDone(await onSubmit({ role, name: name.trim(), email: email.trim(), message: message.trim() }))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not submit your request.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -132,17 +147,9 @@ function RequestForm({
         />
       </label>
 
-      <Button
-        className="mt-1 w-full"
-        disabled={!valid}
-        onClick={() =>
-          valid &&
-          setDone(
-            onSubmit({ role, name: name.trim(), email: email.trim(), message: message.trim() }),
-          )
-        }
-      >
-        Submit request
+      {err && <p className="text-[12px] text-danger">{err}</p>}
+      <Button className="mt-1 w-full" disabled={!valid || busy} onClick={submit}>
+        {busy ? 'Submitting…' : 'Submit request'}
       </Button>
     </div>
   )
@@ -183,15 +190,18 @@ function Submitted({ req }: { req: AccessRequest }) {
   )
 }
 
-function CheckForm({ onLookup }: { onLookup: (caseId: string) => AccessRequest | undefined }) {
+function CheckForm({ onLookup }: { onLookup: (caseId: string) => Promise<AccessRequest | null> }) {
   const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<AccessRequest | null | undefined>(undefined)
 
-  function check() {
+  async function check() {
     const raw = input.trim().toUpperCase()
     if (!raw) return
     const id = raw.startsWith('REQ-') ? raw : `REQ-${raw.replace(/^REQ-?/, '')}`
-    setResult(onLookup(id) ?? null)
+    setBusy(true)
+    setResult(await onLookup(id))
+    setBusy(false)
   }
 
   return (
@@ -212,7 +222,7 @@ function CheckForm({ onLookup }: { onLookup: (caseId: string) => AccessRequest |
             className={cn(field, 'pl-9')}
           />
         </div>
-        <Button onClick={check}>Check</Button>
+        <Button onClick={check} disabled={busy}>{busy ? 'Checking…' : 'Check'}</Button>
       </div>
 
       {result === null && (

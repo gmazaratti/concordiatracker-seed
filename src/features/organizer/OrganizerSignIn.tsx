@@ -2,18 +2,41 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
 
-/** Organizer sign-in (mock auth, no passwords). Orgs join by invitation; this is
- * the returning-organizer door, plus a demo shortcut + request/invite/admin entry. */
-export function OrganizerSignIn() {
-  const { signIn, signInDemoOrg } = useTeacher()
-  const [email, setEmail] = useState('')
-  const [error, setError] = useState(false)
+const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'OG'
 
-  function submit() {
-    if (!email.trim()) return
-    if (!signIn(email)) setError(true)
+const suggestHandle = (name: string) =>
+  '@' + (name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'org')
+
+/** Organizer portal entry. The primary path is YOUR own org (persistent): continue
+ * to it if you have one, or create one. The email + demo paths are for the seeds. */
+export function OrganizerSignIn() {
+  const { myOrg, createOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
+  const { user: authUser, signInWithGoogle } = useAuth()
+  const [name, setName] = useState('')
+  const [handle, setHandle] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [createError, setCreateError] = useState('')
+
+  async function create() {
+    if (!name.trim() || busy) return
+    setBusy(true)
+    setCreateError('')
+    const h = (handle.trim() || suggestHandle(name)).replace(/^@?/, '@')
+    const id = await createOrg({ name: name.trim(), handle: h, glyph: initials(name), color: '#5b9cf6' })
+    setBusy(false)
+    if (!id) setCreateError(`Couldn't create it — the handle ${h} may be taken. Try another.`)
+    // On success, createOrg signs you into the portal (the dashboard renders).
   }
 
   return (
@@ -26,56 +49,80 @@ export function OrganizerSignIn() {
           Organizer portal
         </h1>
         <p className="mt-1 text-[13px] text-subtle">
-          Sign in to manage your org's events and profile.
+          Post events to the Community feed and manage your org's profile.
         </p>
 
-        <label className="mt-5 block text-[12px] font-medium text-muted" htmlFor="o-email">
-          Org email
-        </label>
-        <input
-          id="o-email"
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value)
-            setError(false)
-          }}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-          placeholder="team@yourclub.org"
-          className="mt-1 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-        />
-        {error && (
-          <p className="mt-1.5 text-[12px] text-danger">
-            No organizer account for that email — orgs join by invitation.
-          </p>
+        {!authUser ? (
+          <>
+            <Button className="mt-5 w-full" onClick={() => void signInWithGoogle()}>
+              Sign in with Google
+            </Button>
+            <p className="mt-1.5 text-center text-[12px] text-subtle">
+              Sign in to create and manage your real org.
+            </p>
+          </>
+        ) : myOrg ? (
+          <>
+            <Button className="mt-5 w-full" onClick={signInSelfOrg}>
+              Continue as {myOrg.org.name}
+            </Button>
+            <p className="mt-1.5 text-center text-[12px] text-subtle">Your org and its events are saved.</p>
+          </>
+        ) : (
+          <>
+            <p className="mt-5 text-[12px] font-medium text-muted">Create your organization</p>
+            <input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                setCreateError('')
+              }}
+              placeholder="Organization name (e.g. Robotics Club)"
+              aria-label="Organization name"
+              className="mt-1.5 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+            />
+            <input
+              value={handle}
+              onChange={(e) => {
+                setHandle(e.target.value)
+                setCreateError('')
+              }}
+              placeholder={name ? suggestHandle(name) : '@handle'}
+              aria-label="Org handle"
+              className="mt-2 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+            />
+            {createError && <p className="mt-1.5 text-[12px] text-danger">{createError}</p>}
+            <Button className="mt-3 w-full" disabled={!name.trim() || busy} onClick={create}>
+              {busy ? 'Creating…' : 'Create & open dashboard'}
+            </Button>
+            <p className="mt-1.5 text-center text-[12px] text-subtle">
+              You can add a logo, banner, and links after.
+            </p>
+          </>
         )}
 
-        <Button className="mt-4 w-full" onClick={submit}>
-          Continue
-        </Button>
+        <div className="mt-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-[11px] text-subtle uppercase">or just look around</span>
+          <span className="h-px flex-1 bg-border" />
+        </div>
 
         <button
           type="button"
           onClick={signInDemoOrg}
-          className="mt-2 w-full rounded-lg border border-border px-4 py-2.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          className="mt-3 w-full rounded-lg border border-border px-4 py-2.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
         >
-          Use the demo organizer account
+          Explore a demo org
         </button>
+        <p className="mt-1.5 text-[12px] text-subtle">
+          For organizers who want to look around before they're set up — no account needed. It's a
+          sandbox: nothing you do is saved or affects the real site.
+        </p>
       </div>
 
-      <p className="mt-4 px-1 text-center text-[13px] text-muted">
-        New here?{' '}
-        <Link to="/organizer/request" className="font-medium text-accent hover:underline">
-          Request organizer access
-        </Link>
-      </p>
-      <p className="mt-1.5 px-1 text-center text-[12px] text-subtle">
+      <p className="mt-4 px-1 text-center text-[12px] text-subtle">
         <Link to="/organizer/invite/demo-robotics" className="text-accent hover:underline">
           Have an invite?
-        </Link>{' '}
-        ·{' '}
-        <Link to="/organizer/admin" className="text-accent hover:underline">
-          Admin
         </Link>
       </p>
     </div>

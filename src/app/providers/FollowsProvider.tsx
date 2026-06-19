@@ -1,31 +1,82 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase, fireWrite } from '@/lib/supabase'
+import { useAuth } from './auth'
+import { useCommunityData } from './community-data'
 import { FollowsContext, type FollowsContextValue } from './follows'
 
-/** Seed a couple of follows so the pinned bar + notifications are populated on
- * load. In-memory, resets on reload (like the rest of the seed). */
-const INITIAL_FOLLOWS = ['@hackconcordia', '@ginacody']
-
-/** The mock follow store. Swap this implementation for a backend later — every
- * consumer reads through `useFollows`, so the rest of the app is untouched. */
+/**
+ * Phase 8 — real follow persistence, backed by `org_follows` (per-user, own-row
+ * RLS: nobody else can read who you follow). The app speaks org HANDLES; the table
+ * keys by org_id, so we map through `CommunityProvider`'s `orgIdByHandle`. Loads
+ * the signed-in user's follows on sign-in; toggles write through.
+ */
 export function FollowsProvider({ children }: { children: React.ReactNode }) {
-  const [followed, setFollowed] = useState<Set<string>>(() => new Set(INITIAL_FOLLOWS))
+  const { user: authUser } = useAuth()
+  const { orgIdByHandle } = useCommunityData()
+  const uid = authUser?.id
+  // Stored as org_ids (the table's key); exposed to the app as handles.
+  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set())
 
-  const toggleFollow = useCallback((handle: string) => {
-    setFollowed((prev) => {
-      const next = new Set(prev)
-      if (next.has(handle)) next.delete(handle)
-      else next.add(handle)
-      return next
-    })
-  }, [])
+  const handleById = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const [handle, id] of Object.entries(orgIdByHandle)) m[id] = handle
+    return m
+  }, [orgIdByHandle])
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      if (!uid) {
+        if (active) setFollowedIds(new Set())
+        return
+      }
+      const { data } = await supabase.from('org_follows').select('org_id').eq('user_id', uid)
+      if (!active) return
+      setFollowedIds(new Set((data as { org_id: string }[] | null)?.map((r) => r.org_id) ?? []))
+    })()
+    return () => {
+      active = false
+    }
+  }, [uid])
+
+  const toggleFollow = useCallback(
+    (handle: string) => {
+      const orgId = orgIdByHandle[handle]
+      if (!orgId || !uid) return
+      setFollowedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(orgId)) {
+          next.delete(orgId)
+          fireWrite(supabase.from('org_follows').delete().eq('user_id', uid).eq('org_id', orgId))
+        } else {
+          next.add(orgId)
+          fireWrite(
+            supabase
+              .from('org_follows')
+              .upsert({ user_id: uid, org_id: orgId }, { onConflict: 'user_id,org_id' }),
+          )
+        }
+        return next
+      })
+    },
+    [orgIdByHandle, uid],
+  )
+
+  const followedHandles = useMemo(
+    () => [...followedIds].map((id) => handleById[id]).filter(Boolean),
+    [followedIds, handleById],
+  )
 
   const value = useMemo<FollowsContextValue>(
     () => ({
-      followedHandles: [...followed],
-      isFollowing: (handle) => followed.has(handle),
+      followedHandles,
+      isFollowing: (handle) => {
+        const id = orgIdByHandle[handle]
+        return !!id && followedIds.has(id)
+      },
       toggleFollow,
     }),
-    [followed, toggleFollow],
+    [followedHandles, followedIds, orgIdByHandle, toggleFollow],
   )
 
   return <FollowsContext value={value}>{children}</FollowsContext>

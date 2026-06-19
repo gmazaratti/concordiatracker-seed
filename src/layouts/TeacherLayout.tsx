@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { CalendarDays, GraduationCap, LayoutDashboard, LogOut, ShieldCheck, UserCircle, Users } from 'lucide-react'
+import { CalendarDays, FlaskConical, GraduationCap, LayoutDashboard, Loader2, LogOut, UserCircle, Users } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { useAuth } from '@/app/providers/auth'
 import type { PortalRole } from '@/data/teacher'
 import { cn } from '@/lib/cn'
 
@@ -11,8 +12,20 @@ import { cn } from '@/lib/cn'
  * manage Community events; the role only swaps the labels, icon, and nav.
  */
 export function PortalLayout({ role }: { role: PortalRole }) {
-  const { currentTeacher, currentOrg, signOut } = useTeacher()
+  const { currentTeacher, currentOrg, signOut, isDemoSession } = useTeacher()
+  const { loading } = useAuth()
   const { pathname } = useLocation()
+
+  // No hard login gate: the DEMO is public (look around without an account). Real
+  // accounts sign in with Google on the sign-in screen; demo writes nothing real.
+  if (loading) {
+    return (
+      <div className="grid h-svh place-items-center bg-canvas">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
+
   const isOrg = role === 'organizer'
   const base = isOrg ? '/organizer' : '/teacher'
 
@@ -25,9 +38,8 @@ export function PortalLayout({ role }: { role: PortalRole }) {
         { to: '/organizer', label: 'Dashboard', icon: LayoutDashboard, exact: true },
         { to: '/organizer/profile', label: 'Profile', icon: UserCircle },
         { to: '/organizer/team', label: 'Team', icon: Users },
-        { to: '/organizer/admin', label: 'Admin', icon: ShieldCheck },
       ]
-    : [{ to: '/teacher/admin', label: 'Admin', icon: ShieldCheck }]
+    : []
 
   return (
     <div className="flex min-h-svh flex-col bg-canvas">
@@ -91,6 +103,25 @@ export function PortalLayout({ role }: { role: PortalRole }) {
           </div>
         </div>
       </header>
+
+      {isDemoSession && (
+        <div className="border-b border-warning/30 bg-warning/10">
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-5 py-2 text-[12px] text-warning">
+            <FlaskConical size={14} className="shrink-0" aria-hidden />
+            <span>
+              <strong className="font-semibold">Demo mode.</strong> You're exploring a sample portal —
+              nothing you do here is saved or affects the real site.
+            </span>
+            <button
+              type="button"
+              onClick={signOut}
+              className="ml-auto shrink-0 font-medium underline underline-offset-2"
+            >
+              Exit demo
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         <Outlet />

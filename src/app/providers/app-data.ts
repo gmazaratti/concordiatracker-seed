@@ -58,11 +58,19 @@ export interface AppDataContextValue {
   user: User
   plan: Plan
   setPlan: (plan: Plan) => void
-  /** Edit the in-session profile (school / program) — set in Settings, read by
-   * Community for the "for your program" relevance. */
-  updateProfile: (patch: Partial<{ school: string; program: string }>) => void
+  /** Edit the signed-in user's profile (name / school / program) — persisted to
+   * Supabase `user_profile`; read by Settings + Community ("for your program"). */
+  updateProfile: (patch: Partial<{ name: string; school: string; program: string }>) => void
+  /** Whether the signed-in user finished onboarding. `null` = profile still
+   * loading (the gate waits, so returning users never flash the app). */
+  onboardingCompleted: boolean | null
+  /** Save the onboarding profile (name/handle/major) + mark it complete. */
+  completeOnboarding: (data: { name?: string; handle?: string; major?: string }) => Promise<void>
   courses: Course[]
   assessments: Assessment[]
+  /** True while the signed-in user's courses + assignments are still loading.
+   * Lets a course-detail page wait instead of redirecting on a not-yet-loaded id. */
+  dataLoading: boolean
   setStatus: (id: string, status: AssessmentStatus) => void
   setGrade: (id: string, grade: Grade | null) => void
   setNotes: (id: string, notes: string) => void
@@ -77,11 +85,18 @@ export interface AppDataContextValue {
   setCourseColor: (id: string, color: string) => void
   /** Inline-edit a course's logistics (instructor, TA, location, credits…). */
   updateCourse: (id: string, patch: Partial<Course>) => void
-  /** Create a blank, student-made course (manual entry). Returns its id. */
-  createCourse: () => string
+  /** Create a student-made course in Supabase. Blank for a manual add, or
+   * pre-filled (code/title/section) when added from a blueprint. Returns its new
+   * id (DB-generated). */
+  createCourse: (init?: { code?: string; title?: string; section?: string }) => Promise<string>
+  /** Delete a course and all its assessments (the Courses card "Delete" action). */
+  removeCourse: (id: string) => void
+  /** OPT-IN: publish a course's current outline to the shared blueprint pool
+   * (the Courses card "Share as blueprint" action). Courses are private otherwise. */
+  shareCourseAsBlueprint: (courseId: string) => Promise<void>
   /** Add a blank SELF-ENTERED assessment to a course (the manual editor). Lands
-   * with `unverified` provenance. Returns its id. */
-  addBlankAssessment: (courseId: string) => string
+   * with `unverified` provenance. */
+  addBlankAssessment: (courseId: string) => void
   courseById: (id: string) => Course | undefined
   /** Courses-list layout preference — sticky across SPA nav, resets on reload. */
   coursesView: CoursesView

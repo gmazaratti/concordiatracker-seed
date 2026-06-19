@@ -7,6 +7,7 @@ import { relativeDueLabel } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
 import { courseStats } from './course-stats'
+import { CourseCardMenu } from './CourseCardMenu'
 
 /** One course at a glance: standing (or "not graded yet"), how much weight is
  * locked in, and the next thing due — with its provenance, first-class. */
@@ -71,6 +72,13 @@ export function CourseCard({
             <span className="text-[12px] text-subtle">Not graded yet</span>
           )}
         </div>
+
+        <CourseCardMenu
+          course={course}
+          assessmentCount={assessments.length}
+          className="-mt-1 -mr-1 shrink-0"
+          triggerClassName="grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg data-[state=open]:bg-surface-2"
+        />
       </div>
 
       {standing.totalWeight > 0 && (
