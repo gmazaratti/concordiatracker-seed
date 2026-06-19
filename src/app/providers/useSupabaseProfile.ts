@@ -45,42 +45,30 @@ const toPlan = (status: string | null | undefined): Plan => (status === 'pro' ? 
 export function useSupabaseProfile() {
   const { user: authUser } = useAuth()
   const [row, setRow] = useState<ProfileRow | null>(null)
-  // Guards against React StrictMode's double-effect creating two profile rows.
-  const ensuredRef = useRef<Set<string>>(new Set())
   // Debounce profile writes so per-keystroke edits don't spam the database.
   const pendingRef = useRef<Partial<ProfileRow>>({})
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Load (or create, on first sign-in) the profile row. Keyed on the user *id*
+  // — NOT the authUser object — so it runs exactly once per sign-in, not again
+  // on every token refresh / auth-state event (each of which rebuilds authUser).
+  // That stability is what makes first sign-in reliable: a new user's row is
+  // created AND loaded in one pass, so the onboarding gate sees
+  // `onboarding_completed: false` instead of hanging forever on `null`.
   useEffect(() => {
     if (!authUser) return
+    const au = authUser
     let active = true
-    supabase
-      .from('user_profile')
-      .select(COLS)
-      .eq('user_id', authUser.id)
-      .maybeSingle()
-      .then(async ({ data }) => {
-        const meta = authUser.user_metadata as Record<string, unknown> | undefined
-        const av = metaAvatar(meta)
-        if (data) {
-          const row = data as ProfileRow
-          // Keep the Google avatar fresh on the profile so the feedback feed's
-          // denormalized author_avatar can read it.
-          const changed = av && av !== row.avatar_url
-          if (active) setRow(changed ? { ...row, avatar_url: av } : row)
-          if (changed) {
-            fireWrite(supabase.from('user_profile').update({ avatar_url: av }).eq('user_id', authUser.id))
-          }
-          return
-        }
-        // No row yet → create one (first sign-in). Guard against a double-run.
-        if (ensuredRef.current.has(authUser.id)) return
-        ensuredRef.current.add(authUser.id)
+    void (async () => {
+      const meta = au.user_metadata as Record<string, unknown> | undefined
+      const av = metaAvatar(meta)
+      // 1. Try to load the existing row.
+      let { data } = await supabase.from('user_profile').select(COLS).eq('user_id', au.id).maybeSingle()
+      // 2. First sign-in → create it. Upsert is idempotent on user_id, so it's
+      //    safe even if this runs twice (StrictMode / a racing tab).
+      if (!data) {
         const name =
-          (meta?.full_name as string) ||
-          (meta?.name as string) ||
-          authUser.email?.split('@')[0] ||
-          'Student'
+          (meta?.full_name as string) || (meta?.name as string) || au.email?.split('@')[0] || 'Student'
         // Carry a captured vanity referral code onto the new profile (signup
         // attribution) — only on creation, so it never overwrites an existing one.
         let ref: string | null
@@ -89,14 +77,12 @@ export function useSupabaseProfile() {
         } catch {
           ref = null
         }
-        // Upsert (not insert) so a first-sign-in race can't violate the
-        // user_id uniqueness constraint — it resolves to the existing row.
-        const { data: created } = await supabase
+        const ins = await supabase
           .from('user_profile')
           .upsert(
             {
-              user_id: authUser.id,
-              email: authUser.email ?? '',
+              user_id: au.id,
+              email: au.email ?? '',
               name,
               ...(av ? { avatar_url: av } : {}),
               ...(ref ? { referred_by_code: ref } : {}),
@@ -105,12 +91,30 @@ export function useSupabaseProfile() {
           )
           .select(COLS)
           .maybeSingle()
-        if (active && created) setRow(created as ProfileRow)
-      })
+        data = ins.data
+        // If the upsert returned nothing (a concurrent run created the row),
+        // read it back — so we NEVER end up with no row → no infinite spinner.
+        if (!data) {
+          const reload = await supabase.from('user_profile').select(COLS).eq('user_id', au.id).maybeSingle()
+          data = reload.data
+        }
+      }
+      if (!active || !data) return
+      const loaded = data as ProfileRow
+      // Keep the Google avatar fresh so the feedback feed's denormalized
+      // author_avatar can read it.
+      const changed = av && av !== loaded.avatar_url
+      setRow(changed ? { ...loaded, avatar_url: av } : loaded)
+      if (changed) {
+        fireWrite(supabase.from('user_profile').update({ avatar_url: av }).eq('user_id', au.id))
+      }
+    })()
     return () => {
       active = false
     }
-  }, [authUser])
+    // Intentionally keyed on the user id only; authUser is read inside.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id])
 
   const updateProfile = useCallback(
     (patch: Partial<{ name: string; school: string; program: string }>) => {
