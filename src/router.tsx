@@ -3,6 +3,7 @@ import { PublicLayout } from '@/layouts/PublicLayout'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
 import { LandingPage } from '@/features/landing/LandingPage'
+import { ConcordiaGpaCalculatorPage, ConcordiaSyllabusTrackerPage } from '@/features/landing/SeoLandingPages'
 import { TodayPage } from '@/features/today/TodayPage'
 import { CoursesPage } from '@/features/courses/CoursesPage'
 import { CourseDetailPage } from '@/features/courses/CourseDetailPage'
@@ -35,6 +36,8 @@ export function AppRoutes() {
       {/* Public marketing context */}
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
+        <Route path="concordia-gpa-calculator" element={<ConcordiaGpaCalculatorPage />} />
+        <Route path="concordia-syllabus-tracker" element={<ConcordiaSyllabusTrackerPage />} />
       </Route>
 
       {/* Student app context */}

@@ -5,6 +5,7 @@ import { AppPreview } from './AppPreview'
 import { ParseShowcase } from './ParseShowcase'
 import { PricingSection } from './PricingSection'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
+import { FaqSection, type Faq } from './SeoLandingPages'
 
 const FEATURES = [
   {
@@ -24,15 +25,38 @@ const FEATURES = [
   },
 ]
 
+const LANDING_FAQS: Faq[] = [
+  {
+    q: 'How do I keep track of all my Concordia deadlines?',
+    a: 'Add your courses — search a shared outline, upload a syllabus, or enter them by hand — and ConcordiaTracker puts every deadline on one Today view, sorted by what’s due next, across all your classes.',
+  },
+  {
+    q: "Is there a GPA calculator for Concordia's grading scale?",
+    a: 'Yes. ConcordiaTracker calculates your GPA on Concordia’s 4.30 scale, shows the grade you need on what’s left to hit a target, and lets you run what-if scenarios.',
+  },
+  {
+    q: 'How do I stay organized across all my classes?',
+    a: 'Everything — deadlines, grades, and your GPA — lives in one calm dashboard instead of scattered across Moodle, email, and PDFs. You see what’s due, what it’s worth, and where your grade stands at a glance.',
+  },
+  {
+    q: 'Does it work for any Concordia course?',
+    a: 'Yes — any course or faculty. Import a classmate’s or teacher’s outline, upload your own syllabus, or build a course by hand.',
+  },
+  {
+    q: 'Is ConcordiaTracker free?',
+    a: 'The core — deadline tracking, the grade-needed calculator, and your full course dashboard — is free. GPA prediction (what-if scenarios) is part of the semester pass.',
+  },
+]
+
 /** The public marketing landing. Composition is deliberately asymmetric and
  * varies section to section (Linear-influenced): a left-aligned hero whose real
  * Today dashboard bleeds off the right edge for depth, an editorial divider-ruled
  * feature row (no cards), the syllabus parse beat, pricing, and an offset CTA. */
 export function LandingPage() {
   usePageMeta({
-    title: 'ConcordiaTracker — Concordia syllabus, deadline & GPA tracker',
+    title: 'ConcordiaTracker — GPA, syllabus & assignment tracker for Concordia students',
     description:
-      'ConcordiaTracker is the academic hub for Concordia University students — import any course syllabus, track every assignment and deadline, predict your GPA, and plan your semester in one place.',
+      'A GPA calculator, syllabus tracker, and assignment & deadline tracker for Concordia students — import any syllabus, track every deadline, and predict your GPA in one place.',
     path: '/',
   })
   return (
@@ -157,11 +181,58 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ---- Keyword-rich capabilities: honest copy for the searches students use ---- */}
+      <section className="border-t border-border/60 px-5 py-24 sm:py-28">
+        <div className="mx-auto w-full max-w-3xl space-y-16">
+          <article>
+            <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
+              Track every Concordia deadline and assignment in one place
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-muted">
+              Between Moodle, eConcordia, email, and PDF syllabi, your deadlines live in five places
+              at once. ConcordiaTracker pulls them into a single assignment tracker — every quiz,
+              lab, midterm, and final, sorted by what&rsquo;s due next. It&rsquo;s the deadline
+              tracker that keeps your whole Concordia semester in view, so nothing slips.
+            </p>
+          </article>
+          <article>
+            <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
+              Your Concordia GPA, calculated — not guessed
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-muted">
+              Enter your grades and ConcordiaTracker computes your GPA on Concordia&rsquo;s 4.30
+              scale in real time. See exactly what you need on a final to hit your target, and run
+              what-if scenarios before the marks post — a real{' '}
+              <Link to="/concordia-gpa-calculator" className="font-medium text-accent hover:underline">
+                Concordia GPA calculator
+              </Link>{' '}
+              and grade calculator, not a spreadsheet you have to maintain.
+            </p>
+          </article>
+          <article>
+            <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
+              No more syllabus scramble
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-muted">
+              Upload a syllabus and ConcordiaTracker reads it — dates, weights, and exams fill in
+              automatically. No more copying a messy PDF into your calendar by hand. It&rsquo;s the{' '}
+              <Link to="/concordia-syllabus-tracker" className="font-medium text-accent hover:underline">
+                Concordia syllabus tracker
+              </Link>{' '}
+              that turns first-week chaos into an organized plan for every class.
+            </p>
+          </article>
+        </div>
+      </section>
+
       {/* ---- Parse + provenance (kept as-is) ---- */}
       <ParseShowcase />
 
       {/* ---- Pricing ---- */}
       <PricingSection />
+
+      {/* ---- FAQ: problem-phrased queries + FAQPage structured data ---- */}
+      <FaqSection heading="Questions Concordia students ask" faqs={LANDING_FAQS} />
 
       {/* ---- Final CTA: offset, baseline-aligned, no card ---- */}
       <section className="relative overflow-hidden border-t border-border/60 px-5 py-28 sm:py-36">
