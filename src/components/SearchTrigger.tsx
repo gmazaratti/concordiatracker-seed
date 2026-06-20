@@ -1,13 +1,10 @@
 import { Search } from 'lucide-react'
-import { useCommandPalette } from '@/app/providers/command-palette'
+import { formatShortcut, useCommandPalette } from '@/app/providers/command-palette'
 import { cn } from '@/lib/cn'
-
-const isMac =
-  typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
 
 /** Opens the command palette — the desktop entry point to the nav spine. */
 export function SearchTrigger({ className }: { className?: string }) {
-  const { openPalette } = useCommandPalette()
+  const { openPalette, shortcut } = useCommandPalette()
   return (
     <button
       type="button"
@@ -20,7 +17,7 @@ export function SearchTrigger({ className }: { className?: string }) {
       <Search size={15} aria-hidden />
       <span className="flex-1 truncate">Search or jump to…</span>
       <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 text-[11px] text-muted">
-        {isMac ? '⌘K' : 'Ctrl K'}
+        {formatShortcut(shortcut)}
       </kbd>
     </button>
   )

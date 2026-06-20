@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronRight, RotateCcw } from 'lucide-react'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 import { useUpdates } from '@/app/providers/updates'
+import { useCommandPalette } from '@/app/providers/command-palette'
+import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palette'
+import { cn } from '@/lib/cn'
 import { Group, Row, Switch, Segmented } from '../controls'
 
 type Lang = 'en' | 'fr'
@@ -74,6 +77,15 @@ export function GeneralSection() {
         </Row>
       </Group>
 
+      <Group label="Keyboard">
+        <Row
+          label="Command palette shortcut"
+          description="Opens the search & command palette from anywhere."
+        >
+          <ShortcutControl />
+        </Row>
+      </Group>
+
       <Group label="Language">
         <Row
           label="Interface language"
@@ -95,6 +107,65 @@ export function GeneralSection() {
           />
         </Row>
       </Group>
+    </div>
+  )
+}
+
+/** A click-to-record control for the command-palette shortcut. Clicking arms
+ * capture (handled globally in CommandPaletteProvider) so the very next ⌘/Ctrl
+ * combo is recorded; Escape cancels. A reset returns it to the default. */
+function ShortcutControl() {
+  const { shortcut, setShortcut, beginCapture } = useCommandPalette()
+  const [capturing, setCapturing] = useState(false)
+  const cancelRef = useRef<(() => void) | null>(null)
+
+  function start() {
+    if (capturing) {
+      cancelRef.current?.()
+      cancelRef.current = null
+      setCapturing(false)
+      return
+    }
+    setCapturing(true)
+    cancelRef.current = beginCapture((s) => {
+      cancelRef.current = null
+      setCapturing(false)
+      if (s) setShortcut(s)
+    })
+  }
+
+  // Cancel an in-flight capture if the panel unmounts.
+  useEffect(() => () => cancelRef.current?.(), [])
+
+  const isDefault =
+    shortcut.key === DEFAULT_SHORTCUT.key && shortcut.shift === DEFAULT_SHORTCUT.shift
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={start}
+        aria-label="Change command palette shortcut"
+        className={cn(
+          'inline-flex min-w-[7rem] items-center justify-center rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors duration-150',
+          capturing
+            ? 'border-accent bg-accent-soft text-accent'
+            : 'border-border bg-surface text-fg hover:bg-surface-2',
+        )}
+      >
+        {capturing ? 'Press keys… (Esc)' : <span className="tabular-nums">{formatShortcut(shortcut)}</span>}
+      </button>
+      {!isDefault && !capturing && (
+        <button
+          type="button"
+          onClick={() => setShortcut(DEFAULT_SHORTCUT)}
+          aria-label="Reset shortcut to default"
+          title="Reset to default"
+          className="inline-flex size-7 items-center justify-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <RotateCcw size={13} aria-hidden />
+        </button>
+      )}
     </div>
   )
 }
