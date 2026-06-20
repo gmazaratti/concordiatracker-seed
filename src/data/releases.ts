@@ -26,6 +26,16 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.9.0',
+    name: 'Little touches',
+    date: '2026-06-19',
+    changes: [
+      { kind: 'new', text: 'Pick your own keyboard shortcut for the search & command palette, in Settings → General.' },
+      { kind: 'improved', text: 'A redesigned “What’s new” — a proper changelog timeline (you’re reading it).' },
+      { kind: 'improved', text: 'Date-confidence badges now use distinct icons, not just colored dots, so they’re clearer at a glance.' },
+    ],
+  },
+  {
     version: '1.8.0',
     name: 'Smoother & more reliable',
     date: '2026-06-19',
