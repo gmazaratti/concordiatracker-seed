@@ -1,17 +1,32 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ChevronDown, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { normalizeKind, parseSyllabusPdf, type ParsedSyllabus } from '@/lib/parse-syllabus'
 import { KIND_LABEL } from '@/lib/assessment'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
-import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
 import type { Assessment, AssessmentKind } from '@/data/types'
 
 type Phase = 'idle' | 'parsing' | 'review' | 'error'
 const MAX_MB = 4
+
+interface CourseFields {
+  code: string
+  title: string
+  term: string
+  section: string
+  instructorName: string
+  instructorEmail: string
+  taName: string
+  taEmail: string
+  gradingScale: string
+}
+const EMPTY_COURSE: CourseFields = {
+  code: '', title: '', term: '', section: '',
+  instructorName: '', instructorEmail: '', taName: '', taEmail: '', gradingScale: '',
+}
 
 interface ReviewItem {
   id: string
@@ -57,7 +72,7 @@ export function SyllabusUploadPage() {
   const { createCourse, addAssessments, updateCourse } = useAppData()
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState('')
-  const [course, setCourse] = useState({ code: '', title: '', term: '', instructor: '' })
+  const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
   const [items, setItems] = useState<ReviewItem[]>([])
   const [saving, setSaving] = useState(false)
 
@@ -76,11 +91,17 @@ export function SyllabusUploadPage() {
     setError('')
     try {
       const parsed = await parseSyllabusPdf(file)
+      const c = parsed.course
       setCourse({
-        code: parsed.course.code ?? '',
-        title: parsed.course.title ?? '',
-        term: parsed.course.term ?? '',
-        instructor: parsed.course.instructor ?? '',
+        code: c.code ?? '',
+        title: c.title ?? '',
+        term: c.term ?? '',
+        section: c.section ?? '',
+        instructorName: c.instructorName ?? '',
+        instructorEmail: c.instructorEmail ?? '',
+        taName: c.taName ?? '',
+        taEmail: c.taEmail ?? '',
+        gradingScale: c.gradingScale ?? '',
       })
       setItems(toReview(parsed))
       setPhase('review')
@@ -101,19 +122,30 @@ export function SyllabusUploadPage() {
   async function commit() {
     if (!canCommit) return
     setSaving(true)
-    const id = await createCourse({ code: course.code.trim(), title: course.title.trim() })
+    const id = await createCourse({
+      code: course.code.trim(),
+      title: course.title.trim(),
+      section: course.section.trim(),
+    })
     if (!id) {
       setSaving(false)
       setError('Couldn’t create the course — try again.')
       setPhase('error')
       return
     }
-    if (course.instructor.trim() || course.term.trim()) {
-      updateCourse(id, {
-        ...(course.instructor.trim() ? { instructor: { name: course.instructor.trim(), email: '' } } : {}),
-        ...(course.term.trim() ? { term: course.term.trim() } : {}),
-      })
-    }
+    const ta =
+      course.taName.trim() || course.taEmail.trim()
+        ? { name: course.taName.trim(), email: course.taEmail.trim() }
+        : null
+    updateCourse(id, {
+      ...(course.term.trim() ? { term: course.term.trim() } : {}),
+      instructor: { name: course.instructorName.trim(), email: course.instructorEmail.trim() },
+      ta,
+    })
+    // Grading scale needs a (possibly unmigrated) column — write it on its own so
+    // a missing column can't take the rest of the logistics down with it.
+    if (course.gradingScale.trim()) updateCourse(id, { gradingScale: course.gradingScale.trim() })
+
     const assessments: Assessment[] = items.map((it) => ({
       id: crypto.randomUUID(),
       courseId: id,
@@ -132,21 +164,25 @@ export function SyllabusUploadPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-6">
+    <div className="mx-auto w-full max-w-2xl px-5 py-5 sm:px-6">
       <button
         type="button"
         onClick={() => navigate('/app/courses')}
-        className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
       >
         <ArrowLeft size={16} aria-hidden /> Courses
       </button>
 
-      <h1 className="flex items-center gap-2 font-display text-[22px] font-semibold text-fg">
-        <Sparkles size={18} className="text-accent" aria-hidden /> Upload a syllabus
-      </h1>
-      <p className="mt-1 text-[13px] text-muted">
-        Drop your syllabus PDF and we’ll pull out every assessment, weight, and deadline for you to review.
-      </p>
+      {phase !== 'review' && (
+        <>
+          <h1 className="flex items-center gap-2 font-display text-[22px] font-semibold text-fg">
+            <Sparkles size={18} className="text-accent" aria-hidden /> Upload a syllabus
+          </h1>
+          <p className="mt-1 text-[13px] text-muted">
+            Drop your syllabus PDF — we’ll pull out the course details and every assessment for you to review.
+          </p>
+        </>
+      )}
 
       {phase === 'idle' && <DropZone onFile={handleFile} />}
       {phase === 'parsing' && <Scanning />}
@@ -168,33 +204,34 @@ export function SyllabusUploadPage() {
       )}
 
       {phase === 'review' && (
-        <div className="mt-5">
-          <CourseHeaderEdit course={course} setCourse={setCourse} />
+        <div>
+          <CourseEdit course={course} setCourse={setCourse} />
 
           {items.length === 0 ? (
-            <p className="mt-5 rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-8 text-center text-[13px] text-subtle">
+            <p className="mt-4 rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-8 text-center text-[13px] text-subtle">
               No graded assessments were found in that document.
             </p>
           ) : (
             <>
-              <div className="mt-5 mb-2 flex items-center justify-between">
+              <div className="mt-4 mb-2 flex items-center justify-between">
                 <h2 className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                  {items.length} assessment{items.length === 1 ? '' : 's'} found
+                  {items.length} assessment{items.length === 1 ? '' : 's'}{' '}
+                  <span className="font-normal normal-case">· unverified until you confirm</span>
                 </h2>
                 <span className={cn('text-[12px] font-medium', Math.round(total) === 100 ? 'text-success' : 'text-subtle')}>
-                  Weights total {Math.round(total)}%
+                  {Math.round(total)}%
                 </span>
               </div>
 
               {undated > 0 && (
-                <p className="mb-3 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] font-medium text-warning">
+                <p className="mb-2 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-1.5 text-[12px] font-medium text-warning">
                   <AlertTriangle size={14} aria-hidden />
-                  {undated} {undated === 1 ? 'assessment has' : 'assessments have'} no date — set or remove{' '}
-                  {undated === 1 ? 'it' : 'them'} before adding.
+                  {undated} {undated === 1 ? 'item has' : 'items have'} no date — set or remove{' '}
+                  {undated === 1 ? 'it' : 'them'} to add.
                 </p>
               )}
 
-              <ul className="space-y-2.5">
+              <ul className="space-y-1.5">
                 {items.map((it) => (
                   <ReviewRow key={it.id} item={it} onPatch={(p) => patch(it.id, p)} onRemove={() => remove(it.id)} />
                 ))}
@@ -202,7 +239,7 @@ export function SyllabusUploadPage() {
             </>
           )}
 
-          <div className="mt-5 flex items-center gap-3">
+          <div className="sticky bottom-0 mt-4 flex items-center gap-3 border-t border-border bg-canvas/95 py-3 backdrop-blur">
             <button
               type="button"
               disabled={!canCommit}
@@ -288,29 +325,54 @@ function Scanning() {
           aria-hidden
         />
       </div>
-      <p className="mt-2.5 text-[12px] text-subtle">Extracting assessments, weights, and deadlines…</p>
+      <p className="mt-2.5 text-[12px] text-subtle">Extracting course details, assessments, weights, and deadlines…</p>
     </div>
   )
 }
 
-function CourseHeaderEdit({
-  course,
-  setCourse,
-}: {
-  course: { code: string; title: string; term: string; instructor: string }
-  setCourse: (c: { code: string; title: string; term: string; instructor: string }) => void
-}) {
-  const field =
-    'w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle outline-none focus:border-border-strong'
+const FIELD = 'w-full rounded-lg border border-border bg-canvas px-2.5 py-1.5 text-[13px] text-fg placeholder:text-subtle outline-none focus:border-border-strong'
+
+/** Compact course identity (code · section · term · title) with the contact +
+ * grading details tucked into a collapsed disclosure, so the assessments below
+ * stay visible without scrolling. A summary line shows what was extracted. */
+function CourseEdit({ course, setCourse }: { course: CourseFields; setCourse: (c: CourseFields) => void }) {
+  const [open, setOpen] = useState(false)
+  const set = (p: Partial<CourseFields>) => setCourse({ ...course, ...p })
+
+  const found = [
+    course.instructorName.trim() && course.instructorName.trim(),
+    course.taName.trim() && `TA: ${course.taName.trim()}`,
+    course.gradingScale.trim() && 'grading scale',
+  ].filter(Boolean)
+  const summary = found.length ? found.join(' · ') : 'Add instructor, TA & grading'
+
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Course</p>
-      <div className="grid grid-cols-2 gap-2.5">
-        <input className={field} placeholder="Code (e.g. COMP 248)" value={course.code} onChange={(e) => setCourse({ ...course, code: e.target.value })} />
-        <input className={field} placeholder="Term (e.g. Fall 2026)" value={course.term} onChange={(e) => setCourse({ ...course, term: e.target.value })} />
-        <input className={cn(field, 'col-span-2')} placeholder="Title" value={course.title} onChange={(e) => setCourse({ ...course, title: e.target.value })} />
-        <input className={cn(field, 'col-span-2')} placeholder="Instructor" value={course.instructor} onChange={(e) => setCourse({ ...course, instructor: e.target.value })} />
+    <div className="rounded-xl border border-border bg-surface p-3">
+      <div className="grid grid-cols-[1.2fr_0.8fr_1fr] gap-2">
+        <input className={FIELD} placeholder="Code" value={course.code} onChange={(e) => set({ code: e.target.value })} />
+        <input className={FIELD} placeholder="Section" value={course.section} onChange={(e) => set({ section: e.target.value })} />
+        <input className={FIELD} placeholder="Term" value={course.term} onChange={(e) => set({ term: e.target.value })} />
       </div>
+      <input className={cn(FIELD, 'mt-2')} placeholder="Course title" value={course.title} onChange={(e) => set({ title: e.target.value })} />
+
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="mt-2 flex w-full items-center gap-1.5 text-left text-[12px] text-subtle transition-colors hover:text-fg"
+      >
+        <ChevronDown size={14} className={cn('shrink-0 transition-transform', open && 'rotate-180')} aria-hidden />
+        <span className="truncate">{summary}</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2.5">
+          <input className={FIELD} placeholder="Instructor" value={course.instructorName} onChange={(e) => set({ instructorName: e.target.value })} />
+          <input className={FIELD} placeholder="Instructor email" value={course.instructorEmail} onChange={(e) => set({ instructorEmail: e.target.value })} />
+          <input className={FIELD} placeholder="TA (optional)" value={course.taName} onChange={(e) => set({ taName: e.target.value })} />
+          <input className={FIELD} placeholder="TA email (optional)" value={course.taEmail} onChange={(e) => set({ taEmail: e.target.value })} />
+          <input className={cn(FIELD, 'col-span-2')} placeholder="Grading scale (e.g. A: 90–100, B+: 85–89…)" value={course.gradingScale} onChange={(e) => set({ gradingScale: e.target.value })} />
+        </div>
+      )}
     </div>
   )
 }
@@ -318,21 +380,8 @@ function CourseHeaderEdit({
 function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p: Partial<ReviewItem>) => void; onRemove: () => void }) {
   const noDate = !item.due
   return (
-    <li className={cn('rounded-xl border bg-surface p-3', noDate ? 'border-warning/50' : 'border-border')}>
-      <div className="flex items-start gap-2">
-        <input
-          value={item.title}
-          onChange={(e) => onPatch({ title: e.target.value })}
-          aria-label="Assessment title"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-canvas px-2.5 py-1.5 text-[13px] font-medium text-fg outline-none focus:border-border-strong"
-        />
-        <ProvenanceBadge provenance={{ status: 'unverified' }} className="mt-1.5 shrink-0" />
-        <button type="button" onClick={onRemove} aria-label="Remove" className="mt-1 shrink-0 text-subtle transition-colors hover:text-danger">
-          <Trash2 size={15} aria-hidden />
-        </button>
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+    <li className={cn('rounded-lg border bg-surface px-2.5 py-2', noDate ? 'border-warning/50' : 'border-border')}>
+      <div className="flex items-center gap-2">
         <Select
           ariaLabel="Kind"
           size="sm"
@@ -340,9 +389,21 @@ function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p:
           value={item.kind}
           onChange={(v) => onPatch({ kind: v as AssessmentKind })}
           options={KIND_OPTIONS}
-          className="w-36"
+          className="w-32 shrink-0"
         />
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-canvas px-2 py-1">
+        <input
+          value={item.title}
+          onChange={(e) => onPatch({ title: e.target.value })}
+          aria-label="Assessment title"
+          className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-medium text-fg outline-none hover:border-border focus:border-border-strong"
+        />
+        <button type="button" onClick={onRemove} aria-label="Remove" className="shrink-0 text-subtle transition-colors hover:text-danger">
+          <Trash2 size={14} aria-hidden />
+        </button>
+      </div>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-0.5">
+        <div className="flex items-center gap-1 rounded-md border border-border bg-canvas px-1.5 py-0.5">
           <input
             type="number"
             min={0}
@@ -350,25 +411,25 @@ function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p:
             value={item.weight}
             onChange={(e) => onPatch({ weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
             aria-label="Weight"
-            className="w-12 bg-transparent text-right text-[13px] text-fg outline-none"
+            className="w-9 bg-transparent text-right text-[12px] text-fg outline-none"
           />
-          <span className="text-[12px] text-subtle">%</span>
+          <span className="text-[11px] text-subtle">%</span>
         </div>
 
         {noDate ? (
           <button
             type="button"
             onClick={() => onPatch({ due: new Date(Date.now() + 7 * 86_400_000).toISOString() })}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-warning/50 bg-warning/10 px-2.5 py-1.5 text-[12px] font-medium text-warning"
+            className="inline-flex items-center gap-1 rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-[12px] font-medium text-warning"
           >
-            <AlertTriangle size={13} aria-hidden /> Set a date
+            <AlertTriangle size={12} aria-hidden /> Set a date
           </button>
         ) : (
           <DateTimePicker ariaLabel="Due date" value={item.due as string} onChange={(iso) => onPatch({ due: iso })} />
         )}
-      </div>
 
-      {item.description && <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-subtle">{item.description}</p>}
+        {item.description && <span className="min-w-0 flex-1 truncate text-[12px] text-subtle">{item.description}</span>}
+      </div>
     </li>
   )
 }

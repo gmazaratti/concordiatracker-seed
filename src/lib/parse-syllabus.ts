@@ -13,7 +13,17 @@ export interface ParsedAssessment {
 }
 
 export interface ParsedSyllabus {
-  course: { code?: string; title?: string; term?: string; instructor?: string }
+  course: {
+    code?: string
+    title?: string
+    term?: string
+    section?: string
+    instructorName?: string
+    instructorEmail?: string
+    taName?: string
+    taEmail?: string
+    gradingScale?: string
+  }
   assessments: ParsedAssessment[]
 }
 

@@ -167,6 +167,15 @@ export function CourseInfoPanel({
             />
           </Row>
 
+          <Row label="Grading scale">
+            <EditableField
+              value={course.gradingScale ?? ''}
+              onCommit={(gradingScale) => patch({ gradingScale })}
+              ariaLabel="Grading scale"
+              placeholder="Add grading scale"
+            />
+          </Row>
+
           <Row label="Assessments">
             <span className="text-[13px] text-fg tabular-nums">
               {totalAssessments}

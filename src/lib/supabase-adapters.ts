@@ -38,6 +38,7 @@ export interface CourseRow {
   syllabus_url: string | null
   term: string | null
   origin: string | null
+  grading_scale: string | null
 }
 
 export function courseFromRow(r: CourseRow): Course {
@@ -55,6 +56,7 @@ export function courseFromRow(r: CourseRow): Course {
     meetingTimes: r.time ?? '',
     officeHours: r.office_hours ?? undefined,
     syllabusUrl: r.syllabus_url ?? '',
+    gradingScale: r.grading_scale ?? undefined,
     origin: r.origin === 'manual' ? 'manual' : undefined,
   }
 }
@@ -81,6 +83,7 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   if ('meetingTimes' in patch) row.time = patch.meetingTimes
   if ('officeHours' in patch) row.office_hours = patch.officeHours ?? null
   if ('syllabusUrl' in patch) row.syllabus_url = patch.syllabusUrl
+  if ('gradingScale' in patch) row.grading_scale = patch.gradingScale ?? null
   if ('origin' in patch) row.origin = patch.origin
   return row
 }

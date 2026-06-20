@@ -24,7 +24,12 @@ Rules:
 - due: the deadline as an ISO 8601 date (YYYY-MM-DD), or datetime if a time is given. Resolve partial dates using the course term and year (e.g., "Oct 3" in a Fall 2026 course → "2026-10-03"). If the date is genuinely unknown, "TBA", or not derivable from the document, set due to null — do NOT guess.
 - weight: the percent of the final grade as a number from 0 to 100 (e.g., 15 for "15%"). If given as a range, use the midpoint. If no weight is stated, set null.
 - description: one or two FACTUAL sentences from the syllabus describing the assessment — what it covers, its format, sub-parts, or where it takes place. Use only information present in the document; never invent details. If nothing descriptive is available, use an empty string.
-- course: extract code (e.g., "COMP 248"), title, term (e.g., "Fall 2026"), and instructor name if present; use empty strings for anything not found.
+- For the course, extract:
+  - code (e.g., "COMP 248"), title, term (e.g., "Fall 2026"), and section — the section identifier, e.g., "BB", "001", "Section A".
+  - instructorName and instructorEmail — the professor's full name and email address.
+  - taName and taEmail — the teaching assistant's name and email, ONLY if a TA is listed; otherwise leave both as empty strings.
+  - gradingScale — the letter-grade scale or grade cutoffs if the syllabus states one (e.g., "A: 90-100, A-: 85-89, B+: 80-84, ..."), as a single concise line; otherwise an empty string.
+  Use empty strings for anything not found. Never invent contact details or a grading scale.
 - If the document is not a syllabus, or contains no graded assessments, return an empty "assessments" array.
 
 Return ONLY the JSON object. No commentary, no markdown, no code fences.`
@@ -38,7 +43,12 @@ const SCHEMA = {
         code: { type: 'STRING' },
         title: { type: 'STRING' },
         term: { type: 'STRING' },
-        instructor: { type: 'STRING' },
+        section: { type: 'STRING' },
+        instructorName: { type: 'STRING' },
+        instructorEmail: { type: 'STRING' },
+        taName: { type: 'STRING' },
+        taEmail: { type: 'STRING' },
+        gradingScale: { type: 'STRING' },
       },
     },
     assessments: {
