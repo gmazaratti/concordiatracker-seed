@@ -1,28 +1,30 @@
+import { BadgeCheck, CircleDashed, Users, type LucideIcon } from 'lucide-react'
 import type { Provenance } from '@/data/types'
 import { cn } from '@/lib/cn'
 
 /** First-class provenance indicator — wherever a date appears, the student can
- * see how trustworthy it is. A colored dot + short label; `confirmed` shows the
- * corroboration count. The full meaning lives in the `title` tooltip. */
+ * see how trustworthy it is. A per-status ICON (clearer at a glance than a bare
+ * dot) + short label; `confirmed` shows the corroboration count. The full
+ * meaning lives in the `title` tooltip. */
 const META: Record<
   Provenance['status'],
-  { label: string; dot: string; text: string; tip: string }
+  { label: string; icon: LucideIcon; text: string; tip: string }
 > = {
   official: {
     label: 'Official',
-    dot: 'bg-prov-official',
+    icon: BadgeCheck,
     text: 'text-prov-official',
     tip: 'From the course syllabus or registrar',
   },
   confirmed: {
     label: 'Confirmed',
-    dot: 'bg-prov-confirmed',
+    icon: Users,
     text: 'text-prov-confirmed',
     tip: 'Entered by a student and corroborated by classmates',
   },
   unverified: {
     label: 'Unverified',
-    dot: 'bg-prov-unverified',
+    icon: CircleDashed,
     text: 'text-prov-unverified',
     tip: 'Entered by one student — not yet corroborated',
   },
@@ -35,11 +37,12 @@ export function ProvenanceBadge({
 }: {
   provenance: Provenance
   className?: string
-  /** 'color' tints the label its status color; 'quiet' keeps the colored dot
+  /** 'color' tints the label its status color; 'quiet' keeps the colored ICON
    * but neutralizes the label so dense rows don't turn into a rainbow. */
   tone?: 'color' | 'quiet'
 }) {
   const meta = META[provenance.status]
+  const Icon = meta.icon
   const count =
     provenance.status === 'confirmed' && provenance.confirmations
       ? ` · ${provenance.confirmations}`
@@ -48,12 +51,12 @@ export function ProvenanceBadge({
     <span
       title={meta.tip}
       className={cn(
-        'inline-flex items-center gap-1.5 text-[11px] font-medium',
+        'inline-flex items-center gap-1 text-[11px] font-medium',
         tone === 'quiet' ? 'text-subtle' : meta.text,
         className,
       )}
     >
-      <span className={cn('size-1.5 rounded-full', meta.dot)} aria-hidden />
+      <Icon size={12} className={cn('shrink-0', meta.text)} aria-hidden />
       {meta.label}
       {count}
     </span>
