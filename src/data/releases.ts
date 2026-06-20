@@ -26,6 +26,18 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.11.0',
+    name: 'A smoother welcome',
+    date: '2026-06-19',
+    changes: [
+      { kind: 'new', text: 'Pick your theme right in onboarding — the whole app reskins as you choose.' },
+      { kind: 'new', text: 'Add several courses during setup, not just one.' },
+      { kind: 'new', text: 'Import now shows the section you’re adding, and lets you choose it.' },
+      { kind: 'new', text: 'New welcome tour pages explaining the calendar and how editing & marking work.' },
+      { kind: 'fixed', text: 'Course import no longer lists outlines from older semesters.' },
+    ],
+  },
+  {
     version: '1.10.0',
     name: 'Two new looks',
     date: '2026-06-19',
