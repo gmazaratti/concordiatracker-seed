@@ -193,5 +193,34 @@ export function useSupabaseProfile() {
     [authUser],
   )
 
-  return { user, plan: user.plan, setPlan, updateProfile, onboardingCompleted, completeOnboarding }
+  /** Change the @handle (Settings). Updates only `handle`; the DB trigger stamps
+   * `handle_changed_at` and enforces the 14-day cooldown — so this is deploy-safe
+   * even before the migration (handle just changes, unthrottled, until then). */
+  const changeHandle = useCallback(
+    async (next: string): Promise<{ error: 'taken' | 'cooldown' | 'invalid' | 'save-failed' | null }> => {
+      if (!authUser) return { error: null }
+      const handle = next.trim().toLowerCase()
+      if (!/^[a-z0-9_]{3,20}$/.test(handle)) return { error: 'invalid' }
+      if (handle === (row?.handle ?? '')) return { error: null } // no-op
+      const { error } = await supabase.from('user_profile').update({ handle }).eq('user_id', authUser.id)
+      if (error) {
+        if (error.code === '23505') return { error: 'taken' }
+        if (error.code === '23514') return { error: 'cooldown' } // trigger's check_violation
+        return { error: 'save-failed' }
+      }
+      setRow((r) => (r ? { ...r, handle } : r))
+      return { error: null }
+    },
+    [authUser, row?.handle],
+  )
+
+  return {
+    user,
+    plan: user.plan,
+    setPlan,
+    updateProfile,
+    onboardingCompleted,
+    completeOnboarding,
+    changeHandle,
+  }
 }

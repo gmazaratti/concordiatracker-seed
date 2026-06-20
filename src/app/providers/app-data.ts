@@ -71,6 +71,11 @@ export interface AppDataContextValue {
     handle?: string
     major?: string
   }) => Promise<{ error: 'handle-taken' | 'save-failed' | null }>
+  /** Change the @handle from Settings. The DB enforces a 14-day cooldown
+   * (`error: 'cooldown'`) and uniqueness (`error: 'taken'`). */
+  changeHandle: (
+    next: string,
+  ) => Promise<{ error: 'taken' | 'cooldown' | 'invalid' | 'save-failed' | null }>
   courses: Course[]
   assessments: Assessment[]
   /** True while the signed-in user's courses + assignments are still loading.

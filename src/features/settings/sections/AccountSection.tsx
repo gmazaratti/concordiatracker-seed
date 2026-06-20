@@ -1,9 +1,27 @@
-import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Loader2, Trash2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
+import { supabase } from '@/lib/supabase'
+import { HANDLE_RE, useHandleCheck } from '@/features/onboarding/handle'
 import { Select } from '@/components/ui/Select'
 import { Group, Row } from '../controls'
+
+const COOLDOWN_MS = 14 * 86_400_000
+const DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+/** Cooldown state from the last-changed timestamp. Module-level (not in render)
+ * so reading the clock is allowed — like the app's other date helpers. */
+function cooldownState(changedAt: string | null | undefined): {
+  locked: boolean
+  nextAt: Date | null
+  daysLeft: number
+} {
+  if (!changedAt) return { locked: false, nextAt: null, daysLeft: 0 }
+  const nextAt = new Date(+new Date(changedAt) + COOLDOWN_MS)
+  const ms = nextAt.getTime() - Date.now()
+  return { locked: ms > 0, nextAt, daysLeft: Math.max(1, Math.ceil(ms / 86_400_000)) }
+}
 
 /** Account: a Google-synced identity (sign-in is Google-only, so email + photo
  * are not editable here) plus a danger zone. All in-memory / mocked. */
@@ -41,6 +59,13 @@ export function AccountSection() {
             aria-label="Display name"
             className="w-full max-w-xs rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors focus:border-border-strong"
           />
+        </Row>
+        <Row
+          label="Handle"
+          description="How you show up on feedback posts. Changeable once every 14 days."
+          stacked
+        >
+          <HandleEditor />
         </Row>
         <Row label="Email address" description="Connected through Google — not editable here.">
           <span className="text-[13px] text-muted">{user.email}</span>
@@ -82,6 +107,135 @@ export function AccountSection() {
         </Row>
         <DeleteAccountRow />
       </Group>
+    </div>
+  )
+}
+
+/** Edit the @handle, with the 14-day cooldown. The DB trigger is authoritative;
+ * this reads `handle_changed_at` (defensively — degrades if the column isn't
+ * there yet) to show the lock state, and surfaces the live availability check. */
+function HandleEditor() {
+  const { user, changeHandle } = useAppData()
+  const { user: authUser } = useAuth()
+  const current = user.handle ?? ''
+
+  const [changedAt, setChangedAt] = useState<string | null | undefined>(undefined) // undefined = loading
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(current)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const status = useHandleCheck(value)
+
+  // Defensive read of the cooldown timestamp (null if column absent / never changed).
+  useEffect(() => {
+    if (!authUser) return
+    let active = true
+    void supabase
+      .from('user_profile')
+      .select('handle_changed_at')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setChangedAt((data as { handle_changed_at?: string } | null)?.handle_changed_at ?? null)
+      })
+    return () => {
+      active = false
+    }
+  }, [authUser])
+
+  const { locked, nextAt, daysLeft } = cooldownState(changedAt)
+  const valid = HANDLE_RE.test(value)
+  const changed = value.trim().toLowerCase() !== current
+
+  const save = async () => {
+    setError('')
+    setSaving(true)
+    const { error: err } = await changeHandle(value)
+    setSaving(false)
+    if (err === 'taken') return setError(`@${value} is taken — try another.`)
+    if (err === 'cooldown') return setError('You can only change your handle once every 14 days.')
+    if (err === 'invalid') return setError('3–20 lowercase letters, numbers, or underscores.')
+    if (err) return setError('Couldn’t save — please try again.')
+    setChangedAt(new Date().toISOString())
+    setEditing(false)
+  }
+
+  if (!current && !editing) {
+    return <span className="text-[13px] text-subtle">No handle set yet.</span>
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[13px] font-medium text-fg">@{current}</span>
+        {locked ? (
+          <span className="text-[12px] text-subtle">
+            Changeable again {DATE_FMT.format(nextAt!)} ({daysLeft} day{daysLeft === 1 ? '' : 's'})
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setValue(current)
+              setError('')
+              setEditing(true)
+            }}
+            className="rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            Change
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-xs">
+      <div className="flex items-center rounded-lg border border-border bg-canvas px-3 py-2 focus-within:border-border-strong">
+        <span className="text-[13px] text-subtle">@</span>
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20))}
+          aria-label="Handle"
+          className="ml-0.5 w-full bg-transparent text-[13px] text-fg outline-none"
+        />
+        {changed && valid && status === 'free' && <Check size={14} className="shrink-0 text-success" aria-hidden />}
+      </div>
+
+      {error ? (
+        <p className="mt-1.5 text-[12px] text-danger">{error}</p>
+      ) : value.length > 0 && !valid ? (
+        <p className="mt-1.5 text-[12px] text-warning">At least 3 characters.</p>
+      ) : changed && valid && status === 'taken' ? (
+        <p className="mt-1.5 text-[12px] text-danger">@{value} is taken.</p>
+      ) : changed && valid && status === 'free' ? (
+        <p className="mt-1.5 text-[12px] text-success">@{value} is available.</p>
+      ) : (
+        <p className="mt-1.5 text-[12px] text-subtle">You won’t be able to change it again for 14 days.</p>
+      )}
+
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          disabled={saving || !valid || !changed || status === 'taken'}
+          onClick={() => void save()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {saving && <Loader2 size={13} className="animate-spin" aria-hidden />}
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setEditing(false)
+            setError('')
+          }}
+          className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-fg"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }
