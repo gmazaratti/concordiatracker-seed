@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react'
 import { THEMES, useTheme } from '@/app/providers/theme'
+import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
 import { cn } from '@/lib/cn'
 import { HANDLE_RE } from './handle'
 
@@ -16,29 +17,27 @@ export function Centered({ heading, sub, children }: { heading: string; sub: str
   )
 }
 
-/** Setup steps 0–2: display name, handle, major (text fields). */
+/** Setup steps 0–2: display name, handle, program (searchable picker). */
 export function SetupStep({
   step,
   name,
   setName,
   handle,
   setHandle,
-  major,
-  setMajor,
+  program,
+  setProgram,
   avatarUrl,
   handleStatus,
-  onEnter,
 }: {
   step: number
   name: string
   setName: (v: string) => void
   handle: string
   setHandle: (v: string) => void
-  major: string
-  setMajor: (v: string) => void
+  program: ProgramSelection | null
+  setProgram: (v: ProgramSelection) => void
   avatarUrl?: string
   handleStatus: 'idle' | 'free' | 'taken'
-  onEnter: () => void
 }) {
   if (step === 0) {
     return (
@@ -71,16 +70,10 @@ export function SetupStep({
     )
   }
   return (
-    <Centered heading="What are you studying?" sub="Your major personalizes the app (and Community relevance).">
-      <input
-        autoFocus
-        value={major}
-        onChange={(e) => setMajor(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && onEnter()}
-        placeholder="e.g. Computer Science"
-        maxLength={80}
-        className={field}
-      />
+    <Centered heading="What are you studying?" sub="Find your program — it personalizes the app (and Community relevance).">
+      <div className="mt-1">
+        <ProgramPicker value={program} onChange={setProgram} autoFocus size="lg" />
+      </div>
     </Centered>
   )
 }

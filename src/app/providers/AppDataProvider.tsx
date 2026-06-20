@@ -54,7 +54,7 @@ interface Loaded {
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const { user: authUser } = useAuth()
   // Phase 2: real profile + plan.
-  const { user, plan, setPlan, updateProfile, onboardingCompleted, completeOnboarding, changeHandle } =
+  const { user, plan, setPlan, updateProfile, setProgram, onboardingCompleted, completeOnboarding, changeHandle } =
     useSupabaseProfile()
 
   // Phase 3: the loaded rows, tagged with their owner so a different user never
@@ -415,6 +415,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       plan,
       setPlan,
       updateProfile,
+      setProgram,
       onboardingCompleted,
       completeOnboarding,
       changeHandle,
@@ -457,6 +458,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       plan,
       setPlan,
       updateProfile,
+      setProgram,
       onboardingCompleted,
       completeOnboarding,
       changeHandle,

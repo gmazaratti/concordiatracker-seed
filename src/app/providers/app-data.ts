@@ -61,15 +61,20 @@ export interface AppDataContextValue {
   /** Edit the signed-in user's profile (name / school / program) — persisted to
    * Supabase `user_profile`; read by Settings + Community ("for your program"). */
   updateProfile: (patch: Partial<{ name: string; school: string; program: string }>) => void
+  /** Set the program from a canonical selection (id + display name); logs an
+   * "Other" entry for review. */
+  setProgram: (sel: { id: string; name: string }) => void
   /** Whether the signed-in user finished onboarding. `null` = profile still
    * loading (the gate waits, so returning users never flash the app). */
   onboardingCompleted: boolean | null
-  /** Save the onboarding profile (name/handle/major) + mark it complete.
+  /** Save the onboarding profile (name/handle/program) + mark it complete.
+   * `program` is the display name, `programId` the canonical id (or 'other').
    * Returns `error: 'handle-taken'` if the @handle is already in use. */
   completeOnboarding: (data: {
     name?: string
     handle?: string
-    major?: string
+    programId?: string
+    program?: string
   }) => Promise<{ error: 'handle-taken' | 'save-failed' | null }>
   /** Change the @handle from Settings. The DB enforces a 14-day cooldown
    * (`error: 'cooldown'`) and uniqueness (`error: 'taken'`). */

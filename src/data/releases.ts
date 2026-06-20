@@ -26,6 +26,16 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.13.0',
+    name: 'Pick your program',
+    date: '2026-06-20',
+    changes: [
+      { kind: 'new', text: 'Choose your program from a searchable list of Concordia programs — just start typing.' },
+      { kind: 'new', text: 'Can’t find yours? Choose “Other” and tell us — we’ll add it.' },
+      { kind: 'improved', text: 'Programs are now stored as consistent data, so program-based features work reliably.' },
+    ],
+  },
+  {
     version: '1.12.0',
     name: 'Hands-on welcome',
     date: '2026-06-20',

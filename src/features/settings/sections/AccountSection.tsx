@@ -5,6 +5,8 @@ import { useAuth } from '@/app/providers/auth'
 import { supabase } from '@/lib/supabase'
 import { HANDLE_RE, useHandleCheck } from '@/features/onboarding/handle'
 import { Select } from '@/components/ui/Select'
+import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
+import { programById } from '@/data/programs'
 import { Group, Row } from '../controls'
 
 const COOLDOWN_MS = 14 * 86_400_000
@@ -79,14 +81,8 @@ export function AccountSection() {
             className="max-w-sm"
           />
         </Row>
-        <Row label="Major / Program" description="Your primary program of study." stacked>
-          <input
-            value={user.program}
-            onChange={(e) => updateProfile({ program: e.target.value })}
-            aria-label="Major or program"
-            placeholder="e.g. Computer Science"
-            className="w-full max-w-xs rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors focus:border-border-strong"
-          />
+        <Row label="Major / Program" description="Search Concordia's program list — or choose Other." stacked>
+          <ProgramField />
         </Row>
         <Row label="Profile photo" description="Synced from your Google account.">
           <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
@@ -108,6 +104,45 @@ export function AccountSection() {
         <DeleteAccountRow />
       </Group>
     </div>
+  )
+}
+
+/** Program field — the searchable canonical picker. Pre-selects the user's
+ * current program; reads `program_id` defensively (degrades if not migrated). */
+function ProgramField() {
+  const { user, setProgram } = useAppData()
+  const { user: authUser } = useAuth()
+  const [sel, setSel] = useState<ProgramSelection | null>(
+    user.program ? { id: '', name: user.program } : null,
+  )
+
+  useEffect(() => {
+    if (!authUser) return
+    let active = true
+    void supabase
+      .from('user_profile')
+      .select('program_id')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const pid = (data as { program_id?: string } | null)?.program_id
+        if (active && pid) setSel({ id: pid, name: programById(pid)?.name ?? user.program })
+      })
+    return () => {
+      active = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id])
+
+  return (
+    <ProgramPicker
+      value={sel}
+      size="sm"
+      onChange={(s) => {
+        setSel(s)
+        setProgram(s)
+      }}
+    />
   )
 }
 

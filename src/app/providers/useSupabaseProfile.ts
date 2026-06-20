@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
+import { OTHER_PROGRAM_ID } from '@/data/programs'
 import type { Plan, User } from '@/data/types'
 
-/** The columns of `user_profile` the app actually uses. */
+/** The columns of `user_profile` the app actually uses. `program_id` is written
+ * but deliberately NOT in COLS (the hot load path) so a missing column can't
+ * break the app before the migration runs. */
 interface ProfileRow {
   user_id: string
   name: string | null
   email: string | null
   school: string | null
   program: string | null
+  program_id?: string | null
   plan_status: string | null
   avatar_url: string | null
   handle: string | null
@@ -35,6 +39,14 @@ const initialsOf = (name: string) =>
 
 /** DB plan_status ('free'|'pro') ↔ the seed's Plan ('free'|'semester'). */
 const toPlan = (status: string | null | undefined): Plan => (status === 'pro' ? 'semester' : 'free')
+
+/** Append-only log of "Other" program entries for review. Fire-and-forget — a
+ * missing table never blocks onboarding/settings. Only logs the 'other' case. */
+function logProgramSuggestion(userId: string, programId?: string, text?: string) {
+  if (programId === OTHER_PROGRAM_ID && text?.trim()) {
+    fireWrite(supabase.from('program_suggestions').insert({ user_id: userId, text: text.trim() }))
+  }
+}
 
 /**
  * Phase 2: the signed-in user's real profile + plan, backed by `user_profile`.
@@ -170,25 +182,55 @@ export function useSupabaseProfile() {
   }, [row, authUser])
 
   /** Save the onboarding profile + mark it complete (so it never re-shows). Used
-   * on both Finish (full data) and Skip (whatever was collected). */
+   * on both Finish (full data) and Skip (whatever was collected). `program` is
+   * the display name; `programId` is the canonical id (or 'other'). */
   const completeOnboarding = useCallback(
     async (
-      data: { name?: string; handle?: string; major?: string },
+      data: { name?: string; handle?: string; programId?: string; program?: string },
     ): Promise<{ error: 'handle-taken' | 'save-failed' | null }> => {
       if (!authUser) return { error: null }
       const patch: Partial<ProfileRow> = { onboarding_completed: true }
       if (data.name) patch.name = data.name
       if (data.handle) patch.handle = data.handle
-      if (data.major) patch.program = data.major
+      if (data.program) patch.program = data.program
+      if (data.programId) patch.program_id = data.programId
       // Write FIRST, then reflect locally — so a rejected handle (unique
       // violation) never leaves the app thinking onboarding succeeded.
-      const { error } = await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
+      let { error } = await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
+      // program_id column may not be migrated yet → retry without it.
+      if (error?.code === '42703' && patch.program_id !== undefined) {
+        const rest = { ...patch }
+        delete rest.program_id
+        ;({ error } = await supabase.from('user_profile').update(rest).eq('user_id', authUser.id))
+      }
       if (error) {
         // 23505 = unique_violation; handle is the only unique field on this row.
         return { error: error.code === '23505' ? 'handle-taken' : 'save-failed' }
       }
       setRow((r) => (r ? { ...r, ...patch } : r))
+      logProgramSuggestion(authUser.id, data.programId, data.program)
       return { error: null }
+    },
+    [authUser],
+  )
+
+  /** Set the program from Settings: writes the display name + canonical id, and
+   * logs an "Other" entry for review. Optimistic; deploy-safe (retries without
+   * program_id if the column is absent). */
+  const setProgram = useCallback(
+    (sel: { id: string; name: string }) => {
+      if (!authUser) return
+      setRow((r) => (r ? { ...r, program: sel.name, program_id: sel.id } : r))
+      void (async () => {
+        const { error } = await supabase
+          .from('user_profile')
+          .update({ program: sel.name, program_id: sel.id })
+          .eq('user_id', authUser.id)
+        if (error?.code === '42703') {
+          fireWrite(supabase.from('user_profile').update({ program: sel.name }).eq('user_id', authUser.id))
+        }
+      })()
+      logProgramSuggestion(authUser.id, sel.id, sel.name)
     },
     [authUser],
   )
@@ -219,6 +261,7 @@ export function useSupabaseProfile() {
     plan: user.plan,
     setPlan,
     updateProfile,
+    setProgram,
     onboardingCompleted,
     completeOnboarding,
     changeHandle,

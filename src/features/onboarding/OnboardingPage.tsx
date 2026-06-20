@@ -11,6 +11,7 @@ import { AddCourses } from './AddCourses'
 import { CommunityStep } from './CommunityStep'
 import { SetupStep, ThemeStep } from './OnboardingSetup'
 import { HANDLE_RE, useHandleCheck } from './handle'
+import type { ProgramSelection } from '@/components/ui/ProgramPicker'
 import { cn } from '@/lib/cn'
 
 // 4 setup steps + 7 tour steps.
@@ -27,13 +28,14 @@ const TOTAL = 11
 
 export function OnboardingPage() {
   const { user, onboardingCompleted, completeOnboarding } = useAppData()
+  // (program is collected via the searchable picker — structured, not free text)
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
   const [decided, setDecided] = useState(false)
   const [name, setName] = useState(user.name === 'Student' ? '' : user.name)
   const [handle, setHandle] = useState('')
-  const [major, setMajor] = useState('')
+  const [program, setProgram] = useState<ProgramSelection | null>(null)
   const [addedCourse, setAddedCourse] = useState(false)
   const [todayDone, setTodayDone] = useState(false)
   const [calendarDone, setCalendarDone] = useState(false)
@@ -61,7 +63,7 @@ export function OnboardingPage() {
       : step === 1
         ? HANDLE_RE.test(handle) && handleStatus !== 'taken'
         : step === 2
-          ? major.trim().length > 0
+          ? program !== null
           : step === STEP_COURSE
             ? addedCourse
             : step === STEP_TODAY
@@ -75,7 +77,12 @@ export function OnboardingPage() {
   const finish = async () => {
     setSubmitError('')
     setLeaving(true)
-    const { error } = await completeOnboarding({ name: name.trim(), handle, major: major.trim() })
+    const { error } = await completeOnboarding({
+      name: name.trim(),
+      handle,
+      programId: program?.id,
+      program: program?.name,
+    })
     if (error === 'handle-taken') {
       setLeaving(false)
       setSubmitError('That handle was just taken — please pick another.')
@@ -90,8 +97,14 @@ export function OnboardingPage() {
     navigate('/app', { replace: true })
   }
   const skip = async () => {
+    // Setup (name / handle / program) is mandatory — only the tour is skippable.
+    if (isSetup) return
     setLeaving(true)
-    const base = { name: name.trim() || undefined, major: major.trim() || undefined }
+    const base = {
+      name: name.trim() || undefined,
+      programId: program?.id,
+      program: program?.name,
+    }
     let res = await completeOnboarding({ ...base, handle: HANDLE_RE.test(handle) ? handle : undefined })
     // Skipping with a taken handle → finish without it rather than block the exit.
     if (res.error === 'handle-taken') res = await completeOnboarding(base)
@@ -159,13 +172,17 @@ export function OnboardingPage() {
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          onClick={() => void skip()}
-          className="text-[13px] font-medium text-subtle transition-colors duration-150 hover:text-fg"
-        >
-          Skip tour
-        </button>
+        {isSetup ? (
+          <span />
+        ) : (
+          <button
+            type="button"
+            onClick={() => void skip()}
+            className="text-[13px] font-medium text-subtle transition-colors duration-150 hover:text-fg"
+          >
+            Skip tour
+          </button>
+        )}
       </header>
 
       <main className="flex-1 overflow-y-auto">
@@ -178,11 +195,10 @@ export function OnboardingPage() {
                 setName={setName}
                 handle={handle}
                 setHandle={setHandle}
-                major={major}
-                setMajor={setMajor}
+                program={program}
+                setProgram={setProgram}
                 avatarUrl={user.avatarUrl}
                 handleStatus={handleStatus}
-                onEnter={advance}
               />
             ) : step === 3 ? (
               <ThemeStep />
