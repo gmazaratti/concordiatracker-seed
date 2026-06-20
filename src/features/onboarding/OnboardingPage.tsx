@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Button } from '@/components/ui/Button'
-import { CalendarSlide, DoneSlide, EditingSlide, TodaySlide, WelcomeSlide } from './OnboardingSlides'
+import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
+import { TodayStep } from './InteractiveToday'
+import { CalendarStep } from './InteractiveCalendar'
+import { EditingStep } from './InteractiveEditing'
 import { AddCourses } from './AddCourses'
 import { CommunityStep } from './CommunityStep'
 import { SetupStep, ThemeStep } from './OnboardingSetup'
@@ -14,7 +17,11 @@ import { cn } from '@/lib/cn'
 // Setup: name, handle, major, theme. Tour: welcome, add-courses, today,
 // calendar, editing, community, done.
 const SETUP_COUNT = 4
+const FIRST_TOUR = SETUP_COUNT // first tour step = Welcome
 const STEP_COURSE = 5
+const STEP_TODAY = 6
+const STEP_CALENDAR = 7
+const STEP_EDITING = 8
 const STEP_DONE = 10
 const TOTAL = 11
 
@@ -23,14 +30,29 @@ export function OnboardingPage() {
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
+  const [decided, setDecided] = useState(false)
   const [name, setName] = useState(user.name === 'Student' ? '' : user.name)
   const [handle, setHandle] = useState('')
   const [major, setMajor] = useState('')
   const [addedCourse, setAddedCourse] = useState(false)
+  const [todayDone, setTodayDone] = useState(false)
+  const [calendarDone, setCalendarDone] = useState(false)
+  const [editDone, setEditDone] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const handleStatus = useHandleCheck(handle)
 
+  // Decide the starting step once the profile resolves: a returning, already-
+  // onboarded user skips the identity setup (name/handle/major/theme) and lands
+  // straight on the tour, so a reload never re-prompts for those. Adjusting state
+  // during render (guarded to run once) is React's recommended alternative to an
+  // effect here — it re-renders before paint, so there's no flash of setup.
+  if (!decided && onboardingCompleted !== null) {
+    if (onboardingCompleted) setStep(FIRST_TOUR)
+    setDecided(true)
+  }
+
+  const minStep = onboardingCompleted ? FIRST_TOUR : 0
   const isSetup = step < SETUP_COUNT
   const isLast = step === STEP_DONE
   const canAdvance =
@@ -42,7 +64,13 @@ export function OnboardingPage() {
           ? major.trim().length > 0
           : step === STEP_COURSE
             ? addedCourse
-            : true
+            : step === STEP_TODAY
+              ? todayDone
+              : step === STEP_CALENDAR
+                ? calendarDone
+                : step === STEP_EDITING
+                  ? editDone
+                  : true
 
   const finish = async () => {
     setSubmitError('')
@@ -78,7 +106,7 @@ export function OnboardingPage() {
     if (isLast) void finish()
     else if (canAdvance) setStep((s) => s + 1)
   }
-  const back = () => setStep((s) => Math.max(0, s - 1))
+  const back = () => setStep((s) => Math.max(minStep, s - 1))
 
   // Keyboard: ←/→/Enter advance, Esc skip. A ref keeps the handler fresh.
   const ref = useRef({ advance, back, skip })
@@ -106,9 +134,7 @@ export function OnboardingPage() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  // No completed→/app redirect here: visiting /onboarding directly always replays
-  // the flow (for re-testing). The /app gate still routes first-login users in.
-  if (onboardingCompleted === null || leaving) {
+  if (onboardingCompleted === null || !decided || leaving) {
     return (
       <div className="grid h-svh place-items-center bg-canvas">
         <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
@@ -121,7 +147,7 @@ export function OnboardingPage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas">
       <header className="flex shrink-0 items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
-        {step > 0 ? (
+        {step > minStep ? (
           <button
             type="button"
             onClick={back}
@@ -164,12 +190,12 @@ export function OnboardingPage() {
               <WelcomeSlide />
             ) : step === STEP_COURSE ? (
               <AddCourses onAdded={() => setAddedCourse(true)} />
-            ) : step === 6 ? (
-              <TodaySlide />
-            ) : step === 7 ? (
-              <CalendarSlide />
-            ) : step === 8 ? (
-              <EditingSlide />
+            ) : step === STEP_TODAY ? (
+              <TodayStep onDone={() => setTodayDone(true)} />
+            ) : step === STEP_CALENDAR ? (
+              <CalendarStep onDone={() => setCalendarDone(true)} />
+            ) : step === STEP_EDITING ? (
+              <EditingStep onDone={() => setEditDone(true)} />
             ) : step === 9 ? (
               <CommunityStep />
             ) : (

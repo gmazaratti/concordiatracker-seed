@@ -26,6 +26,17 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.12.0',
+    name: 'Hands-on welcome',
+    date: '2026-06-20',
+    changes: [
+      { kind: 'new', text: 'The welcome tour is now interactive — check off a task, toggle calendar layers, and mark an assignment yourself.' },
+      { kind: 'new', text: 'Change your @handle from Settings → Account (once every 14 days).' },
+      { kind: 'improved', text: 'The Today preview in onboarding is clearer — no longer zoomed in.' },
+      { kind: 'fixed', text: 'Replaying onboarding no longer re-asks for your name, handle, or major.' },
+    ],
+  },
+  {
     version: '1.11.0',
     name: 'A smoother welcome',
     date: '2026-06-19',
