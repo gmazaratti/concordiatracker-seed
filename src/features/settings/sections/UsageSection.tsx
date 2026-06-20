@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Lock } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { getParseUsage } from '@/lib/parse-syllabus'
 import type { Plan } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { Group } from '../controls'
@@ -17,15 +19,15 @@ type Meter = {
 
 /** The meter list is intentionally data-driven so new plan-limited features slot
  * in by adding a row here — nothing else changes. */
-function buildMeters(plan: Plan, courseCount: number): Meter[] {
+function buildMeters(plan: Plan, courseCount: number, parse: { used: number; limit: number }): Meter[] {
   const semester = plan === 'semester'
   return [
     {
       key: 'scans',
-      label: 'Syllabus scans',
-      description: 'Resets on the 1st of each month.',
-      used: 1,
-      limit: semester ? 'unlimited' : 3,
+      label: 'Syllabus uploads',
+      description: 'AI parses, rate-limited. Resets on the 1st of each month.',
+      used: parse.used,
+      limit: parse.limit,
     },
     {
       key: 'blueprints',
@@ -54,7 +56,11 @@ function buildMeters(plan: Plan, courseCount: number): Meter[] {
 
 export function UsageSection() {
   const { plan, courses } = useAppData()
-  const meters = buildMeters(plan, courses.length)
+  const [parse, setParse] = useState({ used: 0, limit: 5 })
+  useEffect(() => {
+    void getParseUsage().then((usage) => usage && setParse({ used: usage.used, limit: usage.limit }))
+  }, [])
+  const meters = buildMeters(plan, courses.length, parse)
   const semester = plan === 'semester'
 
   return (

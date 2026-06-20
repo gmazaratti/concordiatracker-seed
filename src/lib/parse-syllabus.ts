@@ -72,3 +72,27 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
 
   return (await res.json()) as ParsedSyllabus
 }
+
+export interface ParseUsage {
+  /** Successful parses this calendar month. */
+  used: number
+  limit: number
+  /** ISO start of next month (when `used` resets). */
+  resetsAt: string
+  /** ISO instant the per-upload cooldown ends, or null if not cooling down. */
+  cooldownUntil: string | null
+}
+
+/** The signed-in user's parse usage (for the upload screen + Settings → Usage).
+ * Reads the get_parse_usage RPC; the limits themselves are enforced server-side. */
+export async function getParseUsage(): Promise<ParseUsage | null> {
+  const { data, error } = await supabase.rpc('get_parse_usage')
+  if (error || !data) return null
+  const d = data as { used: number; limit: number; cooldown: number; resets_at: string; last_at: string | null }
+  let cooldownUntil: string | null = null
+  if (d.last_at) {
+    const until = new Date(new Date(d.last_at).getTime() + (d.cooldown ?? 180) * 1000)
+    if (until.getTime() > Date.now()) cooldownUntil = until.toISOString()
+  }
+  return { used: d.used ?? 0, limit: d.limit ?? 5, resetsAt: d.resets_at, cooldownUntil }
+}

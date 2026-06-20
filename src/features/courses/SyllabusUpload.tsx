@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ChevronDown, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { normalizeKind, parseSyllabusPdf, type ParsedSyllabus } from '@/lib/parse-syllabus'
+import { getParseUsage, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
 import { KIND_LABEL } from '@/lib/assessment'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
@@ -64,6 +64,17 @@ function toReview(parsed: ParsedSyllabus): ReviewItem[] {
   }))
 }
 
+/** Derived usage state. Module-level so reading the clock is allowed (not in render). */
+function usageState(u: ParseUsage): { remaining: number; blocked: boolean; message: string | null } {
+  const remaining = Math.max(0, u.limit - u.used)
+  if (u.used >= u.limit) return { remaining, blocked: true, message: `You've used all ${u.limit} uploads this month.` }
+  if (u.cooldownUntil) {
+    const ms = new Date(u.cooldownUntil).getTime() - Date.now()
+    if (ms > 0) return { remaining, blocked: true, message: `Just uploaded — try again in ${Math.ceil(ms / 60000)} min.` }
+  }
+  return { remaining, blocked: false, message: null }
+}
+
 /** The real AI syllabus parser: drag-drop a PDF → Gemini extraction (server-side)
  * → review what was found → commit into a new course. Parsed dates are tagged
  * `unverified`; nothing is saved until you confirm. */
@@ -75,6 +86,12 @@ export function SyllabusUploadPage() {
   const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
   const [items, setItems] = useState<ReviewItem[]>([])
   const [saving, setSaving] = useState(false)
+  const [usage, setUsage] = useState<ParseUsage | null>(null)
+  const u = usage ? usageState(usage) : null
+
+  useEffect(() => {
+    void getParseUsage().then(setUsage)
+  }, [])
 
   async function handleFile(file: File) {
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
@@ -105,6 +122,7 @@ export function SyllabusUploadPage() {
       })
       setItems(toReview(parsed))
       setPhase('review')
+      void getParseUsage().then(setUsage) // a successful parse consumed one
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
       setPhase('error')
@@ -184,7 +202,22 @@ export function SyllabusUploadPage() {
         </>
       )}
 
-      {phase === 'idle' && <DropZone onFile={handleFile} />}
+      {phase === 'idle' && (
+        <>
+          <DropZone onFile={handleFile} disabled={!!u?.blocked} />
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[12px] text-subtle">
+            <Clock size={13} aria-hidden />
+            {u?.blocked ? (
+              <span className="font-medium text-warning">{u.message}</span>
+            ) : (
+              <span>
+                {usage ? `${u?.remaining ?? usage.limit} of ${usage.limit} uploads left this month` : 'Up to 5 uploads per month'}
+                {' · '}parsing can take up to ~15 seconds
+              </span>
+            )}
+          </p>
+        </>
+      )}
       {phase === 'parsing' && <Scanning />}
       {phase === 'error' && (
         <div className="mt-6 rounded-2xl border border-danger/40 bg-danger/5 p-6 text-center">
@@ -263,19 +296,22 @@ export function SyllabusUploadPage() {
   )
 }
 
-function DropZone({ onFile }: { onFile: (f: File) => void }) {
+function DropZone({ onFile, disabled }: { onFile: (f: File) => void; disabled?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => inputRef.current?.click()}
       onDragOver={(e) => {
+        if (disabled) return
         e.preventDefault()
         setOver(true)
       }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
+        if (disabled) return
         e.preventDefault()
         setOver(false)
         const f = e.dataTransfer.files?.[0]
@@ -283,7 +319,11 @@ function DropZone({ onFile }: { onFile: (f: File) => void }) {
       }}
       className={cn(
         'mt-6 flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors',
-        over ? 'border-accent bg-accent-soft' : 'border-border-strong bg-surface/40 hover:border-accent/60',
+        disabled
+          ? 'cursor-not-allowed border-border bg-surface/40 opacity-60'
+          : over
+            ? 'border-accent bg-accent-soft'
+            : 'border-border-strong bg-surface/40 hover:border-accent/60',
       )}
     >
       <UploadCloud size={32} className="text-accent" aria-hidden />
@@ -325,7 +365,9 @@ function Scanning() {
           aria-hidden
         />
       </div>
-      <p className="mt-2.5 text-[12px] text-subtle">Extracting course details, assessments, weights, and deadlines…</p>
+      <p className="mt-2.5 text-[12px] text-subtle">
+        Extracting course details, assessments, weights, and deadlines… this usually takes about 10–15 seconds.
+      </p>
     </div>
   )
 }

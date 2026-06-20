@@ -90,6 +90,48 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(bin)
 }
 
+interface Slot {
+  allowed?: boolean
+  reason?: string
+  retry_after?: number
+  used?: number
+  limit?: number
+  resets_at?: string
+  event_id?: string
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Call a Supabase RPC with the user's JWT (so auth.uid() resolves inside it). */
+async function callRpc(name: string, body: unknown, url: string, anon: string, token: string): Promise<Slot | null> {
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body ?? {}),
+    })
+    if (!r.ok) return null
+    return (await r.json()) as Slot
+  } catch {
+    return null
+  }
+}
+
+function rateLimitMessage(slot: Slot | null): string {
+  if (slot?.reason === 'monthly') {
+    let reset = 'next month'
+    if (slot.resets_at) {
+      const d = new Date(slot.resets_at)
+      reset = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
+    }
+    return `You've reached this month's limit of ${slot.limit ?? 5} syllabus uploads. Resets ${reset}.`
+  }
+  const secs = Number(slot?.retry_after ?? 180)
+  if (secs < 60) return `Please wait ${secs}s before uploading another syllabus.`
+  const mins = Math.ceil(secs / 60)
+  return `Please wait ${mins} minute${mins === 1 ? '' : 's'} before uploading another syllabus.`
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
@@ -116,7 +158,15 @@ export default async function handler(req: Request): Promise<Response> {
   if (buf.byteLength > MAX_BYTES) return json({ error: 'That file is too large (max 4 MB).' }, 413)
   const mimeType = req.headers.get('content-type') || 'application/pdf'
 
-  // 3. Ask Gemini to extract, constrained to the schema.
+  // 3. Rate limit (cooldown + monthly cap), enforced in the DB — this is the
+  //    only path to Gemini, so a user can't spam it or starve the shared quota.
+  // Fail OPEN when there's no verdict (RPC missing pre-migration, or a transient
+  // DB error) — only block on an explicit denial, so the feature stays available.
+  const slot = await callRpc('start_parse', {}, supabaseUrl, supabaseAnon, token)
+  if (slot?.reason === 'auth') return json({ error: 'Your session expired — sign in again.' }, 401)
+  if (slot && slot.allowed === false) return json({ error: rateLimitMessage(slot) }, 429)
+
+  // 4. Ask Gemini to extract, constrained to the schema.
   let gemini: Response
   try {
     gemini = await fetch(
@@ -154,9 +204,14 @@ export default async function handler(req: Request): Promise<Response> {
   const text = result.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) return json({ error: 'Couldn’t extract anything from that file.' }, 422)
 
+  let parsed: unknown
   try {
-    return json(JSON.parse(text))
+    parsed = JSON.parse(text)
   } catch {
     return json({ error: 'The parser returned an unexpected format. Try again.' }, 502)
   }
+  // Count this as a successful parse (toward the monthly cap) — only if a slot
+  // was actually claimed (skipped when the limiter is unmigrated / failed open).
+  if (slot?.event_id) await callRpc('finish_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
+  return json(parsed)
 }
