@@ -27,6 +27,7 @@ import { OrganizerInvitePage } from '@/features/organizer/OrganizerInvitePage'
 import { OrgMemberInvitePage } from '@/features/organizer/OrgMemberInvitePage'
 import { LegalPage } from '@/features/legal/LegalPage'
 import { DemoReel } from '@/features/demo/DemoReel'
+import { UserProfilePage } from '@/features/profile/UserProfilePage'
 import { NotFoundPage } from '@/features/NotFoundPage'
 
 /** Route tree for the three contexts: public, student app, teacher portal. */
@@ -95,6 +96,11 @@ export function AppRoutes() {
 
       {/* Throwaway full-bleed promo reel for screen recording — not in app nav */}
       <Route path="/demo" element={<DemoReel />} />
+
+      {/* Public user profile — concordiatracker.com/@handle (anyone can view).
+          Dynamic single-segment, so every static route above wins; the component
+          requires the leading "@" and 404s otherwise. Keep last (before *). */}
+      <Route path="/:handle" element={<UserProfilePage />} />
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

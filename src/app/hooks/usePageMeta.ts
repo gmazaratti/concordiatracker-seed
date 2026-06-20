@@ -33,10 +33,14 @@ export function usePageMeta({
   title,
   description,
   path,
+  robots,
 }: {
   title: string
   description?: string
   path: string
+  /** Override the robots directive for this route, e.g. 'noindex' for a private
+   * profile. Omit to leave the site-wide 'index,follow' from index.html. */
+  robots?: string
 }) {
   useEffect(() => {
     const url = `${SITE}${path}`
@@ -48,5 +52,6 @@ export function usePageMeta({
       upsertMeta('name', 'description', description)
       upsertMeta('property', 'og:description', description)
     }
-  }, [title, description, path])
+    if (robots) upsertMeta('name', 'robots', robots)
+  }, [title, description, path, robots])
 }

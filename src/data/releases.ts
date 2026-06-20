@@ -26,6 +26,16 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.14.0',
+    name: 'Public profiles',
+    date: '2026-06-20',
+    changes: [
+      { kind: 'new', text: 'Public profiles at concordiatracker.com/@yourhandle — your name, program, courses, and uploaded blueprints.' },
+      { kind: 'new', text: 'Choose public or private when you pick your handle; a private profile shows only your handle.' },
+      { kind: 'new', text: 'Add a bio and flip your profile public/private any time in Settings → Privacy.' },
+    ],
+  },
+  {
     version: '1.13.0',
     name: 'Pick your program',
     date: '2026-06-20',

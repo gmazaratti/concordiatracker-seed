@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, Globe, Lock } from 'lucide-react'
 import { THEMES, useTheme } from '@/app/providers/theme'
 import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
 import { cn } from '@/lib/cn'
@@ -24,6 +24,8 @@ export function SetupStep({
   setName,
   handle,
   setHandle,
+  profilePublic,
+  setProfilePublic,
   program,
   setProgram,
   avatarUrl,
@@ -34,6 +36,8 @@ export function SetupStep({
   setName: (v: string) => void
   handle: string
   setHandle: (v: string) => void
+  profilePublic: boolean
+  setProfilePublic: (v: boolean) => void
   program: ProgramSelection | null
   setProgram: (v: ProgramSelection) => void
   avatarUrl?: string
@@ -66,6 +70,8 @@ export function SetupStep({
         {handle.length > 0 && !valid && <p className="mt-2 text-[12px] text-warning">A little longer — at least 3 characters.</p>}
         {valid && handleStatus === 'taken' && <p className="mt-2 text-[12px] text-danger">@{handle} is taken — try another.</p>}
         {valid && handleStatus === 'free' && <p className="mt-2 text-[12px] text-success">@{handle} is available.</p>}
+
+        <VisibilityChoice value={profilePublic} onChange={setProfilePublic} handle={handle} />
       </Centered>
     )
   }
@@ -75,6 +81,78 @@ export function SetupStep({
         <ProgramPicker value={program} onChange={setProgram} autoFocus size="lg" />
       </div>
     </Centered>
+  )
+}
+
+/** The public/private choice for the user's profile page (concordiatracker.com/
+ * @handle). Private is the default; the student chooses deliberately here. */
+function VisibilityChoice({
+  value,
+  onChange,
+  handle,
+}: {
+  value: boolean
+  onChange: (v: boolean) => void
+  handle: string
+}) {
+  return (
+    <div className="mt-6 text-left">
+      <p className="mb-2 text-center text-[12px] font-medium text-muted">Your profile page</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        <VisibilityOption
+          icon={Lock}
+          label="Private"
+          desc="Only your handle is visible to others."
+          selected={!value}
+          onClick={() => onChange(false)}
+        />
+        <VisibilityOption
+          icon={Globe}
+          label="Public"
+          desc="Name, program, courses & blueprints visible."
+          selected={value}
+          onClick={() => onChange(true)}
+        />
+      </div>
+      <p className="mt-2 text-center text-[11px] text-subtle">
+        {value
+          ? `Anyone can view concordiatracker.com/@${handle || 'you'}. Change it any time in Settings.`
+          : 'You can make it public any time in Settings.'}
+      </p>
+    </div>
+  )
+}
+
+function VisibilityOption({
+  icon: Icon,
+  label,
+  desc,
+  selected,
+  onClick,
+}: {
+  icon: typeof Lock
+  label: string
+  desc: string
+  selected: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        'flex flex-col gap-1 rounded-xl border p-3 text-left transition-colors duration-150',
+        selected ? 'border-accent bg-accent-soft' : 'border-border bg-surface hover:border-border-strong',
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
+        <Icon size={14} className={selected ? 'text-accent' : 'text-subtle'} aria-hidden />
+        {label}
+        {selected && <Check size={13} className="ml-auto text-accent" aria-hidden />}
+      </span>
+      <span className="text-[11px] leading-snug text-subtle">{desc}</span>
+    </button>
   )
 }
 

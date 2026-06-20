@@ -18,6 +18,8 @@ interface ProfileRow {
   avatar_url: string | null
   handle: string | null
   onboarding_completed: boolean | null
+  profile_public?: boolean | null
+  bio?: string | null
 }
 
 const COLS =
@@ -186,7 +188,7 @@ export function useSupabaseProfile() {
    * the display name; `programId` is the canonical id (or 'other'). */
   const completeOnboarding = useCallback(
     async (
-      data: { name?: string; handle?: string; programId?: string; program?: string },
+      data: { name?: string; handle?: string; programId?: string; program?: string; profilePublic?: boolean },
     ): Promise<{ error: 'handle-taken' | 'save-failed' | null }> => {
       if (!authUser) return { error: null }
       const patch: Partial<ProfileRow> = { onboarding_completed: true }
@@ -194,13 +196,16 @@ export function useSupabaseProfile() {
       if (data.handle) patch.handle = data.handle
       if (data.program) patch.program = data.program
       if (data.programId) patch.program_id = data.programId
+      if (data.profilePublic !== undefined) patch.profile_public = data.profilePublic
       // Write FIRST, then reflect locally — so a rejected handle (unique
       // violation) never leaves the app thinking onboarding succeeded.
       let { error } = await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
-      // program_id column may not be migrated yet → retry without it.
-      if (error?.code === '42703' && patch.program_id !== undefined) {
+      // program_id / profile_public columns may not be migrated yet → retry
+      // with only the long-standing columns.
+      if (error?.code === '42703') {
         const rest = { ...patch }
         delete rest.program_id
+        delete rest.profile_public
         ;({ error } = await supabase.from('user_profile').update(rest).eq('user_id', authUser.id))
       }
       if (error) {
@@ -235,6 +240,21 @@ export function useSupabaseProfile() {
     [authUser],
   )
 
+  /** Update public-profile privacy (Settings): the public toggle and/or bio.
+   * Optimistic + fire-and-forget; only meaningful once the migration has run. */
+  const updatePrivacy = useCallback(
+    (patch: { profilePublic?: boolean; bio?: string }) => {
+      if (!authUser) return
+      setRow((r) => (r ? { ...r, ...('profilePublic' in patch ? { profile_public: patch.profilePublic } : {}), ...('bio' in patch ? { bio: patch.bio } : {}) } : r))
+      const row: Record<string, unknown> = {}
+      if (patch.profilePublic !== undefined) row.profile_public = patch.profilePublic
+      if (patch.bio !== undefined) row.bio = patch.bio
+      if (Object.keys(row).length)
+        fireWrite(supabase.from('user_profile').update(row).eq('user_id', authUser.id))
+    },
+    [authUser],
+  )
+
   /** Change the @handle (Settings). Updates only `handle`; the DB trigger stamps
    * `handle_changed_at` and enforces the 14-day cooldown — so this is deploy-safe
    * even before the migration (handle just changes, unthrottled, until then). */
@@ -262,6 +282,7 @@ export function useSupabaseProfile() {
     setPlan,
     updateProfile,
     setProgram,
+    updatePrivacy,
     onboardingCompleted,
     completeOnboarding,
     changeHandle,

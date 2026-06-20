@@ -64,6 +64,8 @@ export interface AppDataContextValue {
   /** Set the program from a canonical selection (id + display name); logs an
    * "Other" entry for review. */
   setProgram: (sel: { id: string; name: string }) => void
+  /** Update public-profile privacy: the public toggle and/or bio. */
+  updatePrivacy: (patch: { profilePublic?: boolean; bio?: string }) => void
   /** Whether the signed-in user finished onboarding. `null` = profile still
    * loading (the gate waits, so returning users never flash the app). */
   onboardingCompleted: boolean | null
@@ -75,6 +77,7 @@ export interface AppDataContextValue {
     handle?: string
     programId?: string
     program?: string
+    profilePublic?: boolean
   }) => Promise<{ error: 'handle-taken' | 'save-failed' | null }>
   /** Change the @handle from Settings. The DB enforces a 14-day cooldown
    * (`error: 'cooldown'`) and uniqueness (`error: 'taken'`). */

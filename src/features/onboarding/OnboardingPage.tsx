@@ -35,6 +35,7 @@ export function OnboardingPage() {
   const [decided, setDecided] = useState(false)
   const [name, setName] = useState(user.name === 'Student' ? '' : user.name)
   const [handle, setHandle] = useState('')
+  const [profilePublic, setProfilePublic] = useState(false)
   const [program, setProgram] = useState<ProgramSelection | null>(null)
   const [addedCourse, setAddedCourse] = useState(false)
   const [todayDone, setTodayDone] = useState(false)
@@ -82,6 +83,7 @@ export function OnboardingPage() {
       handle,
       programId: program?.id,
       program: program?.name,
+      profilePublic,
     })
     if (error === 'handle-taken') {
       setLeaving(false)
@@ -104,6 +106,7 @@ export function OnboardingPage() {
       name: name.trim() || undefined,
       programId: program?.id,
       program: program?.name,
+      profilePublic,
     }
     let res = await completeOnboarding({ ...base, handle: HANDLE_RE.test(handle) ? handle : undefined })
     // Skipping with a taken handle → finish without it rather than block the exit.
@@ -195,6 +198,8 @@ export function OnboardingPage() {
                 setName={setName}
                 handle={handle}
                 setHandle={setHandle}
+                profilePublic={profilePublic}
+                setProfilePublic={setProfilePublic}
                 program={program}
                 setProgram={setProgram}
                 avatarUrl={user.avatarUrl}
