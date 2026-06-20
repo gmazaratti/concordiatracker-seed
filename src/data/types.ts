@@ -91,6 +91,9 @@ export interface Assessment {
   grade: Grade | null
   /** Free-form per-assessment notes (edited in Courses). */
   notes: string
+  /** A richer description of the assessment (what it covers / format) — populated
+   * by the AI syllabus parser; distinct from the user's free-form `notes`. */
+  description?: string
 }
 
 /** A personal calendar task/note the user adds (the "My calendar" layer, beyond

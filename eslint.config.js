@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // `api/` is the Vercel serverless function — a different (Edge) runtime with
+  // its own globals, transpiled by Vercel, so it's outside the browser-app lint.
+  globalIgnores(['dist', 'api']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

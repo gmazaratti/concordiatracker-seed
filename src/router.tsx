@@ -8,6 +8,7 @@ import { TodayPage } from '@/features/today/TodayPage'
 import { CoursesPage } from '@/features/courses/CoursesPage'
 import { CourseDetailPage } from '@/features/courses/CourseDetailPage'
 import { BlueprintBrowserPage } from '@/features/courses/BlueprintBrowserPage'
+import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
@@ -46,6 +47,7 @@ export function AppRoutes() {
         <Route index element={<TodayPage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/blueprints" element={<BlueprintBrowserPage />} />
+        <Route path="courses/upload" element={<SyllabusUploadPage />} />
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="community" element={<CommunityPage />} />

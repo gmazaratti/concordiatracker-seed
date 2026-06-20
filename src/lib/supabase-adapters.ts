@@ -101,6 +101,7 @@ export interface AssignmentRow {
   awaiting_grade: boolean | null
   extension_granted: boolean | null
   notes: string | null
+  description: string | null
   status: string | null
   provenance_status: string | null
   provenance_confirmations: number | null
@@ -169,6 +170,7 @@ export function assessmentFromRow(r: AssignmentRow): Assessment {
     status: statusFromRow(r),
     grade: gradeFromRow(r),
     notes: r.notes ?? '',
+    description: r.description ?? undefined,
   }
 }
 
@@ -183,6 +185,7 @@ export function assessmentToInsert(a: Assessment, userId: string): Record<string
     type: a.kind,
     weight: a.weight,
     notes: a.notes,
+    description: a.description ?? null,
     provenance_status: a.provenance.status,
     provenance_confirmations: a.provenance.confirmations ?? 0,
     ...statusToCols(a.status),
@@ -199,6 +202,7 @@ export function assessmentPatchToRow(patch: Partial<Assessment>): Record<string,
   if ('due' in patch) row.date = patch.due
   if ('weight' in patch) row.weight = patch.weight
   if ('notes' in patch) row.notes = patch.notes
+  if ('description' in patch) row.description = patch.description ?? null
   if (patch.provenance) {
     row.provenance_status = patch.provenance.status
     row.provenance_confirmations = patch.provenance.confirmations ?? 0

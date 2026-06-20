@@ -264,7 +264,17 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     async (items: Assessment[]) => {
       if (!authUser || items.length === 0) return
       const rows = items.map((a) => assessmentToInsert(a, authUser.id))
-      const { data } = await supabase.from('assignments').insert(rows).select('*')
+      const first = await supabase.from('assignments').insert(rows).select('*')
+      let data = first.data
+      // The `description` column may not be migrated yet → retry without it.
+      if (first.error?.code === '42703') {
+        const stripped = rows.map((r) => {
+          const copy = { ...r }
+          delete copy.description
+          return copy
+        })
+        data = (await supabase.from('assignments').insert(stripped).select('*')).data
+      }
       if (data) updateAssessments((list) => [...list, ...(data as AssignmentRow[]).map(assessmentFromRow)])
     },
     [authUser, updateAssessments],

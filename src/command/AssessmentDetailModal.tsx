@@ -96,6 +96,10 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <ProvenanceBadge provenance={assessment.provenance} />
         </div>
 
+        {assessment.description && (
+          <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{assessment.description}</p>
+        )}
+
         {correction && (
           <div className="mt-4">
             <PeerSuggestion correction={correction} onApplied={setDueISO} />
