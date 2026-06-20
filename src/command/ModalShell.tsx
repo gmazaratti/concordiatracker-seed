@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { cn } from '@/lib/cn'
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
@@ -10,10 +11,13 @@ export function ModalShell({
   label,
   onClose,
   children,
+  widthClass = 'sm:max-w-md',
 }: {
   label: string
   onClose: () => void
   children: React.ReactNode
+  /** Override the dialog's max width (default sm:max-w-md). */
+  widthClass?: string
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const restoreRef = useRef<Element | null>(null)
@@ -63,7 +67,10 @@ export function ModalShell({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="ct-animate-pop max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:max-w-md sm:rounded-2xl"
+        className={cn(
+          'ct-animate-pop max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
+          widthClass,
+        )}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
