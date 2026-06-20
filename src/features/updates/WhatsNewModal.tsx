@@ -29,7 +29,7 @@ function formatDate(d: string): string {
 export function WhatsNewModal() {
   const { closeHistory } = useUpdates()
   return (
-    <ModalShell label="What's new" onClose={closeHistory} widthClass="sm:max-w-xl">
+    <ModalShell label="What's new" onClose={closeHistory} widthClass="sm:max-w-2xl">
       <div className="border-b border-border px-6 pt-6 pb-5">
         <p className="text-[11px] font-medium tracking-[0.18em] text-subtle uppercase">Version history</p>
         <h2 className="mt-1.5 font-display text-[26px] leading-tight font-medium text-fg">What&rsquo;s new</h2>
