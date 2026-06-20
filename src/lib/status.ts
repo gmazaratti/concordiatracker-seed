@@ -37,17 +37,19 @@ export const STATUS_META: Record<
   'not-started': { label: 'Not started', dot: 'bg-subtle', text: 'text-subtle' },
   'in-progress': { label: 'In progress', dot: 'bg-info', text: 'text-info' },
   done: { label: 'Done', dot: 'bg-success', text: 'text-success' },
-  late: { label: 'Late', dot: 'bg-warning', text: 'text-warning' },
+  late: { label: 'Done late', dot: 'bg-warning', text: 'text-warning' },
   missed: { label: 'Missed', dot: 'bg-danger', text: 'text-danger' },
   extension: { label: 'Extension', dot: 'bg-accent', text: 'text-accent' },
   'awaiting-grade': { label: 'Awaiting grade', dot: 'bg-accent', text: 'text-accent' },
 }
 
-/** Status-aware due label. A resolved item is NEVER "overdue": a `done` item
- * finished after its due date reads "Done late"; any other resolved item just
- * shows its date, quietly. Only items still OPEN and past their date read
- * "X days overdue". `neutral` is the caller's text color for non-urgent labels
- * (Today wants its due text prominent → 'text-fg'; the editor wants it subtle). */
+/** Status-aware due label. A resolved item is NEVER "overdue" — on-time-vs-late
+ * is carried by its STATUS, set by you, never guessed from the date. So an
+ * imported assignment that's already past but you actually did on time reads
+ * "Done" when you mark it `done`; mark it `late` ("Done late") only if you truly
+ * finished after the deadline. Only items still OPEN past their date read
+ * "X days overdue". `neutral` is the caller's color for non-urgent labels (Today
+ * wants its due text prominent → 'text-fg'; the editor wants it subtle). */
 export function dueLabel(
   due: string,
   status: AssessmentStatus,
@@ -60,8 +62,7 @@ export function dueLabel(
       tone: days < 0 ? 'text-danger' : days === 0 ? 'text-warning' : neutral,
     }
   }
-  // Resolved: a completed item past its date is "Done late", not overdue.
-  if (status === 'done' && days < 0) return { label: 'Done late', tone: 'text-warning' }
-  // Everything else resolved (missed / awaiting-grade / on-time done): plain date.
+  // Resolved → just the date. The status badge (Done / Done late / Missed /
+  // Awaiting grade) says how it ended; we never infer "late" from the date.
   return { label: days < 0 ? formatFull(due) : relativeDueLabel(due), tone: neutral }
 }
