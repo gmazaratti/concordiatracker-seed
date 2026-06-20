@@ -1,4 +1,5 @@
 import type { AssessmentStatus } from '@/data/types'
+import { daysUntil, formatFull, relativeDueLabel } from './date'
 
 /** Statuses that still need action — these are what Today's due list surfaces. */
 const OPEN: ReadonlySet<AssessmentStatus> = new Set<AssessmentStatus>([
@@ -40,4 +41,27 @@ export const STATUS_META: Record<
   missed: { label: 'Missed', dot: 'bg-danger', text: 'text-danger' },
   extension: { label: 'Extension', dot: 'bg-accent', text: 'text-accent' },
   'awaiting-grade': { label: 'Awaiting grade', dot: 'bg-accent', text: 'text-accent' },
+}
+
+/** Status-aware due label. A resolved item is NEVER "overdue": a `done` item
+ * finished after its due date reads "Done late"; any other resolved item just
+ * shows its date, quietly. Only items still OPEN and past their date read
+ * "X days overdue". `neutral` is the caller's text color for non-urgent labels
+ * (Today wants its due text prominent → 'text-fg'; the editor wants it subtle). */
+export function dueLabel(
+  due: string,
+  status: AssessmentStatus,
+  neutral = 'text-subtle',
+): { label: string; tone: string } {
+  const days = daysUntil(due)
+  if (isOpen(status)) {
+    return {
+      label: relativeDueLabel(due),
+      tone: days < 0 ? 'text-danger' : days === 0 ? 'text-warning' : neutral,
+    }
+  }
+  // Resolved: a completed item past its date is "Done late", not overdue.
+  if (status === 'done' && days < 0) return { label: 'Done late', tone: 'text-warning' }
+  // Everything else resolved (missed / awaiting-grade / on-time done): plain date.
+  return { label: days < 0 ? formatFull(due) : relativeDueLabel(due), tone: neutral }
 }

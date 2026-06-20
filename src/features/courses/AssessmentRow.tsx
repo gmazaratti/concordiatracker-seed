@@ -4,19 +4,11 @@ import type { Assessment, AssessmentStatus } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
-import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
+import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
 import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
-import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
-
-function dueTone(due: string): string {
-  const days = daysUntil(due)
-  if (days < 0) return 'text-danger'
-  if (days === 0) return 'text-warning'
-  return 'text-subtle'
-}
 
 /** One row of the course grade editor. In the Grades tab, status and grade are
  * STAGED locally and committed together on the confirm button — nothing writes
@@ -46,6 +38,8 @@ export function AssessmentRow({
 
   const draftPct = gradeToPercent(parsedDraft)
   const resolved = draftPct === null ? null : percentToGrade(draftPct)
+  // Status-aware: a done item past its date reads "Done late", never overdue.
+  const due = dueLabel(assessment.due, assessment.status)
 
   function commit() {
     if (statusDirty) setStatus(assessment.id, draftStatus)
@@ -79,9 +73,7 @@ export function AssessmentRow({
               <span className="text-[12px] text-subtle">· {assessment.weight}%</span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
-              <span className={cn('font-medium', dueTone(assessment.due))}>
-                {relativeDueLabel(assessment.due)}
-              </span>
+              <span className={cn('font-medium', due.tone)}>{due.label}</span>
               <ProvenanceBadge provenance={assessment.provenance} />
             </div>
           </div>

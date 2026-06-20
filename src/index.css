@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* iOS Safari auto-zooms the page when you focus an input whose font-size is
+ * below 16px. Force form controls to >=16px on small screens so tapping a
+ * grade / number / search / notes field never zooms. Placed unlayered (outside
+ * @layer) so it overrides Tailwind's text-* utilities WITHOUT !important; the
+ * viewport meta is left alone, so pinch-zoom stays available (accessibility). */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* =========================================================================
  * DESIGN TOKENS — the ONE place to re-skin the product.
  * Semantic CSS variables are defined per-theme below, then exposed to
