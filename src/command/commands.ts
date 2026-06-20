@@ -104,7 +104,7 @@ export const STATIC_COMMANDS: Command[] = [
     hint: 'Action',
     group: 'Actions',
     icon: Palette,
-    keywords: ['dark', 'maroon', 'concordia', 'skin', 'appearance'],
+    keywords: ['dark', 'maroon', 'concordia', 'light', 'purple', 'skin', 'appearance'],
     perform: (ctx) => {
       ctx.toggleTheme()
       ctx.close()

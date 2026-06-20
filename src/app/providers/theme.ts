@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type Theme = 'dark' | 'maroon'
+export type Theme = 'dark' | 'maroon' | 'light' | 'purple'
 
 export interface ThemeOption {
   id: Theme
@@ -12,6 +12,8 @@ export interface ThemeOption {
 export const THEMES: ThemeOption[] = [
   { id: 'dark', label: 'Refined Dark', swatch: ['#0f0f16', '#8fb39a'] },
   { id: 'maroon', label: 'Concordia Maroon', swatch: ['#1a0d12', '#e8b84b'] },
+  { id: 'light', label: 'Light', swatch: ['#f5f6f4', '#46785a'] },
+  { id: 'purple', label: 'Purple Dark', swatch: ['#181a3d', '#7c3aed'] },
 ]
 
 export interface ThemeContextValue {

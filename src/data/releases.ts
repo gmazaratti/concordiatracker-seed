@@ -26,6 +26,16 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.10.0',
+    name: 'Two new looks',
+    date: '2026-06-19',
+    changes: [
+      { kind: 'new', text: 'A clean Light theme — calm and premium, with the signature sage accent.' },
+      { kind: 'new', text: 'A Purple Dark theme — deep navy surfaces with a vivid purple accent.' },
+      { kind: 'improved', text: 'The theme switcher and ⌘K “Switch theme” now cycle through all four themes.' },
+    ],
+  },
+  {
     version: '1.9.0',
     name: 'Little touches',
     date: '2026-06-19',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ThemeContext, type Theme } from './theme'
+import { ThemeContext, THEMES, type Theme } from './theme'
 
 const DEFAULT_THEME: Theme = 'dark'
 
@@ -15,8 +15,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
+  // Cycle through every registered theme (in THEMES order) so the palette's
+  // "Switch theme" action reaches the new themes too. From 'dark' the first
+  // step still lands on 'maroon', preserving the original behavior.
   const toggleTheme = useCallback(() => {
-    setTheme((t) => (t === 'dark' ? 'maroon' : 'dark'))
+    setTheme((t) => {
+      const i = THEMES.findIndex((o) => o.id === t)
+      return THEMES[(i + 1) % THEMES.length].id
+    })
   }, [])
 
   const value = useMemo(

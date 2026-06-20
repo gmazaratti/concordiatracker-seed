@@ -99,6 +99,94 @@
     0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -10px rgba(0, 0, 0, 0.6);
 }
 
+/* ---- Light theme: calm off-white, deeper sage accent ---- */
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* surfaces — soft off-white page, white cards, subtle grey fills (premium,
+   * deliberately NOT a harsh pure-white background) */
+  --ct-canvas: #f5f6f4;
+  --ct-surface: #ffffff;
+  --ct-surface-2: #eceeea;
+  --ct-border: #e3e5e0;
+  --ct-border-strong: #cdd0c9;
+
+  /* text — near-black with a faint green cast; subtle is tuned to clear WCAG AA
+   * (4.5:1) on BOTH the white surface and the off-white canvas */
+  --ct-fg: #1a1c1a;
+  --ct-muted: #555b54;
+  --ct-subtle: #697066;
+
+  /* accent — the same sage identity, deepened so it stays a confident brand
+   * color on light and carries white text (the dark theme's pale #8fb39a sage
+   * would wash out on white). The pale sage lives on in --ct-accent-soft. */
+  --ct-accent: #46785a;
+  --ct-accent-hover: #3c6a4f; /* hover darkens on light (it lightens on dark) */
+  --ct-accent-contrast: #ffffff;
+  --ct-accent-soft: rgba(70, 120, 90, 0.12);
+  --ct-accent-ring: rgba(70, 120, 90, 0.45);
+
+  --ct-brand: #46785a;
+
+  /* status — deepened for legibility on white */
+  --ct-success: #1f9d6b;
+  --ct-warning: #a8730f;
+  --ct-danger: #d33f43;
+  --ct-info: #2f6fce;
+
+  --ct-prov-official: #1f9d6b;
+  --ct-prov-confirmed: #2f6fce;
+  --ct-prov-unverified: #a8730f;
+
+  /* elevation — soft, low-opacity (light themes need gentle shadows) */
+  --ct-shadow:
+    0 1px 2px rgba(20, 30, 20, 0.06), 0 12px 28px -10px rgba(20, 30, 20, 0.16);
+}
+
+/* ---- Purple-dark theme: dark-navy depth, vivid purple accent ---- */
+[data-theme='purple'] {
+  color-scheme: dark;
+
+  /* surfaces — navy page → card → elevated. NOTE: surface-2 (elevated) is
+   * #283353 rather than the supplied #1b2439, which was actually a touch darker
+   * than the card and would have flattened depth; lifted for clear elevation. */
+  --ct-canvas: #181a3d;
+  --ct-surface: #1c243c;
+  --ct-surface-2: #283353;
+  --ct-border: #2c3658;
+  --ct-border-strong: #3c4870;
+
+  /* text — near-white with a faint lavender cast; subtle clears WCAG AA on the
+   * navy surfaces */
+  --ct-fg: #eef0fb;
+  --ct-muted: #b6bbdb;
+  --ct-subtle: #8c92ba;
+
+  /* accent — vivid purple (the brighter #7c3aed as primary, the deeper #6039dc
+   * as the brand surface tint) */
+  --ct-accent: #7c3aed;
+  --ct-accent-hover: #8d57f1; /* lighter for dark-mode hover */
+  --ct-accent-contrast: #ffffff;
+  --ct-accent-soft: rgba(124, 58, 237, 0.16);
+  --ct-accent-ring: rgba(124, 58, 237, 0.55);
+
+  --ct-brand: #6039dc;
+
+  /* status */
+  --ct-success: #34d399;
+  --ct-warning: #f0b03f;
+  --ct-danger: #f76e74;
+  --ct-info: #6aa6f5;
+
+  --ct-prov-official: #34d399;
+  --ct-prov-confirmed: #6aa6f5;
+  --ct-prov-unverified: #d6a45c;
+
+  /* elevation */
+  --ct-shadow:
+    0 1px 2px rgba(5, 5, 20, 0.5), 0 12px 28px -10px rgba(5, 8, 25, 0.6);
+}
+
 /* ---- Expose tokens to Tailwind (inline = runtime swappable) ---- */
 @theme inline {
   --color-canvas: var(--ct-canvas);
