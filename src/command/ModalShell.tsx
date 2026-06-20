@@ -68,13 +68,15 @@ export function ModalShell({
         aria-label={label}
         tabIndex={-1}
         className={cn(
-          'ct-animate-pop max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
+          'ct-animate-pop w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
           widthClass,
         )}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        {children}
+        {/* Scroll lives on an inner wrapper so the scrollbar is clipped to the
+            rounded corners (the outer box owns the radius + overflow-hidden). */}
+        <div className="max-h-[85vh] overflow-y-auto">{children}</div>
       </div>
     </div>
   )
