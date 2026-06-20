@@ -377,59 +377,87 @@ function CourseEdit({ course, setCourse }: { course: CourseFields; setCourse: (c
   )
 }
 
+function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="text-[10px] font-semibold tracking-wide text-subtle uppercase">{label}</span>
+      {children}
+    </span>
+  )
+}
+
 function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p: Partial<ReviewItem>) => void; onRemove: () => void }) {
+  const [open, setOpen] = useState(false)
   const noDate = !item.due
   return (
     <li className={cn('rounded-lg border bg-surface px-2.5 py-2', noDate ? 'border-warning/50' : 'border-border')}>
+      {/* Type + Title + row actions */}
       <div className="flex items-center gap-2">
         <Select
-          ariaLabel="Kind"
+          ariaLabel="Type"
           size="sm"
           tone="control"
           value={item.kind}
           onChange={(v) => onPatch({ kind: v as AssessmentKind })}
           options={KIND_OPTIONS}
-          className="w-32 shrink-0"
+          className="w-[104px] shrink-0"
         />
         <input
           value={item.title}
           onChange={(e) => onPatch({ title: e.target.value })}
-          aria-label="Assessment title"
+          aria-label="Title"
+          placeholder="Title"
           className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-1 text-[13px] font-medium text-fg outline-none hover:border-border focus:border-border-strong"
         />
+        {item.description && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Toggle details"
+            aria-expanded={open}
+            className={cn('shrink-0 transition-colors', open ? 'text-fg' : 'text-subtle hover:text-fg')}
+          >
+            <ChevronDown size={14} className={cn('transition-transform', open && 'rotate-180')} aria-hidden />
+          </button>
+        )}
         <button type="button" onClick={onRemove} aria-label="Remove" className="shrink-0 text-subtle transition-colors hover:text-danger">
           <Trash2 size={14} aria-hidden />
         </button>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-0.5">
-        <div className="flex items-center gap-1 rounded-md border border-border bg-canvas px-1.5 py-0.5">
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={item.weight}
-            onChange={(e) => onPatch({ weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-            aria-label="Weight"
-            className="w-9 bg-transparent text-right text-[12px] text-fg outline-none"
-          />
-          <span className="text-[11px] text-subtle">%</span>
-        </div>
+      {/* Labeled Due + Weight — the at-a-glance indicators */}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-0.5">
+        <Labeled label="Due">
+          {noDate ? (
+            <button
+              type="button"
+              onClick={() => onPatch({ due: new Date(Date.now() + 7 * 86_400_000).toISOString() })}
+              className="inline-flex items-center gap-1 rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-[12px] font-medium text-warning"
+            >
+              <AlertTriangle size={12} aria-hidden /> Set a date
+            </button>
+          ) : (
+            <DateTimePicker ariaLabel="Due date" value={item.due as string} onChange={(iso) => onPatch({ due: iso })} />
+          )}
+        </Labeled>
 
-        {noDate ? (
-          <button
-            type="button"
-            onClick={() => onPatch({ due: new Date(Date.now() + 7 * 86_400_000).toISOString() })}
-            className="inline-flex items-center gap-1 rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-[12px] font-medium text-warning"
-          >
-            <AlertTriangle size={12} aria-hidden /> Set a date
-          </button>
-        ) : (
-          <DateTimePicker ariaLabel="Due date" value={item.due as string} onChange={(iso) => onPatch({ due: iso })} />
-        )}
-
-        {item.description && <span className="min-w-0 flex-1 truncate text-[12px] text-subtle">{item.description}</span>}
+        <Labeled label="Weight">
+          <div className="flex items-center gap-0.5 rounded-md border border-border bg-canvas px-1.5 py-0.5">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={item.weight}
+              onChange={(e) => onPatch({ weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+              aria-label="Weight percent"
+              className="w-8 bg-transparent text-right text-[12px] text-fg outline-none"
+            />
+            <span className="text-[11px] text-subtle">%</span>
+          </div>
+        </Labeled>
       </div>
+
+      {open && item.description && <p className="mt-2 text-[12px] leading-relaxed text-subtle">{item.description}</p>}
     </li>
   )
 }
