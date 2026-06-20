@@ -26,6 +26,16 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.8.0',
+    name: 'Smoother & more reliable',
+    date: '2026-06-19',
+    changes: [
+      { kind: 'improved', text: 'A cleaner, more trustworthy Google sign-in — it now shows our own concordiatracker.com address.' },
+      { kind: 'fixed', text: 'Your @handle is now guaranteed unique, with a live availability check as you pick one.' },
+      { kind: 'fixed', text: 'The setup preview now greets you by your own name.' },
+    ],
+  },
+  {
     version: '1.7.0',
     name: 'Make it yours',
     date: '2026-06-18',
