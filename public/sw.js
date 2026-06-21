@@ -23,7 +23,7 @@
  *         .then(() => self.clients.matchAll()).then((cs) => cs.forEach((c) => c.navigate(c.url)))))
  *   Deploy it; every client self-unregisters and clears its caches on next load.
  */
-const VERSION = 'ct-v2'
+const VERSION = 'ct-v3'
 const SHELL_CACHE = `${VERSION}-shell`
 const ASSET_CACHE = `${VERSION}-assets`
 const SHELL_URL = '/index.html'

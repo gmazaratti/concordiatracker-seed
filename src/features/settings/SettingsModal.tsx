@@ -111,7 +111,7 @@ export function SettingsModal() {
               <X size={18} aria-hidden />
             </button>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-[calc(1.25rem_+_env(safe-area-inset-bottom))] sm:px-6 sm:pb-5">
             <Body />
           </div>
         </div>
