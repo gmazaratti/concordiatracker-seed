@@ -11,6 +11,7 @@ import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
+import { InstallPrompt } from '@/components/InstallPrompt'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
@@ -35,13 +36,14 @@ export function StudentLayout() {
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar */}
-        <header className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
+        {/* Mobile top bar — pad past the status bar / notch in standalone mode */}
+        <header className="flex items-center justify-between border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
           <Logo />
           <AvatarMenu align="top" compact />
         </header>
 
-        <main className="relative flex-1 overflow-y-auto pb-20 md:pb-0">
+        {/* Bottom padding clears the mobile nav, which itself grows by the home-indicator inset */}
+        <main className="relative flex-1 overflow-y-auto pb-[calc(5rem_+_env(safe-area-inset-bottom))] md:pb-0">
           <Outlet />
         </main>
       </div>
@@ -51,6 +53,7 @@ export function StudentLayout() {
       <QuickActionLayer />
       <SettingsLayer />
       <UpdatesLayer />
+      <InstallPrompt />
     </div>
   )
 }

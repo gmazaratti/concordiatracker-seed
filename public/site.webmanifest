@@ -1,10 +1,19 @@
 {
+  "id": "/",
   "name": "ConcordiaTracker",
   "short_name": "ConcordiaTracker",
   "description": "Concordia syllabus, deadline & GPA tracker for Concordia University students.",
-  "start_url": "/",
+  "lang": "en-CA",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f16",
   "theme_color": "#0f0f16",
-  "icons": [{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }]
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
 }

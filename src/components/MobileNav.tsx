@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn'
 export function MobileNav() {
   const { openPalette } = useCommandPalette()
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-surface/95 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {STUDENT_NAV.map(({ to, label, icon: Icon, end }) => (
         <NavLink
           key={to}

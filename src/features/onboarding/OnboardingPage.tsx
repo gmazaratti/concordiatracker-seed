@@ -161,7 +161,7 @@ export function OnboardingPage() {
   const label = isLast ? 'Enter ConcordiaTracker' : isSetup || step === STEP_COURSE ? 'Continue' : 'Next'
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <header className="flex shrink-0 items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
         {step > minStep ? (
           <button

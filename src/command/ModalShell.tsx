@@ -58,7 +58,7 @@ export function ModalShell({
 
   return (
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center sm:p-4 sm:pb-4"
       onMouseDown={onClose}
     >
       <div
