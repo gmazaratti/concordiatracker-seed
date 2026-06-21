@@ -2,6 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Apply the saved theme before first paint so there's no flash of the default.
+      try {
+        var t = localStorage.getItem('ct_theme')
+        if (t === 'dark' || t === 'maroon' || t === 'light' || t === 'purple')
+          document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
