@@ -74,8 +74,8 @@ export default async function handler(req: any, res: any) {
 
   webpush.setVapidDetails(subject, publicKey, privateKey)
   const payload = JSON.stringify({
-    title: 'ConcordiaTracker',
-    body: 'Test notification — push is working. 🎉',
+    title: 'Notifications are on 🎉',
+    body: "You'll get your deadline reminders right here.",
     url: '/app',
     tag: 'ct-test',
   })
