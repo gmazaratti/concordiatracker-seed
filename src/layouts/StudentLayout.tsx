@@ -42,13 +42,15 @@ export function StudentLayout() {
           <AvatarMenu align="top" compact />
         </header>
 
-        {/* Bottom padding clears the mobile nav, which itself grows by the home-indicator inset */}
-        <main className="relative flex-1 overflow-y-auto pb-[calc(5rem_+_env(safe-area-inset-bottom))] md:pb-0">
+        <main className="relative flex-1 overflow-y-auto">
           <Outlet />
         </main>
+
+        {/* In-flow at the bottom of the column (not fixed) so content fills exactly
+            up to it — no viewport-math compensation, no gap. Hidden on desktop. */}
+        <MobileNav />
       </div>
 
-      <MobileNav />
       <CommandPalette />
       <QuickActionLayer />
       <SettingsLayer />
