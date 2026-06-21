@@ -20,6 +20,7 @@ import { isRelevantTo, orgSlug } from '@/data/community'
 import { useAppData } from '@/app/providers/app-data'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { formatDueDateTime, startOfToday } from '@/lib/date'
+import { clearReminder, EVENT_LEAD_MINUTES, setReminder } from '@/lib/reminders'
 import { cn } from '@/lib/cn'
 import { EventMedia } from './EventMedia'
 import { CategoryTag } from './EventTile'
@@ -173,7 +174,7 @@ export function EventDetailView({
             Add to my calendar
           </button>
         )}
-        <RemindButton eventId={event.id} gate={gate} />
+        <RemindButton event={event} gate={gate} />
         <button
           type="button"
           onClick={onShare}
@@ -199,17 +200,43 @@ export function EventDetailView({
   )
 }
 
-/** "Remind me" toggle — a STUB (in-memory, via the app store); real reminder
- * delivery is connection-phase. Sits beside "Add to my calendar". */
-function RemindButton({ eventId, gate }: { eventId: string; gate?: () => void }) {
+/** "Remind me" toggle — schedules a real push 1 day before the event (and keeps
+ * the existing event_reminders state for instant UI). Cleared on toggle off. */
+function RemindButton({
+  event,
+  gate,
+}: {
+  event: { id: string; start: string; title: string }
+  gate?: () => void
+}) {
   const { isReminderSet, toggleReminder } = useAppData()
-  const on = !gate && isReminderSet(eventId)
+  const on = !gate && isReminderSet(event.id)
+
+  function handle() {
+    if (gate) return gate()
+    const turningOn = !on
+    toggleReminder(event.id)
+    if (turningOn) {
+      void setReminder({
+        kind: 'event',
+        refId: event.id,
+        dueISO: event.start,
+        offsetMinutes: EVENT_LEAD_MINUTES,
+        title: event.title,
+        body: 'Starts tomorrow',
+        url: `/app/community?event=${event.id}`,
+      })
+    } else {
+      void clearReminder('event', event.id)
+    }
+  }
+
   return (
     <button
       type="button"
-      onClick={gate ?? (() => toggleReminder(eventId))}
+      onClick={handle}
       aria-pressed={on}
-      title={on ? 'Reminder set (mocked in this build)' : 'Remind me before this event (mocked)'}
+      title={on ? 'Reminder set — 1 day before' : 'Remind me 1 day before this event'}
       className={cn(
         'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-medium transition-colors duration-150',
         on

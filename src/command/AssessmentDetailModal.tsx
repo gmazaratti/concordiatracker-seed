@@ -1,9 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
+import {
+  clearReminder,
+  getReminderOffset,
+  leadLabel,
+  REMINDER_OPTIONS,
+  setReminder,
+} from '@/lib/reminders'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
@@ -35,6 +42,22 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const [gradeText, setGradeText] = useState(() => gradeToInput(assessment?.grade ?? null))
   const [dueISO, setDueISO] = useState(assessment?.due ?? '')
   const [notes, setNotes] = useState(assessment?.notes ?? '')
+  const [reminderOffset, setReminderOffset] = useState(0)
+  const [reminderInitial, setReminderInitial] = useState(0)
+
+  // Load this assignment's saved reminder lead time (async; safe to set in .then).
+  useEffect(() => {
+    let active = true
+    void getReminderOffset('assignment', id).then((o) => {
+      if (active) {
+        setReminderOffset(o)
+        setReminderInitial(o)
+      }
+    })
+    return () => {
+      active = false
+    }
+  }, [id])
 
   if (!assessment || !course) return null
 
@@ -47,29 +70,50 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const gradeDirty = gradeToInput(parsed) !== gradeToInput(assessment.grade)
   const dueDirty = !!dueISO && dueISO !== assessment.due
   const notesDirty = notes !== assessment.notes
-  const dirty = statusDirty || gradeDirty || dueDirty || notesDirty
+  const reminderDirty = reminderOffset !== reminderInitial
+  const dirty = statusDirty || gradeDirty || dueDirty || notesDirty || reminderDirty
 
   function save() {
-    if (!assessment || !dirty) return
+    if (!assessment || !course || !dirty) return
+
+    // Reminder side-write: (re)schedule when set + dated, clear when turned off.
+    if (reminderOffset > 0 && dueISO && (reminderDirty || dueDirty)) {
+      void setReminder({
+        kind: 'assignment',
+        refId: assessment.id,
+        dueISO,
+        offsetMinutes: reminderOffset,
+        title: assessment.title,
+        body: `${course.code} · due in ${leadLabel(reminderOffset)}`,
+        url: `/app/courses/${assessment.courseId}`,
+      })
+    } else if (reminderOffset === 0 && reminderInitial > 0) {
+      void clearReminder('assignment', assessment.id)
+    }
+
     const patch: Partial<Assessment> = {}
     if (statusDirty) patch.status = status
     if (gradeDirty) patch.grade = parsed
     if (dueDirty) patch.due = dueISO
     if (notesDirty) patch.notes = notes
-    const prev: Partial<Assessment> = {
-      status: assessment.status,
-      grade: assessment.grade,
-      due: assessment.due,
-      notes: assessment.notes,
-    }
-    updateAssessment(assessment.id, patch)
+
     closeTarget()
-    // Changing a date "broadcasts" the correction back to the section (mocked) —
-    // the contribute half of the peer-correction loop.
-    const label = dueDirty
-      ? `Date shared with your ${course?.code ?? 'class'} section`
-      : `Updated ${assessment.title}`
-    flashUndo(label, () => updateAssessment(assessment.id, prev))
+
+    if (Object.keys(patch).length > 0) {
+      const prev: Partial<Assessment> = {
+        status: assessment.status,
+        grade: assessment.grade,
+        due: assessment.due,
+        notes: assessment.notes,
+      }
+      updateAssessment(assessment.id, patch)
+      // Changing a date "broadcasts" the correction back to the section (mocked) —
+      // the contribute half of the peer-correction loop.
+      const label = dueDirty
+        ? `Date shared with your ${course.code} section`
+        : `Updated ${assessment.title}`
+      flashUndo(label, () => updateAssessment(assessment.id, prev))
+    }
   }
 
   function openInCourse() {
@@ -157,6 +201,23 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               ariaLabel="Due date and time"
             />
           </Field>
+        </div>
+
+        <div className="mt-4">
+          <Field label="Reminder">
+            <Select
+              ariaLabel="Reminder"
+              value={String(reminderOffset)}
+              onChange={(v) => setReminderOffset(Number(v))}
+              tone="control"
+              options={REMINDER_OPTIONS.map((o) => ({ value: String(o.minutes), label: o.label }))}
+            />
+          </Field>
+          {reminderOffset > 0 && !dueISO && (
+            <p className="mt-1 text-[12px] text-warning">
+              Add a due date so the reminder has a time to fire.
+            </p>
+          )}
         </div>
 
         <div className="mt-4">
