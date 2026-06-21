@@ -12,6 +12,13 @@
   }
 }
 
+/* Installed-PWA standalone mode: paint the document with the active theme's
+ * canvas so the iOS status-bar / home-indicator SAFE AREAS (and any overscroll)
+ * never show through as pure black. var resolves per [data-theme]. */
+html {
+  background-color: var(--ct-canvas);
+}
+
 /* =========================================================================
  * DESIGN TOKENS — the ONE place to re-skin the product.
  * Semantic CSS variables are defined per-theme below, then exposed to

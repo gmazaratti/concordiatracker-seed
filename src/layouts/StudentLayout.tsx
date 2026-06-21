@@ -32,7 +32,7 @@ export function StudentLayout() {
   if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />
 
   return (
-    <div className="flex h-svh overflow-hidden">
+    <div className="flex h-svh overflow-hidden bg-canvas">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
