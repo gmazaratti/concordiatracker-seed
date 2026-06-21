@@ -23,7 +23,7 @@
  *         .then(() => self.clients.matchAll()).then((cs) => cs.forEach((c) => c.navigate(c.url)))))
  *   Deploy it; every client self-unregisters and clears its caches on next load.
  */
-const VERSION = 'ct-v1'
+const VERSION = 'ct-v2'
 const SHELL_CACHE = `${VERSION}-shell`
 const ASSET_CACHE = `${VERSION}-assets`
 const SHELL_URL = '/index.html'
@@ -98,6 +98,46 @@ self.addEventListener('fetch', (event) => {
         .then((res) => cachePut(ASSET_CACHE, request, res))
         .catch(() => cached)
       return cached || network
+    }),
+  )
+})
+
+/* ---- Web Push ---- */
+
+// A push arrived from the server → show a notification. The server sends a JSON
+// payload { title, body, url? }; we fall back to sensible defaults if it's empty.
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = { body: event.data ? event.data.text() : '' }
+  }
+  const title = data.title || 'ConcordiaTracker'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: data.tag || 'ct-notification',
+      data: { url: data.url || '/app' },
+    }),
+  )
+})
+
+// Tapping the notification → focus an existing app window or open one.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const target = event.notification.data?.url || '/app'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.navigate?.(target)
+          return client.focus()
+        }
+      }
+      return self.clients.openWindow(target)
     }),
   )
 })

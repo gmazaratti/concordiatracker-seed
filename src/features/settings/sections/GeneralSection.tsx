@@ -6,6 +6,7 @@ import { useCommandPalette } from '@/app/providers/command-palette'
 import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palette'
 import { cn } from '@/lib/cn'
 import { Group, Row, Switch, Segmented } from '../controls'
+import { PushControl } from './PushControl'
 
 type Lang = 'en' | 'fr'
 
@@ -38,7 +39,9 @@ export function GeneralSection() {
         </Row>
       </Group>
 
-      <Group label="Notifications">
+      <PushControl />
+
+      <Group label="Email">
         <Row label="Deadline reminders" description="A nudge before things are due.">
           <Switch checked={deadlineReminders} onChange={setDeadlineReminders} label="Deadline reminders" />
         </Row>
