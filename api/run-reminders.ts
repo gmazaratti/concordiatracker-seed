@@ -22,6 +22,25 @@ interface SubRow {
   auth: string
 }
 
+interface AdminDigest {
+  user_id: string
+  total: number
+  users: number
+  features: number
+  bugs: number
+  applications: number
+}
+
+/** Build the digest body, e.g. "2 new signups · 1 feature request". */
+function adminBody(d: AdminDigest): string {
+  const parts: string[] = []
+  if (d.users) parts.push(`${d.users} new ${d.users === 1 ? 'signup' : 'signups'}`)
+  if (d.features) parts.push(`${d.features} feature ${d.features === 1 ? 'request' : 'requests'}`)
+  if (d.bugs) parts.push(`${d.bugs} bug ${d.bugs === 1 ? 'report' : 'reports'}`)
+  if (d.applications) parts.push(`${d.applications} application${d.applications === 1 ? '' : 's'}`)
+  return parts.join(' · ')
+}
+
 const BATCH = 200
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,6 +140,43 @@ export default async function handler(req: any, res: any) {
     })
   }
 
+  // Admin activity digest — one consolidated push per admin with new activity
+  // (the RPC also stamps their last-push time, so it never resends). Best-effort.
+  let adminSent = 0
+  try {
+    const digRes = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_activity_digests`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (digRes.ok) {
+      const digests = (await digRes.json()) as AdminDigest[]
+      for (const d of digests) {
+        const subs = await subsFor(d.user_id)
+        const payload = JSON.stringify({
+          title: `${d.total} new ${d.total === 1 ? 'thing' : 'things'} to review`,
+          body: adminBody(d),
+          url: '/app',
+          tag: 'ct-admin-activity',
+        })
+        for (const s of subs) {
+          try {
+            await webpush.sendNotification(
+              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+              payload,
+            )
+            adminSent++
+          } catch (err: unknown) {
+            const code = (err as { statusCode?: number })?.statusCode
+            if (code === 404 || code === 410) stale.add(s.endpoint)
+          }
+        }
+      }
+    }
+  } catch {
+    /* admin digest is best-effort — never block reminders */
+  }
+
   // Prune dead endpoints.
   for (const endpoint of stale) {
     await fetch(
@@ -129,5 +185,5 @@ export default async function handler(req: any, res: any) {
     )
   }
 
-  res.status(200).json({ processed: processedIds.length, sent })
+  res.status(200).json({ processed: processedIds.length, sent, adminSent })
 }
