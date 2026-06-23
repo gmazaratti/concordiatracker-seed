@@ -83,11 +83,9 @@ export default async function handler(req: any, res: any) {
     res.status(500).json({ error: 'Could not read reminders.' })
     return
   }
+  // Note: do NOT early-return when there are no due reminders — the admin
+  // activity digest below still needs to run on every tick.
   const due: Reminder[] = await dueRes.json()
-  if (!due.length) {
-    res.status(200).json({ processed: 0, sent: 0 })
-    return
-  }
 
   // Cache subscriptions per user (several reminders can share an owner).
   const subsByUser = new Map<string, SubRow[]>()
