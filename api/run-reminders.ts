@@ -24,17 +24,16 @@ interface SubRow {
 
 interface AdminDigest {
   user_id: string
-  total: number
-  users: number
   features: number
   bugs: number
   applications: number
+  /** New signups since the last push — sent as individual notifications. */
+  new_users: { name: string; email: string }[]
 }
 
-/** Build the digest body, e.g. "2 new signups · 1 feature request". */
+/** Digest body for everything EXCEPT signups, e.g. "1 feature request · 2 applications". */
 function adminBody(d: AdminDigest): string {
   const parts: string[] = []
-  if (d.users) parts.push(`${d.users} new ${d.users === 1 ? 'signup' : 'signups'}`)
   if (d.features) parts.push(`${d.features} feature ${d.features === 1 ? 'request' : 'requests'}`)
   if (d.bugs) parts.push(`${d.bugs} bug ${d.bugs === 1 ? 'report' : 'reports'}`)
   if (d.applications) parts.push(`${d.applications} application${d.applications === 1 ? '' : 's'}`)
@@ -149,14 +148,7 @@ export default async function handler(req: any, res: any) {
     })
     if (digRes.ok) {
       const digests = (await digRes.json()) as AdminDigest[]
-      for (const d of digests) {
-        const subs = await subsFor(d.user_id)
-        const payload = JSON.stringify({
-          title: `${d.total} new ${d.total === 1 ? 'thing' : 'things'} to review`,
-          body: adminBody(d),
-          url: '/app',
-          tag: 'ct-admin-activity',
-        })
+      const pushAll = async (subs: SubRow[], payload: string) => {
         for (const s of subs) {
           try {
             await webpush.sendNotification(
@@ -168,6 +160,34 @@ export default async function handler(req: any, res: any) {
             const code = (err as { statusCode?: number })?.statusCode
             if (code === 404 || code === 410) stale.add(s.endpoint)
           }
+        }
+      }
+      for (const d of digests) {
+        const subs = await subsFor(d.user_id)
+        // One notification per new signup, with name + email.
+        for (const u of d.new_users ?? []) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: 'New signup',
+              body: u.email ? `${u.name} · ${u.email}` : u.name,
+              url: '/admin?tab=users',
+              tag: `ct-signup-${u.email || u.name}`, // unique so they don't collapse
+            }),
+          )
+        }
+        // One consolidated digest for everything else.
+        const rest = d.features + d.bugs + d.applications
+        if (rest > 0) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: `${rest} new ${rest === 1 ? 'thing' : 'things'} to review`,
+              body: adminBody(d),
+              url: '/app',
+              tag: 'ct-admin-activity',
+            }),
+          )
         }
       }
     }
