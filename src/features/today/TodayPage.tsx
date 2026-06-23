@@ -12,6 +12,7 @@ import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
+import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 
 const TODAY_LABEL = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -80,6 +81,9 @@ export function TodayPage() {
           {greeting()}, {firstName}
         </h1>
       </header>
+
+      {/* Admin-only platform activity inbox (renders nothing for everyone else) */}
+      <AdminActivityCard />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <main className="order-2 flex min-w-0 flex-1 flex-col gap-3 lg:order-1">

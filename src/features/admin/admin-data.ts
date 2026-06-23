@@ -81,6 +81,20 @@ export interface BugReport {
   created_at: string
 }
 
+export type ActivityKind = 'user' | 'feature' | 'bug' | 'request' | 'org' | 'teacher'
+export interface ActivityItem {
+  kind: ActivityKind
+  id: string
+  title: string
+  subtitle: string
+  created_at: string
+}
+export interface ActivityFeed {
+  items: ActivityItem[]
+  /** When the admin last viewed the feed (null = never). */
+  seenAt: string | null
+}
+
 const num = (v: unknown) => Number(v ?? 0)
 
 // ── Reads ────────────────────────────────────────────────────────────────────
@@ -133,6 +147,24 @@ export async function adminListBugReports(): Promise<BugReport[]> {
   const { data, error } = await supabase.rpc('admin_list_bug_reports')
   if (error) throw error
   return (data ?? []) as BugReport[]
+}
+
+/** The platform activity feed (new users / feedback / applications) + last-seen. */
+export async function adminActivityFeed(): Promise<ActivityFeed> {
+  const { data, error } = await supabase.rpc('admin_activity_feed')
+  if (error) throw error
+  const d = (data ?? {}) as { seen_at: string | null; items: ActivityItem[] }
+  return { items: d.items ?? [], seenAt: d.seen_at ?? null }
+}
+
+export async function adminMarkActivitySeen(): Promise<void> {
+  const { error } = await supabase.rpc('admin_mark_activity_seen')
+  if (error) throw error
+}
+
+/** Count of items newer than the last-seen mark. */
+export function countUnseen(items: ActivityItem[], seenMs: number): number {
+  return items.filter((i) => new Date(i.created_at).getTime() > seenMs).length
 }
 
 // ── Writes (throw on error so the UI can surface + refresh) ───────────────────
