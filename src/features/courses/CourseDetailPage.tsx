@@ -122,19 +122,27 @@ export function CourseDetailPage() {
       ) : (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
-            <CourseInfoPanel
-              course={course}
-              totalAssessments={courseAssessments.length}
-            />
-            <GradeBreakdown assessments={courseAssessments} color={course.color} />
-            <GradeNeeded assessments={courseAssessments} />
-            <PaywallLock locked={plan === 'free'} feature="GPA prediction">
-              <GpaWhatIf
-                courses={courses}
-                assessments={assessments}
-                courseId={course.id}
+            <div data-tour="course-info">
+              <CourseInfoPanel
+                course={course}
+                totalAssessments={courseAssessments.length}
               />
-            </PaywallLock>
+            </div>
+            <div data-tour="breakdown">
+              <GradeBreakdown assessments={courseAssessments} color={course.color} />
+            </div>
+            <div data-tour="grade-needed">
+              <GradeNeeded assessments={courseAssessments} />
+            </div>
+            <div data-tour="gpa-predict">
+              <PaywallLock locked={plan === 'free'} feature="GPA prediction">
+                <GpaWhatIf
+                  courses={courses}
+                  assessments={assessments}
+                  courseId={course.id}
+                />
+              </PaywallLock>
+            </div>
           </aside>
 
           <main className="flex min-w-0 flex-1 flex-col gap-3">
@@ -177,6 +185,7 @@ function ManualCourseAssessments({
       {!empty ? (
         <button
           type="button"
+          data-tour="assess-editor"
           onClick={() => setEditing((o) => !o)}
           aria-expanded={editing}
           className={cn(

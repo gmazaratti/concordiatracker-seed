@@ -147,6 +147,10 @@ export interface AppDataContextValue {
   applyPeerCorrection: (assessmentId: string) => void
   /** Dismiss a suggestion without changing the date. */
   dismissPeerCorrection: (assessmentId: string) => void
+  /** Guided-tour sandbox: merge a throwaway DEMO course in (start) / remove it
+   * (stop). In-memory only; writes to its ids are no-ops. */
+  startSample: () => void
+  stopSample: () => void
 }
 
 export const AppDataContext = createContext<AppDataContextValue | null>(null)

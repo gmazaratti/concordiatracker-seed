@@ -23,7 +23,10 @@ export function GlanceStrip(data: GlanceData) {
   const todayPercent = totalToday === 0 ? 100 : (data.doneToday / totalToday) * 100
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-surface/50">
+    <div
+      data-tour="glance"
+      className="overflow-hidden rounded-xl border border-border/60 bg-surface/50"
+    >
       <p className="border-b border-border/60 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         At a glance
       </p>

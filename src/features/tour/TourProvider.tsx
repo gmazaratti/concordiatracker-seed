@@ -1,12 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAppData } from '@/app/providers/app-data'
 import { TourContext, type TourStep } from './tour'
 
 /** Drives the guided tour: current step, per-step route navigation, advance/back,
- * and end (which fires the onDone passed to start). The visual layer is
- * TourOverlay; this just owns the sequence. */
+ * and end (which fires the onDone passed to start). It also owns the sandbox
+ * lifecycle — a throwaway DEMO course is merged in for the duration so the
+ * walkthrough never touches real data. The visual layer is TourOverlay. */
 export function TourProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
+  const { startSample, stopSample } = useAppData()
   const [steps, setSteps] = useState<TourStep[]>([])
   const [index, setIndex] = useState(0)
   const [active, setActive] = useState(false)
@@ -23,10 +26,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     setActive(false)
     setSteps([])
     setIndex(0)
+    // Land on Today before tearing down the sample, so skipping while on the DEMO
+    // course detail never leaves the user on a now-missing route.
+    navigate('/app')
+    stopSample()
     const done = onDoneRef.current
     onDoneRef.current = null
     done?.()
-  }, [])
+  }, [navigate, stopSample])
 
   const start = useCallback(
     (next: TourStep[], onDone?: () => void) => {
@@ -35,9 +42,10 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       setSteps(next)
       setIndex(0)
       setActive(true)
+      startSample()
       goRoute(next[0])
     },
-    [goRoute],
+    [goRoute, startSample],
   )
 
   const next = useCallback(() => {

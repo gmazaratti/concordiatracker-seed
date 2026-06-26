@@ -13,7 +13,7 @@ export function CalendarRail() {
   const { plan, calendarPrefs, updateCalendarPrefs } = useAppData()
 
   return (
-    <div className="flex flex-col gap-3">
+    <div data-tour="calendar-rail" className="flex flex-col gap-3">
       <Panel title="Layers">
         <LayerRow
           label="My calendar"

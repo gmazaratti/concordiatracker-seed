@@ -18,7 +18,7 @@ import { useSettings } from '@/app/providers/settings'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
 import { useTour } from '@/features/tour/tour'
-import { FIRST_RUN_STEPS } from '@/features/tour/steps'
+import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
@@ -143,7 +143,7 @@ export function AvatarMenu({
             icon={Compass}
             onSelect={() => {
               setOpen(false)
-              start(FIRST_RUN_STEPS)
+              start(TOUR_STEPS)
             }}
           >
             Take a tour

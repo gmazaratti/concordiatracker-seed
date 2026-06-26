@@ -136,6 +136,7 @@ function AddAction({ added, onAdd, title }: { added: boolean; onAdd: () => void;
     return (
       <Link
         to="/app/calendar"
+        data-tour="event-add"
         aria-label="Added to your calendar — view in calendar"
         className="inline-flex items-center gap-1.5 rounded-lg bg-success/15 px-2.5 py-1.5 text-[12px] font-medium text-success transition-colors duration-150 hover:bg-success/25"
       >
@@ -147,6 +148,7 @@ function AddAction({ added, onAdd, title }: { added: boolean; onAdd: () => void;
   return (
     <button
       type="button"
+      data-tour="event-add"
       onClick={onAdd}
       aria-label={`Add "${title}" to my calendar`}
       className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:bg-accent-soft hover:text-accent"

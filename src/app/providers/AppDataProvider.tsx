@@ -27,6 +27,7 @@ import {
 } from '@/lib/supabase-adapters'
 import { COURSE_COLORS } from '@/lib/course-color'
 import { daysFromNow } from '@/lib/date'
+import { SAMPLE_ASSESSMENTS, SAMPLE_COURSE, isSampleId } from '@/features/tour/sample'
 import type { PeerCorrection } from '@/data/peer-corrections'
 import type {
   Assessment,
@@ -60,12 +61,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // Phase 3: the loaded rows, tagged with their owner so a different user never
   // briefly sees the previous user's data (the derivation gates on ownerId).
   const [loaded, setLoaded] = useState<Loaded | null>(null)
+  // The guided tour merges a throwaway DEMO course + assignments in while it runs
+  // (removed when it ends), so the walkthrough never touches the user's real data
+  // and works the same on an empty account. Never persisted; writes to sample ids
+  // are no-ops (guards below).
+  const [sampleOn, setSampleOn] = useState(false)
   const dataReady = !!loaded && loaded.ownerId === authUser?.id
-  const courses = dataReady ? loaded!.courses : NO_COURSES
-  const assessments = dataReady ? loaded!.assessments : NO_ASSESSMENTS
+  const baseCourses = dataReady ? loaded!.courses : NO_COURSES
+  const baseAssessments = dataReady ? loaded!.assessments : NO_ASSESSMENTS
+  const courses = useMemo(
+    () => (sampleOn ? [...baseCourses, SAMPLE_COURSE] : baseCourses),
+    [sampleOn, baseCourses],
+  )
+  const assessments = useMemo(
+    () => (sampleOn ? [...baseAssessments, ...SAMPLE_ASSESSMENTS] : baseAssessments),
+    [sampleOn, baseAssessments],
+  )
   const personalTasks = dataReady ? loaded!.tasks : NO_TASKS
   // Signed in, but the first fetch for this user hasn't landed yet.
   const dataLoading = !!authUser && !dataReady
+
+  const startSample = useCallback(() => setSampleOn(true), [])
+  const stopSample = useCallback(() => setSampleOn(false), [])
 
   const updateCourses = useCallback(
     (fn: (c: Course[]) => Course[]) => setLoaded((d) => (d ? { ...d, courses: fn(d.courses) } : d)),
@@ -229,6 +246,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // ── Assessment edits — optimistic local update + write-through to Supabase ──
   const setStatus = useCallback(
     (id: string, status: AssessmentStatus) => {
+      if (isSampleId(id)) return
       updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, status } : a)))
       queueAssessmentWrite(id, assessmentPatchToRow({ status }))
     },
@@ -237,6 +255,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const setGrade = useCallback(
     (id: string, grade: Grade | null) => {
+      if (isSampleId(id)) return
       updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, grade } : a)))
       queueAssessmentWrite(id, assessmentPatchToRow({ grade }))
     },
@@ -245,6 +264,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const setNotes = useCallback(
     (id: string, notes: string) => {
+      if (isSampleId(id)) return
       updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, notes } : a)))
       queueAssessmentWrite(id, { notes })
     },
@@ -253,6 +273,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateAssessment = useCallback(
     (id: string, patch: Partial<Assessment>) => {
+      if (isSampleId(id)) return
       updateAssessments((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)))
       queueAssessmentWrite(id, assessmentPatchToRow(patch))
     },
@@ -282,6 +303,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const removeAssessment = useCallback(
     (id: string) => {
+      if (isSampleId(id)) return
       // Cancel any pending edit-write for this row before deleting it.
       const t = writeTimers.current.get(id)
       if (t) clearTimeout(t)
@@ -295,6 +317,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const setCourseColor = useCallback(
     (id: string, color: string) => {
+      if (isSampleId(id)) return
       updateCourses((list) => list.map((c) => (c.id === id ? { ...c, color } : c)))
       fireWrite(supabase.from('courses').update({ color }).eq('id', id))
     },
@@ -303,6 +326,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateCourse = useCallback(
     (id: string, patch: Partial<Course>) => {
+      if (isSampleId(id)) return
       updateCourses((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)))
       fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', id))
     },
@@ -347,6 +371,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // the course) so the course delete can't be blocked.
   const removeCourse = useCallback(
     async (id: string) => {
+      if (isSampleId(id)) return
       updateCourses((list) => list.filter((c) => c.id !== id))
       updateAssessments((list) => list.filter((a) => a.courseId !== id))
       await supabase.from('assignments').delete().eq('course_id', id)
@@ -463,6 +488,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       peerCorrections,
       applyPeerCorrection,
       dismissPeerCorrection,
+      startSample,
+      stopSample,
     }),
     [
       user,
@@ -505,6 +532,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       peerCorrections,
       applyPeerCorrection,
       dismissPeerCorrection,
+      startSample,
+      stopSample,
     ],
   )
 

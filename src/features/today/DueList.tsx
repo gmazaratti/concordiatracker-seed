@@ -97,6 +97,7 @@ export function DueList({
           )}
           <button
             type="button"
+            data-tour="customize"
             onClick={() => setCustomizeOpen((o) => !o)}
             aria-expanded={customizeOpen}
             aria-label="Customize Today"

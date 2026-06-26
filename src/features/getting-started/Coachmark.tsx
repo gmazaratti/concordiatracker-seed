@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { useUiState } from '@/app/providers/ui-state'
+import { useTour } from '@/features/tour/tour'
 import { cn } from '@/lib/cn'
 
 interface Rect {
@@ -31,10 +32,13 @@ export function Coachmark({
   body: string
 }) {
   const { loaded, isTipSeen, markTipSeen } = useUiState()
+  const { active: tourActive } = useTour()
   const location = useLocation()
   const [rect, setRect] = useState<Rect | null>(null)
 
-  const active = loaded && !isTipSeen(id)
+  // Suppressed while the guided tour runs, so its spotlight is never doubled up
+  // with a coachmark on the same screen.
+  const active = loaded && !isTipSeen(id) && !tourActive
 
   useEffect(() => {
     if (!active) return
