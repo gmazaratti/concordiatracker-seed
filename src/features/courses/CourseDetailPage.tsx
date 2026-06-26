@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronDown, Loader2, Upload } from 'lucide-react'
+import { ChevronDown, Loader2, Pencil, Upload } from 'lucide-react'
 import type { Assessment } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { courseStanding } from '@/lib/gpa'
@@ -179,15 +179,23 @@ function ManualCourseAssessments({
           type="button"
           onClick={() => setEditing((o) => !o)}
           aria-expanded={editing}
-          className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2.5 text-left text-[13px] font-medium text-muted transition-colors duration-150 hover:border-border-strong hover:text-fg"
+          className={cn(
+            'flex w-full items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left transition-colors duration-150',
+            editing
+              ? 'border-accent/50 bg-accent-soft/40 text-fg'
+              : 'border-border bg-surface text-fg hover:border-border-strong hover:bg-surface-2/50',
+          )}
         >
+          <Pencil size={15} className="shrink-0 text-accent" aria-hidden />
+          <span className="flex-1 truncate text-[13px] font-semibold">
+            {editing ? 'Done editing' : 'Add or edit assessments'}
+            <span className="ml-1.5 text-[12px] font-normal text-subtle">type · date · weight</span>
+          </span>
           <ChevronDown
-            size={15}
-            className={cn('shrink-0 transition-transform duration-150', editing && 'rotate-180')}
+            size={18}
+            className={cn('shrink-0 text-muted transition-transform duration-150', editing && 'rotate-180')}
             aria-hidden
           />
-          {editing ? 'Done editing' : 'Add or edit assessments'}
-          <span className="text-subtle">· type · date · weight</span>
         </button>
       ) : null}
 

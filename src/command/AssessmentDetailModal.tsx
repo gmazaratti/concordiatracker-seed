@@ -170,7 +170,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               type="text"
               inputMode="decimal"
               value={gradeText}
-              placeholder="82%"
+              placeholder="%"
+              title="Enter a percent (e.g. 82). Got a score like 15/20? Type it and we'll convert it."
               aria-label="Grade (percent, or a score like 15/20)"
               onChange={(e) => setGradeText(e.target.value)}
               onKeyDown={(e) => {
