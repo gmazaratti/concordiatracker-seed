@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useTour } from './tour'
@@ -13,24 +13,37 @@ interface Box {
   height: number
 }
 
-const PAD = 6 // spotlight padding around the target
-const TIP_W = 280
-const GAP = 12
+const PAD = 8 // spotlight padding around the target
+
+const reduceMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /**
- * The visual layer of the guided tour: dims the screen with a spotlight cut out
- * around the current step's target (clip-path, so only the target stays clickable)
- * and shows a tooltip beside it. Steps with no target render a centered card.
- * Read steps advance on Space/→/Next; action steps also advance when the target
- * is used. Esc skips. Spotlight follows scroll/layout (rAF). Reduced-motion is
- * handled by the global duration-zero block (the tooltip uses ct-animate-pop).
+ * The visual layer of the guided tour. Instead of a small floating tooltip it
+ * uses a DOCKED PANEL — a full-height sidebar on desktop (docked on the side
+ * opposite the highlight so it never covers it) and a bottom sheet on mobile —
+ * with large, readable copy, a progress bar, and Back (bottom-left) / Next
+ * (bottom-right). The current target is spotlit (dim + clip-path cutout, so only
+ * it stays interactive) and auto-scrolled into view once per step, so nothing is
+ * ever left out of frame. Read steps advance on Space/→/Next; action steps also
+ * advance on the real interaction; Esc skips. Reduced-motion safe.
  */
 export function TourOverlay() {
   const { active, step, index, total, next, back, end } = useTour()
   const [box, setBox] = useState<Box | null>(null)
+  const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
+  const scrolledFor = useRef<string | null>(null)
 
-  // Keep the spotlight pinned to the target through navigation / scroll / layout.
-  // All setState happens inside the rAF tick (deferred), never in the effect body.
+  useEffect(() => {
+    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // Measure the target each frame (follows scroll/layout) and, once per step,
+  // scroll it into view so it's never out of frame. All setState is inside the
+  // rAF tick — never synchronously in the effect body.
   useEffect(() => {
     if (!active) return
     let raf = 0
@@ -38,6 +51,14 @@ export function TourOverlay() {
     const tick = () => {
       const el = sel ? (document.querySelector(sel) as HTMLElement | null) : null
       if (el) {
+        if (scrolledFor.current !== step?.id) {
+          scrolledFor.current = step?.id ?? null
+          el.scrollIntoView({
+            block: 'center',
+            inline: 'nearest',
+            behavior: reduceMotion() ? 'auto' : 'smooth',
+          })
+        }
         const r = el.getBoundingClientRect()
         setBox(
           r.width > 0
@@ -77,10 +98,7 @@ export function TourOverlay() {
     if (!active || step?.type !== 'action' || !step.target) return
     const onClick = (e: MouseEvent) => {
       const el = document.querySelector(step.target as string)
-      if (el && e.target instanceof Node && el.contains(e.target)) {
-        // let the real click do its thing first, then advance
-        setTimeout(next, 350)
-      }
+      if (el && e.target instanceof Node && el.contains(e.target)) setTimeout(next, 350)
     }
     document.addEventListener('click', onClick, true)
     return () => document.removeEventListener('click', onClick, true)
@@ -88,116 +106,108 @@ export function TourOverlay() {
 
   if (!active || !step) return null
 
-  // Tooltip position: under the target if there's room, else above; centered when
-  // there's no target (or it isn't on screen yet).
-  let tipStyle: React.CSSProperties
-  let caretX = TIP_W / 2
-  let caretTop = true
-  if (box) {
-    const below = box.bottom + GAP
-    const placeAbove = below + 150 > window.innerHeight && box.top - GAP - 150 > 0
-    const left = Math.max(12, Math.min(box.left + box.width / 2 - TIP_W / 2, window.innerWidth - TIP_W - 12))
-    caretX = box.left + box.width / 2 - left
-    if (placeAbove) {
-      tipStyle = { left, bottom: window.innerHeight - box.top + GAP, width: TIP_W }
-      caretTop = false
-    } else {
-      tipStyle = { left, top: below, width: TIP_W }
-      caretTop = true
-    }
-  } else {
-    tipStyle = { left: '50%', top: '50%', width: TIP_W, transform: 'translate(-50%, -50%)' }
-  }
+  const mobile = vp.w < 768
+  // Dock opposite the highlight so the panel never covers it.
+  const side = !box ? 'right' : box.left + box.width / 2 > vp.w / 2 ? 'left' : 'right'
 
   const L = box ? Math.max(0, box.left - PAD) : 0
   const T = box ? Math.max(0, box.top - PAD) : 0
-  const R = box ? box.right + PAD : 0
-  const B = box ? box.bottom + PAD : 0
+  const R = box ? Math.min(vp.w, box.right + PAD) : 0
+  const B = box ? Math.min(vp.h, box.bottom + PAD) : 0
   const clip = box
-    ? `polygon(0% 0%, 0% 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0%)`
+    ? `polygon(0 0, 0 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0)`
     : undefined
+
+  const progress = Math.round(((index + 1) / total) * 100)
+  const last = index + 1 === total
 
   return createPortal(
     <div className="fixed inset-0 z-[70]">
       {/* Dimmer — clipped so only the spotlight stays interactive */}
       <div
-        className="absolute inset-0 bg-black/55"
+        className="absolute inset-0 bg-black/60"
         style={clip ? { clipPath: clip } : undefined}
-        onClick={() => {
-          /* swallow clicks on the dimmed area */
-        }}
       />
       {/* Spotlight ring */}
       {box && (
         <div
-          className="pointer-events-none absolute rounded-lg ring-2 ring-accent/80"
+          className="pointer-events-none absolute rounded-lg ring-2 ring-accent shadow-[0_0_0_5px_var(--ct-accent-soft)]"
           style={{ top: T, left: L, width: R - L, height: B - T }}
           aria-hidden
         />
       )}
 
-      {/* Tooltip */}
-      <div
+      {/* Docked panel — sidebar on desktop, bottom sheet on mobile */}
+      <aside
         role="dialog"
         aria-label={step.title}
-        className="ct-animate-pop fixed z-[71] rounded-xl border border-border bg-surface p-4 shadow-[var(--ct-shadow)]"
-        style={tipStyle}
-      >
-        {box && (
-          <span
-            className={cn(
-              'absolute size-3 rotate-45 border-border bg-surface',
-              caretTop ? 'border-t border-l' : 'border-r border-b',
-            )}
-            style={
-              caretTop
-                ? { top: -6, left: Math.max(10, Math.min(caretX - 6, TIP_W - 22)) }
-                : { bottom: -6, left: Math.max(10, Math.min(caretX - 6, TIP_W - 22)) }
-            }
-            aria-hidden
-          />
+        className={cn(
+          'ct-animate-pop fixed z-[71] flex flex-col bg-surface shadow-2xl',
+          mobile
+            ? 'inset-x-0 bottom-0 max-h-[62vh] rounded-t-2xl border-t border-border px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]'
+            : cn(
+                'top-0 bottom-0 w-[400px] p-7',
+                side === 'right' ? 'right-0 border-l border-border' : 'left-0 border-r border-border',
+              ),
         )}
-
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[14px] font-semibold text-fg">{step.title}</p>
+      >
+        {/* Progress + skip */}
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
           <button
             type="button"
             onClick={end}
             aria-label="Skip tour"
-            className="-mt-1 -mr-1.5 grid size-6 shrink-0 place-items-center rounded text-subtle transition-colors hover:text-fg"
+            className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
           >
-            <X size={15} aria-hidden />
+            <X size={16} aria-hidden />
           </button>
         </div>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">{step.body}</p>
-        {step.type === 'action' && box && (
-          <p className="mt-1.5 text-[12px] font-medium text-accent">Try it — or hit Next to continue.</p>
-        )}
+        <p className="mt-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+          Step {index + 1} of {total}
+        </p>
 
-        <div className="mt-3.5 flex items-center justify-between gap-3">
-          <span className="text-[11px] text-subtle tabular-nums">
-            {index + 1} of {total}
-          </span>
-          <div className="flex items-center gap-1.5">
-            {index > 0 && (
-              <button
-                type="button"
-                onClick={back}
-                className="rounded-lg px-2.5 py-1 text-[12px] font-medium text-subtle transition-colors hover:text-fg"
-              >
-                Back
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={next}
-              className="rounded-lg bg-accent px-3.5 py-1.5 text-[12px] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
-            >
-              {index + 1 === total ? 'Done' : 'Next'}
-            </button>
-          </div>
+        {/* Content — vertically centered in the desktop sidebar; scrolls if long on mobile */}
+        <div
+          className={cn(
+            'min-h-0 py-5',
+            mobile ? 'overflow-y-auto' : 'flex flex-1 flex-col justify-center',
+          )}
+        >
+          <h2 className="font-display text-[22px] leading-tight font-semibold text-fg">
+            {step.title}
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">{step.body}</p>
+          {step.type === 'action' && box && (
+            <p className="mt-3.5 text-[13.5px] font-medium text-accent">
+              Try it on the highlighted item — or hit Next to continue.
+            </p>
+          )}
         </div>
-      </div>
+
+        {/* Footer — Back bottom-left, Next bottom-right */}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={index === 0 ? end : back}
+            className="rounded-lg px-3.5 py-2.5 text-[13.5px] font-medium text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            {index === 0 ? 'Skip tour' : 'Back'}
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            className="rounded-lg bg-accent px-6 py-2.5 text-[14px] font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
+          >
+            {last ? 'Finish' : 'Next'}
+          </button>
+        </div>
+      </aside>
     </div>,
     document.body,
   )
