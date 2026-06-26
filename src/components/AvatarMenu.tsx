@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
   CalendarDays,
+  Compass,
   GraduationCap,
   LogOut,
   Megaphone,
@@ -16,6 +17,8 @@ import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
+import { useTour } from '@/features/tour/tour'
+import { FIRST_RUN_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
@@ -37,6 +40,7 @@ export function AvatarMenu({
   const { openSettings } = useSettings()
   const { showIndicator, openHistory } = useUpdates()
   const { isAdmin } = useIsAdmin()
+  const { start } = useTour()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -135,6 +139,15 @@ export function AvatarMenu({
           <MenuLink to="/feedback" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             Feedback
           </MenuLink>
+          <MenuButton
+            icon={Compass}
+            onSelect={() => {
+              setOpen(false)
+              start(FIRST_RUN_STEPS)
+            }}
+          >
+            Take a tour
+          </MenuButton>
           {/* Deferred contexts — admin-only so regular users don't wander into the
            * half-wired teacher/organizer flows. (Their routes also gate access.) */}
           {isAdmin && (

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChevronDown, Rocket, X } from 'lucide-react'
+import { Check, ChevronDown, Play, Rocket, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
+import { useTour } from '@/features/tour/tour'
+import { FIRST_RUN_STEPS } from '@/features/tour/steps'
 import { isOpen } from '@/lib/status'
 import { gradeToPercent } from '@/lib/grade'
 import { cn } from '@/lib/cn'
@@ -24,6 +26,7 @@ interface Step {
 export function GettingStartedChecklist() {
   const { courses, assessments } = useAppData()
   const { uiState, loaded, patchUiState } = useUiState()
+  const { start } = useTour()
   const [open, setOpen] = useState(true)
 
   const steps: Step[] = [
@@ -136,6 +139,17 @@ export function GettingStartedChecklist() {
             ),
           )}
         </ul>
+      )}
+
+      {open && (
+        <button
+          type="button"
+          onClick={() => start(FIRST_RUN_STEPS)}
+          className="flex w-full items-center justify-center gap-2 border-t border-border px-4 py-2.5 text-[12.5px] font-medium text-accent transition-colors hover:bg-surface-2/40"
+        >
+          <Play size={13} aria-hidden />
+          Take a quick tour
+        </button>
       )}
 
       <div className="flex items-center gap-3 border-t border-border px-4 py-2.5">

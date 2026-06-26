@@ -51,6 +51,7 @@ export function CoursesPage() {
           <Link
             to="/app/courses/blueprints"
             data-coach="add-course"
+            data-tour="import-course"
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />

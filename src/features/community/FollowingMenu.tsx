@@ -43,6 +43,7 @@ export function FollowingMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
+        data-tour="following"
         className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
       >
         <Users size={16} aria-hidden />

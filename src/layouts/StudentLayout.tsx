@@ -14,6 +14,8 @@ import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { GettingStartedChecklist } from '@/features/getting-started/GettingStartedChecklist'
 import { Coachmark } from '@/features/getting-started/Coachmark'
+import { TourProvider } from '@/features/tour/TourProvider'
+import { TourOverlay } from '@/features/tour/TourOverlay'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
@@ -34,6 +36,7 @@ export function StudentLayout() {
   if (onboardingCompleted === false) return <Navigate to="/onboarding" replace />
 
   return (
+    <TourProvider>
     <div className="flex h-svh overflow-hidden bg-canvas">
       <Sidebar />
 
@@ -71,6 +74,8 @@ export function StudentLayout() {
         title="Check it off"
         body="Tap the circle to mark a task done. Tap the row itself to edit its date, grade, or notes."
       />
+      <TourOverlay />
     </div>
+    </TourProvider>
   )
 }
