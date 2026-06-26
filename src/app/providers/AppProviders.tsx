@@ -1,6 +1,7 @@
 import { ThemeProvider } from './ThemeProvider'
 import { CommandPaletteProvider } from './CommandPaletteProvider'
 import { AppDataProvider } from './AppDataProvider'
+import { UiStateProvider } from './UiStateProvider'
 import { CommunityProvider } from './CommunityProvider'
 import { QuickActionsProvider } from './QuickActionsProvider'
 import { SettingsProvider } from './SettingsProvider'
@@ -13,7 +14,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <AppDataProvider>
-        <CommunityProvider>
+        <UiStateProvider>
+          <CommunityProvider>
           <TeacherProvider>
             <FollowsProvider>
               <SettingsProvider>
@@ -25,7 +27,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               </SettingsProvider>
             </FollowsProvider>
           </TeacherProvider>
-        </CommunityProvider>
+          </CommunityProvider>
+        </UiStateProvider>
       </AppDataProvider>
     </ThemeProvider>
   )

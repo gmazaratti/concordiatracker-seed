@@ -51,6 +51,15 @@ export function AssessmentRow({
     setDraftGrade(committedGradeText)
   }
 
+  // One-tap done, separate from the staged status dropdown. Commits immediately
+  // and keeps the dropdown in sync so the two never disagree.
+  const isDone = assessment.status === 'done'
+  function toggleDone() {
+    const next: AssessmentStatus = isDone ? 'not-started' : 'done'
+    setStatus(assessment.id, next)
+    setDraftStatus(next)
+  }
+
   return (
     <div
       id={`assess-${assessment.id}`}
@@ -62,6 +71,20 @@ export function AssessmentRow({
     >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2.5">
         <div className="flex min-w-0 flex-1 basis-[240px] items-start gap-3">
+          <button
+            type="button"
+            onClick={toggleDone}
+            title={isDone ? 'Mark not done' : 'Mark done'}
+            aria-label={isDone ? `Mark "${assessment.title}" not done` : `Mark "${assessment.title}" done`}
+            className={cn(
+              'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150 active:scale-90',
+              isDone
+                ? 'border-transparent bg-success text-accent-contrast'
+                : 'border-border-strong text-transparent hover:border-accent hover:bg-accent-soft hover:text-accent',
+            )}
+          >
+            <Check size={12} strokeWidth={3} aria-hidden />
+          </button>
           <div className="w-[76px] shrink-0 pt-0.5">
             <span className="inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
               {KIND_LABEL[assessment.kind]}
@@ -99,8 +122,9 @@ export function AssessmentRow({
               type="text"
               inputMode="decimal"
               value={draftGrade}
-              placeholder="15/20 or 82"
-              aria-label={`Grade for ${assessment.title}`}
+              placeholder="82%"
+              title="Enter a percent (e.g. 82). Got a score like 15/20? Type it and we'll convert it."
+              aria-label={`Grade for ${assessment.title} (percent, or a score like 15/20)`}
               onChange={(e) => setDraftGrade(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && dirty) commit()

@@ -99,10 +99,11 @@ export function DueRow({
           type="button"
           onClick={markDone}
           disabled={resolving}
+          data-coach="mark-done"
           title="Mark done"
           aria-label={`Mark "${assessment.title}" done`}
           className={cn(
-            'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150',
+            'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150 active:scale-90',
             resolving
               ? 'border-transparent bg-success text-accent-contrast'
               : 'border-border-strong text-transparent hover:border-accent hover:bg-accent-soft hover:text-accent',
@@ -111,49 +112,57 @@ export function DueRow({
           <Check size={12} strokeWidth={3} className={resolving ? 'ct-animate-check' : ''} />
         </button>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-medium text-fg">{assessment.title}</p>
-          <div
-            className={cn(
-              'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-subtle',
-              compact ? 'mt-0.5' : 'mt-1',
-            )}
-          >
-            {course && (
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: hex }}
-                  aria-hidden
-                />
-                <span>{course.code}</span>
-              </span>
-            )}
-            <span>
-              {KIND_LABEL[assessment.kind]}
-              {prefs.showWeight && ` · ${assessment.weight}%`}
-            </span>
-            {prefs.showProvenance ? (
-              <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
-            ) : (
-              unverified && (
-                <span
-                  className="inline-flex items-center gap-1 text-subtle/80"
-                  title="Unverified date — not yet corroborated"
-                >
-                  <CircleDashed size={12} aria-hidden />
-                  <span className="sr-only">unverified date</span>
-                </span>
-              )
-            )}
-          </div>
-        </div>
-
-        <span
-          className={cn('shrink-0 pt-px text-[13px] font-semibold', dueTone(assessment.due))}
+        {/* The whole title/meta/due area is the tap target to edit details. */}
+        <button
+          type="button"
+          onClick={() => openAssessment(assessment.id)}
+          title="Edit details"
+          className="-my-1 flex min-w-0 flex-1 items-start gap-3 rounded-md py-1 text-left transition-colors duration-150 hover:bg-surface-2/40"
         >
-          {relativeDueLabel(assessment.due)}
-        </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-medium text-fg">{assessment.title}</span>
+            <span
+              className={cn(
+                'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-subtle',
+                compact ? 'mt-0.5' : 'mt-1',
+              )}
+            >
+              {course && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: hex }}
+                    aria-hidden
+                  />
+                  <span>{course.code}</span>
+                </span>
+              )}
+              <span>
+                {KIND_LABEL[assessment.kind]}
+                {prefs.showWeight && ` · ${assessment.weight}%`}
+              </span>
+              {prefs.showProvenance ? (
+                <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
+              ) : (
+                unverified && (
+                  <span
+                    className="inline-flex items-center gap-1 text-subtle/80"
+                    title="Unverified date — not yet corroborated"
+                  >
+                    <CircleDashed size={12} aria-hidden />
+                    <span className="sr-only">unverified date</span>
+                  </span>
+                )
+              )}
+            </span>
+          </span>
+
+          <span
+            className={cn('shrink-0 pt-px text-[13px] font-semibold', dueTone(assessment.due))}
+          >
+            {relativeDueLabel(assessment.due)}
+          </span>
+        </button>
 
         <DropdownMenu
           ariaLabel={`More actions for "${assessment.title}"`}

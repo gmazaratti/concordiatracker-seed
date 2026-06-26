@@ -170,8 +170,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               type="text"
               inputMode="decimal"
               value={gradeText}
-              placeholder="15/20 or 82"
-              aria-label="Grade"
+              placeholder="82%"
+              aria-label="Grade (percent, or a score like 15/20)"
               onChange={(e) => setGradeText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && dirty) save()
@@ -189,7 +189,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               {resolved.letter} · {resolved.points.toFixed(1)} pts
             </>
           ) : (
-            'No grade yet — leave blank to keep it ungraded.'
+            'No grade yet — enter a percent like 82, or a score like 15/20.'
           )}
         </p>
 

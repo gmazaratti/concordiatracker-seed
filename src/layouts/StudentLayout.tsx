@@ -12,6 +12,8 @@ import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
+import { GettingStartedChecklist } from '@/features/getting-started/GettingStartedChecklist'
+import { Coachmark } from '@/features/getting-started/Coachmark'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
@@ -56,6 +58,19 @@ export function StudentLayout() {
       <SettingsLayer />
       <UpdatesLayer />
       <InstallPrompt />
+      <GettingStartedChecklist />
+      <Coachmark
+        id="add-course"
+        selector='[data-coach="add-course"]'
+        title="Start with a course"
+        body="Add your first course — import a syllabus or pick a classmate's blueprint. Everything builds from here."
+      />
+      <Coachmark
+        id="mark-done"
+        selector='[data-coach="mark-done"]'
+        title="Check it off"
+        body="Tap the circle to mark a task done. Tap the row itself to edit its date, grade, or notes."
+      />
     </div>
   )
 }
