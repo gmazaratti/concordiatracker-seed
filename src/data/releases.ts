@@ -229,6 +229,16 @@ export const RELEASES: Release[] = [
       { kind: 'new', text: 'The syllabus parse-reveal and two themes (dark + Concordia maroon).' },
     ],
   },
+  {
+    version: '0.0.0',
+    name: 'A fresh start',
+    date: '2026-06-13',
+    changes: [
+      { kind: 'improved', text: 'A complete rebuild — the entire interface was remade from scratch, replacing the old site.' },
+      { kind: 'new', text: 'A brand-new design system, navigation, and foundation built to grow into a real product.' },
+      { kind: 'fixed', text: 'The old version was an early testing phase — its accounts and data were wiped, so everyone begins fresh here.' },
+    ],
+  },
 ]
 
 /** The current (latest) version. */
