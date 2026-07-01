@@ -12,12 +12,17 @@ export function ModalShell({
   onClose,
   children,
   widthClass = 'sm:max-w-md',
+  scroll = true,
 }: {
   label: string
   onClose: () => void
   children: React.ReactNode
   /** Override the dialog's max width (default sm:max-w-md). */
   widthClass?: string
+  /** When true (default) children live in a single scroll wrapper. Set false to
+   * let the child own its own layout (e.g. a pinned header/footer with only the
+   * middle scrolling, so the scrollbar never grazes the rounded corners). */
+  scroll?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const restoreRef = useRef<Element | null>(null)
@@ -27,7 +32,9 @@ export function ModalShell({
     document.body.style.overflow = 'hidden'
     const id = requestAnimationFrame(() => {
       const first = ref.current?.querySelector<HTMLElement>(FOCUSABLE)
-      ;(first ?? ref.current)?.focus()
+      // preventScroll so focusing a far-down control doesn't jump the modal to
+      // the bottom on open.
+      ;(first ?? ref.current)?.focus({ preventScroll: true })
     })
     return () => {
       cancelAnimationFrame(id)
@@ -75,8 +82,13 @@ export function ModalShell({
         onKeyDown={onKeyDown}
       >
         {/* Scroll lives on an inner wrapper so the scrollbar is clipped to the
-            rounded corners (the outer box owns the radius + overflow-hidden). */}
-        <div className="max-h-[85vh] overflow-y-auto">{children}</div>
+            rounded corners (the outer box owns the radius + overflow-hidden).
+            When `scroll` is false the child owns its own layout instead. */}
+        {scroll ? (
+          <div className="max-h-[85vh] overflow-y-auto">{children}</div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   )

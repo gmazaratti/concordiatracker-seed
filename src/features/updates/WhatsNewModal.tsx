@@ -29,35 +29,39 @@ function formatDate(d: string): string {
 export function WhatsNewModal() {
   const { closeHistory } = useUpdates()
   return (
-    <ModalShell label="What's new" onClose={closeHistory} widthClass="sm:max-w-2xl">
-      <div className="border-b border-border px-6 pt-6 pb-5">
-        <p className="text-[11px] font-medium tracking-[0.18em] text-subtle uppercase">Version history</p>
-        <h2 className="mt-1.5 font-display text-[26px] leading-tight font-medium text-fg">What&rsquo;s new</h2>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">Everything we&rsquo;ve shipped, newest first.</p>
-      </div>
+    <ModalShell label="What's new" onClose={closeHistory} widthClass="sm:max-w-2xl" scroll={false}>
+      {/* Pinned header + footer, only the list scrolls — so the scrollbar never
+          reaches the rounded corners and the list opens at the top. */}
+      <div className="flex max-h-[85vh] flex-col">
+        <div className="shrink-0 border-b border-border px-6 pt-6 pb-5">
+          <p className="text-[11px] font-medium tracking-[0.18em] text-subtle uppercase">Version history</p>
+          <h2 className="mt-1.5 font-display text-[26px] leading-tight font-medium text-fg">What&rsquo;s new</h2>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted">Everything we&rsquo;ve shipped, newest first.</p>
+        </div>
 
-      <ol className="px-6 py-6">
-        {RELEASES.map((release, i) => (
-          <ReleaseEntry
-            key={release.version}
-            release={release}
-            latest={i === 0}
-            last={i === RELEASES.length - 1}
-          />
-        ))}
-      </ol>
+        <ol className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          {RELEASES.map((release, i) => (
+            <ReleaseEntry
+              key={release.version}
+              release={release}
+              latest={i === 0}
+              last={i === RELEASES.length - 1}
+            />
+          ))}
+        </ol>
 
-      {/* Cross-link → the requests board (the listen → build → proof loop). */}
-      <div className="border-t border-border bg-surface-2/40 px-6 py-4">
-        <Link
-          to="/feedback?tab=requests"
-          onClick={closeHistory}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
-        >
-          <Lightbulb size={14} aria-hidden />
-          Got an idea? Request a feature &rarr;
-        </Link>
-        <p className="mt-1 text-[12px] text-subtle">Many of these shipped from community requests.</p>
+        {/* Cross-link → the requests board (the listen → build → proof loop). */}
+        <div className="shrink-0 border-t border-border bg-surface-2/40 px-6 py-4">
+          <Link
+            to="/feedback?tab=requests"
+            onClick={closeHistory}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
+          >
+            <Lightbulb size={14} aria-hidden />
+            Got an idea? Request a feature &rarr;
+          </Link>
+          <p className="mt-1 text-[12px] text-subtle">Many of these shipped from community requests.</p>
+        </div>
       </div>
     </ModalShell>
   )

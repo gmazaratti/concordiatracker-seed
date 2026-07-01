@@ -26,6 +26,48 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.18.0',
+    name: 'Take the tour',
+    date: '2026-07-01',
+    changes: [
+      { kind: 'new', text: 'A guided walkthrough of every tab — launch it anytime from your profile menu → Take a tour.' },
+      { kind: 'new', text: 'It runs on a temporary demo course, so the tour never touches your real classes.' },
+      { kind: 'improved', text: 'Each step highlights the real feature, scrolls it into view, and explains it in a clear side panel (a bottom sheet on mobile).' },
+    ],
+  },
+  {
+    version: '1.17.0',
+    name: 'Clearer and calmer',
+    date: '2026-06-29',
+    changes: [
+      { kind: 'improved', text: 'Grade fields are simpler — just type a percent, or a score like 15/20.' },
+      { kind: 'improved', text: 'Assignment rows are more compact and consistent, with a ⋯ menu to edit or delete.' },
+      { kind: 'new', text: 'A “Getting started” checklist tracks your first steps and fades away once you’re set up.' },
+      { kind: 'new', text: 'Gentle one-time tips point out the key spots the first time you visit.' },
+    ],
+  },
+  {
+    version: '1.16.0',
+    name: 'Never miss a deadline',
+    date: '2026-06-27',
+    changes: [
+      { kind: 'new', text: 'Get a push notification before a deadline — choose 1 hour, 1 day, or 1 week ahead.' },
+      { kind: 'new', text: 'Turn on notifications in Settings and send yourself a test to check it works.' },
+      { kind: 'new', text: '“Remind me” on any campus event, so you don’t forget the ones you’re into.' },
+    ],
+  },
+  {
+    version: '1.15.0',
+    name: 'Install it like an app',
+    date: '2026-06-24',
+    changes: [
+      { kind: 'new', text: 'Install ConcordiaTracker on your phone or desktop — add it to your home screen and open it like a native app.' },
+      { kind: 'new', text: 'It launches full-screen, with proper notch and safe-area handling on iPhone.' },
+      { kind: 'fixed', text: 'Your theme now stays put between visits.' },
+      { kind: 'fixed', text: 'No more empty gap beneath the bottom navigation on installed iPhones.' },
+    ],
+  },
+  {
     version: '1.14.0',
     name: 'Public profiles',
     date: '2026-06-20',
