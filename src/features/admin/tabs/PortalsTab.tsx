@@ -14,6 +14,7 @@ import {
   type PortalTeacher,
 } from '../admin-data'
 import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton } from '../admin-ui'
+import { OrgInvitesPanel } from './OrgInvitesPanel'
 import { cn } from '@/lib/cn'
 
 export function PortalsTab() {
@@ -32,6 +33,8 @@ export function PortalsTab() {
       <div className="flex justify-end">
         <RefreshButton onClick={reloadAll} busy={teachers.loading || orgs.loading} />
       </div>
+
+      <OrgInvitesPanel />
 
       <Panel title="Teacher portals" sub={teachers.loading ? 'Loading…' : `${teachers.items.length} accounts`}>
         {teachers.loading ? (
