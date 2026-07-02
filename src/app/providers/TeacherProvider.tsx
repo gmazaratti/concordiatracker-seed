@@ -45,6 +45,8 @@ import {
   SEED_ORG_INVITES,
   SEED_ORGS,
   SEED_TEACHERS,
+  decodeOrgInvite,
+  encodeOrgInvite,
   eventToCommunity,
   inviteStatus,
   newManagedEvent,
@@ -676,7 +678,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       recipientEmail: string
     }) => {
       const invite: OrgInvite = {
-        token: uid('inv'),
+        // Self-describing token → the link works on any device / fresh load with
+        // no backend (the org details travel in the URL).
+        token: encodeOrgInvite(input),
         recipientEmail: input.recipientEmail,
         orgName: input.orgName,
         orgHandle: input.orgHandle,
@@ -694,7 +698,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   const acceptOrgInvite = useCallback(
     (token: string) => {
-      const invite = orgInvites.find((i) => i.token === token)
+      // In-memory (created this session) OR decoded from the self-describing link.
+      const invite = orgInvites.find((i) => i.token === token) ?? decodeOrgInvite(token) ?? undefined
       if (inviteStatus(invite) !== 'valid' || !invite) return null
       const account: OrgAccount = {
         id: uid('org'),
@@ -926,7 +931,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       signInDemoOrg,
       approveOrg,
       orgInvites,
-      getOrgInvite: (token: string) => orgInvites.find((i) => i.token === token),
+      getOrgInvite: (token: string) =>
+        orgInvites.find((i) => i.token === token) ?? decodeOrgInvite(token) ?? undefined,
       createOrgInvite,
       acceptOrgInvite,
       createEvent,

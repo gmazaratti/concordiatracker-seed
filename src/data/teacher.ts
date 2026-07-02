@@ -421,6 +421,67 @@ export function orgFromInvite(invite: OrgInvite): EventOrg {
   }
 }
 
+// ── Self-contained invite tokens ────────────────────────────────────────────
+// The invite details are ENCODED into the token itself (base64url JSON), so an
+// invite link works on any device / fresh page load with no backend — the org
+// data travels in the URL. Trade-off: statelessness means the link can't be
+// server-side single-use or expiry-enforced (fine for the seed; flagged).
+const OI_PREFIX = 'oi_'
+
+function b64urlEncode(s: string): string {
+  const bytes = new TextEncoder().encode(s)
+  let bin = ''
+  for (const b of bytes) bin += String.fromCharCode(b)
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function b64urlDecode(s: string): string {
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'))
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+/** Encode an org invite's details into a shareable, self-describing token. */
+export function encodeOrgInvite(input: {
+  orgName: string
+  orgHandle: string
+  glyph: string
+  color: string
+  recipientEmail: string
+}): string {
+  const payload = {
+    n: input.orgName,
+    h: input.orgHandle,
+    g: input.glyph,
+    c: input.color,
+    e: input.recipientEmail,
+  }
+  return OI_PREFIX + b64urlEncode(JSON.stringify(payload))
+}
+
+/** Decode a self-describing invite token back into an OrgInvite, or null if it
+ * isn't one. Decoded invites are always fresh/valid (no server state to check). */
+export function decodeOrgInvite(token: string): OrgInvite | null {
+  if (!token.startsWith(OI_PREFIX)) return null
+  try {
+    const raw = JSON.parse(b64urlDecode(token.slice(OI_PREFIX.length))) as Record<string, unknown>
+    if (typeof raw.n !== 'string' || typeof raw.e !== 'string') return null
+    return {
+      token,
+      recipientEmail: raw.e,
+      orgName: raw.n,
+      orgHandle: typeof raw.h === 'string' ? raw.h : '',
+      glyph: typeof raw.g === 'string' ? raw.g : raw.n.slice(0, 2).toUpperCase(),
+      color: typeof raw.c === 'string' ? raw.c : '#5b9cf6',
+      createdDaysAgo: 0,
+      expiresInDays: 7,
+      used: false,
+    }
+  } catch {
+    return null
+  }
+}
+
 const orgIdentity = (handle: string): EventOrg => {
   const o = ORGS.find((x) => x.handle === handle)
   if (!o) throw new Error(`Unknown org ${handle}`)
