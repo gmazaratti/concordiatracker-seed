@@ -51,7 +51,6 @@ import {
   inviteStatus,
   newManagedEvent,
   newOrgMemberInvite,
-  orgFromInvite,
   outlineToBlueprint,
   uid,
   type AccessRequest,
@@ -697,34 +696,46 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   )
 
   const acceptOrgInvite = useCallback(
-    (token: string) => {
+    async (token: string) => {
       // In-memory (created this session) OR decoded from the self-describing link.
       const invite = orgInvites.find((i) => i.token === token) ?? decodeOrgInvite(token) ?? undefined
       if (inviteStatus(invite) !== 'valid' || !invite) return null
+      // Accepting creates the accepter's REAL organization (persisted to
+      // `organizations`, owned by the signed-in user) — so it's not a throwaway
+      // demo: Save sticks, and there's no sandbox banner. Requires being signed in.
+      if (!authUser) return null
+      const handle = invite.orgHandle.startsWith('@') ? invite.orgHandle : `@${invite.orgHandle}`
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert({
+          owner_id: authUser.id,
+          handle,
+          name: invite.orgName,
+          verified: false,
+          glyph: invite.glyph,
+          color: invite.color,
+          bio: '',
+          status: 'pending',
+        })
+        .select(ORG_COLS)
+        .maybeSingle()
+      if (error || !data) return null
+      const row = data as OrgRow & { status: string }
       const account: OrgAccount = {
-        id: uid('org'),
-        email: invite.recipientEmail,
+        id: row.id,
+        email: authUser.email ?? invite.recipientEmail,
         status: 'pending',
-        org: orgFromInvite(invite),
+        org: orgFromRow(row),
         events: [],
         followers: 0,
-        members: [
-          {
-            id: uid('mem'),
-            name: invite.orgName,
-            email: invite.recipientEmail,
-            role: 'owner',
-            status: 'active',
-            joinedDaysAgo: 0,
-          },
-        ],
+        members: [],
       }
-      setOrgs((prev) => [...prev, account])
+      setMyOrg(account)
+      setSessionId(SELF_ORG)
       setOrgInvites((prev) => prev.map((i) => (i.token === token ? { ...i, used: true } : i)))
-      setSessionId(account.id)
       return account
     },
-    [orgInvites],
+    [orgInvites, authUser],
   )
 
   // ── Organizer: event + profile management (the signed-in org's OWN events) ─

@@ -114,7 +114,7 @@ export interface TeacherContextValue {
     color: string
     recipientEmail: string
   }) => OrgInvite
-  acceptOrgInvite: (token: string) => OrgAccount | null
+  acceptOrgInvite: (token: string) => Promise<OrgAccount | null>
 
   // Event management (operate on the signed-in organizer's OWN events)
   createEvent: () => string

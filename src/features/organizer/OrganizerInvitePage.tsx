@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, MailCheck } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
@@ -12,15 +13,24 @@ export function OrganizerInvitePage() {
   const { token } = useParams()
   const navigate = useNavigate()
   const { getOrgInvite, acceptOrgInvite } = useTeacher()
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(false)
 
   const invite = token ? getOrgInvite(token) : undefined
   const status = inviteStatus(invite)
 
   if (status !== 'valid' || !invite) return <InviteError status={status} />
 
-  function accept() {
-    const acct = acceptOrgInvite(invite!.token)
-    if (acct) navigate('/organizer')
+  async function accept() {
+    setErr(false)
+    setBusy(true)
+    const acct = await acceptOrgInvite(invite!.token)
+    if (acct) {
+      navigate('/organizer')
+      return
+    }
+    setBusy(false)
+    setErr(true)
   }
 
   return (
@@ -47,13 +57,23 @@ export function OrganizerInvitePage() {
           </p>
         </div>
 
-        <Button className="mt-4 w-full" onClick={accept}>
-          Confirm my email &amp; continue
+        <Button className="mt-4 w-full" onClick={accept} disabled={busy}>
+          {busy ? 'Setting up…' : 'Confirm & set up my dashboard'}
         </Button>
-        <p className="mt-2 text-center text-[11px] text-subtle">
-          You'll start as <span className="text-warning">pending approval</span> until an admin
-          approves your org.
-        </p>
+        {err ? (
+          <p className="mt-2 text-center text-[12px] text-danger">
+            Couldn't set this up — you may already manage an org with this handle. Open the{' '}
+            <Link to="/organizer" className="underline">
+              portal
+            </Link>
+            .
+          </p>
+        ) : (
+          <p className="mt-2 text-center text-[11px] text-subtle">
+            You'll start as <span className="text-warning">pending approval</span> until an admin
+            approves your org.
+          </p>
+        )}
       </div>
     </div>
   )

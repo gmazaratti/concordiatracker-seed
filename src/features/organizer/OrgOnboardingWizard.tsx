@@ -11,9 +11,13 @@ import { cn } from '@/lib/cn'
 // In-memory (resets on reload, like the rest of the demo world): orgs that have
 // finished or skipped onboarding, so the wizard shows once per fresh org.
 const onboarded = new Set<string>()
+// The step each org is on, so the wizard RESUMES where you left off after you go
+// do a step (set up profile, post an event, …) and come back to the dashboard —
+// letting you walk through every step, not just the first.
+const stepByOrg = new Map<string, number>()
 
-/** Shows the guided onboarding wizard ONCE for a fresh (pending) org, then never
- * again this session. Approved/established orgs never see it. */
+/** Shows the guided onboarding wizard for a fresh (pending) org until it's finished
+ * or skipped. Approved/established orgs never see it. */
 export function OrgOnboardingGate({ org }: { org: OrgAccount }) {
   const [done, setDone] = useState(() => onboarded.has(org.id) || org.status !== 'pending')
   if (done) return null
@@ -22,6 +26,7 @@ export function OrgOnboardingGate({ org }: { org: OrgAccount }) {
       org={org}
       onClose={() => {
         onboarded.add(org.id)
+        stepByOrg.delete(org.id)
         setDone(true)
       }}
     />
@@ -40,15 +45,24 @@ interface Step {
 function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () => void }) {
   const navigate = useNavigate()
   const { createEvent } = useTeacher()
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(() => stepByOrg.get(org.id) ?? 0)
 
-  const go = (to: string) => {
-    onClose()
+  // Advance within the wizard.
+  const advance = () => {
+    const n = step + 1
+    stepByOrg.set(org.id, n)
+    setStep(n)
+  }
+  // Leave to DO a step now; persist the next step so the wizard resumes there when
+  // you come back to the dashboard (it doesn't dismiss).
+  const goDo = (to: string) => {
+    stepByOrg.set(org.id, step + 1)
     navigate(to)
   }
   const newEvent = () => {
+    stepByOrg.set(org.id, step + 1)
     const id = createEvent()
-    go(`/organizer/event/${id}`)
+    navigate(`/organizer/event/${id}`)
   }
 
   const steps: Step[] = [
@@ -57,14 +71,14 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
       title: `Welcome, ${org.org.name}`,
       body: "This is your organizer dashboard — post events, grow your following, and manage your team. Let's get you set up in a few quick steps.",
       primaryLabel: 'Get started',
-      onPrimary: () => setStep(1),
+      onPrimary: advance,
     },
     {
       icon: UserCog,
       title: 'Set up your profile',
       body: 'Add a bio, logo, banner, and links so students recognize your org across Community.',
       primaryLabel: 'Set up profile',
-      onPrimary: () => go('/organizer/profile'),
+      onPrimary: () => goDo('/organizer/profile'),
       secondary: true,
     },
     {
@@ -80,7 +94,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
       title: 'Invite your team',
       body: 'Share the dashboard with co-organizers so you can run events together.',
       primaryLabel: 'Invite your team',
-      onPrimary: () => go('/organizer/team'),
+      onPrimary: () => goDo('/organizer/team'),
       secondary: true,
     },
     {
@@ -130,7 +144,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
             {s.secondary && (
               <button
                 type="button"
-                onClick={() => setStep(step + 1)}
+                onClick={advance}
                 className="text-[13px] font-medium text-subtle transition-colors hover:text-fg"
               >
                 Do this later
