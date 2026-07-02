@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
+import { OrganizerLayout } from '@/layouts/OrganizerLayout'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { ConcordiaGpaCalculatorPage, ConcordiaSyllabusTrackerPage } from '@/features/landing/SeoLandingPages'
 import { TodayPage } from '@/features/today/TodayPage'
@@ -21,6 +22,8 @@ import { AdminConsole } from '@/features/admin/AdminConsole'
 import { FeedbackPage } from '@/features/feedback/FeedbackPage'
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { OrganizerHome } from '@/features/organizer/OrganizerHome'
+import { OrganizerEvents } from '@/features/organizer/OrganizerEvents'
+import { OrganizerInsights } from '@/features/organizer/OrganizerInsights'
 import { OrganizerEventEditor } from '@/features/organizer/OrganizerEventEditor'
 import { OrgProfileEditor } from '@/features/organizer/OrgProfileEditor'
 import { OrganizerTeam } from '@/features/organizer/OrganizerTeam'
@@ -62,9 +65,11 @@ export function AppRoutes() {
         <Route path="course/:courseId" element={<TeacherCourseWorkspace />} />
       </Route>
 
-      {/* Organizer portal context — same shell, organizer role (Community events) */}
-      <Route path="/organizer" element={<PortalLayout role="organizer" />}>
+      {/* Organizer portal context — its own app-like shell (sidebar + pages) */}
+      <Route path="/organizer" element={<OrganizerLayout />}>
         <Route index element={<OrganizerHome />} />
+        <Route path="events" element={<OrganizerEvents />} />
+        <Route path="insights" element={<OrganizerInsights />} />
         <Route path="invite/:token" element={<OrganizerInvitePage />} />
         <Route path="join/:token" element={<OrgMemberInvitePage />} />
         <Route path="request" element={<TeacherRequestPage role="organizer" />} />

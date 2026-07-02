@@ -71,7 +71,7 @@ function EventEditorForm({
       return
     }
     deleteEvent(event.id)
-    navigate('/organizer')
+    navigate('/organizer/events')
   }
 
   function save() {
@@ -100,11 +100,11 @@ function EventEditorForm({
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-6">
       <Link
-        to="/organizer"
+        to="/organizer/events"
         className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
       >
         <ArrowLeft size={15} aria-hidden />
-        Dashboard
+        Events
       </Link>
 
       <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
@@ -360,10 +360,10 @@ function NotFound() {
       <h1 className="font-display text-[20px] font-semibold text-fg">Event not found</h1>
       <p className="mt-1.5 text-[13px] text-muted">It may have been deleted.</p>
       <Link
-        to="/organizer"
+        to="/organizer/events"
         className="mt-4 inline-block rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
       >
-        Back to dashboard
+        Back to events
       </Link>
     </div>
   )
