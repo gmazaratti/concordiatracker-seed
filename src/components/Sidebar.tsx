@@ -1,15 +1,17 @@
 import { NavLink } from 'react-router-dom'
-import { Settings } from 'lucide-react'
+import { Lightbulb, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useSettings } from '@/app/providers/settings'
+import { useUiState } from '@/app/providers/ui-state'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
 import { AvatarMenu } from './AvatarMenu'
 import { cn } from '@/lib/cn'
 
-/** Desktop left rail: wordmark, palette trigger, the four destinations,
- *  and the avatar menu pinned to the bottom. */
+/** Desktop left rail: wordmark, palette trigger, the four destinations
+ *  (+ the opt-in pinned Requests board), and the avatar menu at the bottom. */
 export function Sidebar() {
+  const { uiState } = useUiState()
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-border bg-surface/40 p-3 md:flex">
       <div className="px-2 py-3">
@@ -50,6 +52,17 @@ export function Sidebar() {
             )}
           </NavLink>
         ))}
+
+        {/* Opt-in pin (from Feedback → Requests → "Pin to sidebar"). Unpin there. */}
+        {uiState.feedbackPinned && (
+          <NavLink
+            to="/feedback?tab=requests"
+            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <Lightbulb size={18} className="text-subtle transition-colors duration-150 group-hover:text-muted" aria-hidden />
+            Requests
+          </NavLink>
+        )}
       </nav>
 
       <div className="flex-1" />

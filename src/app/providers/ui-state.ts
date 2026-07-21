@@ -5,6 +5,8 @@ export interface UiState {
   checklistDismissed?: boolean
   communityVisited?: boolean
   tipsSeen?: string[]
+  /** Opt-in: pin the feature-requests board as a sidebar item. */
+  feedbackPinned?: boolean
 }
 
 export interface UiStateContextValue {

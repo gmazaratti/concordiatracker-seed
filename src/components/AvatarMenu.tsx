@@ -19,10 +19,15 @@ import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
 import { useTeacher } from '@/app/providers/teacher'
 import { useTour } from '@/features/tour/tour'
+import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
 import { cn } from '@/lib/cn'
+
+/** The people who built this — badged "Founder" with a verification seal in
+ * the profile block (cosmetic; admin rights are gated separately in the DB). */
+const FOUNDER_EMAILS = new Set(['alexxdegryse@gmail.com', 'concordiatracker@gmail.com'])
 
 /**
  * Profile menu — the home for everything that deliberately ISN'T a sidebar
@@ -100,12 +105,19 @@ export function AvatarMenu({
         </span>
         {!compact && (
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium text-fg">
-              {user.name}
+            <span className="flex items-center gap-1">
+              <span className="truncate text-[13px] font-medium text-fg">{user.name}</span>
+              {FOUNDER_EMAILS.has(user.email.toLowerCase()) && (
+                <VerifiedBadge size={13} />
+              )}
             </span>
-            <span className="block truncate text-[11px] text-subtle">
-              {plan === 'free' ? 'Free plan' : 'Semester pass'}
-            </span>
+            {FOUNDER_EMAILS.has(user.email.toLowerCase()) ? (
+              <span className="block truncate text-[11px] font-medium text-accent">Founder</span>
+            ) : (
+              <span className="block truncate text-[11px] text-subtle">
+                {plan === 'free' ? 'Free plan' : 'Semester pass'}
+              </span>
+            )}
           </span>
         )}
       </button>
