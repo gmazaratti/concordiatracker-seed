@@ -150,7 +150,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUser])
 
-  // Load the logged-in user's own organization (if they own one) + its events.
+  // Load the logged-in user's organization — one they OWN, or one they're an
+  // ACTIVE MEMBER of (shared dashboards: org_members grants co-owners/admins the
+  // same portal; the matching write access lives in RLS via is_org_editor).
   useEffect(() => {
     let active = true
     void (async () => {
@@ -163,8 +165,36 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         .select(ORG_COLS)
         .eq('owner_id', authUser.id)
         .limit(1)
+      let orgRow = (orgRows as (OrgRow & { status: string })[] | null)?.[0]
+      if (!orgRow) {
+        // Not an owner — maybe a team member (matched by user id, then email).
+        let { data: mem } = await supabase
+          .from('org_members')
+          .select('org_id')
+          .eq('status', 'active')
+          .eq('user_id', authUser.id)
+          .limit(1)
+        if (!mem?.length && authUser.email) {
+          mem = (
+            await supabase
+              .from('org_members')
+              .select('org_id')
+              .eq('status', 'active')
+              .ilike('email', authUser.email)
+              .limit(1)
+          ).data
+        }
+        const orgId = (mem as { org_id: string }[] | null)?.[0]?.org_id
+        if (orgId) {
+          const { data: byId } = await supabase
+            .from('organizations')
+            .select(ORG_COLS)
+            .eq('id', orgId)
+            .limit(1)
+          orgRow = (byId as (OrgRow & { status: string })[] | null)?.[0]
+        }
+      }
       if (!active) return
-      const orgRow = (orgRows as (OrgRow & { status: string })[] | null)?.[0]
       if (!orgRow) {
         setMyOrg(null)
         return

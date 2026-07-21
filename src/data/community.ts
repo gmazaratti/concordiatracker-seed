@@ -70,7 +70,7 @@ export interface CampusEvent {
 }
 
 const ORG = {
-  gamedev: { name: 'Game Development Association', handle: '@concordiagamedev', verified: false, glyph: 'GD', color: '#a78bfa', logo: '/logos/concordiagamedev.jpg', bio: 'Concordia University’s official club for game development👾👨‍💻| Everyone is welcome to join!', links: { instagram: 'https://www.instagram.com/concordiagamedev/', website: 'https://linktr.ee/concordiagamedev' } },
+  gamedev: { name: 'Game Development Association', handle: '@concordiagamedev', verified: false, glyph: 'GD', color: '#a78bfa', logo: '/logos/concordiagamedev.jpg', banner: '/logos/gamedev-banner.jpg', bio: 'Concordia University’s official club for game development👾👨‍💻| Everyone is welcome to join!', links: { instagram: 'https://www.instagram.com/concordiagamedev/', website: 'https://linktr.ee/concordiagamedev' } },
   ginacody: { name: 'Gina Cody School', handle: '@ginacody', verified: true, glyph: 'GC', color: '#4fb89a', logo: '/logos/ginacody.png', bio: 'The Faculty of Engineering and Computer Science — info sessions, career events, and student programming for Gina Cody.' },
   birks: { name: 'Birks Student Service Centre', handle: '@concordia.hub', verified: true, glyph: 'BK', color: '#5b9cf6', logo: '/logos/birks.png', bio: 'Your first stop for registration, records, and enrolment help at Concordia.' },
   caps: { name: 'CSU Advocacy Center', handle: '@conu.caps', verified: true, glyph: 'CA', color: '#e0a13c', logo: '/logos/csu-advocacy.png', bio: 'Counselling, wellness, and student advocacy — workshops, drop-ins, and support across campus.', links: { website: 'https://www.csu.qc.ca/csu-advocacy-center/' } },
