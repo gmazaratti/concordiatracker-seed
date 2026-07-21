@@ -51,11 +51,11 @@ begin
   update events e
   set start = date_trunc('day', now())
             + make_interval(
-                days  => 1 + ((s.rn - 1) * 13) / s.span,
-                hours => 16 + (s.rn % 4)::int,
-                mins  => case when s.rn % 2 = 0 then 30 else 0 end
+                days  => (1 + ((s.rn - 1) * 13) / s.span)::int,
+                hours => (16 + s.rn % 4)::int,
+                mins  => (case when s.rn % 2 = 0 then 30 else 0 end)::int
               ),
-      posted_at = now() - make_interval(days => 1 + (s.rn % 5)::int)
+      posted_at = now() - make_interval(days => (1 + s.rn % 5)::int)
   from stale s
   where e.id = s.id;
 
