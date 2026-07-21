@@ -16,10 +16,13 @@ export function OrgEventsTab({
   events,
   orgColor,
   onNew,
+  canManage = true,
 }: {
   events: ManagedEvent[]
   orgColor: string
   onNew: () => void
+  /** False → view-only (no create button; per-member permission). */
+  canManage?: boolean
 }) {
   const [view, setView] = useState<View>('grid')
   const now = startOfToday().getTime()
@@ -33,21 +36,29 @@ export function OrgEventsTab({
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
         <ViewToggle view={view} onChange={setView} />
-        <Button size="sm" onClick={onNew}>
-          <Plus size={15} aria-hidden />
-          New event
-        </Button>
+        {canManage && (
+          <Button size="sm" onClick={onNew}>
+            <Plus size={15} aria-hidden />
+            New event
+          </Button>
+        )}
       </div>
 
       {events.length === 0 ? (
-        <button
-          type="button"
-          onClick={onNew}
-          className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-12 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
-        >
-          <Plus size={18} aria-hidden />
-          Create your first event
-        </button>
+        canManage ? (
+          <button
+            type="button"
+            onClick={onNew}
+            className="flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-12 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
+          >
+            <Plus size={18} aria-hidden />
+            Create your first event
+          </button>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-10 text-center text-[13px] text-subtle">
+            No events yet.
+          </p>
+        )
       ) : (
         <div className="flex flex-col gap-6">
           <Section title="Upcoming" count={upcoming.length} events={upcoming} view={view} orgColor={orgColor} emptyLabel="No upcoming events — post one to reach students." />

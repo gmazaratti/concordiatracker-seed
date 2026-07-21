@@ -20,8 +20,9 @@ const field =
  * form (with its hooks) only mounts when there's something to edit. */
 export function OrganizerEventEditor() {
   const { eventId } = useParams()
-  const { currentOrg } = useTeacher()
+  const { currentOrg, orgViewerPerms } = useTeacher()
   if (!currentOrg) return <Navigate to="/organizer" replace />
+  if (!orgViewerPerms.manage_events) return <Navigate to="/organizer/events" replace />
 
   const event = currentOrg.events.find((e) => e.id === eventId)
   if (!event) return <NotFound />

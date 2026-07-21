@@ -10,7 +10,7 @@ import type {
 import type { Blueprint } from '@/data/blueprints'
 import type { CampusEvent, EventCategory, EventOrg, OrgLinks } from '@/data/community'
 import type { Announcement } from '@/data/announcements'
-import type { ManagedEvent, OrgMember, OrgRole } from '@/data/teacher'
+import type { ManagedEvent, OrgMember, OrgPermissions, OrgRole } from '@/data/teacher'
 
 /**
  * The mapping layer between Supabase rows (the live schema) and the seed's richer
@@ -446,6 +446,8 @@ export interface OrgMemberRow {
   status: string
   invite_token: string | null
   joined_at: string | null
+  permissions?: Partial<OrgPermissions> | null
+  avatar_url?: string | null
 }
 export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
   return {
@@ -458,6 +460,8 @@ export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
       ? Math.max(0, Math.round((Date.now() - new Date(r.joined_at).getTime()) / DAY_MS))
       : 0,
     inviteToken: r.invite_token ?? undefined,
+    permissions: r.permissions ?? undefined,
+    avatarUrl: r.avatar_url ?? undefined,
   }
 }
 

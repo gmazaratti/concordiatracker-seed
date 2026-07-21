@@ -31,8 +31,15 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
  * the invite/join/request pages) it falls back to a slim top-bar chrome.
  */
 export function OrganizerLayout() {
-  const { currentOrg, signOut, isDemoSession } = useTeacher()
+  const { currentOrg, signOut, isDemoSession, orgViewerPerms } = useTeacher()
   const { loading } = useAuth()
+  // Sidebar honours your permissions: no Insights without view_insights, no
+  // Profile editor without edit_profile (RLS enforces the same server-side).
+  const nav = NAV.filter((item) => {
+    if (item.to === '/organizer/insights') return orgViewerPerms.view_insights
+    if (item.to === '/organizer/profile') return orgViewerPerms.edit_profile
+    return true
+  })
 
   if (loading) {
     return (
@@ -84,7 +91,7 @@ export function OrganizerLayout() {
         </div>
 
         <nav className="flex flex-col gap-1">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -183,7 +190,7 @@ export function OrganizerLayout() {
 
         {/* Mobile bottom nav — in-flow (not fixed), same pattern as the student app */}
         <nav className="flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

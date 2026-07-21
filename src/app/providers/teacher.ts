@@ -8,6 +8,7 @@ import type {
   OrgAccount,
   OrgInvite,
   OrgMember,
+  OrgPermissions,
   OrgRole,
   OutlineItem,
   TeacherAccount,
@@ -139,6 +140,10 @@ export interface TeacherContextValue {
   removeOrgMember: (id: string) => void
   /** Promote/demote a teammate (admin ↔ member). Owners are immutable. */
   setOrgMemberRole: (id: string, role: OrgRole) => void
+  /** Toggle per-member permission overrides (Discord-style). Owners immutable. */
+  setOrgMemberPerms: (id: string, patch: Partial<OrgPermissions>) => void
+  /** What the SIGNED-IN user may do in the current org (owner/demo → all). */
+  orgViewerPerms: OrgPermissions
 
   // Supply pipe → the student Community (approved orgs only)
   communityOrgs: EventOrg[]

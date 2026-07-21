@@ -2,25 +2,31 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import {
   ArrowRight,
+  Award,
   CalendarPlus,
   Eye,
+  Flame,
   Lock,
+  Rocket,
+  Shapes,
   Sparkles,
   Trophy,
   UserPlus,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
-import { metricsTotals, type ManagedEvent } from '@/data/teacher'
+import { metricsTotals, type ManagedEvent, type OrgAccount } from '@/data/teacher'
 import { CATEGORY_META, CATEGORY_ORDER } from '@/features/community/category'
 import { Stat, Metric } from './OrgStat'
 import { cn } from '@/lib/cn'
 
-type Tab = 'reach' | 'events'
+type Tab = 'reach' | 'events' | 'achievements'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'reach', label: 'Reach' },
   { id: 'events', label: 'By event' },
+  { id: 'achievements', label: 'Achievements' },
 ]
 
 const pct = (part: number, whole: number): string =>
@@ -31,9 +37,10 @@ const pct = (part: number, whole: number): string =>
  * and a ranked per-event breakdown with save rates. Aggregate-only, stated
  * plainly; bars are single-hue (magnitude), identity is carried by labels. */
 export function OrganizerInsights() {
-  const { currentOrg } = useTeacher()
+  const { currentOrg, orgViewerPerms } = useTeacher()
   const [tab, setTab] = useState<Tab>('reach')
   if (!currentOrg) return <Navigate to="/organizer" replace />
+  if (!orgViewerPerms.view_insights) return <Navigate to="/organizer" replace />
 
   const { events, followers } = currentOrg
 
@@ -63,7 +70,9 @@ export function OrganizerInsights() {
         ))}
       </div>
 
-      {tab === 'reach' ? <ReachTab followers={followers} events={events} /> : <ByEvent events={events} />}
+      {tab === 'reach' && <ReachTab followers={followers} events={events} />}
+      {tab === 'events' && <ByEvent events={events} />}
+      {tab === 'achievements' && <Achievements org={currentOrg} />}
     </div>
   )
 }
@@ -94,12 +103,57 @@ function ReachTab({ followers, events }: { followers: number; events: ManagedEve
         </p>
       ) : (
         <>
+          <SaveRateHero totals={totals} />
           <Funnel totals={totals} />
           <CategorySplit events={events} />
           <BestEvent events={events} />
         </>
       )}
     </div>
+  )
+}
+
+/** The headline conversion as a DONUT — the share of viewers who commit the
+ * event to their calendar. Single accent hue on a neutral track. */
+function SaveRateHero({ totals }: { totals: { views: number; calendarAdds: number } }) {
+  const rate = totals.views > 0 ? totals.calendarAdds / totals.views : 0
+  const R = 40
+  const C = 2 * Math.PI * R
+  return (
+    <section className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-surface px-5 py-4">
+      <svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label={`Save rate ${Math.round(rate * 100)} percent`} className="shrink-0 -rotate-90">
+        <circle cx="56" cy="56" r={R} fill="none" strokeWidth="12" className="stroke-surface-2" />
+        <circle
+          cx="56"
+          cy="56"
+          r={R}
+          fill="none"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={`${Math.max(0.02, rate) * C} ${C}`}
+          className="stroke-accent transition-[stroke-dasharray] duration-500"
+        />
+        <text
+          x="56"
+          y="56"
+          textAnchor="middle"
+          dominantBaseline="central"
+          transform="rotate(90 56 56)"
+          className="fill-[var(--ct-fg)] font-display text-[22px] font-semibold"
+        >
+          {pct(totals.calendarAdds, totals.views)}
+        </text>
+      </svg>
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-semibold text-fg">Save rate</p>
+        <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted">
+          Of every student who opens one of your events,{' '}
+          <strong className="font-medium text-fg">{pct(totals.calendarAdds, totals.views)} commit
+          it to their calendar</strong> — {totals.calendarAdds.toLocaleString()} saves from{' '}
+          {totals.views.toLocaleString()} views. This is the number to grow.
+        </p>
+      </div>
+    </section>
   )
 }
 
@@ -148,9 +202,10 @@ function Funnel({ totals }: { totals: { views: number; follows: number; calendar
                       <span className="ml-1 font-normal text-subtle">{s.hint}</span>
                     </span>
                   </div>
-                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-surface-2">
+                  {/* Centered bars → a symmetric funnel silhouette. */}
+                  <div className="mt-1.5 h-2.5 rounded-full bg-surface-2">
                     <div
-                      className="h-full rounded-full bg-accent transition-[width] duration-300"
+                      className="mx-auto h-full rounded-full bg-accent transition-[width] duration-300"
                       style={{ width: `${width}%` }}
                     />
                   </div>
@@ -254,6 +309,82 @@ function BestEvent({ events }: { events: ManagedEvent[] }) {
         Open event
       </Link>
     </section>
+  )
+}
+
+interface Achievement {
+  id: string
+  icon: LucideIcon
+  name: string
+  desc: string
+  done: boolean
+  /** Progress toward the goal when locked, e.g. "640 / 1,000". */
+  progress?: string
+}
+
+/** Milestone badges computed from the org's REAL numbers — nothing fabricated.
+ * Locked ones show live progress so there's always a next thing to chase. */
+function Achievements({ org }: { org: OrgAccount }) {
+  const totals = metricsTotals(org.events)
+  const bestAdds = Math.max(0, ...org.events.map((e) => e.metrics.calendarAdds))
+  const categories = new Set(org.events.map((e) => e.category)).size
+  const fmtGoal = (v: number, goal: number) => `${Math.min(v, goal).toLocaleString()} / ${goal.toLocaleString()}`
+
+  const list: Achievement[] = [
+    { id: 'first-event', icon: Rocket, name: 'Liftoff', desc: 'Post your first event', done: org.events.length > 0, progress: fmtGoal(org.events.length, 1) },
+    { id: 'five-events', icon: Flame, name: 'Regular', desc: 'Post 5 events', done: org.events.length >= 5, progress: fmtGoal(org.events.length, 5) },
+    { id: 'views-100', icon: Eye, name: 'On the radar', desc: '100 total views', done: totals.views >= 100, progress: fmtGoal(totals.views, 100) },
+    { id: 'views-1000', icon: Eye, name: 'Campus famous', desc: '1,000 total views', done: totals.views >= 1000, progress: fmtGoal(totals.views, 1000) },
+    { id: 'saves-10', icon: CalendarPlus, name: 'Penciled in', desc: '10 calendar saves', done: totals.calendarAdds >= 10, progress: fmtGoal(totals.calendarAdds, 10) },
+    { id: 'full-house', icon: Trophy, name: 'Full house', desc: '100 saves on a single event', done: bestAdds >= 100, progress: fmtGoal(bestAdds, 100) },
+    { id: 'followers-25', icon: UserPlus, name: 'Following', desc: '25 followers', done: org.followers >= 25, progress: fmtGoal(org.followers, 25) },
+    { id: 'followers-100', icon: Sparkles, name: 'A movement', desc: '100 followers', done: org.followers >= 100, progress: fmtGoal(org.followers, 100) },
+    { id: 'variety', icon: Shapes, name: 'Variety pack', desc: 'Events in 3 categories', done: categories >= 3, progress: fmtGoal(categories, 3) },
+    { id: 'squad', icon: Users, name: 'Squad', desc: 'A team of 3+', done: org.members.length >= 3, progress: fmtGoal(org.members.length, 3) },
+  ]
+  const earned = list.filter((a) => a.done).length
+
+  return (
+    <div>
+      <p className="mb-4 flex items-center gap-2 text-[13px] text-muted">
+        <Award size={15} className="text-accent" aria-hidden />
+        <strong className="font-semibold text-fg">{earned}</strong> of {list.length} earned — all
+        from your real numbers.
+      </p>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((a) => {
+          const Icon = a.icon
+          return (
+            <li
+              key={a.id}
+              className={cn(
+                'flex items-center gap-3 rounded-xl border px-3.5 py-3',
+                a.done ? 'border-accent/40 bg-accent-soft/40' : 'border-border bg-surface opacity-80',
+              )}
+            >
+              <span
+                className={cn(
+                  'grid size-10 shrink-0 place-items-center rounded-xl',
+                  a.done ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-subtle',
+                )}
+              >
+                <Icon size={18} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className={cn('text-[13.5px] font-semibold', a.done ? 'text-fg' : 'text-muted')}>
+                  {a.name}
+                </p>
+                <p className="truncate text-[12px] text-subtle">{a.desc}</p>
+                {!a.done && a.progress && (
+                  <p className="mt-0.5 text-[11px] text-subtle tabular-nums">{a.progress}</p>
+                )}
+              </div>
+              {a.done && <Trophy size={14} className="shrink-0 text-accent" aria-hidden />}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 

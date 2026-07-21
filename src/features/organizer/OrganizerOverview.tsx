@@ -25,7 +25,7 @@ import { cn } from '@/lib/cn'
  * reach stats, quick-action cards, and an upcoming preview. Everything else lives
  * on its own sidebar destination (Events / Insights / Profile / Team). */
 export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => void }) {
-  const { currentOrg, createEvent } = useTeacher()
+  const { currentOrg, createEvent, orgViewerPerms: perms } = useTeacher()
   const navigate = useNavigate()
   if (!currentOrg) return null
 
@@ -83,7 +83,7 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[11px] font-semibold tracking-wide text-subtle uppercase">At a glance</h2>
-            <SeeAll to="/organizer/insights" label="Full insights" />
+            {perms.view_insights && <SeeAll to="/organizer/insights" label="Full insights" />}
           </div>
           <div className="grid grid-cols-3 gap-3">
             <Stat icon={UserPlus} label="Followers" value={followers} primary />
@@ -96,9 +96,15 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
         <section>
           <h2 className="mb-3 text-[11px] font-semibold tracking-wide text-subtle uppercase">Quick actions</h2>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <ActionCard icon={Plus} label="New event" sub="Post to Community" onClick={newEvent} accent />
-            <ActionCard icon={UserCog} label="Edit profile" sub="Bio, logo, links" to="/organizer/profile" />
-            <ActionCard icon={Users} label="Invite team" sub="Share the dashboard" to="/organizer/team" />
+            {perms.manage_events && (
+              <ActionCard icon={Plus} label="New event" sub="Post to Community" onClick={newEvent} accent />
+            )}
+            {perms.edit_profile && (
+              <ActionCard icon={UserCog} label="Edit profile" sub="Bio, logo, links" to="/organizer/profile" />
+            )}
+            {perms.manage_team && (
+              <ActionCard icon={Users} label="Invite team" sub="Share the dashboard" to="/organizer/team" />
+            )}
             {status === 'approved' ? (
               <ActionCard
                 icon={ExternalLink}

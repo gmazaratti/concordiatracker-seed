@@ -5,7 +5,7 @@ import { OrgEventsTab } from './OrgEventsTab'
 /** `/organizer/events` — the full event manager: grid/list toggle, Upcoming +
  * Past sections, and create. */
 export function OrganizerEvents() {
-  const { currentOrg, createEvent } = useTeacher()
+  const { currentOrg, createEvent, orgViewerPerms } = useTeacher()
   const navigate = useNavigate()
   if (!currentOrg) return <Navigate to="/organizer" replace />
 
@@ -22,7 +22,12 @@ export function OrganizerEvents() {
           Everything you've posted — upcoming and past. Click any event to edit it.
         </p>
       </header>
-      <OrgEventsTab events={currentOrg.events} orgColor={currentOrg.org.color} onNew={newEvent} />
+      <OrgEventsTab
+        events={currentOrg.events}
+        orgColor={currentOrg.org.color}
+        onNew={newEvent}
+        canManage={orgViewerPerms.manage_events}
+      />
     </div>
   )
 }

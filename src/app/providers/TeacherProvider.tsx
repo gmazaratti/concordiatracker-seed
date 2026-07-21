@@ -41,6 +41,7 @@ interface TeacherCourseRow {
   blueprint_id: string | null
 }
 import {
+  ALL_ORG_PERMS,
   SEED_INVITES,
   SEED_ORG_INVITES,
   SEED_ORGS,
@@ -49,6 +50,7 @@ import {
   encodeOrgInvite,
   eventToCommunity,
   inviteStatus,
+  memberPerms,
   newManagedEvent,
   newOrgMemberInvite,
   outlineToBlueprint,
@@ -58,6 +60,7 @@ import {
   type OrgAccount,
   type OrgInvite,
   type OrgMember,
+  type OrgPermissions,
   type OrgRole,
   type OutlineItem,
   type RequestStatus,
@@ -80,6 +83,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const [myCourses, setMyCourses] = useState<TeacherCourse[]>([])
   // The logged-in user's OWN organization (loaded from organizations + events).
   const [myOrg, setMyOrg] = useState<OrgAccount | null>(null)
+  // What the signed-in user may DO in their real org (owner → everything;
+  // member → their effective permission set). Demo sessions get everything.
+  const [viewerPerms, setViewerPerms] = useState<OrgPermissions>(ALL_ORG_PERMS)
   // Which events have had "Notify followers" fired — once-only unless reverted.
   // SWAPPABLE STUB: in-memory (resets on reload); real once-only enforcement is a
   // backend concern, but the UX (persists across re-entering the event) is real.
@@ -166,35 +172,38 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         .eq('owner_id', authUser.id)
         .limit(1)
       let orgRow = (orgRows as (OrgRow & { status: string })[] | null)?.[0]
+      let perms: OrgPermissions = ALL_ORG_PERMS
       if (!orgRow) {
         // Not an owner — maybe a team member (matched by user id, then email).
-        // Only owner/admin roles get the shared dashboard: RLS write access
-        // (is_org_editor) covers exactly those, so a plain member never gets a
-        // portal whose saves silently fail.
+        // Their effective permissions gate the UI; RLS (org_perm) enforces the
+        // same set server-side.
+        type MemRow = { org_id: string; role: string; permissions: Partial<OrgPermissions> | null }
         let { data: mem } = await supabase
           .from('org_members')
-          .select('org_id')
+          .select('org_id, role, permissions')
           .eq('status', 'active')
-          .in('role', ['owner', 'admin'])
           .eq('user_id', authUser.id)
           .limit(1)
         if (!mem?.length && authUser.email) {
           mem = (
             await supabase
               .from('org_members')
-              .select('org_id')
+              .select('org_id, role, permissions')
               .eq('status', 'active')
-              .in('role', ['owner', 'admin'])
               .ilike('email', authUser.email)
               .limit(1)
           ).data
         }
-        const orgId = (mem as { org_id: string }[] | null)?.[0]?.org_id
-        if (orgId) {
+        const memRow = (mem as MemRow[] | null)?.[0]
+        if (memRow) {
+          perms = memberPerms({
+            role: (['owner', 'admin', 'member'].includes(memRow.role) ? memRow.role : 'member') as OrgRole,
+            permissions: memRow.permissions ?? undefined,
+          })
           const { data: byId } = await supabase
             .from('organizations')
             .select(ORG_COLS)
-            .eq('id', orgId)
+            .eq('id', memRow.org_id)
             .limit(1)
           orgRow = (byId as (OrgRow & { status: string })[] | null)?.[0]
         }
@@ -202,8 +211,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       if (!active) return
       if (!orgRow) {
         setMyOrg(null)
+        setViewerPerms(ALL_ORG_PERMS)
         return
       }
+      setViewerPerms(perms)
       const { data: evRows } = await supabase
         .from('events')
         .select(EVENT_COLS)
@@ -211,7 +222,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         .order('start')
       const { data: memberRows } = await supabase
         .from('org_members')
-        .select('id,name,email,role,status,invite_token,joined_at')
+        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url')
         .eq('org_id', orgRow.id)
         .order('created_at')
       if (!active) return
@@ -996,14 +1007,35 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           (m) => m.id === id,
         )
       if (!target || target.role === 'owner') return
+      // Switching role preset clears per-member overrides (role defaults apply).
       updateCurrentOrg((o) => ({
         ...o,
-        members: o.members.map((m) => (m.id === id ? { ...m, role } : m)),
+        members: o.members.map((m) => (m.id === id ? { ...m, role, permissions: undefined } : m)),
       }))
       if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(supabase.from('org_members').update({ role }).eq('id', id))
+        fireWrite(supabase.from('org_members').update({ role, permissions: null }).eq('id', id))
       }
       logActivity(`made ${target.name} ${role === 'admin' ? 'an admin' : 'a member'}`)
+    },
+    [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
+  )
+
+  // Toggle a single permission for a teammate (stored as an override on top of
+  // their role's defaults; RLS reads the same jsonb via org_perm()).
+  const setOrgMemberPerms = useCallback(
+    (id: string, patch: Partial<OrgPermissions>) => {
+      const org = sessionId === SELF_ORG ? myOrg : orgs.find((o) => o.id === sessionId)
+      const target = org?.members.find((m) => m.id === id)
+      if (!target || target.role === 'owner') return
+      const merged = { ...(target.permissions ?? {}), ...patch }
+      updateCurrentOrg((o) => ({
+        ...o,
+        members: o.members.map((m) => (m.id === id ? { ...m, permissions: merged } : m)),
+      }))
+      if (sessionId === SELF_ORG && myOrg) {
+        fireWrite(supabase.from('org_members').update({ permissions: merged }).eq('id', id))
+      }
+      logActivity(`updated ${target.name}'s permissions`)
     },
     [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
   )
@@ -1059,6 +1091,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       acceptOrgMemberInvite,
       removeOrgMember,
       setOrgMemberRole,
+      setOrgMemberPerms,
+      orgViewerPerms: sessionId === SELF_ORG ? viewerPerms : ALL_ORG_PERMS,
       communityOrgs,
       communityEvents,
     }),
@@ -1108,6 +1142,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       acceptOrgMemberInvite,
       removeOrgMember,
       setOrgMemberRole,
+      setOrgMemberPerms,
+      viewerPerms,
+      sessionId,
       communityOrgs,
       communityEvents,
     ],

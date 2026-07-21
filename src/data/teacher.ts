@@ -313,6 +313,38 @@ export interface ManagedEvent {
  * invited by anyone already on the team (the access model below is a stub). */
 export type OrgRole = 'owner' | 'admin' | 'member'
 
+/** The four org capabilities (Discord-style). Keys match the DB jsonb + the
+ * `org_perm()` policy helper, so client gating and RLS speak one vocabulary. */
+export type OrgPermKey = 'manage_events' | 'edit_profile' | 'view_insights' | 'manage_team'
+
+export type OrgPermissions = Record<OrgPermKey, boolean>
+
+export const ORG_PERMS: { key: OrgPermKey; label: string; hint: string }[] = [
+  { key: 'manage_events', label: 'Post & manage events', hint: 'Create, edit, and delete events' },
+  { key: 'edit_profile', label: 'Edit the org profile', hint: 'Name, bio, logo, banner, links' },
+  { key: 'view_insights', label: 'View insights', hint: 'Reach numbers and achievements' },
+  { key: 'manage_team', label: 'Manage the team', hint: 'Invite, remove, and set permissions' },
+]
+
+export const ALL_ORG_PERMS: OrgPermissions = {
+  manage_events: true,
+  edit_profile: true,
+  view_insights: true,
+  manage_team: true,
+}
+
+/** Role defaults — an explicit per-member override (the jsonb) wins over these. */
+export function roleDefaultPerms(role: OrgRole): OrgPermissions {
+  if (role === 'member')
+    return { manage_events: false, edit_profile: false, view_insights: true, manage_team: false }
+  return { ...ALL_ORG_PERMS }
+}
+
+/** A member's EFFECTIVE permissions: role defaults + their overrides. */
+export function memberPerms(m: Pick<OrgMember, 'role' | 'permissions'>): OrgPermissions {
+  return { ...roleDefaultPerms(m.role), ...(m.permissions ?? {}) }
+}
+
 export interface OrgMember {
   id: string
   name: string
@@ -326,6 +358,10 @@ export interface OrgMember {
   inviteToken?: string
   /** True for the current logged-in user — pinned + badged "You" in the team list. */
   isYou?: boolean
+  /** Per-member permission OVERRIDES (absent key → role default). */
+  permissions?: Partial<OrgPermissions>
+  /** Snapshot of their profile photo (denormalized — RLS hides other profiles). */
+  avatarUrl?: string
 }
 
 export interface OrgAccount {

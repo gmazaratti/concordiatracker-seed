@@ -19,8 +19,9 @@ const field =
  * logo, banner, brand colour). Writes through `updateOrgProfile`; a live preview
  * mirrors the public org-profile header. */
 export function OrgProfileEditor() {
-  const { currentOrg, updateOrgProfile } = useTeacher()
+  const { currentOrg, updateOrgProfile, orgViewerPerms } = useTeacher()
   if (!currentOrg) return <Navigate to="/organizer" replace />
+  if (!orgViewerPerms.edit_profile) return <Navigate to="/organizer" replace />
 
   return <ProfileForm org={currentOrg.org} approved={currentOrg.status === 'approved'} save={updateOrgProfile} />
 }
