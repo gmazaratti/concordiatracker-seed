@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ArrowLeft, Check, Copy, Lock, Trash2, UserPlus } from 'lucide-react'
+import { Activity, Check, Copy, Lock, Trash2, UserPlus } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { useAppData } from '@/app/providers/app-data'
+import { supabase } from '@/lib/supabase'
 import type { OrgMember, OrgRole } from '@/data/teacher'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -12,6 +14,10 @@ const field =
 
 const ROLE_LABEL: Record<OrgRole, string> = { owner: 'Owner', admin: 'Admin', member: 'Member' }
 
+// Deterministic avatar tints (keyed off the name) so the team reads colorfully
+// without uploaded photos. Fixed hexes — same across themes, like course colors.
+const AVATAR_HUES = ['#5b9cf6', '#a78bfa', '#22b8a6', '#e0853c', '#ec4899', '#4fb89a']
+
 function joinedLabel(days: number): string {
   if (days <= 0) return 'Joined today'
   if (days === 1) return 'Joined yesterday'
@@ -20,28 +26,43 @@ function joinedLabel(days: number): string {
   return `Joined ${Math.floor(days / 365)}y ago`
 }
 
-/** `/organizer/team` — who can manage this org's dashboard. Invite teammates by
- * link (name/email/role) + see everyone with access. Invite delivery is a STUB:
- * the generated link works in-app; in production it'd be emailed. */
+/** `/organizer/team` — who can manage this org's dashboard: invite by link,
+ * promote/demote (admin ↔ member), remove, and a "recent activity" trail showing
+ * who did what. Invite delivery is a stub — share the generated link. */
 export function OrganizerTeam() {
-  const { currentOrg, inviteOrgMember, removeOrgMember } = useTeacher()
+  const { currentOrg, isDemoSession, inviteOrgMember, removeOrgMember, setOrgMemberRole } = useTeacher()
   if (!currentOrg) return <Navigate to="/organizer" replace />
 
-  return <TeamView members={currentOrg.members} invite={inviteOrgMember} remove={removeOrgMember} />
+  return (
+    <TeamView
+      orgId={currentOrg.id}
+      real={!isDemoSession}
+      members={currentOrg.members}
+      invite={inviteOrgMember}
+      remove={removeOrgMember}
+      setRole={setOrgMemberRole}
+    />
+  )
 }
 
 function TeamView({
+  orgId,
+  real,
   members,
   invite,
   remove,
+  setRole,
 }: {
+  orgId: string
+  real: boolean
   members: OrgMember[]
   invite: ReturnType<typeof useTeacher>['inviteOrgMember']
   remove: (id: string) => void
+  setRole: (id: string, role: OrgRole) => void
 }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<OrgRole>('member')
+  const [role, setRoleState] = useState<OrgRole>('member')
   const [lastToken, setLastToken] = useState<string | null>(null)
 
   function send() {
@@ -50,20 +71,12 @@ function TeamView({
     setLastToken(m.inviteToken ?? null)
     setName('')
     setEmail('')
-    setRole('member')
+    setRoleState('member')
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-6">
-      <Link
-        to="/organizer"
-        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-      >
-        <ArrowLeft size={15} aria-hidden />
-        Dashboard
-      </Link>
-
-      <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">Team</h1>
+      <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Team</h1>
       <p className="text-[13px] text-subtle">People who can manage this org's events and profile.</p>
 
       {/* Invite */}
@@ -81,15 +94,15 @@ function TeamView({
             <span className="mb-1 block text-[12px] font-medium text-muted">Email</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="them@org.ca" className={field} />
           </label>
-          <label className="sm:w-32">
+          <label className="sm:w-40">
             <span className="mb-1 block text-[12px] font-medium text-muted">Role</span>
             <Select
               ariaLabel="Role"
               value={role}
-              onChange={(v) => setRole(v as OrgRole)}
+              onChange={(v) => setRoleState(v as OrgRole)}
               options={[
-                { value: 'admin', label: 'Admin' },
-                { value: 'member', label: 'Member' },
+                { value: 'admin', label: 'Admin — can edit' },
+                { value: 'member', label: 'Member — listed' },
               ]}
             />
           </label>
@@ -100,7 +113,8 @@ function TeamView({
         {lastToken && <InviteLink token={lastToken} />}
         <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-subtle">
           <Lock size={12} className="mt-0.5 shrink-0" aria-hidden />
-          Invite emails are stubbed in this build — share the generated link directly.
+          Admins get the full dashboard; members are listed without edit access. Invite emails are
+          stubbed — share the generated link directly.
         </p>
       </div>
 
@@ -109,10 +123,18 @@ function TeamView({
         With access · {members.length}
       </h2>
       <ul className="flex flex-col gap-2">
-        {members.map((m) => (
-          <MemberRow key={m.id} member={m} onRemove={() => remove(m.id)} />
+        {members.map((m, i) => (
+          <MemberRow
+            key={m.id}
+            member={m}
+            hue={AVATAR_HUES[i % AVATAR_HUES.length]}
+            onRemove={() => remove(m.id)}
+            onRole={(r) => setRole(m.id, r)}
+          />
         ))}
       </ul>
+
+      <ActivityTrail orgId={orgId} real={real} />
     </div>
   )
 }
@@ -156,10 +178,54 @@ const ROLE_STYLE: Record<OrgRole, string> = {
   member: 'bg-surface-2 text-muted',
 }
 
-function MemberRow({ member, onRemove }: { member: OrgMember; onRemove: () => void }) {
+function Avatar({ member, hue }: { member: OrgMember; hue: string }) {
+  const { user } = useAppData()
+  const initials =
+    member.name
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || '?'
+  if (member.isYou && user.avatarUrl) {
+    return (
+      <img
+        src={user.avatarUrl}
+        alt=""
+        referrerPolicy="no-referrer"
+        className="size-9 shrink-0 rounded-full bg-surface-2 object-cover"
+      />
+    )
+  }
+  return (
+    <span
+      className="grid size-9 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white"
+      style={{ backgroundColor: hue }}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  )
+}
+
+function MemberRow({
+  member,
+  hue,
+  onRemove,
+  onRole,
+}: {
+  member: OrgMember
+  hue: string
+  onRemove: () => void
+  onRole: (role: OrgRole) => void
+}) {
   const invited = member.status === 'invited'
+  const locked = member.role === 'owner'
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-border bg-surface px-3.5 py-2.5">
+      <Avatar member={member} hue={hue} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[13px] font-medium text-fg">{member.name}</span>
@@ -168,9 +234,11 @@ function MemberRow({ member, onRemove }: { member: OrgMember; onRemove: () => vo
               You
             </span>
           )}
-          <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLE_STYLE[member.role])}>
-            {ROLE_LABEL[member.role]}
-          </span>
+          {locked && (
+            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', ROLE_STYLE.owner)}>
+              Owner
+            </span>
+          )}
           {invited && (
             <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
               Invited · pending
@@ -182,7 +250,22 @@ function MemberRow({ member, onRemove }: { member: OrgMember; onRemove: () => vo
       <span className="shrink-0 text-[11px] text-subtle">
         {invited ? 'Awaiting acceptance' : joinedLabel(member.joinedDaysAgo)}
       </span>
-      {member.role !== 'owner' && (
+      {/* Promote / demote — owners are immutable */}
+      {!locked && (
+        <div className="w-[150px] shrink-0">
+          <Select
+            ariaLabel={`Role for ${member.name}`}
+            size="sm"
+            value={member.role}
+            onChange={(v) => onRole(v as OrgRole)}
+            options={[
+              { value: 'admin', label: ROLE_LABEL.admin },
+              { value: 'member', label: ROLE_LABEL.member },
+            ]}
+          />
+        </div>
+      )}
+      {!locked && (
         <button
           type="button"
           onClick={onRemove}
@@ -194,5 +277,85 @@ function MemberRow({ member, onRemove }: { member: OrgMember; onRemove: () => vo
         </button>
       )}
     </li>
+  )
+}
+
+interface ActivityRow {
+  id: string
+  actor_name: string
+  action: string
+  detail: string
+  created_at: string
+}
+
+const ACTIVITY_FMT = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+/** The org's audit trail — who did what (events, profile, team), newest first.
+ * Real orgs only; the demo world logs nothing. */
+function ActivityTrail({ orgId, real }: { orgId: string; real: boolean }) {
+  const [rows, setRows] = useState<ActivityRow[] | null>(null)
+
+  useEffect(() => {
+    if (!real) return
+    let active = true
+    void (async () => {
+      const { data } = await supabase
+        .from('org_activity')
+        .select('id, actor_name, action, detail, created_at')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(25)
+      if (active) setRows((data as ActivityRow[] | null) ?? [])
+    })()
+    return () => {
+      active = false
+    }
+  }, [orgId, real])
+
+  if (!real) return null
+
+  return (
+    <section className="mt-7">
+      <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+        <Activity size={13} className="text-accent" aria-hidden />
+        Recent activity
+      </h2>
+      {rows === null ? (
+        <p className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-[12px] text-subtle">
+          Loading…
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-5 text-center text-[12.5px] text-subtle">
+          Nothing yet — actions your team takes (posting events, editing the profile, team changes)
+          show up here.
+        </p>
+      ) : (
+        <ul className="overflow-hidden rounded-xl border border-border">
+          {rows.map((r, i) => (
+            <li
+              key={r.id}
+              className={cn(
+                'flex flex-wrap items-baseline gap-x-2 gap-y-0.5 px-3.5 py-2.5',
+                i > 0 && 'border-t border-border/70',
+              )}
+            >
+              <span className="text-[13px] text-muted">
+                <strong className="font-medium text-fg">{r.actor_name || 'Someone'}</strong>{' '}
+                {r.action}
+                {r.detail && <span className="text-subtle"> · {r.detail}</span>}
+              </span>
+              <span className="ml-auto shrink-0 text-[11px] text-subtle">
+                {ACTIVITY_FMT.format(new Date(r.created_at))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

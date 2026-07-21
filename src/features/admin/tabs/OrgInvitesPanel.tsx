@@ -1,104 +1,141 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ExternalLink, Mail, Send } from 'lucide-react'
-import { useTeacher } from '@/app/providers/teacher'
-import type { OrgAccount, OrgInvite } from '@/data/teacher'
+import { supabase } from '@/lib/supabase'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Button } from '@/components/ui/Button'
-import { Panel, Pill, CopyChip, ConfirmButton, EmptyState } from '../admin-ui'
+import { useAdminList } from '../admin-data'
+import { Panel, Pill, CopyChip, ConfirmButton, EmptyState, Loading } from '../admin-ui'
 
-/** Admin portal for organizer invites — the whole loop in one place (all in-memory
- * demo world): prefill + create a custom invite link, see sent links + their
- * status, and review applications (orgs that confirmed the link) — message to
- * verify, then approve so they go live in Community. */
+interface InviteRowData {
+  id: string
+  token: string
+  org_name: string
+  org_handle: string
+  recipient_email: string | null
+  max_uses: number
+  use_count: number
+  expires_at: string
+  created_at: string
+}
+
+/** Admin portal for REAL organizer invites (the org_invites table): prefill a
+ * club's details → mint a single-use (or limited-use), expiring, revocable link.
+ * The recipient opens it, signs in with Google, accepts → a PENDING org +
+ * onboarding; you approve it in the Organizer portals list below. */
 export function OrgInvitesPanel() {
-  const { createOrgInvite, orgInvites, orgs, approveOrg } = useTeacher()
+  const loader = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('org_invites')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return (data as InviteRowData[]) ?? []
+  }, [])
+  const invites = useAdminList<InviteRowData>(loader)
+
   const [name, setName] = useState('')
   const [handle, setHandle] = useState('')
   const [email, setEmail] = useState('')
   const [color, setColor] = useState('#5b9cf6')
-  const [created, setCreated] = useState<OrgInvite | null>(null)
+  const [maxUses, setMaxUses] = useState('1')
+  const [created, setCreated] = useState<InviteRowData | null>(null)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const canCreate = name.trim().length > 0 && email.trim().length > 0
   const suggested = suggestHandle(name)
+  const canCreate = name.trim().length > 0 && !busy
 
-  function create() {
+  async function create() {
     if (!canCreate) return
-    const inv = createOrgInvite({
-      orgName: name.trim(),
-      orgHandle: handle.trim() || suggested || '@org',
+    setBusy(true)
+    setErr('')
+    const row = {
+      token: mintToken(),
+      org_name: name.trim(),
+      org_handle: (handle.trim() || suggested || '@org').replace(/^@?/, '@'),
       glyph: deriveGlyph(name),
       color,
-      recipientEmail: email.trim(),
-    })
-    setCreated(inv)
+      recipient_email: email.trim() || null,
+      max_uses: Math.max(1, parseInt(maxUses, 10) || 1),
+    }
+    const { data, error } = await supabase.from('org_invites').insert(row).select('*').maybeSingle()
+    setBusy(false)
+    if (error || !data) {
+      setErr(error?.message ?? 'Could not create the invite.')
+      return
+    }
+    setCreated(data as InviteRowData)
     setName('')
     setHandle('')
     setEmail('')
+    setMaxUses('1')
+    invites.reload()
   }
 
-  const pendingApps = orgs.filter((o) => o.status === 'pending')
+  async function revoke(id: string) {
+    await supabase.from('org_invites').delete().eq('id', id)
+    if (created?.id === id) setCreated(null)
+    invites.reload()
+  }
 
   return (
     <div className="space-y-4">
-      <Panel title="Create an organizer invite" sub="Prefill a club's details, then send them the link.">
+      <Panel
+        title="Create an organizer invite"
+        sub="Single-use by default; the link dies once accepted. You approve the org after."
+      >
         <div className="space-y-3 p-4">
           <Field label="Organization name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Concordia Robotics Society"
-              className={INPUT}
-            />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Arts & Science Federation of Associations" className={INPUT} />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Handle">
-              <input
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                placeholder={suggested || '@conu.robotics'}
-                className={INPUT}
-              />
+              <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder={suggested || '@asfa'} className={INPUT} />
             </Field>
-            <Field label="Recipient email">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="robotics@concordia.ca"
-                className={INPUT}
-              />
+            <Field label="Recipient email (optional)">
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vp@club.ca" className={INPUT} />
             </Field>
           </div>
-          <Field label="Brand colour">
-            <div className="flex items-center gap-2.5">
-              <ColorPicker value={color} onChange={setColor} ariaLabel="Invite brand colour" />
-              <span
-                className="grid size-8 place-items-center rounded-lg text-[12px] font-bold text-white"
-                style={{ backgroundColor: color }}
-                aria-hidden
-              >
-                {deriveGlyph(name || 'Org')}
-              </span>
-              <span className="text-[12px] text-subtle">Preview logo</span>
+          <div className="flex flex-wrap items-end gap-4">
+            <Field label="Brand colour">
+              <div className="flex items-center gap-2.5">
+                <ColorPicker value={color} onChange={setColor} ariaLabel="Invite brand colour" />
+                <span className="grid size-8 place-items-center rounded-lg text-[12px] font-bold text-white" style={{ backgroundColor: color }} aria-hidden>
+                  {deriveGlyph(name || 'Org')}
+                </span>
+              </div>
+            </Field>
+            <Field label="Uses">
+              <input
+                type="number"
+                min={1}
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+                className={INPUT + ' w-20'}
+                aria-label="Maximum uses"
+              />
+            </Field>
+            <div className="ml-auto">
+              <Button onClick={create} disabled={!canCreate}>
+                <Send size={15} aria-hidden />
+                {busy ? 'Creating…' : 'Create invite link'}
+              </Button>
             </div>
-          </Field>
-          <div className="flex justify-end">
-            <Button onClick={create} disabled={!canCreate}>
-              <Send size={15} aria-hidden />
-              Create invite link
-            </Button>
           </div>
+          {err && <p className="text-[12px] text-danger">{err}</p>}
           {created && (
             <div className="rounded-lg border border-accent/40 bg-accent-soft/40 p-3">
               <p className="mb-2 text-[12px] font-medium text-fg">
-                Invite for <strong>{created.orgName}</strong> is ready — send them this link:
+                Invite for <strong>{created.org_name}</strong> is live — send them this link:
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <CopyChip value={inviteUrl(created)} title="Copy invite link" />
-                <a href={mailtoInvite(created)} className={LINK_BTN}>
-                  <Mail size={13} aria-hidden />
-                  Email it
-                </a>
+                <CopyChip value={inviteUrl(created.token)} title="Copy invite link" />
+                {created.recipient_email && (
+                  <a href={mailtoInvite(created)} className={LINK_BTN}>
+                    <Mail size={13} aria-hidden />
+                    Email it
+                  </a>
+                )}
                 <a href={`/organizer/invite/${created.token}`} className={LINK_BTN}>
                   <ExternalLink size={13} aria-hidden />
                   Open
@@ -109,30 +146,19 @@ export function OrgInvitesPanel() {
         </div>
       </Panel>
 
-      <Panel title="Sent invites" sub={`${orgInvites.length} link${orgInvites.length === 1 ? '' : 's'}`}>
-        {orgInvites.length === 0 ? (
+      <Panel title="Sent invites" sub={invites.loading ? 'Loading…' : `${invites.items.length} link${invites.items.length === 1 ? '' : 's'}`}>
+        {invites.loading ? (
+          <Loading />
+        ) : invites.items.length === 0 ? (
           <EmptyState>No invites yet — create one above.</EmptyState>
         ) : (
           <ul className="divide-y divide-border">
-            {orgInvites.map((inv) => (
-              <InviteRow key={inv.token} invite={inv} />
+            {invites.items.map((inv) => (
+              <InviteRow key={inv.id} invite={inv} onRevoke={() => revoke(inv.id)} />
             ))}
           </ul>
         )}
       </Panel>
-
-      {pendingApps.length > 0 && (
-        <Panel
-          title="Applications to review"
-          sub="They confirmed the invite — message to verify it's them, then approve."
-        >
-          <ul className="divide-y divide-border">
-            {pendingApps.map((o) => (
-              <AppRow key={o.id} org={o} onApprove={() => approveOrg(o.id)} />
-            ))}
-          </ul>
-        </Panel>
-      )}
     </div>
   )
 }
@@ -151,53 +177,44 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function InviteRow({ invite }: { invite: OrgInvite }) {
+function InviteRow({ invite, onRevoke }: { invite: InviteRowData; onRevoke: () => void }) {
   const st = inviteState(invite)
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-[13px] font-medium text-fg">{invite.orgName}</span>
+          <span className="truncate text-[13px] font-medium text-fg">{invite.org_name}</span>
           <Pill tone={st.tone}>{st.label}</Pill>
+          {invite.max_uses > 1 && (
+            <span className="text-[11px] text-subtle tabular-nums">
+              {invite.use_count}/{invite.max_uses} used
+            </span>
+          )}
         </div>
         <span className="truncate text-[12px] text-subtle">
-          {invite.orgHandle} · {invite.recipientEmail}
+          {invite.org_handle}
+          {invite.recipient_email ? ` · ${invite.recipient_email}` : ''}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <CopyChip value={inviteUrl(invite)} title="Copy invite link" />
-        {!invite.used && (
+        <CopyChip value={inviteUrl(invite.token)} title="Copy invite link" />
+        {invite.recipient_email && st.tone !== 'green' && (
           <a href={mailtoInvite(invite)} className={LINK_BTN}>
             <Mail size={13} aria-hidden />
             Message
           </a>
         )}
-      </div>
-    </li>
-  )
-}
-
-function AppRow({ org, onApprove }: { org: OrgAccount; onApprove: () => void }) {
-  return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-fg">{org.org.name}</span>
-        <span className="truncate text-[12px] text-subtle">
-          {org.org.handle} · {org.email}
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <a href={mailtoVerify(org)} className={LINK_BTN}>
-          <Mail size={13} aria-hidden />
-          Message to verify
-        </a>
-        <ConfirmButton label="Approve" armedLabel="Confirm approve" onConfirm={onApprove} />
+        <ConfirmButton label="Revoke" armedLabel="Confirm revoke" danger onConfirm={onRevoke} />
       </div>
     </li>
   )
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+function mintToken(): string {
+  return 'oiv_' + crypto.randomUUID().replace(/-/g, '').slice(0, 20)
+}
+
 function deriveGlyph(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
   if (words.length === 0) return 'OR'
@@ -214,32 +231,24 @@ function suggestHandle(name: string): string {
   return slug ? `@${slug}` : ''
 }
 
-function inviteUrl(inv: OrgInvite): string {
-  return `${window.location.origin}/organizer/invite/${inv.token}`
+function inviteUrl(token: string): string {
+  return `${window.location.origin}/organizer/invite/${token}`
 }
 
-function inviteState(inv: OrgInvite): { label: string; tone: string } {
-  if (inv.used) return { label: 'Confirmed', tone: 'green' }
-  const left = inv.expiresInDays - inv.createdDaysAgo
-  if (left <= 0) return { label: 'Expired', tone: 'red' }
-  return { label: `Expires in ${left}d`, tone: 'amber' }
+function inviteState(inv: InviteRowData): { label: string; tone: string } {
+  if (inv.use_count >= inv.max_uses) return { label: 'Accepted', tone: 'green' }
+  const msLeft = new Date(inv.expires_at).getTime() - Date.now()
+  if (msLeft <= 0) return { label: 'Expired', tone: 'red' }
+  const days = Math.ceil(msLeft / 86_400_000)
+  return { label: `Expires in ${days}d`, tone: 'amber' }
 }
 
-function mailtoInvite(inv: OrgInvite): string {
-  const subject = encodeURIComponent(`Your ConcordiaTracker organizer invite — ${inv.orgName}`)
+function mailtoInvite(inv: InviteRowData): string {
+  const subject = encodeURIComponent(`Your ConcordiaTracker organizer invite — ${inv.org_name}`)
   const body = encodeURIComponent(
-    `Hi,\n\nYou're invited to manage ${inv.orgName} (${inv.orgHandle}) on ConcordiaTracker. ` +
-      `Open this link to confirm and set up your dashboard:\n\n${inviteUrl(inv)}\n\n` +
-      `The link is single-use and expires soon.\n\n— ConcordiaTracker`,
+    `Hi,\n\nHere's your organizer sign-up link for ${inv.org_name} on ConcordiaTracker:\n\n${inviteUrl(inv.token)}\n\n` +
+      `Open it, sign in with Google, and the onboarding will walk you through setting up your profile and posting your first event. ` +
+      `The link is single-use and expires in 14 days.\n\n— Alex, ConcordiaTracker`,
   )
-  return `mailto:${inv.recipientEmail}?subject=${subject}&body=${body}`
-}
-
-function mailtoVerify(o: OrgAccount): string {
-  const subject = encodeURIComponent(`Verifying your ${o.org.name} organizer account`)
-  const body = encodeURIComponent(
-    `Hi,\n\nWe're reviewing the organizer application for ${o.org.name} (${o.org.handle}). ` +
-      `Can you confirm a couple of details so we can verify it's really you before approving?\n\n— ConcordiaTracker`,
-  )
-  return `mailto:${o.email}?subject=${subject}&body=${body}`
+  return `mailto:${inv.recipient_email}?subject=${subject}&body=${body}`
 }

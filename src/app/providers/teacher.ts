@@ -137,6 +137,8 @@ export interface TeacherContextValue {
   acceptOrgMemberInvite: (token: string) => Promise<boolean>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */
   removeOrgMember: (id: string) => void
+  /** Promote/demote a teammate (admin ↔ member). Owners are immutable. */
+  setOrgMemberRole: (id: string, role: OrgRole) => void
 
   // Supply pipe → the student Community (approved orgs only)
   communityOrgs: EventOrg[]

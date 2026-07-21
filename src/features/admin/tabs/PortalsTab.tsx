@@ -131,6 +131,13 @@ function OrgRow({ o, onChanged }: { o: PortalOrg; onChanged: () => void }) {
           <span title="Followers" className="inline-flex items-center gap-1"><Users size={13} aria-hidden />{o.follower_count}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Manual gate: a freshly-invited org stays pending until approved here. */}
+          {o.status === 'pending' && (
+            <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
+              className="rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50">
+              Approve
+            </button>
+          )}
           {banned ? (
             <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
               className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg disabled:opacity-50">

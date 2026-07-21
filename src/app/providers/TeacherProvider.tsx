@@ -168,10 +168,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       let orgRow = (orgRows as (OrgRow & { status: string })[] | null)?.[0]
       if (!orgRow) {
         // Not an owner — maybe a team member (matched by user id, then email).
+        // Only owner/admin roles get the shared dashboard: RLS write access
+        // (is_org_editor) covers exactly those, so a plain member never gets a
+        // portal whose saves silently fail.
         let { data: mem } = await supabase
           .from('org_members')
           .select('org_id')
           .eq('status', 'active')
+          .in('role', ['owner', 'admin'])
           .eq('user_id', authUser.id)
           .limit(1)
         if (!mem?.length && authUser.email) {
@@ -180,6 +184,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
               .from('org_members')
               .select('org_id')
               .eq('status', 'active')
+              .in('role', ['owner', 'admin'])
               .ilike('email', authUser.email)
               .limit(1)
           ).data
@@ -252,7 +257,18 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         joinedDaysAgo: 0,
         isYou: true,
       }
-      return { ...myOrg, members: [owner, ...myOrg.members.filter((m) => m.id !== 'owner-self')] }
+      // Pin "You" once — drop any org_members row for the signed-in email (a
+      // co-owner grant row would otherwise show as a duplicate of the pin).
+      const you = (authUser?.email ?? '').toLowerCase()
+      return {
+        ...myOrg,
+        members: [
+          owner,
+          ...myOrg.members.filter(
+            (m) => m.id !== 'owner-self' && (m.email ?? '').toLowerCase() !== you,
+          ),
+        ],
+      }
     }
     return orgs.find((o) => o.id === sessionId) ?? null
   }, [sessionId, myOrg, orgs, user.name, user.email, authUser])
@@ -779,6 +795,24 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [sessionId],
   )
 
+  // Per-org audit trail ("who did what" on the Team page). Real orgs only —
+  // demo sessions log nothing.
+  const logActivity = useCallback(
+    (action: string, detail = '') => {
+      if (sessionId !== SELF_ORG || !myOrg || !authUser) return
+      fireWrite(
+        supabase.from('org_activity').insert({
+          org_id: myOrg.id,
+          actor_name: user.name,
+          actor_email: authUser.email ?? '',
+          action,
+          detail,
+        }),
+      )
+    },
+    [sessionId, myOrg, authUser, user.name],
+  )
+
   const createEvent = useCallback(() => {
     const ev = newManagedEvent()
     if (sessionId === SELF_ORG && myOrg) {
@@ -786,11 +820,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       updateCurrentOrg((o) => ({ ...o, events: [{ ...ev, id }, ...o.events] }))
       // Blank draft (no title) → filtered out of the public feed until saved.
       fireWrite(supabase.from('events').insert({ id, org_id: myOrg.id, ...managedEventToRow(ev) }))
+      logActivity('created an event draft')
       return id
     }
     updateCurrentOrg((o) => ({ ...o, events: [ev, ...o.events] }))
     return ev.id
-  }, [sessionId, myOrg, updateCurrentOrg])
+  }, [sessionId, myOrg, updateCurrentOrg, logActivity])
 
   const updateEvent = useCallback(
     (id: string, patch: Partial<ManagedEvent>) => {
@@ -804,22 +839,26 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('event update failed:', error)
           refreshCommunity()
         })()
+        logActivity('saved an event', patch.title?.trim() || '')
       }
     },
-    [sessionId, updateCurrentOrg, refreshCommunity],
+    [sessionId, updateCurrentOrg, refreshCommunity, logActivity],
   )
 
   const deleteEvent = useCallback(
     (id: string) => {
+      const title =
+        (sessionId === SELF_ORG ? myOrg : null)?.events.find((e) => e.id === id)?.title ?? ''
       updateCurrentOrg((o) => ({ ...o, events: o.events.filter((e) => e.id !== id) }))
       if (sessionId === SELF_ORG) {
         void (async () => {
           await supabase.from('events').delete().eq('id', id)
           refreshCommunity()
         })()
+        logActivity('deleted an event', title.trim())
       }
     },
-    [sessionId, updateCurrentOrg, refreshCommunity],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity],
   )
 
   const updateOrgProfile = useCallback(
@@ -834,9 +873,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('org profile update failed:', error)
           refreshCommunity()
         })()
+        logActivity('updated the org profile')
       }
     },
-    [sessionId, myOrg, updateCurrentOrg, refreshCommunity],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity],
   )
 
   // Notify followers — STUB. Real delivery is connection-phase; returns the
@@ -886,9 +926,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         )
       }
       updateCurrentOrg((o) => ({ ...o, members: [...o.members, member] }))
+      logActivity(`invited ${input.name} as ${input.role}`)
       return member
     },
-    [updateCurrentOrg, sessionId, myOrg],
+    [updateCurrentOrg, sessionId, myOrg, logActivity],
   )
 
   const acceptOrgMemberInvite = useCallback(
@@ -925,6 +966,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   const removeOrgMember = useCallback(
     (id: string) => {
+      const gone =
+        (sessionId === SELF_ORG ? myOrg : orgs.find((o) => o.id === sessionId))?.members.find(
+          (m) => m.id === id,
+        )
       if (sessionId === SELF_ORG && myOrg) {
         fireWrite(supabase.from('org_members').delete().eq('id', id))
       }
@@ -932,8 +977,35 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         ...o,
         members: o.members.filter((m) => m.id !== id || m.role === 'owner'),
       }))
+      if (gone && gone.role !== 'owner') {
+        logActivity(
+          gone.status === 'invited' ? `revoked ${gone.name}'s invite` : `removed ${gone.name} from the team`,
+        )
+      }
     },
-    [updateCurrentOrg, sessionId, myOrg],
+    [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
+  )
+
+  // Promote / demote a teammate (admin ↔ member). Owners are immutable; the UI
+  // hides the control for them too.
+  const setOrgMemberRole = useCallback(
+    (id: string, role: OrgRole) => {
+      if (role === 'owner') return
+      const target =
+        (sessionId === SELF_ORG ? myOrg : orgs.find((o) => o.id === sessionId))?.members.find(
+          (m) => m.id === id,
+        )
+      if (!target || target.role === 'owner') return
+      updateCurrentOrg((o) => ({
+        ...o,
+        members: o.members.map((m) => (m.id === id ? { ...m, role } : m)),
+      }))
+      if (sessionId === SELF_ORG && myOrg) {
+        fireWrite(supabase.from('org_members').update({ role }).eq('id', id))
+      }
+      logActivity(`made ${target.name} ${role === 'admin' ? 'an admin' : 'a member'}`)
+    },
+    [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
   )
 
   const value = useMemo<TeacherContextValue>(
@@ -986,6 +1058,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       inviteOrgMember,
       acceptOrgMemberInvite,
       removeOrgMember,
+      setOrgMemberRole,
       communityOrgs,
       communityEvents,
     }),
@@ -1034,6 +1107,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       inviteOrgMember,
       acceptOrgMemberInvite,
       removeOrgMember,
+      setOrgMemberRole,
       communityOrgs,
       communityEvents,
     ],

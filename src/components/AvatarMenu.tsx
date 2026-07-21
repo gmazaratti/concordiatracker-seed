@@ -17,6 +17,7 @@ import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
+import { useTeacher } from '@/app/providers/teacher'
 import { useTour } from '@/features/tour/tour'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
@@ -40,6 +41,7 @@ export function AvatarMenu({
   const { openSettings } = useSettings()
   const { showIndicator, openHistory } = useUpdates()
   const { isAdmin } = useIsAdmin()
+  const { myOrg } = useTeacher()
   const { start } = useTour()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -151,14 +153,15 @@ export function AvatarMenu({
           {/* Deferred contexts — admin-only so regular users don't wander into the
            * half-wired teacher/organizer flows. (Their routes also gate access.) */}
           {isAdmin && (
-            <>
-              <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
-                Teacher portal
-              </MenuLink>
-              <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
-                Organizer portal
-              </MenuLink>
-            </>
+            <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
+              Teacher portal
+            </MenuLink>
+          )}
+          {/* Visible to anyone who owns or helps run an org (not just admin). */}
+          {(isAdmin || myOrg) && (
+            <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
+              Organizer portal
+            </MenuLink>
           )}
           {/* Admin-only — hidden for everyone but the platform administrator. The
            * route + every RPC are independently gated, so this is the UX layer only. */}
