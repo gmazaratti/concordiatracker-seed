@@ -83,6 +83,17 @@ export function DueList({
   onPrefsChange: (patch: Partial<TodayPrefs>) => void
 }) {
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  // Long sections (a pile of overdue, say) collapse past this — the list stays
+  // one calm screen and the rest sits behind "Show N more".
+  const CAP = 5
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const toggleExpanded = (key: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   const sections = buildSections(groups, prefs.groupBy, courseById)
 
   return (
@@ -118,20 +129,39 @@ export function DueList({
       {sections.length === 0 ? (
         <EmptyState />
       ) : (
-        sections.map((section, i) => (
-          <Section key={section.key} label={section.label} tone={section.tone} divider={i > 0}>
-            {section.items.map((a) => (
-              <DueRow
-                key={a.id}
-                assessment={a}
-                course={courseById(a.courseId)}
-                prefs={prefs}
-                onResolve={(status) => onResolve(a.id, status)}
-                onDelete={() => onDelete(a.id)}
-              />
-            ))}
-          </Section>
-        ))
+        sections.map((section, i) => {
+          const isOpen = expanded.has(section.key)
+          const visible = isOpen ? section.items : section.items.slice(0, CAP)
+          const hiddenCount = section.items.length - visible.length
+          return (
+            <Section key={section.key} label={section.label} tone={section.tone} divider={i > 0}>
+              {visible.map((a) => (
+                <DueRow
+                  key={a.id}
+                  assessment={a}
+                  course={courseById(a.courseId)}
+                  prefs={prefs}
+                  onResolve={(status) => onResolve(a.id, status)}
+                  onDelete={() => onDelete(a.id)}
+                />
+              ))}
+              {(hiddenCount > 0 || (isOpen && section.items.length > CAP)) && (
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(section.key)}
+                  className="flex w-full items-center gap-1.5 px-4 py-2 text-left text-[12.5px] font-medium text-accent transition-colors duration-150 hover:bg-surface-2/50"
+                >
+                  <ChevronDown
+                    size={14}
+                    className={cn('transition-transform duration-150', isOpen && 'rotate-180')}
+                    aria-hidden
+                  />
+                  {isOpen ? 'Show fewer' : `Show ${hiddenCount} more`}
+                </button>
+              )}
+            </Section>
+          )
+        })
       )}
 
       {completed.length > 0 && (

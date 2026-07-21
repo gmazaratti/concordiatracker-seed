@@ -26,6 +26,7 @@ export function OrganizerInvitePage() {
   const { user: authUser, signInWithGoogle } = useAuth()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [dryRun, setDryRun] = useState(false)
   // undefined = loading, null = not found in the DB
   const [dbInvite, setDbInvite] = useState<DbInvite | null | undefined>(undefined)
 
@@ -92,13 +93,19 @@ export function OrganizerInvitePage() {
     setErr('')
     setBusy(true)
     const { data, error } = await supabase.rpc('accept_org_invite', { p_token: token })
-    if (error || !data) {
+    if (error || data == null) {
       setBusy(false)
       setErr(error?.message ?? "Couldn't accept this invite.")
       return
     }
-    // Full reload so the provider picks up the freshly-created org, then the
-    // onboarding wizard runs (fresh pending org).
+    // v3 returns jsonb; admin accepts are DRY RUNS (validated, nothing consumed).
+    const res = data as { org_id?: string | null; dry_run?: boolean } | string
+    if (typeof res === 'object' && res.dry_run) {
+      setBusy(false)
+      setDryRun(true)
+      return
+    }
+    // Full reload so the provider picks up the org, then onboarding/dashboard.
     window.location.assign('/organizer')
   }
 
@@ -108,11 +115,16 @@ export function OrganizerInvitePage() {
       orgHandle={dbInvite.org_handle}
       note={
         authUser
-          ? `You're signed in as ${authUser.email} — accepting creates ${dbInvite.org_name}'s dashboard on this account. The link is single-use.`
+          ? `You're signed in as ${authUser.email} — accepting sets up ${dbInvite.org_name}'s dashboard on this account. The link is single-use.`
           : 'Sign in with your Google account first — your org dashboard will be tied to it. The link is single-use.'
       }
       busy={busy}
       err={err}
+      success={
+        dryRun
+          ? 'Link verified ✓ — admin test run. Nothing was consumed or changed; this exact link still works for the recipient.'
+          : undefined
+      }
       cta={authUser ? 'Accept & set up my dashboard' : 'Sign in with Google to continue'}
       onAccept={authUser ? accept : () => void signInWithGoogle()}
     />
@@ -125,6 +137,7 @@ function InviteCard({
   note,
   busy,
   err,
+  success,
   cta,
   onAccept,
 }: {
@@ -133,6 +146,7 @@ function InviteCard({
   note: string
   busy: boolean
   err: string
+  success?: string
   cta: string
   onAccept: () => void
 }) {
@@ -156,10 +170,14 @@ function InviteCard({
           <p className="text-[12px] leading-relaxed text-subtle">{note}</p>
         </div>
 
-        <Button className="mt-4 w-full" onClick={onAccept} disabled={busy}>
+        <Button className="mt-4 w-full" onClick={onAccept} disabled={busy || !!success}>
           {busy ? 'Setting up…' : cta}
         </Button>
-        {err ? (
+        {success ? (
+          <p className="mt-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-center text-[12px] text-success">
+            {success}
+          </p>
+        ) : err ? (
           <p className="mt-2 text-center text-[12px] text-danger">{err}</p>
         ) : (
           <p className="mt-2 text-center text-[11px] text-subtle">
