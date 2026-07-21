@@ -17,20 +17,32 @@ import {
 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import type { OrgAccount } from '@/data/teacher'
+import type { EventOrg } from '@/data/community'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { Button } from '@/components/ui/Button'
+import { ColorPicker } from '@/components/ui/ColorPicker'
+import { ImgbbHint } from '@/components/ui/InfoHint'
 import { cn } from '@/lib/cn'
 
-// In-memory (resets on reload): orgs that finished/skipped onboarding, and the
-// step each org is on — so the wizard RESUMES after you leave to do a step.
-const onboarded = new Set<string>()
-const stepByOrg = new Map<string, number>()
+import { onboarded, stepByOrg } from './onboarding-state'
+
+const FIELD =
+  'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
 
 /** Shows the guided onboarding wizard for a fresh (pending) org until finished or
- * skipped. Approved/established orgs never see it. */
-export function OrgOnboardingGate({ org }: { org: OrgAccount }) {
+ * skipped — and on demand via `replay` (the Overview "Replay setup" button),
+ * which works for approved/established orgs too. */
+export function OrgOnboardingGate({
+  org,
+  replay = false,
+  onReplayDone,
+}: {
+  org: OrgAccount
+  replay?: boolean
+  onReplayDone?: () => void
+}) {
   const [done, setDone] = useState(() => onboarded.has(org.id) || org.status !== 'pending')
-  if (done) return null
+  if (done && !replay) return null
   return (
     <OrgOnboardingWizard
       org={org}
@@ -38,6 +50,7 @@ export function OrgOnboardingGate({ org }: { org: OrgAccount }) {
         onboarded.add(org.id)
         stepByOrg.delete(org.id)
         setDone(true)
+        onReplayDone?.()
       }}
     />
   )
@@ -74,10 +87,9 @@ const STEPS: StepDef[] = [
     railHint: 'Who you are',
     icon: UserCog,
     title: 'First, make it look like you',
-    body: 'Your profile is your face in the feed — logo, banner, bio, and links. Students recognize (and trust) orgs that look real.',
+    body: 'Your profile is your face in the feed — set it up right here and watch the preview update. Students recognize (and trust) orgs that look real.',
     isDone: (o) => !!o.org.bio?.trim() || !!o.org.logo,
-    to: '/organizer/profile',
-    primaryLabel: 'Set up my profile',
+    primaryLabel: 'Save & continue',
   },
   {
     id: 'event',
@@ -114,8 +126,19 @@ const STEPS: StepDef[] = [
 
 function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () => void }) {
   const navigate = useNavigate()
-  const { createEvent } = useTeacher()
+  const { createEvent, updateOrgProfile } = useTeacher()
   const [step, setStep] = useState(() => Math.min(stepByOrg.get(org.id) ?? 0, STEPS.length - 1))
+  // Inline profile draft (the Profile step edits these right in the wizard —
+  // like the student onboarding, no bounce to another page).
+  const [bio, setBio] = useState(org.org.bio ?? '')
+  const [logo, setLogo] = useState(org.org.logo ?? '')
+  const [color, setColor] = useState(org.org.color)
+  const draft: EventOrg = {
+    ...org.org,
+    bio,
+    logo: logo.trim() || undefined,
+    color,
+  }
 
   const setAndRemember = (n: number) => {
     stepByOrg.set(org.id, n)
@@ -131,6 +154,12 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
   function primary() {
     if (last) {
       onClose()
+      return
+    }
+    if (s.id === 'profile') {
+      // Save the inline draft, then move on — no page bounce.
+      updateOrgProfile({ bio: bio.trim(), logo: logo.trim() || undefined, color })
+      advance()
       return
     }
     if (sDone || (!s.to && !s.createsEvent)) {
@@ -234,17 +263,52 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
 
         <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10">
           <div key={s.id} className="ct-animate-pop w-full max-w-md">
-            <StepVisual step={s.id} org={org} />
+            <StepVisual step={s.id} org={org} preview={draft} />
 
             <h1 className="mt-6 font-display text-[25px] leading-tight font-semibold text-fg">
               {s.title}
             </h1>
             {s.body && <p className="mt-2.5 text-[14.5px] leading-relaxed text-muted">{s.body}</p>}
-            {last && <NextUp />}
-            {sDone && !last && (
+            {last && <NextUp approved={org.status === 'approved'} />}
+            {sDone && !last && s.id !== 'profile' && (
               <p className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
                 <CheckCircle2 size={15} aria-hidden /> Already done — nice.
               </p>
+            )}
+
+            {s.id === 'profile' && (
+              <div className="mt-4 flex flex-col gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-[12px] font-medium text-muted">Bio</span>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={2}
+                    placeholder="A short line about what your org does."
+                    className={cn(FIELD, 'resize-none')}
+                  />
+                </label>
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="block min-w-0 flex-1">
+                    <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
+                      Logo URL <ImgbbHint />
+                    </span>
+                    <input
+                      value={logo}
+                      onChange={(e) => setLogo(e.target.value)}
+                      placeholder="https://… (empty = coloured initials)"
+                      className={FIELD}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[12px] font-medium text-muted">Brand colour</span>
+                    <ColorPicker value={color} onChange={setColor} ariaLabel="Brand colour" />
+                  </label>
+                </div>
+                <p className="text-[11.5px] text-subtle">
+                  Banner and social links live in the full editor — Profile in the sidebar, anytime.
+                </p>
+              </div>
             )}
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -259,7 +323,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
                 </button>
               )}
               <Button size="lg" onClick={primary}>
-                {sDone && !last ? 'Next' : s.primaryLabel}
+                {s.id !== 'profile' && sDone && !last ? 'Next' : s.primaryLabel}
               </Button>
               {!last && !sDone && s.id !== 'welcome' && (
                 <button
@@ -284,8 +348,17 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
 }
 
 /** Concrete per-step visuals — small mocks of the real thing, so each step shows
- * (not just tells) what you're setting up. */
-function StepVisual({ step, org }: { step: string; org: OrgAccount }) {
+ * (not just tells) what you're setting up. The profile step renders from the
+ * LIVE inline draft, so the preview updates as you type. */
+function StepVisual({
+  step,
+  org,
+  preview,
+}: {
+  step: string
+  org: OrgAccount
+  preview: EventOrg
+}) {
   const color = org.org.color
   switch (step) {
     case 'welcome':
@@ -297,21 +370,21 @@ function StepVisual({ step, org }: { step: string; org: OrgAccount }) {
         </div>
       )
     case 'profile':
-      // Mini public-profile header
+      // Mini public-profile header — LIVE from the inline draft.
       return (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <div className="h-16 w-full" style={{ backgroundColor: color }} />
+          <div className="h-16 w-full" style={{ backgroundColor: preview.color }} />
           <div className="px-4 pb-4">
             <div className="-mt-7">
-              <OrgLogo org={org.org} className="size-14 ring-4 ring-surface" rounded="rounded-full" textClass="text-[17px]" />
+              <OrgLogo org={preview} className="size-14 ring-4 ring-surface" rounded="rounded-full" textClass="text-[17px]" />
             </div>
             <div className="mt-1.5 flex items-center gap-1.5">
-              <p className="text-[15px] font-semibold text-fg">{org.org.name}</p>
+              <p className="text-[15px] font-semibold text-fg">{preview.name}</p>
               <BadgeCheck size={15} className="text-info" aria-hidden />
             </div>
-            <p className="text-[12px] text-subtle">{org.org.handle}</p>
-            {org.org.bio?.trim() ? (
-              <p className="mt-1.5 line-clamp-2 text-[12.5px] text-muted">{org.org.bio}</p>
+            <p className="text-[12px] text-subtle">{preview.handle}</p>
+            {preview.bio?.trim() ? (
+              <p className="mt-1.5 line-clamp-2 text-[12.5px] text-muted">{preview.bio}</p>
             ) : (
               <div className="mt-2 space-y-1.5" aria-hidden>
                 <div className="h-2 w-4/5 rounded-full bg-surface-2" />
@@ -418,12 +491,16 @@ function TeamRow({
 }
 
 /** The final step's "what happens next" — so a new org knows where things stand. */
-function NextUp() {
+function NextUp({ approved }: { approved: boolean }) {
   return (
     <ul className="mt-4 space-y-2.5">
       {[
-        'An admin reviews your org — usually quickly.',
-        'Once approved, your profile and events go live in Community.',
+        approved
+          ? 'You’re approved — your profile and events are live in Community.'
+          : 'An admin reviews your org — usually quickly.',
+        approved
+          ? 'Post events anytime; followers get a heads-up when you do.'
+          : 'Once approved, your profile and events go live in Community.',
         'Track it all from the sidebar: Events, Insights, Profile, Team.',
       ].map((t, i) => (
         <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed text-muted">

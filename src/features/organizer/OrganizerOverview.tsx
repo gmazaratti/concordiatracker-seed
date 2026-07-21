@@ -6,6 +6,7 @@ import {
   Circle,
   ExternalLink,
   Plus,
+  RotateCcw,
   Sparkles,
   UserCog,
   UserPlus,
@@ -23,7 +24,7 @@ import { cn } from '@/lib/cn'
 /** `/organizer` — the comprehensive at-a-glance page: setup checklist (new orgs),
  * reach stats, quick-action cards, and an upcoming preview. Everything else lives
  * on its own sidebar destination (Events / Insights / Profile / Team). */
-export function OrganizerOverview() {
+export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => void }) {
   const { currentOrg, createEvent } = useTeacher()
   const navigate = useNavigate()
   if (!currentOrg) return null
@@ -51,9 +52,21 @@ export function OrganizerOverview() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-6 sm:px-6">
-      <header className="mb-5">
-        <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Overview</h1>
-        <p className="text-[13px] text-subtle">How {org.name} is doing, at a glance.</p>
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Overview</h1>
+          <p className="text-[13px] text-subtle">How {org.name} is doing, at a glance.</p>
+        </div>
+        {onReplaySetup && (
+          <button
+            type="button"
+            onClick={onReplaySetup}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <RotateCcw size={13} aria-hidden />
+            Replay setup
+          </button>
+        )}
       </header>
 
       {pending && (
