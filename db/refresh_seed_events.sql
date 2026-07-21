@@ -27,8 +27,8 @@ begin
   with seed_orgs as (
     select id from organizations
     where handle in (
-      '@gamedev.conu', '@ginacody', '@concordia.hub', '@conu.caps',
-      '@concordia.president', '@hackconcordia', '@conu.outdoors',
+      '@concordiagamedev', '@gamedev.conu', '@ginacody', '@concordia.hub',
+      '@conu.caps', '@concordia.president', '@hackconcordia', '@conu.outdoors',
       '@concordia.library', '@concordia', '@jmsb', '@casa.jmsb', '@jmis',
       '@conu.mathhelp'
     )
