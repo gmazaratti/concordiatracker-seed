@@ -3,14 +3,17 @@ import { useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import {
   addComment,
+  adminBumpReaction,
   adminDeleteRequest,
   adminModerateRequest,
   listCommentCounts,
   listFeatureRequests,
   listReactions,
+  seedTotal,
   summarizeReactions,
   toggleReaction,
   totalReactions,
+  withSeed,
   type FeatureRequest,
   type ReactionRow,
   type Sort,
@@ -92,6 +95,24 @@ export function RequestsBoard() {
     }
   }
 
+  const adminBump = async (id: string, emoji: string, delta: number) => {
+    setRequests((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r
+        const seed = { ...(r.seed_reactions ?? {}) }
+        const next = Math.max(0, (seed[emoji] ?? 0) + delta)
+        if (next === 0) delete seed[emoji]
+        else seed[emoji] = next
+        return { ...r, seed_reactions: seed }
+      }),
+    )
+    try {
+      await adminBumpReaction(id, emoji, delta)
+    } catch {
+      reload()
+    }
+  }
+
   const moderate = async (r: FeatureRequest, patch: ModeratePatch) => {
     try {
       await adminModerateRequest(r.id, { pinned: r.pinned, hidden: r.hidden, status: r.status, ...patch })
@@ -112,7 +133,11 @@ export function RequestsBoard() {
   const sorted = [...requests].sort((a, b) => {
     if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
     if (sort === 'top') {
-      return totalReactions(reactionRows, b.id) - totalReactions(reactionRows, a.id) || +new Date(b.created_at) - +new Date(a.created_at)
+      return (
+        totalReactions(reactionRows, b.id) + seedTotal(b.seed_reactions) -
+          (totalReactions(reactionRows, a.id) + seedTotal(a.seed_reactions)) ||
+        +new Date(b.created_at) - +new Date(a.created_at)
+      )
     }
     return +new Date(b.created_at) - +new Date(a.created_at)
   })
@@ -170,9 +195,10 @@ export function RequestsBoard() {
             <RequestCard
               key={r.id}
               r={r}
-              reactions={summarizeReactions(reactionRows, r.id, myUserId)}
+              reactions={withSeed(summarizeReactions(reactionRows, r.id, myUserId), r.seed_reactions)}
               commentCount={counts.get(r.id) ?? 0}
               canReact={!!user}
+              onAdminBump={isAdmin ? (e, d) => adminBump(r.id, e, d) : undefined}
               canComment={!!user}
               isAdmin={isAdmin}
               myName={myName}
@@ -190,7 +216,7 @@ export function RequestsBoard() {
       {openRequest && (
         <RequestDetail
           r={openRequest}
-          reactions={summarizeReactions(reactionRows, openRequest.id, myUserId)}
+          reactions={withSeed(summarizeReactions(reactionRows, openRequest.id, myUserId), openRequest.seed_reactions)}
           canReact={!!user}
           canComment={!!user}
           isAdmin={isAdmin}

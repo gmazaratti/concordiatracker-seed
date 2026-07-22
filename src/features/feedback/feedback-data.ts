@@ -23,6 +23,8 @@ export interface FeatureRequest {
   hidden: boolean
   vote_count: number
   created_at: string
+  /** Admin-dialed reaction counts ({emoji: count}), ADDED to real reactions. */
+  seed_reactions?: Record<string, number>
 }
 
 export interface KnownIssue {
@@ -159,6 +161,34 @@ export async function submitFeatureRequest(title: string, body: string) {
 export async function toggleReaction(requestId: string, emoji: string) {
   const { error } = await supabase.rpc('toggle_feature_reaction', { p_request_id: requestId, p_emoji: emoji })
   if (error) throw error
+}
+
+/** Admin: bump a request's seed count for an emoji by ±delta (social proof). */
+export async function adminBumpReaction(id: string, emoji: string, delta: number) {
+  const { error } = await supabase.rpc('admin_bump_reaction', { p_id: id, p_emoji: emoji, p_delta: delta })
+  if (error) throw error
+}
+
+/** Merge admin seed counts into a request's real reaction summary (for display). */
+export function withSeed(
+  summary: ReactionSummary[],
+  seed?: Record<string, number>,
+): ReactionSummary[] {
+  if (!seed || Object.keys(seed).length === 0) return summary
+  const map = new Map(summary.map((s) => [s.emoji, { ...s }]))
+  for (const [emoji, n] of Object.entries(seed)) {
+    if (!n || n <= 0) continue
+    const cur = map.get(emoji) ?? { emoji, count: 0, mine: false }
+    cur.count += n
+    map.set(emoji, cur)
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count)
+}
+
+/** Sum of a request's seed reactions (for sorting boosted posts up). */
+export function seedTotal(seed?: Record<string, number>): number {
+  if (!seed) return 0
+  return Object.values(seed).reduce((s, n) => s + Math.max(0, n || 0), 0)
 }
 
 export async function addComment(requestId: string, body: string): Promise<string> {

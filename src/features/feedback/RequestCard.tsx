@@ -1,5 +1,6 @@
-import { Eye, EyeOff, MoreHorizontal, Pin, Trash2 } from 'lucide-react'
-import { authorLabel, fmtDate, REQ_STATUSES, type FeatureRequest, type ReactionSummary } from './feedback-data'
+import { useEffect, useRef, useState } from 'react'
+import { Eye, EyeOff, MoreHorizontal, Pin, Sparkles, Trash2 } from 'lucide-react'
+import { authorLabel, EMOJI_PALETTE, fmtDate, REQ_STATUSES, type FeatureRequest, type ReactionSummary } from './feedback-data'
 import { Avatar, Markdown, RequestStatusChip, TierChip, VerifiedCheck } from './feedback-ui'
 import { founderRole } from './founders'
 import { CommentComposer } from './CommentThread'
@@ -94,6 +95,7 @@ export function RequestCard({
   onModerate,
   onDelete,
   onAddComment,
+  onAdminBump,
 }: {
   r: FeatureRequest
   reactions: ReactionSummary[]
@@ -108,6 +110,8 @@ export function RequestCard({
   onModerate: (patch: ModeratePatch) => void
   onDelete: () => void
   onAddComment: (body: string) => void
+  /** Admin-only: dial the seed reactions (undefined for non-admins). */
+  onAdminBump?: (emoji: string, delta: number) => void
 }) {
   return (
     <li className={cn('rounded-2xl border bg-surface p-5', r.hidden ? 'border-dashed border-warning/50' : 'border-border')}>
@@ -123,7 +127,10 @@ export function RequestCard({
       {r.body && <Markdown text={r.body} className="mt-1.5 text-[13px] leading-relaxed text-muted" />}
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <ReactionBar reactions={reactions} canReact={canReact} onToggle={onToggleReaction} />
+        <div className="flex min-w-0 items-center gap-2">
+          <ReactionBar reactions={reactions} canReact={canReact} onToggle={onToggleReaction} />
+          {onAdminBump && <AdminReactionEditor seed={r.seed_reactions} onBump={onAdminBump} />}
+        </div>
         <button
           type="button"
           onClick={onOpen}
@@ -139,5 +146,72 @@ export function RequestCard({
         </div>
       )}
     </li>
+  )
+}
+
+/** Admin-only: dial seed reactions on a request up/down to make the board feel
+ * lively. A popover of the emoji palette with +/− steppers; each nudge is
+ * optimistic (the parent persists via admin_bump_reaction). */
+function AdminReactionEditor({
+  seed,
+  onBump,
+}: {
+  seed?: Record<string, number>
+  onBump: (emoji: string, delta: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const stepper =
+    'grid size-6 place-items-center rounded-md border border-border text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg disabled:opacity-40 disabled:pointer-events-none'
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        title="Boost reactions (admin)"
+        className={cn(
+          'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11.5px] font-medium transition-colors duration-150',
+          open ? 'border-accent/50 bg-accent-soft/40 text-fg' : 'border-border text-subtle hover:bg-surface-2 hover:text-fg',
+        )}
+      >
+        <Sparkles size={12} aria-hidden />
+        Boost
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 z-20 mb-2 w-56 rounded-xl border border-border bg-surface p-2 shadow-[var(--ct-shadow)]">
+          <p className="px-1.5 pb-1 text-[11px] text-subtle">Seed reactions · admin only</p>
+          <ul>
+            {EMOJI_PALETTE.map((e) => {
+              const n = seed?.[e] ?? 0
+              return (
+                <li key={e} className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-surface-2/40">
+                  <span className="text-[15px] leading-none">{e}</span>
+                  <span className="flex-1 text-[12px] text-subtle tabular-nums">
+                    {n > 0 ? `+${n}` : '—'}
+                  </span>
+                  <button type="button" className={stepper} disabled={n === 0} onClick={() => onBump(e, -1)} aria-label={`Remove one ${e}`}>
+                    −
+                  </button>
+                  <button type="button" className={stepper} onClick={() => onBump(e, 1)} aria-label={`Add one ${e}`}>
+                    +
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }
