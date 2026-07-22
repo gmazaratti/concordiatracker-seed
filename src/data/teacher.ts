@@ -41,9 +41,30 @@ export interface TeacherCourse {
   code: string
   title: string
   section: string
+  /** The teacher's working assignments (edited on the Assignments tab). */
   outline: OutlineItem[]
   published: boolean
+  /** Snapshot of the outline that's currently SHARED as the blueprint. When it
+   * differs from `outline`, the teacher has unpublished changes to push. */
+  publishedOutline?: OutlineItem[]
   stats?: { upvotes: number; downvotes: number; imports: number; uploadedDaysAgo: number }
+}
+
+/** The sub-sections of a course workspace (sidebar sub-tabs + mobile tab bar). */
+export const TEACHER_SECTIONS = [
+  { id: 'assignments', label: 'Assignments' },
+  { id: 'outline', label: 'Course outline' },
+  { id: 'announcements', label: 'Announcements' },
+  { id: 'blueprints', label: 'Student blueprints' },
+] as const
+export type TeacherSectionId = (typeof TEACHER_SECTIONS)[number]['id']
+
+/** Do two outlines match on the fields students actually see? (Used to detect
+ * unpublished assignment changes vs the shared outline.) */
+export function outlinesEqual(a: OutlineItem[] = [], b: OutlineItem[] = []): boolean {
+  if (a.length !== b.length) return false
+  const norm = (o: OutlineItem) => `${o.kind}|${o.title}|${o.due}|${o.weight}`
+  return a.map(norm).join('§') === b.map(norm).join('§')
 }
 
 export interface TeacherAccount {
@@ -133,6 +154,8 @@ export function maskEmail(email: string): string {
  * student browser pins — the supply pipe. Dates land as `official`. */
 export function outlineToBlueprint(tc: TeacherCourse, teacherName: string): Blueprint {
   const s = tc.stats ?? { upvotes: 0, downvotes: 0, imports: 0, uploadedDaysAgo: 0 }
+  // Students import the SHARED snapshot, not the teacher's in-progress edits.
+  const shared = tc.publishedOutline ?? tc.outline
   return {
     id: `tc-${tc.courseId}-${tc.section}`,
     courseId: tc.courseId,
@@ -145,7 +168,7 @@ export function outlineToBlueprint(tc: TeacherCourse, teacherName: string): Blue
     downvotes: s.downvotes,
     imports: s.imports,
     uploadedDaysAgo: s.uploadedDaysAgo,
-    dates: tc.outline.map((o) => ({
+    dates: shared.map((o) => ({
       title: o.title,
       kind: o.kind,
       weight: o.weight,

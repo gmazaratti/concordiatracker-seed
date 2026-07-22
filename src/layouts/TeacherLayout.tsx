@@ -1,9 +1,9 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useMatch, useSearchParams } from 'react-router-dom'
 import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Loader2, LogOut } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { useAppData } from '@/app/providers/app-data'
-import type { PortalRole } from '@/data/teacher'
+import { TEACHER_SECTIONS, type PortalRole } from '@/data/teacher'
 import { cn } from '@/lib/cn'
 
 /**
@@ -20,6 +20,11 @@ export function PortalLayout({ role }: { role: PortalRole }) {
   const { loading } = useAuth()
   const { user } = useAppData()
   const portalLabel = role === 'organizer' ? 'Organizer portal' : 'Teacher portal'
+  // Which course + sub-section is open (to expand the sidebar sub-tabs).
+  const courseMatch = useMatch('/teacher/course/:courseId')
+  const activeCourseId = courseMatch?.params.courseId
+  const [searchParams] = useSearchParams()
+  const activeSection = TEACHER_SECTIONS.find((s) => s.id === searchParams.get('section'))?.id ?? 'assignments'
 
   if (loading) {
     return (
@@ -99,29 +104,51 @@ export function PortalLayout({ role }: { role: PortalRole }) {
           {courses.length > 0 && (
             <>
               <p className="mt-3 px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">Your courses</p>
-              {courses.map((c) => (
-                <NavLink
-                  key={c.courseId}
-                  to={`/teacher/course/${c.courseId}`}
-                  className={({ isActive }) =>
-                    cn(
-                      'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150',
-                      isActive ? 'bg-accent-soft font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
-                    )
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      <BookOpen size={17} className={cn('shrink-0', isActive ? 'text-accent' : 'text-subtle group-hover:text-muted')} aria-hidden />
-                      <span className="min-w-0 flex-1 truncate">
-                        {c.code || 'Untitled'}
-                        {c.section ? ` · ${c.section}` : ''}
-                      </span>
-                      {c.published && <span className="size-1.5 shrink-0 rounded-full bg-success" title="Published" aria-hidden />}
-                    </>
-                  )}
-                </NavLink>
-              ))}
+              {courses.map((c) => {
+                const activeCourse = c.courseId === activeCourseId
+                return (
+                  <div key={c.courseId}>
+                    <NavLink
+                      to={`/teacher/course/${c.courseId}`}
+                      className={({ isActive }) =>
+                        cn(
+                          'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150',
+                          isActive ? 'font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <BookOpen size={17} className={cn('shrink-0', isActive ? 'text-accent' : 'text-subtle group-hover:text-muted')} aria-hidden />
+                          <span className="min-w-0 flex-1 truncate">
+                            {c.code || 'Untitled'}
+                            {c.section ? ` · ${c.section}` : ''}
+                          </span>
+                          {c.published && <span className="size-1.5 shrink-0 rounded-full bg-success" title="Published" aria-hidden />}
+                        </>
+                      )}
+                    </NavLink>
+
+                    {/* Sub-tabs, indented under the open course */}
+                    {activeCourse && (
+                      <div className="mt-0.5 mb-1 ml-[1.35rem] flex flex-col gap-0.5 border-l border-border pl-2">
+                        {TEACHER_SECTIONS.map((s) => (
+                          <Link
+                            key={s.id}
+                            to={`/teacher/course/${c.courseId}?section=${s.id}`}
+                            className={cn(
+                              'rounded-md px-2.5 py-1.5 text-[12.5px] transition-colors duration-150',
+                              activeSection === s.id ? 'bg-accent-soft font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
+                            )}
+                          >
+                            {s.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </>
           )}
         </nav>

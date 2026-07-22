@@ -38,6 +38,7 @@ interface TeacherCourseRow {
   section: string | null
   outline: OutlineItem[] | null
   published: boolean | null
+  published_outline: OutlineItem[] | null
   blueprint_id: string | null
 }
 import {
@@ -96,7 +97,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // backend concern, but the UX (persists across re-entering the event) is real.
   const [notifiedEventIds, setNotifiedEventIds] = useState<Set<string>>(() => new Set())
   const [teachers, setTeachers] = useState<TeacherAccount[]>(() =>
-    SEED_TEACHERS.map((t) => ({ ...t, courses: t.courses.map((c) => ({ ...c })) })),
+    SEED_TEACHERS.map((t) => ({
+      ...t,
+      // A published seed course shares its outline (snapshot = outline).
+      courses: t.courses.map((c) => ({ ...c, publishedOutline: c.published ? c.outline : c.publishedOutline })),
+    })),
   )
   const [invites, setInvites] = useState<TeacherInvite[]>(() => SEED_INVITES.map((i) => ({ ...i })))
   const [orgs, setOrgs] = useState<OrgAccount[]>(() =>
@@ -139,7 +144,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       }
       const { data } = await supabase
         .from('teacher_courses')
-        .select('id, code, title, section, outline, published, blueprint_id')
+        .select('id, code, title, section, outline, published, published_outline, blueprint_id')
         .eq('user_id', authUser.id)
         .order('created_at')
       if (!active) return
@@ -153,6 +158,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           section: r.section ?? '',
           outline: r.outline ?? [],
           published: !!r.published,
+          // Shared snapshot: the stored one, else (older published rows) the outline.
+          publishedOutline: r.published_outline ?? (r.published ? r.outline ?? [] : undefined),
         })),
       )
     })()
@@ -622,13 +629,18 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [sessionId, authUser],
   )
 
-  // Persist a SELF course's published state + which blueprint row it published.
-  const persistSelfPublished = useCallback((courseId: string) => {
+  // Persist a SELF course's published state + the shared-outline snapshot + which
+  // blueprint row it published.
+  const persistSelfPublished = useCallback((courseId: string, snapshot: OutlineItem[]) => {
     if (sessionId !== SELF) return
     fireWrite(
       supabase
         .from('teacher_courses')
-        .update({ published: true, blueprint_id: publishedBlueprintIds.current.get(courseId) ?? null })
+        .update({
+          published: true,
+          published_outline: snapshot,
+          blueprint_id: publishedBlueprintIds.current.get(courseId) ?? null,
+        })
         .eq('id', courseId),
     )
   }, [sessionId])
@@ -637,11 +649,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     async (courseId: string) => {
       const tc = currentTeacher?.courses.find((c) => c.courseId === courseId)
       const teacherName = currentTeacher?.name ?? ''
+      // Snapshot the current assignments as the shared outline.
       updateCurrentCourses((courses) =>
-        courses.map((c) => (c.courseId === courseId ? { ...c, published: true } : c)),
+        courses.map((c) => (c.courseId === courseId ? { ...c, published: true, publishedOutline: c.outline } : c)),
       )
       if (tc) await writeVerifiedBlueprint(courseId, tc, teacherName, tc.outline)
-      persistSelfPublished(courseId)
+      persistSelfPublished(courseId, tc?.outline ?? [])
     },
     [updateCurrentCourses, currentTeacher, writeVerifiedBlueprint, persistSelfPublished],
   )
@@ -662,12 +675,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         weight: d.weight,
       }))
       updateCurrentCourses((courses) =>
-        courses.map((c) => (c.courseId === courseId ? { ...c, outline, published: true } : c)),
+        courses.map((c) =>
+          c.courseId === courseId ? { ...c, outline, published: true, publishedOutline: outline } : c,
+        ),
       )
       setAbsorbed((prev) => (prev.includes(blueprint.id) ? prev : [...prev, blueprint.id]))
       if (sessionId === SELF) fireWrite(supabase.from('teacher_courses').update({ outline }).eq('id', courseId))
       if (tc) await writeVerifiedBlueprint(courseId, tc, teacherName, blueprint.dates)
-      persistSelfPublished(courseId)
+      persistSelfPublished(courseId, outline)
     },
     [sessionId, updateCurrentCourses, currentTeacher, writeVerifiedBlueprint, persistSelfPublished],
   )
