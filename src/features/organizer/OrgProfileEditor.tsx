@@ -5,7 +5,7 @@ import { useTeacher } from '@/app/providers/teacher'
 import { orgSlug, type EventOrg, type OrgLinks } from '@/data/community'
 import { Button } from '@/components/ui/Button'
 import { ColorPicker } from '@/components/ui/ColorPicker'
-import { ImgbbHint } from '@/components/ui/InfoHint'
+import { ImageUploadField } from '@/components/ui/ImageUploadField'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SocialLinks, SocialFieldIcon } from '@/features/community/SocialLinks'
@@ -139,12 +139,22 @@ function ProfileForm({
         </Field>
 
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-          <Field label="Logo URL" hint="Square image. Empty = coloured initials." info={<ImgbbHint />}>
-            <input value={logo} onChange={(e) => { setLogo(e.target.value); touch() }} placeholder="https://…" className={field} />
-          </Field>
-          <Field label="Banner URL" hint="Wide image. Empty = brand colour." info={<ImgbbHint />}>
-            <input value={banner} onChange={(e) => { setBanner(e.target.value); touch() }} placeholder="https://…" className={field} />
-          </Field>
+          <ImageUploadField
+            label="Logo"
+            hint="Square · empty = initials"
+            value={logo}
+            onChange={(v) => { setLogo(v); touch() }}
+            kind="logo"
+            shape="square"
+          />
+          <ImageUploadField
+            label="Banner"
+            hint="Wide · empty = brand colour"
+            value={banner}
+            onChange={(v) => { setBanner(v); touch() }}
+            kind="banner"
+            shape="wide"
+          />
         </div>
 
         <Field label="Brand colour" hint="Used for the logo block + event banner fallback.">

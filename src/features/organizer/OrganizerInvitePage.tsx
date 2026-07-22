@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, Loader2, MailCheck } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
-import { supabase } from '@/lib/supabase'
+import { supabase, fireWrite } from '@/lib/supabase'
 import { expiresInLabel, inviteStatus, maskEmail, type InviteStatus } from '@/data/teacher'
 import { Button } from '@/components/ui/Button'
 
@@ -32,6 +32,19 @@ export function OrganizerInvitePage() {
 
   // Legacy paths resolve synchronously; only miss → ask the DB.
   const legacy = token ? getOrgInvite(token) : undefined
+
+  // Tell the admin the link was OPENED — once while signed out, and again once
+  // signed in (so their email is captured), but not repeatedly. Only for real,
+  // still-valid DB invites (legacy/demo tokens have no row to update).
+  const openedFor = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!token || legacy) return
+    if (dbInvite?.status !== 'valid') return
+    const key = authUser?.id ?? 'anon'
+    if (openedFor.current.has(key)) return
+    openedFor.current.add(key)
+    fireWrite(supabase.rpc('record_org_invite_open', { p_token: token }))
+  }, [token, legacy, dbInvite, authUser?.id])
 
   useEffect(() => {
     // Legacy tokens resolve synchronously in render; nothing to fetch.

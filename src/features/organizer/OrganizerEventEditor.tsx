@@ -6,7 +6,7 @@ import { eventToCommunity, type EventMetrics, type ManagedEvent } from '@/data/t
 import type { EventCategory, EventOrg } from '@/data/community'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
-import { ImgbbHint } from '@/components/ui/InfoHint'
+import { ImageUploadField } from '@/components/ui/ImageUploadField'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Segmented } from '@/features/settings/controls'
 import { EventMedia } from '@/features/community/EventMedia'
@@ -193,21 +193,17 @@ function EventEditorForm({
             />
           </Field>
 
-          <Field
-            label="Banner image URL"
-            hint="Optional — your org supplies the art. Empty = branded fallback."
-            info={<ImgbbHint />}
-          >
-            <input
-              value={image}
-              onChange={(e) => {
-                setImage(e.target.value)
-                touch()
-              }}
-              placeholder="https://…"
-              className={field}
-            />
-          </Field>
+          <ImageUploadField
+            label="Banner image"
+            hint="Optional · empty = branded fallback"
+            value={image}
+            onChange={(v) => {
+              setImage(v)
+              touch()
+            }}
+            kind="banner"
+            shape="wide"
+          />
 
           <Field label="Relevant programs" hint="Comma-separated — drives the opt-in “for your program” tag.">
             <input

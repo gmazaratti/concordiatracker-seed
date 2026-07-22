@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { ExternalLink, Mail, Send } from 'lucide-react'
+import { ExternalLink, Eye, Mail, Send } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Button } from '@/components/ui/Button'
@@ -16,6 +16,9 @@ interface InviteRowData {
   use_count: number
   expires_at: string
   created_at: string
+  opened_count?: number
+  last_opened_at?: string | null
+  last_opened_email?: string | null
 }
 
 /** Admin portal for REAL organizer invites (the org_invites table): prefill a
@@ -195,6 +198,17 @@ function InviteRow({ invite, onRevoke }: { invite: InviteRowData; onRevoke: () =
           {invite.org_handle}
           {invite.recipient_email ? ` · ${invite.recipient_email}` : ''}
         </span>
+        {/* Opened signal — so you know someone's engaging before they finish signup. */}
+        {invite.opened_count && invite.opened_count > 0 ? (
+          <span className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
+            <Eye size={12} aria-hidden />
+            Opened{invite.opened_count > 1 ? ` ${invite.opened_count}×` : ''}
+            {invite.last_opened_at ? ` · ${agoLabel(invite.last_opened_at)}` : ''}
+            {invite.last_opened_email ? ` · ${invite.last_opened_email}` : ''}
+          </span>
+        ) : (
+          <span className="mt-1 block text-[11px] text-subtle">Not opened yet</span>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <CopyChip value={inviteUrl(invite.token)} title="Copy invite link" />
@@ -222,6 +236,17 @@ function mintToken(orgName: string): string {
       .replace(/[^a-z0-9]+/g, '')
       .slice(0, 12) || 'org'
   return `${slug}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6)}`
+}
+
+/** Compact "time since" for the opened badge. */
+function agoLabel(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return days === 1 ? 'yesterday' : `${days}d ago`
 }
 
 function deriveGlyph(name: string): string {
