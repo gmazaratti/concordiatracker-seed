@@ -109,28 +109,30 @@ export function TourOverlay() {
   const T = box ? Math.max(0, box.top - PAD) : 0
   const R = box ? Math.min(vp.w, box.right + PAD) : 0
   const B = box ? Math.min(vp.h, box.bottom + PAD) : 0
-  const clip = box
-    ? `polygon(0 0, 0 100%, ${L}px 100%, ${L}px ${T}px, ${R}px ${T}px, ${R}px ${B}px, ${L}px ${B}px, ${L}px 100%, 100% 100%, 100% 0)`
-    : undefined
 
   const progress = Math.round(((index + 1) / total) * 100)
   const last = index + 1 === total
 
   return createPortal(
     <div className="fixed inset-0 z-[70]">
-      {/* Dimmer — clipped so only the spotlight stays interactive. The hole glides
-          between steps (clip-path transition) instead of jumping. */}
-      <div
-        className="absolute inset-0 bg-black/60 [transition:clip-path_220ms_ease-out]"
-        style={clip ? { clipPath: clip } : undefined}
-      />
-      {/* Spotlight ring — glides + pulses so the highlight is unmistakable */}
-      {box && (
-        <div
-          className="ct-spotlight-ring pointer-events-none absolute rounded-lg ring-2 ring-accent"
-          style={{ top: T, left: L, width: R - L, height: B - T }}
-          aria-hidden
-        />
+      {box ? (
+        <>
+          {/* Rounded spotlight: the dim is the box-shadow spilling out of a
+              ROUNDED hole, so its corners match the ring. Glides between steps. */}
+          <div
+            className="ct-spotlight-hole pointer-events-none absolute rounded-xl"
+            style={{ top: T, left: L, width: R - L, height: B - T, boxShadow: '0 0 0 100vmax rgba(0,0,0,0.62)' }}
+            aria-hidden
+          />
+          {/* Spotlight ring — glides + pulses so the highlight is unmistakable */}
+          <div
+            className="ct-spotlight-ring pointer-events-none absolute rounded-xl ring-2 ring-accent"
+            style={{ top: T, left: L, width: R - L, height: B - T }}
+            aria-hidden
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-black/60" />
       )}
 
       {/* Docked panel — ALWAYS bottom-centered (never switches sides), so it

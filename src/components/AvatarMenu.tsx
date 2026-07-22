@@ -150,7 +150,7 @@ export function AvatarMenu({
           >
             What's new
           </MenuButton>
-          <MenuLink to="/feedback" icon={MessagesSquare} onSelect={() => setOpen(false)}>
+          <MenuLink to="/app/requests" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             Feedback
           </MenuLink>
           <MenuButton

@@ -7,6 +7,8 @@ export interface UiState {
   tipsSeen?: string[]
   /** Opt-in: pin the feature-requests board as a sidebar item. */
   feedbackPinned?: boolean
+  /** Shown the "take a tour" welcome prompt once (after onboarding). */
+  tourPromptSeen?: boolean
 }
 
 export interface UiStateContextValue {

@@ -14,6 +14,7 @@ import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { AdminActivityToaster } from '@/features/admin/AdminActivityToaster'
 import { GettingStartedChecklist } from '@/features/getting-started/GettingStartedChecklist'
+import { TourWelcomePrompt } from '@/features/getting-started/TourWelcomePrompt'
 import { Coachmark } from '@/features/getting-started/Coachmark'
 import { TourProvider } from '@/features/tour/TourProvider'
 import { TourOverlay } from '@/features/tour/TourOverlay'
@@ -76,6 +77,7 @@ export function StudentLayout() {
         body="Tap the circle to mark a task done. Tap the row itself to edit its date, grade, or notes."
       />
       <TourOverlay />
+      <TourWelcomePrompt />
       <AdminActivityToaster />
     </div>
     </TourProvider>

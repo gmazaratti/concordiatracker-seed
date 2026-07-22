@@ -4,9 +4,7 @@ import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Button } from '@/components/ui/Button'
 import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
-import { TodayStep } from './InteractiveToday'
-import { CalendarStep } from './InteractiveCalendar'
-import { EditingStep } from './InteractiveEditing'
+import { HowItWorksSlide } from './HowItWorksSlide'
 import { AddCourses } from './AddCourses'
 import { CommunityStep } from './CommunityStep'
 import { SetupStep, ThemeStep } from './OnboardingSetup'
@@ -14,17 +12,17 @@ import { HANDLE_RE, useHandleCheck } from './handle'
 import type { ProgramSelection } from '@/components/ui/ProgramPicker'
 import { cn } from '@/lib/cn'
 
-// 4 setup steps + 7 tour steps.
-// Setup: name, handle, major, theme. Tour: welcome, add-courses, today,
-// calendar, editing, community, done.
+// 4 setup steps + 5 intro steps.
+// Setup: name, handle, major, theme. Intro: welcome, add-courses, how-it-works,
+// community, done. (The hands-on walkthrough is now the post-onboarding TOUR —
+// the old silently-interactive Today/Calendar/Editing steps confused people.)
 const SETUP_COUNT = 4
-const FIRST_TOUR = SETUP_COUNT // first tour step = Welcome
+const FIRST_TOUR = SETUP_COUNT // first intro step = Welcome
 const STEP_COURSE = 5
-const STEP_TODAY = 6
-const STEP_CALENDAR = 7
-const STEP_EDITING = 8
-const STEP_DONE = 10
-const TOTAL = 11
+const STEP_HOW = 6
+const STEP_COMMUNITY = 7
+const STEP_DONE = 8
+const TOTAL = 9
 
 export function OnboardingPage() {
   const { user, onboardingCompleted, completeOnboarding } = useAppData()
@@ -38,9 +36,6 @@ export function OnboardingPage() {
   const [profilePublic, setProfilePublic] = useState(false)
   const [program, setProgram] = useState<ProgramSelection | null>(null)
   const [addedCourse, setAddedCourse] = useState(false)
-  const [todayDone, setTodayDone] = useState(false)
-  const [calendarDone, setCalendarDone] = useState(false)
-  const [editDone, setEditDone] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const handleStatus = useHandleCheck(handle)
@@ -67,13 +62,7 @@ export function OnboardingPage() {
           ? program !== null
           : step === STEP_COURSE
             ? addedCourse
-            : step === STEP_TODAY
-              ? todayDone
-              : step === STEP_CALENDAR
-                ? calendarDone
-                : step === STEP_EDITING
-                  ? editDone
-                  : true
+            : true
 
   const finish = async () => {
     setSubmitError('')
@@ -211,13 +200,9 @@ export function OnboardingPage() {
               <WelcomeSlide />
             ) : step === STEP_COURSE ? (
               <AddCourses onAdded={() => setAddedCourse(true)} />
-            ) : step === STEP_TODAY ? (
-              <TodayStep onDone={() => setTodayDone(true)} />
-            ) : step === STEP_CALENDAR ? (
-              <CalendarStep onDone={() => setCalendarDone(true)} />
-            ) : step === STEP_EDITING ? (
-              <EditingStep onDone={() => setEditDone(true)} />
-            ) : step === 9 ? (
+            ) : step === STEP_HOW ? (
+              <HowItWorksSlide />
+            ) : step === STEP_COMMUNITY ? (
               <CommunityStep />
             ) : (
               <DoneSlide />

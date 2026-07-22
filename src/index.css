@@ -476,6 +476,14 @@ html {
     width 220ms ease-out,
     height 220ms ease-out;
 }
+/* The rounded dim hole glides between steps in lockstep with the ring. */
+.ct-spotlight-hole {
+  transition:
+    top 220ms ease-out,
+    left 220ms ease-out,
+    width 220ms ease-out,
+    height 220ms ease-out;
+}
 
 /* ---- Landing hero: the dashboard embed slides in from the right on load
  * (≤0.5s, one-shot), then its greeting types out once (the typing itself is

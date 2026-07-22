@@ -53,7 +53,7 @@ export function WhatsNewModal() {
         {/* Cross-link → the requests board (the listen → build → proof loop). */}
         <div className="shrink-0 border-t border-border bg-surface-2/40 px-6 py-4">
           <Link
-            to="/feedback?tab=requests"
+            to="/app/requests?tab=requests"
             onClick={closeHistory}
             className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline"
           >
