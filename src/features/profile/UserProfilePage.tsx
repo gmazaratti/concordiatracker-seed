@@ -87,7 +87,7 @@ function ProfileView({ handle }: { handle: string }) {
                         {prog && <span className="text-subtle">· {prog.credential}</span>}
                       </p>
                     )}
-                    {profile.bio && <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg/90">{profile.bio}</p>}
+                    {profile.bio && <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{profile.bio}</p>}
                   </>
                 ) : (
                   <p className="mt-3 flex items-center gap-1.5 text-[13px] text-subtle">

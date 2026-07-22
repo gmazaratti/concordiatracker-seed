@@ -1,7 +1,10 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import {
   BarChart3,
   CalendarDays,
+  Check,
+  ChevronsUpDown,
   FlaskConical,
   LayoutDashboard,
   Loader2,
@@ -10,6 +13,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
+import type { OrgAccount } from '@/data/teacher'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { useAppData } from '@/app/providers/app-data'
@@ -32,7 +36,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
  * the invite/join/request pages) it falls back to a slim top-bar chrome.
  */
 export function OrganizerLayout() {
-  const { currentOrg, signOut, isDemoSession, orgViewerPerms } = useTeacher()
+  const { currentOrg, myOrgs, switchOrg, signOut, isDemoSession, orgViewerPerms } = useTeacher()
   const { loading } = useAuth()
   const { user } = useAppData()
   // Sidebar honours your permissions: no Insights without view_insights, no
@@ -81,15 +85,13 @@ export function OrganizerLayout() {
     <div className="flex h-svh overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
-        <div className="flex items-center gap-2.5 rounded-xl px-2 py-3">
-          <OrgLogo org={currentOrg.org} className="size-10" rounded="rounded-xl" textClass="text-[14px]" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-semibold text-fg">{currentOrg.org.name}</p>
-            <p className="truncate text-[11.5px] text-subtle">{currentOrg.org.handle}</p>
+        {/* Org identity + switcher + status, grouped above a divider that clearly
+            separates it from the nav below. */}
+        <div className="mb-3 border-b border-border pb-3">
+          <OrgSwitcher orgs={myOrgs} current={currentOrg} onSwitch={switchOrg} />
+          <div className="mt-1.5 px-2">
+            <StatusChip status={currentOrg.status} />
           </div>
-        </div>
-        <div className="mb-2 px-2">
-          <StatusChip status={currentOrg.status} />
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -229,6 +231,98 @@ export function OrganizerLayout() {
           ))}
         </nav>
       </div>
+    </div>
+  )
+}
+
+/** The org identity block — a plain header when you manage one org, a dropdown
+ * switcher when you manage several (owned + member-of + all, if you're an admin).
+ * Switching re-points every organizer screen at the newly-selected org. */
+function OrgSwitcher({
+  orgs,
+  current,
+  onSwitch,
+}: {
+  orgs: OrgAccount[]
+  current: OrgAccount
+  onSwitch: (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const multi = orgs.length > 1
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={!multi}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup={multi ? 'menu' : undefined}
+        aria-expanded={multi ? open : undefined}
+        className={cn(
+          'flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors duration-150',
+          multi ? 'hover:bg-surface-2' : 'cursor-default',
+        )}
+      >
+        <OrgLogo org={current.org} className="size-10" rounded="rounded-xl" textClass="text-[14px]" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-semibold text-fg">{current.org.name}</p>
+          <p className="truncate text-[11.5px] text-subtle">{current.org.handle}</p>
+        </div>
+        {multi && <ChevronsUpDown size={15} className="shrink-0 text-subtle" aria-hidden />}
+      </button>
+
+      {open && multi && (
+        <div
+          role="menu"
+          className="ct-animate-pop absolute inset-x-0 top-full z-40 mt-1 max-h-[19rem] overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-2xl"
+        >
+          <p className="px-2 py-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">
+            Switch organization
+          </p>
+          {orgs.map((o) => {
+            const active = o.id === current.id
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                  if (!active) onSwitch(o.id)
+                }}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-surface-2',
+                  active && 'bg-surface-2',
+                )}
+              >
+                <OrgLogo org={o.org} className="size-7" rounded="rounded-lg" textClass="text-[11px]" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12.5px] font-medium text-fg">{o.org.name}</p>
+                  <p className="truncate text-[11px] text-subtle">{o.org.handle}</p>
+                </div>
+                {active && <Check size={14} className="shrink-0 text-accent" aria-hidden />}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

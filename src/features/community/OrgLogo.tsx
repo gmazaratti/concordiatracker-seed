@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import type { EventOrg } from '@/data/community'
 import { cn } from '@/lib/cn'
 
-/** The org avatar tile — its real logo (object-cover) over a brand-colour block,
- * falling back to the coloured initials if the logo is absent or fails to load.
- * One place for the treatment shared by host rows, host cards, the profile
- * header, search results, and the following bar. */
+/** The org avatar tile — its real logo (object-cover) on a NEUTRAL backdrop,
+ * falling back to the brand-colour block + initials only when there's no logo (or
+ * it fails to load). Neutral (not the brand colour) behind a logo so a
+ * transparent PNG doesn't get a coloured halo / show the fallback letters through
+ * it. One place for the treatment shared by host rows, cards, the profile header,
+ * search results, and the switcher. */
 export function OrgLogo({
   org,
   className,
@@ -19,6 +22,9 @@ export function OrgLogo({
   /** Initials text-size utility. */
   textClass?: string
 }) {
+  const [failed, setFailed] = useState(false)
+  const showLogo = !!org.logo && !failed
+
   return (
     <span
       className={cn(
@@ -27,19 +33,18 @@ export function OrgLogo({
         textClass,
         className,
       )}
-      style={{ backgroundColor: org.color }}
+      style={{ backgroundColor: showLogo ? 'var(--ct-surface-2)' : org.color }}
       aria-hidden
     >
-      {org.glyph}
-      {org.logo && (
+      {showLogo ? (
         <img
           src={org.logo}
           alt=""
           className="absolute inset-0 size-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
+          onError={() => setFailed(true)}
         />
+      ) : (
+        org.glyph
       )}
     </span>
   )

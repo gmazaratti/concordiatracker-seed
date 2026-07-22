@@ -28,13 +28,20 @@ export interface TextQ {
   id: string
   label: string
   placeholder: string
+  /** Required to submit (marked with *). */
+  required?: boolean
+  /** Minimum trimmed length, so answers are actually useful. */
+  minLength?: number
 }
 
-/** Open-ended prompts — the qualitative "why" + growth signal. */
+/** Minimum useful length for a required free-text answer. */
+export const MIN_TEXT = 12
+
+/** Open-ended prompts — the qualitative "why" + growth signal. The two required
+ * ones carry a min length so the reward can't be farmed with "idk". */
 export const TEXT_QUESTIONS: TextQ[] = [
-  { id: 'next_feature', label: 'If we built ONE thing next, what should it be?', placeholder: 'e.g. Sync with Moodle, dark widgets, group projects…' },
-  { id: 'upgrade_reason', label: 'What would make the semester pass a no-brainer for you?', placeholder: 'What would justify $15 for the term?' },
-  { id: 'almost_stopped', label: 'Was there a moment you almost stopped using it? What happened?', placeholder: 'Optional — the honest stuff helps most' },
+  { id: 'next_feature', label: 'If we built ONE thing next, what should it be?', placeholder: 'e.g. Sync with Moodle, group projects, dark widgets…', required: true, minLength: MIN_TEXT },
+  { id: 'upgrade_reason', label: 'What would make the semester pass a no-brainer for you?', placeholder: 'What would justify $15 for the term?', required: true, minLength: MIN_TEXT },
   { id: 'comments', label: 'Anything else on your mind?', placeholder: 'Optional' },
 ]
 
@@ -46,9 +53,24 @@ export interface SurveyResponse {
 
 export const EMPTY_SURVEY: SurveyResponse = { ratings: {}, recommend: null, answers: {} }
 
-/** How many rating questions must be answered before submit is allowed. */
+/** The "almost stopped" answer is a yes/no (answers.stopped) + a required
+ * explanation (answers.stopped_detail) when the answer is yes. */
+export function stoppedAnswered(r: SurveyResponse): boolean {
+  const s = r.answers.stopped
+  if (s !== 'yes' && s !== 'no') return false
+  if (s === 'yes' && (r.answers.stopped_detail ?? '').trim().length < MIN_TEXT) return false
+  return true
+}
+
+/** Everything required must be answered (with min length) before submit — this is
+ * what gates the 3-day Pro reward, so the feedback is always substantive. */
 export function isComplete(r: SurveyResponse): boolean {
-  return RATING_QUESTIONS.every((q) => typeof r.ratings[q.id] === 'number') && r.recommend !== null
+  if (!RATING_QUESTIONS.every((q) => typeof r.ratings[q.id] === 'number')) return false
+  if (r.recommend === null) return false
+  for (const q of TEXT_QUESTIONS) {
+    if (q.required && (r.answers[q.id] ?? '').trim().length < (q.minLength ?? 1)) return false
+  }
+  return stoppedAnswered(r)
 }
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -84,6 +106,18 @@ export async function submitSurvey(userId: string, r: SurveyResponse): Promise<v
     { onConflict: 'user_id' },
   )
   if (error) throw error
+}
+
+/** Days of Pro granted for completing the survey (when eligible). */
+export const REWARD_DAYS = 3
+
+/** Claim the 3-day Pro reward server-side (idempotent; verifies a submission
+ * exists + ≥3 visit-days or admin, and never double-grants). Returns the new
+ * pro_until ISO string, or null if not granted. */
+export async function claimSurveyReward(): Promise<string | null> {
+  const { data, error } = await supabase.rpc('claim_survey_reward')
+  if (error) return null
+  return (data as string | null) ?? null
 }
 
 // ── Referral reward ─────────────────────────────────────────────────────────────

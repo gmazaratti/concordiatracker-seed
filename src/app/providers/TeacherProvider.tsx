@@ -81,11 +81,16 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const publishedBlueprintIds = useRef<Map<string, string>>(new Map())
   // The logged-in user's OWN persisted teacher courses (loaded from teacher_courses).
   const [myCourses, setMyCourses] = useState<TeacherCourse[]>([])
-  // The logged-in user's OWN organization (loaded from organizations + events).
-  const [myOrg, setMyOrg] = useState<OrgAccount | null>(null)
-  // What the signed-in user may DO in their real org (owner → everything;
-  // member → their effective permission set). Demo sessions get everything.
-  const [viewerPerms, setViewerPerms] = useState<OrgPermissions>(ALL_ORG_PERMS)
+  // Every org the logged-in user can manage: owned + member-of + (all, if admin).
+  const [myOrgs, setMyOrgs] = useState<OrgAccount[]>([])
+  // Which of myOrgs the user actually OWNS — drives pinning "You" as owner in the
+  // team, and hiding an admin from OTHER orgs' team lists (only their own team
+  // shows them).
+  const [ownedOrgIds, setOwnedOrgIds] = useState<Set<string>>(() => new Set())
+  // Effective permissions PER org (owner / admin-access → all; member → their set).
+  const [permsByOrg, setPermsByOrg] = useState<Record<string, OrgPermissions>>({})
+  // Which org the switcher currently has active (null → the first in the list).
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
   // Which events have had "Notify followers" fired — once-only unless reverted.
   // SWAPPABLE STUB: in-memory (resets on reload); real once-only enforcement is a
   // backend concern, but the UX (persists across re-entering the event) is real.
@@ -156,90 +161,133 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUser])
 
-  // Load the logged-in user's organization — one they OWN, or one they're an
-  // ACTIVE MEMBER of (shared dashboards: org_members grants co-owners/admins the
-  // same portal; the matching write access lives in RLS via is_org_editor).
+  // Load every org the signed-in user can manage: ones they OWN, ones they're an
+  // ACTIVE MEMBER of (shared dashboards via org_members), and — if they're a
+  // platform admin — ALL orgs. Events + members are batched with `.in(...)`, so
+  // the cost is a couple of queries regardless of how many orgs there are.
   useEffect(() => {
     let active = true
     void (async () => {
       if (!authUser) {
-        if (active) setMyOrg(null)
+        if (active) {
+          setMyOrgs([])
+          setOwnedOrgIds(new Set())
+          setPermsByOrg({})
+        }
         return
       }
-      const { data: orgRows } = await supabase
-        .from('organizations')
-        .select(ORG_COLS)
-        .eq('owner_id', authUser.id)
-        .limit(1)
-      let orgRow = (orgRows as (OrgRow & { status: string })[] | null)?.[0]
-      let perms: OrgPermissions = ALL_ORG_PERMS
-      if (!orgRow) {
-        // Not an owner — maybe a team member (matched by user id, then email).
-        // Their effective permissions gate the UI; RLS (org_perm) enforces the
-        // same set server-side.
-        type MemRow = { org_id: string; role: string; permissions: Partial<OrgPermissions> | null }
-        let { data: mem } = await supabase
+      const email = authUser.email ?? ''
+      // Admin can manage every org (the switcher lists them all).
+      const { data: adminFlag } = await supabase.rpc('is_admin')
+      const isAdminUser = adminFlag === true
+
+      // Membership rows (perms + which orgs I belong to) — matched by id, then email.
+      type MemRow = { org_id: string; role: string; permissions: Partial<OrgPermissions> | null }
+      let memRows: MemRow[] =
+        ((await supabase
           .from('org_members')
           .select('org_id, role, permissions')
           .eq('status', 'active')
-          .eq('user_id', authUser.id)
-          .limit(1)
-        if (!mem?.length && authUser.email) {
-          mem = (
-            await supabase
-              .from('org_members')
-              .select('org_id, role, permissions')
-              .eq('status', 'active')
-              .ilike('email', authUser.email)
-              .limit(1)
-          ).data
+          .eq('user_id', authUser.id)).data as MemRow[] | null) ?? []
+      if (!memRows.length && email) {
+        memRows =
+          ((await supabase
+            .from('org_members')
+            .select('org_id, role, permissions')
+            .eq('status', 'active')
+            .ilike('email', email)).data as MemRow[] | null) ?? []
+      }
+      const memberOrgIds = memRows.map((m) => m.org_id)
+
+      // The org identities to load into the switcher.
+      let orgRows: (OrgRow & { status: string; owner_id: string })[]
+      if (isAdminUser) {
+        orgRows = ((await supabase.from('organizations').select(ORG_COLS)).data as
+          | (OrgRow & { status: string; owner_id: string })[]
+          | null) ?? []
+      } else {
+        const owned =
+          ((await supabase.from('organizations').select(ORG_COLS).eq('owner_id', authUser.id)).data as
+            | (OrgRow & { status: string; owner_id: string })[]
+            | null) ?? []
+        let members: (OrgRow & { status: string; owner_id: string })[] = []
+        if (memberOrgIds.length) {
+          members =
+            ((await supabase.from('organizations').select(ORG_COLS).in('id', memberOrgIds)).data as
+              | (OrgRow & { status: string; owner_id: string })[]
+              | null) ?? []
         }
-        const memRow = (mem as MemRow[] | null)?.[0]
-        if (memRow) {
-          perms = memberPerms({
-            role: (['owner', 'admin', 'member'].includes(memRow.role) ? memRow.role : 'member') as OrgRole,
-            permissions: memRow.permissions ?? undefined,
-          })
-          const { data: byId } = await supabase
-            .from('organizations')
-            .select(ORG_COLS)
-            .eq('id', memRow.org_id)
-            .limit(1)
-          orgRow = (byId as (OrgRow & { status: string })[] | null)?.[0]
-        }
+        const seen = new Set<string>()
+        orgRows = [...owned, ...members].filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
       }
       if (!active) return
-      if (!orgRow) {
-        setMyOrg(null)
-        setViewerPerms(ALL_ORG_PERMS)
+      if (!orgRows.length) {
+        setMyOrgs([])
+        setOwnedOrgIds(new Set())
+        setPermsByOrg({})
         return
       }
-      setViewerPerms(perms)
-      const { data: evRows } = await supabase
-        .from('events')
-        .select(EVENT_COLS)
-        .eq('org_id', orgRow.id)
-        .order('start')
+
+      const ids = orgRows.map((r) => r.id)
+      const { data: evRows } = await supabase.from('events').select(EVENT_COLS).in('org_id', ids).order('start')
       const { data: memberRows } = await supabase
         .from('org_members')
-        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url')
-        .eq('org_id', orgRow.id)
+        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,org_id')
+        .in('org_id', ids)
         .order('created_at')
       if (!active) return
-      setMyOrg({
-        id: orgRow.id,
-        email: authUser.email ?? '',
-        status: orgRow.status === 'approved' ? 'approved' : 'pending',
-        org: orgFromRow(orgRow),
-        events: (evRows as EventRow[] | null)?.map(eventRowToManaged) ?? [],
-        followers: 0,
-        members: (memberRows as OrgMemberRow[] | null)?.map(orgMemberFromRow) ?? [],
+
+      const eventsByOrg = new Map<string, ManagedEvent[]>()
+      for (const e of (evRows as (EventRow & { org_id: string })[] | null) ?? []) {
+        const list = eventsByOrg.get(e.org_id) ?? []
+        list.push(eventRowToManaged(e))
+        eventsByOrg.set(e.org_id, list)
+      }
+      const membersByOrg = new Map<string, OrgMember[]>()
+      for (const m of (memberRows as (OrgMemberRow & { org_id: string })[] | null) ?? []) {
+        const list = membersByOrg.get(m.org_id) ?? []
+        list.push(orgMemberFromRow(m))
+        membersByOrg.set(m.org_id, list)
+      }
+
+      const owned = new Set<string>()
+      const perms: Record<string, OrgPermissions> = {}
+      const accounts: OrgAccount[] = orgRows.map((row) => {
+        const isOwner = row.owner_id === authUser.id
+        if (isOwner) owned.add(row.id)
+        const mem = memRows.find((m) => m.org_id === row.id)
+        perms[row.id] = isOwner
+          ? ALL_ORG_PERMS
+          : mem
+            ? memberPerms({
+                role: (['owner', 'admin', 'member'].includes(mem.role) ? mem.role : 'member') as OrgRole,
+                permissions: mem.permissions ?? undefined,
+              })
+            : ALL_ORG_PERMS // admin viewing someone else's org → full access
+        return {
+          id: row.id,
+          email: isOwner ? email : '',
+          status: row.status === 'approved' ? 'approved' : 'pending',
+          org: orgFromRow(row),
+          events: eventsByOrg.get(row.id) ?? [],
+          followers: 0,
+          members: membersByOrg.get(row.id) ?? [],
+        }
       })
+      setMyOrgs(accounts)
+      setOwnedOrgIds(owned)
+      setPermsByOrg(perms)
     })()
     return () => {
       active = false
     }
   }, [authUser])
+
+  // The org the switcher currently has active (first if none picked).
+  const myOrg = useMemo<OrgAccount | null>(
+    () => myOrgs.find((o) => o.id === selectedOrgId) ?? myOrgs[0] ?? null,
+    [myOrgs, selectedOrgId],
+  )
 
   const [absorbedBlueprintIds, setAbsorbed] = useState<string[]>([])
 
@@ -258,7 +306,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const currentOrg = useMemo<OrgAccount | null>(() => {
     if (sessionId === SELF_ORG) {
       if (!myOrg) return null
-      // Pin the current user (the owner) at the top of the team, badged "You".
+      // Only pin "You" as owner in an org you actually OWN. In an org you merely
+      // ADMIN (not owner/member), you never appear in its team list — your own
+      // ConcordiaTracker team is the only place you show up.
+      if (!ownedOrgIds.has(myOrg.id)) return myOrg
       const owner: OrgMember = {
         id: 'owner-self',
         name: user.name,
@@ -282,7 +333,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return orgs.find((o) => o.id === sessionId) ?? null
-  }, [sessionId, myOrg, orgs, user.name, user.email, authUser])
+  }, [sessionId, myOrg, orgs, user.name, user.email, authUser, ownedOrgIds])
 
   // A demo/seed session (not your own persistent SELF account) — used to show the
   // "you're in a sandbox, nothing is saved" banner. Demo writes nothing real.
@@ -370,7 +421,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
       if (error || !data) return ''
       const row = data as OrgRow & { status: string }
-      setMyOrg({
+      const account: OrgAccount = {
         id: row.id,
         email: authUser.email ?? '',
         status: 'pending',
@@ -378,15 +429,25 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         events: [],
         followers: 0,
         members: [],
-      })
+      }
+      setMyOrgs((prev) => [account, ...prev])
+      setOwnedOrgIds((prev) => new Set(prev).add(row.id))
+      setPermsByOrg((prev) => ({ ...prev, [row.id]: ALL_ORG_PERMS }))
+      setSelectedOrgId(row.id)
       setSessionId(SELF_ORG)
       return row.id
     },
     [authUser],
   )
   const signInSelfOrg = useCallback(() => {
-    if (myOrg) setSessionId(SELF_ORG)
-  }, [myOrg])
+    if (myOrgs.length) setSessionId(SELF_ORG)
+  }, [myOrgs.length])
+  // Switch the active org (owner/member/admin). Enters SELF_ORG so all the
+  // management paths target the newly-selected org.
+  const switchOrg = useCallback((id: string) => {
+    setSelectedOrgId(id)
+    setSessionId(SELF_ORG)
+  }, [])
   const signOut = useCallback(() => setSessionId(null), [])
 
   // ── Admin ────────────────────────────────────────────────────────────────
@@ -703,12 +764,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // ── Organizer: admin (invite/approve orgs) ────────────────────────────────
   const approveOrg = useCallback(
     (id: string) => {
-      // Your own org → persist the approval (so its events reach the feed) +
-      // refresh. (Dev: the owner self-approves via the admin console; real
-      // admin-only approval is a connection-phase RLS hardening.)
-      if (myOrg && id === myOrg.id) {
-        setMyOrg((prev) =>
-          prev ? { ...prev, status: 'approved', org: { ...prev.org, verified: true } } : prev,
+      // A real org you manage → persist the approval (so its events reach the
+      // feed) + refresh. (Dev: the owner self-approves via the admin console;
+      // real admin-only approval is a connection-phase RLS hardening.)
+      if (myOrgs.some((o) => o.id === id)) {
+        setMyOrgs((prev) =>
+          prev.map((o) =>
+            o.id === id ? { ...o, status: 'approved', org: { ...o.org, verified: true } } : o,
+          ),
         )
         fireWrite(
           supabase.from('organizations').update({ status: 'approved', verified: true }).eq('id', id),
@@ -722,7 +785,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         ),
       )
     },
-    [myOrg, refreshCommunity],
+    [myOrgs, refreshCommunity],
   )
 
   const createOrgInvite = useCallback(
@@ -787,7 +850,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         followers: 0,
         members: [],
       }
-      setMyOrg(account)
+      setMyOrgs((prev) => [account, ...prev])
+      setOwnedOrgIds((prev) => new Set(prev).add(row.id))
+      setPermsByOrg((prev) => ({ ...prev, [row.id]: ALL_ORG_PERMS }))
+      setSelectedOrgId(row.id)
       setSessionId(SELF_ORG)
       setOrgInvites((prev) => prev.map((i) => (i.token === token ? { ...i, used: true } : i)))
       return account
@@ -800,10 +866,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // the Community feed; for a seed/demo org they're in-memory only.
   const updateCurrentOrg = useCallback(
     (fn: (o: OrgAccount) => OrgAccount) => {
-      if (sessionId === SELF_ORG) setMyOrg((prev) => (prev ? fn(prev) : prev))
-      else setOrgs((prev) => prev.map((o) => (o.id === sessionId ? fn(o) : o)))
+      if (sessionId === SELF_ORG) {
+        const targetId = myOrg?.id
+        if (targetId) setMyOrgs((prev) => prev.map((o) => (o.id === targetId ? fn(o) : o)))
+      } else setOrgs((prev) => prev.map((o) => (o.id === sessionId ? fn(o) : o)))
     },
-    [sessionId],
+    [sessionId, myOrg],
   )
 
   // Per-org audit trail ("who did what" on the Team page). Real orgs only —
@@ -1071,6 +1139,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       currentOrg,
       orgs,
       myOrg,
+      myOrgs,
+      switchOrg,
       createOrg,
       signInSelfOrg,
       signInDemoOrg,
@@ -1092,7 +1162,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       removeOrgMember,
       setOrgMemberRole,
       setOrgMemberPerms,
-      orgViewerPerms: sessionId === SELF_ORG ? viewerPerms : ALL_ORG_PERMS,
+      orgViewerPerms:
+        sessionId === SELF_ORG && myOrg ? permsByOrg[myOrg.id] ?? ALL_ORG_PERMS : ALL_ORG_PERMS,
       communityOrgs,
       communityEvents,
     }),
@@ -1124,6 +1195,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       currentOrg,
       orgs,
       myOrg,
+      myOrgs,
+      switchOrg,
       createOrg,
       signInSelfOrg,
       signInDemoOrg,
@@ -1143,7 +1216,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       removeOrgMember,
       setOrgMemberRole,
       setOrgMemberPerms,
-      viewerPerms,
+      permsByOrg,
       sessionId,
       communityOrgs,
       communityEvents,

@@ -112,7 +112,7 @@ function ProfileForm({
             {approved && <VerifiedBadge size={15} />}
           </div>
           <p className="text-[12px] text-subtle">{handle || '@handle'}</p>
-          {bio.trim() && <p className="mt-1.5 text-[13px] text-muted">{bio}</p>}
+          {bio.trim() && <p className="mt-1.5 text-[13px] whitespace-pre-line text-muted">{bio}</p>}
           <SocialLinks links={preview.links} className="mt-2.5 flex flex-wrap gap-2" />
         </div>
       </div>

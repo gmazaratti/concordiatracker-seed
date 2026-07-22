@@ -58,6 +58,9 @@ export interface AppDataContextValue {
   user: User
   plan: Plan
   setPlan: (plan: Plan) => void
+  /** Optimistically apply a granted Pro window (ISO) — used by the survey reward
+   * so the plan flips live after the server grant. */
+  applyProUntil: (iso: string) => void
   /** Edit the signed-in user's profile (name / school / program) — persisted to
    * Supabase `user_profile`; read by Settings + Community ("for your program"). */
   updateProfile: (patch: Partial<{ name: string; school: string; program: string }>) => void

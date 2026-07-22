@@ -85,7 +85,7 @@ export function OrgProfilePage() {
           {org.handle}
           {org.verified && ' · Verified org'}
         </p>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-fg/90">{org.bio}</p>
+        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{org.bio}</p>
 
         <div className="mt-3 flex gap-5 text-[14px]">
           <span>

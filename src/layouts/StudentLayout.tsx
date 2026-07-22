@@ -15,6 +15,7 @@ import { InstallPrompt } from '@/components/InstallPrompt'
 import { AdminActivityToaster } from '@/features/admin/AdminActivityToaster'
 import { GettingStartedChecklist } from '@/features/getting-started/GettingStartedChecklist'
 import { TourWelcomePrompt } from '@/features/getting-started/TourWelcomePrompt'
+import { SurveyRewardPrompt } from '@/features/feedback/survey/SurveyRewardPrompt'
 import { Coachmark } from '@/features/getting-started/Coachmark'
 import { TourProvider } from '@/features/tour/TourProvider'
 import { TourOverlay } from '@/features/tour/TourOverlay'
@@ -78,6 +79,7 @@ export function StudentLayout() {
       />
       <TourOverlay />
       <TourWelcomePrompt />
+      <SurveyRewardPrompt />
       <AdminActivityToaster />
     </div>
     </TourProvider>

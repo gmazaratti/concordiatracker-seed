@@ -15,6 +15,7 @@ interface ProfileRow {
   program: string | null
   program_id?: string | null
   plan_status: string | null
+  pro_until?: string | null
   avatar_url: string | null
   handle: string | null
   onboarding_completed: boolean | null
@@ -23,7 +24,7 @@ interface ProfileRow {
 }
 
 const COLS =
-  'user_id, name, email, school, program, plan_status, avatar_url, handle, onboarding_completed'
+  'user_id, name, email, school, program, plan_status, pro_until, avatar_url, handle, onboarding_completed'
 
 /** Google supplies the picture under either key, depending on the provider. */
 const metaAvatar = (meta: Record<string, unknown> | undefined): string | null =>
@@ -39,8 +40,13 @@ const initialsOf = (name: string) =>
     .join('')
     .toUpperCase() || 'U'
 
-/** DB plan_status ('free'|'pro') ↔ the seed's Plan ('free'|'semester'). */
-const toPlan = (status: string | null | undefined): Plan => (status === 'pro' ? 'semester' : 'free')
+/** DB plan_status ('free'|'pro') ↔ the seed's Plan ('free'|'semester'). A live
+ * `pro_until` window (e.g. the survey reward) also counts as Pro. */
+const toPlan = (status: string | null | undefined, proUntil?: string | null): Plan => {
+  if (status === 'pro') return 'semester'
+  if (proUntil && new Date(proUntil).getTime() > Date.now()) return 'semester'
+  return 'free'
+}
 
 /** Append-only log of "Other" program entries for review. Fire-and-forget — a
  * missing table never blocks onboarding/settings. Only logs the 'other' case. */
@@ -170,7 +176,7 @@ export function useSupabaseProfile() {
       initials: initialsOf(name),
       avatarUrl: profile?.avatar_url || metaAvatar(meta) || undefined,
       handle: profile?.handle ?? undefined,
-      plan: toPlan(profile?.plan_status),
+      plan: toPlan(profile?.plan_status, profile?.pro_until),
       school: profile?.school ?? '',
       program: profile?.program ?? '',
     }
@@ -276,10 +282,17 @@ export function useSupabaseProfile() {
     [authUser, row?.handle],
   )
 
+  // Optimistically reflect a granted Pro window (the survey reward already wrote
+  // pro_until server-side) so the plan flips live without a reload.
+  const applyProUntil = useCallback((iso: string) => {
+    setRow((r) => (r ? { ...r, pro_until: iso } : r))
+  }, [])
+
   return {
     user,
     plan: user.plan,
     setPlan,
+    applyProUntil,
     updateProfile,
     setProgram,
     updatePrivacy,

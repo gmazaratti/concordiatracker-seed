@@ -91,8 +91,13 @@ export interface TeacherContextValue {
   /** The signed-in organizer (null if signed out or signed in as a teacher). */
   currentOrg: OrgAccount | null
   orgs: OrgAccount[]
-  /** Manage YOUR own real org (persisted) — null if you don't own one yet. */
+  /** The org the switcher currently has active (owned / member / admin-access) —
+   * null if you manage none. Every organizer screen reads this. */
   myOrg: OrgAccount | null
+  /** Every org you can manage (owned + member-of + all-if-admin) — the switcher. */
+  myOrgs: OrgAccount[]
+  /** Switch the active org by id (enters the SELF_ORG management session). */
+  switchOrg: (id: string) => void
   /** Create your own organization (persisted to `organizations`, owned by you).
    * Returns the new id, or '' if it failed (e.g. the handle is taken). */
   createOrg: (input: {

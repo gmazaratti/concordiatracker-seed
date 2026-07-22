@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Copy, Gift, Heart, Loader2, Lock, PartyPopper } from 'lucide-react'
+import { Check, Copy, Gift, Heart, Loader2, Lock, PartyPopper, Sparkles } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { useUiState } from '@/app/providers/ui-state'
@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import {
   EMPTY_SURVEY,
+  MIN_TEXT,
   RATING_QUESTIONS,
   REFERRAL_PAYING_CREDIT,
   REFERRAL_SIGNUP_CREDIT,
+  REWARD_DAYS,
   TEXT_QUESTIONS,
+  claimSurveyReward,
   isComplete,
   loadMySurvey,
   referralCode,
@@ -22,10 +25,11 @@ import {
 
 const REQUIRED_DAYS = 3
 
-/** The `?tab=survey` panel on /app/requests: a short rating + open-ended survey,
- * gated on ≥3 days of use, that rewards recommenders with a referral code. */
+/** The `?tab=survey` panel on /app/requests: a short but substantive survey,
+ * gated on ≥3 days of use, that rewards a complete submission with 3 days of Pro
+ * (and a referral code for recommenders). */
 export function SurveyPanel() {
-  const { user } = useAppData()
+  const { user, applyProUntil } = useAppData()
   const { user: authUser } = useAuth()
   const { isAdmin } = useIsAdmin()
   const { uiState, loaded, patchUiState } = useUiState()
@@ -34,8 +38,8 @@ export function SurveyPanel() {
   const [loadedResp, setLoadedResp] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [rewarded, setRewarded] = useState(false)
 
-  // Pull any prior submission (so a returning user sees their answers / done state).
   useEffect(() => {
     if (!authUser) return
     let active = true
@@ -61,19 +65,11 @@ export function SurveyPanel() {
       </div>
     )
   }
+  if (done) return <DoneCard recommend={resp.recommend} handle={user.handle} userId={authUser?.id} rewardedNow={rewarded} />
+  if (!eligible) return <LockedCard daysUsed={daysUsed} />
 
-  if (done) {
-    return <DoneCard recommend={resp.recommend} handle={user.handle} userId={authUser?.id} />
-  }
-
-  if (!eligible) {
-    return <LockedCard daysUsed={daysUsed} />
-  }
-
-  const setRating = (id: string, v: number) =>
-    setResp((r) => ({ ...r, ratings: { ...r.ratings, [id]: v } }))
-  const setAnswer = (id: string, v: string) =>
-    setResp((r) => ({ ...r, answers: { ...r.answers, [id]: v } }))
+  const setRating = (id: string, v: number) => setResp((r) => ({ ...r, ratings: { ...r.ratings, [id]: v } }))
+  const setAnswer = (id: string, v: string) => setResp((r) => ({ ...r, answers: { ...r.answers, [id]: v } }))
   const setRecommend = (v: boolean) => setResp((r) => ({ ...r, recommend: v }))
 
   const submit = async () => {
@@ -82,6 +78,11 @@ export function SurveyPanel() {
     setError('')
     try {
       await submitSurvey(authUser.id, resp)
+      const until = await claimSurveyReward()
+      if (until) {
+        applyProUntil(until)
+        setRewarded(true)
+      }
       patchUiState({ surveyDone: true })
     } catch {
       setError('Couldn’t save that — please try again.')
@@ -89,16 +90,21 @@ export function SurveyPanel() {
     }
   }
 
+  const stopped = resp.answers.stopped
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-accent/40 bg-accent-soft/50 p-4">
         <div className="flex items-start gap-2.5">
-          <Gift className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
+          <Sparkles className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
           <div>
-            <p className="text-[13.5px] font-semibold text-fg">Two minutes → a real say in what we build</p>
+            <p className="text-[13.5px] font-semibold text-fg">
+              Finish this and get <span className="text-accent">{REWARD_DAYS} days of Pro, free</span>
+            </p>
             <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">
-              Your answers shape the roadmap directly. Recommend us at the end and you&rsquo;ll
-              unlock a personal referral code that takes money off your semester pass.
+              Two minutes of honest feedback shapes the roadmap directly. Everything marked
+              <span className="mx-0.5 font-semibold text-danger">*</span> is required so it&rsquo;s
+              genuinely useful. Recommend us at the end to also unlock a referral code.
             </p>
           </div>
         </div>
@@ -120,7 +126,9 @@ export function SurveyPanel() {
 
       {/* Recommend → reveals the referral reward */}
       <div className="rounded-xl border border-border bg-surface p-4">
-        <p className="text-[13.5px] font-medium text-fg">Would you recommend ConcordiaTracker to a friend?</p>
+        <p className="text-[13.5px] font-medium text-fg">
+          Would you recommend ConcordiaTracker to a friend? <Req />
+        </p>
         <div className="mt-3 flex gap-2.5">
           <RecommendButton active={resp.recommend === true} onClick={() => setRecommend(true)} yes />
           <RecommendButton active={resp.recommend === false} onClick={() => setRecommend(false)} />
@@ -132,11 +140,41 @@ export function SurveyPanel() {
         )}
       </div>
 
+      {/* Almost-stopped: yes/no → conditional explain */}
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <p className="text-[13.5px] font-medium text-fg">
+          Was there ever a moment you almost stopped using it? <Req />
+        </p>
+        <div className="mt-3 flex gap-2.5">
+          <YesNo active={stopped === 'yes'} label="Yes" onClick={() => setAnswer('stopped', 'yes')} />
+          <YesNo active={stopped === 'no'} label="No" onClick={() => setAnswer('stopped', 'no')} />
+        </div>
+        {stopped === 'yes' && (
+          <div className="mt-3">
+            <label htmlFor="stopped_detail" className="mb-1.5 block text-[12.5px] font-medium text-fg">
+              What happened? <Req />
+            </label>
+            <textarea
+              id="stopped_detail"
+              value={resp.answers.stopped_detail ?? ''}
+              onChange={(e) => setAnswer('stopped_detail', e.target.value)}
+              placeholder="The honest stuff helps most — what nearly lost you?"
+              rows={2}
+              maxLength={2000}
+              className="w-full resize-y rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+            />
+            <MinHint value={resp.answers.stopped_detail ?? ''} />
+          </div>
+        )}
+      </div>
+
       {/* Open-ended */}
       <div className="space-y-3">
         {TEXT_QUESTIONS.map((q) => (
           <label key={q.id} className="block">
-            <span className="mb-1.5 block text-[13px] font-medium text-fg">{q.label}</span>
+            <span className="mb-1.5 block text-[13px] font-medium text-fg">
+              {q.label} {q.required && <Req />}
+            </span>
             <textarea
               value={resp.answers[q.id] ?? ''}
               onChange={(e) => setAnswer(q.id, e.target.value)}
@@ -145,23 +183,38 @@ export function SurveyPanel() {
               maxLength={2000}
               className="w-full resize-y rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
+            {q.required && <MinHint value={resp.answers[q.id] ?? ''} />}
           </label>
         ))}
       </div>
 
       {error && <p className="text-[12.5px] font-medium text-danger">{error}</p>}
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button size="lg" disabled={!isComplete(resp) || saving} onClick={() => void submit()}>
-          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-          Submit feedback
+          {saving ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles size={16} aria-hidden />}
+          Submit &amp; claim {REWARD_DAYS} days of Pro
         </Button>
         {!isComplete(resp) && (
-          <p className="text-[12px] text-subtle">Answer the ratings + the recommend question to submit.</p>
+          <p className="text-[12px] text-subtle">
+            Answer everything marked <span className="font-semibold text-danger">*</span> to submit.
+          </p>
         )}
       </div>
     </div>
   )
+}
+
+/** The little required marker. */
+function Req() {
+  return <span className="font-semibold text-danger">*</span>
+}
+
+/** A gentle min-length hint that only nags while the answer is too short. */
+function MinHint({ value }: { value: string }) {
+  const len = value.trim().length
+  if (len === 0 || len >= MIN_TEXT) return null
+  return <p className="mt-1 text-[11.5px] text-subtle">A little more detail, please — at least {MIN_TEXT} characters.</p>
 }
 
 // ── Rating scale ────────────────────────────────────────────────────────────────
@@ -180,7 +233,9 @@ function RatingRow({
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="text-[13.5px] font-medium text-fg">{label}</p>
+      <p className="text-[13.5px] font-medium text-fg">
+        {label} <Req />
+      </p>
       <div className="mt-2.5 flex items-center gap-1.5">
         {[1, 2, 3, 4, 5].map((n) => {
           const active = value === n
@@ -228,6 +283,22 @@ function RecommendButton({ active, onClick, yes = false }: { active: boolean; on
     >
       {yes && <Heart size={15} className={active ? 'text-accent' : ''} aria-hidden />}
       {yes ? 'Yes, I would' : 'Not yet'}
+    </button>
+  )
+}
+
+function YesNo({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        'min-w-[84px] rounded-lg border px-4 py-2 text-[13.5px] font-medium transition-colors duration-150',
+        active ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:border-border-strong hover:text-fg',
+      )}
+    >
+      {label}
     </button>
   )
 }
@@ -280,7 +351,8 @@ function LockedCard({ daysUsed }: { daysUsed: number }) {
       <h3 className="mt-3.5 text-[16px] font-semibold text-fg">The survey unlocks soon</h3>
       <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted">
         We ask after you&rsquo;ve had a few real days with ConcordiaTracker, so your feedback is
-        grounded in actual use. You&rsquo;re{' '}
+        grounded in actual use. Finish it then and you&rsquo;ll get{' '}
+        <span className="font-semibold text-fg">{REWARD_DAYS} days of Pro, free</span>. You&rsquo;re{' '}
         <span className="font-semibold text-fg">{daysUsed} of {REQUIRED_DAYS} days</span> in.
       </p>
       <div className="mx-auto mt-4 h-1.5 w-48 overflow-hidden rounded-full bg-surface-2">
@@ -295,10 +367,12 @@ function DoneCard({
   recommend,
   handle,
   userId,
+  rewardedNow,
 }: {
   recommend: boolean | null
   handle?: string | null
   userId?: string | null
+  rewardedNow: boolean
 }) {
   return (
     <div className="rounded-2xl border border-border bg-surface p-6 text-center">
@@ -310,8 +384,17 @@ function DoneCard({
         Your answers go straight into what we build next. If something changes because of you,
         you&rsquo;ll see it in <span className="font-medium text-fg">What&rsquo;s new</span>.
       </p>
+      {rewardedNow && (
+        <div className="mx-auto mt-5 flex max-w-md items-center gap-3 rounded-xl border border-accent/50 bg-accent-soft/40 p-4 text-left">
+          <Gift className="size-6 shrink-0 text-accent" aria-hidden />
+          <p className="text-[13px] leading-relaxed text-fg">
+            <span className="font-semibold">{REWARD_DAYS} days of Pro unlocked</span> — it&rsquo;s
+            active on your account right now. Enjoy the GPA predictor, unlimited scans and more.
+          </p>
+        </div>
+      )}
       {recommend === true && (
-        <div className="mx-auto mt-5 max-w-md text-left">
+        <div className="mx-auto mt-4 max-w-md text-left">
           <ReferralReward handle={handle} userId={userId} />
         </div>
       )}

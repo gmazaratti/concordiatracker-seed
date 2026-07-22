@@ -20,6 +20,8 @@ export interface UiState {
   surveyDone?: boolean
   /** Dismissed the survey nudge without completing it. */
   surveyDismissed?: boolean
+  /** Shown the "you're eligible → take the survey" welcome pop-up once. */
+  surveyPromptSeen?: boolean
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as
