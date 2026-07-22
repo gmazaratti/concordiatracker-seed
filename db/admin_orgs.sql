@@ -58,3 +58,47 @@ create policy "org_activity_read" on public.org_activity for select using (
   or exists (select 1 from public.organizations o where o.id = org_id and o.owner_id = auth.uid())
   or public.is_org_member(org_id)
 );
+
+-- Also notify the admin when someone CLAIMS/JOINS an org (handoff invites don't
+-- create a new pending org, so they wouldn't otherwise show). Recreated feed =
+-- the original unions + recent owner/admin org-member joins.
+create or replace function public.admin_activity_feed()
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare seen timestamptz; items jsonb;
+begin
+  if not public.is_admin() then raise exception 'not authorized'; end if;
+  select activity_seen_at into seen from public.admins where user_id = auth.uid();
+  with recent as (
+    select 'user'::text as kind, up.user_id::text as id,
+           coalesce(up.name, up.email, 'New student') as title,
+           coalesce(up.email, '') as subtitle, up.created_at
+      from public.user_profile up where up.user_id <> auth.uid()
+    union all
+    select 'feature', fr.id::text, fr.title, fr.author_name || ' · feature request', fr.created_at
+      from public.feature_requests fr where fr.hidden = false
+    union all
+    select 'bug', br.id::text, br.title, coalesce(br.user_email, 'someone') || ' · bug report', br.created_at
+      from public.bug_reports br
+    union all
+    select 'request', ar.case_id, ar.name || ' — ' || ar.role || ' access', ar.email, ar.created_at
+      from public.access_requests ar where ar.status = 'pending'
+    union all
+    select 'org', o.id::text, o.name || ' — new organization', '@' || o.handle, o.created_at
+      from public.organizations o where o.status = 'pending'
+    union all
+    select 'teacher', tc.id::text, tc.name || ' — teacher access', tc.email, tc.created_at
+      from public.teacher_accounts tc where tc.status = 'pending'
+    union all
+    select 'org', 'mem-' || m.id::text,
+           coalesce(m.name, m.email, 'Someone') || ' joined ' || o.name,
+           coalesce(m.email, '') || ' · ' || m.role, m.joined_at
+      from public.org_members m join public.organizations o on o.id = m.org_id
+      where m.status = 'active' and m.role in ('owner', 'admin')
+        and m.joined_at is not null and m.joined_at > now() - interval '30 days'
+  )
+  select jsonb_agg(to_jsonb(r) order by r.created_at desc)
+    into items
+    from (select * from recent order by created_at desc limit 50) r;
+  return jsonb_build_object('seen_at', seen, 'items', coalesce(items, '[]'::jsonb));
+end $$;
