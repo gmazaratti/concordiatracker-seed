@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Button } from '@/components/ui/Button'
 import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
+import { HeardAboutSlide } from './HeardAboutSlide'
 import { HowItWorksSlide } from './HowItWorksSlide'
 import { AddCourses } from './AddCourses'
 import { CommunityStep } from './CommunityStep'
@@ -12,17 +13,18 @@ import { HANDLE_RE, useHandleCheck } from './handle'
 import type { ProgramSelection } from '@/components/ui/ProgramPicker'
 import { cn } from '@/lib/cn'
 
-// 4 setup steps + 5 intro steps.
-// Setup: name, handle, major, theme. Intro: welcome, add-courses, how-it-works,
-// community, done. (The hands-on walkthrough is now the post-onboarding TOUR —
-// the old silently-interactive Today/Calendar/Editing steps confused people.)
+// 4 setup steps + 6 intro steps.
+// Setup: name, handle, major, theme. Intro: welcome, heard-about, add-courses,
+// how-it-works, community, done. (The hands-on walkthrough is now the
+// post-onboarding TOUR — the old silently-interactive steps confused people.)
 const SETUP_COUNT = 4
 const FIRST_TOUR = SETUP_COUNT // first intro step = Welcome
-const STEP_COURSE = 5
-const STEP_HOW = 6
-const STEP_COMMUNITY = 7
-const STEP_DONE = 8
-const TOTAL = 9
+const STEP_HEARD = 5
+const STEP_COURSE = 6
+const STEP_HOW = 7
+const STEP_COMMUNITY = 8
+const STEP_DONE = 9
+const TOTAL = 10
 
 export function OnboardingPage() {
   const { user, onboardingCompleted, completeOnboarding } = useAppData()
@@ -150,7 +152,12 @@ export function OnboardingPage() {
   const label = isLast ? 'Enter ConcordiaTracker' : isSetup || step === STEP_COURSE ? 'Continue' : 'Next'
 
   return (
-    <div className="ct-grid-bg fixed inset-0 z-50 flex flex-col bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      {/* Blueprint grid as a dedicated BACKGROUND layer, not on the content
+          container — the utility's radial mask would otherwise clip the whole
+          element (all the content) to ≤50% opacity. `fixed` makes this div a
+          stacking context, so the -z-10 grid paints above the canvas + below UI. */}
+      <div className="ct-grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <header className="flex shrink-0 items-center justify-between px-5 py-4 sm:px-8 sm:py-5">
         {step > minStep ? (
           <button
@@ -196,8 +203,10 @@ export function OnboardingPage() {
               />
             ) : step === 3 ? (
               <ThemeStep />
-            ) : step === 4 ? (
+            ) : step === FIRST_TOUR ? (
               <WelcomeSlide />
+            ) : step === STEP_HEARD ? (
+              <HeardAboutSlide />
             ) : step === STEP_COURSE ? (
               <AddCourses onAdded={() => setAddedCourse(true)} />
             ) : step === STEP_HOW ? (

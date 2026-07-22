@@ -1,13 +1,20 @@
 import { useSearchParams } from 'react-router-dom'
-import { Bug, Lightbulb } from 'lucide-react'
+import { Bug, ClipboardList, Gift, Lightbulb, X } from 'lucide-react'
+import { useAppData } from '@/app/providers/app-data'
+import { useUiState } from '@/app/providers/ui-state'
+import { useIsAdmin } from '@/features/admin/admin-data'
 import { RequestsBoard } from './RequestsBoard'
 import { BugChannel } from './BugChannel'
 import { PinRequestsToast } from './PinRequestsToast'
+import { SurveyPanel } from './survey/SurveyPanel'
 import { cn } from '@/lib/cn'
+
+const SURVEY_DAYS = 3
 
 const TABS = [
   { id: 'requests', label: 'Feature requests', icon: Lightbulb },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
+  { id: 'survey', label: 'Quick survey', icon: ClipboardList },
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
@@ -60,8 +67,51 @@ export function AppRequestsPage() {
         })}
       </div>
 
-      {current === 'requests' ? <RequestsBoard /> : <BugChannel />}
+      {current !== 'survey' && <SurveyNudge onGo={() => select('survey')} />}
+      {current === 'requests' ? <RequestsBoard /> : current === 'bugs' ? <BugChannel /> : <SurveyPanel />}
       {current === 'requests' && <PinRequestsToast />}
+    </div>
+  )
+}
+
+/** A slim, dismissible banner that surfaces the survey once the user is eligible
+ * (≥3 days of use) and hasn't done or dismissed it — the incentive is the reward
+ * on the other side, so we lead with that. */
+function SurveyNudge({ onGo }: { onGo: () => void }) {
+  const { plan } = useAppData()
+  const { uiState, loaded, patchUiState } = useUiState()
+  const { isAdmin } = useIsAdmin()
+
+  const daysUsed = uiState.visitDays?.length ?? 0
+  const eligible = isAdmin || daysUsed >= SURVEY_DAYS
+  if (!loaded || !eligible || uiState.surveyDone || uiState.surveyDismissed) return null
+
+  return (
+    <div className="mb-5 flex items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/50 px-4 py-3">
+      <Gift className="size-5 shrink-0 text-accent" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-fg">Got two minutes? Shape what we build next.</p>
+        <p className="text-[12px] text-subtle">
+          {plan === 'free'
+            ? 'Recommend us at the end to unlock a referral code that discounts your semester pass.'
+            : 'Recommend us at the end to unlock a referral code — credits stack toward next term.'}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onGo}
+        className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover"
+      >
+        Take the survey
+      </button>
+      <button
+        type="button"
+        onClick={() => patchUiState({ surveyDismissed: true })}
+        aria-label="Dismiss"
+        className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+      >
+        <X size={15} aria-hidden />
+      </button>
     </div>
   )
 }

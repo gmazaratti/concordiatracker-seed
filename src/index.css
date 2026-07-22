@@ -547,6 +547,23 @@ html {
   );
 }
 
+/* A brief attention pulse — used to point the eye at the Getting-started card
+ * when someone declines the tour ("maybe later → here's the passive helper"). */
+@keyframes ct-attention {
+  0% {
+    box-shadow: 0 0 0 0 var(--ct-accent-ring, rgba(143, 179, 154, 0.55));
+  }
+  70% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.ct-attention {
+  animation: ct-attention 1.15s ease-out 2;
+}
+
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

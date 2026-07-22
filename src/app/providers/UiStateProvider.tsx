@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
-import { UiStateContext, type UiState } from './ui-state'
+import { UiStateContext, localDay, type UiState } from './ui-state'
 
 // Stable reference for the signed-out / not-yet-loaded case (so it doesn't churn memo deps).
 const EMPTY: UiState = {}
@@ -34,7 +34,17 @@ export function UiStateProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', authUser.id)
         .maybeSingle()
       if (!active) return
-      setUiState(!error && data?.ui_state ? (data.ui_state as UiState) : {})
+      const loadedState: UiState = !error && data?.ui_state ? (data.ui_state as UiState) : {}
+      // Record today's visit (distinct local days) — the survey gates on ≥3. Done
+      // here at load (not a separate effect) so there's no set-state-in-effect.
+      const today = localDay()
+      const days = loadedState.visitDays ?? []
+      let next = loadedState
+      if (!days.includes(today)) {
+        next = { ...loadedState, visitDays: [...days, today].slice(-120) }
+        fireWrite(supabase.from('user_profile').update({ ui_state: next }).eq('user_id', authUser.id))
+      }
+      setUiState(next)
       setLoadedFor(authUser.id)
     })()
     return () => {

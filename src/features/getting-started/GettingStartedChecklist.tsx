@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronDown, Play, Rocket, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
@@ -28,6 +28,18 @@ export function GettingStartedChecklist() {
   const { uiState, loaded, patchUiState } = useUiState()
   const { start } = useTour()
   const [open, setOpen] = useState(true)
+  // Brief attention pulse when the user declines the tour ("maybe later"), so the
+  // eye lands on this passive helper. Auto-clears; expands the card if collapsed.
+  const [nudge, setNudge] = useState(false)
+  useEffect(() => {
+    const onShow = () => {
+      setOpen(true)
+      setNudge(true)
+      window.setTimeout(() => setNudge(false), 2600)
+    }
+    window.addEventListener('ct:show-checklist', onShow)
+    return () => window.removeEventListener('ct:show-checklist', onShow)
+  }, [])
 
   const steps: Step[] = [
     {
@@ -76,7 +88,10 @@ export function GettingStartedChecklist() {
 
   return (
     <section
-      className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--ct-shadow)] md:bottom-5"
+      className={cn(
+        'fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border bg-surface shadow-[var(--ct-shadow)] md:bottom-5',
+        nudge ? 'ct-attention border-accent' : 'border-border',
+      )}
       aria-label="Getting started"
     >
       <div className="flex items-center gap-3 px-4 py-3">

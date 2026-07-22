@@ -9,6 +9,21 @@ export interface UiState {
   feedbackPinned?: boolean
   /** Shown the "take a tour" welcome prompt once (after onboarding). */
   tourPromptSeen?: boolean
+  /** Attribution — where the user first heard about us (onboarding). */
+  heardFrom?: string
+  /** Distinct local days the user has opened the app (YYYY-MM-DD, capped). Used
+   * to gate the feedback survey ("used it for ≥3 unique days"). */
+  visitDays?: string[]
+  /** Completed the feedback survey (hide the entry once done). */
+  surveyDone?: boolean
+  /** Dismissed the survey nudge without completing it. */
+  surveyDismissed?: boolean
+}
+
+/** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as
+ * "today" for the person using it). */
+export function localDay(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export interface UiStateContextValue {

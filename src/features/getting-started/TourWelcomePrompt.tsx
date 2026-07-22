@@ -15,6 +15,12 @@ export function TourWelcomePrompt() {
   if (!loaded || uiState.tourPromptSeen) return null
 
   const dismiss = () => patchUiState({ tourPromptSeen: true })
+  // Declining the invasive tour → point them at the passive Getting-started card
+  // (the two complement each other: one walks you through, one just waits there).
+  const maybeLater = () => {
+    dismiss()
+    window.dispatchEvent(new CustomEvent('ct:show-checklist'))
+  }
 
   return (
     <ModalShell label="Welcome" onClose={dismiss}>
@@ -42,11 +48,15 @@ export function TourWelcomePrompt() {
           </Button>
           <button
             type="button"
-            onClick={dismiss}
+            onClick={maybeLater}
             className="text-[13px] font-medium text-subtle transition-colors hover:text-fg"
           >
             Maybe later
           </button>
+          <p className="text-[11.5px] text-subtle">
+            No rush — the <span className="font-medium text-muted">Getting started</span> checklist
+            stays in the corner whenever you want it.
+          </p>
         </div>
       </div>
     </ModalShell>
