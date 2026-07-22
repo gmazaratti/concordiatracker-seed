@@ -9,6 +9,7 @@ import {
   Compass,
   GraduationCap,
   Inbox,
+  LayoutDashboard,
   Link2,
   Loader2,
   ShieldAlert,
@@ -17,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useIsAdmin } from './admin-data'
+import { AdminDashboardTab } from './tabs/AdminDashboardTab'
 import { UsersTab } from './tabs/UsersTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
@@ -27,6 +29,7 @@ import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'applications', label: 'Applications', icon: Inbox },
   { id: 'portals', label: 'Portals', icon: Building2 },
@@ -55,7 +58,7 @@ export function AdminConsole() {
   const [params, setParams] = useSearchParams()
   const refs = useRef<(HTMLButtonElement | null)[]>([])
 
-  const current = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'users') as TabId
+  const current = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'overview') as TabId
   const select = (id: TabId) => setParams((p) => { p.set('tab', id); return p }, { replace: true })
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -99,6 +102,7 @@ export function AdminConsole() {
   const body = (
     <div className="mx-auto w-full max-w-5xl px-5 py-6">
       <div role="tabpanel" id={`admin-panel-${current}`} aria-labelledby={`admin-tab-${current}`}>
+        {current === 'overview' && <AdminDashboardTab />}
         {current === 'users' && <UsersTab />}
         {current === 'applications' && <ApplicationsTab />}
         {current === 'portals' && <PortalsTab />}

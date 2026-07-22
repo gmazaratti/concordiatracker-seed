@@ -95,6 +95,29 @@ export interface ActivityFeed {
   seenAt: string | null
 }
 
+export interface DashboardStats {
+  total_users: number
+  new_users_7d: number
+  new_users_30d: number
+  pro_users: number
+  total_courses: number
+  total_assignments: number
+  total_orgs: number
+  pending_orgs: number
+  total_events: number
+  total_teachers: number
+  pending_applications: number
+  survey_responses: number
+  feature_requests: number
+  open_bugs: number
+  activity_7d: number
+}
+export async function adminDashboardStats(): Promise<DashboardStats> {
+  const { data, error } = await supabase.rpc('admin_dashboard_stats')
+  if (error) throw error
+  return data as DashboardStats
+}
+
 const num = (v: unknown) => Number(v ?? 0)
 
 // ── Reads ────────────────────────────────────────────────────────────────────

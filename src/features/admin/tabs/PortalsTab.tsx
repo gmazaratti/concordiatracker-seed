@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { BadgeCheck, CalendarDays, ChevronDown, FileText, Megaphone, Users } from 'lucide-react'
+import { BadgeCheck, CalendarDays, ChevronDown, FileText, Megaphone, Plus, Users, X } from 'lucide-react'
 import {
   adminDeleteOrg,
   adminListOrgMembers,
@@ -23,52 +23,94 @@ export function PortalsTab() {
   const orgLoader = useCallback(() => adminListPortalOrgs(), [])
   const teachers = useAdminList<PortalTeacher>(teacherLoader)
   const orgs = useAdminList<PortalOrg>(orgLoader)
+  const [showCreate, setShowCreate] = useState(false)
 
   const reloadAll = () => {
     teachers.reload()
     orgs.reload()
   }
 
+  const pendingOrgs = orgs.items.filter((o) => o.status === 'pending').length
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[22px] font-semibold text-fg">Portals</h1>
+          <p className="text-[13px] text-subtle">
+            Manage teacher &amp; organizer accounts, and send invites.
+            {pendingOrgs > 0 && <span className="ml-1 font-medium text-warning">{pendingOrgs} awaiting approval.</span>}
+          </p>
+        </div>
         <RefreshButton onClick={reloadAll} busy={teachers.loading || orgs.loading} />
+      </header>
+
+      {/* Primary: the lists you actually manage. Organizers get the wide column
+          (most actions); teachers are compact beside them on large screens. */}
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Panel title="Organizations" sub={orgs.loading ? 'Loading…' : `${orgs.items.length} total`}>
+          {orgs.loading ? (
+            <Loading />
+          ) : orgs.error ? (
+            <ErrorState message={orgs.error} />
+          ) : orgs.items.length === 0 ? (
+            <EmptyState>No organizations yet.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-border">
+              {orgs.items.map((o) => (
+                <OrgRow key={o.id} o={o} onChanged={orgs.reload} />
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel title="Teachers" sub={teachers.loading ? 'Loading…' : `${teachers.items.length} accounts`}>
+          {teachers.loading ? (
+            <Loading />
+          ) : teachers.error ? (
+            <ErrorState message={teachers.error} />
+          ) : teachers.items.length === 0 ? (
+            <EmptyState>No teacher accounts yet.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-border">
+              {teachers.items.map((t) => (
+                <TeacherRow key={t.id} t={t} onChanged={teachers.reload} />
+              ))}
+            </ul>
+          )}
+        </Panel>
       </div>
 
-      <AdminCreateOrgPanel />
+      {/* Invites — kept visible so you can see who's opened a link (before signup). */}
       <OrgInvitesPanel />
 
-      <Panel title="Teacher portals" sub={teachers.loading ? 'Loading…' : `${teachers.items.length} accounts`}>
-        {teachers.loading ? (
-          <Loading />
-        ) : teachers.error ? (
-          <ErrorState message={teachers.error} />
-        ) : teachers.items.length === 0 ? (
-          <EmptyState>No teacher accounts yet.</EmptyState>
-        ) : (
-          <ul className="divide-y divide-border">
-            {teachers.items.map((t) => (
-              <TeacherRow key={t.id} t={t} onChanged={teachers.reload} />
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      <Panel title="Organizer portals" sub={orgs.loading ? 'Loading…' : `${orgs.items.length} organizations`}>
-        {orgs.loading ? (
-          <Loading />
-        ) : orgs.error ? (
-          <ErrorState message={orgs.error} />
-        ) : orgs.items.length === 0 ? (
-          <EmptyState>No organizations yet.</EmptyState>
-        ) : (
-          <ul className="divide-y divide-border">
-            {orgs.items.map((o) => (
-              <OrgRow key={o.id} o={o} onChanged={orgs.reload} />
-            ))}
-          </ul>
-        )}
-      </Panel>
+      {/* Creating a fresh org is rare → tucked behind a toggle so it doesn't
+          dominate the tab. */}
+      {showCreate ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[13px] font-semibold text-fg">Create a new organization</h2>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="inline-flex items-center gap-1 text-[12px] text-subtle transition-colors hover:text-fg"
+            >
+              <X size={13} aria-hidden />
+              Hide
+            </button>
+          </div>
+          <AdminCreateOrgPanel />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong px-4 py-3 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+        >
+          <Plus size={15} aria-hidden />
+          Create a new organization (ownerless + handoff link)
+        </button>
+      )}
     </div>
   )
 }
