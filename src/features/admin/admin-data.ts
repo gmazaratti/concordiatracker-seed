@@ -180,6 +180,23 @@ export async function adminSetPlan(uid: string, plan: string, expires: string | 
   const { error } = await supabase.rpc('admin_set_plan', { p_uid: uid, p_plan: plan, p_expires: expires })
   if (error) throw error
 }
+export interface SurveyResponseRow {
+  user_id: string
+  name: string | null
+  email: string | null
+  handle: string | null
+  avatar_url: string | null
+  ratings: Record<string, number>
+  recommend: boolean | null
+  answers: Record<string, string>
+  created_at: string
+  rewarded: boolean
+}
+export async function adminListSurveyResponses(): Promise<SurveyResponseRow[]> {
+  const { data, error } = await supabase.rpc('admin_list_survey_responses')
+  if (error) throw error
+  return (data ?? []) as SurveyResponseRow[]
+}
 export async function adminSetVanity(uid: string, code: string): Promise<string> {
   const { data, error } = await supabase.rpc('admin_set_vanity', { p_uid: uid, p_code: code })
   if (error) throw error

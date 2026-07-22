@@ -1,6 +1,21 @@
 import { useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Bug, Compass, Inbox, Link2, Loader2, ShieldAlert, ShieldCheck, Building2, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bug,
+  Building2,
+  CalendarDays,
+  ClipboardList,
+  Compass,
+  GraduationCap,
+  Inbox,
+  Link2,
+  Loader2,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { useIsAdmin } from './admin-data'
 import { UsersTab } from './tabs/UsersTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
@@ -8,6 +23,7 @@ import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
 import { AttributionTab } from './tabs/AttributionTab'
+import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -15,17 +31,24 @@ const TABS = [
   { id: 'applications', label: 'Applications', icon: Inbox },
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'attribution', label: 'Attribution', icon: Compass },
+  { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
 
+/** Cross-context links so the admin can hop straight into the other portals. */
+const PORTAL_LINKS: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: '/teacher', label: 'Teacher portal', icon: GraduationCap },
+  { to: '/organizer', label: 'Organizer portal', icon: CalendarDays },
+]
+
 /**
- * Standalone, admin-only console. Defense in depth: the entry point (avatar menu)
- * is hidden for non-admins, this page renders "Not authorized" unless is_admin(),
- * and every underlying RPC is gated on is_admin() at the database — so the data
- * boundary holds even if the UI were bypassed.
+ * Standalone, admin-only console — now a left-sidebar app shell. Defense in
+ * depth: the entry point (avatar menu) is hidden for non-admins, this page
+ * renders "Not authorized" unless is_admin(), and every underlying RPC is gated
+ * on is_admin() at the database.
  */
 export function AdminConsole() {
   const { loading, isAdmin } = useIsAdmin()
@@ -38,8 +61,8 @@ export function AdminConsole() {
   const onKeyDown = (e: React.KeyboardEvent) => {
     const i = TABS.findIndex((t) => t.id === current)
     let next: number
-    if (e.key === 'ArrowRight') next = (i + 1) % TABS.length
-    else if (e.key === 'ArrowLeft') next = (i - 1 + TABS.length) % TABS.length
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % TABS.length
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + TABS.length) % TABS.length
     else if (e.key === 'Home') next = 0
     else if (e.key === 'End') next = TABS.length - 1
     else return
@@ -48,37 +71,56 @@ export function AdminConsole() {
     refs.current[next]?.focus()
   }
 
-  let body: React.ReactNode
   if (loading) {
-    body = (
-      <div className="grid min-h-[60vh] place-items-center">
+    return (
+      <div className="grid min-h-svh place-items-center bg-canvas">
         <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
       </div>
     )
-  } else if (!isAdmin) {
-    body = (
-      <div className="mx-auto w-full max-w-md px-5 py-20 text-center">
-        <span className="mx-auto grid size-12 place-items-center rounded-xl bg-danger/10 text-danger">
-          <ShieldAlert size={24} aria-hidden />
-        </span>
-        <h1 className="mt-4 font-display text-[20px] font-semibold text-fg">Not authorized</h1>
-        <p className="mt-1.5 text-[13px] text-subtle">
-          The admin console is restricted to the platform administrator.
-        </p>
-        <Link to="/app" className="mt-4 inline-block text-[13px] font-medium text-accent hover:underline">
-          Back to app
-        </Link>
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="grid min-h-svh place-items-center bg-canvas">
+        <div className="mx-auto w-full max-w-md px-5 text-center">
+          <span className="mx-auto grid size-12 place-items-center rounded-xl bg-danger/10 text-danger">
+            <ShieldAlert size={24} aria-hidden />
+          </span>
+          <h1 className="mt-4 font-display text-[20px] font-semibold text-fg">Not authorized</h1>
+          <p className="mt-1.5 text-[13px] text-subtle">The admin console is restricted to the platform administrator.</p>
+          <Link to="/app" className="mt-4 inline-block text-[13px] font-medium text-accent hover:underline">
+            Back to app
+          </Link>
+        </div>
       </div>
     )
-  } else {
-    body = (
-      <div className="mx-auto w-full max-w-5xl px-5 py-6">
-        <div
-          role="tablist"
-          aria-label="Admin sections"
-          onKeyDown={onKeyDown}
-          className="-mx-5 mb-5 flex gap-1 overflow-x-auto border-b border-border px-5"
-        >
+  }
+
+  const body = (
+    <div className="mx-auto w-full max-w-5xl px-5 py-6">
+      <div role="tabpanel" id={`admin-panel-${current}`} aria-labelledby={`admin-tab-${current}`}>
+        {current === 'users' && <UsersTab />}
+        {current === 'applications' && <ApplicationsTab />}
+        {current === 'portals' && <PortalsTab />}
+        {current === 'attribution' && <AttributionTab />}
+        {current === 'survey' && <SurveyResultsTab />}
+        {current === 'links' && <VanityTab />}
+        {current === 'bugs' && <BugReportsTab />}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="flex h-svh overflow-hidden bg-canvas">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
+        <div className="flex items-center gap-2 px-2 py-3">
+          <ShieldCheck size={18} className="text-accent" aria-hidden />
+          <span className="text-[14px] font-semibold text-fg">ConcordiaTracker</span>
+          <span className="text-[11px] text-subtle">Admin</span>
+        </div>
+
+        <nav role="tablist" aria-label="Admin sections" aria-orientation="vertical" onKeyDown={onKeyDown} className="mt-1 flex flex-col gap-0.5">
           {TABS.map((t, i) => {
             const Icon = t.icon
             const active = t.id === current
@@ -93,48 +135,76 @@ export function AdminConsole() {
                 tabIndex={active ? 0 : -1}
                 onClick={() => select(t.id)}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
-                  active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+                  'group flex items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150',
+                  active ? 'bg-accent-soft font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
                 )}
               >
-                <Icon size={15} aria-hidden />
+                <Icon size={17} className={cn(active ? 'text-accent' : 'text-subtle group-hover:text-muted')} aria-hidden />
                 {t.label}
               </button>
             )
           })}
-        </div>
+        </nav>
 
-        <div role="tabpanel" id={`admin-panel-${current}`} aria-labelledby={`admin-tab-${current}`}>
-          {current === 'users' && <UsersTab />}
-          {current === 'applications' && <ApplicationsTab />}
-          {current === 'portals' && <PortalsTab />}
-          {current === 'attribution' && <AttributionTab />}
-          {current === 'links' && <VanityTab />}
-          {current === 'bugs' && <BugReportsTab />}
-        </div>
-      </div>
-    )
-  }
+        <div className="flex-1" />
 
-  return (
-    <div className="min-h-svh bg-canvas">
-      <header className="border-b border-border bg-surface/40">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-3">
-          <span className="flex items-center gap-2 text-[14px] font-medium text-fg">
-            <ShieldCheck size={18} className="text-accent" aria-hidden />
-            ConcordiaTracker
-            <span className="hidden text-subtle sm:inline">· Admin</span>
-          </span>
+        {/* Hop into the other portals + back to the app */}
+        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+          <p className="px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">Jump to</p>
+          {PORTAL_LINKS.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            >
+              <Icon size={17} className="text-subtle" aria-hidden />
+              {label}
+            </Link>
+          ))}
           <Link
             to="/app"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
           >
-            <ArrowLeft size={14} aria-hidden />
+            <ArrowLeft size={17} className="text-subtle" aria-hidden />
             Back to app
           </Link>
         </div>
-      </header>
-      {body}
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar + horizontal nav */}
+        <header className="border-b border-border bg-surface/40 md:hidden">
+          <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-[calc(0.75rem_+_env(safe-area-inset-top))]">
+            <span className="flex items-center gap-2 text-[14px] font-semibold text-fg">
+              <ShieldCheck size={16} className="text-accent" aria-hidden /> Admin
+            </span>
+            <Link to="/app" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
+              <ArrowLeft size={13} aria-hidden /> App
+            </Link>
+          </div>
+          <div role="tablist" aria-label="Admin sections" onKeyDown={onKeyDown} className="-mb-px flex gap-1 overflow-x-auto px-3">
+            {TABS.map((t) => {
+              const active = t.id === current
+              return (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => select(t.id)}
+                  className={cn(
+                    'shrink-0 border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
+                    active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+                  )}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto">{body}</main>
+      </div>
     </div>
   )
 }

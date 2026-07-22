@@ -564,6 +564,23 @@ html {
   animation: ct-attention 1.15s ease-out 2;
 }
 
+/* Confetti — a one-shot fall+spin for the "gifted Pro" celebration. Reduced-
+ * motion safe by construction: the global block zeroes the duration, so the
+ * particle jumps straight to its off-screen end state (i.e. no confetti). */
+@keyframes ct-confetti-fall {
+  0% {
+    transform: translate3d(0, -14vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--ct-confetti-drift, 0), 112vh, 0) rotate(var(--ct-confetti-spin, 540deg));
+    opacity: 0;
+  }
+}
+
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,
