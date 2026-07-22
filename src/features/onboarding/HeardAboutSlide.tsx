@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { GraduationCap, MoreHorizontal, Search, Users, type LucideIcon } from 'lucide-react'
 import { useUiState } from '@/app/providers/ui-state'
+import { HEARD_SOURCES } from './heard-about'
 import { cn } from '@/lib/cn'
 
-/* Brand glyphs as inline SVGs — lucide dropped its brand icons (trademark). */
+/* Brand glyphs as inline SVGs — lucide dropped its brand icons (trademark).
+ * Rendered in currentColor (monochrome), same treatment as the community-profile
+ * link icons — never the loud brand colors. */
 function InstagramGlyph({ size = 22 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -26,9 +30,6 @@ function RedditGlyph({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
-
-/** A small flag-pin glyph for "club or event" (lucide PartyPopper reads busy at
- * this size). Declared before SOURCES so it's referenced after definition. */
 function PartyGlyph({ size = 22 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -39,30 +40,30 @@ function PartyGlyph({ size = 22 }: { size?: number }) {
 
 type Glyph = LucideIcon | (({ size }: { size?: number }) => React.ReactNode)
 
-interface Source {
-  id: string
-  label: string
-  glyph: Glyph
-  /** Fixed brand tint (identity color, same across themes) — else accent. */
-  color?: string
+/** id → glyph. Labels + order live in the shared data file (heard-about.ts). */
+const GLYPHS: Record<string, Glyph> = {
+  instagram: InstagramGlyph,
+  tiktok: TikTokGlyph,
+  reddit: RedditGlyph,
+  friend: Users,
+  teacher: GraduationCap,
+  search: Search,
+  club: PartyGlyph,
+  other: MoreHorizontal,
 }
 
-const SOURCES: Source[] = [
-  { id: 'instagram', label: 'Instagram', glyph: InstagramGlyph, color: '#e1306c' },
-  { id: 'tiktok', label: 'TikTok', glyph: TikTokGlyph, color: '#00c4bd' },
-  { id: 'reddit', label: 'Reddit', glyph: RedditGlyph, color: '#ff4500' },
-  { id: 'friend', label: 'A friend', glyph: Users },
-  { id: 'teacher', label: 'A prof or TA', glyph: GraduationCap },
-  { id: 'search', label: 'Google search', glyph: Search },
-  { id: 'club', label: 'A club or event', glyph: PartyGlyph },
-  { id: 'other', label: 'Somewhere else', glyph: MoreHorizontal },
-]
-
 /** Onboarding attribution — "how did you hear about ConcordiaTracker?" Optional
- * (Next advances regardless), stored on ui_state.heardFrom so it persists. */
+ * (Next advances regardless). The choice is stored on ui_state.heardFrom; picking
+ * "Somewhere else" reveals a free-text field stored on ui_state.heardFromDetail. */
 export function HeardAboutSlide() {
   const { uiState, loaded, patchUiState } = useUiState()
   const selected = uiState.heardFrom
+  const [detail, setDetail] = useState(uiState.heardFromDetail ?? '')
+
+  const onDetail = (v: string) => {
+    setDetail(v)
+    patchUiState({ heardFromDetail: v.trim() ? v.slice(0, 200) : undefined })
+  }
 
   return (
     <div className="mx-auto w-full max-w-lg text-center">
@@ -75,8 +76,8 @@ export function HeardAboutSlide() {
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        {SOURCES.map((s) => {
-          const Glyph = s.glyph as LucideIcon
+        {HEARD_SOURCES.map((s) => {
+          const Glyph = GLYPHS[s.id] as LucideIcon
           const active = selected === s.id
           return (
             <button
@@ -93,11 +94,10 @@ export function HeardAboutSlide() {
               )}
             >
               <span
-                className="grid size-9 place-items-center rounded-lg"
-                style={{
-                  color: active ? undefined : s.color,
-                  backgroundColor: active ? 'transparent' : 'var(--ct-surface-2)',
-                }}
+                className={cn(
+                  'grid size-9 place-items-center rounded-lg transition-colors duration-150',
+                  active ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-muted',
+                )}
               >
                 <Glyph size={22} aria-hidden />
               </span>
@@ -106,6 +106,25 @@ export function HeardAboutSlide() {
           )
         })}
       </div>
+
+      {/* "Somewhere else" → tell us where (so attribution isn't a dead end). */}
+      {selected === 'other' && (
+        <div className="mt-3 text-left">
+          <label htmlFor="heard-other" className="mb-1.5 block text-[12.5px] font-medium text-fg">
+            Where did you hear about us?
+          </label>
+          <input
+            id="heard-other"
+            type="text"
+            value={detail}
+            onChange={(e) => onDetail(e.target.value)}
+            placeholder="e.g. a Discord server, a poster in the Hall building…"
+            maxLength={200}
+            autoFocus
+            className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+          />
+        </div>
+      )}
     </div>
   )
 }

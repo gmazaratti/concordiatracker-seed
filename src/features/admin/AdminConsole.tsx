@@ -1,18 +1,20 @@
 import { useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Bug, Inbox, Link2, Loader2, ShieldAlert, ShieldCheck, Building2, Users } from 'lucide-react'
+import { ArrowLeft, Bug, Compass, Inbox, Link2, Loader2, ShieldAlert, ShieldCheck, Building2, Users } from 'lucide-react'
 import { useIsAdmin } from './admin-data'
 import { UsersTab } from './tabs/UsersTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
+import { AttributionTab } from './tabs/AttributionTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'applications', label: 'Applications', icon: Inbox },
   { id: 'portals', label: 'Portals', icon: Building2 },
+  { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
 ] as const
@@ -106,6 +108,7 @@ export function AdminConsole() {
           {current === 'users' && <UsersTab />}
           {current === 'applications' && <ApplicationsTab />}
           {current === 'portals' && <PortalsTab />}
+          {current === 'attribution' && <AttributionTab />}
           {current === 'links' && <VanityTab />}
           {current === 'bugs' && <BugReportsTab />}
         </div>

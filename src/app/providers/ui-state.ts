@@ -11,6 +11,8 @@ export interface UiState {
   tourPromptSeen?: boolean
   /** Attribution — where the user first heard about us (onboarding). */
   heardFrom?: string
+  /** Free-text detail when heardFrom === 'other' (e.g. "a Discord server"). */
+  heardFromDetail?: string
   /** Distinct local days the user has opened the app (YYYY-MM-DD, capped). Used
    * to gate the feedback survey ("used it for ≥3 unique days"). */
   visitDays?: string[]
