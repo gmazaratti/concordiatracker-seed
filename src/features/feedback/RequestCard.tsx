@@ -1,6 +1,7 @@
 import { Eye, EyeOff, MoreHorizontal, Pin, Trash2 } from 'lucide-react'
 import { authorLabel, fmtDate, REQ_STATUSES, type FeatureRequest, type ReactionSummary } from './feedback-data'
 import { Avatar, Markdown, RequestStatusChip, TierChip, VerifiedCheck } from './feedback-ui'
+import { founderRole } from './founders'
 import { CommentComposer } from './CommentThread'
 import { ReactionBar } from './ReactionBar'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
@@ -53,8 +54,8 @@ export function RequestHeader({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span className="text-[13px] font-medium text-fg">{authorLabel(r.author_handle, r.author_name)}</span>
-          <VerifiedCheck />
-          <TierChip tier={r.author_tier} />
+          <VerifiedCheck founder={!!founderRole(r.author_handle, r.author_name)} />
+          <TierChip tier={r.author_tier} handle={r.author_handle} name={r.author_name} />
         </div>
         <span className="text-[12px] text-subtle">{fmtDate(r.created_at)}</span>
       </div>

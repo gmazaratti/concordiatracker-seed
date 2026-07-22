@@ -177,7 +177,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
   }
 
   return createPortal(
-    <div className="ct-animate-fade fixed inset-0 z-[80] flex bg-canvas">
+    <div className="ct-animate-fade ct-grid-bg fixed inset-0 z-[80] flex bg-canvas">
       {/* Steps rail (desktop) */}
       <aside className="hidden w-[300px] shrink-0 flex-col border-r border-border bg-surface/40 p-5 lg:flex">
         <div className="flex items-center gap-2.5">

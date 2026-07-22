@@ -20,6 +20,7 @@ import { TeacherRequestPage } from '@/features/teacher/TeacherRequestPage'
 import { TeacherCourseWorkspace } from '@/features/teacher/TeacherCourseWorkspace'
 import { AdminConsole } from '@/features/admin/AdminConsole'
 import { FeedbackPage } from '@/features/feedback/FeedbackPage'
+import { AppRequestsPage } from '@/features/feedback/AppRequestsPage'
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { OrganizerHome } from '@/features/organizer/OrganizerHome'
 import { OrganizerEvents } from '@/features/organizer/OrganizerEvents'
@@ -55,6 +56,7 @@ export function AppRoutes() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
+        <Route path="requests" element={<AppRequestsPage />} />
       </Route>
 
       {/* Teacher portal context — a separate, invite-based auth context */}
@@ -76,6 +78,12 @@ export function AppRoutes() {
         <Route path="event/:eventId" element={<OrganizerEventEditor />} />
         <Route path="profile" element={<OrgProfileEditor />} />
         <Route path="team" element={<OrganizerTeam />} />
+      </Route>
+
+      {/* Short organizer invite links (email-friendly): /join/<token> — same
+          accept page as /organizer/invite/<token>, slimmer URL. */}
+      <Route path="/join" element={<OrganizerLayout />}>
+        <Route path=":token" element={<OrganizerInvitePage />} />
       </Route>
 
       {/* Admin console — STANDALONE, admin-only. Gated three ways: the menu entry

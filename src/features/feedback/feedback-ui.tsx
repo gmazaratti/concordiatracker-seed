@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BadgeCheck } from 'lucide-react'
+import { founderRole } from './founders'
 import { cn } from '@/lib/cn'
 
 function initials(name: string): string {
@@ -38,10 +39,21 @@ export function Avatar({ name, avatarUrl, size = 'md' }: { name: string; avatarU
   )
 }
 
-/** Subtle "verified Concordia member" check next to author names (matches the
- * reference's checkmark). Decorative. */
-export function VerifiedCheck() {
-  return <BadgeCheck size={14} className="shrink-0 text-info" aria-label="Verified" />
+/** Verified check next to author names. Founders get the brand colour + a soft
+ * glow instead of the generic blue seal. Decorative. */
+export function VerifiedCheck({ founder = false }: { founder?: boolean }) {
+  return (
+    <BadgeCheck
+      size={14}
+      className={cn(
+        'shrink-0',
+        founder
+          ? 'text-accent [filter:drop-shadow(0_0_3px_var(--ct-accent))]'
+          : 'text-info',
+      )}
+      aria-label={founder ? 'Verified founder' : 'Verified'}
+    />
+  )
 }
 
 /** Admin-reply badge — set server-side (is_staff), so only real admins get it. */
@@ -88,7 +100,23 @@ export function Markdown({ text, className }: { text: string; className?: string
   )
 }
 
-export function TierChip({ tier }: { tier: string }) {
+export function TierChip({
+  tier,
+  handle,
+  name,
+}: {
+  tier: string
+  handle?: string | null
+  name?: string | null
+}) {
+  const founder = founderRole(handle, name)
+  if (founder) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent-contrast uppercase">
+        {founder}
+      </span>
+    )
+  }
   const pro = tier === 'pro'
   return (
     <span

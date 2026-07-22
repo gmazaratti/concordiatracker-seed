@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useTour } from './tour'
-import { cn } from '@/lib/cn'
 
 interface Box {
   top: number
@@ -106,10 +105,6 @@ export function TourOverlay() {
 
   if (!active || !step) return null
 
-  const mobile = vp.w < 768
-  // Dock opposite the highlight so the panel never covers it.
-  const side = !box ? 'right' : box.left + box.width / 2 > vp.w / 2 ? 'left' : 'right'
-
   const L = box ? Math.max(0, box.left - PAD) : 0
   const T = box ? Math.max(0, box.top - PAD) : 0
   const R = box ? Math.min(vp.w, box.right + PAD) : 0
@@ -123,36 +118,33 @@ export function TourOverlay() {
 
   return createPortal(
     <div className="fixed inset-0 z-[70]">
-      {/* Dimmer — clipped so only the spotlight stays interactive */}
+      {/* Dimmer — clipped so only the spotlight stays interactive. The hole glides
+          between steps (clip-path transition) instead of jumping. */}
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/60 [transition:clip-path_220ms_ease-out]"
         style={clip ? { clipPath: clip } : undefined}
       />
-      {/* Spotlight ring */}
+      {/* Spotlight ring — glides + pulses so the highlight is unmistakable */}
       {box && (
         <div
-          className="pointer-events-none absolute rounded-lg ring-2 ring-accent shadow-[0_0_0_5px_var(--ct-accent-soft)]"
+          className="ct-spotlight-ring pointer-events-none absolute rounded-lg ring-2 ring-accent"
           style={{ top: T, left: L, width: R - L, height: B - T }}
           aria-hidden
         />
       )}
 
-      {/* Docked panel — sidebar on desktop, bottom sheet on mobile */}
+      {/* Docked panel — ALWAYS bottom-centered (never switches sides), so it
+          doesn't teleport across the screen step to step. */}
       <aside
         role="dialog"
         aria-label={step.title}
-        className={cn(
-          'ct-animate-pop fixed z-[71] flex flex-col bg-surface shadow-2xl',
-          mobile
-            ? 'inset-x-0 bottom-0 max-h-[62vh] rounded-t-2xl border-t border-border px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))]'
-            : cn(
-                'top-0 bottom-0 w-[400px] p-7',
-                side === 'right' ? 'right-0 border-l border-border' : 'left-0 border-r border-border',
-              ),
-        )}
+        className="ct-animate-pop fixed inset-x-0 bottom-0 z-[71] mx-auto flex w-full max-w-2xl flex-col rounded-t-2xl border-t border-border bg-surface px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:bottom-5 sm:left-1/2 sm:w-[min(94vw,600px)] sm:-translate-x-1/2 sm:rounded-2xl sm:border sm:px-6"
       >
         {/* Progress + skip */}
         <div className="flex items-center gap-3">
+          <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
+            Step {index + 1} of {total}
+          </p>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-300"
@@ -168,23 +160,14 @@ export function TourOverlay() {
             <X size={16} aria-hidden />
           </button>
         </div>
-        <p className="mt-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-          Step {index + 1} of {total}
-        </p>
 
-        {/* Content — vertically centered in the desktop sidebar; scrolls if long on mobile */}
-        <div
-          className={cn(
-            'min-h-0 py-5',
-            mobile ? 'overflow-y-auto' : 'flex flex-1 flex-col justify-center',
-          )}
-        >
-          <h2 className="font-display text-[22px] leading-tight font-semibold text-fg">
+        <div className="py-3.5">
+          <h2 className="font-display text-[20px] leading-tight font-semibold text-fg">
             {step.title}
           </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted">{step.body}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">{step.body}</p>
           {step.type === 'action' && box && (
-            <p className="mt-3.5 text-[13.5px] font-medium text-accent">
+            <p className="mt-2.5 text-[13px] font-medium text-accent">
               Try it on the highlighted item — or hit Next to continue.
             </p>
           )}
@@ -195,14 +178,14 @@ export function TourOverlay() {
           <button
             type="button"
             onClick={index === 0 ? end : back}
-            className="rounded-lg px-3.5 py-2.5 text-[13.5px] font-medium text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+            className="rounded-lg px-3.5 py-2 text-[13.5px] font-medium text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
           >
             {index === 0 ? 'Skip tour' : 'Back'}
           </button>
           <button
             type="button"
             onClick={next}
-            className="rounded-lg bg-accent px-6 py-2.5 text-[14px] font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
+            className="rounded-lg bg-accent px-6 py-2 text-[14px] font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
           >
             {last ? 'Finish' : 'Next'}
           </button>

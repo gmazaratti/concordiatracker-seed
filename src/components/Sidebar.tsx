@@ -53,11 +53,17 @@ export function Sidebar() {
           </NavLink>
         ))}
 
-        {/* Opt-in pin (from Feedback → Requests → "Pin to sidebar"). Unpin there. */}
+        {/* Opt-in pin (from the Requests board's floating toast). Opens the
+            in-app requests page so the sidebar stays; unpin from the toast. */}
         {uiState.feedbackPinned && (
           <NavLink
-            to="/feedback?tab=requests"
-            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            to="/app/requests"
+            className={({ isActive }) =>
+              cn(
+                'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150',
+                isActive ? 'bg-accent-soft font-medium text-fg' : 'text-muted hover:bg-surface-2 hover:text-fg',
+              )
+            }
           >
             <Lightbulb size={18} className="text-subtle transition-colors duration-150 group-hover:text-muted" aria-hidden />
             Requests
@@ -86,9 +92,13 @@ function SettingsGearButton() {
       onClick={() => openSettings()}
       aria-label="Open settings"
       title="Settings"
-      className="grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+      className="group grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
     >
-      <Settings size={18} aria-hidden />
+      <Settings
+        size={18}
+        className="transition-transform duration-500 ease-out group-hover:rotate-[90deg]"
+        aria-hidden
+      />
     </button>
   )
 }

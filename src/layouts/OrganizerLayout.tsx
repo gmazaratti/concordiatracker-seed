@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
+import { useAppData } from '@/app/providers/app-data'
 import { StatusChip } from './TeacherLayout'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { cn } from '@/lib/cn'
@@ -33,6 +34,7 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
 export function OrganizerLayout() {
   const { currentOrg, signOut, isDemoSession, orgViewerPerms } = useTeacher()
   const { loading } = useAuth()
+  const { user } = useAppData()
   // Sidebar honours your permissions: no Insights without view_insights, no
   // Profile editor without edit_profile (RLS enforces the same server-side).
   const nav = NAV.filter((item) => {
@@ -125,6 +127,25 @@ export function OrganizerLayout() {
         <div className="flex-1" />
 
         <div className="flex flex-col gap-1 border-t border-border pt-2">
+          {/* Who's signed in (distinct from the org above) */}
+          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="size-8 shrink-0 rounded-full bg-surface-2 object-cover"
+              />
+            ) : (
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">
+                {user.initials}
+              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12.5px] font-medium text-fg">{user.name}</p>
+              <p className="truncate text-[11px] text-subtle">{user.email}</p>
+            </div>
+          </div>
           <Link
             to="/app"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"

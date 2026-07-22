@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
 import { Avatar, Markdown, StaffBadge, TierChip, VerifiedCheck } from './feedback-ui'
+import { founderRole } from './founders'
 import { authorLabel, timeAgo, type Comment } from './feedback-data'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
 import { cn } from '@/lib/cn'
@@ -111,8 +112,12 @@ function CommentRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[13px] font-semibold text-fg">{authorLabel(c.author_handle, c.author_name)}</span>
-          <VerifiedCheck />
-          {c.is_staff ? <StaffBadge /> : <TierChip tier={c.author_tier} />}
+          <VerifiedCheck founder={!!founderRole(c.author_handle, c.author_name)} />
+          {c.is_staff ? (
+            <StaffBadge />
+          ) : (
+            <TierChip tier={c.author_tier} handle={c.author_handle} name={c.author_name} />
+          )}
           {c.hidden && <span className="text-[11px] text-warning">Hidden</span>}
           <span className="ml-auto shrink-0 text-[11px] text-subtle">{timeAgo(c.created_at)}</span>
           {items.length > 0 && (

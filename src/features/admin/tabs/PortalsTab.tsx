@@ -15,6 +15,7 @@ import {
 } from '../admin-data'
 import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton } from '../admin-ui'
 import { OrgInvitesPanel } from './OrgInvitesPanel'
+import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
 import { cn } from '@/lib/cn'
 
 export function PortalsTab() {
@@ -34,6 +35,7 @@ export function PortalsTab() {
         <RefreshButton onClick={reloadAll} busy={teachers.loading || orgs.loading} />
       </div>
 
+      <AdminCreateOrgPanel />
       <OrgInvitesPanel />
 
       <Panel title="Teacher portals" sub={teachers.loading ? 'Loading…' : `${teachers.items.length} accounts`}>

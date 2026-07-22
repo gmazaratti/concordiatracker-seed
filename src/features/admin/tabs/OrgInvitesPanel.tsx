@@ -50,7 +50,7 @@ export function OrgInvitesPanel() {
     setBusy(true)
     setErr('')
     const row = {
-      token: mintToken(),
+      token: mintToken(name),
       org_name: name.trim(),
       org_handle: (handle.trim() || suggested || '@org').replace(/^@?/, '@'),
       glyph: deriveGlyph(name),
@@ -136,7 +136,7 @@ export function OrgInvitesPanel() {
                     Email it
                   </a>
                 )}
-                <a href={`/organizer/invite/${created.token}`} className={LINK_BTN}>
+                <a href={`/join/${created.token}`} className={LINK_BTN}>
                   <ExternalLink size={13} aria-hidden />
                   Open
                 </a>
@@ -211,8 +211,17 @@ function InviteRow({ invite, onRevoke }: { invite: InviteRowData; onRevoke: () =
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function mintToken(): string {
-  return 'oiv_' + crypto.randomUUID().replace(/-/g, '').slice(0, 20)
+/** Short, branded, email-friendly token: `<orgslug>-<6 random>` → the link reads
+ * concordiatracker.com/join/casa-x7k2m9. Random tail keeps it unguessable
+ * enough for a single-use, expiring, revocable link. */
+function mintToken(orgName: string): string {
+  const slug =
+    orgName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 12) || 'org'
+  return `${slug}-${crypto.randomUUID().replace(/-/g, '').slice(0, 6)}`
 }
 
 function deriveGlyph(name: string): string {
@@ -232,7 +241,7 @@ function suggestHandle(name: string): string {
 }
 
 function inviteUrl(token: string): string {
-  return `${window.location.origin}/organizer/invite/${token}`
+  return `${window.location.origin}/join/${token}`
 }
 
 function inviteState(inv: InviteRowData): { label: string; tone: string } {

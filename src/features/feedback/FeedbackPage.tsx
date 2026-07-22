@@ -1,9 +1,9 @@
 import { useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Bug, Lightbulb, MessagesSquare, Pin, PinOff } from 'lucide-react'
-import { useUiState } from '@/app/providers/ui-state'
+import { ArrowLeft, Bug, Lightbulb, MessagesSquare } from 'lucide-react'
 import { RequestsBoard } from './RequestsBoard'
 import { BugChannel } from './BugChannel'
+import { PinRequestsToast } from './PinRequestsToast'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -14,7 +14,6 @@ type TabId = (typeof TABS)[number]['id']
 
 export function FeedbackPage() {
   const [params, setParams] = useSearchParams()
-  const { uiState, loaded, patchUiState } = useUiState()
   const refs = useRef<(HTMLButtonElement | null)[]>([])
   const current = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'requests') as TabId
   const select = (id: TabId) => setParams((p) => { p.set('tab', id); return p }, { replace: true })
@@ -88,37 +87,11 @@ export function FeedbackPage() {
           })}
         </div>
 
-        {/* Opt-in pin: put the requests board one click away in the app sidebar.
-            Unpin anytime from the same button. */}
-        {current === 'requests' && loaded && (
-          <button
-            type="button"
-            onClick={() => patchUiState({ feedbackPinned: !uiState.feedbackPinned })}
-            className={cn(
-              'mb-4 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150',
-              uiState.feedbackPinned
-                ? 'border-border text-muted hover:bg-surface-2 hover:text-fg'
-                : 'border-accent/50 bg-accent-soft/40 text-fg hover:bg-accent-soft',
-            )}
-          >
-            {uiState.feedbackPinned ? (
-              <>
-                <PinOff size={13} aria-hidden />
-                Unpin from sidebar
-              </>
-            ) : (
-              <>
-                <Pin size={13} aria-hidden />
-                Pin to my sidebar
-              </>
-            )}
-          </button>
-        )}
-
         <div role="tabpanel" id={`fb-panel-${current}`} aria-labelledby={`fb-tab-${current}`}>
           {current === 'requests' ? <RequestsBoard /> : <BugChannel />}
         </div>
       </main>
+      {current === 'requests' && <PinRequestsToast />}
     </div>
   )
 }

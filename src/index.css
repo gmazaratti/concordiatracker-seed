@@ -457,6 +457,26 @@ html {
   animation: ct-highlight 2200ms ease-out;
 }
 
+/* Guided-tour spotlight ring — a soft accent pulse so the highlighted element
+ * is unmistakable; the ring also glides between steps (transition on layout). */
+@keyframes ct-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct-accent) 60%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--ct-accent) 0%, transparent);
+  }
+}
+.ct-spotlight-ring {
+  animation: ct-ring-pulse 1600ms ease-out infinite;
+  transition:
+    top 220ms ease-out,
+    left 220ms ease-out,
+    width 220ms ease-out,
+    height 220ms ease-out;
+}
+
 /* ---- Landing hero: the dashboard embed slides in from the right on load
  * (≤0.5s, one-shot), then its greeting types out once (the typing itself is
  * JS-driven in AppPreview). Reduced-motion safe: `both` fill holds the landed
