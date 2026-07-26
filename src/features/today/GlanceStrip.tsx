@@ -12,6 +12,18 @@ export interface GlanceData {
   doneToday: number
   courseCount: number
   credits: number
+  /** Cumulative GPA across finished terms (null until there's history). Shown as
+   * a sub-line under this term's GPA — the headline stays the current term. */
+  cumulativeGpa?: number | null
+}
+
+/** "· ↑0.12" style delta of this term vs the cumulative average — only when the
+ * gap is meaningful (≥0.05), so it never reads as noise. */
+function gpaDelta(termGpa: number | null, cumulative: number): string {
+  if (termGpa === null) return ''
+  const diff = termGpa - cumulative
+  if (Math.abs(diff) < 0.05) return ''
+  return ` · ${diff > 0 ? '↑' : '↓'}${Math.abs(diff).toFixed(2)}`
 }
 
 /** The right-rail "at a glance" panel: two progress bars (term + today's work)
@@ -46,7 +58,16 @@ export function GlanceStrip(data: GlanceData) {
       </div>
 
       <div className="divide-y divide-border/60">
-        <Row label="Current GPA" value={data.gpa === null ? '—' : data.gpa.toFixed(2)} hint="/ 4.30" />
+        <Row
+          label="This term's GPA"
+          value={data.gpa === null ? '—' : data.gpa.toFixed(2)}
+          hint="/ 4.30"
+          sub={
+            typeof data.cumulativeGpa === 'number'
+              ? `Cumulative ${data.cumulativeGpa.toFixed(2)}${gpaDelta(data.gpa, data.cumulativeGpa)}`
+              : undefined
+          }
+        />
         <Row label="Overdue" value={String(data.overdue)} danger={data.overdue > 0} />
         <Row label="Due this week" value={String(data.itemsLeft)} />
         <Row

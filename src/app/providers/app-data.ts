@@ -112,6 +112,25 @@ export interface AppDataContextValue {
   createCourse: (init?: { code?: string; title?: string; section?: string }) => Promise<string>
   /** Delete a course and all its assessments (the Courses card "Delete" action). */
   removeCourse: (id: string) => void
+
+  // ── Academic history (past semesters) ───────────────────────────────────
+  /** Courses from finished terms — the transcript. Kept OUT of `courses` so
+   * Today / the grid / Calendar / GPA stay about the current term. */
+  pastCourses: Course[]
+  /** Finish a course: freezes its current grade onto the row, then moves it to
+   * the transcript (so past-term GPA can never drift). */
+  archiveCourse: (id: string) => void
+  /** Undo an archive — back to the current term, grade unfrozen. */
+  unarchiveCourse: (id: string) => void
+  /** Add a course from before you used the app (final grade only, no
+   * assessments). Returns the new id. */
+  addPastCourse: (init: {
+    code: string
+    title: string
+    term: string
+    credits: number
+    finalPercent: number
+  }) => Promise<string>
   /** OPT-IN: publish a course's current outline to the shared blueprint pool
    * (the Courses card "Share as blueprint" action). Courses are private otherwise. */
   shareCourseAsBlueprint: (courseId: string) => Promise<void>

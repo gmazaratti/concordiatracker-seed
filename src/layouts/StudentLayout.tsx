@@ -17,6 +17,7 @@ import { GettingStartedChecklist } from '@/features/getting-started/GettingStart
 import { TourWelcomePrompt } from '@/features/getting-started/TourWelcomePrompt'
 import { SurveyRewardPrompt } from '@/features/feedback/survey/SurveyRewardPrompt'
 import { ProGiftCelebration } from '@/features/pro-gift/ProGiftCelebration'
+import { EndOfTermPrompt } from '@/features/courses/EndOfTermPrompt'
 import { Coachmark } from '@/features/getting-started/Coachmark'
 import { TourProvider } from '@/features/tour/TourProvider'
 import { TourOverlay } from '@/features/tour/TourOverlay'
@@ -84,6 +85,7 @@ export function StudentLayout() {
       {/* Rendered last → its portal sits on top, so a Pro gift greets the user
           before any other one-time prompt. */}
       <ProGiftCelebration />
+      <EndOfTermPrompt />
       <AdminActivityToaster />
     </div>
     </TourProvider>

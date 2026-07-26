@@ -81,18 +81,63 @@ export function coursePercent(assessments: Assessment[]): number | null {
   return weightedAverage(gradeTerms(assessments))
 }
 
+/**
+ * The grade a course counts with: an archived course uses its FROZEN
+ * `finalPercent` (so history can't drift); a live one is computed from its
+ * assessments. Null when there's nothing graded yet.
+ */
+export function courseFinalPercent(course: Course, assessments: Assessment[]): number | null {
+  if (course.archived && typeof course.finalPercent === 'number') return course.finalPercent
+  return coursePercent(assessments.filter((a) => a.courseId === course.id))
+}
+
 /** Credit-weighted GPA across courses that have at least one graded assessment. */
 export function currentGpa(courses: Course[], assessments: Assessment[]): number | null {
   let credits = 0
   let points = 0
   for (const course of courses) {
-    const percent = coursePercent(assessments.filter((a) => a.courseId === course.id))
+    const percent = courseFinalPercent(course, assessments)
     if (percent === null) continue
     credits += course.credits
     points += percentToGrade(percent).points * course.credits
   }
   if (credits === 0) return null
   return points / credits
+}
+
+/** One past (or current) term on the transcript. */
+export interface TermRecord {
+  term: string
+  courses: Course[]
+  /** Credit-weighted GPA for this term alone (null if nothing graded). */
+  gpa: number | null
+  /** Credits counted toward the GPA (i.e. graded ones). */
+  credits: number
+}
+
+/**
+ * Group courses into terms with a per-term GPA, most recent first. Used by the
+ * transcript view and the "since last term" delta.
+ */
+export function termRecords(
+  courses: Course[],
+  assessments: Assessment[],
+  sortTerms: (terms: string[]) => string[],
+): TermRecord[] {
+  const byTerm = new Map<string, Course[]>()
+  for (const c of courses) {
+    const list = byTerm.get(c.term) ?? []
+    list.push(c)
+    byTerm.set(c.term, list)
+  }
+  return sortTerms([...byTerm.keys()]).map((term) => {
+    const list = byTerm.get(term) ?? []
+    let credits = 0
+    for (const c of list) {
+      if (courseFinalPercent(c, assessments) !== null) credits += c.credits
+    }
+    return { term, courses: list, gpa: currentGpa(list, assessments), credits }
+  })
 }
 
 export interface CourseStanding {

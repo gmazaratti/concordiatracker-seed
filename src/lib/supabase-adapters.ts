@@ -39,6 +39,9 @@ export interface CourseRow {
   term: string | null
   origin: string | null
   grading_scale: string | null
+  archived: boolean | null
+  final_percent: number | null
+  final_letter: string | null
 }
 
 export function courseFromRow(r: CourseRow): Course {
@@ -58,6 +61,9 @@ export function courseFromRow(r: CourseRow): Course {
     syllabusUrl: r.syllabus_url ?? '',
     gradingScale: r.grading_scale ?? undefined,
     origin: r.origin === 'manual' ? 'manual' : undefined,
+    archived: r.archived ?? undefined,
+    finalPercent: r.final_percent ?? undefined,
+    finalLetter: r.final_letter ?? undefined,
   }
 }
 
@@ -68,6 +74,9 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   if ('code' in patch) row.code = patch.code
   if ('title' in patch) row.name = patch.title
   if ('term' in patch) row.term = patch.term
+  if ('archived' in patch) row.archived = patch.archived ?? false
+  if ('finalPercent' in patch) row.final_percent = patch.finalPercent ?? null
+  if ('finalLetter' in patch) row.final_letter = patch.finalLetter ?? null
   if ('credits' in patch) row.credits = patch.credits
   if ('color' in patch) row.color = patch.color
   if ('section' in patch) row.section = patch.section

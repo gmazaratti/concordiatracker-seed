@@ -22,6 +22,9 @@ export interface UiState {
   surveyDismissed?: boolean
   /** Shown the "you're eligible → take the survey" welcome pop-up once. */
   surveyPromptSeen?: boolean
+  /** Term name whose "wrap up the term?" prompt has been answered/dismissed, so
+   * it asks once per term. */
+  termWrapDismissed?: string
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

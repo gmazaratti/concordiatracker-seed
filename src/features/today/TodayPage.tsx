@@ -34,6 +34,7 @@ export function TodayPage() {
     user,
     plan,
     courses,
+    pastCourses,
     assessments,
     setStatus,
     removeAssessment,
@@ -48,6 +49,11 @@ export function TodayPage() {
 
   const groups = useMemo(() => groupDue(assessments), [assessments])
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
+  // Cumulative across FINISHED terms — the sub-line under this term's GPA.
+  const cumulativeGpa = useMemo(
+    () => (pastCourses.length ? currentGpa(pastCourses, assessments) : null),
+    [pastCourses, assessments],
+  )
 
   const completed = resolvedIds
     .map((id) => assessments.find((a) => a.id === id))
@@ -112,6 +118,7 @@ export function TodayPage() {
             doneToday={completed.length}
             courseCount={courses.length}
             credits={credits}
+            cumulativeGpa={cumulativeGpa}
           />
           {showPain && <PainNudge count={groups.count} />}
         </aside>

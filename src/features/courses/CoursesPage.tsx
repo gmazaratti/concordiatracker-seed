@@ -13,13 +13,15 @@ import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 import { AddCourseChooser } from './AddCourseChooser'
+import { TranscriptView } from './TranscriptView'
 
 /** Courses — the grade hub. The class list switches between a dense List (rows)
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
  * A term-standing rail sits alongside, in the same two-column language as Today. */
 export function CoursesPage() {
-  const { plan, courses, assessments, coursesView, setCoursesView } = useAppData()
+  const { plan, courses, pastCourses, assessments, coursesView, setCoursesView } = useAppData()
   const [chooserOpen, setChooserOpen] = useState(false)
+  const [showPast, setShowPast] = useState(false)
 
   const byCourse = useMemo(() => {
     const map = new Map<string, typeof assessments>()
@@ -45,7 +47,7 @@ export function CoursesPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <ViewToggle view={coursesView} onChange={setCoursesView} />
+          {!showPast && <ViewToggle view={coursesView} onChange={setCoursesView} />}
           {/* Shortcut straight to the blueprint browser — the real import path
               (find a classmate's/teacher's outline). */}
           <Link
@@ -60,7 +62,35 @@ export function CoursesPage() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      {/* This term ⇄ Past semesters. Stays inside Courses (the app keeps exactly
+          four top-level destinations). */}
+      <div role="tablist" aria-label="Course terms" className="mb-4 flex gap-1 border-b border-border">
+        {([
+          { id: 'current', label: 'This term' },
+          { id: 'past', label: `Past semesters${pastCourses.length ? ` (${pastCourses.length})` : ''}` },
+        ] as const).map((t) => {
+          const active = (t.id === 'past') === showPast
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setShowPast(t.id === 'past')}
+              className={cn(
+                'border-b-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
+                active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+              )}
+            >
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {showPast && <TranscriptView />}
+
+      <div className={cn('flex flex-col gap-4 lg:flex-row lg:items-start', showPast && 'hidden')}>
         <main className="order-2 min-w-0 flex-1 lg:order-1">
           {coursesView === 'grid' ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

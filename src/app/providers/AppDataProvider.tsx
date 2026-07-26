@@ -9,6 +9,7 @@ import {
   type TodayPrefs,
 } from './app-data'
 import { term } from '@/data/mock'
+import { coursePercent, percentToGrade } from '@/lib/gpa'
 import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
 import { supabase, fireWrite } from '@/lib/supabase'
@@ -69,10 +70,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const dataReady = !!loaded && loaded.ownerId === authUser?.id
   const baseCourses = dataReady ? loaded!.courses : NO_COURSES
   const baseAssessments = dataReady ? loaded!.assessments : NO_ASSESSMENTS
-  const courses = useMemo(
-    () => (sampleOn ? [...baseCourses, SAMPLE_COURSE] : baseCourses),
-    [sampleOn, baseCourses],
-  )
+  // `courses` is the CURRENT term's set — archived (past-term) courses are kept
+  // out so Today / the grid / Calendar / GPA all stay about now. The transcript
+  // reads `pastCourses`.
+  const courses = useMemo(() => {
+    const active = baseCourses.filter((c) => !c.archived)
+    return sampleOn ? [...active, SAMPLE_COURSE] : active
+  }, [sampleOn, baseCourses])
+  const pastCourses = useMemo(() => baseCourses.filter((c) => c.archived), [baseCourses])
   const assessments = useMemo(
     () => (sampleOn ? [...baseAssessments, ...SAMPLE_ASSESSMENTS] : baseAssessments),
     [sampleOn, baseAssessments],
@@ -367,6 +372,76 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [authUser, updateCourses],
   )
 
+  // ── Academic history ──────────────────────────────────────────────────────
+  // Archive a finished course: FREEZE its computed grade onto the row, then move
+  // it to the transcript. Snapshotting is the point — a past term's GPA must not
+  // drift if an old assessment is edited later.
+  const archiveCourse = useCallback(
+    (id: string) => {
+      if (isSampleId(id)) return
+      const course = baseCourses.find((c) => c.id === id)
+      if (!course) return
+      const percent = coursePercent(baseAssessments.filter((a) => a.courseId === id))
+      const patch: Partial<Course> = {
+        archived: true,
+        ...(percent !== null
+          ? { finalPercent: percent, finalLetter: percentToGrade(percent).letter }
+          : {}),
+      }
+      updateCourses((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', id))
+    },
+    [baseCourses, baseAssessments, updateCourses],
+  )
+
+  /** Undo an archive — the course returns to the current term (grade unfrozen). */
+  const unarchiveCourse = useCallback(
+    (id: string) => {
+      if (isSampleId(id)) return
+      const patch: Partial<Course> = { archived: false, finalPercent: undefined, finalLetter: undefined }
+      updateCourses((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', id))
+    },
+    [updateCourses],
+  )
+
+  /** Add a course from BEFORE you used the app — transcript-style: no
+   * assessments, just the final grade you already earned. */
+  const addPastCourse = useCallback(
+    async (init: { code: string; title: string; term: string; credits: number; finalPercent: number }) => {
+      if (!authUser) return ''
+      const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
+      colorSeq.current += 1
+      const { data } = await supabase
+        .from('courses')
+        .insert({
+          user_id: authUser.id,
+          code: init.code,
+          name: init.title,
+          term: init.term,
+          credits: init.credits,
+          color,
+          section: '',
+          professor: '',
+          prof_email: '',
+          location: '',
+          time: '',
+          syllabus_url: '',
+          origin: 'manual',
+          archived: true,
+          final_percent: init.finalPercent,
+          final_letter: percentToGrade(init.finalPercent).letter,
+        })
+        .select('*')
+        .maybeSingle()
+      if (!data) return ''
+      const course = courseFromRow(data as CourseRow)
+      updateCourses((list) => [...list, course])
+      return course.id
+    },
+    [authUser, updateCourses],
+  )
+
   // Delete a course and its assessments. Assignments go first (the FK references
   // the course) so the course delete can't be blocked.
   const removeCourse = useCallback(
@@ -469,6 +544,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateCourse,
       createCourse,
       removeCourse,
+      pastCourses,
+      archiveCourse,
+      unarchiveCourse,
+      addPastCourse,
       shareCourseAsBlueprint,
       addBlankAssessment,
       courseById,
@@ -516,6 +595,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateCourse,
       createCourse,
       removeCourse,
+      pastCourses,
+      archiveCourse,
+      unarchiveCourse,
+      addPastCourse,
       shareCourseAsBlueprint,
       addBlankAssessment,
       courseById,

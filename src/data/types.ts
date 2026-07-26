@@ -143,4 +143,14 @@ export interface Course {
    * (vs the seeded catalog) → the detail view leads with the fill-by-hand editor
    * and lets the code/name be edited. Omitted for seeded courses. */
   origin?: 'manual'
+  /** A past-term course: hidden from the current-term grid, shown on the
+   * transcript. Set by archiving a finished course, or by entering a course from
+   * before you used the app. */
+  archived?: boolean
+  /** FROZEN final grade for an archived course — snapshotted at archive time (or
+   * typed directly for a pre-app course), so past-term GPA never drifts if an old
+   * assessment is edited later. */
+  finalPercent?: number
+  /** The letter shown on the transcript (derived from finalPercent on entry). */
+  finalLetter?: string
 }

@@ -17,3 +17,13 @@ export function termRank(term: string): number {
   const season = SEASON_RANK[m[1].toLowerCase()] ?? 0
   return parseInt(m[2], 10) * 10 + season
 }
+
+/** Unique term names, most recent first (unparseable ones sort last). */
+export function sortTermsDesc(terms: string[]): string[] {
+  return [...new Set(terms.filter(Boolean))].sort((a, b) => termRank(b) - termRank(a))
+}
+
+/** Is `a` strictly earlier than `b` in academic order? */
+export function isTermBefore(a: string, b: string): boolean {
+  return termRank(a) < termRank(b)
+}
