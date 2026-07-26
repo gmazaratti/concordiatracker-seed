@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom'
 import { Lightbulb, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
+import { useNavBadges } from '@/app/useNavBadges'
 import { useSettings } from '@/app/providers/settings'
 import { useUiState } from '@/app/providers/ui-state'
+import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
 import { AvatarMenu } from './AvatarMenu'
@@ -12,6 +14,7 @@ import { cn } from '@/lib/cn'
  *  (+ the opt-in pinned Requests board), and the avatar menu at the bottom. */
 export function Sidebar() {
   const { uiState } = useUiState()
+  const badges = useNavBadges()
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-border bg-surface/40 p-3 md:flex">
       <div className="px-2 py-3">
@@ -47,7 +50,8 @@ export function Sidebar() {
                   )}
                   aria-hidden
                 />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badges[to] && <NavBadge badge={badges[to]!} />}
               </>
             )}
           </NavLink>

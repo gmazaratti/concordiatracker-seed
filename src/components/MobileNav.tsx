@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
+import { useNavBadges } from '@/app/useNavBadges'
 import { useCommandPalette } from '@/app/providers/command-palette'
+import { NavBadge } from './NavBadge'
 import { cn } from '@/lib/cn'
 
 /**
@@ -10,6 +12,7 @@ import { cn } from '@/lib/cn'
  */
 export function MobileNav() {
   const { openPalette } = useCommandPalette()
+  const badges = useNavBadges()
   return (
     <nav className="flex shrink-0 items-stretch border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
       {STUDENT_NAV.map(({ to, label, icon: Icon, end }) => (
@@ -24,7 +27,13 @@ export function MobileNav() {
             )
           }
         >
-          <Icon size={20} aria-hidden />
+          {/* Badge floats over the icon so a count never shifts the bar. */}
+          <span className="relative">
+            <Icon size={20} aria-hidden />
+            {badges[to] && (
+              <NavBadge badge={badges[to]!} className="absolute -top-1.5 -right-2.5 ring-2 ring-surface" />
+            )}
+          </span>
           {label}
         </NavLink>
       ))}

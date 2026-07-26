@@ -11,6 +11,8 @@ import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
+import { DailyDebrief } from './DailyDebrief'
+import { TermWorkloadChart } from './TermWorkloadChart'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 
@@ -94,6 +96,7 @@ export function TodayPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <main className="order-2 flex min-w-0 flex-1 flex-col gap-3 lg:order-1">
           <PeerNudge />
+          <DailyDebrief />
           <DueList
             groups={groups}
             completed={completed}
@@ -103,6 +106,12 @@ export function TodayPage() {
             onDelete={deleteItem}
             onUndo={undo}
             onPrefsChange={updateTodayPrefs}
+          />
+          <TermWorkloadChart
+            assessments={assessments}
+            courses={courses}
+            termStart={term.start}
+            termEnd={term.end}
           />
           <AnnouncementsDigest />
         </main>
