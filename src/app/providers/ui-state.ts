@@ -25,6 +25,8 @@ export interface UiState {
   /** Term name whose "wrap up the term?" prompt has been answered/dismissed, so
    * it asks once per term. */
   termWrapDismissed?: string
+  /** Today's Debrief panel is rolled up (kept per user, so Today can stay lean). */
+  debriefCollapsed?: boolean
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as
