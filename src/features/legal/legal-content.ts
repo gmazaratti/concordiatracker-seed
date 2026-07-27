@@ -29,11 +29,14 @@ export interface LegalDoc {
 }
 
 const LAST_UPDATED = 'June 15, 2026'
+/** Privacy has its own date — it changed when usage analytics were disclosed,
+ * while the Terms and Educator Agreement did not. */
+const PRIVACY_UPDATED = 'July 27, 2026'
 
 const privacy: LegalDoc = {
   slug: 'privacy',
   title: 'Privacy Policy',
-  lastUpdated: LAST_UPDATED,
+  lastUpdated: PRIVACY_UPDATED,
   intro: 'How ConcordiaTracker collects, uses, and protects your information.',
   sections: [
     {
@@ -49,7 +52,8 @@ const privacy: LegalDoc = {
           items: [
             { label: 'Identification', text: 'Email address, display name, and profile picture (via Google OAuth).' },
             { label: 'Academic Data', text: 'Course names, assignment titles, weights, due dates, and grades — all entered voluntarily by the user.' },
-            { label: 'Technical Data', text: 'IP address, browser type, and device information for security, analytics, and DDoS mitigation.' },
+            { label: 'Technical Data', text: 'Our hosting and database providers process your IP address and browser information to keep the service secure and to mitigate abuse. We do not store your IP address ourselves, and it is never used for analytics or advertising.' },
+            { label: 'Usage Statistics', text: 'Anonymous statistics about how the service is used — see Usage Analytics below for exactly what is and is not recorded.' },
           ],
         },
       ],
@@ -158,20 +162,43 @@ const privacy: LegalDoc = {
     },
     {
       n: 8,
-      title: 'Cookies',
+      title: 'Cookies & Local Storage',
       blocks: [
-        { kind: 'p', text: 'We use essential cookies only for session management via Supabase [VERIFY] Auth. These cookies are strictly necessary to keep you logged in and do not track your browsing activity. We do not use advertising, analytics, or third-party tracking cookies.' },
+        { kind: 'p', text: 'We use essential cookies only for session management via Supabase [VERIFY] Auth. These cookies are strictly necessary to keep you logged in and do not track your browsing activity. We do not use advertising cookies, and we do not allow any third party to track you across other websites.' },
+        { kind: 'p', text: 'We also store a small amount of data in your browser’s local storage: your interface preferences, and the anonymous identifiers described in the Usage Analytics section below. This data stays in your browser, is never shared with third parties, and is cleared when you clear your browser data.' },
       ],
     },
     {
       n: 9,
+      title: 'Usage Analytics',
+      blocks: [
+        { kind: 'p', text: 'To understand how the service is used and where to improve it, we collect anonymous usage statistics ourselves. We do not use Google Analytics or any other third-party analytics provider, and no advertising or tracking script runs on this site.' },
+        { kind: 'p', text: 'What we record when you visit a page:' },
+        {
+          kind: 'list',
+          items: [
+            { label: 'Anonymous identifiers', text: 'two randomly generated ids stored in your browser — one per browser (to distinguish new from returning visitors) and one per tab session (to count how many people are using the site at a given moment). They are random values that identify a browser, not a person, and contain no personal information.' },
+            { label: 'Page visited', text: 'the general route you viewed (for example, /app/courses). Addresses that contain private links — such as invitation links — are stripped of their unique code before anything is recorded, so those codes are never stored.' },
+            { label: 'Referring website', text: 'the domain that linked you here (for example, instagram.com) — never the full address, which can itself contain personal information.' },
+            { label: 'Campaign tags', text: 'if you arrived through a tagged link we share (for example, a link posted by a student club), the tag on that link.' },
+            { label: 'Device type', text: 'whether the screen is phone-sized or desktop-sized.' },
+          ],
+        },
+        { kind: 'p', text: 'What we deliberately do not collect: your IP address, your browser or device fingerprint, your location, or any identifier that could link your browsing to you personally or follow you to other websites. If you are signed in, a visit may be associated with your account so we can measure how the product is used; it is never sold, shared, or used to build an advertising profile.' },
+        { kind: 'highlight', text: 'This analytics data is anonymous and stays with us. We will never sell it, share it with advertisers, or use it to track you across the internet.' },
+        { kind: 'p', text: 'Retention: activity signals used only to count who is currently online are deleted after 7 days, and page-visit records are deleted after 180 days.' },
+        { kind: 'p', text: 'Because these statistics are anonymous, they generally cannot be traced back to you individually. If you have questions about this, or you would like us to stop associating your signed-in account with usage statistics, contact us at concordiatracker@gmail.com and we will action it.' },
+      ],
+    },
+    {
+      n: 10,
       title: 'Age Requirement',
       blocks: [
         { kind: 'p', text: 'This service is not intended for children under the age of [AGE_MINIMUM — TBD]. By creating an account, you confirm that you are at least [AGE_MINIMUM — TBD] years of age. If we learn that we have collected personal information from a child under [AGE_MINIMUM — TBD] without parental consent, we will delete that information immediately.' },
       ],
     },
     {
-      n: 10,
+      n: 11,
       title: 'Changes to This Policy',
       blocks: [
         { kind: 'p', text: 'We will notify users of material changes to this Privacy Policy via email or in-app notification at least 14 days before they take effect. Continued use of the service after changes become effective constitutes acceptance of the revised policy.' },
