@@ -43,9 +43,25 @@ async function post<T>(path: string, body: Record<string, unknown>): Promise<T> 
   return json as T
 }
 
-/** Start an embedded checkout; returns the client secret for <EmbeddedCheckout>. */
-export function startCheckout(plan: 'semester' | 'monthly'): Promise<{ clientSecret: string }> {
+/** Start an embedded checkout; returns the client secret for <EmbeddedCheckout>.
+ * `carryUntil` (unix seconds) is set when existing time is stacking onto it. */
+export function startCheckout(
+  plan: 'semester' | 'monthly',
+): Promise<{ clientSecret: string; carryUntil: number | null }> {
   return post('/api/stripe-checkout', { plan })
+}
+
+export interface CheckoutStatus {
+  complete: boolean
+  plan: string | null
+  trialEnd: number | null
+  /** The purchase extended existing time rather than replacing it. */
+  stacked: boolean
+}
+
+/** Verify a finished checkout (used to gate the celebration). */
+export function checkoutStatus(sessionId: string): Promise<CheckoutStatus> {
+  return post('/api/stripe-billing', { action: 'checkout-status', sessionId })
 }
 
 export function billingSummary(): Promise<{

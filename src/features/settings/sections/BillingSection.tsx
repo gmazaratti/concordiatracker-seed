@@ -158,6 +158,53 @@ export function BillingSection() {
               >
                 {busy ? 'Working…' : 'Resume subscription'}
               </button>
+            ) : sub.interval === 'month' && !trialing ? (
+              /* On monthly → the semester pass is an upgrade, and their unused
+                 monthly time carries over rather than being forfeited. */
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setPane(pane === 'semester' ? null : 'semester')}
+                  className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  Switch to the Semester pass — $15
+                </button>
+                <p className="text-center text-[11.5px] text-subtle">
+                  Your remaining time carries over — you keep every paid day.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void run(cancelSubscription)}
+                  className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
+                >
+                  {busy ? 'Working…' : 'Cancel subscription'}
+                </button>
+              </>
+            ) : trialing ? (
+              /* Mid-trial: let them lock in a plan without losing trial days. */
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setPane(pane === 'semester' ? null : 'semester')}
+                  className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  Get the Semester pass — $15
+                </button>
+                <p className="text-center text-[11.5px] text-subtle">
+                  Your remaining trial days carry over — nothing is lost.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void run(cancelSubscription)}
+                  className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
+                >
+                  {busy ? 'Working…' : 'Cancel subscription'}
+                </button>
+              </>
             ) : (
               <button
                 type="button"

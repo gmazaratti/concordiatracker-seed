@@ -14,7 +14,7 @@
  */
 import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
 
-type Action = 'summary' | 'cancel' | 'resume' | 'update-card'
+type Action = 'summary' | 'cancel' | 'resume' | 'update-card' | 'checkout-status'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
@@ -30,8 +30,39 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    const { action = 'summary' } = readJson<{ action?: Action }>(req)
+    const { action = 'summary', sessionId } = readJson<{ action?: Action; sessionId?: string }>(req)
     const stripe = getStripe()
+
+    // Did this checkout actually complete? Asked straight after the redirect so
+    // the celebration can't fire on an abandoned or failed payment — and doesn't
+    // have to wait on the webhook, which may still be in flight.
+    if (action === 'checkout-status') {
+      if (!sessionId) {
+        res.status(400).json({ error: 'Missing session.' })
+        return
+      }
+      const session = await stripe.checkout.sessions.retrieve(sessionId).catch(() => null)
+      // Only ever report on the caller's OWN session.
+      const owner = session?.metadata?.supabase_user_id
+      if (!session || owner !== user.id) {
+        res.status(404).json({ error: 'Unknown checkout.' })
+        return
+      }
+      const sub =
+        session.subscription && typeof session.subscription !== 'string'
+          ? session.subscription
+          : session.subscription
+            ? await stripe.subscriptions.retrieve(session.subscription).catch(() => null)
+            : null
+      res.status(200).json({
+        complete: session.status === 'complete',
+        plan: session.metadata?.plan ?? null,
+        trialEnd: sub?.trial_end ?? null,
+        // True when the student had time left that carried onto this plan.
+        stacked: !!session.metadata?.replaces_subscription_id,
+      })
+      return
+    }
     const profile = await getProfile(user.id, 'stripe_customer_id,stripe_subscription_id')
     const customerId = profile?.stripe_customer_id as string | undefined
     const subscriptionId = profile?.stripe_subscription_id as string | undefined

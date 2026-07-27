@@ -10,7 +10,7 @@
  * repeats are dropped.
  */
 import type Stripe from 'stripe'
-import { getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
+import { getProfile, getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
@@ -65,6 +65,18 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
   if (!userId) return
 
   const entitled = sub.status === 'active' || sub.status === 'trialing'
+
+  // STALE-EVENT GUARD. When someone upgrades, we cancel their old subscription —
+  // which fires `customer.subscription.deleted` for it. Without this, that dead
+  // subscription's event would overwrite the row and drop a paying student to
+  // free. A non-entitling event is only allowed to write if it's about the
+  // subscription we currently consider theirs.
+  if (!entitled) {
+    const current = await getProfile(userId, 'stripe_subscription_id')
+    const currentId = current?.stripe_subscription_id as string | undefined
+    if (currentId && currentId !== sub.id) return
+  }
+
   const item = sub.items?.data?.[0]
   // period end lives on the subscription item in current API versions; fall back
   // to the subscription-level field for older shapes.
@@ -131,6 +143,20 @@ export default async function handler(req: any, res: any) {
             await stripe.subscriptions.update(id, { metadata: { supabase_user_id: userId } })
             sub.metadata = { ...sub.metadata, supabase_user_id: userId }
           }
+
+          // The student upgraded while they still had time left. That time was
+          // carried onto this new subscription as a paid-through period, so the
+          // old one must go NOW — otherwise they'd be billed for both.
+          const replaced =
+            session.metadata?.replaces_subscription_id ?? sub.metadata?.replaces_subscription_id
+          if (replaced && replaced !== sub.id) {
+            await stripe.subscriptions.cancel(replaced).catch(() => {
+              /* already gone — nothing to undo */
+            })
+          }
+
+          // Sync AFTER the cancellation, so the cancel's own webhook can't
+          // overwrite this subscription's row with the dead one's "canceled".
           await syncSubscription(sub)
         }
         break
