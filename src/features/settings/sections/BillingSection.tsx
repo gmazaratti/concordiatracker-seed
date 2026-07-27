@@ -169,11 +169,16 @@ export function BillingSection() {
               </button>
             )}
 
-            {/* Embedded checkout, right here — no second tab. */}
+            {/* Embedded checkout — in-app (its own overlay), never a second tab. */}
             {(pane === 'semester' || pane === 'monthly') && (
               <EmbeddedCheckoutPanel
                 title={pane === 'semester' ? 'Semester pass' : 'Monthly plan'}
-                onClose={() => setPane(null)}
+                onClose={() => {
+                  setPane(null)
+                  // Re-read in case they completed payment — the webhook may have
+                  // already flipped the plan while the form was open.
+                  void load()
+                }}
                 fetchClientSecret={async () => (await startCheckout(pane)).clientSecret}
               />
             )}
@@ -219,14 +224,13 @@ export function BillingSection() {
         </Row>
       </Group>
 
+      {/* Renders as its own overlay (portalled), so placement here is incidental. */}
       {pane === 'card' && (
-        <div className="mb-6">
-          <EmbeddedCheckoutPanel
-            title="Update payment method"
-            onClose={() => setPane(null)}
-            fetchClientSecret={async () => (await startCardUpdate()).clientSecret}
-          />
-        </div>
+        <EmbeddedCheckoutPanel
+          title="Update payment method"
+          onClose={() => setPane(null)}
+          fetchClientSecret={async () => (await startCardUpdate()).clientSecret}
+        />
       )}
 
       <Group label="Invoices">
