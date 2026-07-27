@@ -26,6 +26,46 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.21.0',
+    name: 'Go Pro',
+    date: '2026-07-27',
+    changes: [
+      { kind: 'new', text: 'Subscriptions are live — the Semester pass ($15) or monthly ($5), paid right inside Settings → Billing without leaving the app.' },
+      { kind: 'new', text: 'Every plan starts with a 7-day free trial. Cancel before it ends and you’re never charged.' },
+      { kind: 'new', text: 'Upgrading never wastes what you’ve paid for: switch from monthly to the Semester pass and your remaining days carry straight over.' },
+      { kind: 'new', text: 'Invoices live in Billing with PDF receipts, and you can cancel or resume in one click — access always runs to the end of the period you paid for.' },
+      { kind: 'improved', text: 'Prices are shown in Canadian dollars for everyone, so what you see is exactly what you’re charged.' },
+    ],
+  },
+  {
+    version: '1.20.0',
+    name: 'Know your term',
+    date: '2026-07-26',
+    changes: [
+      { kind: 'new', text: 'A Daily Debrief on Today reads your situation back to you — what’s landing next, and how much of your grade is due this week.' },
+      { kind: 'new', text: 'Tell it what you want to prioritise — catching up, protecting your GPA, getting ahead, or one specific class — and the briefing rewrites itself around that.' },
+      { kind: 'new', text: '“Your term, week by week” charts your workload by weight, so you can see the crunch weeks coming.' },
+      { kind: 'new', text: 'A study planner ranks what to work on by weight, urgency, and how much each class can still move — with the reasoning shown, never a black box.' },
+      { kind: 'new', text: 'Past semesters: keep finished terms, see your transcript, and track a cumulative GPA across your degree.' },
+      { kind: 'improved', text: 'The sidebar now badges overdue work and classmate date changes waiting on you.' },
+    ],
+  },
+  {
+    version: '1.19.0',
+    name: 'A smoother start',
+    date: '2026-07-22',
+    changes: [
+      { kind: 'improved', text: 'Onboarding is shorter and clearer — the confusing hands-on steps are gone, replaced by one calm overview.' },
+      { kind: 'new', text: 'Finished setting up? You’ll be offered the guided tour, and the Getting-started checklist stays in the corner if you’d rather explore alone.' },
+      { kind: 'new', text: 'Feedback moved into the app — request features, report bugs, and vote without losing your sidebar.' },
+      { kind: 'new', text: 'After a few days with the app you can take a short survey and get 3 days of Pro, free.' },
+      { kind: 'improved', text: 'Teachers get a proper sidebar, with each class split into Assignments, Course outline, Announcements, and Student blueprints.' },
+      { kind: 'fixed', text: 'Onboarding no longer faded its own content out on the background grid.' },
+      { kind: 'fixed', text: 'Org logos no longer show a coloured halo behind transparent images.' },
+      { kind: 'fixed', text: 'Club bios keep their line breaks instead of collapsing to one line.' },
+    ],
+  },
+  {
     version: '1.18.0',
     name: 'Take the tour',
     date: '2026-07-01',
