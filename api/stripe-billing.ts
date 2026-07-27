@@ -105,7 +105,9 @@ export default async function handler(req: any, res: any) {
       // A dedicated embedded session just for swapping the card.
       const session = await stripe.checkout.sessions.create({
         mode: 'setup',
-        ui_mode: 'embedded',
+        ui_mode: 'embedded_page',
+        // Required for setup sessions on current API versions.
+        currency: 'cad',
         customer: customerId,
         return_url: `${siteUrl(req)}/app?card=updated`,
       })

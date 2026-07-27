@@ -64,7 +64,7 @@ export default async function handler(req: any, res: any) {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      ui_mode: 'embedded',
+      ui_mode: 'embedded_page',
       customer,
       line_items: [{ price, quantity: 1 }],
       // Always take a card, even when the trial means £0 today.
