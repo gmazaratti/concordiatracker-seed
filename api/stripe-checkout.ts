@@ -8,7 +8,7 @@
  * The caller is identified by their Supabase token — never by a user id in the
  * body — so nobody can start a subscription against someone else's account.
  */
-import { authedUser, ensureCustomer, getProfile, getStripe, readJson, siteUrl } from './_stripe'
+import { authedUser, ensureCustomer, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
 
 type Plan = 'semester' | 'monthly'
 

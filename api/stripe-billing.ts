@@ -12,7 +12,7 @@
  * Every action resolves the subscription from the CALLER'S OWN profile, so a
  * crafted request can't cancel or read anybody else's subscription.
  */
-import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe'
+import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
 
 type Action = 'summary' | 'cancel' | 'resume' | 'update-card'
 

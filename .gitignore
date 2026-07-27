@@ -34,3 +34,6 @@ scripts/
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/
+
+.vercel
+.env*

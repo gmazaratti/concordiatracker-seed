@@ -10,7 +10,7 @@
  * repeats are dropped.
  */
 import type Stripe from 'stripe'
-import { getStripe, patchProfile, supabaseAdmin } from './_stripe'
+import { getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
