@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from '@/app/providers/AuthProvider'
 import { AppProviders } from '@/app/providers/AppProviders'
 import { AppRoutes } from '@/router'
+import { RouteAnalytics } from '@/app/RouteAnalytics'
 
 export default function App() {
   // Capture a vanity referral code (?ref=CODE) once, before it's lost to OAuth
@@ -22,6 +23,7 @@ export default function App() {
     <AuthProvider>
       <AppProviders>
         <BrowserRouter>
+          <RouteAnalytics />
           <AppRoutes />
         </BrowserRouter>
       </AppProviders>

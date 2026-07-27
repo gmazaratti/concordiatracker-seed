@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
+  Activity,
   ArrowLeft,
   Bug,
   Building2,
@@ -25,6 +26,7 @@ import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
 import { AttributionTab } from './tabs/AttributionTab'
+import { TrafficTab } from './tabs/TrafficTab'
 import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { cn } from '@/lib/cn'
 
@@ -33,6 +35,7 @@ const TABS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'applications', label: 'Applications', icon: Inbox },
   { id: 'portals', label: 'Portals', icon: Building2 },
+  { id: 'traffic', label: 'Traffic', icon: Activity },
   { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
@@ -106,6 +109,7 @@ export function AdminConsole() {
         {current === 'users' && <UsersTab />}
         {current === 'applications' && <ApplicationsTab />}
         {current === 'portals' && <PortalsTab />}
+        {current === 'traffic' && <TrafficTab />}
         {current === 'attribution' && <AttributionTab />}
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}
