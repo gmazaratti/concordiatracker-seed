@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Announcement } from '@/data/announcements'
+import type { Translations } from '@/lib/localized'
 import type { Blueprint } from '@/data/blueprints'
 import { CAMPUS_EVENTS, ORGS, type CampusEvent, type EventOrg } from '@/data/community'
 import { term } from '@/data/mock'
@@ -26,9 +27,9 @@ const SELF = 'self'
 /** Session sentinel: managing your OWN real organization. */
 const SELF_ORG = 'self-org'
 
-const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status'
+const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status, translations'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at, translations'
 
 /** A `teacher_courses` row (the teacher's persisted managed course + draft outline). */
 interface TeacherCourseRow {
@@ -124,7 +125,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       const { data } = await supabase
         .from('announcements')
-        .select('id, course_code, title, body, posted_at, edited_at')
+        .select('id, course_code, title, body, posted_at, edited_at, translations')
         .order('posted_at', { ascending: false })
       if (!active) return
       setAnnouncements((data as AnnouncementRow[] | null)?.map(announcementFromRow) ?? [])
@@ -691,11 +692,18 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // Demo teachers post/edit/delete in-memory only (ephemeral); only your own
   // account (SELF) writes to the real `announcements` table.
   const postAnnouncement = useCallback(
-    async (input: { courseCode: string; title: string; body: string }) => {
+    async (input: { courseCode: string; title: string; body: string; translations?: Translations }) => {
       const code = normalizeCode(input.courseCode)
       if (sessionId !== SELF || !authUser) {
         setAnnouncements((prev) => [
-          { id: uid('an'), courseCode: code, title: input.title, body: input.body, postedDaysAgo: 0 },
+          {
+            id: uid('an'),
+            courseCode: code,
+            title: input.title,
+            body: input.body,
+            translations: input.translations,
+            postedDaysAgo: 0,
+          },
           ...prev,
         ])
         return
@@ -708,8 +716,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           author_name: currentTeacher?.name ?? '',
           title: input.title,
           body: input.body,
+          translations: input.translations ?? {},
         })
-        .select('id, course_code, title, body, posted_at, edited_at')
+        .select('id, course_code, title, body, posted_at, edited_at, translations')
         .maybeSingle()
       if (data) setAnnouncements((prev) => [announcementFromRow(data as AnnouncementRow), ...prev])
     },

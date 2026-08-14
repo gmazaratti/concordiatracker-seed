@@ -6,6 +6,7 @@ import { formatDueDateTime } from '@/lib/date'
 import { CATEGORY_META } from './category'
 import { EventMedia } from './EventMedia'
 import { VerifiedBadge } from './VerifiedBadge'
+import { useLocalizedEvent } from './useLocalizedEvent'
 import { OrgLogo } from './OrgLogo'
 
 /** One event — a media-forward card (grid) or a dense row (list). Host identity
@@ -30,24 +31,25 @@ export function EventTile({
   onOpen: () => void
   onAdd: () => void
 }) {
+  const l = useLocalizedEvent(event)
   if (view === 'row') {
     return (
       <article className="flex items-stretch overflow-hidden rounded-xl border border-border bg-surface transition-colors duration-150 hover:border-border-strong">
         <button
           type="button"
           onClick={onOpen}
-          aria-label={`Open ${event.title}`}
+          aria-label={`Open ${l.title}`}
           className="flex min-w-0 flex-1 items-center gap-3 p-3 text-left"
         >
           <EventMedia event={event} variant="thumb" />
           <div className="min-w-0 flex-1">
             <HostRow org={event.org} />
-            <h3 className="mt-1 truncate text-[14px] font-medium text-fg">{event.title}</h3>
+            <h3 className="mt-1 truncate text-[14px] font-medium text-fg">{l.title}</h3>
             <MetaLine event={event} relevant={relevant} />
           </div>
         </button>
         <div className="flex shrink-0 items-center p-3 pl-0">
-          <AddAction added={added} onAdd={onAdd} title={event.title} />
+          <AddAction added={added} onAdd={onAdd} title={l.title} />
         </div>
       </article>
     )
@@ -58,21 +60,21 @@ export function EventTile({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Open ${event.title}`}
+        aria-label={`Open ${l.title}`}
         className="block text-left"
       >
         <EventMedia event={event} variant="banner" />
         <div className="px-3.5 pt-3.5">
           <HostRow org={event.org} />
           <h3 className="mt-2 line-clamp-2 min-h-[2.75rem] text-[15px] leading-snug font-medium text-fg">
-            {event.title}
+            {l.title}
           </h3>
           <MetaLine event={event} relevant={relevant} />
         </div>
       </button>
       <div className="mt-auto flex items-center justify-between gap-2 px-3.5 pt-3 pb-3">
         <CategoryTag category={event.category} />
-        <AddAction added={added} onAdd={onAdd} title={event.title} />
+        <AddAction added={added} onAdd={onAdd} title={l.title} />
       </div>
     </article>
   )
@@ -96,6 +98,7 @@ export function HostRow({ org }: { org: EventOrg }) {
 /** A single, non-wrapping meta line so card height never varies: date is kept
  * whole, the location truncates, and the "For you" pill stays pinned right. */
 function MetaLine({ event, relevant }: { event: CampusEvent; relevant: boolean }) {
+  const l = useLocalizedEvent(event)
   const online = event.mode === 'online'
   return (
     <div className="mt-1.5 flex min-h-[1.375rem] items-center gap-2 text-[12px] text-subtle">
@@ -106,7 +109,7 @@ function MetaLine({ event, relevant }: { event: CampusEvent; relevant: boolean }
         ) : (
           <MapPin size={12} className="shrink-0" aria-hidden />
         )}
-        <span className="truncate">{online ? 'Online' : event.location}</span>
+        <span className="truncate">{online ? 'Online' : l.location}</span>
       </span>
       {relevant && (
         <span className="ml-auto shrink-0 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent">

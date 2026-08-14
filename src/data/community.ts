@@ -1,3 +1,4 @@
+import type { Translations } from '@/lib/localized'
 import { daysFromNow } from '@/lib/date'
 
 /**
@@ -23,6 +24,8 @@ export interface OrgLinks {
 }
 
 export interface EventOrg {
+  /** Other-language versions of `bio`. */
+  translations?: Translations
   name: string
   /** Public handle, e.g. "@jmsb". */
   handle: string
@@ -45,6 +48,8 @@ export interface EventOrg {
 }
 
 export interface CampusEvent {
+  /** Other-language versions — see lib/localized.ts. */
+  translations?: Translations
   id: string
   title: string
   /** ISO start timestamp (runtime-relative, like the rest of the seed). */

@@ -6,12 +6,15 @@ import { normalizeCode } from '@/lib/supabase-adapters'
 import { CourseChip } from '@/components/CourseChip'
 import { AnnouncementMeta } from '@/components/AnnouncementMeta'
 import type { Course } from '@/data/types'
+import { useI18n } from '@/i18n/i18n'
+import { localized } from '@/lib/localized'
 
 /** A quiet cross-course announcements digest on Today — recent teacher posts at a
  * glance, each linking back to its course detail (the source of truth). Filtered
  * to the student's OWN courses by code (announcements key by course code, since a
  * teacher and a student hold different per-user course ids). */
 export function AnnouncementsDigest() {
+  const { lang } = useI18n()
   const { courses } = useAppData()
   const { teacherAnnouncements } = useTeacher()
 
@@ -52,8 +55,8 @@ export function AnnouncementsDigest() {
                   )}
                   <AnnouncementMeta a={an} className="ml-auto" />
                 </div>
-                <p className="mt-1.5 text-[13px] leading-snug font-medium text-fg">{an.title}</p>
-                <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-subtle">{an.body}</p>
+                <p className="mt-1.5 text-[13px] leading-snug font-medium text-fg">{localized(an, lang, 'title')}</p>
+                <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-subtle">{localized(an, lang, 'body')}</p>
               </Link>
             </li>
           ))}

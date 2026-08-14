@@ -4,9 +4,9 @@ import { eventFromRow, orgFromRow, type EventRow, type OrgRow } from '@/lib/supa
 import { CommunityDataContext, type CommunityDataValue } from './community-data'
 import type { CampusEvent, EventOrg } from '@/data/community'
 
-const ORG_COLS = 'id, handle, name, verified, glyph, color, logo, banner, bio, links'
+const ORG_COLS = 'id, handle, name, verified, glyph, color, logo, banner, bio, links, translations'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at, translations'
 
 /** Loads the public Community feed (orgs + events) once on mount. The organizer
  * WRITE path (creating events from the portal) is still in-memory until Phase 10,

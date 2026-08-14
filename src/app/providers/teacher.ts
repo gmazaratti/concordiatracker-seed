@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 import type { Announcement } from '@/data/announcements'
 import type { Blueprint } from '@/data/blueprints'
 import type { CampusEvent, EventOrg } from '@/data/community'
+import type { Translations } from '@/lib/localized'
 import type {
   AccessRequest,
   ManagedEvent,
@@ -71,7 +72,13 @@ export interface TeacherContextValue {
 
   // Announcements → Today digest + course detail (real `announcements` table)
   teacherAnnouncements: Announcement[]
-  postAnnouncement: (input: { courseCode: string; title: string; body: string }) => void
+  postAnnouncement: (input: {
+    courseCode: string
+    title: string
+    body: string
+    /** Optional other-language versions of title + body. */
+    translations?: Translations
+  }) => void
   /** Edit an announcement → stamps it "Edited" (editedDaysAgo = 0). */
   editAnnouncement: (id: string, patch: { title: string; body: string }) => void
   deleteAnnouncement: (id: string) => void

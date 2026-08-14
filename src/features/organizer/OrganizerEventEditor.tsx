@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { LangTabs } from '@/components/LangTabs'
+import { hasTranslation, mergeTranslations } from '@/lib/localized'
+import type { Lang } from '@/i18n/i18n'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Bell, CalendarPlus, Check, Eye, Lock, RotateCcw, Trash2, UserPlus } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
@@ -59,6 +62,24 @@ function EventEditorForm({
   const [image, setImage] = useState(event.image ?? '')
   const [relevant, setRelevant] = useState((event.relevantTo ?? []).join(', '))
 
+  // Which language version is being edited. The base title/location/description
+  // above are the English copy; these hold the French one. Only the three
+  // free-text fields are translatable — a date and a category are not language.
+  const [lang, setLang] = useState<Lang>('en')
+  const fr = event.translations?.fr ?? {}
+  const [frTitle, setFrTitle] = useState(fr.title ?? '')
+  const [frLocation, setFrLocation] = useState(fr.location ?? '')
+  const [frDescription, setFrDescription] = useState(fr.description ?? '')
+
+  // One pair of inputs edits whichever version is selected.
+  const editingFr = lang === 'fr'
+  const shownTitle = editingFr ? frTitle : title
+  const shownLocation = editingFr ? frLocation : location
+  const shownDescription = editingFr ? frDescription : description
+  const setShownTitle = editingFr ? setFrTitle : setTitle
+  const setShownLocation = editingFr ? setFrLocation : setLocation
+  const setShownDescription = editingFr ? setFrDescription : setDescription
+
   const [saved, setSaved] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -88,6 +109,13 @@ function EventEditorForm({
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean),
+      // Blank French fields are dropped rather than stored, so they fall back to
+      // English instead of publishing an empty string.
+      translations: mergeTranslations(event.translations, 'fr', {
+        title: frTitle,
+        location: frLocation,
+        description: frDescription,
+      }),
     })
     setSaved(true)
   }
@@ -116,14 +144,28 @@ function EventEditorForm({
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
         {/* Form */}
         <div className="flex flex-col gap-3.5">
+          <LangTabs
+            value={lang}
+            onChange={setLang}
+            filled={
+              hasTranslation({ translations: { fr: { title: frTitle, location: frLocation, description: frDescription } } }, 'fr', ['title', 'location', 'description'])
+                ? ['fr']
+                : []
+            }
+            hint={
+              editingFr
+                ? 'Anything left blank falls back to the English version.'
+                : 'The default version. Switch to Français to add a French one.'
+            }
+          />
           <Field label="Title">
             <input
-              value={title}
+              value={shownTitle}
               onChange={(e) => {
-                setTitle(e.target.value)
+                setShownTitle(e.target.value)
                 touch()
               }}
-              placeholder="Event title"
+              placeholder={editingFr ? 'Titre de l’événement' : 'Event title'}
               className={field}
             />
           </Field>
@@ -169,9 +211,9 @@ function EventEditorForm({
             </Field>
             <Field label={mode === 'online' ? 'Platform' : 'Location'}>
               <input
-                value={location}
+                value={shownLocation}
                 onChange={(e) => {
-                  setLocation(e.target.value)
+                  setShownLocation(e.target.value)
                   touch()
                 }}
                 placeholder={mode === 'online' ? 'e.g. Zoom · Discord' : 'e.g. H 920'}
@@ -182,9 +224,9 @@ function EventEditorForm({
 
           <Field label="Description">
             <textarea
-              value={description}
+              value={shownDescription}
               onChange={(e) => {
-                setDescription(e.target.value)
+                setShownDescription(e.target.value)
                 touch()
               }}
               rows={4}

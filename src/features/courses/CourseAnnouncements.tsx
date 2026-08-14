@@ -2,10 +2,13 @@ import { Megaphone } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { normalizeCode } from '@/lib/supabase-adapters'
 import { AnnouncementMeta } from '@/components/AnnouncementMeta'
+import { useI18n } from '@/i18n/i18n'
+import { localized } from '@/lib/localized'
 
 /** This course's announcements on the course detail — posted/edited from the
  * teacher portal. Matched by course code. Renders nothing when there are none. */
 export function CourseAnnouncements({ courseCode }: { courseCode: string }) {
+  const { lang } = useI18n()
   const { teacherAnnouncements } = useTeacher()
   const code = normalizeCode(courseCode)
   const items = teacherAnnouncements
@@ -24,10 +27,10 @@ export function CourseAnnouncements({ courseCode }: { courseCode: string }) {
         {items.map((an) => (
           <li key={an.id} className="px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-medium text-fg">{an.title}</span>
+              <span className="text-[13px] font-medium text-fg">{localized(an, lang, 'title')}</span>
               <AnnouncementMeta a={an} className="ml-auto" />
             </div>
-            <p className="mt-0.5 text-[12px] leading-snug text-subtle">{an.body}</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-subtle">{localized(an, lang, 'body')}</p>
           </li>
         ))}
       </ul>

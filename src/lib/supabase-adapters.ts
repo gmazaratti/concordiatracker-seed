@@ -11,6 +11,7 @@ import type { Blueprint } from '@/data/blueprints'
 import type { CampusEvent, EventCategory, EventOrg, OrgLinks } from '@/data/community'
 import type { Announcement } from '@/data/announcements'
 import type { ManagedEvent, OrgMember, OrgPermissions, OrgRole } from '@/data/teacher'
+import type { Translations } from './localized'
 
 /**
  * The mapping layer between Supabase rows (the live schema) and the seed's richer
@@ -396,6 +397,7 @@ export interface AnnouncementRow {
   body: string | null
   posted_at: string
   edited_at: string | null
+  translations?: Translations | null
 }
 
 const daysAgo = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / DAY_MS))
@@ -408,6 +410,7 @@ export function announcementFromRow(r: AnnouncementRow): Announcement {
     body: r.body ?? '',
     postedDaysAgo: daysAgo(r.posted_at),
     editedDaysAgo: r.edited_at ? daysAgo(r.edited_at) : undefined,
+    translations: (r.translations as Translations | undefined) ?? undefined,
   }
 }
 
@@ -485,12 +488,14 @@ export function managedEventToRow(patch: Partial<ManagedEvent>): Record<string, 
   if ('description' in patch) row.description = patch.description
   if ('image' in patch) row.image = patch.image ?? null
   if ('relevantTo' in patch) row.relevant_to = patch.relevantTo ?? []
+  if ('translations' in patch) row.translations = patch.translations ?? {}
   return row
 }
 
 /** A (partial) EventOrg profile → `organizations` columns. */
 export function orgProfileToRow(patch: Partial<EventOrg>): Record<string, unknown> {
   const row: Record<string, unknown> = {}
+  if ('translations' in patch) row.translations = patch.translations ?? {}
   if ('name' in patch) row.name = patch.name
   if ('handle' in patch) row.handle = patch.handle
   if ('verified' in patch) row.verified = patch.verified

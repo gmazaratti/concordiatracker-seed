@@ -1,3 +1,4 @@
+import type { Translations } from '@/lib/localized'
 /**
  * Cross-course teacher announcements — the student's OWN coursework, so this
  * lives on TODAY (a quiet academic-glance digest), not Community (which is
@@ -15,6 +16,8 @@ export interface Announcement {
   title: string
   /** Short snippet shown in the digest. */
   body: string
+  /** Other-language versions of title + body — see lib/localized.ts. */
+  translations?: Translations
   postedDaysAgo: number
   /** Set when a teacher edits it → drives the "Edited" tag + when, shown to
    * students and teachers alike. Undefined = never edited. */

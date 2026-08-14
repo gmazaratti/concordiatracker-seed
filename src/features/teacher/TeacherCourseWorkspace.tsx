@@ -18,6 +18,9 @@ import { term } from '@/data/mock'
 import { SyllabusParseReveal } from '@/features/courses/SyllabusParseReveal'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
+import { LangTabs } from '@/components/LangTabs'
+import { mergeTranslations, type Translations } from '@/lib/localized'
+import type { Lang } from '@/i18n/i18n'
 import { OutlineEditor } from './OutlineEditor'
 import { CommunityBlueprintsPanel } from './CommunityBlueprintsPanel'
 import { StudentCoursePreview } from './StudentCoursePreview'
@@ -235,7 +238,7 @@ export function TeacherCourseWorkspace() {
             <p className="mb-3 text-[13px] text-subtle">
               Posts flow to the course detail page + students&rsquo; Today digest. Past posts are editable below.
             </p>
-            <AnnouncementComposer disabled={pending} onPost={(title, body) => postAnnouncement({ courseCode: course.code, title, body })} />
+            <AnnouncementComposer disabled={pending} onPost={(title, body, translations) => postAnnouncement({ courseCode: course.code, title, body, translations })} />
             <TeacherAnnouncementList courseCode={course.code} disabled={pending} />
           </section>
         )}
@@ -274,24 +277,75 @@ function dueLabel(due: string): string {
   return isNaN(d.getTime()) ? 'TBA' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function AnnouncementComposer({ onPost, disabled }: { onPost: (title: string, body: string) => void; disabled: boolean }) {
+function AnnouncementComposer({
+  onPost,
+  disabled,
+}: {
+  onPost: (title: string, body: string, translations: Translations) => void
+  disabled: boolean
+}) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  // The French version of the same announcement. Posting is gated on the
+  // default version only — a French copy is optional, and a blank one falls
+  // back rather than publishing an empty announcement.
+  const [lang, setLang] = useState<Lang>('en')
+  const [frTitle, setFrTitle] = useState('')
+  const [frBody, setFrBody] = useState('')
+
+  const editingFr = lang === 'fr'
+  const shownTitle = editingFr ? frTitle : title
+  const shownBody = editingFr ? frBody : body
+  const setShownTitle = editingFr ? setFrTitle : setTitle
+  const setShownBody = editingFr ? setFrBody : setBody
+
   const canPost = !disabled && title.trim().length > 0 && body.trim().length > 0
 
   function submit() {
     if (!canPost) return
-    onPost(title.trim(), body.trim())
+    onPost(
+      title.trim(),
+      body.trim(),
+      mergeTranslations(undefined, 'fr', { title: frTitle, body: frBody }),
+    )
     setTitle('')
     setBody('')
+    setFrTitle('')
+    setFrBody('')
+    setLang('en')
   }
 
   const field = 'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none disabled:opacity-50'
 
   return (
     <div className="rounded-xl border border-border bg-surface p-3.5">
-      <input value={title} onChange={(e) => setTitle(e.target.value)} disabled={disabled} placeholder="Announcement title" aria-label="Announcement title" className={field} />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={disabled} placeholder="What do your students need to know?" aria-label="Announcement body" rows={2} className={cn(field, 'mt-2 resize-none')} />
+      <LangTabs
+        value={lang}
+        onChange={setLang}
+        filled={frTitle.trim() || frBody.trim() ? ['fr'] : []}
+        hint={
+          editingFr
+            ? 'Optional. Students reading in English still see the version above.'
+            : 'The version every student sees unless they read in French.'
+        }
+      />
+      <input
+        value={shownTitle}
+        onChange={(e) => setShownTitle(e.target.value)}
+        disabled={disabled}
+        placeholder={editingFr ? 'Titre de l’annonce' : 'Announcement title'}
+        aria-label="Announcement title"
+        className={field}
+      />
+      <textarea
+        value={shownBody}
+        onChange={(e) => setShownBody(e.target.value)}
+        disabled={disabled}
+        placeholder={editingFr ? 'Que doivent savoir vos étudiants ?' : 'What do your students need to know?'}
+        aria-label="Announcement body"
+        rows={2}
+        className={cn(field, 'mt-2 resize-none')}
+      />
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className="text-[11px] text-subtle">{disabled ? 'Approval needed to post' : 'Visible on the course + Today'}</span>
         <Button size="sm" disabled={!canPost} onClick={submit}>

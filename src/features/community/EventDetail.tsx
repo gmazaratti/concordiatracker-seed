@@ -22,6 +22,7 @@ import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { formatDueDateTime, startOfToday } from '@/lib/date'
 import { clearReminder, EVENT_LEAD_MINUTES, setReminder } from '@/lib/reminders'
 import { cn } from '@/lib/cn'
+import { useLocalizedEvent } from './useLocalizedEvent'
 import { EventMedia } from './EventMedia'
 import { CategoryTag } from './EventTile'
 import { VerifiedBadge } from './VerifiedBadge'
@@ -46,6 +47,7 @@ export function EventDetail({
   onClose: () => void
   onOpenEvent: (id: string) => void
 }) {
+  const l = useLocalizedEvent(event)
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
   const [shareOpen, setShareOpen] = useState(false)
 
@@ -61,7 +63,7 @@ export function EventDetail({
           ref={ref}
           role="dialog"
           aria-modal="true"
-          aria-label={event.title}
+          aria-label={l.title}
           tabIndex={-1}
           className="h-full overflow-y-auto outline-none"
         >
@@ -117,6 +119,7 @@ export function EventDetailView({
   onShare: () => void
   gate?: () => void
 }) {
+  const l = useLocalizedEvent(event)
   const { user } = useAppData()
   const { moreFromHost } = useCommunity()
   const online = event.mode === 'online'
@@ -137,7 +140,7 @@ export function EventDetailView({
       </div>
 
       <h1 className="mt-2 font-display text-[clamp(1.6rem,4vw,2rem)] leading-tight font-medium text-fg">
-        {event.title}
+        {l.title}
       </h1>
 
       <div className="mt-2.5 flex flex-col gap-1.5 text-[13px] text-muted">
@@ -151,7 +154,7 @@ export function EventDetailView({
           ) : (
             <MapPin size={15} className="text-subtle" aria-hidden />
           )}
-          {online ? 'Online event' : 'In person'} · {event.location}
+          {online ? 'Online event' : 'In person'} · {l.location}
         </span>
       </div>
 
@@ -186,11 +189,11 @@ export function EventDetailView({
       </div>
 
       <Section label="About">
-        <p className="text-[14px] leading-relaxed text-muted">{event.description}</p>
+        <p className="text-[14px] leading-relaxed text-muted">{l.description}</p>
       </Section>
 
       <Section label={online ? 'How to join' : 'Where'}>
-        {online ? <OnlineNote location={event.location} /> : <MapPlaceholder location={event.location} />}
+        {online ? <OnlineNote location={l.location} /> : <MapPlaceholder location={l.location} />}
       </Section>
 
       <Section label="Hosted by">

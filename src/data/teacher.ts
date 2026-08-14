@@ -1,3 +1,4 @@
+import type { Translations } from '@/lib/localized'
 import type { Assessment, AssessmentKind, Course } from './types'
 import type { Blueprint } from './blueprints'
 import { CAMPUS_EVENTS, ORGS } from './community'
@@ -321,6 +322,9 @@ export interface EventMetrics {
 export interface ManagedEvent {
   id: string
   title: string
+  /** Other-language versions, e.g. { fr: { title, location, description } }.
+   * The fields above stay the default (English) copy — see lib/localized.ts. */
+  translations?: Translations
   start: string
   mode: 'in-person' | 'online'
   location: string
