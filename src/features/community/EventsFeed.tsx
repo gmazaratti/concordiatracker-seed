@@ -9,7 +9,7 @@ import { CATEGORY_META, CATEGORY_ORDER } from './category'
 import { EventTile } from './EventTile'
 import { AnimatedEventList } from './AnimatedEventList'
 import { EventDetail } from './EventDetail'
-import { OrgSearch } from './OrgSearch'
+import { CommunitySearch } from './CommunitySearch'
 import { NotificationsBell } from './NotificationsBell'
 import { FollowingMenu } from './FollowingMenu'
 import { useEventActions } from './useEventActions'
@@ -53,8 +53,12 @@ export function EventsFeed() {
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
-        <OrgSearch />
-        <FollowingMenu />
+        <CommunitySearch />
+        {/* The rail owns Following on xl+; this stays for narrower screens
+            rather than being deleted, or they'd lose access to the list. */}
+        <span className="xl:hidden">
+          <FollowingMenu />
+        </span>
         <NotificationsBell onOpenEvent={openEvent} />
       </div>
 
