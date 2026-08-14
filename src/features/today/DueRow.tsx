@@ -10,6 +10,7 @@ import { KIND_LABEL } from '@/lib/assessment'
 import { courseColor } from '@/lib/course-color'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 
 /** Due labels lean on color only as urgency reinforcement — the text says it too,
  * and everything that isn't urgent stays neutral so the row reads calm. */
@@ -39,6 +40,7 @@ export function DueRow({
   onResolve: (status: AssessmentStatus) => void
   onDelete: () => void
 }) {
+  const t = useT()
   const navigate = useNavigate()
   const { openAssessment } = useQuickActions()
   const [resolving, setResolving] = useState(false)
@@ -62,13 +64,13 @@ export function DueRow({
   const menuItems: MenuItem[] = [
     {
       id: 'edit',
-      label: 'Edit',
+      label: t('today.edit'),
       icon: Pencil,
       onSelect: () => openAssessment(assessment.id),
     },
     {
       id: 'open',
-      label: 'Open in course',
+      label: t('today.openInCourse'),
       icon: ArrowUpRight,
       onSelect: () =>
         navigate(`/app/courses/${assessment.courseId}`, {
@@ -77,7 +79,7 @@ export function DueRow({
     },
     {
       id: 'delete',
-      label: 'Delete',
+      label: t('today.delete'),
       icon: Trash2,
       danger: true,
       separated: true,
@@ -100,7 +102,7 @@ export function DueRow({
           onClick={markDone}
           disabled={resolving}
           data-coach="mark-done"
-          title="Mark done"
+          title={t('today.markDone')}
           aria-label={`Mark "${assessment.title}" done`}
           className={cn(
             'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150 active:scale-90',
@@ -116,7 +118,7 @@ export function DueRow({
         <button
           type="button"
           onClick={() => openAssessment(assessment.id)}
-          title="Edit details"
+          title={t('today.editDetails')}
           className="-my-1 flex min-w-0 flex-1 items-start gap-3 rounded-md py-1 text-left transition-colors duration-150 hover:bg-surface-2/40"
         >
           <span className="min-w-0 flex-1">
@@ -147,7 +149,7 @@ export function DueRow({
                 unverified && (
                   <span
                     className="inline-flex items-center gap-1 text-subtle/80"
-                    title="Unverified date — not yet corroborated"
+                    title={t('today.unverifiedDate')}
                   >
                     <CircleDashed size={12} aria-hidden />
                     <span className="sr-only">unverified date</span>

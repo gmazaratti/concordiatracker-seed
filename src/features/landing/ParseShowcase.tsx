@@ -4,13 +4,14 @@ import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import type { Provenance } from '@/data/types'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { cn } from '@/lib/cn'
+import { useT, type T } from '@/i18n/i18n'
 import { ParseRevealDemo } from './ParseRevealDemo'
 import { COMM221_PARSED, type Phase } from './parse-demo-data'
 
-const PROVENANCE_LEGEND: { provenance: Provenance; copy: string }[] = [
-  { provenance: { status: 'official' }, copy: 'Pulled straight from the posted syllabus.' },
-  { provenance: { status: 'confirmed', confirmations: 7 }, copy: 'Cross-checked by classmates who took it.' },
-  { provenance: { status: 'unverified' }, copy: 'Entered once — flagged until corroborated.' },
+const provenanceLegend = (t: T): { provenance: Provenance; copy: string }[] => [
+  { provenance: { status: 'official' }, copy: t('landing.provOfficial') },
+  { provenance: { status: 'confirmed', confirmations: 7 }, copy: t('landing.provConfirmed') },
+  { provenance: { status: 'unverified' }, copy: t('landing.provUnverified') },
 ]
 
 const NEXT: Partial<Record<Phase, Phase>> = {
@@ -33,6 +34,7 @@ type Spot = { x: number; y: number; s: number; op: number }
  * CSS transitions animate the moves); they line up with the real heading word and
  * the real scanner across viewports. */
 export function ParseShowcase() {
+  const t = useT()
   const reduced = usePrefersReducedMotion()
   const [phase, setPhase] = useState<Phase>('armed')
   const [revealed, setRevealed] = useState(0)
@@ -149,10 +151,10 @@ export function ParseShowcase() {
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-[12px] font-medium text-muted">
               <Sparkles size={13} className="text-accent" />
-              The hero move
+              {t('landing.parseEyebrow')}
             </span>
             <h2 className="mt-4 font-display text-[clamp(1.9rem,4vw,3rem)] leading-[1.05] font-medium text-fg">
-              Drop your{' '}
+              {t('landing.parseHeadA')}{' '}
               <span
                 ref={wordRef}
                 className={cn(
@@ -160,16 +162,14 @@ export function ParseShowcase() {
                   grabbing ? 'text-accent decoration-accent/60' : 'decoration-border-strong',
                 )}
               >
-                syllabus
+                {t('landing.parseWord')}
               </span>
               .
               <br />
-              Watch it become a plan.
+              {t('landing.parseHeadB')}
             </h2>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-muted">
-              Upload the PDF and every deadline, weight, and exam lifts off the page
-              into your term — dated, weighted, and ready to track. No copying into a
-              calendar by hand.
+              {t('landing.parseBody')}
             </p>
           </div>
 
@@ -233,15 +233,14 @@ export function ParseShowcase() {
         {/* Provenance system */}
         <div className="mt-16 max-w-2xl">
           <h3 className="font-display text-[clamp(1.4rem,3vw,2rem)] leading-tight font-medium text-fg">
-            Every date carries its receipts.
+            {t('landing.provHeading')}
           </h3>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">
-            Dates aren't all equal, so we never pretend they are. A provenance badge
-            rides every deadline, so you always know how much to trust it.
+            {t('landing.provBody')}
           </p>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {PROVENANCE_LEGEND.map(({ provenance, copy }, i) => (
+          {provenanceLegend(t).map(({ provenance, copy }, i) => (
             <div key={i} className="rounded-xl border border-border bg-surface p-5">
               <ProvenanceBadge provenance={provenance} />
               <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{copy}</p>

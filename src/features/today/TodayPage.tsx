@@ -14,23 +14,22 @@ import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { DebriefPanel } from './DebriefPanel'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
+import { useT, useI18n } from '@/i18n/i18n'
 
-const TODAY_LABEL = new Intl.DateTimeFormat('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-})
-
-function greeting(): string {
+/** Which greeting to show — the hour is read at render time, like the rest of
+ * Today's clock-relative copy. */
+function greetingKey(): 'today.goodMorning' | 'today.goodAfternoon' | 'today.goodEvening' {
   const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 12) return 'today.goodMorning'
+  if (h < 18) return 'today.goodAfternoon'
+  return 'today.goodEvening'
 }
 
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
 export function TodayPage() {
+  const t = useT()
+  const { lang } = useI18n()
   const {
     user,
     plan,
@@ -73,7 +72,7 @@ export function TodayPage() {
     const item = assessments.find((a) => a.id === id)
     setResolvedIds((prev) => prev.filter((x) => x !== id))
     removeAssessment(id)
-    if (item) flashUndo(`Deleted ${item.title}`, () => addAssessments([item]))
+    if (item) flashUndo(t('today.deleted', { title: item.title }), () => addAssessments([item]))
   }
 
   const firstName = user.name.split(' ')[0]
@@ -83,9 +82,15 @@ export function TodayPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
       <header className="mb-3">
-        <p className="text-[12px] text-subtle">{TODAY_LABEL.format(new Date())}</p>
+        <p className="text-[12px] text-subtle">
+          {new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          }).format(new Date())}
+        </p>
         <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-          {greeting()}, {firstName}
+          {t(greetingKey())}, {firstName}
         </h1>
       </header>
 

@@ -1,5 +1,6 @@
 import { Check, MessagesSquare } from 'lucide-react'
 import { Logo } from '@/components/Logo'
+import { useT } from '@/i18n/i18n'
 
 /** Shared slide frame: a visual on top, then a tight headline + a line or two.
  * Exported so the interactive tour steps reuse the same framing. */
@@ -25,20 +26,22 @@ export function Slide({
 }
 
 export function WelcomeSlide() {
+  const t = useT()
   return (
     <Slide
       visual={<Logo size="lg" />}
       headline={
         <>
-          Stop guessing <span className="text-accent">what's due</span>.
+          {t('onboarding.welcomeHead')} <span className="text-accent">{t('onboarding.welcomeHeadAccent')}</span>.
         </>
       }
-      sub="ConcordiaTracker pulls every deadline and grade into one calm place. Let's set you up in a minute."
+      sub={t('onboarding.welcomeSub')}
     />
   )
 }
 
 export function DoneSlide() {
+  const t = useT()
   return (
     <Slide
       visual={
@@ -46,14 +49,15 @@ export function DoneSlide() {
           <Check size={32} aria-hidden />
         </span>
       }
-      headline="You're all set"
-      sub="That's the spine — the rest you'll pick up as you go. Let's get you to Today."
+      headline={t('onboarding.doneHead')}
+      sub={t('onboarding.doneSub')}
       extra={
         <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-left">
           <MessagesSquare size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <p className="text-[13px] leading-relaxed text-muted">
-            Got an idea? Request a feature any time from your{' '}
-            <span className="font-medium text-fg">profile menu → Feedback</span>. We read every one and reply.
+            {t('onboarding.doneFeedbackA')}
+            <span className="font-medium text-fg">{t('onboarding.doneFeedbackPath')}</span>
+            {t('onboarding.doneFeedbackB')}
           </p>
         </div>
       }

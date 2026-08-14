@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { en, type Key } from './en'
 import { fr } from './fr'
 import { I18nContext, LANGS, type Lang, type Vars } from './i18n'
+import { setDateLang } from '@/lib/date'
 
 const STORAGE_KEY = 'ct_lang'
 
@@ -42,6 +43,11 @@ function interpolate(template: string, vars?: Vars): string {
  */
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang)
+
+  // Date helpers are plain functions used from ~14 components, so they read the
+  // language from module state rather than a hook. Set it during render (not in
+  // an effect) so the very first paint already formats in the right locale.
+  setDateLang(lang)
 
   useEffect(() => {
     document.documentElement.lang = lang

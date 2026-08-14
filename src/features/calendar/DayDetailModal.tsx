@@ -6,6 +6,7 @@ import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { ModalShell } from '@/command/ModalShell'
 import { dayItems, sameDay, type CalendarSource } from './calendar'
 import { ItemRow } from './ItemRow'
+import { useT } from '@/i18n/i18n'
 
 const FULL = new Intl.DateTimeFormat('en-US', {
   weekday: 'long',
@@ -32,23 +33,24 @@ export function DayDetailModal({
   courseById: (id: string) => Course | undefined
   onClose: () => void
 }) {
+  const t = useT()
   const { addTask } = useAppData()
   const items = dayItems(day, source, prefs)
   const [title, setTitle] = useState('')
   const [due, setDue] = useState(() => noonISO(day))
 
   function add() {
-    const t = title.trim()
-    if (!t) return
-    addTask({ title: t, due })
+    const next = title.trim()
+    if (!next) return
+    addTask({ title: next, due })
     setTitle('')
   }
 
   return (
-    <ModalShell label={`Events on ${FULL.format(day)}`} onClose={onClose}>
+    <ModalShell label={t('calendar.eventsOn', { date: FULL.format(day) })} onClose={onClose}>
       <div className="border-b border-border px-5 py-4">
         <p className="text-[11px] font-medium tracking-wide text-subtle uppercase">
-          {sameDay(day, new Date()) ? 'Today' : 'Day'}
+          {sameDay(day, new Date()) ? t('calendar.today') : t('calendar.day')}
         </p>
         <h2 className="mt-0.5 font-display text-[20px] leading-tight font-medium text-fg">
           {FULL.format(day)}
@@ -57,7 +59,7 @@ export function DayDetailModal({
 
       {items.length === 0 ? (
         <p className="px-5 py-6 text-center text-[13px] text-muted">
-          Nothing scheduled. Add a task below.
+          {t('calendar.nothingScheduled')}
         </p>
       ) : (
         <div className="divide-y divide-border">
@@ -74,13 +76,13 @@ export function DayDetailModal({
 
       <div className="border-t border-border bg-surface-2/30 px-5 py-4">
         <label className="mb-1.5 block text-[11px] font-medium tracking-wide text-subtle uppercase">
-          Add a task
+          {t('calendar.addTask')}
         </label>
         <input
           type="text"
           value={title}
-          placeholder="e.g. Review lecture notes"
-          aria-label="Task title"
+          placeholder={t('calendar.taskPlaceholder')}
+          aria-label={t('calendar.taskTitleAria')}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') add()
@@ -89,7 +91,7 @@ export function DayDetailModal({
         />
         <div className="mt-2 flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <DateTimePicker value={due} onChange={setDue} ariaLabel="Task date and time" />
+            <DateTimePicker value={due} onChange={setDue} ariaLabel={t('calendar.taskWhenAria')} />
           </div>
           <button
             type="button"

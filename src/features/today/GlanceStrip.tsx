@@ -1,6 +1,7 @@
 import type { Assessment, Course } from '@/data/types'
 import { relativeDueLabel, termProgress } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 
 export interface GlanceData {
   term: { name: string; start: string; end: string }
@@ -30,6 +31,7 @@ function gpaDelta(termGpa: number | null, cumulative: number): string {
  * over a compact stat list. Every number is derived from data already on the
  * page — no new features, just composed to fill the rail honestly. */
 export function GlanceStrip(data: GlanceData) {
+  const t = useT()
   const { week, totalWeeks, percent } = termProgress(data.term.start, data.term.end)
   const totalToday = data.doneToday + data.itemsLeft
   const todayPercent = totalToday === 0 ? 100 : (data.doneToday / totalToday) * 100
@@ -40,18 +42,18 @@ export function GlanceStrip(data: GlanceData) {
       className="overflow-hidden rounded-xl border border-border/60 bg-surface/50"
     >
       <p className="border-b border-border/60 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        At a glance
+        {t('today.atAGlance')}
       </p>
 
       <div className="space-y-3 border-b border-border/60 px-3.5 py-3">
         <Progress
           label={data.term.name}
-          value={`Week ${week} of ${totalWeeks}`}
+          value={t('today.weekOf', { week, total: totalWeeks })}
           percent={percent}
         />
         <Progress
-          label="Today's progress"
-          value={`${data.doneToday} done · ${data.itemsLeft} to go`}
+          label={t('today.todaysProgress')}
+          value={t('today.doneToGo', { done: data.doneToday, left: data.itemsLeft })}
           percent={todayPercent}
           accent
         />
@@ -59,30 +61,30 @@ export function GlanceStrip(data: GlanceData) {
 
       <div className="divide-y divide-border/60">
         <Row
-          label="This term's GPA"
+          label={t('today.termGpa')}
           value={data.gpa === null ? '—' : data.gpa.toFixed(2)}
           hint="/ 4.30"
           sub={
             typeof data.cumulativeGpa === 'number'
-              ? `Cumulative ${data.cumulativeGpa.toFixed(2)}${gpaDelta(data.gpa, data.cumulativeGpa)}`
+              ? `${t('today.cumulative', { value: data.cumulativeGpa.toFixed(2) })}${gpaDelta(data.gpa, data.cumulativeGpa)}`
               : undefined
           }
         />
-        <Row label="Overdue" value={String(data.overdue)} danger={data.overdue > 0} />
-        <Row label="Due this week" value={String(data.itemsLeft)} />
+        <Row label={t('today.overdue')} value={String(data.overdue)} danger={data.overdue > 0} />
+        <Row label={t('today.dueThisWeek')} value={String(data.itemsLeft)} />
         <Row
-          label="Next up"
+          label={t('today.nextUp')}
           value={data.nextUp ? relativeDueLabel(data.nextUp.due) : '—'}
           sub={
             data.nextUp
               ? `${data.nextCourse?.code ?? ''} · ${data.nextUp.title}`
-              : 'nothing scheduled'
+              : t('today.nothingScheduled')
           }
         />
         <Row
-          label="This term"
-          value={`${data.courseCount} courses`}
-          sub={`${data.credits} credits`}
+          label={t('today.thisTerm')}
+          value={t('today.coursesCount', { count: data.courseCount })}
+          sub={t('today.creditsCount', { count: data.credits })}
         />
       </div>
     </div>

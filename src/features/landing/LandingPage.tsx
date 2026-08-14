@@ -6,46 +6,20 @@ import { ParseShowcase } from './ParseShowcase'
 import { PricingSection } from './PricingSection'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { FaqSection, type Faq } from './SeoLandingPages'
+import { useT, type T } from '@/i18n/i18n'
 
-const FEATURES = [
-  {
-    icon: ScanLine,
-    title: 'Parse, don’t transcribe',
-    body: 'Upload a syllabus and the deadlines, weights, and exams land in your term automatically — no copying into a calendar by hand.',
-  },
-  {
-    icon: Calculator,
-    title: 'Grade math that’s real',
-    body: 'A working grade-needed-to-pass calculator and a GPA what-if slider. Actual arithmetic — free where it counts most.',
-  },
-  {
-    icon: BadgeCheck,
-    title: 'Trust every date',
-    body: 'Provenance badges show whether a date is official, confirmed by classmates, or still unverified. You always know what to trust.',
-  },
+const features = (t: T) => [
+  { icon: ScanLine, title: t('landing.f1Title'), body: t('landing.f1Body') },
+  { icon: Calculator, title: t('landing.f2Title'), body: t('landing.f2Body') },
+  { icon: BadgeCheck, title: t('landing.f3Title'), body: t('landing.f3Body') },
 ]
 
-const LANDING_FAQS: Faq[] = [
-  {
-    q: 'How do I keep track of all my Concordia deadlines?',
-    a: 'Add your courses — search a shared outline, upload a syllabus, or enter them by hand — and ConcordiaTracker puts every deadline on one Today view, sorted by what’s due next, across all your classes.',
-  },
-  {
-    q: "Is there a GPA calculator for Concordia's grading scale?",
-    a: 'Yes. ConcordiaTracker calculates your GPA on Concordia’s 4.30 scale, shows the grade you need on what’s left to hit a target, and lets you run what-if scenarios.',
-  },
-  {
-    q: 'How do I stay organized across all my classes?',
-    a: 'Everything — deadlines, grades, and your GPA — lives in one calm dashboard instead of scattered across Moodle, email, and PDFs. You see what’s due, what it’s worth, and where your grade stands at a glance.',
-  },
-  {
-    q: 'Does it work for any Concordia course?',
-    a: 'Yes — any course or faculty. Import a classmate’s or teacher’s outline, upload your own syllabus, or build a course by hand.',
-  },
-  {
-    q: 'Is ConcordiaTracker free?',
-    a: 'The core — deadline tracking, the grade-needed calculator, and your full course dashboard — is free. GPA prediction (what-if scenarios) is part of the semester pass.',
-  },
+const landingFaqs = (t: T): Faq[] => [
+  { q: t('landing.faq1Q'), a: t('landing.faq1A') },
+  { q: t('landing.faq2Q'), a: t('landing.faq2A') },
+  { q: t('landing.faq3Q'), a: t('landing.faq3A') },
+  { q: t('landing.faq4Q'), a: t('landing.faq4A') },
+  { q: t('landing.faq5Q'), a: t('landing.faq5A') },
 ]
 
 /** The public marketing landing. Composition is deliberately asymmetric and
@@ -53,10 +27,12 @@ const LANDING_FAQS: Faq[] = [
  * Today dashboard bleeds off the right edge for depth, an editorial divider-ruled
  * feature row (no cards), the syllabus parse beat, pricing, and an offset CTA. */
 export function LandingPage() {
+  const t = useT()
+  // Title + description follow the interface language, so a French visitor gets
+  // a French tab title and a French search snippet.
   usePageMeta({
-    title: 'ConcordiaTracker — GPA, syllabus & assignment tracker for Concordia students',
-    description:
-      'A GPA calculator, syllabus tracker, and assignment & deadline tracker for Concordia students — import any syllabus, track every deadline, and predict your GPA in one place.',
+    title: t('meta.landingTitle'),
+    description: t('meta.landingDesc'),
     path: '/',
   })
   return (
@@ -73,22 +49,19 @@ export function LandingPage() {
           {/* Copy */}
           <div className="w-full lg:w-[46%] lg:flex-none">
             <p className="text-[12px] font-medium tracking-[0.22em] text-subtle uppercase">
-              For Concordia students
+              {t('landing.eyebrow')}
             </p>
             <h1 className="mt-5 font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] font-medium tracking-tight text-fg">
-              Stop guessing
-              <br />
-              what&rsquo;s <span className="text-accent">due</span>.
+              {t('landing.heroTitle')}{' '}
+              <span className="text-accent">{t('landing.heroTitleAccent')}</span>.
             </h1>
             <p className="mt-6 max-w-md text-[clamp(1rem,1.4vw,1.18rem)] leading-relaxed text-muted">
-              ConcordiaTracker turns your syllabi into a live plan — every
-              deadline, grade calculation, and GPA projection for all your
-              classes, in one calm dashboard.
+              {t('landing.heroBody')}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link to="/app" className="w-full sm:w-auto">
                 <Button size="lg" className="group w-full sm:w-auto">
-                  Open the live demo
+                  {t('landing.openDemo')}
                   <ArrowRight
                     size={17}
                     className="transition-transform duration-200 group-hover:translate-x-0.5"
@@ -97,12 +70,12 @@ export function LandingPage() {
               </Link>
               <a href="#how" className="w-full sm:w-auto">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  See how it works
+                  {t('landing.ctaSecondary')}
                 </Button>
               </a>
             </div>
             <p className="mt-5 text-[12.5px] text-subtle">
-              No sign-up — jump straight into a real demo term.
+              {t('landing.noSignup')}
             </p>
           </div>
 
@@ -145,21 +118,20 @@ export function LandingPage() {
         <div className="mx-auto w-full max-w-6xl">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-10">
             <h2 className="font-display text-[clamp(1.8rem,3.4vw,2.6rem)] leading-[1.1] font-medium text-fg">
-              Three things most trackers get wrong.
+              {t('landing.featuresHeading')}
             </h2>
             <div className="lg:pt-2">
               <p className="text-[12px] font-medium tracking-[0.22em] text-subtle uppercase">
-                Why it&rsquo;s different
+                {t('landing.featuresEyebrow')}
               </p>
               <p className="mt-3 max-w-md text-[15px] leading-relaxed text-muted">
-                Most tools make you do the work twice. ConcordiaTracker reads the
-                syllabus, does the math, and tells you exactly what to trust.
+                {t('landing.featuresBody')}
               </p>
             </div>
           </div>
 
           <div className="mt-16 grid gap-y-12 sm:grid-cols-3 sm:gap-x-0">
-            {FEATURES.map(({ icon: Icon, title, body }, i) => (
+            {features(t).map(({ icon: Icon, title, body }, i) => (
               <div
                 key={title}
                 className="sm:border-l sm:border-border sm:px-8 sm:first:border-l-0 sm:first:pl-0 sm:last:pr-0"
@@ -186,40 +158,34 @@ export function LandingPage() {
         <div className="mx-auto w-full max-w-3xl space-y-16">
           <article>
             <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
-              Track every Concordia deadline and assignment in one place
+              {t('landing.seo1Heading')}
             </h2>
             <p className="mt-4 text-[15px] leading-relaxed text-muted">
-              Between Moodle, eConcordia, email, and PDF syllabi, your deadlines live in five places
-              at once. ConcordiaTracker pulls them into a single assignment tracker — every quiz,
-              lab, midterm, and final, sorted by what&rsquo;s due next. It&rsquo;s the deadline
-              tracker that keeps your whole Concordia semester in view, so nothing slips.
+              {t('landing.seo1Body')}
             </p>
           </article>
           <article>
             <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
-              Your Concordia GPA, calculated — not guessed
+              {t('landing.seo2Heading')}
             </h2>
             <p className="mt-4 text-[15px] leading-relaxed text-muted">
-              Enter your grades and ConcordiaTracker computes your GPA on Concordia&rsquo;s 4.30
-              scale in real time. See exactly what you need on a final to hit your target, and run
-              what-if scenarios before the marks post — a real{' '}
+              {t('landing.seo2BodyA')}
               <Link to="/concordia-gpa-calculator" className="font-medium text-accent hover:underline">
-                Concordia GPA calculator
-              </Link>{' '}
-              and grade calculator, not a spreadsheet you have to maintain.
+                {t('landing.seo2Link')}
+              </Link>
+              {t('landing.seo2BodyB')}
             </p>
           </article>
           <article>
             <h2 className="font-display text-[clamp(1.6rem,3vw,2.3rem)] leading-tight font-medium text-fg">
-              No more syllabus scramble
+              {t('landing.seo3Heading')}
             </h2>
             <p className="mt-4 text-[15px] leading-relaxed text-muted">
-              Upload a syllabus and ConcordiaTracker reads it — dates, weights, and exams fill in
-              automatically. No more copying a messy PDF into your calendar by hand. It&rsquo;s the{' '}
+              {t('landing.seo3BodyA')}
               <Link to="/concordia-syllabus-tracker" className="font-medium text-accent hover:underline">
-                Concordia syllabus tracker
-              </Link>{' '}
-              that turns first-week chaos into an organized plan for every class.
+                {t('landing.seo3Link')}
+              </Link>
+              {t('landing.seo3BodyB')}
             </p>
           </article>
         </div>
@@ -232,7 +198,7 @@ export function LandingPage() {
       <PricingSection />
 
       {/* ---- FAQ: problem-phrased queries + FAQPage structured data ---- */}
-      <FaqSection heading="Questions Concordia students ask" faqs={LANDING_FAQS} />
+      <FaqSection heading={t('landing.faqHeading')} faqs={landingFaqs(t)} />
 
       {/* ---- Final CTA: offset, baseline-aligned, no card ---- */}
       <section className="relative overflow-hidden border-t border-border/60 px-5 py-28 sm:py-36">
@@ -242,18 +208,17 @@ export function LandingPage() {
         />
         <div className="mx-auto grid w-full max-w-6xl items-end gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <h2 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.04] font-medium text-fg">
-            Your term&rsquo;s
+            {t('landing.ctaHeadingA')}
             <br />
-            already in motion.
+            {t('landing.ctaHeadingB')}
           </h2>
           <div className="lg:pb-2">
             <p className="max-w-sm text-[15px] leading-relaxed text-muted">
-              See exactly what&rsquo;s due, what it&rsquo;s worth, and where your
-              grade stands — in about ten seconds.
+              {t('landing.ctaBody')}
             </p>
             <Link to="/app" className="mt-6 inline-block">
               <Button size="lg" className="group">
-                Open the live demo
+                {t('landing.openDemo')}
                 <ArrowRight
                   size={17}
                   className="transition-transform duration-200 group-hover:translate-x-0.5"

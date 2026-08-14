@@ -2,67 +2,56 @@ import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
-
-const FREE_FEATURES = [
-  'Parse any syllabus into dated deadlines',
-  'Track every course, weight & status',
-  'Grade-needed-to-pass calculator',
-  'Provenance on every date',
-]
-
-const PAID_FEATURES = [
-  'Everything in Free',
-  'GPA what-if predictor & projections',
-  'Full-term standing across all courses',
-  'Earn theme credits for contributing outlines',
-]
+import { useT } from '@/i18n/i18n'
 
 /** Pricing: the semester pass is the hero (one price for the whole term); the
  * monthly is the quiet secondary. The free/paid line is made tangible — the
  * grade-needed calculator is free, GPA prediction is the paid unlock. */
 export function PricingSection() {
+  const t = useT()
+  const freeFeatures = [t('pricing.free1'), t('pricing.free2'), t('pricing.free3'), t('pricing.free4')]
+  const paidFeatures = [t('pricing.paid1'), t('pricing.paid2'), t('pricing.paid3'), t('pricing.paid4')]
   return (
     <section id="pricing" className="border-t border-border/60 px-5 py-20 sm:py-28">
       <div className="mx-auto w-full max-w-5xl">
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-[13px] font-semibold tracking-wide text-accent uppercase">
-            Pricing
+            {t('landing.pricing')}
           </span>
           <h2 className="mt-3 font-display text-[clamp(1.9rem,4vw,3rem)] leading-[1.05] font-medium text-fg">
-            One pass. The whole semester.
+            {t('pricing.heading')}
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-muted">
-            Priced like a student, not a SaaS. Pay once for the term — or month to
-            month if you'd rather.
+            {t('pricing.sub')}
           </p>
         </div>
 
         <div className="mx-auto mt-12 grid max-w-3xl items-start gap-5 md:grid-cols-2">
           {/* Free */}
           <PlanCard
-            name="Free"
+            name={t('pricing.free')}
             price="$0"
-            cadence="always"
-            blurb="Everything you need to stay on top of the term."
-            features={FREE_FEATURES}
-            cta="Open the app"
+            cadence={t('pricing.always')}
+            blurb={t('pricing.freeBlurb')}
+            features={freeFeatures}
+            cta={t('pricing.freeCta')}
           />
 
           {/* Semester — hero */}
           <PlanCard
             featured
-            name="Semester pass"
+            name={t('pricing.semester')}
             price="$15"
-            cadence="/ semester"
-            secondary="or $5 / month"
-            blurb="The full picture — every projection unlocked."
-            features={PAID_FEATURES}
-            cta="Get the semester pass"
+            cadence={t('pricing.perSemester')}
+            secondary={t('pricing.orMonthly')}
+            blurb={t('pricing.semesterBlurb')}
+            features={paidFeatures}
+            cta={t('pricing.semesterCta')}
           />
         </div>
 
         <p className="mt-6 text-center text-[12px] text-subtle">
-          Mock checkout — this is a seed build. No card is charged.
+          {t('pricing.mockNote')}
         </p>
       </div>
     </section>
@@ -88,6 +77,7 @@ function PlanCard({
   cta: string
   featured?: boolean
 }) {
+  const bestValue = useT()('pricing.bestValue')
   return (
     <div
       className={cn(
@@ -99,7 +89,7 @@ function PlanCard({
     >
       {featured && (
         <span className="absolute -top-3 left-6 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-accent-contrast">
-          Best value
+          {bestValue}
         </span>
       )}
       <h3 className="text-[15px] font-semibold text-fg">{name}</h3>

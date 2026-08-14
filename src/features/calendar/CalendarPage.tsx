@@ -7,24 +7,27 @@ import { term } from '@/data/mock'
 import { Segmented } from '@/features/settings/controls'
 import { useT } from '@/i18n/i18n'
 import { MONTHS, addDays, weekDays, type CalendarSource } from './calendar'
+import { formatMonthDay } from '@/lib/date'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { AgendaView } from './AgendaView'
 import { DayDetailModal } from './DayDetailModal'
 import { CalendarRail } from './CalendarRail'
 
-const MONTH_DAY = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+
 
 /** Phones lead with the agenda — set once per session so it never fights a
  * deliberate desktop choice that's sticky across nav. */
 let mobileInitDone = false
 
+const monthDay = (d: Date) => formatMonthDay(d)
+
 function weekLabel(cursor: Date): string {
   const days = weekDays(cursor)
   const a = days[0]
   const b = days[6]
-  const right = a.getMonth() === b.getMonth() ? String(b.getDate()) : MONTH_DAY.format(b)
-  return `${MONTH_DAY.format(a)} – ${right}, ${b.getFullYear()}`
+  const right = a.getMonth() === b.getMonth() ? String(b.getDate()) : monthDay(b)
+  return `${monthDay(a)} – ${right}, ${b.getFullYear()}`
 }
 
 /** Calendar — personal deadlines + the official Concordia academic calendar as
@@ -60,7 +63,7 @@ export function CalendarPage() {
   }
 
   const periodLabel =
-    view === 'month' ? `${MONTHS[cursor.getMonth()]} ${cursor.getFullYear()}` : weekLabel(cursor)
+    view === 'month' ? `${MONTHS()[cursor.getMonth()]} ${cursor.getFullYear()}` : weekLabel(cursor)
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
@@ -73,13 +76,13 @@ export function CalendarPage() {
             </h1>
           </div>
           <Segmented
-            ariaLabel="Calendar view"
+            ariaLabel={t('calendar.viewAria')}
             value={view}
             onChange={(v) => updateCalendarPrefs({ view: v })}
             options={[
-              { value: 'month', label: 'Month' },
-              { value: 'week', label: 'Week' },
-              { value: 'agenda', label: 'Agenda' },
+              { value: 'month', label: t('calendar.month') },
+              { value: 'week', label: t('calendar.week') },
+              { value: 'agenda', label: t('calendar.agenda') },
             ]}
           />
         </div>
@@ -89,7 +92,7 @@ export function CalendarPage() {
             <button
               type="button"
               onClick={() => step(-1)}
-              aria-label={view === 'month' ? 'Previous month' : 'Previous week'}
+              aria-label={view === 'month' ? t('calendar.prevMonth') : t('calendar.prevWeek')}
               className="grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
             >
               <ChevronLeft size={17} aria-hidden />
@@ -100,7 +103,7 @@ export function CalendarPage() {
             <button
               type="button"
               onClick={() => step(1)}
-              aria-label={view === 'month' ? 'Next month' : 'Next week'}
+              aria-label={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextWeek')}
               className="grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
             >
               <ChevronRight size={17} aria-hidden />
@@ -110,7 +113,7 @@ export function CalendarPage() {
               onClick={() => setCursor(new Date())}
               className="ml-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
             >
-              Today
+              {t('calendar.today')}
             </button>
           </div>
         )}

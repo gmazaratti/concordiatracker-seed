@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 import type { Assessment } from '@/data/types'
 import { ONBOARD_COURSES, toAssessments } from './onboarding-data'
 
@@ -47,6 +48,7 @@ function rebaseUpcoming(items: Assessment[]): Assessment[] {
  * a running list; the parent's Continue proceeds once at least one is in.
  */
 export function AddCourses({ onAdded }: { onAdded: () => void }) {
+  const t = useT()
   const { createCourse, addAssessments, courses } = useAppData()
   const [mode, setMode] = useState<Mode>('choose')
   const [added, setAdded] = useState<AddedCourse[]>([])
@@ -91,7 +93,7 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
     return (
       <div className="mx-auto w-full max-w-md">
         <BackBtn onClick={() => setMode('choose')} />
-        <h2 className="mt-2 text-center font-display text-[20px] font-semibold text-fg sm:text-[26px]">Reading your syllabus…</h2>
+        <h2 className="mt-2 text-center font-display text-[20px] font-semibold text-fg sm:text-[26px]">{t('courses.readingSyllabus')}</h2>
         <PdfParse onParsed={() => void importSample()} />
       </div>
     )
@@ -127,12 +129,12 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
     <div className="mx-auto flex w-full max-w-lg flex-col">
       <div className="text-center">
         <h2 className="font-display text-[21px] leading-tight font-semibold text-fg sm:text-[28px]">
-          {has ? 'Add another course?' : 'Add your courses'}
+          {has ? t('courses.addAnother') : t('courses.addYours')}
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-muted sm:text-[14px]">
           {has
-            ? 'Stack as many as you like — they all land on Today. Or continue when you’re set.'
-            : 'Import as many as you want. Two ways in — pick whichever fits your class.'}
+            ? t('courses.addAnotherSub')
+            : t('courses.addYoursSub')}
         </p>
       </div>
 
@@ -141,14 +143,14 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
       <div className={cn('grid gap-3 sm:grid-cols-2', has ? 'mt-5' : 'mt-5 sm:mt-6')}>
         <ChoiceTile
           icon={Search}
-          label="Find your course"
-          desc="Search your class and import a ready-made outline — every deadline and weight fills in instantly."
+          label={t('courses.findCourse')}
+          desc={t('courses.findCourseDesc')}
           onClick={() => setMode('search')}
         />
         <ChoiceTile
           icon={FileText}
-          label="Upload a syllabus"
-          desc="Got the PDF? We scan it and lift out every deadline, weight, and grade automatically — no typing."
+          label={t('courses.uploadSyllabus')}
+          desc={t('courses.uploadSyllabusDesc')}
           onClick={() => setMode('pdf')}
         />
       </div>
@@ -192,6 +194,7 @@ function SearchCourses({
   onParseInstead: () => void
   onBack: () => void
 }) {
+  const t = useT()
   const { list, loading } = useAllBlueprintCourses()
   const [q, setQ] = useState('')
   // Hide codes whose most-recent outline is an older semester.
@@ -204,8 +207,8 @@ function SearchCourses({
   return (
     <div className="mx-auto w-full max-w-lg">
       <BackBtn onClick={onBack} />
-      <h2 className="mt-2 text-center font-display text-[21px] font-semibold text-fg sm:text-[28px]">Find your course</h2>
-      <p className="mt-2 text-center text-[13px] text-muted sm:text-[14px]">Search by code or name, then pick your section.</p>
+      <h2 className="mt-2 text-center font-display text-[21px] font-semibold text-fg sm:text-[28px]">{t('courses.findCourse')}</h2>
+      <p className="mt-2 text-center text-[13px] text-muted sm:text-[14px]">{t('courses.searchSub')}</p>
 
       <div className="relative mt-4 sm:mt-5">
         <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle" aria-hidden />
@@ -213,7 +216,7 @@ function SearchCourses({
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="e.g. COMP 248 or Financial"
+          placeholder={t('courses.searchPlaceholder')}
           className="w-full rounded-xl border border-border bg-surface py-2.5 pr-3 pl-10 text-[15px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none sm:py-3"
         />
       </div>
@@ -253,7 +256,7 @@ function SearchCourses({
         onClick={onParseInstead}
         className="mt-4 inline-flex w-full items-center justify-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
       >
-        I don't see my course — upload a syllabus instead
+        {t('courses.noCourseUpload')}
         <ArrowRight size={14} aria-hidden />
       </button>
     </div>
@@ -276,6 +279,7 @@ function PickSection({
   onBack: () => void
   onParseInstead: () => void
 }) {
+  const t = useT()
   const [list, setList] = useState<Blueprint[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -313,11 +317,12 @@ function PickSection({
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      <BackBtn onClick={onBack} label="Other courses" />
-      <h2 className="mt-2 text-center font-display text-[21px] font-semibold text-fg sm:text-[28px]">Choose your section</h2>
+      <BackBtn onClick={onBack} label={t('courses.otherCourses')} />
+      <h2 className="mt-2 text-center font-display text-[21px] font-semibold text-fg sm:text-[28px]">{t('courses.chooseSection')}</h2>
       <p className="mt-2 text-center text-[13px] text-muted sm:text-[14px]">
         <span className="font-semibold text-fg">{code}</span>
-        {name && name !== code ? ` · ${name}` : ''} — dates can differ by section, so pick yours.
+        {name && name !== code ? ` · ${name}` : ''}
+        {t('courses.sectionsDiffer')}
       </p>
 
       <div className="mt-4 space-y-5">
@@ -332,7 +337,7 @@ function PickSection({
             return (
               <div key={section}>
                 <p className="mb-1.5 text-[11px] font-bold tracking-[0.14em] text-subtle uppercase">
-                  Section {section}
+                  {t('courses.section')} {section}
                 </p>
                 <div className="space-y-2">
                   {shown.map((bp, i) => (
@@ -384,6 +389,7 @@ function BlueprintPick({
   disabled: boolean
   onImport: () => void
 }) {
+  const t = useT()
   return (
     <button
       type="button"
@@ -395,14 +401,14 @@ function BlueprintPick({
         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           {teacher ? (
             <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-accent">
-              <ShieldCheck size={14} aria-hidden /> Teacher-verified
+              <ShieldCheck size={14} aria-hidden /> {t('courses.teacherVerified')}
             </span>
           ) : (
             <span className="text-[13px] font-semibold text-fg">{bp.author}</span>
           )}
           {top && (
             <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[9.5px] font-bold tracking-wide text-accent uppercase">
-              Top pick
+              {t('courses.topPick')}
             </span>
           )}
         </span>
@@ -415,7 +421,7 @@ function BlueprintPick({
       {busy ? (
         <Loader2 className="size-4 shrink-0 animate-spin text-accent" aria-label="Importing" />
       ) : (
-        <span className="shrink-0 text-[12px] font-medium text-accent">Import</span>
+        <span className="shrink-0 text-[12px] font-medium text-accent">{t('courses.import')}</span>
       )}
     </button>
   )

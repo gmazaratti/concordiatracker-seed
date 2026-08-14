@@ -1,6 +1,7 @@
 import { ArrowRight, Lock, Sparkles } from 'lucide-react'
 import { useSettings } from '@/app/providers/settings'
 import { UpgradeChip } from '@/components/UpgradeChip'
+import { useT } from '@/i18n/i18n'
 
 /** Wraps a paid feature: when locked, the real UI shows blurred behind a lock +
  * Semester-pass CTA, so the value is visible but gated (the tangible paid line).
@@ -14,6 +15,7 @@ export function PaywallLock({
   feature: string
   children: React.ReactNode
 }) {
+  const t = useT()
   const { openSettings } = useSettings()
   if (!locked) return <>{children}</>
   return (
@@ -29,13 +31,13 @@ export function PaywallLock({
           <span className="grid size-9 place-items-center rounded-lg bg-accent/15 text-accent">
             <Lock size={16} aria-hidden />
           </span>
-          <p className="text-[13px] font-medium text-fg">{feature} is a paid feature</p>
+          <p className="text-[13px] font-medium text-fg">{t('courses.paidFeature', { feature })}</p>
           <button
             type="button"
             onClick={() => openSettings('billing')}
             className="mt-0.5 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
           >
-            Unlock with Semester pass
+            {t('courses.unlockWith')}
             <ArrowRight size={14} aria-hidden />
           </button>
         </div>
@@ -48,12 +50,13 @@ export function PaywallLock({
  * paid GPA predictor where its value is felt. Collapses to a slim one-line chip
  * on mobile so it stays discoverable without dominating the top of the page. */
 export function PaywallCallout() {
+  const t = useT()
   const { openSettings } = useSettings()
   return (
     <>
       <UpgradeChip
         icon={Sparkles}
-        label="Predict your GPA"
+        label={t('courses.predictGpa')}
         onClick={() => openSettings('billing')}
         className="sm:hidden"
       />
@@ -66,9 +69,9 @@ export function PaywallCallout() {
         <Sparkles size={18} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium text-fg">Predict your GPA</p>
+        <p className="text-[13px] font-medium text-fg">{t('courses.predictGpa')}</p>
         <p className="text-[12px] text-muted">
-          See where grades land. <span className="text-accent">Semester pass</span>
+          {t('courses.seeWhereGradesLand')} <span className="text-accent">{t('today.semesterPass')}</span>
         </p>
       </div>
       <ArrowRight

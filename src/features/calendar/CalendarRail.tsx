@@ -5,38 +5,40 @@ import { useSettings } from '@/app/providers/settings'
 import { UpgradeChip } from '@/components/UpgradeChip'
 import { Switch } from '@/features/settings/controls'
 import { ACADEMIC_META } from './calendar'
+import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
 /** The calendar rail: independent layer toggles, a compact legend, and the
  * Pro-gated calendar-sync stub. Mirrors Today's recessed glance-panel language. */
 export function CalendarRail() {
+  const t = useT()
   const { plan, calendarPrefs, updateCalendarPrefs } = useAppData()
 
   return (
     <div data-tour="calendar-rail" className="flex flex-col gap-3">
-      <Panel title="Layers">
+      <Panel title={t('calendar.layers')}>
         <LayerRow
-          label="My calendar"
-          hint="Assignments + tasks"
+          label={t('calendar.myCalendar')}
+          hint={t('calendar.myCalendarHint')}
           dot={<span className="size-2.5 rounded-full bg-subtle" aria-hidden />}
           checked={calendarPrefs.showMine}
           onChange={(v) => updateCalendarPrefs({ showMine: v })}
         />
         <LayerRow
-          label="Concordia"
-          hint="Official academic dates"
+          label={t('calendar.concordia')}
+          hint={t('calendar.concordiaHint')}
           dot={<span className="size-2.5 rounded-full bg-info" aria-hidden />}
           checked={calendarPrefs.showConcordia}
           onChange={(v) => updateCalendarPrefs({ showConcordia: v })}
         />
       </Panel>
 
-      <Panel title="University dates">
+      <Panel title={t('calendar.universityDates')}>
         <ul className="grid grid-cols-2 gap-x-3 gap-y-2 px-3.5 py-3">
-          {Object.values(ACADEMIC_META).map(({ label, icon: Icon }) => (
-            <li key={label} className="flex items-center gap-1.5 text-[12px] text-muted">
+          {Object.values(ACADEMIC_META).map(({ labelKey, icon: Icon }) => (
+            <li key={labelKey} className="flex items-center gap-1.5 text-[12px] text-muted">
               <Icon size={13} className="shrink-0 text-info" aria-hidden />
-              {label}
+              {t(labelKey)}
             </li>
           ))}
         </ul>
@@ -86,6 +88,7 @@ function LayerRow({
 }
 
 function SyncButton({ pro }: { pro: boolean }) {
+  const t = useT()
   const { openSettings } = useSettings()
   const [synced, setSynced] = useState(false)
 
@@ -94,7 +97,7 @@ function SyncButton({ pro }: { pro: boolean }) {
       <>
         <UpgradeChip
           icon={RefreshCw}
-          label="Sync your calendar"
+          label={t('calendar.syncYours')}
           onClick={() => openSettings('billing')}
           className="sm:hidden"
         />
@@ -107,9 +110,9 @@ function SyncButton({ pro }: { pro: boolean }) {
           <RefreshCw size={17} aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium text-fg">Sync your calendar</span>
+          <span className="block text-[13px] font-medium text-fg">{t('calendar.syncYours')}</span>
           <span className="block text-[12px] text-muted">
-            Google / Apple · <span className="text-accent">Semester pass</span>
+            {t('calendar.syncProvider')} · <span className="text-accent">{t('today.semesterPass')}</span>
           </span>
         </span>
         <Sparkles size={15} className="shrink-0 text-accent" aria-hidden />
@@ -139,10 +142,10 @@ function SyncButton({ pro }: { pro: boolean }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-medium text-fg">
-          {synced ? 'Sync set up' : 'Sync to Google / Apple'}
+          {synced ? t('calendar.syncSetUp') : t('calendar.syncCta')}
         </span>
         <span className="block text-[12px] text-muted">
-          {synced ? 'Two-way sync coming soon' : 'Push deadlines to your calendar'}
+          {synced ? t('calendar.syncSoon') : t('calendar.syncPush')}
         </span>
       </span>
     </button>

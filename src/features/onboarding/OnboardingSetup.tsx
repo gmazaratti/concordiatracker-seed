@@ -1,7 +1,7 @@
 import { Check, Globe, Lock } from 'lucide-react'
 import { THEMES, useTheme } from '@/app/providers/theme'
 import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
-import { useI18n, LANGS } from '@/i18n/i18n'
+import { useI18n, useT, LANGS } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { HANDLE_RE } from './handle'
 
@@ -44,9 +44,10 @@ export function SetupStep({
   avatarUrl?: string
   handleStatus: 'idle' | 'free' | 'taken'
 }) {
+  const t = useT()
   if (step === 0) {
     return (
-      <Centered heading="Welcome — what should we call you?" sub="This is your display name. You can change it any time in Settings.">
+      <Centered heading={t('onboarding.nameHeading')} sub={t('onboarding.nameSub')}>
         {avatarUrl && (
           <img src={avatarUrl} alt="" referrerPolicy="no-referrer" className="mx-auto size-14 rounded-full bg-surface-2 object-cover" />
         )}
@@ -57,7 +58,7 @@ export function SetupStep({
   if (step === 1) {
     const valid = HANDLE_RE.test(handle)
     return (
-      <Centered heading="Claim your handle" sub="How you'll show up on feedback posts. 3–20 lowercase letters, numbers, or underscores.">
+      <Centered heading={t('onboarding.handleHeading')} sub={t('onboarding.handleSub')}>
         <div className="mt-5 flex items-center rounded-xl border border-border bg-surface px-4 py-3 focus-within:border-accent">
           <span className="text-[18px] text-subtle">@</span>
           <input
@@ -77,7 +78,7 @@ export function SetupStep({
     )
   }
   return (
-    <Centered heading="What are you studying?" sub="Find your program — it personalizes the app (and Community relevance).">
+    <Centered heading={t('onboarding.programHeading')} sub={t('onboarding.programSub')}>
       <div className="mt-1">
         <ProgramPicker value={program} onChange={setProgram} autoFocus size="lg" />
       </div>
@@ -165,8 +166,8 @@ export function ThemeStep() {
   const { lang, setLang, t } = useI18n()
   return (
     <Centered
-      heading="Make it yours"
-      sub="Pick a look and a language — tap a theme and the whole app reskins instantly. Both are changeable any time in Settings."
+      heading={t('onboarding.themeHeading')}
+      sub={t('onboarding.themeSub')}
     >
       {/* Language sits with appearance rather than getting its own step: it's a
           preference, not a decision worth interrupting signup for. English is

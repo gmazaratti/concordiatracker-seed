@@ -3,6 +3,7 @@ import { KIND_LABEL } from '@/lib/assessment'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
 import { COMM221_PARSED, RAW_ROWS, type Phase } from './parse-demo-data'
+import { useT } from '@/i18n/i18n'
 
 /** Presentational two-column parse demo, driven by the phase machine in
  * `ParseShowcase` (which also owns the fake cursor + the PDF it drags out of the
@@ -18,6 +19,7 @@ export function ParseRevealDemo({
   revealed: number
   scannerRef: React.Ref<HTMLDivElement>
 }) {
+  const t = useT()
   const scanning = phase === 'scanning'
   const parsed = phase === 'revealing' || phase === 'done'
   const showRaw = scanning || parsed
@@ -46,12 +48,12 @@ export function ParseRevealDemo({
               <div className="flex flex-col items-center gap-1.5 text-subtle">
                 <FileText size={20} className={cn(dropActive && 'text-accent')} aria-hidden />
                 <span className="text-[11px]">
-                  {dropActive ? 'Scanning syllabus…' : 'Drop your syllabus to scan'}
+                  {dropActive ? t('parse.scanning') : t('parse.dropToScan')}
                 </span>
               </div>
             </div>
             <p className="absolute inset-x-4 bottom-3.5 text-[11px] text-subtle">
-              {dropActive ? 'Dropping into the scanner…' : 'Drag your syllabus into the scanner'}
+              {dropActive ? t('parse.dropping') : t('parse.dragIn')}
             </p>
           </>
         )}
@@ -62,13 +64,17 @@ export function ParseRevealDemo({
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-2/50 px-5 py-3">
           <span className="text-[13px] font-semibold text-fg">Financial Markets</span>
           <span className="text-[12px] text-subtle">
-            {parsed ? (phase === 'done' ? `${total} dates found` : `${revealed} of ${total}`) : 'Waiting…'}
+            {parsed
+              ? phase === 'done'
+                ? t('parse.datesFound', { count: total })
+                : t('parse.xOfY', { done: revealed, total })
+              : t('parse.waiting')}
           </span>
         </div>
 
         {!parsed ? (
           <div className="flex flex-1 items-center justify-center px-5 text-center text-[12px] text-subtle">
-            {scanning ? 'Lifting dates off the page…' : 'The plan appears as the scan completes.'}
+            {scanning ? t('parse.lifting') : t('parse.planAppears')}
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -87,7 +93,7 @@ export function ParseRevealDemo({
               </li>
             ))}
             {revealed < total && (
-              <li className="animate-pulse px-5 py-2.5 text-[11px] text-subtle">Extracting…</li>
+              <li className="animate-pulse px-5 py-2.5 text-[11px] text-subtle">{t('parse.extracting')}</li>
             )}
           </ul>
         )}

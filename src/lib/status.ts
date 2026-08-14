@@ -1,5 +1,5 @@
 import type { AssessmentStatus } from '@/data/types'
-import { daysUntil, formatFull, relativeDueLabel } from './date'
+import { activeLang, daysUntil, formatFull, relativeDueLabel } from './date'
 
 /** Statuses that still need action — these are what Today's due list surfaces. */
 const OPEN: ReadonlySet<AssessmentStatus> = new Set<AssessmentStatus>([
@@ -29,18 +29,51 @@ export const EDITOR_STATUSES: AssessmentStatus[] = [
 ]
 
 /** Shared status vocabulary + colors so Today and Courses read identically.
- * Lives here (not in StatusBadge) so non-component modules can read it too. */
-export const STATUS_META: Record<
+ * Lives here (not in StatusBadge) so non-component modules can read it too.
+ *
+ * `label` is a lazy getter over the active language — same reason as
+ * KIND_LABEL: this is read from plain modules, not only from components. */
+const STATUS_LABEL_EN: Record<AssessmentStatus, string> = {
+  'not-started': 'Not started',
+  'in-progress': 'In progress',
+  done: 'Done',
+  late: 'Done late',
+  missed: 'Missed',
+  extension: 'Extension',
+  'awaiting-grade': 'Awaiting grade',
+}
+
+const STATUS_LABEL_FR: Record<AssessmentStatus, string> = {
+  'not-started': 'Pas commencé',
+  'in-progress': 'En cours',
+  done: 'Fait',
+  late: 'Fait en retard',
+  missed: 'Manqué',
+  extension: 'Prolongation',
+  'awaiting-grade': 'En attente de note',
+}
+
+const STATUS_COLORS: Record<AssessmentStatus, { dot: string; text: string }> = {
+  'not-started': { dot: 'bg-subtle', text: 'text-subtle' },
+  'in-progress': { dot: 'bg-info', text: 'text-info' },
+  done: { dot: 'bg-success', text: 'text-success' },
+  late: { dot: 'bg-warning', text: 'text-warning' },
+  missed: { dot: 'bg-danger', text: 'text-danger' },
+  extension: { dot: 'bg-accent', text: 'text-accent' },
+  'awaiting-grade': { dot: 'bg-accent', text: 'text-accent' },
+}
+
+export const STATUS_META = {} as Record<
   AssessmentStatus,
   { label: string; dot: string; text: string }
-> = {
-  'not-started': { label: 'Not started', dot: 'bg-subtle', text: 'text-subtle' },
-  'in-progress': { label: 'In progress', dot: 'bg-info', text: 'text-info' },
-  done: { label: 'Done', dot: 'bg-success', text: 'text-success' },
-  late: { label: 'Done late', dot: 'bg-warning', text: 'text-warning' },
-  missed: { label: 'Missed', dot: 'bg-danger', text: 'text-danger' },
-  extension: { label: 'Extension', dot: 'bg-accent', text: 'text-accent' },
-  'awaiting-grade': { label: 'Awaiting grade', dot: 'bg-accent', text: 'text-accent' },
+>
+for (const status of Object.keys(STATUS_COLORS) as AssessmentStatus[]) {
+  STATUS_META[status] = {
+    ...STATUS_COLORS[status],
+    get label() {
+      return activeLang() === 'fr' ? STATUS_LABEL_FR[status] : STATUS_LABEL_EN[status]
+    },
+  }
 }
 
 /** Status-aware due label. A resolved item is NEVER "overdue" — on-time-vs-late

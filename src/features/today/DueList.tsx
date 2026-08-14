@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/StatusBadge'
 import { courseColor } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
+import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
 import { CustomizeToday } from './CustomizeToday'
 import type { DueGroups } from './due'
@@ -23,6 +25,7 @@ interface RowSection {
 /** Sections for the active list, per the "Group by" preference: time buckets
  * (overdue / this week) or one section per course (soonest-due course first). */
 function buildSections(
+  t: T,
   groups: DueGroups,
   groupBy: TodayPrefs['groupBy'],
   courseById: (id: string) => Course | undefined,
@@ -46,7 +49,7 @@ function buildSections(
           label: (
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
-              {course?.code ?? 'Course'}
+              {course?.code ?? t('today.course')}
             </span>
           ),
         }
@@ -55,11 +58,11 @@ function buildSections(
 
   const out: RowSection[] = []
   if (groups.overdue.length)
-    out.push({ key: 'overdue', label: 'Overdue', tone: 'danger', items: groups.overdue })
+    out.push({ key: 'overdue', label: t('today.overdue'), tone: 'danger', items: groups.overdue })
   if (groups.thisWeek.length)
-    out.push({ key: 'thisweek', label: 'This week', tone: 'muted', items: groups.thisWeek })
+    out.push({ key: 'thisweek', label: t('today.thisWeek'), tone: 'muted', items: groups.thisWeek })
   if (groups.later.length)
-    out.push({ key: 'later', label: 'Coming up', tone: 'muted', items: groups.later })
+    out.push({ key: 'later', label: t('today.comingUp'), tone: 'muted', items: groups.later })
   return out
 }
 
@@ -82,6 +85,7 @@ export function DueList({
   onUndo: (id: string) => void
   onPrefsChange: (patch: Partial<TodayPrefs>) => void
 }) {
+  const t = useT()
   const [customizeOpen, setCustomizeOpen] = useState(false)
   // Long sections (a pile of overdue, say) collapse past this — the list stays
   // one calm screen and the rest sits behind "Show N more".
@@ -94,16 +98,16 @@ export function DueList({
       else next.add(key)
       return next
     })
-  const sections = buildSections(groups, prefs.groupBy, courseById)
+  const sections = buildSections(t, groups, prefs.groupBy, courseById)
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-[13px] font-semibold tracking-wide text-fg uppercase">Due</h2>
+        <h2 className="text-[13px] font-semibold tracking-wide text-fg uppercase">{t('today.due')}</h2>
         <div className="flex items-center gap-1.5">
           {groups.total > 0 && (
             <span className="text-[12px] text-subtle">
-              {groups.total} {groups.total === 1 ? 'item' : 'items'}
+              {groups.total} {groups.total === 1 ? t('today.itemOne') : t('today.itemMany')}
             </span>
           )}
           <button
@@ -111,15 +115,15 @@ export function DueList({
             data-tour="customize"
             onClick={() => setCustomizeOpen((o) => !o)}
             aria-expanded={customizeOpen}
-            aria-label="Customize Today"
-            title="Customize Today"
+            aria-label={t('today.customizeToday')}
+            title={t('today.customizeToday')}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
               customizeOpen && 'bg-surface-2 text-fg',
             )}
           >
             <SlidersHorizontal size={14} aria-hidden />
-            <span className="hidden sm:inline">Customize</span>
+            <span className="hidden sm:inline">{t('today.customize')}</span>
           </button>
         </div>
       </div>
@@ -156,7 +160,7 @@ export function DueList({
                     className={cn('transition-transform duration-150', isOpen && 'rotate-180')}
                     aria-hidden
                   />
-                  {isOpen ? 'Show fewer' : `Show ${hiddenCount} more`}
+                  {isOpen ? t('today.showFewer') : t('today.showMore', { count: hiddenCount })}
                 </button>
               )}
             </Section>
@@ -198,15 +202,15 @@ function Section({
 }
 
 function EmptyState() {
+  const t = useT()
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
       <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
         <CheckCircle2 size={26} aria-hidden />
       </span>
-      <h3 className="font-display text-xl font-medium text-fg">All caught up</h3>
+      <h3 className="font-display text-xl font-medium text-fg">{t('today.allCaughtUp')}</h3>
       <p className="max-w-xs text-sm text-muted">
-        Nothing outstanding right now. Enjoy the breathing room — new deadlines show up
-        here the moment they land.
+        {t('today.allCaughtUpSub')}
       </p>
     </div>
   )
@@ -221,6 +225,7 @@ function CompletedToday({
   courseById: (id: string) => Course | undefined
   onUndo: (id: string) => void
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   return (
     <div className="border-t border-border">
@@ -230,7 +235,7 @@ function CompletedToday({
         aria-expanded={open}
         className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[12px] text-subtle transition-colors duration-150 hover:text-muted"
       >
-        <span>Completed today · {items.length}</span>
+        <span>{t('today.completedTodayCount', { count: items.length })}</span>
         <ChevronDown
           size={15}
           className={cn('transition-transform duration-150', open && 'rotate-180')}
@@ -262,6 +267,7 @@ function CompletedRow({
   course: Course | undefined
   onUndo: () => void
 }) {
+  const t = useT()
   const hex = course ? courseColor(course.color).hex : undefined
   return (
     <li className="flex items-center gap-3 px-3 py-2.5">
@@ -289,7 +295,7 @@ function CompletedRow({
         onClick={onUndo}
         className="shrink-0 rounded-md px-2 py-1 text-[12px] text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
       >
-        Undo
+        {t('today.undo')}
       </button>
     </li>
   )

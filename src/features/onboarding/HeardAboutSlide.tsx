@@ -3,6 +3,8 @@ import { GraduationCap, MoreHorizontal, Search, Users, type LucideIcon } from 'l
 import { useUiState } from '@/app/providers/ui-state'
 import { HEARD_SOURCES } from './heard-about'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
+import type { Key } from '@/i18n/en'
 
 /* Brand glyphs as inline SVGs — lucide dropped its brand icons (trademark).
  * Rendered in currentColor (monochrome), same treatment as the community-profile
@@ -56,6 +58,7 @@ const GLYPHS: Record<string, Glyph> = {
  * (Next advances regardless). The choice is stored on ui_state.heardFrom; picking
  * "Somewhere else" reveals a free-text field stored on ui_state.heardFromDetail. */
 export function HeardAboutSlide() {
+  const t = useT()
   const { uiState, loaded, patchUiState } = useUiState()
   const selected = uiState.heardFrom
   const [detail, setDetail] = useState(uiState.heardFromDetail ?? '')
@@ -68,11 +71,10 @@ export function HeardAboutSlide() {
   return (
     <div className="mx-auto w-full max-w-lg text-center">
       <h2 className="font-display text-[26px] leading-tight font-semibold text-fg sm:text-[30px]">
-        How&rsquo;d you find us?
+        {t('onboarding.heardHead')}
       </h2>
       <p className="mx-auto mt-2.5 max-w-md text-[14.5px] leading-relaxed text-muted">
-        Totally optional — it just helps us know where to keep showing up for
-        students like you.
+        {t('onboarding.heardSub')}
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -101,7 +103,7 @@ export function HeardAboutSlide() {
               >
                 <Glyph size={22} aria-hidden />
               </span>
-              {s.label}
+              {t(`heard.${s.id}` as Key)}
             </button>
           )
         })}
@@ -111,14 +113,14 @@ export function HeardAboutSlide() {
       {selected === 'other' && (
         <div className="mt-3 text-left">
           <label htmlFor="heard-other" className="mb-1.5 block text-[12.5px] font-medium text-fg">
-            Where did you hear about us?
+            {t('onboarding.heardOtherLabel')}
           </label>
           <input
             id="heard-other"
             type="text"
             value={detail}
             onChange={(e) => onDetail(e.target.value)}
-            placeholder="e.g. a Discord server, a poster in the Hall building…"
+            placeholder={t('onboarding.heardOtherPlaceholder')}
             maxLength={200}
             autoFocus
             className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"

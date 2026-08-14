@@ -1,5 +1,6 @@
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Switch, Segmented } from '@/features/settings/controls'
+import { useT } from '@/i18n/i18n'
 
 /** The "Customize Today" panel — a small, deliberately short set of toggles that
  * tailor the calm default without rebuilding the screen. Rendered inline in the
@@ -11,45 +12,46 @@ export function CustomizeToday({
   prefs: TodayPrefs
   onChange: (patch: Partial<TodayPrefs>) => void
 }) {
+  const t = useT()
   return (
     <div className="ct-animate-fade border-b border-border bg-surface-2/30 px-4 py-3">
       <div className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
-        <Line label="Show weight %">
+        <Line label={t('today.showWeight')}>
           <Switch
-            label="Show weight on Today"
+            label={t('today.showWeightAria')}
             checked={prefs.showWeight}
             onChange={(v) => onChange({ showWeight: v })}
           />
         </Line>
 
-        <Line label="Show provenance">
+        <Line label={t('today.showProvenance')}>
           <Switch
-            label="Show provenance on Today"
+            label={t('today.showProvenanceAria')}
             checked={prefs.showProvenance}
             onChange={(v) => onChange({ showProvenance: v })}
           />
         </Line>
 
-        <Line label="Density">
+        <Line label={t('today.density')}>
           <Segmented<TodayPrefs['density']>
-            ariaLabel="Row density"
+            ariaLabel={t('today.densityAria')}
             value={prefs.density}
             onChange={(density) => onChange({ density })}
             options={[
-              { value: 'comfortable', label: 'Comfortable' },
-              { value: 'compact', label: 'Compact' },
+              { value: 'comfortable', label: t('today.comfortable') },
+              { value: 'compact', label: t('today.compact') },
             ]}
           />
         </Line>
 
-        <Line label="Group by">
+        <Line label={t('today.groupBy')}>
           <Segmented<TodayPrefs['groupBy']>
-            ariaLabel="Group the due list by"
+            ariaLabel={t('today.groupByAria')}
             value={prefs.groupBy}
             onChange={(groupBy) => onChange({ groupBy })}
             options={[
-              { value: 'time', label: 'Time' },
-              { value: 'course', label: 'Course' },
+              { value: 'time', label: t('today.time') },
+              { value: 'course', label: t('today.course') },
             ]}
           />
         </Line>

@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 
 export interface TermGlanceData {
   termName: string
@@ -14,15 +15,18 @@ export interface TermGlanceData {
 /** Right-rail summary for the course list — the term seen from above. Mirrors
  * Today's glance visual language so the two screens read as one system. */
 export function TermGlance(data: TermGlanceData) {
+  const t = useT()
   return (
     <Card className="overflow-hidden">
       <p className="border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        Term standing
+        {t('courses.termStanding')}
       </p>
       <div className="border-b border-border px-3.5 py-3">
         <div className="flex items-baseline justify-between">
-          <span className="text-[12px] text-subtle">{data.termName} GPA</span>
-          <span className="text-[12px] text-subtle">{data.credits} credits</span>
+          <span className="text-[12px] text-subtle">
+            {data.termName} {t('courses.gpaSuffix')}
+          </span>
+          <span className="text-[12px] text-subtle">{t('today.creditsCount', { count: data.credits })}</span>
         </div>
         <div className="mt-0.5 font-display text-[28px] leading-none font-semibold text-fg">
           {data.gpa === null ? '—' : data.gpa.toFixed(2)}
@@ -31,11 +35,11 @@ export function TermGlance(data: TermGlanceData) {
       </div>
       <div className="divide-y divide-border">
         <Row
-          label="Courses graded"
-          value={`${data.coursesGraded} of ${data.coursesTotal}`}
+          label={t('courses.coursesGraded')}
+          value={t('courses.xOfY', { a: data.coursesGraded, b: data.coursesTotal })}
         />
-        <Row label="Open items" value={String(data.openItems)} />
-        <Row label="Overdue" value={String(data.overdue)} danger={data.overdue > 0} />
+        <Row label={t('courses.openItems')} value={String(data.openItems)} />
+        <Row label={t('today.overdue')} value={String(data.overdue)} danger={data.overdue > 0} />
       </div>
     </Card>
   )

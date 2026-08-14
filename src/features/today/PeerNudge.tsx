@@ -1,11 +1,13 @@
 import { ArrowRight, Users } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
+import { useT } from '@/i18n/i18n'
 
 /** A calm, discoverable entry to the peer-correction flow on the launch view: one
  * line if classmates have moved any of your imported dates. Opens the first
  * suggestion (the full prompt lives in the edit modal). */
 export function PeerNudge() {
+  const t = useT()
   const { peerCorrections } = useAppData()
   const { openAssessment } = useQuickActions()
   if (peerCorrections.length === 0) return null
@@ -24,9 +26,9 @@ export function PeerNudge() {
       </span>
       <span className="min-w-0 flex-1 text-[13px] text-fg">
         <span className="font-medium">
-          {n} classmate date {n === 1 ? 'change' : 'changes'} to review
+          {n === 1 ? t('today.peerOne', { count: n }) : t('today.peerMany', { count: n })}
         </span>
-        <span className="text-muted"> — your section moved some deadlines.</span>
+        <span className="text-muted">{t('today.peerSub')}</span>
       </span>
       <ArrowRight
         size={15}

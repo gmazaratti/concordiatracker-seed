@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Assessment, Course } from '@/data/types'
 import { Card } from '@/components/ui/Card'
+import { useT } from '@/i18n/i18n'
 import {
   courseStanding,
   currentGpa,
@@ -22,6 +23,7 @@ export function GpaWhatIf({
   assessments: Assessment[]
   courseId: string
 }) {
+  const t = useT()
   const courseAssessments = assessments.filter((a) => a.courseId === courseId)
   const standing = courseStanding(courseAssessments)
   const [assumed, setAssumed] = useState(() =>
@@ -42,18 +44,17 @@ export function GpaWhatIf({
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
         <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-          GPA what-if
+          {t('courses.gpaWhatIf')}
         </p>
         <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
-          Semester
+          {t('courses.semesterTag')}
         </span>
       </div>
 
       <div className="px-3.5 py-3">
         {allGraded ? (
           <p className="text-[13px] text-muted">
-            Every assessment is graded — there's nothing left to project. This
-            course is locked at{' '}
+            {t('courses.everythingGradedA')}{' '}
             <span className="font-semibold text-fg">
               {Math.round(standing.currentPercent ?? 0)}%
             </span>
@@ -66,7 +67,7 @@ export function GpaWhatIf({
                 htmlFor={`whatif-${courseId}`}
                 className="text-[12px] text-subtle"
               >
-                Assume on remaining work
+                {t('courses.assumeRemaining')}
               </label>
               <span className="text-[15px] font-semibold text-accent tabular-nums">
                 {assumed}%
@@ -83,13 +84,13 @@ export function GpaWhatIf({
             />
 
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <Stat label="Course finishes at">
+              <Stat label={t('courses.finishesAt')}>
                 <span className="text-fg">{Math.round(projectedPct ?? 0)}%</span>
                 {projGrade && (
                   <span className="text-muted"> · {projGrade.letter}</span>
                 )}
               </Stat>
-              <Stat label="Term GPA">
+              <Stat label={t('courses.termGpa')}>
                 <span className="text-fg">{projGpa?.toFixed(2) ?? '—'}</span>
                 {delta !== null && Math.abs(delta) >= 0.005 && (
                   <span
@@ -104,8 +105,10 @@ export function GpaWhatIf({
             </div>
             {nowGpa !== null && (
               <p className="mt-2 text-[11px] text-subtle">
-                Current term GPA {nowGpa.toFixed(2)} · this course is{' '}
-                {standing.remainingWeight}% still in play.
+                {t('courses.currentTermGpa', {
+                  gpa: nowGpa.toFixed(2),
+                  weight: standing.remainingWeight,
+                })}
               </p>
             )}
           </>

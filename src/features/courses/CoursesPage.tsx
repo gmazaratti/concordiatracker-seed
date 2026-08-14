@@ -66,25 +66,28 @@ export function CoursesPage() {
 
       {/* This term ⇄ Past semesters. Stays inside Courses (the app keeps exactly
           four top-level destinations). */}
-      <div role="tablist" aria-label="Course terms" className="mb-4 flex gap-1 border-b border-border">
+      <div role="tablist" aria-label={t('courses.termsAria')} className="mb-4 flex gap-1 border-b border-border">
         {([
-          { id: 'current', label: 'This term' },
-          { id: 'past', label: `Past semesters${pastCourses.length ? ` (${pastCourses.length})` : ''}` },
-        ] as const).map((t) => {
-          const active = (t.id === 'past') === showPast
+          { id: 'current', label: t('courses.thisTerm') },
+          {
+            id: 'past',
+            label: `${t('courses.pastSemesters')}${pastCourses.length ? ` (${pastCourses.length})` : ''}`,
+          },
+        ] as const).map((tab) => {
+          const active = (tab.id === 'past') === showPast
           return (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setShowPast(t.id === 'past')}
+              onClick={() => setShowPast(tab.id === 'past')}
               className={cn(
                 'border-b-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
                 active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
               )}
             >
-              {t.label}
+              {tab.label}
             </button>
           )
         })}
@@ -188,10 +191,11 @@ function ViewToggle({
   view: CoursesView
   onChange: (view: CoursesView) => void
 }) {
+  const t = useT()
   return (
     <div
       role="radiogroup"
-      aria-label="Course layout"
+      aria-label={t('courses.layoutAria')}
       className="flex gap-1 rounded-lg border border-border bg-surface p-1"
     >
       {VIEW_OPTIONS.map((opt) => {

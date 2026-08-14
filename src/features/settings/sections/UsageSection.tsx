@@ -5,6 +5,7 @@ import { getParseUsage } from '@/lib/parse-syllabus'
 import type { Plan } from '@/data/types'
 import { cn } from '@/lib/cn'
 import { Group } from '../controls'
+import { useT } from '@/i18n/i18n'
 
 type Meter = {
   key: string
@@ -55,6 +56,7 @@ function buildMeters(plan: Plan, courseCount: number, parse: { used: number; lim
 }
 
 export function UsageSection() {
+  const t = useT()
   const { plan, courses } = useAppData()
   const [parse, setParse] = useState({ used: 0, limit: 5 })
   useEffect(() => {
@@ -84,7 +86,7 @@ export function UsageSection() {
         </span>
       </div>
 
-      <Group label="This month">
+      <Group label={t('settings.thisMonth')}>
         {meters.map((m) => (
           <MeterRow key={m.key} meter={m} />
         ))}

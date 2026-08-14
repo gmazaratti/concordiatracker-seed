@@ -14,10 +14,12 @@ import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { supabase } from '@/lib/supabase'
 import { Group, Row, Switch, Flag } from '../controls'
+import { useT } from '@/i18n/i18n'
 
 /** Public-profile controls — the opt-in toggle, the bio, and a link to view it.
  * Reads profile_public/bio defensively (degrades if not migrated yet). */
 function PublicProfileSettings() {
+  const t = useT()
   const { user, updatePrivacy } = useAppData()
   const { user: authUser } = useAuth()
   const [pub, setPub] = useState(false)
@@ -43,7 +45,7 @@ function PublicProfileSettings() {
   }, [authUser])
 
   return (
-    <Group label="Public profile">
+    <Group label={t('settings.profilePublic')}>
       <Row
         label="Public profile"
         description={
@@ -97,6 +99,7 @@ const DOCS: { to: string; label: string; icon: LucideIcon }[] = [
 /** Privacy: a Law 25 note, links out to the (draft) legal documents, and the
  * data-rights contact path. */
 export function PrivacySection() {
+  const t = useT()
   const { closeSettings } = useSettings()
 
   return (
@@ -109,7 +112,7 @@ export function PrivacySection() {
         — not finalized legal text.
       </p>
 
-      <Group label="Legal documents">
+      <Group label={t('settings.legalDocs')}>
         {DOCS.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
@@ -125,7 +128,7 @@ export function PrivacySection() {
         ))}
       </Group>
 
-      <Group label="Your data (Law 25)">
+      <Group label={t('settings.yourData')}>
         <Row
           label="Access, correct, or delete your data"
           description="Withdraw consent or request a copy at any time."

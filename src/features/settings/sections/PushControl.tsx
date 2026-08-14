@@ -9,12 +9,14 @@ import {
 import { isIOS, isStandalone } from '@/lib/pwa-install'
 import { cn } from '@/lib/cn'
 import { Group, Row } from '../controls'
+import { useT } from '@/i18n/i18n'
 
 type Busy = 'enable' | 'test' | null
 
 /** Real Web Push controls: opt in on this device, then fire a test notification.
  * On iOS this only works inside the home-screen-installed PWA (iOS 16.4+). */
 export function PushControl() {
+  const t = useT()
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>(() =>
     notificationPermission(),
   )
@@ -51,7 +53,7 @@ export function PushControl() {
   }
 
   return (
-    <Group label="Push notifications">
+    <Group label={t('settings.pushNotifications')}>
       {iosNeedsInstall ? (
         <Row
           label="Add to your home screen first"

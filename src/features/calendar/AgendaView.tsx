@@ -2,11 +2,12 @@ import { CalendarRange } from 'lucide-react'
 import type { Course } from '@/data/types'
 import type { CalendarPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
-import { startOfToday } from '@/lib/date'
+import { startOfToday, formatAgendaDay } from '@/lib/date'
 import { agendaDays, sameDay, type CalendarSource } from './calendar'
 import { ItemRow } from './ItemRow'
+import { useT } from '@/i18n/i18n'
 
-const HEADER = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+const HEADER = { format: (d: Date) => formatAgendaDay(d) }
 const AGENDA_WINDOW = 60
 
 /** The agenda — a flat, scannable list of upcoming days that have something on
@@ -20,6 +21,7 @@ export function AgendaView({
   prefs: CalendarPrefs
   courseById: (id: string) => Course | undefined
 }) {
+  const t = useT()
   const from = startOfToday()
   const today = new Date()
   const groups = agendaDays(from, AGENDA_WINDOW, source, prefs)
@@ -30,10 +32,10 @@ export function AgendaView({
         <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
           <CalendarRange size={26} aria-hidden />
         </span>
-        <h3 className="font-display text-xl font-medium text-fg">Nothing ahead</h3>
+        <h3 className="font-display text-xl font-medium text-fg">{t('calendar.nothingAhead')}</h3>
         <p className="max-w-xs text-sm text-muted">
-          No deadlines, tasks, or university dates in the next two months
-          {prefs.showConcordia && prefs.showMine ? '' : ' on the active layers'}.
+          {t('calendar.nothingAheadSub')}
+          {prefs.showConcordia && prefs.showMine ? '' : t('calendar.onActiveLayers')}.
         </p>
       </Card>
     )
@@ -45,7 +47,7 @@ export function AgendaView({
         <section key={day.toDateString()}>
           <h3 className="mb-1.5 flex items-baseline gap-2 px-1">
             <span className="text-[13px] font-semibold text-fg">
-              {sameDay(day, today) ? 'Today' : HEADER.format(day)}
+              {sameDay(day, today) ? t('calendar.today') : HEADER.format(day)}
             </span>
             {sameDay(day, today) && (
               <span className="text-[12px] text-subtle">{HEADER.format(day)}</span>

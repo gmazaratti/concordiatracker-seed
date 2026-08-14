@@ -1,11 +1,16 @@
 import { AlarmClock, Coffee, FileText, Flag, PartyPopper, type LucideIcon } from 'lucide-react'
 import type { Assessment, CalendarTask } from '@/data/types'
 import type { AcademicEvent, AcademicKind } from '@/data/academic-calendar'
+import type { Key } from '@/i18n/en'
 import type { CalendarPrefs } from '@/app/providers/app-data'
+import { monthNames, weekdayNames } from '@/lib/date'
 
-export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-export const WEEKDAYS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+/* Day + month names follow the interface language (see lib/date.ts) rather than
+ * being hard-coded English. They're functions, not constants, because the
+ * language can change at runtime. */
+export const WEEKDAYS = () => weekdayNames('short')
+export const WEEKDAYS_SHORT = () => weekdayNames('narrow')
+export const MONTHS = () => monthNames()
 
 const p2 = (n: number) => String(n).padStart(2, '0')
 
@@ -39,12 +44,13 @@ export function weekDays(d: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i))
 }
 
-export const ACADEMIC_META: Record<AcademicKind, { label: string; icon: LucideIcon }> = {
-  term: { label: 'Term', icon: Flag },
-  exam: { label: 'Exams', icon: FileText },
-  break: { label: 'Break', icon: Coffee },
-  holiday: { label: 'Closed', icon: PartyPopper },
-  deadline: { label: 'Deadline', icon: AlarmClock },
+/** `labelKey` (not a literal) so the legend + pills translate with the UI. */
+export const ACADEMIC_META: Record<AcademicKind, { labelKey: Key; icon: LucideIcon }> = {
+  term: { labelKey: 'academic.term', icon: Flag },
+  exam: { labelKey: 'academic.exam', icon: FileText },
+  break: { labelKey: 'academic.break', icon: Coffee },
+  holiday: { labelKey: 'academic.holiday', icon: PartyPopper },
+  deadline: { labelKey: 'academic.deadline', icon: AlarmClock },
 }
 
 /** One thing on a given day. */

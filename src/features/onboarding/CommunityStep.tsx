@@ -7,11 +7,13 @@ import { OrgLogo } from '@/features/community/OrgLogo'
 import { FollowButton } from '@/features/community/FollowButton'
 import { EventTile } from '@/features/community/EventTile'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
+import { useT } from '@/i18n/i18n'
 
 /** The Community onboarding step, built from the REAL community components:
  * first follow an organizer (FollowButton), then add an event (EventTile →
  * addTask). Both optional — the whole step is skippable via the orchestrator. */
 export function CommunityStep() {
+  const t = useT()
   const { orgs, events } = useCommunity()
   const { isFollowing } = useFollows()
   const { addTask } = useAppData()
@@ -36,14 +38,14 @@ export function CommunityStep() {
   return (
     <div className="mx-auto w-full max-w-xl">
       <h2 className="text-center font-display text-[21px] leading-tight font-semibold text-fg sm:text-[28px]">
-        What's happening on campus
+        {t('onboarding.campusHead')}
       </h2>
       <p className="mt-2 text-center text-[13px] leading-relaxed text-muted sm:text-[14px]">
-        Follow an organizer to fill your feed, then add any event you're into — it drops onto your calendar.
+        {t('onboarding.campusSub')}
       </p>
 
       <section className="mt-5 sm:mt-6">
-        <h3 className="mb-2.5 text-[12px] font-semibold tracking-wide text-subtle uppercase">1 · Follow an organizer</h3>
+        <h3 className="mb-2.5 text-[12px] font-semibold tracking-wide text-subtle uppercase">{t('onboarding.campusStep1')}</h3>
         <ul className="space-y-2">
           {someOrgs.map((o) => (
             <li key={o.handle} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
@@ -63,10 +65,10 @@ export function CommunityStep() {
 
       {eventsVisible ? (
         <section className="mt-5 sm:mt-6">
-          <h3 className="mb-2.5 text-[12px] font-semibold tracking-wide text-subtle uppercase">2 · Add an event you're into</h3>
+          <h3 className="mb-2.5 text-[12px] font-semibold tracking-wide text-subtle uppercase">{t('onboarding.campusStep2')}</h3>
           {upcoming.length === 0 ? (
             <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-[13px] text-subtle">
-              A quiet week on campus — check Community any time.
+              {t('onboarding.campusQuiet')}
             </p>
           ) : (
             <div className="max-h-[34vh] space-y-2 overflow-y-auto sm:max-h-none">
@@ -91,7 +93,7 @@ export function CommunityStep() {
             onClick={() => setShowEvents(true)}
             className="text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
           >
-            Skip — just show me events
+            {t('onboarding.campusSkip')}
           </button>
         </div>
       )}

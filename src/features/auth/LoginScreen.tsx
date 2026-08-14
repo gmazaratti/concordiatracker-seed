@@ -66,7 +66,7 @@ export function LoginScreen() {
 
           <div className="my-4 flex items-center gap-3 text-[11px] tracking-wide text-subtle uppercase">
             <span className="h-px flex-1 bg-border" aria-hidden />
-            or
+            {t('auth.or')}
             <span className="h-px flex-1 bg-border" aria-hidden />
           </div>
 
@@ -101,12 +101,12 @@ export function LoginScreen() {
             )}
 
             <Button type="submit" disabled={busy} className="mt-1 w-full">
-              {busy ? 'Signing in…' : 'Sign in'}
+              {busy ? t('auth.signingIn') : t('auth.signIn')}
             </Button>
           </form>
 
           <p className="mt-3 text-center text-[11px] text-subtle">
-            Dev sign-in — use a sandbox test account.
+            {t('auth.devNote')}
           </p>
         </div>
       </div>

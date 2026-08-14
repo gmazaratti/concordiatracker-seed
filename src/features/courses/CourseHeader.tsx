@@ -4,6 +4,7 @@ import type { Course } from '@/data/types'
 import { percentToGrade } from '@/lib/gpa'
 import { courseColor, withAlpha } from '@/lib/course-color'
 import { CourseColorPicker } from './CourseColorPicker'
+import { useT } from '@/i18n/i18n'
 
 /** Course-detail hero — a Google-Classroom-style colored banner. The class's
  * accent color is its identity here: a gradient wash carries code/title in white,
@@ -15,6 +16,7 @@ export function CourseHeader({
   course: Course
   currentPercent: number | null
 }) {
+  const t = useT()
   const graded = currentPercent === null ? null : percentToGrade(currentPercent)
   const { hex } = courseColor(course.color)
 
@@ -38,7 +40,7 @@ export function CourseHeader({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="rounded bg-white/20 px-1.5 py-0.5 text-[12px] font-semibold tracking-wide text-white">
-                {course.code || 'New course'}
+                {course.code || t('courses.newCourse')}
               </span>
               <span className="text-[12px] text-white/80">
                 {course.term} · {course.credits} credits

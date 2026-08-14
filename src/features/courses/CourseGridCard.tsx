@@ -6,6 +6,7 @@ import { courseStanding, percentToGrade } from '@/lib/gpa'
 import { relativeDueLabel } from '@/lib/date'
 import { courseColor, withAlpha } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 import { courseStats } from './course-stats'
 import { CourseCardMenu } from './CourseCardMenu'
 
@@ -19,6 +20,7 @@ export function CourseGridCard({
   course: Course
   assessments: Assessment[]
 }) {
+  const t = useT()
   const standing = courseStanding(assessments)
   const stats = courseStats(assessments)
   const graded =
@@ -55,12 +57,12 @@ export function CourseGridCard({
         />
         <div className="flex items-center gap-2 pr-8">
           <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
-            {course.code || 'New course'}
+            {course.code || t('courses.newCourse')}
           </span>
           <span className="text-[11px] text-white/80">{course.credits} cr</span>
         </div>
         <h3 className="mt-1.5 truncate font-display text-[17px] font-medium text-white">
-          {course.title || 'Untitled course'}
+          {course.title || t('courses.untitledCourse')}
         </h3>
       </div>
 

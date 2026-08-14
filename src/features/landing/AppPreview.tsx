@@ -16,6 +16,7 @@ import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
+import { useT } from '@/i18n/i18n'
 
 /** A static, non-interactive recreation of the real Today screen — built from
  * the actual mock data + shared components (CourseChip, ProvenanceBadge) so the
@@ -38,6 +39,7 @@ function dueTone(due: string): string {
 }
 
 export function AppPreview({ name }: { name?: string }) {
+  const t = useT()
   const { week, totalWeeks, percent } = termProgress(term.start, term.end)
   const overdue = dueItems.filter((a) => daysUntil(a.due) < 0)
   const thisWeek = dueItems.filter((a) => daysUntil(a.due) >= 0)
@@ -62,15 +64,15 @@ export function AppPreview({ name }: { name?: string }) {
 
         <div className="mt-4 flex items-center gap-2 rounded-md border border-border bg-canvas/60 px-2 py-1.5 text-[11px] text-subtle">
           <Search size={12} />
-          <span>Search…</span>
+          <span>{t('nav.search')}…</span>
           <span className="ml-auto rounded border border-border px-1 text-[9px]">⌘K</span>
         </div>
 
         <nav className="mt-4 space-y-0.5">
-          <NavItem icon={LayoutDashboard} label="Today" active />
-          <NavItem icon={BookOpen} label="Courses" />
-          <NavItem icon={CalendarDays} label="Calendar" />
-          <NavItem icon={Users} label="Community" />
+          <NavItem icon={LayoutDashboard} label={t('nav.today')} active />
+          <NavItem icon={BookOpen} label={t('nav.courses')} />
+          <NavItem icon={CalendarDays} label={t('nav.calendar')} />
+          <NavItem icon={Users} label={t('nav.community')} />
         </nav>
 
         <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
@@ -79,7 +81,7 @@ export function AppPreview({ name }: { name?: string }) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[11px] font-medium text-fg">{displayName}</span>
-            <span className="block text-[10px] text-subtle">Free plan</span>
+            <span className="block text-[10px] text-subtle">{t('preview.freePlan')}</span>
           </span>
         </div>
       </aside>
@@ -87,25 +89,27 @@ export function AppPreview({ name }: { name?: string }) {
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
         <header className="mb-3">
-          <p className="text-[10px] text-subtle">Monday, June 15</p>
-          <TypedGreeting text={`Good morning, ${firstName}`} />
+          <p className="text-[10px] text-subtle">{t('preview.sampleDate')}</p>
+          <TypedGreeting text={`${t('today.goodMorning')}, ${firstName}`} />
         </header>
 
         <div className="flex min-h-0 flex-1 gap-3">
           {/* Due list */}
           <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border bg-surface">
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
-              <span className="text-[11px] font-semibold tracking-wide text-fg uppercase">Due</span>
-              <span className="text-[10px] text-subtle">{dueItems.length} items</span>
+              <span className="text-[11px] font-semibold tracking-wide text-fg uppercase">{t('today.due')}</span>
+              <span className="text-[10px] text-subtle">
+                {dueItems.length} {t('today.itemMany')}
+              </span>
             </div>
-            <GroupLabel tone="danger">Overdue</GroupLabel>
+            <GroupLabel tone="danger">{t('today.overdue')}</GroupLabel>
             <ul className="divide-y divide-border">
               {overdue.map((a) => (
                 <PreviewRow key={a.id} a={a} />
               ))}
             </ul>
             <GroupLabel tone="muted" divider>
-              This week
+              {t('today.thisWeek')}
             </GroupLabel>
             <ul className="divide-y divide-border">
               {thisWeek.map((a) => (
@@ -118,21 +122,26 @@ export function AppPreview({ name }: { name?: string }) {
           <div className="hidden w-44 shrink-0 flex-col gap-2 lg:flex">
             <div className="overflow-hidden rounded-xl border border-border/60 bg-surface/50">
               <p className="border-b border-border/60 px-3 py-2 text-[10px] font-semibold tracking-wide text-subtle uppercase">
-                At a glance
+                {t('today.atAGlance')}
               </p>
               <div className="space-y-2.5 border-b border-border/60 px-3 py-2.5">
-                <Bar label={term.name} value={`Week ${week} of ${totalWeeks}`} percent={percent} />
-                <Bar label="Today's progress" value="1 done · 7 to go" percent={12} accent />
+                <Bar label={term.name} value={t('today.weekOf', { week, total: totalWeeks })} percent={percent} />
+                <Bar
+                  label={t('today.todaysProgress')}
+                  value={t('today.doneToGo', { done: 1, left: 7 })}
+                  percent={12}
+                  accent
+                />
               </div>
               <div className="divide-y divide-border/60">
-                <Stat label="Current GPA" value={gpa ? gpa.toFixed(2) : '—'} hint="/ 4.30" />
-                <Stat label="Overdue" value={String(overdue.length)} danger />
-                <Stat label="Due this week" value={String(dueItems.length)} />
+                <Stat label={t('preview.currentGpa')} value={gpa ? gpa.toFixed(2) : '—'} hint="/ 4.30" />
+                <Stat label={t('today.overdue')} value={String(overdue.length)} danger />
+                <Stat label={t('today.dueThisWeek')} value={String(dueItems.length)} />
               </div>
             </div>
             <div className="rounded-xl border border-accent/30 bg-accent-soft px-3 py-2.5">
-              <p className="text-[11px] font-semibold text-fg">7 things due this week</p>
-              <p className="mt-0.5 text-[10px] text-muted">See where to spend your energy.</p>
+              <p className="text-[11px] font-semibold text-fg">{t('preview.painTitle')}</p>
+              <p className="mt-0.5 text-[10px] text-muted">{t('preview.painBody')}</p>
             </div>
           </div>
         </div>

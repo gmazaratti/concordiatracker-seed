@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select'
 import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
 import { programById } from '@/data/programs'
 import { Group, Row } from '../controls'
+import { useT } from '@/i18n/i18n'
 
 const COOLDOWN_MS = 14 * 86_400_000
 const DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -35,6 +36,7 @@ const SCHOOLS = [
 ]
 
 export function AccountSection() {
+  const t = useT()
   const { user, updateProfile } = useAppData()
   const { signOut } = useAuth()
 
@@ -53,7 +55,7 @@ export function AccountSection() {
         </div>
       </div>
 
-      <Group label="Profile">
+      <Group label={t('settings.profile')}>
         <Row label="Display name" description="Shown across your dashboard." stacked>
           <input
             value={user.name}
@@ -91,7 +93,7 @@ export function AccountSection() {
         </Row>
       </Group>
 
-      <Group label="Account">
+      <Group label={t('settings.account')}>
         <Row label="Sign out" description="End your session on this device.">
           <button
             type="button"

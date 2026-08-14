@@ -52,7 +52,7 @@ export function WeekView({
                 className="flex items-center justify-between gap-1 border-b border-border px-2.5 py-2 text-left transition-colors duration-150 hover:bg-surface-2/40 focus-visible:outline-none focus-visible:bg-surface-2/60"
               >
                 <span className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                  {WEEKDAYS[day.getDay()]}
+                  {WEEKDAYS()[day.getDay()]}
                 </span>
                 <span
                   className={cn(

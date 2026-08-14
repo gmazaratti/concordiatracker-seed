@@ -1,17 +1,19 @@
 import { Link } from 'react-router-dom'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { UpgradeChip } from '@/components/UpgradeChip'
+import { useT } from '@/i18n/i18n'
 
 /** Shown ONLY in the pain moment: lots due at once, on the free plan. It points
  * to the GPA predictor (a paid feature that lives in Courses) so the value prop
  * lands when it's actually felt, not as a persistent banner. On mobile it
  * collapses to a slim one-line chip so it stays visible without eating space. */
 export function PainNudge({ count }: { count: number }) {
+  const t = useT()
   return (
     <>
       <UpgradeChip
         icon={Sparkles}
-        label="Predict your GPA"
+        label={t('today.predictGpa')}
         to="/app/courses"
         className="ct-animate-fade sm:hidden"
       />
@@ -24,11 +26,11 @@ export function PainNudge({ count }: { count: number }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-medium text-fg">
-          {count} things due this week — see where to spend your energy
+          {t('today.painTitle', { count })}
         </p>
         <p className="text-[12px] text-muted">
-          The GPA predictor shows which deadlines move your grade most.
-          <span className="ml-1 text-accent">Semester pass</span>
+          {t('today.painBody')}
+          <span className="ml-1 text-accent">{t('today.semesterPass')}</span>
         </p>
       </div>
       <ArrowRight

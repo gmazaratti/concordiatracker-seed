@@ -9,8 +9,10 @@ import { daysUntil } from '@/lib/date'
 import { isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import { ACADEMIC_META, type CalendarItem } from './calendar'
+import { formatTime } from '@/lib/date'
+import { useT } from '@/i18n/i18n'
 
-const TIME = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
+const TIME = { format: (d: Date) => formatTime(d) }
 
 /** One detailed event row — the shared building block of the agenda and the day
  * detail modal. Assignments carry a done-check, course chip and full provenance,
@@ -26,6 +28,7 @@ export function ItemRow({
   /** The day modal passes its close fn so opening an assessment doesn't stack. */
   closeBeforeOpen?: () => void
 }) {
+  const t = useT()
   const { setStatus, toggleTask, removeTask } = useAppData()
   const { openAssessment } = useQuickActions()
 
@@ -75,7 +78,7 @@ export function ItemRow({
             overdue ? 'text-danger' : 'text-subtle',
           )}
         >
-          {overdue ? 'Overdue' : TIME.format(new Date(a.due))}
+          {overdue ? t('today.overdue') : TIME.format(new Date(a.due))}
         </span>
       </div>
     )
@@ -129,7 +132,7 @@ export function ItemRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-medium text-fg">{e.title}</p>
-        <p className="mt-0.5 text-[11px] text-subtle">Concordia · {meta.label}</p>
+        <p className="mt-0.5 text-[11px] text-subtle">Concordia · {t(meta.labelKey)}</p>
       </div>
     </div>
   )

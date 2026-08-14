@@ -18,6 +18,9 @@ export interface I18nContextValue {
   t: (key: Key, vars?: Vars) => string
 }
 
+/** The translate function itself — for helpers that build copy outside a component. */
+export type T = I18nContextValue['t']
+
 export const I18nContext = createContext<I18nContextValue | null>(null)
 
 export function useI18n(): I18nContextValue {
