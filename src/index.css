@@ -135,19 +135,67 @@ html {
 
   --ct-brand: #46785a;
 
-  /* status — deepened for legibility on white */
-  --ct-success: #1f9d6b;
-  --ct-warning: #a8730f;
+  /* status — deepened for legibility on white. These were 3.45:1 and 4.10:1
+   * against the white surface, i.e. below WCAG AA for body text; they are now
+   * 5.6:1 and 5.8:1. Provenance labels use the same values, so an "Official"
+   * badge was among the things failing. */
+  --ct-success: #13774f;
+  --ct-warning: #8a5d0a;
   --ct-danger: #d33f43;
   --ct-info: #2f6fce;
 
-  --ct-prov-official: #1f9d6b;
+  --ct-prov-official: #13774f;
   --ct-prov-confirmed: #2f6fce;
-  --ct-prov-unverified: #a8730f;
+  --ct-prov-unverified: #8a5d0a;
 
   /* elevation — soft, low-opacity (light themes need gentle shadows) */
   --ct-shadow:
     0 1px 2px rgba(20, 30, 20, 0.06), 0 12px 28px -10px rgba(20, 30, 20, 0.16);
+}
+
+/* ---- Light rose theme: warm off-white, deep rose accent ---- */
+[data-theme='rose'] {
+  color-scheme: light;
+
+  /* surfaces — a pink-tinted off-white page over white cards. The tint is very
+   * low-saturation on purpose: a strong pink background fights every piece of
+   * content sitting on it. */
+  --ct-canvas: #fdf6f8;
+  --ct-surface: #ffffff;
+  --ct-surface-2: #f7e9ee;
+  --ct-border: #f0dde4;
+  --ct-border-strong: #ddc0cc;
+
+  /* text — near-black with a warm cast; subtle is tuned to clear WCAG AA on
+   * BOTH the white surface (5.3:1) and the tinted canvas (4.9:1) */
+  --ct-fg: #221a1d;
+  --ct-muted: #5c4a51;
+  --ct-subtle: #7a6670;
+
+  /* accent — deep rose, dark enough to carry white button text (4.7:1 on white).
+   * The pale pinks that suit the background can't do that, which is why the
+   * accent is a full shade deeper than the canvas suggests. */
+  --ct-accent: #c04a72;
+  --ct-accent-hover: #a83c62;
+  --ct-accent-contrast: #ffffff;
+  --ct-accent-soft: rgba(192, 74, 114, 0.12);
+  --ct-accent-ring: rgba(192, 74, 114, 0.45);
+
+  --ct-brand: #c04a72;
+
+  /* status — danger is pushed toward orange-red so it never reads as a variant
+   * of the rose accent, which a crimson would */
+  --ct-success: #13774f;
+  --ct-warning: #8a5d0a;
+  --ct-danger: #cf3a2f;
+  --ct-info: #2f6fce;
+
+  --ct-prov-official: #13774f;
+  --ct-prov-confirmed: #2f6fce;
+  --ct-prov-unverified: #8a5d0a;
+
+  --ct-shadow:
+    0 1px 2px rgba(60, 20, 35, 0.06), 0 12px 28px -10px rgba(60, 20, 35, 0.16);
 }
 
 /* ---- Purple-dark theme: dark-navy depth, vivid purple accent ---- */

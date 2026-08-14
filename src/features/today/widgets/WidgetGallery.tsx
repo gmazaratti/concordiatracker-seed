@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, type WidgetContext } from './registry'
 
@@ -23,14 +24,21 @@ export function WidgetGallery({
     (w) => !layout.includes(w.id) && (w.availableWhen?.(ctx) ?? true),
   )
 
-  const move = (from: number, delta: number) => {
-    const to = from + delta
-    if (to < 0 || to >= layout.length) return
+  // Native HTML5 drag — no library, which keeps the "no animation/drag deps"
+  // rule intact. The arrow buttons stay: dragging is unusable by keyboard and on
+  // many touch devices, so it's the enhancement, not the only way to reorder.
+  const [dragging, setDragging] = useState<number | null>(null)
+  const [over, setOver] = useState<number | null>(null)
+
+  const reorder = (from: number, to: number) => {
+    if (to < 0 || to >= layout.length || from === to) return
     const next = [...layout]
     const [item] = next.splice(from, 1)
     next.splice(to, 0, item)
     onChange(next)
   }
+
+  const move = (from: number, delta: number) => reorder(from, from + delta)
 
   return (
     <div>
@@ -50,8 +58,37 @@ export function WidgetGallery({
             return (
               <li
                 key={id}
-                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
+                draggable
+                onDragStart={(e) => {
+                  setDragging(i)
+                  e.dataTransfer.effectAllowed = 'move'
+                  // Firefox refuses to start a drag without payload.
+                  e.dataTransfer.setData('text/plain', id)
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (dragging !== null && over !== i) setOver(i)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  if (dragging !== null) reorder(dragging, i)
+                  setDragging(null)
+                  setOver(null)
+                }}
+                onDragEnd={() => {
+                  setDragging(null)
+                  setOver(null)
+                }}
+                className={cn(
+                  'flex cursor-grab items-center gap-2 rounded-lg border bg-surface px-2.5 py-1.5 transition-colors duration-150 active:cursor-grabbing',
+                  dragging === i
+                    ? 'border-accent/50 opacity-40'
+                    : over === i && dragging !== null
+                      ? 'border-accent bg-accent-soft'
+                      : 'border-border',
+                )}
               >
+                <GripVertical size={13} className="shrink-0 text-subtle" aria-hidden />
                 <Icon size={13} className="shrink-0 text-subtle" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg">{w.name}</span>
                 <button

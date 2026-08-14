@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, RotateCcw } from 'lucide-react'
-import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { ThemePicker } from '@/components/ThemePicker'
 import { useUpdates } from '@/app/providers/updates'
 import { useCommandPalette } from '@/app/providers/command-palette'
 import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palette'
@@ -26,7 +26,7 @@ export function GeneralSection() {
     <div>
       <Group label={t('settings.appearance')}>
         <Row label={t('settings.theme')} description="Swaps the whole product from one token set." stacked>
-          <ThemeSwitcher />
+          <ThemePicker />
         </Row>
       </Group>
 
