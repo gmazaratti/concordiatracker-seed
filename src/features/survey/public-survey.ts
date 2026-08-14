@@ -145,6 +145,111 @@ export function sourceFromUrl(): string | null {
   }
 }
 
+// ── Personalised result ──────────────────────────────────────────────────────
+
+export interface Pitch {
+  id: string
+  /** Their problem, said back to them in their words. */
+  problem: string
+  /** What actually changes — must map to a feature that really exists. */
+  answer: string
+  /** How strongly this applies; used to order and trim the list. */
+  score: number
+}
+
+const has = (a: PublicSurveyAnswers, id: string, option: string) =>
+  (a.answers[id] ?? '').includes(option)
+
+/**
+ * Turn their answers into a short, honest "here's what would change for you".
+ *
+ * Every claim below points at something the product genuinely does today — no
+ * roadmap promises. Rules are scored so the sharpest pain leads, and only the
+ * top few are shown; a wall of cards reads like a brochure.
+ */
+export function buildPitch(a: PublicSurveyAnswers): Pitch[] {
+  const r = a.ratings
+  const out: Pitch[] = []
+  const push = (id: string, score: number, problem: string, answer: string) => {
+    if (score > 0) out.push({ id, problem, answer, score })
+  }
+
+  if ((r.stress ?? 0) >= 4) {
+    push(
+      'stress',
+      (r.stress ?? 0) * 2,
+      'Deadlines are stressing you out.',
+      'Most of that stress is not knowing what’s coming. Your term gets charted week by week — weighted by how much each thing is actually worth — so you can see the brutal week a month before it lands instead of the night before.',
+    )
+  }
+  if ((r.uncertainty ?? 0) >= 4) {
+    push(
+      'uncertainty',
+      (r.uncertainty ?? 0) * 2,
+      'You’re often not sure what’s due.',
+      'You upload the syllabus once and every date, weight, and deadline comes out structured — no copying into a calendar. Dates carry a badge showing whether they came from the professor or from classmates, so you know what to trust.',
+    )
+  }
+  if ((r.grade_clarity ?? 3) <= 2) {
+    push(
+      'grade_clarity',
+      (3 - (r.grade_clarity ?? 3)) * 3,
+      'You don’t really know where you stand in your classes.',
+      'Enter a grade and your standing updates instantly — including exactly what you need on everything left to hit the grade you want. That calculator is free, and it shows its arithmetic so you can check it.',
+    )
+  }
+  if ((r.scattered ?? 0) >= 4) {
+    push(
+      'scattered',
+      (r.scattered ?? 0) * 1.5,
+      'Your course info is spread across too many places.',
+      'Moodle, eConcordia, a PDF, an email — it all ends up in one screen, alongside Concordia’s official academic dates so add/drop and exam periods aren’t a separate thing to remember.',
+    )
+  }
+  if (has(a, 'missed', 'missed')) {
+    push(
+      'missed',
+      has(a, 'missed', 'Yes, missed it') ? 7 : 4,
+      'You’ve missed — or nearly missed — something.',
+      'You can set reminders that reach your phone before things are due, so it doesn’t come down to remembering at the right moment.',
+    )
+  }
+  if (has(a, 'tools', 'Nothing')) {
+    push(
+      'no_system',
+      5,
+      'You’re running on memory right now.',
+      'That works until the week three things land at once. Setting this up is one syllabus upload per class — not an afternoon of building a system.',
+    )
+  }
+  if (has(a, 'tools', 'Notion')) {
+    push(
+      'notion',
+      4,
+      'You’re keeping it together in Notion.',
+      'Notion is great, but you built that yourself and you maintain it yourself. This arrives already knowing what a weighted grade is, when Concordia’s deadlines are, and what your syllabus said.',
+    )
+  }
+  if (has(a, 'price', 'free')) {
+    push(
+      'free',
+      3,
+      'You’d rather not pay for another thing.',
+      'Then don’t. Deadline tracking, grade tracking, and the grade-needed calculator are free with no time limit — the paid tier is only the extras on top.',
+    )
+  }
+
+  return out.sort((x, y) => y.score - x.score).slice(0, 3)
+}
+
+/** One-line summary above the cards, matched to their sharpest pain. */
+export function pitchHeadline(pitches: Pitch[]): string {
+  if (pitches.length === 0) {
+    return 'Sounds like you’ve got a system that works — genuinely, that’s rarer than you’d think.'
+  }
+  return 'Based on what you said, here’s what would actually change:'
+}
+
 export async function submitPublicSurvey(a: PublicSurveyAnswers): Promise<void> {
   const answers: Record<string, string> = {}
   for (const [k, v] of Object.entries(a.answers)) {

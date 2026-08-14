@@ -6,7 +6,7 @@ import { useIsAdmin } from '@/features/admin/admin-data'
 import { RequestsBoard } from './RequestsBoard'
 import { BugChannel } from './BugChannel'
 import { PinRequestsToast } from './PinRequestsToast'
-import { SurveyPanel } from './survey/SurveyPanel'
+import { SurveyTab } from './survey/SurveyTab'
 import { cn } from '@/lib/cn'
 
 const SURVEY_DAYS = 3
@@ -68,7 +68,7 @@ export function AppRequestsPage() {
       </div>
 
       {current !== 'survey' && <SurveyNudge onGo={() => select('survey')} />}
-      {current === 'requests' ? <RequestsBoard /> : current === 'bugs' ? <BugChannel /> : <SurveyPanel />}
+      {current === 'requests' ? <RequestsBoard /> : current === 'bugs' ? <BugChannel /> : <SurveyTab />}
       {current === 'requests' && <PinRequestsToast />}
     </div>
   )
