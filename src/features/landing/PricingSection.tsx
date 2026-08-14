@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
+import { STRIPE_TEST_MODE } from '@/lib/billing'
 import { useT } from '@/i18n/i18n'
 
 /** Pricing: the semester pass is the hero (one price for the whole term); the
@@ -51,7 +52,7 @@ export function PricingSection() {
         </div>
 
         <p className="mt-6 text-center text-[12px] text-subtle">
-          {t('pricing.mockNote')}
+          {STRIPE_TEST_MODE ? t('pricing.testModeNote') : t('pricing.liveNote')}
         </p>
       </div>
     </section>

@@ -47,8 +47,8 @@ export const fr: Partial<Record<Key, string>> = {
 
   // ── Landing ───────────────────────────────────────────────────────────────
   'landing.eyebrow': 'Pour les étudiants de Concordia',
-  'landing.heroTitle': 'Ne devinez plus ce qui est',
-  'landing.heroTitleAccent': 'à remettre',
+  'landing.heroTitle': 'Ne devinez plus vos',
+  'landing.heroTitleAccent': 'échéances',
   'landing.heroSub':
     'Téléversez un plan de cours et retrouvez chaque échéance, pondération et note au même endroit — conçu pour le fonctionnement réel de Concordia.',
   'landing.ctaPrimary': 'Ouvrir l’application',
@@ -281,8 +281,8 @@ export const fr: Partial<Record<Key, string>> = {
   'pricing.paid3': 'Votre position pour toute la session, tous cours confondus',
   'pricing.paid4': 'Gagnez des crédits de thème en partageant vos plans',
 
-  'onboarding.welcomeHead': 'Ne devinez plus',
-  'onboarding.welcomeHeadAccent': 'ce qui est à remettre',
+  'onboarding.welcomeHead': 'Ne devinez plus vos',
+  'onboarding.welcomeHeadAccent': 'échéances',
   'onboarding.welcomeSub': 'ConcordiaTracker réunit chaque échéance et chaque note au même endroit, au calme.Préparons votre compte en une minute.',
   'onboarding.doneHead': 'Tout est prêt',
   'onboarding.doneSub': 'Voilà l’essentiel — le reste viendra en cours de route. Direction Aujourd’hui.',
@@ -468,10 +468,12 @@ export const fr: Partial<Record<Key, string>> = {
   'preview.painTitle': '7 choses à remettre cette semaine',
   'preview.painBody': 'Voyez où investir votre énergie.',
   'preview.currentGpa': 'Moyenne actuelle',
-  'pricing.mockNote': 'Paiement simulé — il s’agit d’une version de démonstration. Aucune carte n’est débitée.',
 
   'auth.signingIn': 'Connexion…',
   'auth.devNote': 'Connexion de développement — utilisez un compte de test.',
+
+  'pricing.testModeNote': 'Mode test — les paiements ne sont pas encore activés. Aucune carte n’est débitée.',
+  'pricing.liveNote': 'Paiement sécurisé par Stripe · Annulable à tout moment',
 
   // -- Status --
   'status.notStarted': 'À faire',

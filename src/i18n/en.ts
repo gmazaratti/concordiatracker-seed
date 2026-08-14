@@ -461,10 +461,12 @@ export const en = {
   'preview.painTitle': '7 things due this week',
   'preview.painBody': 'See where to spend your energy.',
   'preview.currentGpa': 'Current GPA',
-  'pricing.mockNote': 'Mock checkout — this is a seed build. No card is charged.',
 
   'auth.signingIn': 'Signing in…',
   'auth.devNote': 'Dev sign-in — use a sandbox test account.',
+
+  'pricing.testModeNote': 'Test mode — payments are not live yet. No card is charged.',
+  'pricing.liveNote': 'Secure checkout by Stripe · Cancel anytime',
 
   // -- Status --
   'status.notStarted': 'Not started',

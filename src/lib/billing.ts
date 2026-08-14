@@ -86,6 +86,17 @@ export function startCardUpdate(): Promise<{ clientSecret: string }> {
 /** Is billing wired up in this environment? (No key → keep the mock UI honest.) */
 export const BILLING_ENABLED = !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
+/**
+ * True while the site is pointed at Stripe's test mode. Derived from the
+ * publishable key itself rather than a hand-maintained flag, so the pricing
+ * page can never claim "no card is charged" after the live keys go in — or,
+ * worse, imply real charges while only test cards work. Swapping the key in
+ * Vercel flips the copy on the next deploy with nothing else to remember.
+ */
+export const STRIPE_TEST_MODE = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '').startsWith(
+  'pk_test_',
+)
+
 export function money(cents: number | null, currency = 'cad'): string {
   if (cents === null) return '—'
   return new Intl.NumberFormat('en-CA', {
