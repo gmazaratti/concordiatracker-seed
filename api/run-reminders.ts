@@ -40,6 +40,39 @@ function adminBody(d: AdminDigest): string {
   return parts.join(' · ')
 }
 
+interface TrialEnding {
+  user_id: string
+  trial_end: string
+  amount_cents: number | null
+}
+
+/**
+ * "$15.00 CAD on Aug 21" — the two facts that stop a charge being a surprise.
+ *
+ * Always en-CA: the language preference lives in the browser, not the database,
+ * so the server has nothing to localize against.
+ *
+ * "CAD" is appended explicitly because en-CA formats CAD as a bare "$", which a
+ * student can easily read as USD — the exact ambiguity this message exists to
+ * remove. Dates render in Montreal time, not the server's UTC, so a trial ending
+ * at 02:00Z doesn't get announced as the following day.
+ */
+function trialBody(t: TrialEnding): string {
+  const when = new Intl.DateTimeFormat('en-CA', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'America/Toronto',
+  }).format(new Date(t.trial_end))
+  const amount =
+    t.amount_cents === null
+      ? null
+      : new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(
+          t.amount_cents / 100,
+        )
+  const charge = amount ? `${amount} CAD on ${when}` : `Your subscription starts ${when}`
+  return `${charge} · Cancel any time in Billing`
+}
+
 const BATCH = 200
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,6 +168,46 @@ export default async function handler(req: any, res: any) {
       headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ sent_at: new Date().toISOString() }),
     })
+  }
+
+  // Trial-ending warnings — 24h before the card is charged. The RPC claims the
+  // rows as it returns them, so overlapping ticks can't double-send. Best-effort:
+  // a failure here must never block reminders.
+  let trialSent = 0
+  try {
+    const trialRes = await fetch(`${supabaseUrl}/rest/v1/rpc/trial_ending_soon`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (trialRes.ok) {
+      const ending = (await trialRes.json()) as TrialEnding[]
+      for (const t of ending) {
+        const subs = await subsFor(t.user_id)
+        const payload = JSON.stringify({
+          title: 'Your free trial ends tomorrow',
+          body: trialBody(t),
+          url: '/app?settings=billing',
+          // Keyed to the trial so a re-armed second trial isn't collapsed into
+          // the first one's notification.
+          tag: `ct-trial-${t.trial_end}`,
+        })
+        for (const s of subs) {
+          try {
+            await webpush.sendNotification(
+              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+              payload,
+            )
+            trialSent++
+          } catch (err: unknown) {
+            const code = (err as { statusCode?: number })?.statusCode
+            if (code === 404 || code === 410) stale.add(s.endpoint)
+          }
+        }
+      }
+    }
+  } catch {
+    /* trial warnings are best-effort — never block reminders */
   }
 
   // Admin activity digest — one consolidated push per admin with new activity
