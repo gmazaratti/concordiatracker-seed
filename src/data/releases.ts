@@ -26,6 +26,17 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.22.0',
+    name: 'Payments live, and français',
+    date: '2026-08-14',
+    changes: [
+      { kind: 'new', text: 'ConcordiaTracker now speaks French. Pick your language during setup or any time in Settings → General — the whole app follows, dates included ("Dû demain", "2 jours de retard"), and so does the public site.' },
+      { kind: 'new', text: 'Checkout is live. The Semester pass ($15 CAD) and monthly ($5 CAD) are real payments now, taken inside the app.' },
+      { kind: 'new', text: 'Every plan opens with a 3-day free trial. A card is required up front, nothing is charged until the trial ends, and cancelling before then costs you nothing.' },
+      { kind: 'fixed', text: 'The pricing page no longer describes checkout as a mock — it now reflects whether payments are actually live, on its own.' },
+    ],
+  },
+  {
     version: '1.21.0',
     name: 'Go Pro',
     date: '2026-07-27',
