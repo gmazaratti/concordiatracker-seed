@@ -1,6 +1,7 @@
 import { Check, Globe, Lock } from 'lucide-react'
 import { THEMES, useTheme } from '@/app/providers/theme'
 import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
+import { useI18n, LANGS } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { HANDLE_RE } from './handle'
 
@@ -161,8 +162,40 @@ function VisibilityOption({
  * rest of the seed, so it resets to the default on a hard reload. */
 export function ThemeStep() {
   const { theme, setTheme } = useTheme()
+  const { lang, setLang, t } = useI18n()
   return (
-    <Centered heading="Pick your look" sub="Choose a theme — tap one and the whole app reskins instantly. You can change it any time in Settings.">
+    <Centered
+      heading="Make it yours"
+      sub="Pick a look and a language — tap a theme and the whole app reskins instantly. Both are changeable any time in Settings."
+    >
+      {/* Language sits with appearance rather than getting its own step: it's a
+          preference, not a decision worth interrupting signup for. English is
+          the default; French is offered here so nobody has to go hunting. */}
+      <div className="mt-1 mb-4 rounded-xl border border-border bg-surface p-3.5 text-left">
+        <p className="mb-2 text-[13px] font-medium text-fg">{t('settings.language')}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {LANGS.map((l) => {
+            const active = l.id === lang
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setLang(l.id)}
+                aria-pressed={active}
+                className={cn(
+                  'flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium transition-colors duration-150',
+                  active
+                    ? 'border-accent bg-accent-soft text-fg'
+                    : 'border-border text-muted hover:border-border-strong hover:text-fg',
+                )}
+              >
+                {l.label}
+                {active && <Check size={14} className="text-accent" aria-hidden />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div className="mt-1 grid grid-cols-2 gap-3">
         {THEMES.map((opt) => {
           const selected = opt.id === theme

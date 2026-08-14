@@ -5,6 +5,7 @@ import { useQuickActions } from '@/app/providers/quick-actions'
 import { ACADEMIC_CALENDAR } from '@/data/academic-calendar'
 import { term } from '@/data/mock'
 import { Segmented } from '@/features/settings/controls'
+import { useT } from '@/i18n/i18n'
 import { MONTHS, addDays, weekDays, type CalendarSource } from './calendar'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
@@ -29,6 +30,7 @@ function weekLabel(cursor: Date): string {
 /** Calendar — personal deadlines + the official Concordia academic calendar as
  * two toggleable layers, across Month / Week / Agenda views. */
 export function CalendarPage() {
+  const t = useT()
   const { assessments, personalTasks, courseById, calendarPrefs, updateCalendarPrefs } = useAppData()
   const { openAssessment } = useQuickActions()
   const [cursor, setCursor] = useState(() => new Date())
@@ -67,7 +69,7 @@ export function CalendarPage() {
           <div>
             <p className="text-[12px] text-subtle">{term.name}</p>
             <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-              Calendar
+              {t('calendar.title')}
             </h1>
           </div>
           <Segmented

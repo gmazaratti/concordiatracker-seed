@@ -7,6 +7,7 @@ import { term } from '@/data/mock'
 import { coursePercent, currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
+import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { CourseCard } from './CourseCard'
 import { CourseGridCard } from './CourseGridCard'
@@ -19,6 +20,7 @@ import { TranscriptView } from './TranscriptView'
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
  * A term-standing rail sits alongside, in the same two-column language as Today. */
 export function CoursesPage() {
+  const t = useT()
   const { plan, courses, pastCourses, assessments, coursesView, setCoursesView } = useAppData()
   const [chooserOpen, setChooserOpen] = useState(false)
   const [showPast, setShowPast] = useState(false)
@@ -43,7 +45,7 @@ export function CoursesPage() {
         <div>
           <p className="text-[12px] text-subtle">{term.name}</p>
           <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-            Courses
+            {t('courses.title')}
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -57,7 +59,7 @@ export function CoursesPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />
-            Import syllabus
+            {t('courses.importSyllabus')}
           </Link>
         </div>
       </header>

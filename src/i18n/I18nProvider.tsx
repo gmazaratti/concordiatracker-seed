@@ -7,19 +7,21 @@ const STORAGE_KEY = 'ct_lang'
 
 const DICTS: Record<Lang, Partial<Record<Key, string>>> = { en, fr }
 
-/** Saved language, else the browser's preference, else English. */
+/**
+ * Saved language, else English.
+ *
+ * Deliberately does NOT sniff navigator.language: most Concordia students use
+ * the app in English, and silently serving a French UI to anyone whose browser
+ * happens to be set to French surprises more people than it helps. French is a
+ * first-class choice — offered during onboarding and always in Settings — just
+ * not an automatic one.
+ */
 function initialLang(): Lang {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved && LANGS.some((l) => l.id === saved)) return saved as Lang
   } catch {
     /* localStorage unavailable */
-  }
-  try {
-    // A Montreal visitor whose browser is set to French should land in French.
-    if (navigator.language?.toLowerCase().startsWith('fr')) return 'fr'
-  } catch {
-    /* navigator unavailable */
   }
   return 'en'
 }

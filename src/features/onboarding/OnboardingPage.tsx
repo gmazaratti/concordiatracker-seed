@@ -11,6 +11,7 @@ import { CommunityStep } from './CommunityStep'
 import { SetupStep, ThemeStep } from './OnboardingSetup'
 import { HANDLE_RE, useHandleCheck } from './handle'
 import type { ProgramSelection } from '@/components/ui/ProgramPicker'
+import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
 // 4 setup steps + 6 intro steps.
@@ -27,6 +28,7 @@ const STEP_DONE = 9
 const TOTAL = 10
 
 export function OnboardingPage() {
+  const t = useT()
   const { user, onboardingCompleted, completeOnboarding } = useAppData()
   // (program is collected via the searchable picker — structured, not free text)
   const navigate = useNavigate()
@@ -149,7 +151,11 @@ export function OnboardingPage() {
     )
   }
 
-  const label = isLast ? 'Enter ConcordiaTracker' : isSetup || step === STEP_COURSE ? 'Continue' : 'Next'
+  const label = isLast
+    ? t('onboarding.enterApp')
+    : isSetup || step === STEP_COURSE
+      ? t('common.continue')
+      : t('common.next')
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
@@ -166,7 +172,7 @@ export function OnboardingPage() {
             className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
           >
             <ArrowLeft size={16} aria-hidden />
-            Back
+            {t('common.back')}
           </button>
         ) : (
           <span />
@@ -179,7 +185,7 @@ export function OnboardingPage() {
             onClick={() => void skip()}
             className="text-[13px] font-medium text-subtle transition-colors duration-150 hover:text-fg"
           >
-            Skip tour
+            {t('onboarding.skipTour')}
           </button>
         )}
       </header>
@@ -232,23 +238,23 @@ export function OnboardingPage() {
             onClick={() => setStep((s) => s + 1)}
             className="text-[12px] text-subtle transition-colors duration-150 hover:text-fg"
           >
-            I'll add courses later
+            {t('onboarding.addLater')}
           </button>
         )}
-        <Stepper total={TOTAL} current={step} />
+        <Stepper total={TOTAL} current={step} label={t('onboarding.progress')} />
       </footer>
     </div>
   )
 }
 
-function Stepper({ total, current }: { total: number; current: number }) {
+function Stepper({ total, current, label }: { total: number; current: number; label: string }) {
   return (
     <div
       role="progressbar"
       aria-valuenow={current + 1}
       aria-valuemin={1}
       aria-valuemax={total}
-      aria-label="Onboarding progress"
+      aria-label={label}
       className="flex w-full max-w-[320px] items-center gap-1.5"
     >
       {Array.from({ length: total }).map((_, i) => (
