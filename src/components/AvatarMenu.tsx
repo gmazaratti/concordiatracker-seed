@@ -23,6 +23,7 @@ import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { ThemeSwitcher } from './ThemeSwitcher'
+import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
 /** The people who built this — badged "Founder" with a verification seal in
@@ -48,6 +49,7 @@ export function AvatarMenu({
   const { isAdmin } = useIsAdmin()
   const { myOrg } = useTeacher()
   const { start } = useTour()
+  const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -138,7 +140,7 @@ export function AvatarMenu({
               openSettings()
             }}
           >
-            Settings
+            {t('nav.settings')}
           </MenuButton>
           <MenuButton
             icon={Megaphone}
@@ -148,10 +150,10 @@ export function AvatarMenu({
               openHistory()
             }}
           >
-            What's new
+            {t('nav.whatsNew')}
           </MenuButton>
           <MenuLink to="/app/requests" icon={MessagesSquare} onSelect={() => setOpen(false)}>
-            Feedback
+            {t('nav.feedback')}
           </MenuLink>
           <MenuButton
             icon={Compass}
@@ -160,34 +162,34 @@ export function AvatarMenu({
               start(TOUR_STEPS)
             }}
           >
-            Take a tour
+            {t('nav.takeTour')}
           </MenuButton>
           {/* Deferred contexts — admin-only so regular users don't wander into the
            * half-wired teacher/organizer flows. (Their routes also gate access.) */}
           {isAdmin && (
             <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
-              Teacher portal
+              {t('nav.teacherPortal')}
             </MenuLink>
           )}
           {/* Visible to anyone who owns or helps run an org (not just admin). */}
           {(isAdmin || myOrg) && (
             <MenuLink to="/organizer" icon={CalendarDays} onSelect={() => setOpen(false)}>
-              Organizer portal
+              {t('nav.organizerPortal')}
             </MenuLink>
           )}
           {/* Admin-only — hidden for everyone but the platform administrator. The
            * route + every RPC are independently gated, so this is the UX layer only. */}
           {isAdmin && (
             <MenuLink to="/admin" icon={ShieldCheck} onSelect={() => setOpen(false)}>
-              Admin Panel
+              {t('nav.adminPanel')}
             </MenuLink>
           )}
           <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
-            Landing page
+            {t('nav.landing')}
           </MenuLink>
 
           <div className="my-1.5 px-1">
-            <p className="px-1 pb-1 text-[11px] text-subtle">Theme</p>
+            <p className="px-1 pb-1 text-[11px] text-subtle">{t('settings.theme')}</p>
             <ThemeSwitcher showLabels={false} />
           </div>
 
@@ -215,7 +217,7 @@ export function AvatarMenu({
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
           >
             <LogOut size={16} aria-hidden />
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
       )}

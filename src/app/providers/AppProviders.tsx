@@ -1,4 +1,5 @@
 import { ThemeProvider } from './ThemeProvider'
+import { I18nProvider } from '@/i18n/I18nProvider'
 import { CommandPaletteProvider } from './CommandPaletteProvider'
 import { AppDataProvider } from './AppDataProvider'
 import { UiStateProvider } from './UiStateProvider'
@@ -12,6 +13,7 @@ import { TeacherProvider } from './TeacherProvider'
 /** Single composition point for cross-cutting providers. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
+    <I18nProvider>
     <ThemeProvider>
       <AppDataProvider>
         <UiStateProvider>
@@ -31,5 +33,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         </UiStateProvider>
       </AppDataProvider>
     </ThemeProvider>
+    </I18nProvider>
   )
 }

@@ -7,11 +7,11 @@ import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palett
 import { cn } from '@/lib/cn'
 import { Group, Row, Switch, Segmented } from '../controls'
 import { PushControl } from './PushControl'
-
-type Lang = 'en' | 'fr'
+import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 
 /** General: appearance, lightweight preferences, notifications, updates, and the
- * English/French toggle (i18n stubbed — full translation lands later). */
+ * real English/French switch. Untranslated strings fall back to English, so the
+ * French interface is always usable while the translation is completed. */
 export function GeneralSection() {
   const { currentVersion, showIndicator, notificationsEnabled, setNotificationsEnabled, openHistory } =
     useUpdates()
@@ -20,7 +20,7 @@ export function GeneralSection() {
   const [deadlineReminders, setDeadlineReminders] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(false)
   const [productUpdates, setProductUpdates] = useState(false)
-  const [lang, setLang] = useState<Lang>('en')
+  const { lang, setLang, t } = useI18n()
 
   return (
     <div>
@@ -89,24 +89,13 @@ export function GeneralSection() {
         </Row>
       </Group>
 
-      <Group label="Language">
-        <Row
-          label="Interface language"
-          description={
-            lang === 'fr'
-              ? 'Traduction en cours — l’interface reste en anglais pour l’instant.'
-              : 'French is stubbed — full translation comes later.'
-          }
-          stacked
-        >
+      <Group label={t('settings.language')}>
+        <Row label={t('settings.language')} description={t('settings.languageDesc')} stacked>
           <Segmented<Lang>
-            ariaLabel="Interface language"
+            ariaLabel={t('settings.language')}
             value={lang}
             onChange={setLang}
-            options={[
-              { value: 'en', label: 'English' },
-              { value: 'fr', label: 'Français' },
-            ]}
+            options={LANGS.map((l) => ({ value: l.id, label: l.label }))}
           />
         </Row>
       </Group>

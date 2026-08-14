@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useT } from '@/i18n/i18n'
 import { useAuth } from '@/app/providers/auth'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +12,7 @@ const field =
  * sign-in for the sandbox accounts. */
 export function LoginScreen() {
   const { signInWithGoogle, signInWithPassword } = useAuth()
+  const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -50,8 +52,8 @@ export function LoginScreen() {
         </div>
 
         <div className="rounded-2xl border border-border bg-surface p-6">
-          <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">Sign in</h1>
-          <p className="mt-1 text-[13px] text-subtle">Welcome back to ConcordiaTracker.</p>
+          <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">{t('auth.signIn')}</h1>
+          <p className="mt-1 text-[13px] text-subtle">{t('auth.welcomeBack')}</p>
 
           <button
             type="button"
@@ -59,7 +61,7 @@ export function LoginScreen() {
             className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 py-2.5 text-[14px] font-medium text-fg transition-colors duration-150 hover:bg-surface"
           >
             <GoogleGlyph />
-            Continue with Google
+            {t('auth.signInGoogle')}
           </button>
 
           <div className="my-4 flex items-center gap-3 text-[11px] tracking-wide text-subtle uppercase">
@@ -70,7 +72,7 @@ export function LoginScreen() {
 
           <form onSubmit={handlePassword} className="flex flex-col gap-2.5">
             <label className="block">
-              <span className="mb-1 block text-[12px] font-medium text-muted">Email</span>
+              <span className="mb-1 block text-[12px] font-medium text-muted">{t('auth.email')}</span>
               <input
                 type="email"
                 autoComplete="email"
@@ -81,7 +83,7 @@ export function LoginScreen() {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[12px] font-medium text-muted">Password</span>
+              <span className="mb-1 block text-[12px] font-medium text-muted">{t('auth.password')}</span>
               <input
                 type="password"
                 autoComplete="current-password"

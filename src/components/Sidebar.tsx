@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { Lightbulb, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
+import { useT } from '@/i18n/i18n'
 import { useSettings } from '@/app/providers/settings'
 import { useUiState } from '@/app/providers/ui-state'
 import { NavBadge } from './NavBadge'
@@ -15,6 +16,7 @@ import { cn } from '@/lib/cn'
 export function Sidebar() {
   const { uiState } = useUiState()
   const badges = useNavBadges()
+  const t = useT()
   return (
     <aside className="hidden w-64 shrink-0 flex-col gap-1 border-r border-border bg-surface/40 p-3 md:flex">
       <div className="px-2 py-3">
@@ -24,7 +26,7 @@ export function Sidebar() {
       <SearchTrigger className="mb-2" />
 
       <nav className="flex flex-col gap-1">
-        {STUDENT_NAV.map(({ to, label, icon: Icon, end }) => (
+        {STUDENT_NAV.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -50,7 +52,7 @@ export function Sidebar() {
                   )}
                   aria-hidden
                 />
-                <span className="flex-1">{label}</span>
+                <span className="flex-1">{t(labelKey)}</span>
                 {badges[to] && <NavBadge badge={badges[to]!} />}
               </>
             )}

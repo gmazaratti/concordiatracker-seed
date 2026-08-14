@@ -15,6 +15,7 @@ import {
 } from '@/lib/billing'
 import { EmbeddedCheckoutPanel } from '../EmbeddedCheckoutPanel'
 import { Group, Row } from '../controls'
+import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
 type Pane = null | 'semester' | 'monthly' | 'card'
@@ -24,6 +25,7 @@ type Pane = null | 'semester' | 'monthly' | 'card'
  * this shows always matches what Stripe charged. */
 export function BillingSection() {
   const { plan } = useAppData()
+  const t = useT()
   const [sub, setSub] = useState<SubscriptionSummary | null>(null)
   const [invoices, setInvoices] = useState<InvoiceRow[]>([])
   const [loading, setLoading] = useState(BILLING_ENABLED)
@@ -82,23 +84,21 @@ export function BillingSection() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[15px] font-semibold text-fg">
-                {isPro ? 'ConcordiaTracker Pro' : 'Free plan'}
+                {isPro ? t('billing.proPlan') : t('billing.freePlan')}
               </span>
               <StatusChip status={sub?.status} isPro={isPro} />
             </div>
             <p className="mt-1 text-[12px] text-muted">
-              {isPro
-                ? 'Full access — GPA prediction, unlimited scans, every feature.'
-                : 'Core features, no time limit. Grade-needed calculator included.'}
+              {isPro ? t('billing.proDesc') : t('billing.freeDesc')}
             </p>
             {trialing && sub?.trialEnd && (
               <p className="mt-1 text-[12px] font-medium text-accent">
-                Free trial — your card is charged {fmtDate(sub.trialEnd)}.
+                {t('billing.trialCharge', { date: fmtDate(sub.trialEnd) })}
               </p>
             )}
             {sub?.cancelAtPeriodEnd && (
               <p className="mt-1 text-[12px] font-medium text-warning">
-                Cancels {fmtDate(sub.currentPeriodEnd)} — you keep access until then.
+                {t('billing.cancelsOn', { date: fmtDate(sub.currentPeriodEnd) })}
               </p>
             )}
           </div>
@@ -115,13 +115,13 @@ export function BillingSection() {
         {pastDue && (
           <div className="mt-3 flex gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-[12px] text-danger">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
-            <span>Your last payment failed. Update your card to keep Pro.</span>
+            <span>{t('billing.paymentFailedMsg')}</span>
           </div>
         )}
 
         {!BILLING_ENABLED ? (
           <p className="mt-4 rounded-lg border border-border bg-surface px-3 py-2.5 text-center text-[12px] text-subtle">
-            Payments aren&rsquo;t configured in this environment.
+            {t('billing.notConfigured')}
           </p>
         ) : loading ? (
           <div className="mt-4 grid place-items-center py-3">
@@ -138,7 +138,7 @@ export function BillingSection() {
                   onClick={() => setPane(pane === 'semester' ? null : 'semester')}
                   className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
                 >
-                  Get the Semester pass — $15
+                  {t('billing.getSemester')}
                 </button>
                 <button
                   type="button"
@@ -146,7 +146,7 @@ export function BillingSection() {
                   onClick={() => setPane(pane === 'monthly' ? null : 'monthly')}
                   className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
                 >
-                  Or go monthly — $5 / month
+                  {t('billing.goMonthly')}
                 </button>
               </>
             ) : sub.cancelAtPeriodEnd ? (
@@ -156,7 +156,7 @@ export function BillingSection() {
                 onClick={() => void run(resumeSubscription)}
                 className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
               >
-                {busy ? 'Working…' : 'Resume subscription'}
+                {busy ? t('billing.working') : t('billing.resume')}
               </button>
             ) : sub.interval === 'month' && !trialing ? (
               /* On monthly → the semester pass is an upgrade, and their unused
@@ -168,10 +168,10 @@ export function BillingSection() {
                   onClick={() => setPane(pane === 'semester' ? null : 'semester')}
                   className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
                 >
-                  Switch to the Semester pass — $15
+                  {t('billing.switchToSemester')}
                 </button>
                 <p className="text-center text-[11.5px] text-subtle">
-                  Your remaining time carries over — you keep every paid day.
+                  {t('billing.carryOver')}
                 </p>
                 <button
                   type="button"
@@ -179,7 +179,7 @@ export function BillingSection() {
                   onClick={() => void run(cancelSubscription)}
                   className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
                 >
-                  {busy ? 'Working…' : 'Cancel subscription'}
+                  {busy ? t('billing.working') : t('billing.cancel')}
                 </button>
               </>
             ) : trialing ? (
@@ -191,10 +191,10 @@ export function BillingSection() {
                   onClick={() => setPane(pane === 'semester' ? null : 'semester')}
                   className="w-full rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
                 >
-                  Get the Semester pass — $15
+                  {t('billing.getSemester')}
                 </button>
                 <p className="text-center text-[11.5px] text-subtle">
-                  Your remaining trial days carry over — nothing is lost.
+                  {t('billing.trialCarryOver')}
                 </p>
                 <button
                   type="button"
@@ -202,7 +202,7 @@ export function BillingSection() {
                   onClick={() => void run(cancelSubscription)}
                   className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
                 >
-                  {busy ? 'Working…' : 'Cancel subscription'}
+                  {busy ? t('billing.working') : t('billing.cancel')}
                 </button>
               </>
             ) : (
@@ -212,7 +212,7 @@ export function BillingSection() {
                 onClick={() => void run(cancelSubscription)}
                 className="w-full rounded-lg border border-border-strong px-4 py-2 text-[13px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
               >
-                {busy ? 'Working…' : 'Cancel subscription'}
+                {busy ? t('billing.working') : t('billing.cancel')}
               </button>
             )}
 
@@ -239,26 +239,24 @@ export function BillingSection() {
       <div className="mb-6 flex gap-3 rounded-xl border border-accent/25 bg-accent-soft px-4 py-3.5">
         <RefreshCw size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <div className="text-[12px] leading-relaxed text-muted">
-          <p className="font-medium text-fg">Auto-renewal</p>
+          <p className="font-medium text-fg">{t('billing.autoRenewal')}</p>
           <p className="mt-0.5">
             {sub && !sub.cancelAtPeriodEnd ? (
               <>
-                Renews automatically on{' '}
-                <span className="font-medium text-fg">{fmtDate(sub.currentPeriodEnd)}</span>.
+                {t('billing.renewsOn', { date: fmtDate(sub.currentPeriodEnd) })}
               </>
             ) : (
               <>
-                Paid plans renew automatically at the end of each billing period (the Semester pass
-                at term end; monthly plans each month).
+                {t('billing.renewsGeneric')}
               </>
             )}{' '}
-            Cancel anytime here — access continues until the end of the paid period.
+            {t('billing.cancelAnytime')}
           </p>
         </div>
       </div>
 
-      <Group label="Payment">
-        <Row label="Payment method" description="Handled by Stripe — we never see or store card numbers.">
+      <Group label={t('billing.payment')}>
+        <Row label={t('billing.paymentMethod')} description={t('billing.paymentMethodDesc')}>
           <button
             type="button"
             disabled={!BILLING_ENABLED || busy}
@@ -266,7 +264,7 @@ export function BillingSection() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
           >
             <CreditCard size={14} aria-hidden />
-            Update card
+            {t('billing.updateCard')}
           </button>
         </Row>
       </Group>
@@ -274,17 +272,17 @@ export function BillingSection() {
       {/* Renders as its own overlay (portalled), so placement here is incidental. */}
       {pane === 'card' && (
         <EmbeddedCheckoutPanel
-          title="Update payment method"
+          title={t('billing.updateCardTitle')}
           onClose={() => setPane(null)}
           fetchClientSecret={async () => (await startCardUpdate()).clientSecret}
         />
       )}
 
-      <Group label="Invoices">
+      <Group label={t('billing.invoices')}>
         {invoices.length === 0 ? (
           <Row
-            label="No invoices yet"
-            description={isPro ? 'Your first invoice will appear here.' : "You're on the free plan."}
+            label={t('billing.noInvoices')}
+            description={isPro ? t('billing.firstInvoice') : t('billing.onFreePlan')}
           />
         ) : (
           invoices.map((inv) => (
