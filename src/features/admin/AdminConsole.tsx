@@ -1,8 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Activity,
   ArrowLeft,
+  ChevronDown,
   Bug,
   Building2,
   CalendarDays,
@@ -60,6 +61,7 @@ export function AdminConsole() {
   const { loading, isAdmin } = useIsAdmin()
   const [params, setParams] = useSearchParams()
   const refs = useRef<(HTMLButtonElement | null)[]>([])
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const current = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'overview') as TabId
   const select = (id: TabId) => setParams((p) => { p.set('tab', id); return p }, { replace: true })
@@ -180,35 +182,88 @@ export function AdminConsole() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar + horizontal nav */}
-        <header className="border-b border-border bg-surface/40 md:hidden">
+        {/* Mobile chrome. A 9-item horizontal scroll strip hid most of the
+            console off-screen with nothing signalling it scrolled, so mobile
+            gets an explicit section picker instead: current section always
+            visible, tap to see every option at once. */}
+        <header className="sticky top-0 z-20 border-b border-border bg-canvas/95 backdrop-blur md:hidden">
           <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-[calc(0.75rem_+_env(safe-area-inset-top))]">
             <span className="flex items-center gap-2 text-[14px] font-semibold text-fg">
               <ShieldCheck size={16} className="text-accent" aria-hidden /> Admin
             </span>
-            <Link to="/app" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg">
+            <Link
+              to="/app"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg"
+            >
               <ArrowLeft size={13} aria-hidden /> App
             </Link>
           </div>
-          <div role="tablist" aria-label="Admin sections" onKeyDown={onKeyDown} className="-mb-px flex gap-1 overflow-x-auto px-3">
-            {TABS.map((t) => {
-              const active = t.id === current
-              return (
-                <button
-                  key={t.id}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => select(t.id)}
-                  className={cn(
-                    'shrink-0 border-b-2 px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
-                    active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
-                  )}
-                >
-                  {t.label}
-                </button>
-              )
-            })}
-          </div>
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-label="Choose a section"
+            className="flex w-full items-center justify-between gap-2 border-t border-border px-4 py-2.5 text-left"
+          >
+            <span className="flex items-center gap-2 text-[13.5px] font-semibold text-fg">
+              {(() => {
+                const Icon = TABS.find((t) => t.id === current)?.icon ?? LayoutDashboard
+                return <Icon size={16} className="text-accent" aria-hidden />
+              })()}
+              {TABS.find((t) => t.id === current)?.label}
+            </span>
+            <ChevronDown
+              size={17}
+              className={cn('shrink-0 text-subtle transition-transform duration-200', menuOpen && 'rotate-180')}
+              aria-hidden
+            />
+          </button>
+
+          {menuOpen && (
+            <div className="max-h-[60vh] overflow-y-auto border-t border-border bg-surface">
+              <div role="tablist" aria-label="Admin sections" className="p-2">
+                {TABS.map((t) => {
+                  const Icon = t.icon
+                  const active = t.id === current
+                  return (
+                    <button
+                      key={t.id}
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => {
+                        select(t.id)
+                        setMenuOpen(false)
+                      }}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] transition-colors duration-150',
+                        active ? 'bg-accent-soft font-semibold text-fg' : 'text-muted',
+                      )}
+                    >
+                      <Icon size={17} className={active ? 'text-accent' : 'text-subtle'} aria-hidden />
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="border-t border-border p-2">
+                <p className="px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">
+                  Jump to
+                </p>
+                {PORTAL_LINKS.map(({ to, label, icon: Icon }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] text-muted"
+                  >
+                    <Icon size={17} className="text-subtle" aria-hidden />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </header>
 
         <main className="flex-1 overflow-y-auto">{body}</main>

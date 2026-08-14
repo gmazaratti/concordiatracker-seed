@@ -84,11 +84,25 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
     (item as unknown as { current_period_end?: number })?.current_period_end ??
     (sub as unknown as { current_period_end?: number }).current_period_end
 
+  // Store what Stripe actually charges, normalised to months, so the admin
+  // revenue rollup never has to guess from prices hardcoded elsewhere.
+  const recurring = item?.price?.recurring
+  const intervalMonths =
+    recurring?.interval === 'year'
+      ? 12 * (recurring.interval_count ?? 1)
+      : recurring?.interval === 'week'
+        ? (recurring.interval_count ?? 1) / 4.345
+        : recurring?.interval === 'day'
+          ? (recurring.interval_count ?? 1) / 30.44
+          : (recurring?.interval_count ?? 1) // months
+
   await patchProfile(userId, {
     stripe_customer_id: customerId,
     stripe_subscription_id: sub.id,
     subscription_status: sub.status,
     subscription_price_id: item?.price?.id ?? null,
+    subscription_amount_cents: item?.price?.unit_amount ?? null,
+    subscription_interval_months: recurring ? intervalMonths : null,
     current_period_end: iso(periodEnd),
     cancel_at_period_end: !!sub.cancel_at_period_end,
     trial_end: iso(sub.trial_end),

@@ -7,6 +7,9 @@ import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { programById } from '@/data/programs'
 import { cn } from '@/lib/cn'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
+import { founderFor, type FounderProfile } from './founders'
+import { VerifiedBadge } from '@/features/community/VerifiedBadge'
+import { SocialLinks } from '@/features/community/SocialLinks'
 
 /**
  * Public user profile at `/@handle` — viewable by ANYONE (anon included). The
@@ -28,6 +31,8 @@ export function UserProfilePage() {
 function ProfileView({ handle }: { handle: string }) {
   const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
   const prog = profile?.programId ? programById(profile.programId) : undefined
+  // Only applies to a real, closed set of handles — cosmetic, never a permission.
+  const founder = profile?.isPublic ? founderFor(handle) : undefined
 
   usePageMeta({
     title:
@@ -69,14 +74,35 @@ function ProfileView({ handle }: { handle: string }) {
         ) : (
           <>
             {/* Identity header — same language as org profiles. */}
-            <div className="h-40 overflow-hidden rounded-2xl sm:h-52" style={bannerStyle(handle)} />
+            <div
+              className={cn(
+                'h-40 overflow-hidden rounded-2xl sm:h-52',
+                founder && 'ct-aurora',
+              )}
+              style={founder ? FOUNDER_BANNER : bannerStyle(handle)}
+            />
             <div className="px-1">
-              <Avatar profile={profile} />
+              <Avatar profile={profile} founder={!!founder} />
               <div className="mt-2">
                 {profile.isPublic && profile.name && (
-                  <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">{profile.name}</h1>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
+                      {profile.name}
+                    </h1>
+                    {founder && (
+                      <>
+                        <VerifiedBadge size={17} className="[filter:drop-shadow(0_0_4px_var(--ct-accent))]" />
+                        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
+                          {founder.role}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 )}
                 <p className="text-[14px] text-subtle">@{profile.handle}</p>
+                {founder?.tagline && (
+                  <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-fg/90">{founder.tagline}</p>
+                )}
 
                 {profile.isPublic ? (
                   <>
@@ -100,6 +126,7 @@ function ProfileView({ handle }: { handle: string }) {
 
             {profile.isPublic && (
               <>
+                {founder?.links && <LinksDivider links={founder.links} />}
                 <Section icon={BookOpen} title="Courses" count={courses.length}>
                   {courses.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -132,8 +159,9 @@ function ProfileView({ handle }: { handle: string }) {
   )
 }
 
-function Avatar({ profile }: { profile: PublicProfile }) {
+function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?: boolean }) {
   const base = '-mt-12 grid size-24 place-items-center rounded-full ring-4 ring-canvas sm:-mt-14 sm:size-28'
+  if (founder) return <FounderAvatar profile={profile} base={base} />
   if (!profile.isPublic) {
     return (
       <div className={cn(base, 'bg-surface-2 text-subtle')} aria-label="Private profile">
@@ -240,6 +268,47 @@ function NotFound({ handle }: { handle: string }) {
 }
 
 /** Stable, pleasant banner gradient derived from the handle (no upload needed). */
+/** Brand-tinted aurora, used only for the founder header. */
+const FOUNDER_BANNER: React.CSSProperties = {
+  backgroundImage:
+    'linear-gradient(120deg, var(--ct-accent), var(--ct-surface-2) 35%, var(--ct-accent) 55%, var(--ct-surface) 80%, var(--ct-accent))',
+}
+
+/** The founder avatar, wrapped in a soft pulsing halo. */
+function FounderAvatar({ profile, base }: { profile: PublicProfile; base: string }) {
+  return (
+    <div className="relative inline-block">
+      <span
+        className="ct-halo pointer-events-none absolute -inset-2 rounded-full bg-accent blur-xl"
+        aria-hidden
+      />
+      {profile.avatarUrl ? (
+        <img
+          src={profile.avatarUrl}
+          alt=""
+          referrerPolicy="no-referrer"
+          className={cn(base, 'relative bg-surface-2 object-cover')}
+        />
+      ) : (
+        <div className={cn(base, 'relative bg-accent-soft text-2xl font-semibold text-accent')}>
+          {initialsOf(profile.name)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Social links sitting ON the rule above Courses — same treatment orgs get. */
+function LinksDivider({ links }: { links: FounderProfile['links'] }) {
+  return (
+    <div className="mt-6 flex items-center gap-3">
+      <span className="h-px flex-1 bg-border" aria-hidden />
+      <SocialLinks links={links} className="flex shrink-0 gap-2" />
+      <span className="h-px w-12 bg-border" aria-hidden />
+    </div>
+  )
+}
+
 function bannerStyle(handle: string): React.CSSProperties {
   let h = 0
   for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) % 360

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Sparkles } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { buildPitch, pitchHeadline, type PublicSurveyAnswers } from './public-survey'
 
@@ -39,18 +39,26 @@ export function SurveyResult({
 
       {pitches.length > 0 && (
         <>
-          <p className="mt-8 mb-3 text-[14px] font-medium text-fg">{pitchHeadline(pitches)}</p>
-          <div className="space-y-3">
-            {pitches.map((p) => (
-              <section key={p.id} className="rounded-xl border border-border bg-surface p-4">
-                <p className="flex items-start gap-2 text-[13.5px] font-semibold text-fg">
-                  <Sparkles size={15} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-                  {p.problem}
-                </p>
-                <p className="mt-1.5 pl-[23px] text-[13.5px] leading-relaxed text-muted">{p.answer}</p>
-              </section>
+          <p className="mt-8 mb-3 text-[13px] font-medium tracking-wide text-subtle uppercase">
+            {pitchHeadline(pitches)}
+          </p>
+          {/* Their answer is the quiet label; the benefit is the thing you read.
+              Numbered rather than iconned — a row of decorative glyphs makes the
+              whole block scan as filler. */}
+          <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {pitches.map((p, i) => (
+              <li key={p.id} className="flex gap-3.5 p-4">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-accent-soft text-[12px] font-bold text-accent tabular-nums">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11.5px] font-medium text-subtle">{p.problem}</p>
+                  <p className="mt-0.5 text-[15px] leading-snug font-semibold text-fg">{p.title}</p>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{p.answer}</p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </>
       )}
 

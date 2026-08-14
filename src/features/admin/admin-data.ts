@@ -203,6 +203,26 @@ export async function adminSetPlan(uid: string, plan: string, expires: string | 
   const { error } = await supabase.rpc('admin_set_plan', { p_uid: uid, p_plan: plan, p_expires: expires })
   if (error) throw error
 }
+export interface RevenueStats {
+  paying: number
+  trialing: number
+  past_due: number
+  cancelling: number
+  comped: number
+  mrr_cents: number
+  arr_cents: number
+  trial_mrr_cents: number
+  period_cents: number
+  /** Active subs whose amount predates the webhook change — totals understate. */
+  missing_amounts: number
+  currency: string
+}
+export async function adminRevenue(): Promise<RevenueStats> {
+  const { data, error } = await supabase.rpc('admin_revenue')
+  if (error) throw error
+  return data as RevenueStats
+}
+
 export interface SurveyResponseRow {
   user_id: string
   name: string | null

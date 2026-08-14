@@ -581,6 +581,38 @@ html {
   }
 }
 
+/* Founder profile — a slowly drifting gradient banner. Deliberately long and
+ * low-contrast so it reads as depth, not as a distraction. */
+@keyframes ct-aurora {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.ct-aurora {
+  background-size: 300% 300%;
+  animation: ct-aurora 18s ease-in-out infinite;
+}
+
+/* A soft pulse behind the founder avatar. */
+@keyframes ct-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.06);
+  }
+}
+.ct-halo {
+  animation: ct-halo 4.5s ease-in-out infinite;
+}
+
 /* Theme change → circular reveal (View Transitions API).
  *
  * The browser cross-fades the two snapshots by default, which would muddy the

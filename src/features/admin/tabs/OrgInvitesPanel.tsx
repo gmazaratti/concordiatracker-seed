@@ -263,10 +263,22 @@ function ExtendButton({ invite, onDone }: { invite: InviteRowData; onDone: () =>
   }
 
   if (!open) {
+    // An expired link is exactly when this matters, so make it the obvious
+    // action rather than another quiet grey button in the row. Reuses the row's
+    // own state helper so "expired" can't drift between the pill and the button.
+    const expired = inviteState(invite).label === 'Expired'
     return (
-      <button type="button" onClick={() => setOpen(true)} className={LINK_BTN}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={
+          expired
+            ? 'inline-flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover'
+            : LINK_BTN
+        }
+      >
         <CalendarClock size={13} aria-hidden />
-        Extend
+        {expired ? 'Revive link' : 'Extend'}
       </button>
     )
   }

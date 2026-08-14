@@ -5,6 +5,7 @@ import {
   BookOpen,
   Bug,
   Building2,
+  DollarSign,
   CalendarDays,
   ClipboardList,
   Crown,
@@ -16,13 +17,21 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
-import { adminActivityFeed, adminDashboardStats, type ActivityItem, type DashboardStats } from '../admin-data'
+import {
+  adminActivityFeed,
+  adminDashboardStats,
+  adminRevenue,
+  type ActivityItem,
+  type DashboardStats,
+  type RevenueStats,
+} from '../admin-data'
 import { cn } from '@/lib/cn'
 
 /** Console Overview — at-a-glance stats, quick actions, and a recent-activity feed. */
 export function AdminDashboardTab() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [revenue, setRevenue] = useState<RevenueStats | null>(null)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -30,10 +39,16 @@ export function AdminDashboardTab() {
     let active = true
     void (async () => {
       try {
-        const [s, a] = await Promise.all([adminDashboardStats(), adminActivityFeed()])
+        // Revenue is optional — a missing migration must not blank the page.
+        const [s, a, rev] = await Promise.all([
+          adminDashboardStats(),
+          adminActivityFeed(),
+          adminRevenue().catch(() => null),
+        ])
         if (!active) return
         setStats(s)
         setActivity(a.items.slice(0, 12))
+        setRevenue(rev)
       } catch (e) {
         if (active) setErr(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -77,6 +92,8 @@ export function AdminDashboardTab() {
         <Stat icon={Inbox} label="Pending applications" value={stats.pending_applications}
           highlight={stats.pending_applications > 0} />
       </div>
+
+      {revenue && <RevenuePanel r={revenue} />}
 
       {/* Quick actions */}
       <div>
@@ -129,6 +146,68 @@ export function AdminDashboardTab() {
             </ul>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/** Estimated revenue, straight from mirrored Stripe subscription state. */
+function RevenuePanel({ r }: { r: RevenueStats }) {
+  const money = (cents: number) =>
+    new Intl.NumberFormat('en-CA', {
+      style: 'currency',
+      currency: (r.currency || 'cad').toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(cents / 100)
+
+  return (
+    <div>
+      <h2 className="mb-2.5 flex items-center gap-1.5 text-[13px] font-semibold text-fg">
+        <DollarSign size={14} className="text-subtle" aria-hidden />
+        Estimated revenue
+      </h2>
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div>
+            <p className="text-[11.5px] font-medium text-subtle">Monthly run-rate</p>
+            <p className="mt-1 text-[26px] leading-none font-semibold text-fg tabular-nums">
+              {money(r.mrr_cents)}
+            </p>
+            <p className="mt-1 text-[11px] text-subtle">{money(r.arr_cents)} / year</p>
+          </div>
+          <div>
+            <p className="text-[11.5px] font-medium text-subtle">Paying</p>
+            <p className="mt-1 text-[26px] leading-none font-semibold text-fg tabular-nums">{r.paying}</p>
+            <p className="mt-1 text-[11px] text-subtle">active subscriptions</p>
+          </div>
+          <div>
+            <p className="text-[11.5px] font-medium text-subtle">On trial</p>
+            <p className="mt-1 text-[26px] leading-none font-semibold text-accent tabular-nums">{r.trialing}</p>
+            <p className="mt-1 text-[11px] text-subtle">+{money(r.trial_mrr_cents)}/mo if all convert</p>
+          </div>
+          <div>
+            <p className="text-[11.5px] font-medium text-subtle">This period</p>
+            <p className="mt-1 text-[26px] leading-none font-semibold text-fg tabular-nums">
+              {money(r.period_cents)}
+            </p>
+            <p className="mt-1 text-[11px] text-subtle">billed across active plans</p>
+          </div>
+        </div>
+
+        {(r.past_due > 0 || r.cancelling > 0 || r.comped > 0) && (
+          <div className="mt-3.5 flex flex-wrap gap-x-4 gap-y-1 border-t border-border pt-3 text-[12px]">
+            {r.past_due > 0 && <span className="text-danger">{r.past_due} payment failed</span>}
+            {r.cancelling > 0 && <span className="text-warning">{r.cancelling} cancelling at period end</span>}
+            {r.comped > 0 && <span className="text-subtle">{r.comped} comped (gifted / reward)</span>}
+          </div>
+        )}
+
+        <p className="mt-3 text-[11px] leading-relaxed text-subtle">
+          Gross, before Stripe fees (~2.9% + $0.30 per charge). Trials aren’t counted as revenue
+          until they’re charged. Stripe remains the source of truth.
+          {r.missing_amounts > 0 &&
+            ` ${r.missing_amounts} older subscription${r.missing_amounts === 1 ? '' : 's'} predate amount tracking and aren’t included yet.`}
+        </p>
       </div>
     </div>
   )
