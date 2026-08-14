@@ -120,6 +120,13 @@ export const en = {
   'settings.language': 'Language',
   'settings.languageDesc': 'Interface language. Course content stays as your professor wrote it.',
 
+  'settings.preferences': 'Preferences',
+  'settings.email': 'Email',
+  'settings.updates': 'Updates',
+  'settings.keyboard': 'Keyboard',
+  'settings.reduceMotion': 'Reduce motion',
+  'settings.weekStartMon': 'Start week on Monday',
+
   // ── Today ─────────────────────────────────────────────────────────────────
   'today.goodMorning': 'Good morning',
   'today.goodAfternoon': 'Good afternoon',

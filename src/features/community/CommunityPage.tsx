@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useUiState } from '@/app/providers/ui-state'
 import { EventsFeed } from './EventsFeed'
+import { CommunityRail } from './CommunityRail'
 
 /** Community — "what's happening around me that isn't my own coursework." A pure,
  * outward-facing events aggregator (NOT a social feed): no posts, reactions, RSVP,
@@ -13,7 +14,7 @@ export function CommunityPage() {
   }, [loaded, uiState.communityVisited, patchUiState])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
+    <div className="mx-auto w-full max-w-[76rem] px-5 py-5 sm:px-6">
       <header className="mb-4">
         <p className="text-[12px] text-subtle">Around campus</p>
         <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
@@ -24,7 +25,14 @@ export function CommunityPage() {
         </p>
       </header>
 
-      <EventsFeed />
+      {/* Rail sits beside the feed on wide screens; below xl the grid keeps
+          the full width and the rail's contents stay reachable from the header. */}
+      <div className="flex gap-6">
+        <div className="min-w-0 flex-1">
+          <EventsFeed />
+        </div>
+        <CommunityRail />
+      </div>
     </div>
   )
 }

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { useSettings, type SettingsSection } from '@/app/providers/settings'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
+import { useT } from '@/i18n/i18n'
+import type { Key } from '@/i18n/en'
 import { cn } from '@/lib/cn'
 import { GeneralSection } from './sections/GeneralSection'
 import { AccountSection } from './sections/AccountSection'
@@ -16,12 +18,12 @@ import { PrivacySection } from './sections/PrivacySection'
 import { BillingSection } from './sections/BillingSection'
 import { UsageSection } from './sections/UsageSection'
 
-const SECTIONS: { id: SettingsSection; label: string; icon: LucideIcon }[] = [
-  { id: 'general', label: 'General', icon: SlidersHorizontal },
-  { id: 'account', label: 'Account', icon: UserRound },
-  { id: 'privacy', label: 'Privacy', icon: ShieldCheck },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'usage', label: 'Usage', icon: Gauge },
+const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
+  { id: 'general', labelKey: 'settings.general', icon: SlidersHorizontal },
+  { id: 'account', labelKey: 'settings.account', icon: UserRound },
+  { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
+  { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
+  { id: 'usage', labelKey: 'settings.usage', icon: Gauge },
 ]
 
 const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
@@ -39,6 +41,7 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
 export function SettingsModal() {
   const { section, setSection, closeSettings } = useSettings()
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(closeSettings)
+  const t = useT()
   const active = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0]
   const Body = CONTENT[section]
 
@@ -91,7 +94,7 @@ export function SettingsModal() {
                     className={isActive ? 'text-accent' : 'text-subtle'}
                     aria-hidden
                   />
-                  {s.label}
+                  {t(s.labelKey)}
                 </button>
               )
             })}
@@ -101,7 +104,7 @@ export function SettingsModal() {
         {/* Content */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="hidden items-center justify-between border-b border-border px-6 py-4 sm:flex">
-            <h2 className="font-display text-[17px] font-medium text-fg">{active.label}</h2>
+            <h2 className="font-display text-[17px] font-medium text-fg">{t(active.labelKey)}</h2>
             <button
               type="button"
               onClick={closeSettings}

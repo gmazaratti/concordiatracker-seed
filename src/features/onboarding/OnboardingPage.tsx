@@ -19,7 +19,11 @@ import { cn } from '@/lib/cn'
 // how-it-works, community, done. (The hands-on walkthrough is now the
 // post-onboarding TOUR — the old silently-interactive steps confused people.)
 const SETUP_COUNT = 4
+const STEP_THEME = 3 // appearance + language
 const FIRST_TOUR = SETUP_COUNT // first intro step = Welcome
+// Revisiting /onboarding after finishing it shouldn't hide the two settings
+// people actually come back to change, so a returning user starts on the
+// theme/language step rather than past it.
 const STEP_HEARD = 5
 const STEP_COURSE = 6
 const STEP_HOW = 7
@@ -50,11 +54,11 @@ export function OnboardingPage() {
   // during render (guarded to run once) is React's recommended alternative to an
   // effect here — it re-renders before paint, so there's no flash of setup.
   if (!decided && onboardingCompleted !== null) {
-    if (onboardingCompleted) setStep(FIRST_TOUR)
+    if (onboardingCompleted) setStep(STEP_THEME)
     setDecided(true)
   }
 
-  const minStep = onboardingCompleted ? FIRST_TOUR : 0
+  const minStep = onboardingCompleted ? STEP_THEME : 0
   const isSetup = step < SETUP_COUNT
   const isLast = step === STEP_DONE
   const canAdvance =

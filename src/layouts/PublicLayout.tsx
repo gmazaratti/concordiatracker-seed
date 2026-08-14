@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
+import { LangToggle } from '@/components/LangToggle'
 
 /** Chrome for the public marketing context. */
 export function PublicLayout() {
@@ -29,6 +30,9 @@ export function PublicLayout() {
                 For teachers
               </Button>
             </Link>
+            {/* Kept before the CTA so French is visible without scrolling or
+                hunting — availability is the point, not decoration. */}
+            <LangToggle className="mr-1" />
             <Link to="/app">
               <Button size="sm">Open app</Button>
             </Link>

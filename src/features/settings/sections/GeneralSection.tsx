@@ -24,24 +24,24 @@ export function GeneralSection() {
 
   return (
     <div>
-      <Group label="Appearance">
-        <Row label="Theme" description="Swaps the whole product from one token set." stacked>
+      <Group label={t('settings.appearance')}>
+        <Row label={t('settings.theme')} description="Swaps the whole product from one token set." stacked>
           <ThemeSwitcher />
         </Row>
       </Group>
 
-      <Group label="Preferences">
-        <Row label="Reduce motion" description="Minimize non-essential animation.">
+      <Group label={t('settings.preferences')}>
+        <Row label={t('settings.reduceMotion')} description="Minimize non-essential animation.">
           <Switch checked={reducedMotion} onChange={setReducedMotion} label="Reduce motion" />
         </Row>
-        <Row label="Start week on Monday" description="Used across the calendar.">
+        <Row label={t('settings.weekStartMon')} description="Used across the calendar.">
           <Switch checked={weekStartMon} onChange={setWeekStartMon} label="Start week on Monday" />
         </Row>
       </Group>
 
       <PushControl />
 
-      <Group label="Email">
+      <Group label={t('settings.email')}>
         <Row label="Deadline reminders" description="A nudge before things are due.">
           <Switch checked={deadlineReminders} onChange={setDeadlineReminders} label="Deadline reminders" />
         </Row>
@@ -53,7 +53,7 @@ export function GeneralSection() {
         </Row>
       </Group>
 
-      <Group label="Updates">
+      <Group label={t('settings.updates')}>
         <Row
           label="What's new"
           description="See what changed in each release."
@@ -80,7 +80,7 @@ export function GeneralSection() {
         </Row>
       </Group>
 
-      <Group label="Keyboard">
+      <Group label={t('settings.keyboard')}>
         <Row
           label="Command palette shortcut"
           description="Opens the search & command palette from anywhere."

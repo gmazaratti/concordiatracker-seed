@@ -127,6 +127,13 @@ export const fr: Partial<Record<Key, string>> = {
   'settings.languageDesc':
     'Langue de l’interface. Le contenu des cours reste tel que votre professeur l’a écrit.',
 
+  'settings.preferences': 'Préférences',
+  'settings.email': 'Courriel',
+  'settings.updates': 'Mises à jour',
+  'settings.keyboard': 'Clavier',
+  'settings.reduceMotion': 'Réduire les animations',
+  'settings.weekStartMon': 'Commencer la semaine le lundi',
+
   // ── Today ─────────────────────────────────────────────────────────────────
   'today.goodMorning': 'Bonjour',
   'today.goodAfternoon': 'Bon après-midi',
