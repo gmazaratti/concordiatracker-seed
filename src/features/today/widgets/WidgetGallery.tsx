@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, type WidgetContext } from './registry'
+import { MAX_TOP, MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, fitsZone, type WidgetContext } from './registry'
 
 /**
  * Add, remove, and reorder the widgets on Today.
@@ -13,10 +13,14 @@ import { MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, type WidgetContext } from './regis
 export function WidgetGallery({
   layout,
   onChange,
+  topLayout,
+  onTopChange,
   ctx,
 }: {
   layout: string[]
   onChange: (next: string[]) => void
+  topLayout: string[]
+  onTopChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const full = layout.length >= MAX_WIDGETS
@@ -166,6 +170,99 @@ export function WidgetGallery({
           glanceable on purpose.
         </p>
       )}
+
+      <div className="mt-5 border-t border-border pt-4">
+        <p className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+          Above the due list
+        </p>
+        <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
+          One wide card, or two side by side. Only widgets with a wide layout can
+          go here.
+        </p>
+        <TopZone layout={topLayout} onChange={onTopChange} ctx={ctx} />
+      </div>
     </div>
+  )
+}
+
+/** The wide band above the due list. Separate from the rail list because the
+ * constraint is different: at most two, and only widgets that declare a wide or
+ * half layout are eligible. */
+function TopZone({
+  layout,
+  onChange,
+  ctx,
+}: {
+  layout: string[]
+  onChange: (next: string[]) => void
+  ctx: WidgetContext
+}) {
+  const full = layout.length >= MAX_TOP
+  const eligible = WIDGETS.filter(
+    (w) =>
+      !layout.includes(w.id) &&
+      (fitsZone(w, 'wide') || fitsZone(w, 'half')) &&
+      (w.availableWhen?.(ctx) ?? true),
+  )
+
+  return (
+    <>
+      {layout.length > 0 && (
+        <ul className="mb-2.5 flex flex-col gap-1.5">
+          {layout.map((id) => {
+            const w = WIDGETS_BY_ID.get(id)
+            if (!w) return null
+            const Icon = w.icon
+            return (
+              <li
+                key={id}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
+              >
+                <Icon size={13} className="shrink-0 text-subtle" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg">{w.name}</span>
+                <span className="shrink-0 text-[11px] text-subtle">
+                  {layout.length > 1 ? 'half' : 'wide'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange(layout.filter((x) => x !== id))}
+                  aria-label={`Remove ${w.name} from the top band`}
+                  className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
+                >
+                  <X size={13} aria-hidden />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {eligible.length > 0 && !full && (
+        <ul className="flex flex-wrap gap-1.5">
+          {eligible.map((w) => {
+            const Icon = w.icon
+            return (
+              <li key={w.id}>
+                <button
+                  type="button"
+                  onClick={() => onChange([...layout, w.id])}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1 text-[12px] text-fg transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
+                >
+                  <Icon size={12} className="text-accent" aria-hidden />
+                  {w.name}
+                  <Plus size={11} className="text-subtle" aria-hidden />
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {full && (
+        <p className="text-[11.5px] text-subtle">
+          Two is the most that stays readable side by side.
+        </p>
+      )}
+    </>
   )
 }

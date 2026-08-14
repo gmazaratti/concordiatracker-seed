@@ -1,9 +1,11 @@
 import { GraduationCap, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppData } from '@/app/providers/app-data'
+import { cn } from '@/lib/cn'
 import { courseColor } from '@/lib/course-color'
 import { WidgetCard, WidgetEmpty } from './WidgetCard'
 import { findNextClass, type UpcomingClass } from './meeting-times'
+import type { WidgetZone } from './registry'
 
 /**
  * The next class you actually have to walk to.
@@ -21,7 +23,7 @@ function whenLabel(next: UpcomingClass): string {
   return `${days[next.slot.day]} ${next.slot.start}`
 }
 
-export function NextClassWidget() {
+export function NextClassWidget({ zone = 'rail' }: { zone?: WidgetZone } = {}) {
   const { courses } = useAppData()
   const next = findNextClass(courses, new Date())
 
@@ -34,7 +36,11 @@ export function NextClassWidget() {
       ) : (
         <Link
           to={`/app/courses/${next.course.id}`}
-          className="block px-3.5 py-3 transition-colors duration-150 hover:bg-surface-2/50"
+          className={cn(
+            'block transition-colors duration-150 hover:bg-surface-2/50',
+            // The wide band has room to breathe; the rail does not.
+            zone === 'wide' ? 'px-4 py-4' : 'px-3.5 py-3',
+          )}
         >
           <span className="flex items-center gap-2">
             <span

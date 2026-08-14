@@ -11,12 +11,12 @@ import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
-import { DebriefPanel } from './DebriefPanel'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
+import { cn } from '@/lib/cn'
 import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
-import { WIDGETS_BY_ID, GLANCE_ID, sanitizeLayout } from './widgets/registry'
+import { WIDGETS_BY_ID, GLANCE_ID, DEFAULT_TOP, sanitizeLayout } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
@@ -51,6 +51,7 @@ export function TodayPage() {
   // Unknown ids are dropped, so a layout saved against an older build can never
   // crash Today or render a widget twice.
   const widgets = sanitizeLayout(uiState.todayWidgets)
+  const topWidgets = sanitizeLayout(uiState.todayTopWidgets, DEFAULT_TOP)
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
@@ -105,9 +106,26 @@ export function TodayPage() {
       <AdminActivityCard />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <main className="order-2 flex min-w-0 flex-1 flex-col gap-3 lg:order-1">
+        <main className="flex min-w-0 flex-1 flex-col gap-3">
           <PeerNudge />
-          <DebriefPanel />
+
+          {/* The band above the due list: one wide card, or two halves. Empty by
+              default — this space used to be the workload panel for everyone,
+              and it's now something you opt into. */}
+          {topWidgets.length > 0 && (
+            <div
+              className={cn(
+                'grid gap-3',
+                topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
+              )}
+            >
+              {topWidgets.map((id) => (
+                <div key={id}>
+                  {WIDGETS_BY_ID.get(id)?.render(topWidgets.length > 1 ? 'half' : 'wide')}
+                </div>
+              ))}
+            </div>
+          )}
           <DueList
             groups={groups}
             completed={completed}
@@ -121,7 +139,7 @@ export function TodayPage() {
           <AnnouncementsDigest />
         </main>
 
-        <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
+        <aside className="flex flex-col gap-3 lg:w-[272px] lg:shrink-0">
           {/* User-chosen widgets, in their order. The glance panel is rendered
               here rather than by the registry because it needs the term totals
               already computed above. */}
@@ -141,7 +159,7 @@ export function TodayPage() {
                 cumulativeGpa={cumulativeGpa}
               />
             ) : (
-              <div key={id}>{WIDGETS_BY_ID.get(id)?.render()}</div>
+              <div key={id}>{WIDGETS_BY_ID.get(id)?.render('rail')}</div>
             ),
           )}
           {/* Contextual nudges are NOT widgets — they appear because something
@@ -150,6 +168,8 @@ export function TodayPage() {
           <AddWidgetButton
             layout={widgets}
             onChange={(next) => patchUiState({ todayWidgets: next })}
+            topLayout={topWidgets}
+            onTopChange={(next) => patchUiState({ todayTopWidgets: next })}
             ctx={{ courseCount: courses.length }}
           />
         </aside>

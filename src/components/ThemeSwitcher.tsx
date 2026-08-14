@@ -42,11 +42,24 @@ export function ThemeSwitcher({
             )}
           >
             <span
-              className="size-3.5 shrink-0 rounded-full ring-1 ring-white/15"
-              style={{
-                background: `linear-gradient(135deg, ${opt.swatch[0]} 50%, ${opt.swatch[1]} 50%)`,
-              }}
-            />
+              className={cn(
+                'flex h-5 w-6 shrink-0 items-end gap-px overflow-hidden rounded-[5px] p-[3px] ring-1',
+                selected ? 'ring-accent' : 'ring-border-strong',
+              )}
+              style={{ backgroundColor: opt.swatch[0] }}
+              aria-hidden
+            >
+              {/* card, then accent — the same three tokens the Settings tiles
+                  show, shrunk to something legible at 24px */}
+              <span
+                className="h-2 flex-1 rounded-[1.5px]"
+                style={{ backgroundColor: opt.surface }}
+              />
+              <span
+                className="h-3 w-1.5 rounded-[1.5px]"
+                style={{ backgroundColor: opt.swatch[1] }}
+              />
+            </span>
             {showLabels && <span className="truncate">{opt.label}</span>}
           </button>
         )

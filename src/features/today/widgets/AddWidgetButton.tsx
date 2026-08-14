@@ -16,10 +16,14 @@ import type { WidgetContext } from './registry'
 export function AddWidgetButton({
   layout,
   onChange,
+  topLayout,
+  onTopChange,
   ctx,
 }: {
   layout: string[]
   onChange: (next: string[]) => void
+  topLayout: string[]
+  onTopChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const [open, setOpen] = useState(false)
@@ -43,7 +47,13 @@ export function AddWidgetButton({
               Pick what shows beside your due list. Nothing here is required — your deadlines
               stay put either way.
             </p>
-            <WidgetGallery layout={layout} onChange={onChange} ctx={ctx} />
+            <WidgetGallery
+              layout={layout}
+              onChange={onChange}
+              topLayout={topLayout}
+              onTopChange={onTopChange}
+              ctx={ctx}
+            />
           </div>
         </ModalShell>
       )}

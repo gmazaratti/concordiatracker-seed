@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/cn'
 
@@ -75,12 +76,24 @@ export function ModalShell({
         aria-label={label}
         tabIndex={-1}
         className={cn(
-          'ct-animate-pop w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
+          'ct-animate-pop relative w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
           widthClass,
         )}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
+        {/* A visible way out on touch. Desktop has Escape and a backdrop click;
+            on a phone neither is discoverable, and every modal was leaving
+            people to guess. It lives here so no individual modal has to
+            remember it. */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg bg-surface-2/80 text-subtle backdrop-blur transition-colors duration-150 hover:text-fg sm:hidden"
+        >
+          <X size={17} aria-hidden />
+        </button>
         {/* Scroll lives on an inner wrapper so the scrollbar is clipped to the
             rounded corners (the outer box owns the radius + overflow-hidden).
             When `scroll` is false the child owns its own layout instead. */}
