@@ -27,6 +27,12 @@ export function PublicLayout() {
             >
               {t('landing.pricing')}
             </a>
+            <a
+              href="/docs/introduction"
+              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
+            >
+              {t('landing.docs')}
+            </a>
             <Link to="/teacher" className="hidden sm:block">
               <Button variant="ghost" size="sm">
                 {t('landing.forTeachers')}
@@ -53,6 +59,9 @@ export function PublicLayout() {
             <p>ConcordiaTracker — a student-built academic hub. Mock seed build.</p>
           </div>
           <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/docs/introduction" className="transition-colors hover:text-fg">
+              {t('landing.docs')}
+            </a>
             <Link to="/privacy" className="transition-colors hover:text-fg">
               Privacy
             </Link>

@@ -475,6 +475,8 @@ export const fr: Partial<Record<Key, string>> = {
   'pricing.testModeNote': 'Mode test — les paiements ne sont pas encore activés. Aucune carte n’est débitée.',
   'pricing.liveNote': 'Paiement sécurisé par Stripe · Annulable à tout moment',
 
+  'landing.docs': 'Documentation',
+
   // -- Status --
   'status.notStarted': 'À faire',
   'status.inProgress': 'En cours',

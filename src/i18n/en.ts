@@ -468,6 +468,8 @@ export const en = {
   'pricing.testModeNote': 'Test mode — payments are not live yet. No card is charged.',
   'pricing.liveNote': 'Secure checkout by Stripe · Cancel anytime',
 
+  'landing.docs': 'Docs',
+
   // -- Status --
   'status.notStarted': 'Not started',
   'status.inProgress': 'In progress',

@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "//": "SPA fallback for client-routed pages. `api/` is excluded so serverless functions still resolve, and `docs/` is excluded because those are pre-rendered static HTML files — the whole point of generating them is that crawlers get real markup, and rewriting them to index.html would hand back an empty <div id=\"root\"> instead.",
+      "source": "/((?!api/|docs/|docs$|llms.txt).*)",
+      "destination": "/index.html"
+    }
   ]
 }
