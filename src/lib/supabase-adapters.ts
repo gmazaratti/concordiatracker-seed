@@ -507,3 +507,43 @@ export function orgProfileToRow(patch: Partial<EventOrg>): Record<string, unknow
   if ('links' in patch) row.links = patch.links ?? {}
   return row
 }
+
+/**
+ * Columns added by a migration that may not have been applied yet.
+ *
+ * A select naming a column the database doesn't have fails the WHOLE query
+ * (Postgres 42703, "column does not exist"), which is how adding `translations`
+ * to the community selects emptied the entire Community tab on a database where
+ * db/bilingual.sql hadn't been run yet. A pending migration should degrade a
+ * feature, never blank a screen.
+ *
+ * `optionalCols` appends the columns only once the database is known to have
+ * them. The probe runs once per session and is cached, so this costs a single
+ * extra request on first load and nothing afterwards.
+ */
+const columnSupport = new Map<string, Promise<boolean>>()
+
+export function optionalCols(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  table: string,
+  cols: string[],
+): Promise<string> {
+  const key = `${table}:${cols.join(',')}`
+  let probe = columnSupport.get(key)
+  if (!probe) {
+    probe = (async () => {
+      const { error } = await client.from(table).select(cols.join(', ')).limit(1)
+      if (error?.code === '42703') {
+        console.warn(
+          `[schema] ${table} is missing ${cols.join(', ')} — a migration is pending. ` +
+            'Continuing without those columns.',
+        )
+        return false
+      }
+      return true
+    })()
+    columnSupport.set(key, probe)
+  }
+  return probe.then((ok) => (ok ? `, ${cols.join(', ')}` : ''))
+}

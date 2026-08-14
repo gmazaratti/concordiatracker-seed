@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { eventFromRow, orgFromRow, type EventRow, type OrgRow } from '@/lib/supabase-adapters'
+import { eventFromRow, orgFromRow, optionalCols, type EventRow, type OrgRow } from '@/lib/supabase-adapters'
 import { CommunityDataContext, type CommunityDataValue } from './community-data'
 import type { CampusEvent, EventOrg } from '@/data/community'
 
-const ORG_COLS = 'id, handle, name, verified, glyph, color, logo, banner, bio, links, translations'
+const ORG_COLS = 'id, handle, name, verified, glyph, color, logo, banner, bio, links'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at, translations'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
 
 /** Loads the public Community feed (orgs + events) once on mount. The organizer
  * WRITE path (creating events from the portal) is still in-memory until Phase 10,
@@ -20,9 +20,15 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback(() => {
     let active = true
     void (async () => {
+      // Appended only if the bilingual migration has been applied — see
+      // optionalCols. Without this guard a pending migration blanks the feed.
+      const [orgExtra, evExtra] = await Promise.all([
+        optionalCols(supabase, 'organizations', ['translations']),
+        optionalCols(supabase, 'events', ['translations']),
+      ])
       const [{ data: orgRows }, { data: evRows }] = await Promise.all([
-        supabase.from('organizations').select(ORG_COLS),
-        supabase.from('events').select(EVENT_COLS),
+        supabase.from('organizations').select(ORG_COLS + orgExtra),
+        supabase.from('events').select(EVENT_COLS + evExtra),
       ])
       if (!active) return
       const orgById = new Map<string, EventOrg>()

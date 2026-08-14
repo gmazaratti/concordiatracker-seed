@@ -27,9 +27,9 @@ const SELF = 'self'
 /** Session sentinel: managing your OWN real organization. */
 const SELF_ORG = 'self-org'
 
-const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status, translations'
+const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at, translations'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
 
 /** A `teacher_courses` row (the teacher's persisted managed course + draft outline). */
 interface TeacherCourseRow {
@@ -125,7 +125,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       const { data } = await supabase
         .from('announcements')
-        .select('id, course_code, title, body, posted_at, edited_at, translations')
+        .select('id, course_code, title, body, posted_at, edited_at')
         .order('posted_at', { ascending: false })
       if (!active) return
       setAnnouncements((data as AnnouncementRow[] | null)?.map(announcementFromRow) ?? [])
@@ -718,7 +718,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           body: input.body,
           translations: input.translations ?? {},
         })
-        .select('id, course_code, title, body, posted_at, edited_at, translations')
+        .select('id, course_code, title, body, posted_at, edited_at')
         .maybeSingle()
       if (data) setAnnouncements((prev) => [announcementFromRow(data as AnnouncementRow), ...prev])
     },
