@@ -17,6 +17,7 @@ import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
 import { WIDGETS_BY_ID, GLANCE_ID, sanitizeLayout } from './widgets/registry'
+import { AddWidgetButton } from './widgets/AddWidgetButton'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
  * Today's clock-relative copy. */
@@ -116,9 +117,6 @@ export function TodayPage() {
             onDelete={deleteItem}
             onUndo={undo}
             onPrefsChange={updateTodayPrefs}
-            widgets={widgets}
-            onWidgetsChange={(next) => patchUiState({ todayWidgets: next })}
-            widgetCtx={{ courseCount: courses.length }}
           />
           <AnnouncementsDigest />
         </main>
@@ -149,6 +147,11 @@ export function TodayPage() {
           {/* Contextual nudges are NOT widgets — they appear because something
               needs attention, not because you chose them. */}
           {showPain && <PainNudge count={groups.count} />}
+          <AddWidgetButton
+            layout={widgets}
+            onChange={(next) => patchUiState({ todayWidgets: next })}
+            ctx={{ courseCount: courses.length }}
+          />
         </aside>
       </div>
 

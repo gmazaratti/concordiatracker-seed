@@ -1,6 +1,7 @@
-import { Bus, GraduationCap, Gauge, type LucideIcon } from 'lucide-react'
+import { Bus, CloudSun, GraduationCap, Gauge, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { ShuttleWidget } from './ShuttleWidget'
+import { WeatherWidget } from './WeatherWidget'
 
 /**
  * Every widget Today can show.
@@ -60,6 +61,13 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Next SGW ↔ Loyola departures from the published timetable.',
     icon: Bus,
     render: () => <ShuttleWidget />,
+  },
+  {
+    id: 'weather',
+    name: 'Weather',
+    description: 'Montreal conditions — for the walk between buildings.',
+    icon: CloudSun,
+    render: () => <WeatherWidget />,
   },
 ]
 
