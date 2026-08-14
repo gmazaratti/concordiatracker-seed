@@ -19,6 +19,8 @@ export function AddWidgetButton({
   onChange,
   topLayout,
   onTopChange,
+  belowLayout,
+  onBelowChange,
   ctx,
   editing,
   onToggleEditing,
@@ -29,6 +31,8 @@ export function AddWidgetButton({
   onChange: (next: string[]) => void
   topLayout: string[]
   onTopChange: (next: string[]) => void
+  belowLayout: string[]
+  onBelowChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const [open, setOpen] = useState(false)
@@ -75,6 +79,8 @@ export function AddWidgetButton({
               onChange={onChange}
               topLayout={topLayout}
               onTopChange={onTopChange}
+              belowLayout={belowLayout}
+              onBelowChange={onBelowChange}
               ctx={ctx}
             />
           </div>

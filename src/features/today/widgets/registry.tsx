@@ -156,6 +156,10 @@ export const DEFAULT_TOP: string[] = []
 /** One wide card, or two halves. More than two and they stop being readable. */
 export const MAX_TOP = 2
 
+export const DEFAULT_BELOW: string[] = []
+/** Under the due list there's more room, so a 2×2 is fine. */
+export const MAX_BELOW = 4
+
 export function fitsZone(w: WidgetDef, zone: WidgetZone): boolean {
   return (w.zones ?? ['rail']).includes(zone)
 }

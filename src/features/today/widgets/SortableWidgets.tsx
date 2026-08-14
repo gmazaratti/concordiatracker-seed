@@ -156,9 +156,28 @@ export function SortableWidgets({
             'relative',
             editing && 'cursor-grab touch-none select-none active:cursor-grabbing',
             editing && !reduced && dragId !== id && 'ct-wiggle',
-            dragId === id && 'opacity-95',
+            dragId === id && 'z-30 [&>*:last-child]:opacity-95 [&>*:last-child]:shadow-2xl',
           )}
         >
+          {/* The landing slot. While a widget is in hand its element is
+              translated away but its layout box stays put, so this recess shows
+              exactly where it will drop. */}
+          {dragId === id && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-xl bg-canvas/70 ring-1 ring-border-strong ring-inset"
+            />
+          )}
+
+          {/* Every other slot is a valid target, marked quietly so the whole
+              screen doesn't light up. */}
+          {dragId !== null && dragId !== id && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-accent/25 ring-inset"
+            />
+          )}
+
           {/* Blocks clicks reaching links inside a widget while editing, so a
               drag can never navigate you away mid-gesture. */}
           {editing && <div className="absolute inset-0 z-10 rounded-xl" aria-hidden />}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { MAX_TOP, MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, fitsZone, type WidgetContext } from './registry'
+import { MAX_BELOW, MAX_TOP, MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, fitsZone, type WidgetContext } from './registry'
 
 /**
  * Add, remove, and reorder the widgets on Today.
@@ -15,12 +15,16 @@ export function WidgetGallery({
   onChange,
   topLayout,
   onTopChange,
+  belowLayout,
+  onBelowChange,
   ctx,
 }: {
   layout: string[]
   onChange: (next: string[]) => void
   topLayout: string[]
   onTopChange: (next: string[]) => void
+  belowLayout: string[]
+  onBelowChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const full = layout.length >= MAX_WIDGETS
@@ -179,25 +183,41 @@ export function WidgetGallery({
           One wide card, or two side by side. Only widgets with a wide layout can
           go here.
         </p>
-        <TopZone layout={topLayout} onChange={onTopChange} ctx={ctx} />
+        <BandZone layout={topLayout} onChange={onTopChange} ctx={ctx} max={MAX_TOP} />
+      </div>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <p className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+          Below the due list
+        </p>
+        <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
+          Fills the space under your deadlines — useful on a light term, when the
+          side column is otherwise much taller than the list.
+        </p>
+        <BandZone layout={belowLayout} onChange={onBelowChange} ctx={ctx} max={MAX_BELOW} />
       </div>
     </div>
   )
 }
 
-/** The wide band above the due list. Separate from the rail list because the
- * constraint is different: at most two, and only widgets that declare a wide or
- * half layout are eligible. */
-function TopZone({
+/** A horizontal band — above or below the due list. Separate from the rail list
+ * because the constraint differs: a capped count, and only widgets that declare
+ * a wide or half layout are eligible. */
+function BandZone({
   layout,
   onChange,
   ctx,
+  max,
 }: {
   layout: string[]
   onChange: (next: string[]) => void
   ctx: WidgetContext
+  max: number
 }) {
-  const full = layout.length >= MAX_TOP
+  const full = layout.length >= max
+  // Deliberately does NOT exclude widgets already in the rail: putting one up
+  // here MOVES it rather than being blocked, which is what "I want weather at
+  // the top" should do. TodayPage strips it from the rail on the way through.
   const eligible = WIDGETS.filter(
     (w) =>
       !layout.includes(w.id) &&
@@ -226,7 +246,7 @@ function TopZone({
                 <button
                   type="button"
                   onClick={() => onChange(layout.filter((x) => x !== id))}
-                  aria-label={`Remove ${w.name} from the top band`}
+                  aria-label={`Remove ${w.name} from this band`}
                   className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
                 >
                   <X size={13} aria-hidden />
@@ -260,7 +280,7 @@ function TopZone({
 
       {full && (
         <p className="text-[11.5px] text-subtle">
-          Two is the most that stays readable side by side.
+          {max} is the most that stays readable here.
         </p>
       )}
     </>

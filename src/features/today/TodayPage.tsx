@@ -16,7 +16,7 @@ import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { cn } from '@/lib/cn'
 import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
-import { WIDGETS_BY_ID, GLANCE_ID, DEFAULT_TOP, sanitizeLayout } from './widgets/registry'
+import { WIDGETS_BY_ID, GLANCE_ID, DEFAULT_TOP, DEFAULT_BELOW, sanitizeLayout } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
 import { SortableWidgets } from './widgets/SortableWidgets'
 
@@ -55,7 +55,22 @@ export function TodayPage() {
   const topWidgets = sanitizeLayout(uiState.todayTopWidgets, DEFAULT_TOP)
   // Edit mode is explicit rather than long-press-only: widgets contain links,
   // so at rest every tap would race a drag.
+  const belowWidgets = sanitizeLayout(uiState.todayBelowWidgets, DEFAULT_BELOW)
   const [editing, setEditing] = useState(false)
+
+  /**
+   * Zones are exclusive: a widget lives in exactly one. Writing all three at
+   * once means moving Weather to the top band removes it from the rail in the
+   * same update, instead of showing it twice or silently refusing.
+   */
+  function setZone(zone: 'rail' | 'top' | 'below', next: string[]) {
+    const others = (list: string[]) => list.filter((id) => !next.includes(id))
+    patchUiState({
+      todayWidgets: zone === 'rail' ? next : others(widgets),
+      todayTopWidgets: zone === 'top' ? next : others(topWidgets),
+      todayBelowWidgets: zone === 'below' ? next : others(belowWidgets),
+    })
+  }
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
@@ -121,10 +136,8 @@ export function TodayPage() {
               ids={topWidgets}
               editing={editing}
               axis="xy"
-              onReorder={(next) => patchUiState({ todayTopWidgets: next })}
-              onRemove={(id) =>
-                patchUiState({ todayTopWidgets: topWidgets.filter((x) => x !== id) })
-              }
+              onReorder={(next) => setZone('top', next)}
+              onRemove={(id) => setZone('top', topWidgets.filter((x) => x !== id))}
               className={cn(
                 'grid gap-3',
                 topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
@@ -145,6 +158,27 @@ export function TodayPage() {
             onPrefsChange={updateTodayPrefs}
           />
           <AnnouncementsDigest />
+
+          {/* Under the due list. On a light term the rail is much taller than
+              this column, and the gap reads as a mistake; this is the space to
+              fill, and it's opt-in rather than something that rearranges itself
+              as your workload changes. */}
+          {belowWidgets.length > 0 && (
+            <SortableWidgets
+              ids={belowWidgets}
+              editing={editing}
+              axis="xy"
+              onReorder={(next) => setZone('below', next)}
+              onRemove={(id) => setZone('below', belowWidgets.filter((x) => x !== id))}
+              className={cn(
+                'grid gap-3',
+                belowWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
+              )}
+              renderItem={(id) =>
+                WIDGETS_BY_ID.get(id)?.render(belowWidgets.length > 1 ? 'half' : 'wide')
+              }
+            />
+          )}
         </main>
 
         <aside className="flex flex-col gap-3 lg:w-[272px] lg:shrink-0">
@@ -154,8 +188,8 @@ export function TodayPage() {
           <SortableWidgets
             ids={widgets}
             editing={editing}
-            onReorder={(next) => patchUiState({ todayWidgets: next })}
-            onRemove={(id) => patchUiState({ todayWidgets: widgets.filter((x) => x !== id) })}
+            onReorder={(next) => setZone('rail', next)}
+            onRemove={(id) => setZone('rail', widgets.filter((x) => x !== id))}
             className="flex flex-col gap-3"
             renderItem={(id) =>
               id === GLANCE_ID ? (
@@ -183,9 +217,11 @@ export function TodayPage() {
             editing={editing}
             onToggleEditing={() => setEditing((v) => !v)}
             layout={widgets}
-            onChange={(next) => patchUiState({ todayWidgets: next })}
+            onChange={(next) => setZone('rail', next)}
             topLayout={topWidgets}
-            onTopChange={(next) => patchUiState({ todayTopWidgets: next })}
+            onTopChange={(next) => setZone('top', next)}
+            belowLayout={belowWidgets}
+            onBelowChange={(next) => setZone('below', next)}
             ctx={{ courseCount: courses.length }}
           />
         </aside>

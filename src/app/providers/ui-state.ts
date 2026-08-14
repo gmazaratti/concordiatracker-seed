@@ -4,6 +4,9 @@ import { createContext, useContext } from 'react'
 export interface UiState {
   /** Widgets in the wide band above the due list — one wide, or two halves. */
   todayTopWidgets?: string[]
+  /** Widgets under the due list. Fills the dead space on a light term, where the
+   * rail is otherwise much taller than the main column. */
+  todayBelowWidgets?: string[]
   /** Assessment the Countdown widget is pinned to (else the next exam). */
   countdownId?: string
   /** Course + target the Grade goal widget is set to. */
