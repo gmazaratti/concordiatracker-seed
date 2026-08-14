@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "docs": "node scripts/docs/build.mjs",
-    "postbuild": "node scripts/docs/build.mjs"
+    "docs": "node docs-src/build.mjs",
+    "postbuild": "node docs-src/build.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",
