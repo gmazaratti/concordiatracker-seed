@@ -170,7 +170,7 @@ export function ThemeStep() {
             <button
               key={opt.id}
               type="button"
-              onClick={() => setTheme(opt.id)}
+              onClick={(e) => setTheme(opt.id, { x: e.clientX, y: e.clientY })}
               aria-pressed={selected}
               className={cn(
                 'flex items-center gap-3 rounded-xl border p-3 text-left transition-colors duration-150',

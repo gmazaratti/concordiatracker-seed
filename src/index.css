@@ -581,6 +581,24 @@ html {
   }
 }
 
+/* Theme change → circular reveal (View Transitions API).
+ *
+ * The browser cross-fades the two snapshots by default, which would muddy the
+ * wipe, so both default animations are turned off: the OLD theme simply holds
+ * still underneath while ThemeProvider animates a clip-path circle over the NEW
+ * one on top. Explicit z-index because snapshot paint order isn't guaranteed. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

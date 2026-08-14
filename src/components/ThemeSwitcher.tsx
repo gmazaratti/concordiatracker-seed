@@ -32,7 +32,7 @@ export function ThemeSwitcher({
             aria-checked={selected}
             aria-label={opt.label}
             title={opt.label}
-            onClick={() => setTheme(opt.id)}
+            onClick={(e) => setTheme(opt.id, { x: e.clientX, y: e.clientY })}
             className={cn(
               'flex flex-1 items-center rounded-md py-1.5 text-[12px] transition-colors duration-150',
               showLabels ? 'gap-2 px-2.5' : 'justify-center px-2',

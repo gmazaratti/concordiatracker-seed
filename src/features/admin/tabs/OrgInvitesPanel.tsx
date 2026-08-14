@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { ExternalLink, Eye, Mail, Send } from 'lucide-react'
+import { CalendarClock, ExternalLink, Eye, Mail, Send } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Button } from '@/components/ui/Button'
@@ -157,7 +157,7 @@ export function OrgInvitesPanel() {
         ) : (
           <ul className="divide-y divide-border">
             {invites.items.map((inv) => (
-              <InviteRow key={inv.id} invite={inv} onRevoke={() => revoke(inv.id)} />
+              <InviteRow key={inv.id} invite={inv} onRevoke={() => revoke(inv.id)} onChanged={invites.reload} />
             ))}
           </ul>
         )}
@@ -180,7 +180,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function InviteRow({ invite, onRevoke }: { invite: InviteRowData; onRevoke: () => void }) {
+function InviteRow({
+  invite,
+  onRevoke,
+  onChanged,
+}: {
+  invite: InviteRowData
+  onRevoke: () => void
+  onChanged: () => void
+}) {
   const st = inviteState(invite)
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
@@ -218,9 +226,86 @@ function InviteRow({ invite, onRevoke }: { invite: InviteRowData; onRevoke: () =
             Message
           </a>
         )}
+        <ExtendButton invite={invite} onDone={onChanged} />
         <ConfirmButton label="Revoke" armedLabel="Confirm revoke" danger onConfirm={onRevoke} />
       </div>
     </li>
+  )
+}
+
+/**
+ * Push an invite's expiry out instead of minting a new link — clubs reply on
+ * their own schedule, and the link already sitting in their inbox has to keep
+ * working. Optionally frees up a use, for when someone accepted on the wrong
+ * account.
+ */
+function ExtendButton({ invite, onDone }: { invite: InviteRowData; onDone: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const consumed = invite.use_count >= invite.max_uses
+
+  const extend = async (days: number, resetUses: boolean) => {
+    setBusy(true)
+    setErr('')
+    const { error } = await supabase.rpc('admin_extend_org_invite', {
+      p_id: invite.id,
+      p_days: days,
+      p_reset_uses: resetUses,
+    })
+    setBusy(false)
+    if (error) {
+      setErr(error.message)
+      return
+    }
+    setOpen(false)
+    onDone()
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={LINK_BTN}>
+        <CalendarClock size={13} aria-hidden />
+        Extend
+      </button>
+    )
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-accent/40 bg-accent-soft/40 px-2 py-1.5">
+      <span className="text-[11.5px] font-medium text-fg">Extend by</span>
+      {[7, 14, 30].map((d) => (
+        <button
+          key={d}
+          type="button"
+          disabled={busy}
+          onClick={() => void extend(d, false)}
+          className="rounded-md bg-accent px-2 py-0.5 text-[11.5px] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
+        >
+          {d}d
+        </button>
+      ))}
+      {/* Only offered when the link is spent — otherwise it's a confusing no-op. */}
+      {consumed && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void extend(14, true)}
+          className="rounded-md border border-border-strong px-2 py-0.5 text-[11.5px] font-medium text-fg transition-colors hover:bg-surface-2 disabled:opacity-50"
+          title="Reset the used count so the same link works again"
+        >
+          14d + reset uses
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="text-[11.5px] text-subtle transition-colors hover:text-fg"
+      >
+        Cancel
+      </button>
+      {err && <span className="text-[11px] text-danger">{err}</span>}
+    </span>
   )
 }
 

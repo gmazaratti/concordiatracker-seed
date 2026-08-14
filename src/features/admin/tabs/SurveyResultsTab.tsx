@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, Crown, Loader2, MessageSquare, Star, ThumbsUp } from 'lucide-react'
 import { adminListSurveyResponses, type SurveyResponseRow } from '../admin-data'
 import { RATING_QUESTIONS, TEXT_QUESTIONS } from '@/features/feedback/survey/survey-data'
+import { Segmented } from '@/features/settings/controls'
+import { PublicSurveyResults } from './PublicSurveyResults'
 import { cn } from '@/lib/cn'
 
 /** Admin survey dashboard: headline stats, per-question rating distributions, the
  * recommend split, and a per-respondent list of who said what. */
-export function SurveyResultsTab() {
+function ProductFeedbackResults() {
   const [rows, setRows] = useState<SurveyResponseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -298,5 +300,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-2.5 text-[13px] font-semibold text-fg">{title}</h2>
       <div className="rounded-xl border border-border bg-surface p-4">{children}</div>
     </section>
+  )
+}
+
+
+const SURVEY_VIEWS = [
+  { value: 'product', label: 'From users' },
+  { value: 'public', label: 'Public survey' },
+]
+
+/** Two different audiences, deliberately kept apart: product feedback from
+ * people who use the app, and market research from people who don't. */
+export function SurveyResultsTab() {
+  const [view, setView] = useState('product')
+  return (
+    <div className="space-y-5">
+      <header>
+        <h1 className="font-display text-[22px] font-semibold text-fg">Survey</h1>
+        <p className="text-[13px] text-subtle">
+          {view === 'product'
+            ? 'Feedback from students already using ConcordiaTracker.'
+            : 'Research from students who haven’t used it — shared via /survey.'}
+        </p>
+        <div className="mt-3 max-w-xs">
+          <Segmented value={view} onChange={setView} options={SURVEY_VIEWS} ariaLabel="Survey audience" />
+        </div>
+      </header>
+      {view === 'product' ? <ProductFeedbackResults /> : <PublicSurveyResults />}
+    </div>
   )
 }

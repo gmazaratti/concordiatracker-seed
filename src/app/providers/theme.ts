@@ -16,10 +16,17 @@ export const THEMES: ThemeOption[] = [
   { id: 'purple', label: 'Purple Dark', swatch: ['#181a3d', '#7c3aed'] },
 ]
 
+/** Viewport point a theme change should sweep out from (usually a click). */
+export interface ThemeOrigin {
+  x: number
+  y: number
+}
+
 export interface ThemeContextValue {
   theme: Theme
-  setTheme: (theme: Theme) => void
-  toggleTheme: () => void
+  /** Pass the click point to play the circular reveal; omit it to swap instantly. */
+  setTheme: (theme: Theme, origin?: ThemeOrigin) => void
+  toggleTheme: (origin?: ThemeOrigin) => void
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)

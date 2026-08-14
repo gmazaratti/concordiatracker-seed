@@ -20,6 +20,7 @@ import { TeacherRequestPage } from '@/features/teacher/TeacherRequestPage'
 import { TeacherCourseWorkspace } from '@/features/teacher/TeacherCourseWorkspace'
 import { AdminConsole } from '@/features/admin/AdminConsole'
 import { FeedbackPage } from '@/features/feedback/FeedbackPage'
+import { PublicSurveyPage } from '@/features/survey/PublicSurveyPage'
 import { AppRequestsPage } from '@/features/feedback/AppRequestsPage'
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage'
 import { OrganizerHome } from '@/features/organizer/OrganizerHome'
@@ -94,6 +95,9 @@ export function AppRoutes() {
       {/* Feedback — feature-request board + private bug submission. Reached from the
           avatar menu and Today; not a sidebar tab. */}
       <Route path="/feedback" element={<FeedbackPage />} />
+
+      {/* Public market-research survey — shareable, works signed-out. */}
+      <Route path="/survey" element={<PublicSurveyPage />} />
 
       {/* First-login student onboarding (full-screen). The /app gate redirects
           un-onboarded users here. */}
