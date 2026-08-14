@@ -18,6 +18,7 @@ import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
 import { WIDGETS_BY_ID, GLANCE_ID, DEFAULT_TOP, sanitizeLayout } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
+import { SortableWidgets } from './widgets/SortableWidgets'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
  * Today's clock-relative copy. */
@@ -52,6 +53,9 @@ export function TodayPage() {
   // crash Today or render a widget twice.
   const widgets = sanitizeLayout(uiState.todayWidgets)
   const topWidgets = sanitizeLayout(uiState.todayTopWidgets, DEFAULT_TOP)
+  // Edit mode is explicit rather than long-press-only: widgets contain links,
+  // so at rest every tap would race a drag.
+  const [editing, setEditing] = useState(false)
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
@@ -113,18 +117,22 @@ export function TodayPage() {
               default — this space used to be the workload panel for everyone,
               and it's now something you opt into. */}
           {topWidgets.length > 0 && (
-            <div
+            <SortableWidgets
+              ids={topWidgets}
+              editing={editing}
+              axis="xy"
+              onReorder={(next) => patchUiState({ todayTopWidgets: next })}
+              onRemove={(id) =>
+                patchUiState({ todayTopWidgets: topWidgets.filter((x) => x !== id) })
+              }
               className={cn(
                 'grid gap-3',
                 topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
               )}
-            >
-              {topWidgets.map((id) => (
-                <div key={id}>
-                  {WIDGETS_BY_ID.get(id)?.render(topWidgets.length > 1 ? 'half' : 'wide')}
-                </div>
-              ))}
-            </div>
+              renderItem={(id) =>
+                WIDGETS_BY_ID.get(id)?.render(topWidgets.length > 1 ? 'half' : 'wide')
+              }
+            />
           )}
           <DueList
             groups={groups}
@@ -143,10 +151,15 @@ export function TodayPage() {
           {/* User-chosen widgets, in their order. The glance panel is rendered
               here rather than by the registry because it needs the term totals
               already computed above. */}
-          {widgets.map((id) =>
-            id === GLANCE_ID ? (
-              <GlanceStrip
-                key={id}
+          <SortableWidgets
+            ids={widgets}
+            editing={editing}
+            onReorder={(next) => patchUiState({ todayWidgets: next })}
+            onRemove={(id) => patchUiState({ todayWidgets: widgets.filter((x) => x !== id) })}
+            className="flex flex-col gap-3"
+            renderItem={(id) =>
+              id === GLANCE_ID ? (
+                <GlanceStrip
                 term={term}
                 gpa={gpa}
                 overdue={groups.overdue.length}
@@ -157,15 +170,18 @@ export function TodayPage() {
                 courseCount={courses.length}
                 credits={credits}
                 cumulativeGpa={cumulativeGpa}
-              />
-            ) : (
-              <div key={id}>{WIDGETS_BY_ID.get(id)?.render('rail')}</div>
-            ),
-          )}
+                />
+              ) : (
+                WIDGETS_BY_ID.get(id)?.render('rail')
+              )
+            }
+          />
           {/* Contextual nudges are NOT widgets — they appear because something
               needs attention, not because you chose them. */}
           {showPain && <PainNudge count={groups.count} />}
           <AddWidgetButton
+            editing={editing}
+            onToggleEditing={() => setEditing((v) => !v)}
             layout={widgets}
             onChange={(next) => patchUiState({ todayWidgets: next })}
             topLayout={topWidgets}

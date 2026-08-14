@@ -690,3 +690,20 @@ html {
     scroll-behavior: auto !important;
   }
 }
+
+/* Edit-mode wiggle for the Today widgets — the iPhone home-screen tell that
+ * things are rearrangeable. Tiny amplitude on purpose: enough to read as "these
+ * are loose", not enough to be annoying while you aim at one.
+ * The per-element delay keeps them out of lockstep, which is what makes it look
+ * organic rather than mechanical. The global reduced-motion block zeroes the
+ * duration, and SortableWidgets also skips applying the class outright. */
+@keyframes ct-wiggle {
+  0%, 100% { transform: rotate(-0.35deg); }
+  50%      { transform: rotate(0.35deg); }
+}
+.ct-wiggle {
+  animation: ct-wiggle 0.42s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+.ct-wiggle:nth-child(2n)  { animation-delay: -0.14s; animation-duration: 0.46s; }
+.ct-wiggle:nth-child(3n)  { animation-delay: -0.28s; animation-duration: 0.39s; }

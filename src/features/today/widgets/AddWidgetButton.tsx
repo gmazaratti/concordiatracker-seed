@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { LayoutGrid } from 'lucide-react'
+import { Check, LayoutGrid, Pencil } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
+import { cn } from '@/lib/cn'
 import { WidgetGallery } from './WidgetGallery'
 import type { WidgetContext } from './registry'
 
@@ -19,7 +20,11 @@ export function AddWidgetButton({
   topLayout,
   onTopChange,
   ctx,
+  editing,
+  onToggleEditing,
 }: {
+  editing: boolean
+  onToggleEditing: () => void
   layout: string[]
   onChange: (next: string[]) => void
   topLayout: string[]
@@ -30,14 +35,32 @@ export function AddWidgetButton({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-[12.5px] font-medium text-subtle transition-colors duration-150 hover:border-border-strong hover:bg-surface/50 hover:text-fg"
-      >
-        <LayoutGrid size={14} aria-hidden />
-        {layout.length ? 'Edit widgets' : 'Add a widget'}
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-dashed border-border py-2.5 text-[12.5px] font-medium text-subtle transition-colors duration-150 hover:border-border-strong hover:bg-surface/50 hover:text-fg"
+        >
+          <LayoutGrid size={14} aria-hidden />
+          Add a widget
+        </button>
+        {(layout.length > 1 || topLayout.length > 0) && (
+          <button
+            type="button"
+            onClick={onToggleEditing}
+            aria-pressed={editing}
+            title={editing ? 'Done rearranging' : 'Rearrange widgets'}
+            className={cn(
+              'grid w-11 place-items-center rounded-xl border py-2.5 transition-colors duration-150',
+              editing
+                ? 'border-accent bg-accent-soft text-accent'
+                : 'border-dashed border-border text-subtle hover:border-border-strong hover:text-fg',
+            )}
+          >
+            {editing ? <Check size={15} aria-hidden /> : <Pencil size={14} aria-hidden />}
+          </button>
+        )}
+      </div>
 
       {open && (
         <ModalShell label="Widgets" onClose={() => setOpen(false)} widthClass="sm:max-w-md">

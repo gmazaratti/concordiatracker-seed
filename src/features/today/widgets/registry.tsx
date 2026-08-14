@@ -1,4 +1,4 @@
-import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { ShuttleWidget } from './ShuttleWidget'
 import { WeatherWidget } from './WeatherWidget'
@@ -6,6 +6,7 @@ import { CountdownWidget } from './CountdownWidget'
 import { GradeGoalWidget } from './GradeGoalWidget'
 import { CourseShortcutsWidget } from './CourseShortcutsWidget'
 import { StreakWidget } from './StreakWidget'
+import { StudyTimerWidget } from './StudyTimerWidget'
 import { DebriefPanel } from '../DebriefPanel'
 
 /**
@@ -123,6 +124,14 @@ export const WIDGETS: WidgetDef[] = [
     icon: Flame,
     zones: ['rail', 'half'],
     render: () => <StreakWidget />,
+  },
+  {
+    id: 'timer',
+    name: 'Focus timer',
+    description: '25 minutes on, 5 off. Nothing is logged or scored.',
+    icon: Timer,
+    zones: ['rail', 'half'],
+    render: () => <StudyTimerWidget />,
   },
   {
     id: 'workload',
