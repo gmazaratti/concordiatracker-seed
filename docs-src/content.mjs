@@ -14,7 +14,7 @@
 export const NAV = [
   {
     title: 'Getting started',
-    pages: ['introduction', 'quick-start', 'faq', 'contact'],
+    pages: ['introduction', 'quick-start', 'faq', 'support', 'support-status', 'contact'],
   },
   {
     title: 'Your courses',
@@ -45,6 +45,79 @@ export const NAV = [
     pages: ['organizer-portal', 'organizer-setup', 'organizer-first-event'],
   },
 ]
+
+/* The signed-out ticket-status widget: markup, styles, and behaviour. Kept
+ * beside its page rather than in the renderer, since it is specific to this
+ * one page rather than part of the docs shell. */
+const SUPPORT_STATUS_UI = `<div class="ticket-tool"><div class="ticket-lookup"><label>Case number<input type="text" id="t-case" placeholder="TKT-1001" autocomplete="off" /></label><label>Access key<input type="text" id="t-token" placeholder="From your ticket link" autocomplete="off" /></label><button type="button" id="t-load">Open conversation</button></div><p class="ticket-err" id="t-err" hidden></p><div id="t-thread" hidden></div></div>`
+
+const SUPPORT_STATUS_STYLE = `<style>.ticket-tool{margin:18px 0 8px}.ticket-lookup{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.ticket-lookup label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin:0}.ticket-lookup input{display:block;width:100%;margin-top:4px;background:var(--canvas);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font:inherit;font-size:13.5px}.ticket-lookup input:focus{outline:0;border-color:var(--accent)}.ticket-lookup button,.tm-reply button{background:var(--accent);color:#0e1c14;border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}.ticket-err{margin:12px 0 0;font-size:13px;color:#f0676b}#t-thread{margin-top:22px;border:1px solid var(--border);border-radius:13px;overflow:hidden}.tm-head{display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--border);background:var(--surface)}.tm-head strong{flex:1;min-width:0;font-family:var(--display);font-size:14.5px}.tm-status{font-size:11.5px;text-transform:capitalize;padding:2px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted)}.tm-status.s-open{color:#e7a93a}.tm-status.s-answered{color:#5aa9f0}.tm-status.s-solved{color:#4ec9a5}.tm{padding:13px 15px;border-bottom:1px solid var(--border)}.tm-who{margin:0 0 5px;font-size:11.5px;color:var(--subtle)}.tm-body{font-size:13.5px;line-height:1.6;white-space:pre-wrap;color:var(--muted)}.tm.staff{background:var(--accent-soft)}.tm.staff .tm-body{color:var(--fg)}.tm-reply{display:flex;gap:10px;padding:13px 15px;align-items:flex-end}.tm-reply textarea{flex:1;background:var(--canvas);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font:inherit;font-size:13.5px;resize:vertical}.tm-reply textarea:focus{outline:0;border-color:var(--accent)}@media (max-width:640px){.ticket-lookup{grid-template-columns:1fr}}</style>`
+
+const SUPPORT_STATUS_SCRIPT = `
+// Ticket status + reply, for people who are not signed in. Everything is gated
+// on the access key from the ticket link — a guessed case number reveals nothing.
+(function () {
+  var caseEl = document.getElementById('t-case');
+  var tokEl = document.getElementById('t-token');
+  var errEl = document.getElementById('t-err');
+  var thread = document.getElementById('t-thread');
+  if (!caseEl) return;
+
+  var params = new URLSearchParams(location.search);
+  if (params.get('case')) caseEl.value = params.get('case');
+  if (params.get('token')) tokEl.value = params.get('token');
+
+  function esc(t) {
+    return String(t).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function render(t) {
+    var msgs = (t.messages || []).map(function (m) {
+      var staff = m.author_role === 'staff';
+      return '<div class="tm ' + (staff ? 'staff' : 'me') + '">' +
+        '<p class="tm-who">' + esc(m.author_name) + ' · ' + new Date(m.created_at).toLocaleString() + '</p>' +
+        '<div class="tm-body">' + esc(m.body) + '</div></div>';
+    }).join('');
+    thread.innerHTML =
+      '<div class="tm-head"><strong>' + esc(t.subject) + '</strong>' +
+      '<span class="tm-status s-' + esc(t.status) + '">' + esc(t.status) + '</span></div>' +
+      msgs +
+      '<div class="tm-reply"><textarea id="t-reply" rows="3" placeholder="Write a reply…"></textarea>' +
+      '<button type="button" id="t-send">Send reply</button></div>';
+    thread.hidden = false;
+    document.getElementById('t-send').addEventListener('click', function () { post('reply'); });
+  }
+
+  function post(action) {
+    errEl.hidden = true;
+    var payload = {
+      action: action,
+      caseId: (caseEl.value || '').trim(),
+      token: (tokEl.value || '').trim()
+    };
+    if (action === 'reply') {
+      var box = document.getElementById('t-reply');
+      if (!box || !box.value.trim()) return;
+      payload.message = box.value.trim();
+    }
+    fetch('/api/ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d && res.d.error ? res.d.error : 'Could not load that ticket.');
+        render(res.d.ticket);
+      })
+      .catch(function (e) { errEl.textContent = e.message; errEl.hidden = false; });
+  }
+
+  document.getElementById('t-load').addEventListener('click', function () { post('check'); });
+  if (caseEl.value && tokEl.value) post('check');
+})();
+`
 
 export const PAGES = {
   /* ── Getting started ───────────────────────────────────────────────────── */
@@ -245,6 +318,75 @@ export const PAGES = {
   },
 
   /* ── Your courses ──────────────────────────────────────────────────────── */
+
+
+  support: {
+    title: 'Support',
+    section: 'Getting started',
+    description:
+      'How ConcordiaTracker support works — open a ticket from the app or the docs, and follow the conversation with a case number.',
+    blocks: [
+      {
+        p: 'Support is a conversation, not a form that disappears into an inbox. Every ticket keeps its full history, and you can reply to it as long as it is open.',
+      },
+
+      { h2: 'If you have an account' },
+      {
+        p: 'Open **profile menu → Support** in the app. You get a list of your tickets, and replies from us land there with a badge. It is the best route, because your account details come attached and there is nothing to look up.',
+      },
+      { p: 'You can also jump straight there: [open support in the app](/app?support=1).' },
+
+      { h2: 'If you do not have an account' },
+      {
+        p: 'Use the **Support** button at the top of any page in these docs. It only needs an email address so we can reach you.',
+      },
+      {
+        note: 'You will get a **case number** like `TKT-1001` and a private link. Save the link — it is the only way back into the conversation, and we cannot recover it for you if it is lost.',
+      },
+      { p: 'To pick a conversation back up, use [Check a ticket](/docs/support-status).' },
+
+      { h2: 'What happens next' },
+      {
+        table: {
+          head: ['Status', 'Means'],
+          rows: [
+            ['**Open**', 'Waiting on us. Newly submitted tickets and any you have replied to.'],
+            ['**Answered**', 'We have replied and it is with you. Reply again and it reopens.'],
+            ['**Solved**', 'Closed out. Writing back on it opens it again — nothing is ever locked.'],
+          ],
+        },
+      },
+
+      { h2: 'What to include' },
+      {
+        ul: [
+          'What you were trying to do, and what happened instead',
+          'The course or page it happened on',
+          'Your browser, and whether you are on a phone or a computer',
+        ],
+      },
+      {
+        p: 'For billing questions, write from the email address on the account — it saves a round trip. And if a charge looks wrong, please open a ticket before disputing it with your bank; almost everything is sorted out faster directly.',
+      },
+    ],
+  },
+
+  'support-status': {
+    title: 'Check a ticket',
+    section: 'Getting started',
+    description:
+      'Look up a ConcordiaTracker support ticket with its case number and access key, read the replies, and respond.',
+    script: SUPPORT_STATUS_SCRIPT,
+    blocks: [
+      {
+        p: 'Enter the case number and access key from your ticket link to read the conversation and reply. Both are required — a case number on its own will not open anything.',
+      },
+      { raw: SUPPORT_STATUS_STYLE + SUPPORT_STATUS_UI },
+      {
+        p: 'Signed in? Your tickets are in the app under **profile menu → Support**, with no case number needed.',
+      },
+    ],
+  },
 
   'adding-courses': {
     title: 'Adding courses',

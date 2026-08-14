@@ -477,6 +477,8 @@ export const fr: Partial<Record<Key, string>> = {
 
   'landing.docs': 'Documentation',
 
+  'nav.support': 'Assistance',
+
   // -- Status --
   'status.notStarted': 'À faire',
   'status.inProgress': 'En cours',

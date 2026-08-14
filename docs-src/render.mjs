@@ -91,6 +91,7 @@ function block(b) {
         </a>`,
       )
       .join('')}</div>`
+  if (b.raw) return b.raw
   if (b.table) {
     const head = b.table.head.map((h) => `<th>${inline(h)}</th>`).join('')
     const rows = b.table.rows
@@ -215,8 +216,36 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
     <kbd>Ctrl K</kbd>
     <ul id="results" role="listbox" hidden></ul>
   </div>
-  <a class="portal" href="/app">Open app &rarr;</a>
+  <div class="topbar-right">
+    <button type="button" class="portal support-open" id="support-open">Support</button>
+    <a class="portal" href="/app">Open app &rarr;</a>
+  </div>
 </header>
+
+<dialog id="support" aria-label="Contact support">
+  <form method="dialog" class="support-x"><button aria-label="Close">&times;</button></form>
+  <div id="support-body">
+    <h2>Contact support</h2>
+    <p class="support-lead">Tell us what is going wrong and we will reply by email. No account needed.</p>
+    <label>Your email<input type="email" id="s-email" autocomplete="email" required /></label>
+    <label>Your name <span class="opt">(optional)</span><input type="text" id="s-name" autocomplete="name" /></label>
+    <label>What is this about?
+      <select id="s-cat">
+        <option value="bug">Something is broken</option>
+        <option value="billing">Billing or subscription</option>
+        <option value="account">My account</option>
+        <option value="feature">Feature request</option>
+        <option value="other">Something else</option>
+      </select>
+    </label>
+    <label>Subject<input type="text" id="s-subject" maxlength="200" required /></label>
+    <label>Details<textarea id="s-message" rows="5" required></textarea></label>
+    <label class="hp" aria-hidden="true">Website<input type="text" id="s-website" tabindex="-1" autocomplete="off" /></label>
+    <p class="support-err" id="s-err" hidden></p>
+    <button type="button" class="support-send" id="s-send">Send</button>
+    <p class="support-foot">Already have a case number? <a href="/docs/support-status">Check its status</a>.</p>
+  </div>
+</dialog>
 
 <div class="shell">
   <nav class="sidebar" aria-label="Documentation">${sidebar(nav, page.slug)}</nav>
@@ -262,6 +291,52 @@ document.addEventListener('keydown', function (e) {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); q.focus(); q.select(); }
   if (e.key === 'Escape') { q.blur(); results.hidden = true; }
 });
+
+// Support dialog. Signed-out submissions go to /api/ticket, which owns the rate
+// limiting — see api/ticket.ts.
+var dlg = document.getElementById('support');
+document.getElementById('support-open').addEventListener('click', function () { dlg.showModal(); });
+var sendBtn = document.getElementById('s-send');
+var errEl = document.getElementById('s-err');
+function val(id) { return (document.getElementById(id).value || '').trim(); }
+sendBtn.addEventListener('click', function () {
+  errEl.hidden = true;
+  if (!val('s-email') || val('s-subject').length < 3 || val('s-message').length < 10) {
+    errEl.textContent = 'Please add your email, a subject, and a few sentences of detail.';
+    errEl.hidden = false;
+    return;
+  }
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Sending…';
+  fetch('/api/ticket', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'submit',
+      email: val('s-email'), name: val('s-name'), category: val('s-cat'),
+      subject: val('s-subject'), message: val('s-message'),
+      website: val('s-website'), page: location.pathname
+    })
+  }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      if (!res.ok) throw new Error(res.d && res.d.error ? res.d.error : 'Could not send that.');
+      document.getElementById('support-body').innerHTML =
+        '<div class="support-ok"><h2>Ticket created</h2>' +
+        '<p class="support-lead">Keep this case number — it is how you check for a reply.</p>' +
+        '<p class="case">' + res.d.caseId + '</p>' +
+        '<p class="support-foot"><a href="/docs/support-status?case=' + encodeURIComponent(res.d.caseId) +
+        '&token=' + encodeURIComponent(res.d.token) + '">Open this conversation</a> — bookmark that link.</p></div>';
+    })
+    .catch(function (e) {
+      errEl.textContent = e.message;
+      errEl.hidden = false;
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    });
+});
+${page.script ? `
+${page.script}
+` : ''}
 </script>
 </body>
 </html>`
@@ -294,7 +369,8 @@ a{color:inherit}
 .brand-name{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:-.01em}
 .brand-dim{color:var(--muted)}
 .brand-pill{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 5px}
-.portal{margin-left:auto;position:relative;z-index:1;flex-shrink:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;position:relative;z-index:1}
+.portal{flex-shrink:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
 .portal:hover{color:var(--fg);border-color:var(--border-strong)}
 
 .search{position:absolute;left:50%;transform:translateX(-50%);width:min(420px,38vw);display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0 10px}
@@ -376,6 +452,27 @@ td{color:var(--muted)}
 .toc li::before{display:none}
 .toc a{color:var(--subtle);text-decoration:none}
 .toc a:hover{color:var(--fg)}
+
+dialog#support{width:min(460px,calc(100vw - 32px));max-height:86vh;overflow:auto;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--fg);padding:22px;box-shadow:0 30px 80px -30px rgba(0,0,0,.9)}
+dialog#support::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
+dialog#support h2{font-family:var(--display);font-size:19px;font-weight:600;margin:0 0 5px}
+.support-lead{font-size:13px;color:var(--muted);margin:0 0 16px}
+dialog#support label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:11px}
+dialog#support .opt{font-weight:400;color:var(--subtle)}
+dialog#support input,dialog#support select,dialog#support textarea{display:block;width:100%;margin-top:4px;background:var(--canvas);border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font:inherit;font-size:13.5px}
+dialog#support input:focus,dialog#support select:focus,dialog#support textarea:focus{outline:0;border-color:var(--accent)}
+dialog#support textarea{resize:vertical}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.support-send{width:100%;margin-top:4px;background:var(--accent);color:#0e1c14;border:0;border-radius:9px;padding:10px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.support-send:disabled{opacity:.5;cursor:not-allowed}
+.support-err{margin:0 0 10px;font-size:12.5px;color:#f0676b}
+.support-foot{margin:12px 0 0;font-size:12px;color:var(--subtle);text-align:center}
+.support-x{position:absolute;top:12px;right:12px}
+.support-x button{background:none;border:0;color:var(--subtle);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
+.support-x button:hover{color:var(--fg)}
+.support-open{cursor:pointer;font-family:inherit}
+.support-ok{text-align:center;padding:8px 0}
+.support-ok .case{font-family:ui-monospace,monospace;font-size:19px;color:var(--accent);margin:10px 0}
 
 @media (max-width:1100px){
   .shell{grid-template-columns:212px minmax(0,1fr);gap:32px}

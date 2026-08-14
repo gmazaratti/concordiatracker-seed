@@ -10,6 +10,7 @@ import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
+import { SupportLayer } from '@/features/support/SupportLayer'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { AdminActivityToaster } from '@/features/admin/AdminActivityToaster'
@@ -65,6 +66,7 @@ export function StudentLayout() {
       <CommandPalette />
       <QuickActionLayer />
       <SettingsLayer />
+      <SupportLayer />
       <UpdatesLayer />
       <InstallPrompt />
       <GettingStartedChecklist />

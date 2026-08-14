@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Compass,
   GraduationCap,
+  LifeBuoy,
   LogOut,
   Megaphone,
   MessagesSquare,
@@ -15,6 +16,7 @@ import {
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
+import { useSupport } from '@/app/providers/support'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
 import { useTeacher } from '@/app/providers/teacher'
@@ -45,6 +47,7 @@ export function AvatarMenu({
   const { user, plan, setPlan } = useAppData()
   const { signOut } = useAuth()
   const { openSettings } = useSettings()
+  const { openSupport } = useSupport()
   const { showIndicator, openHistory } = useUpdates()
   const { isAdmin } = useIsAdmin()
   const { myOrg } = useTeacher()
@@ -155,6 +158,15 @@ export function AvatarMenu({
           <MenuLink to="/app/requests" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             {t('nav.feedback')}
           </MenuLink>
+          <MenuButton
+            icon={LifeBuoy}
+            onSelect={() => {
+              setOpen(false)
+              openSupport()
+            }}
+          >
+            {t('nav.support')}
+          </MenuButton>
           <MenuButton
             icon={Compass}
             onSelect={() => {

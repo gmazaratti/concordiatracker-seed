@@ -11,6 +11,7 @@ import {
   Compass,
   GraduationCap,
   Inbox,
+  LifeBuoy,
   LayoutDashboard,
   Link2,
   Loader2,
@@ -26,6 +27,7 @@ import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
+import { TicketsTab } from './tabs/TicketsTab'
 import { AttributionTab } from './tabs/AttributionTab'
 import { TrafficTab } from './tabs/TrafficTab'
 import { SurveyResultsTab } from './tabs/SurveyResultsTab'
@@ -35,6 +37,7 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'applications', label: 'Applications', icon: Inbox },
+  { id: 'tickets', label: 'Support', icon: LifeBuoy },
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'traffic', label: 'Traffic', icon: Activity },
   { id: 'attribution', label: 'Attribution', icon: Compass },
@@ -115,6 +118,7 @@ export function AdminConsole() {
         {current === 'attribution' && <AttributionTab />}
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}
+        {current === 'tickets' && <TicketsTab />}
         {current === 'bugs' && <BugReportsTab />}
       </div>
     </div>

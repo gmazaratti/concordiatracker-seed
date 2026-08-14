@@ -6,6 +6,7 @@ import { UiStateProvider } from './UiStateProvider'
 import { CommunityProvider } from './CommunityProvider'
 import { QuickActionsProvider } from './QuickActionsProvider'
 import { SettingsProvider } from './SettingsProvider'
+import { SupportProvider } from './SupportProvider'
 import { UpdatesProvider } from './UpdatesProvider'
 import { FollowsProvider } from './FollowsProvider'
 import { TeacherProvider } from './TeacherProvider'
@@ -21,11 +22,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           <TeacherProvider>
             <FollowsProvider>
               <SettingsProvider>
+                <SupportProvider>
                 <UpdatesProvider>
                   <QuickActionsProvider>
                     <CommandPaletteProvider>{children}</CommandPaletteProvider>
                   </QuickActionsProvider>
                 </UpdatesProvider>
+                </SupportProvider>
               </SettingsProvider>
             </FollowsProvider>
           </TeacherProvider>

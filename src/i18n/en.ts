@@ -470,6 +470,8 @@ export const en = {
 
   'landing.docs': 'Docs',
 
+  'nav.support': 'Support',
+
   // -- Status --
   'status.notStarted': 'Not started',
   'status.inProgress': 'In progress',
