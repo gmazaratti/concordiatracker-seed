@@ -16,9 +16,18 @@ import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { cn } from '@/lib/cn'
 import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
-import { WIDGETS_BY_ID, GLANCE_ID, DEFAULT_TOP, DEFAULT_BELOW, sanitizeLayout } from './widgets/registry'
+import {
+  WIDGETS_BY_ID,
+  GLANCE_ID,
+  DEFAULT_TOP,
+  DEFAULT_BELOW,
+  MAX_TOP,
+  MAX_BELOW,
+  MAX_WIDGETS,
+  sanitizeLayout,
+} from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
-import { SortableWidgets } from './widgets/SortableWidgets'
+import { WidgetBoard, WidgetZoneView, type ZoneSpec } from './widgets/WidgetBoard'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
  * Today's clock-relative copy. */
@@ -106,6 +115,15 @@ export function TodayPage() {
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
   const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
+  // Zones are declared once so the drag controller and the views agree on
+  // capacity, layout, and where a widget currently lives.
+  const zones: ZoneSpec[] = [
+    { id: 'top', ids: topWidgets, setIds: (n) => setZone('top', n), layout: topWidgets.length > 1 ? 'half' : 'wide', max: MAX_TOP },
+    { id: 'rail', ids: widgets, setIds: (n) => setZone('rail', n), layout: 'rail', max: MAX_WIDGETS },
+    { id: 'below', ids: belowWidgets, setIds: (n) => setZone('below', n), layout: belowWidgets.length > 1 ? 'half' : 'wide', max: MAX_BELOW },
+  ]
+  const zoneById = (id: string) => zones.find((z) => z.id === id)!
+
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
       <header className="mb-3">
@@ -124,6 +142,7 @@ export function TodayPage() {
       {/* Admin-only platform activity inbox (renders nothing for everyone else) */}
       <AdminActivityCard />
 
+      <WidgetBoard zones={zones} editing={editing}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <main className="flex min-w-0 flex-1 flex-col gap-3">
           <PeerNudge />
@@ -131,13 +150,10 @@ export function TodayPage() {
           {/* The band above the due list: one wide card, or two halves. Empty by
               default — this space used to be the workload panel for everyone,
               and it's now something you opt into. */}
-          {topWidgets.length > 0 && (
-            <SortableWidgets
-              ids={topWidgets}
-              editing={editing}
-              axis="xy"
-              onReorder={(next) => setZone('top', next)}
-              onRemove={(id) => setZone('top', topWidgets.filter((x) => x !== id))}
+          {(topWidgets.length > 0 || editing) && (
+            <WidgetZoneView
+              zone={zoneById('top')}
+              emptyHint="Drop a widget here — above your deadlines"
               className={cn(
                 'grid gap-3',
                 topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
@@ -163,13 +179,10 @@ export function TodayPage() {
               this column, and the gap reads as a mistake; this is the space to
               fill, and it's opt-in rather than something that rearranges itself
               as your workload changes. */}
-          {belowWidgets.length > 0 && (
-            <SortableWidgets
-              ids={belowWidgets}
-              editing={editing}
-              axis="xy"
-              onReorder={(next) => setZone('below', next)}
-              onRemove={(id) => setZone('below', belowWidgets.filter((x) => x !== id))}
+          {(belowWidgets.length > 0 || editing) && (
+            <WidgetZoneView
+              zone={zoneById('below')}
+              emptyHint="Drop a widget here — under your deadlines"
               className={cn(
                 'grid gap-3',
                 belowWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
@@ -185,11 +198,9 @@ export function TodayPage() {
           {/* User-chosen widgets, in their order. The glance panel is rendered
               here rather than by the registry because it needs the term totals
               already computed above. */}
-          <SortableWidgets
-            ids={widgets}
-            editing={editing}
-            onReorder={(next) => setZone('rail', next)}
-            onRemove={(id) => setZone('rail', widgets.filter((x) => x !== id))}
+          <WidgetZoneView
+            zone={zoneById('rail')}
+            emptyHint="Drop a widget here"
             className="flex flex-col gap-3"
             renderItem={(id) =>
               id === GLANCE_ID ? (
@@ -226,6 +237,7 @@ export function TodayPage() {
           />
         </aside>
       </div>
+      </WidgetBoard>
 
       <FeedbackPrompt />
     </div>

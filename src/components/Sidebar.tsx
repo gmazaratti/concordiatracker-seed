@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Lightbulb, Settings } from 'lucide-react'
+import { Inbox, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
@@ -71,7 +71,7 @@ export function Sidebar() {
               )
             }
           >
-            <Lightbulb size={18} className="text-subtle transition-colors duration-150 group-hover:text-muted" aria-hidden />
+            <Inbox size={18} className="text-subtle transition-colors duration-150 group-hover:text-muted" aria-hidden />
             Requests
           </NavLink>
         )}
