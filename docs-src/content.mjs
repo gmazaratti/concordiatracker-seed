@@ -37,8 +37,12 @@ export const NAV = [
     pages: ['plans', 'billing', 'settings', 'privacy'],
   },
   {
-    title: 'Portals',
-    pages: ['teacher-portal', 'organizer-portal'],
+    title: 'For teachers',
+    pages: ['teacher-portal', 'teacher-setup', 'teacher-first-outline'],
+  },
+  {
+    title: 'For organizations',
+    pages: ['organizer-portal', 'organizer-setup', 'organizer-first-event'],
   },
 ]
 
@@ -893,6 +897,256 @@ export const PAGES = {
   },
 
   /* ── Portals ───────────────────────────────────────────────────────────── */
+
+
+  'teacher-setup': {
+    title: 'Setting up your teacher account',
+    section: 'For teachers',
+    description:
+      'Step-by-step: request access to the ConcordiaTracker teacher portal, accept your invitation, and link your courses.',
+    blocks: [
+      {
+        p: 'A walkthrough from having no account to being ready to publish. It takes a few minutes once your invitation arrives.',
+      },
+
+      { h2: '1. Request access' },
+      {
+        p: 'Go to [concordiatracker.com/teacher/request](/teacher/request) and fill in your name, your Concordia email, and what you teach. Use your university address — it is how we confirm you are faculty.',
+      },
+      {
+        p: 'You will get a **case number** back, something like `REQ-1043`. Keep it: the same page has a **Check a request** tab where you can enter it to see where your request stands.',
+      },
+
+      { h2: '2. Accept your invitation' },
+      {
+        p: 'Once approved you receive an invitation link. It is **single-use, tied to your email, and expires**, so open it on a device you can finish setting up on.',
+      },
+      {
+        p: 'The link shows the course it was issued for and asks you to confirm your email. Accepting creates your account and signs you in.',
+      },
+      {
+        note: 'A new account starts as **pending**. You can build an outline straight away, but publishing and posting stay disabled until an administrator approves you. This is a one-time check.',
+      },
+
+      { h2: '3. Find your way around' },
+      {
+        p: 'The teacher portal has its own layout — a sidebar of your courses, each expanding to its own sections. It is deliberately plainer than the student app; it is a publishing tool, not a dashboard.',
+      },
+
+      { h2: '4. Link your courses' },
+      {
+        p: 'Your first course is usually attached to your invitation. To add more, use **Link a course**, search the catalog by code, and pick your section from the chips shown. If a course is not listed, you can create it.',
+      },
+      {
+        p: 'Sections matter: students see the outline for **their** section, so link the specific ones you teach rather than the course as a whole.',
+      },
+
+      { h2: '5. Fill in the course details' },
+      {
+        p: 'Set the instructor name, TA, meeting times, office hours, location, credits, and a syllabus link. Students see all of it on the course page, and **Preview as student** shows you exactly what they see.',
+      },
+      {
+        p: 'Credits are worth getting right — they weight the course in every student’s GPA.',
+      },
+
+      {
+        cards: [
+          {
+            icon: 'upload',
+            title: 'Publish your first outline',
+            desc: 'Get your dates in front of students, verified.',
+            href: '/docs/teacher-first-outline',
+          },
+          {
+            icon: 'book',
+            title: 'Teacher portal reference',
+            desc: 'What the portal does, and what it deliberately does not show.',
+            href: '/docs/teacher-portal',
+          },
+        ],
+      },
+    ],
+  },
+
+  'teacher-first-outline': {
+    title: 'Publishing your first outline',
+    section: 'For teachers',
+    description:
+      'How to build, preview, and publish a course outline so your students import verified dates, and how to post announcements.',
+    blocks: [
+      {
+        p: 'Publishing an outline is the highest-value thing you can do here. It replaces every student in your section separately transcribing your syllabus — and it makes their dates **official** instead of guesses.',
+      },
+
+      { h2: '1. Build the outline' },
+      { p: 'Two ways, and you can mix them:' },
+      {
+        ul: [
+          '**Upload your syllabus** — the PDF is read for you and the assessments, dates, and weights are filled in.',
+          '**Enter it manually** — add a row at a time with a kind, title, due date, and weight.',
+        ],
+      },
+      {
+        p: 'A running total shows whether the weights reach 100%. It is the fastest way to catch a missing item.',
+      },
+
+      { h2: '2. Adopt a student outline instead' },
+      {
+        p: 'If students in your section have already uploaded one, the community blueprints panel lists them. Expand **Review** to see the full dated list first — never verify one blind.',
+      },
+      {
+        p: 'Adopting it makes it your outline, promotes its dates to **official**, and removes it from the community pool. It is often faster than starting from scratch, since a student has usually already done the transcription.',
+      },
+
+      { h2: '3. Preview as a student' },
+      {
+        p: '**Preview as student** opens the real course view your students will see — the same components, filled with your outline. Check the dates and weights here before publishing.',
+      },
+
+      { h2: '4. Publish' },
+      {
+        p: 'Publishing makes your outline the **teacher-verified blueprint** for that course and section. It is pinned above community uploads, and students who import it get dates marked official.',
+      },
+      {
+        note: 'Publishing is **live**. Editing a published outline updates what students see immediately — there is no separate draft-then-release step. Get it right in preview first.',
+      },
+
+      { h2: '5. Post an announcement' },
+      {
+        p: 'The announcement composer posts to every student enrolled in that course. It appears on their Today screen and on the course page, with the date it was posted.',
+      },
+      {
+        p: 'Announcements can be edited or deleted afterwards, and an edit is visibly marked as edited — so a corrected deadline never looks like it was always that way.',
+      },
+
+      { h2: 'What students cannot see' },
+      {
+        p: 'Nothing about you beyond what you publish. And you see nothing about them: no grades, no standings, no who-imported-what. The portal is publish-only by design.',
+      },
+    ],
+  },
+
+  'organizer-setup': {
+    title: 'Setting up your organization',
+    section: 'For organizations',
+    description:
+      'Step-by-step: request access to the ConcordiaTracker organizer portal, set up your public profile, and invite your team.',
+    blocks: [
+      {
+        p: 'From no account to a public profile students can follow. Worth doing properly once — your profile is what every event you post is attached to.',
+      },
+
+      { h2: '1. Request access' },
+      {
+        p: 'Go to [concordiatracker.com/organizer/request](/organizer/request) with your organization’s name, a contact email, and what you run. You get a **case number** back, and the same page has a **Check a request** tab to look up its status.',
+      },
+
+      { h2: '2. Accept your invitation' },
+      {
+        p: 'Approved requests get a single-use invitation link that expires. Opening it creates the organization account and signs you in as its owner.',
+      },
+      {
+        note: 'New organizations start **pending**. You can create and edit events immediately, but publishing and notifying followers unlock once an administrator approves the account.',
+      },
+
+      { h2: '3. Set up your public profile' },
+      {
+        p: 'Profile is the most important screen in the portal. Students judge whether to follow you from it, and your brand colour carries through the feed so your events are recognisably yours.',
+      },
+      {
+        ul: [
+          '**Name and handle** — the handle is your permanent URL, so pick it deliberately.',
+          '**Bio** — a couple of lines on who you are and what you run. Multi-line is supported.',
+          '**Logo and banner** — the logo appears on every event card; the banner heads your profile.',
+          '**Brand colour** — used for your event cards when an event has no image of its own.',
+          '**Links** — website, Instagram, X, LinkedIn. Only the ones you fill in are shown.',
+        ],
+      },
+      {
+        p: 'A live preview updates as you type, and **View public profile** shows students’ exact view.',
+      },
+
+      { h2: '4. Get verified' },
+      {
+        p: 'Verified organizations show a blue seal, which tells students the account genuinely represents your group. Verification is granted by an administrator — reach out once your profile is filled in.',
+      },
+
+      { h2: '5. Invite your team' },
+      {
+        p: 'From **Team**, invite people by name, email, and role. Each invitation is a single-use link you can send however you like.',
+      },
+      {
+        p: 'This matters more than it looks for student groups: when your executive turns over, remove the outgoing members and invite the incoming ones. The account, followers, and event history carry on.',
+      },
+
+      {
+        cards: [
+          {
+            icon: 'calendar',
+            title: 'Publish your first event',
+            desc: 'Write it, preview it, and get it into the feed.',
+            href: '/docs/organizer-first-event',
+          },
+          {
+            icon: 'users',
+            title: 'Organizer portal reference',
+            desc: 'What the portal does and what the metrics can show.',
+            href: '/docs/organizer-portal',
+          },
+        ],
+      },
+    ],
+  },
+
+  'organizer-first-event': {
+    title: 'Publishing your first event',
+    section: 'For organizations',
+    description:
+      'How to create, preview, and publish a campus event to the ConcordiaTracker Community feed, and share it off-platform.',
+    blocks: [
+      {
+        p: 'Events are the point of the portal. Each one lands in the Community feed, gets its own shareable public page, and can be added to a student’s calendar in one tap.',
+      },
+
+      { h2: '1. Create the event' },
+      { p: 'From your dashboard choose **Create event** and fill in:' },
+      {
+        ul: [
+          '**Title** — specific beats clever. Students scan the feed quickly.',
+          '**Date and time** — pick both; the time drives where it lands in the day.',
+          '**Mode** — in person or online. In-person events show a location; online ones show joining details.',
+          '**Location** — the building and room, or the platform.',
+          '**Description** — what it is, who it is for, and whether newcomers are welcome.',
+          '**Category** — clubs, career, academic, or official. This drives the feed filters.',
+          '**Banner image** — optional. Without one your card uses your brand colour and initials, which still looks intentional.',
+          '**Relevant programs** — optional. Tagging programs makes the event show for students in them under **For my program**.',
+        ],
+      },
+
+      { h2: '2. Preview it' },
+      {
+        p: 'The editor shows a live student-eye preview of the card as you type. Check the title is not truncating and the banner is not cropping badly.',
+      },
+
+      { h2: '3. Publish' },
+      {
+        p: 'Publishing puts it in the Community feed and on your public profile. Every event also gets a **public link that anyone can open without an account** — paste it into Instagram, a group chat, or a poster QR code.',
+      },
+
+      { h2: '4. Notify your followers' },
+      {
+        p: 'Once approved, you can notify followers when you post something new. Use it deliberately — a group that notifies on everything gets unfollowed.',
+      },
+
+      { h2: '5. Read your reach' },
+      {
+        p: 'The dashboard reports followers, calendar adds, event follows, and views. **Calendar adds are the number worth watching** — a view is a glance, but adding an event to a calendar is a student telling you they intend to come.',
+      },
+      {
+        note: 'Metrics are **aggregate only**. You can never see which individual students viewed, followed, or added an event, and there is no tier that changes that.',
+      },
+    ],
+  },
 
   'teacher-portal': {
     title: 'Teacher portal',

@@ -201,7 +201,11 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
 <body>
 <header class="topbar">
   <a class="brand" href="/">
-    <span class="brand-mark" aria-hidden="true"></span>
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="var(--surface-2)" />
+      <path d="M21.6 11.4a6.7 6.7 0 1 0 0 9.2" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" />
+      <circle cx="22.6" cy="16" r="1.8" fill="var(--accent)" />
+    </svg>
     <span class="brand-name">Concordia<span class="brand-dim">Tracker</span></span>
     <span class="brand-pill">DOCS</span>
   </a>
@@ -284,17 +288,16 @@ body{margin:0;background:var(--canvas);color:var(--fg);font-family:var(--body);f
 ::-webkit-scrollbar-thumb:hover{background:var(--subtle);border:3px solid transparent;background-clip:padding-box}
 a{color:inherit}
 
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:10px 20px;background:color-mix(in srgb,var(--canvas) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.brand{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0}
-.brand-mark{width:20px;height:20px;border-radius:6px;background:var(--surface-2);position:relative}
-.brand-mark::after{content:"";position:absolute;inset:6px;border-radius:99px;background:var(--accent)}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;position:sticky;padding:10px 20px;background:color-mix(in srgb,var(--canvas) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0;position:relative;z-index:1}
+.brand-mark{width:22px;height:22px;flex-shrink:0}
 .brand-name{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:-.01em}
 .brand-dim{color:var(--muted)}
 .brand-pill{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 5px}
-.portal{margin-left:auto;flex-shrink:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
+.portal{margin-left:auto;position:relative;z-index:1;flex-shrink:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
 .portal:hover{color:var(--fg);border-color:var(--border-strong)}
 
-.search{position:relative;flex:1;max-width:420px;margin:0 auto;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0 10px}
+.search{position:absolute;left:50%;transform:translateX(-50%);width:min(420px,38vw);display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0 10px}
 .search svg{width:15px;height:15px;color:var(--subtle);flex-shrink:0}
 .search input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--fg);font:inherit;font-size:13px;padding:7px 0}
 .search input::placeholder{color:var(--subtle)}
@@ -305,11 +308,17 @@ a{color:inherit}
 #results span{font-size:11.5px;color:var(--subtle)}
 
 .shell{display:grid;grid-template-columns:236px minmax(0,1fr) 200px;gap:40px;max-width:1240px;margin:0 auto;padding:34px 24px 80px}
-.sidebar{position:sticky;top:80px;align-self:start;max-height:calc(100vh - 100px);overflow-y:auto;font-size:13px}
-.nav-group + .nav-group{margin-top:22px}
-.nav-group-title{margin:0 0 7px;font-family:var(--display);font-size:12px;font-weight:600;color:var(--fg)}
+.sidebar{position:sticky;top:80px;align-self:start;max-height:calc(100vh - 100px);overflow-y:auto;font-size:13px;
+  scrollbar-width:thin;scrollbar-color:transparent transparent;transition:scrollbar-color .25s}
+.sidebar:hover,.sidebar:focus-within{scrollbar-color:var(--border-strong) transparent}
+.sidebar::-webkit-scrollbar{width:6px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar::-webkit-scrollbar-thumb{background:transparent;border-radius:99px;transition:background .25s}
+.sidebar:hover::-webkit-scrollbar-thumb,.sidebar:focus-within::-webkit-scrollbar-thumb{background:var(--border-strong)}
+.nav-group + .nav-group{margin-top:16px}
+.nav-group-title{margin:0 0 5px;font-family:var(--display);font-size:12px;font-weight:600;color:var(--fg)}
 .sidebar ul{list-style:none;margin:0;padding:0}
-.sidebar a{display:block;padding:5px 10px;border-radius:7px;color:var(--muted);text-decoration:none;transition:color .15s,background .15s}
+.sidebar a{display:block;padding:4px 10px;border-radius:7px;color:var(--muted);text-decoration:none;transition:color .15s,background .15s}
 .sidebar a:hover{color:var(--fg);background:var(--surface)}
 .sidebar a.active{color:var(--fg);background:var(--surface-2);font-weight:500}
 
@@ -374,7 +383,7 @@ td{color:var(--muted)}
 }
 @media (max-width:760px){
   .topbar{flex-wrap:wrap;gap:10px}
-  .search{order:3;flex-basis:100%;max-width:none;margin:0}
+  .search{position:static;transform:none;order:3;width:100%}
   .portal{margin-left:0}
   .shell{grid-template-columns:minmax(0,1fr);padding:22px 18px 60px}
   .sidebar{position:static;max-height:none;border-bottom:1px solid var(--border);padding-bottom:18px}
