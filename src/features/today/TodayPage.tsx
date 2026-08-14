@@ -15,6 +15,8 @@ import { DebriefPanel } from './DebriefPanel'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { useT, useI18n } from '@/i18n/i18n'
+import { useUiState } from '@/app/providers/ui-state'
+import { WIDGETS_BY_ID, GLANCE_ID, sanitizeLayout } from './widgets/registry'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
  * Today's clock-relative copy. */
@@ -44,6 +46,10 @@ export function TodayPage() {
     updateTodayPrefs,
   } = useAppData()
   const { flashUndo } = useQuickActions()
+  const { uiState, patchUiState } = useUiState()
+  // Unknown ids are dropped, so a layout saved against an older build can never
+  // crash Today or render a widget twice.
+  const widgets = sanitizeLayout(uiState.todayWidgets)
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
@@ -110,23 +116,38 @@ export function TodayPage() {
             onDelete={deleteItem}
             onUndo={undo}
             onPrefsChange={updateTodayPrefs}
+            widgets={widgets}
+            onWidgetsChange={(next) => patchUiState({ todayWidgets: next })}
+            widgetCtx={{ courseCount: courses.length }}
           />
           <AnnouncementsDigest />
         </main>
 
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
-          <GlanceStrip
-            term={term}
-            gpa={gpa}
-            overdue={groups.overdue.length}
-            itemsLeft={groups.count}
-            nextUp={groups.nextUp}
-            nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
-            doneToday={completed.length}
-            courseCount={courses.length}
-            credits={credits}
-            cumulativeGpa={cumulativeGpa}
-          />
+          {/* User-chosen widgets, in their order. The glance panel is rendered
+              here rather than by the registry because it needs the term totals
+              already computed above. */}
+          {widgets.map((id) =>
+            id === GLANCE_ID ? (
+              <GlanceStrip
+                key={id}
+                term={term}
+                gpa={gpa}
+                overdue={groups.overdue.length}
+                itemsLeft={groups.count}
+                nextUp={groups.nextUp}
+                nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+                doneToday={completed.length}
+                courseCount={courses.length}
+                credits={credits}
+                cumulativeGpa={cumulativeGpa}
+              />
+            ) : (
+              <div key={id}>{WIDGETS_BY_ID.get(id)?.render()}</div>
+            ),
+          )}
+          {/* Contextual nudges are NOT widgets — they appear because something
+              needs attention, not because you chose them. */}
           {showPain && <PainNudge count={groups.count} />}
         </aside>
       </div>

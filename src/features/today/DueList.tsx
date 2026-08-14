@@ -10,6 +10,7 @@ import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
 import { CustomizeToday } from './CustomizeToday'
+import type { WidgetContext } from './widgets/registry'
 import type { DueGroups } from './due'
 
 const byDue = (a: Assessment, b: Assessment) =>
@@ -75,6 +76,9 @@ export function DueList({
   onDelete,
   onUndo,
   onPrefsChange,
+  widgets,
+  onWidgetsChange,
+  widgetCtx,
 }: {
   groups: DueGroups
   completed: Assessment[]
@@ -84,6 +88,9 @@ export function DueList({
   onDelete: (id: string) => void
   onUndo: (id: string) => void
   onPrefsChange: (patch: Partial<TodayPrefs>) => void
+  widgets: string[]
+  onWidgetsChange: (next: string[]) => void
+  widgetCtx: WidgetContext
 }) {
   const t = useT()
   const [customizeOpen, setCustomizeOpen] = useState(false)
@@ -128,7 +135,15 @@ export function DueList({
         </div>
       </div>
 
-      {customizeOpen && <CustomizeToday prefs={prefs} onChange={onPrefsChange} />}
+      {customizeOpen && (
+        <CustomizeToday
+          prefs={prefs}
+          onChange={onPrefsChange}
+          widgets={widgets}
+          onWidgetsChange={onWidgetsChange}
+          widgetCtx={widgetCtx}
+        />
+      )}
 
       {sections.length === 0 ? (
         <EmptyState />

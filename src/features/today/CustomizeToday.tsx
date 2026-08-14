@@ -1,6 +1,8 @@
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Switch, Segmented } from '@/features/settings/controls'
 import { useT } from '@/i18n/i18n'
+import { WidgetGallery } from './widgets/WidgetGallery'
+import type { WidgetContext } from './widgets/registry'
 
 /** The "Customize Today" panel — a small, deliberately short set of toggles that
  * tailor the calm default without rebuilding the screen. Rendered inline in the
@@ -8,7 +10,13 @@ import { useT } from '@/i18n/i18n'
 export function CustomizeToday({
   prefs,
   onChange,
+  widgets,
+  onWidgetsChange,
+  widgetCtx,
 }: {
+  widgets: string[]
+  onWidgetsChange: (next: string[]) => void
+  widgetCtx: WidgetContext
   prefs: TodayPrefs
   onChange: (patch: Partial<TodayPrefs>) => void
 }) {
@@ -55,6 +63,10 @@ export function CustomizeToday({
             ]}
           />
         </Line>
+      </div>
+
+      <div className="mt-4 border-t border-border/60 pt-3.5">
+        <WidgetGallery layout={widgets} onChange={onWidgetsChange} ctx={widgetCtx} />
       </div>
     </div>
   )

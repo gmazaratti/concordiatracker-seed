@@ -2,6 +2,9 @@ import { createContext, useContext } from 'react'
 
 /** Lightweight, per-user, cross-device UI flags (stored in user_profile.ui_state). */
 export interface UiState {
+  /** Ordered widget ids on Today. Persisted here rather than in AppDataProvider
+   * so a layout survives a reload and follows you between devices. */
+  todayWidgets?: string[]
   checklistDismissed?: boolean
   communityVisited?: boolean
   tipsSeen?: string[]
