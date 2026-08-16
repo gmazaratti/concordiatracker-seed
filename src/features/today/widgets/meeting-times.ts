@@ -20,13 +20,26 @@ export interface ClassSlot {
 /**
  * Parse "Mon · Wed 10:15–11:30" into slots.
  *
+ * A course can hold more than one pattern, separated by a semicolon or a
+ * newline: a lecture and its tutorial meet at different times, and section
+ * autofill writes both. Semicolon is the separator because "·" already
+ * separates DAYS within one pattern, and no hand-typed schedule has ever used
+ * one, so every string written before this still parses identically.
+ *
  * Deliberately forgiving and deliberately silent: this string is free text a
  * teacher can edit, so anything unparseable yields no slots rather than a crash
  * or a wrong time. A widget that shows nothing is fine; one that sends you to
- * the wrong room is not.
+ * the wrong room is not. An unreadable pattern is dropped on its own, so one
+ * bad half does not discard a good one.
  */
 export function parseMeetingTimes(raw: string | undefined): ClassSlot[] {
   if (!raw?.trim()) return []
+  return raw
+    .split(/[;\n]/)
+    .flatMap((part) => parseOnePattern(part))
+}
+
+function parseOnePattern(raw: string): ClassSlot[] {
   const m = raw.trim().match(/^(.*?)\s+(\d{1,2}:\d{2})\s*[–—-]\s*(\d{1,2}:\d{2})$/)
   if (!m) return []
   const [, dayPart, start, end] = m

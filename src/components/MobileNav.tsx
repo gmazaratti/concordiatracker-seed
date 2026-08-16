@@ -8,8 +8,12 @@ import { NavBadge } from './NavBadge'
 import { cn } from '@/lib/cn'
 
 /**
- * Mobile bottom bar: the four destinations plus the palette trigger (the
- * "bottom search bar on mobile"). The palette itself opens as a bottom sheet.
+ * Mobile bottom bar: every destination plus the palette trigger (the "bottom
+ * search bar on mobile"). The palette itself opens as a bottom sheet.
+ *
+ * Six slots is the ceiling. Labels truncate rather than wrap, because a bar
+ * whose height changes with the active language is worse than a clipped word,
+ * and the icon carries the meaning at this size anyway.
  */
 export function MobileNav() {
   const { openPalette } = useCommandPalette()
@@ -24,7 +28,7 @@ export function MobileNav() {
           end={end}
           className={({ isActive }) =>
             cn(
-              'flex flex-1 flex-col items-center gap-1 py-2 text-[10px] transition-colors duration-150',
+              'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] transition-colors duration-150',
               isActive ? 'text-accent' : 'text-subtle',
             )
           }
@@ -36,17 +40,17 @@ export function MobileNav() {
               <NavBadge badge={badges[to]!} className="absolute -top-1.5 -right-2.5 ring-2 ring-surface" />
             )}
           </span>
-          {t(labelKey)}
+          <span className="w-full truncate text-center tracking-tight">{t(labelKey)}</span>
         </NavLink>
       ))}
       <button
         type="button"
         onClick={openPalette}
         aria-label={t('nav.search')}
-        className="flex flex-1 flex-col items-center gap-1 py-2 text-[10px] text-muted"
+        className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] text-muted"
       >
         <Search size={20} aria-hidden />
-        {t('nav.search')}
+        <span className="w-full truncate text-center tracking-tight">{t('nav.search')}</span>
       </button>
     </nav>
   )

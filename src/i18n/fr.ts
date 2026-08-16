@@ -18,6 +18,7 @@ export const fr: Partial<Record<Key, string>> = {
   'nav.courses': 'Cours',
   'nav.calendar': 'Calendrier',
   'nav.community': 'Communauté',
+  'nav.planner': 'Planifier',
   'nav.search': 'Rechercher',
   'nav.settings': 'Paramètres',
   'nav.feedback': 'Commentaires',
@@ -496,4 +497,50 @@ export const fr: Partial<Record<Key, string>> = {
   'auth.email': 'Courriel',
   'auth.password': 'Mot de passe',
   'auth.or': 'OU',
+  // -- Planner --
+  'planner.title': 'Planificateur',
+  'planner.subtitle':
+    'Tout pour choisir vos cours. Votre trimestre en cours se trouve dans Aujourd’hui.',
+  'planner.sections': 'Sections du planificateur',
+  'planner.soon': 'Bientôt',
+  'planner.tab.seats': 'Veille de places',
+  'planner.tab.directory': 'Répertoire des cours',
+  'planner.tab.tree': 'Arbre des préalables',
+  'planner.tab.schedule': 'Créateur d’horaire',
+  'planner.tree.body':
+    'Ce que chaque cours débloque, ce que vous avez déjà réussi et ce qui vous sépare de ceux que vous visez. Concordia publie les préalables en texte libre : il faut donc un analyseur honnête sur ce qu’il n’a pas pu lire plutôt qu’un qui devine.',
+  'planner.schedule.body':
+    'Construisez une semaine à partir de vraies sections, avec les conflits signalés et les déplacements entre campus vérifiés selon la navette. En attente du répertoire des cours, qui fournit les sections nécessaires.',
+  'planner.watch.used': '{used} veilles sur {limit} utilisées',
+  'planner.watch.usedOne': '{used} veille sur 1 utilisée',
+  'planner.watch.add': 'Surveiller un cours',
+  'planner.watch.emptyTitle': 'Aucune veille pour l’instant',
+  'planner.watch.emptyBody':
+    'Choisissez une section complète et nous vous avertirons dès qu’une place se libère. Vérifié régulièrement à partir des données de cours publiées par Concordia.',
+  'planner.watch.waiting': 'En attente de la première vérification',
+  'planner.watch.openNow': '{n} places libres maintenant',
+  'planner.watch.openNowOne': '1 place libre maintenant',
+  'planner.watch.full': 'Complet',
+  'planner.watch.fullWaitlist': 'Complet, {n} sur la liste d’attente',
+  'planner.watch.reserved': 'certaines places sont réservées',
+  'planner.watch.open': 'Libre',
+  'planner.watch.stop': 'Cesser de surveiller {course}',
+  'planner.watch.atLimit':
+    'Vous utilisez toutes les veilles de votre forfait. Retirez-en une pour en ajouter une autre.',
+  'planner.dir.placeholder':
+    'Cherchez par sigle ou par titre, par exemple COMP 248 ou orienté objet',
+  'planner.dir.label': 'Rechercher des cours',
+  'planner.dir.notSynced': 'Le répertoire n’a pas encore été synchronisé.',
+  'planner.dir.synced': '{total} cours, synchronisé le {date}.',
+  'planner.dir.never': 'jamais',
+  'planner.dir.hint':
+    'Tous les cours de l’annuaire, avec leurs crédits et leurs préalables.',
+  'planner.dir.noMatch': 'Aucun résultat.',
+  'planner.dir.credits': '{n} crédits',
+  'planner.dir.noCredits': 'Crédits non indiqués',
+  'planner.dir.undergrad': 'Premier cycle',
+  'planner.dir.prereqCount': '{n} préalables',
+  'planner.dir.prereqCountOne': '1 préalable',
+  'planner.dir.prereqs': 'Préalables',
+  'planner.dir.noPrereqs': 'Aucun préalable indiqué.',
 }

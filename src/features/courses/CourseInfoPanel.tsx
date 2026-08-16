@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { ChevronDown, ExternalLink, Mail } from 'lucide-react'
+import { ChevronDown, ExternalLink, Mail, Wand2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
 import { courseColor, withAlpha } from '@/lib/course-color'
+import { parseCourseCode } from '@/lib/course-sections'
 import { cn } from '@/lib/cn'
 import { EditableField } from './EditableField'
+import { SectionAutofillModal } from './SectionAutofillModal'
 
 /** Course-detail LEFT panel: the class's logistics, accent-themed and inline-
  * editable. On mobile it collapses to a tappable header (no cramped sidebar);
@@ -23,7 +25,11 @@ export function CourseInfoPanel({
 }) {
   const { updateCourse } = useAppData()
   const [open, setOpen] = useState(false)
+  const [autofilling, setAutofilling] = useState(false)
   const { hex } = courseColor(course.color)
+  // Only offered when the code is something Concordia can be asked about; a
+  // button that can only fail is worse than no button.
+  const lookupable = parseCourseCode(course.code) !== null
 
   const patch = (p: Partial<Course>) => updateCourse(course.id, p)
   const patchInstructor = (p: Partial<Course['instructor']>) =>
@@ -135,6 +141,16 @@ export function CourseInfoPanel({
               ariaLabel="Meeting times"
               placeholder="Add schedule"
             />
+            {lookupable && (
+              <button
+                type="button"
+                onClick={() => setAutofilling(true)}
+                className="mt-1 inline-flex items-center gap-1 text-[11.5px] text-subtle transition-colors duration-150 hover:text-accent"
+              >
+                <Wand2 size={11} aria-hidden />
+                {course.meetingTimes ? 'Change section' : 'Fill from Concordia'}
+              </button>
+            )}
           </Row>
 
           <Row label="Office hours">
@@ -195,6 +211,14 @@ export function CourseInfoPanel({
           </Row>
         </dl>
       </div>
+
+      {autofilling && (
+        <SectionAutofillModal
+          course={course}
+          onClose={() => setAutofilling(false)}
+          onApply={patch}
+        />
+      )}
     </Card>
   )
 }

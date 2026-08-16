@@ -118,3 +118,29 @@ export function bySection(rows: ScheduleRow[]): Map<string, ScheduleRow> {
   }
   return out
 }
+
+export interface CatalogRow {
+  ID: string
+  title: string
+  subject: string
+  catalog: string
+  career: string
+  classUnit: string
+  prerequisites: string | null
+  crosslisted: string | null
+}
+
+/**
+ * The entire course catalogue in one request, around 7,900 courses and 1.4MB.
+ *
+ * Only the sync job calls this. Anything user-facing reads the Supabase mirror
+ * instead, so a search never costs Concordia a request.
+ */
+export async function fetchCatalog(): Promise<CatalogRow[]> {
+  const res = await fetch(`${BASE}/course/catalog/filter/*/*/*`, {
+    headers: { Authorization: auth() },
+  })
+  if (!res.ok) throw new Error(`Concordia catalogue ${res.status}`)
+  const rows = (await res.json()) as CatalogRow[]
+  return Array.isArray(rows) ? rows : []
+}

@@ -11,6 +11,7 @@ import { CourseDetailPage } from '@/features/courses/CourseDetailPage'
 import { BlueprintBrowserPage } from '@/features/courses/BlueprintBrowserPage'
 import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
+import { PlannerPage } from '@/features/planner/PlannerPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
 import { PublicEventPage } from '@/features/community/PublicEventPage'
@@ -55,6 +56,7 @@ export function AppRoutes() {
         <Route path="courses/upload" element={<SyllabusUploadPage />} />
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="planner" element={<PlannerPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
         <Route path="requests" element={<AppRequestsPage />} />
