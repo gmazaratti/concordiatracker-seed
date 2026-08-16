@@ -10,7 +10,25 @@
  */
 import { fetchCatalog } from './_concordia.js'
 
-const CHUNK = 500
+/**
+ * Vercel kills a function at its duration limit with no response and no error,
+ * which is what wrote 1,946 of ~7,946 rows and then vanished. 60s is the
+ * ceiling on Hobby and well within Pro's.
+ */
+export const config = { maxDuration: 60 }
+
+/**
+ * 2,000 rows per request rather than 500.
+ *
+ * The whole catalogue is ~1.4MB, so a chunk this size is roughly 350KB - large
+ * for a request, small for PostgREST - and it turns sixteen sequential
+ * round-trips into four. Latency per round-trip, not row count, was the cost.
+ */
+const CHUNK = 2000
+
+/** How many chunks are in flight at once. Four requests, run together, is the
+ *  difference between comfortably inside the limit and being killed by it. */
+const CONCURRENCY = 4
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
@@ -55,11 +73,15 @@ export default async function handler(req: any, res: any) {
         synced_at: new Date().toISOString(),
       }))
 
-    // Chunked so one oversized request can't time out the whole sync.
+    // Chunked so one oversized request can't time out the whole sync, and run
+    // with limited concurrency so the whole job fits inside the duration limit.
+    const slices: (typeof rows)[] = []
+    for (let i = 0; i < rows.length; i += CHUNK) slices.push(rows.slice(i, i + CHUNK))
+
     let written = 0
     let firstError: string | null = null
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const slice = rows.slice(i, i + CHUNK)
+
+    const upsert = async (slice: typeof rows) => {
       const r = await fetch(`${url}/rest/v1/course_catalog?on_conflict=id`, {
         method: 'POST',
         headers: {
@@ -77,6 +99,10 @@ export default async function handler(req: any, res: any) {
         // the first one is the one that explains why.
         firstError = `${r.status} ${(await r.text()).slice(0, 300)}`
       }
+    }
+
+    for (let i = 0; i < slices.length; i += CONCURRENCY) {
+      await Promise.all(slices.slice(i, i + CONCURRENCY).map(upsert))
     }
 
     // A sync that wrote nothing is a failed sync. Returning 200 here is how a
