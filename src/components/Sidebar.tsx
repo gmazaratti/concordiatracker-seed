@@ -12,7 +12,7 @@ import { AvatarMenu } from './AvatarMenu'
 import { cn } from '@/lib/cn'
 
 /** Desktop left rail: wordmark, palette trigger, the four destinations
- *  (+ the opt-in pinned Requests board), and the avatar menu at the bottom. */
+ *  (+ the opt-in pinned Feedback board), and the avatar menu at the bottom. */
 export function Sidebar() {
   const { uiState } = useUiState()
   const badges = useNavBadges()
@@ -59,8 +59,8 @@ export function Sidebar() {
           </NavLink>
         ))}
 
-        {/* Opt-in pin (from the Requests board's floating toast). Opens the
-            in-app requests page so the sidebar stays; unpin from the toast. */}
+        {/* Opt-in pin (from the Feedback board's floating toast). Opens the
+            in-app feedback page so the sidebar stays; unpin from the toast. */}
         {uiState.feedbackPinned && (
           <NavLink
             to="/app/requests"
@@ -72,7 +72,7 @@ export function Sidebar() {
             }
           >
             <Inbox size={18} className="text-subtle transition-colors duration-150 group-hover:text-muted" aria-hidden />
-            Requests
+            {t('nav.feedback')}
           </NavLink>
         )}
       </nav>
