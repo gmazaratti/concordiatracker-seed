@@ -144,7 +144,9 @@ export function Select({
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
         className={cn(
-          'flex w-full items-center gap-2 rounded-lg transition-colors duration-150',
+          // h-full so a Select sitting in a stretched row matches the height of
+          // the inputs beside it. Outside such a row it resolves to auto.
+          'flex h-full w-full items-center gap-2 rounded-lg transition-colors duration-150',
           tone === 'control'
             ? 'border border-border-strong bg-surface-2 hover:bg-surface'
             : 'border border-border bg-canvas hover:border-border-strong',

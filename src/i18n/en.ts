@@ -506,7 +506,10 @@ export const en = {
     'Build a week from real sections, with conflicts flagged and cross-campus gaps checked against the shuttle. Waiting on the course directory, which supplies the sections it needs.',
   'planner.watch.used': '{used} of {limit} watches used',
   'planner.watch.usedOne': '{used} of 1 watch used',
-  'planner.watch.suggested': 'Your classes, if you want a different section:',
+  'planner.watch.yourClasses': 'Your classes',
+  'planner.watch.inYourSubjects': 'More in {subjects}',
+  'planner.watch.browseAll': 'Browse the calendar',
+  'planner.watch.findSections': 'Find sections',
   'planner.watch.add': 'Watch a class',
   'planner.watch.emptyTitle': 'Nothing watched yet',
   'planner.watch.emptyBody':

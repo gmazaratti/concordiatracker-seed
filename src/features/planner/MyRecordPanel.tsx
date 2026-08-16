@@ -13,15 +13,18 @@ import {
 import { browseCourses, type CatalogCourse } from '@/lib/catalog'
 import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
+import { Step } from './Step'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
 
 /**
  * Your record, and what it opens up.
  *
- * Three questions in order: where are you, what have you done, what does that
- * unlock. The first two are entry, the third is the payoff, and the payoff is
- * deliberately careful about what it claims.
+ * Presented as steps rather than four equal sections, because the sections all
+ * carried the same weight and there was nowhere obvious to look. A finished step
+ * recedes to a tick, the one you are on is the only thing with contrast, and a
+ * step that cannot run yet says what would unlock it instead of showing an empty
+ * result and letting you wonder whether it is broken.
  */
 export function MyRecordPanel() {
   const { pastCourses, assessments, user, setProgram, removeCourse } = useAppData()
@@ -47,14 +50,19 @@ export function MyRecordPanel() {
     [pastCourses, assessments],
   )
 
+  // A step counts as done once it has what the NEXT step needs, not once it is
+  // complete: the minor is optional and nothing downstream reads it.
+  const knowsWhere = year !== null && !!user.program
+  const hasHistory = pastCourses.length > 0
+
   return (
-    <div className="space-y-6">
-      <section>
-        <SectionHead
-          n={1}
-          title="Where you are"
-          sub="Used to decide which subjects to scan for what you can take next."
-        />
+    <div>
+      <Step
+        n={1}
+        title="Where you are"
+        sub="Decides which subjects get scanned for what you can take next."
+        state={knowsWhere ? 'done' : 'active'}
+      >
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Year of study">
             <Select
@@ -77,7 +85,7 @@ export function MyRecordPanel() {
               onBlur={() => void saveAcademicProfile({ minor: minor.trim() || null })}
               placeholder="e.g. Economics"
               aria-label="Minor"
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
           </Field>
 
@@ -91,17 +99,16 @@ export function MyRecordPanel() {
             </Field>
           </div>
         </div>
-      </section>
+      </Step>
 
-      <section>
-        <SectionHead
-          n={2}
-          title="What you have finished"
-          sub="Grades are optional. Without them a course still counts for credits and prerequisites, it just does not move your GPA."
-        />
+      <Step
+        n={2}
+        title="What you have finished"
+        sub="Grades are optional. Without one a course still counts for credits and prerequisites, it just does not move your GPA."
+        state={hasHistory ? 'done' : 'active'}
+      >
         <PastCourseEntry />
-
-        {pastCourses.length > 0 && (
+        {hasHistory && (
           <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
             {sortTermsDesc([...new Set(pastCourses.map((c) => c.term))]).flatMap((term) => [
               <li
@@ -124,9 +131,11 @@ export function MyRecordPanel() {
                       {c.credits} cr
                     </span>
                     <span className="w-14 shrink-0 text-right text-[13px] font-medium text-fg">
-                      {typeof c.finalPercent === 'number'
-                        ? percentToGrade(c.finalPercent).letter
-                        : <span className="text-subtle">&mdash;</span>}
+                      {typeof c.finalPercent === 'number' ? (
+                        percentToGrade(c.finalPercent).letter
+                      ) : (
+                        <span className="text-subtle">&mdash;</span>
+                      )}
                     </span>
                     <button
                       type="button"
@@ -141,21 +150,20 @@ export function MyRecordPanel() {
             ])}
           </ul>
         )}
-      </section>
+      </Step>
 
-      <section>
-        <SectionHead n={3} title="Where that leaves you" sub="" />
+      <Step
+        n={3}
+        title="Where that leaves you"
+        state={hasHistory ? 'active' : 'locked'}
+        lockedReason="Add a finished course above and your credits, GPA and subjects appear here."
+      >
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Credits done" value={String(summary.credits)} />
-          <Stat
-            label="Courses"
-            value={String(summary.courseCount)}
-          />
+          <Stat label="Courses" value={String(summary.courseCount)} />
           <Stat
             label="GPA"
-            value={summary.gpa === null ? '—' : summary.gpa.toFixed(2)}
-            // A GPA over a third of a degree is not a GPA over the degree.
-            // Saying what it covers costs one line and prevents a wrong belief.
+            value={summary.gpa === null ? '\u2014' : summary.gpa.toFixed(2)}
             note={
               summary.gpa === null
                 ? 'Add a grade to see it'
@@ -165,12 +173,24 @@ export function MyRecordPanel() {
           <Stat
             label="Subjects"
             value={String(summary.subjects.length)}
-            note={summary.subjects.slice(0, 3).join(' · ')}
+            note={summary.subjects.slice(0, 3).join(' \u00b7 ')}
           />
         </div>
-      </section>
+      </Step>
 
-      <Unlocks completed={summary.completedCodes} subjects={summary.subjects} credits={summary.credits} />
+      <Step
+        n={4}
+        title="What that unlocks"
+        state={hasHistory ? 'active' : 'locked'}
+        lockedReason="Once we know what you have finished, this reads the prerequisites for your subjects and tells you what you can take."
+        last
+      >
+        <Unlocks
+          completed={summary.completedCodes}
+          subjects={summary.subjects}
+          credits={summary.credits}
+        />
+      </Step>
     </div>
   )
 }
@@ -239,35 +259,19 @@ function Unlocks({
     return { ready, close, unsure }
   }, [rows, record, completed])
 
-  if (completed.length === 0) {
-    return (
-      <section>
-        <SectionHead n={4} title="What that unlocks" sub="" />
-        <p className="rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
-          Add the courses you have finished and this fills in.
-        </p>
-      </section>
-    )
-  }
-
   if (rows === null) {
     return (
-      <section>
-        <SectionHead n={4} title="What that unlocks" sub="" />
-        <div className="grid place-items-center py-10">
-          <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
-        </div>
-      </section>
+      <div className="grid place-items-center py-10">
+        <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
+      </div>
     )
   }
 
   return (
-    <section>
-      <SectionHead
-        n={4}
-        title="What that unlocks"
-        sub={`Reading the prerequisites for ${scan.join(', ')} against your record.`}
-      />
+    <div>
+      <p className="mb-3 text-[12.5px] text-subtle">
+        Reading the prerequisites for {scan.join(', ')} against your record.
+      </p>
 
       <UnlockGroup
         title="You meet the prerequisites"
@@ -289,7 +293,7 @@ function Unlocks({
         Prerequisites are read from the calendar text. Departments can still make
         exceptions, and course pages are the final word: check before you register.
       </p>
-    </section>
+    </div>
   )
 }
 
@@ -359,20 +363,6 @@ function UnlockGroup({
         </ul>
       )}
     </div>
-  )
-}
-
-function SectionHead({ n, title, sub }: { n: number; title: string; sub: string }) {
-  return (
-    <header className="mb-2.5">
-      <h2 className="flex items-center gap-2 font-display text-[16px] font-semibold text-fg">
-        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">
-          {n}
-        </span>
-        {title}
-      </h2>
-      {sub && <p className="mt-0.5 pl-7 text-[12.5px] leading-relaxed text-subtle">{sub}</p>}
-    </header>
   )
 }
 

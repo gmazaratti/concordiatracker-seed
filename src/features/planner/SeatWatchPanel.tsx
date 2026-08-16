@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, Loader2, Plus, Search, X } from 'lucide-react'
 import { useI18n } from '@/i18n/i18n'
+import { browseCourses, mySubjects, type CatalogCourse } from '@/lib/catalog'
 import { useAppData } from '@/app/providers/app-data'
 import { SeatWatchModal } from '@/features/seats/SeatWatchModal'
 import {
@@ -11,6 +12,8 @@ import {
   watchLimit,
   type SeatWatch,
 } from '@/lib/seats'
+
+const PAGE = 10
 
 /**
  * The full-page seat watch list.
@@ -72,12 +75,10 @@ export function SeatWatchPanel() {
           <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
         </div>
       ) : watches.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
-          <Bell size={22} className="mx-auto text-subtle" aria-hidden />
-          <h2 className="mt-2 font-display text-[17px] font-medium text-fg">
-            {t('planner.watch.emptyTitle')}
-          </h2>
-          <p className="mx-auto mt-1 max-w-sm text-[13px] leading-relaxed text-subtle">
+        <div className="flex items-start gap-3 rounded-xl border border-dashed border-border px-4 py-3.5">
+          <Bell size={17} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+          <p className="text-[12.5px] leading-relaxed text-subtle">
+            <span className="font-medium text-fg">{t('planner.watch.emptyTitle')}. </span>
             {t('planner.watch.emptyBody')}
           </p>
         </div>
@@ -93,29 +94,11 @@ export function SeatWatchPanel() {
         <p className="mt-3 text-[12px] text-subtle">{t('planner.watch.atLimit')}</p>
       )}
 
-      {/* Somewhere to start. A student's own courses are the classes they are
-          most likely to want a seat in, and one tap beats typing a code. */}
-      {watches !== null && !atLimit && courses.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-[11.5px] text-subtle">{t('planner.watch.suggested')}</p>
-          <ul className="flex flex-wrap gap-2">
-            {courses
-              .filter((c) => c.code.trim())
-              .slice(0, 8)
-              .map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => setPicking(c.code)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-                  >
-                    <Search size={12} aria-hidden />
-                    {c.code}
-                  </button>
-                </li>
-              ))}
-          </ul>
-        </div>
+      {watches !== null && !atLimit && (
+        <CoursesToWatch
+          myCourses={courses.filter((c) => c.code.trim()).map((c) => ({ code: c.code, title: c.title }))}
+          onPick={setPicking}
+        />
       )}
 
       {picking !== null && (
@@ -175,6 +158,140 @@ function WatchRow({ watch, onRemove }: { watch: SeatWatch; onRemove: () => void 
         className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-danger"
       >
         <X size={14} aria-hidden />
+      </button>
+    </li>
+  )
+}
+
+/**
+ * Something to act on, instead of an empty page.
+ *
+ * A page whose only content is "nothing here yet" reads as broken and gives a
+ * student nowhere to go. Their own classes come first because those are the
+ * ones they most likely want a different section of; the rest of their subjects
+ * follow, so the page is useful before they have watched anything at all.
+ */
+function CoursesToWatch({
+  myCourses,
+  onPick,
+}: {
+  myCourses: { code: string; title: string }[]
+  onPick: (code: string) => void
+}) {
+  const { t } = useI18n()
+  const [browsed, setBrowsed] = useState<CatalogCourse[]>([])
+  const [total, setTotal] = useState(0)
+  const [subjects, setSubjects] = useState<string[]>([])
+  const [more, setMore] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const subs = await mySubjects()
+      if (!alive) return
+      setSubjects(subs)
+      const page = await browseCourses({ subjects: subs.slice(0, 4), limit: PAGE })
+      if (!alive) return
+      setBrowsed(page.rows)
+      setTotal(page.total)
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  async function loadMore() {
+    setMore(true)
+    const page = await browseCourses({
+      subjects: subjects.slice(0, 4),
+      offset: browsed.length,
+      limit: PAGE,
+    })
+    setBrowsed((prev) => [...prev, ...page.rows])
+    setTotal(page.total)
+    setMore(false)
+  }
+
+  // Their own courses would otherwise appear twice.
+  const mine = new Set(myCourses.map((c) => c.code.toUpperCase().replace(/[^A-Z0-9]/g, '')))
+  const rest = browsed.filter((c) => !mine.has(`${c.subject}${c.catalog}`))
+
+  if (myCourses.length === 0 && rest.length === 0) return null
+
+  return (
+    <div className="mt-5">
+      {myCourses.length > 0 && (
+        <>
+          <h3 className="mb-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+            {t('planner.watch.yourClasses')}
+          </h3>
+          <ul className="mb-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {myCourses.slice(0, 8).map((c) => (
+              <PickRow key={c.code} code={c.code} title={c.title} onPick={onPick} />
+            ))}
+          </ul>
+        </>
+      )}
+
+      {rest.length > 0 && (
+        <>
+          <h3 className="mb-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+            {subjects.length > 0
+              ? t('planner.watch.inYourSubjects', { subjects: subjects.slice(0, 4).join(', ') })
+              : t('planner.watch.browseAll')}
+          </h3>
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+            {rest.map((c) => (
+              <PickRow
+                key={c.id}
+                code={`${c.subject} ${c.catalog}`}
+                title={c.title}
+                onPick={onPick}
+              />
+            ))}
+          </ul>
+          {browsed.length < total && (
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              disabled={more}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg disabled:opacity-60"
+            >
+              {more && <Loader2 size={13} className="animate-spin" aria-hidden />}
+              {t('planner.dir.loadMore', { shown: browsed.length, total })}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function PickRow({
+  code,
+  title,
+  onPick,
+}: {
+  code: string
+  title: string
+  onPick: (code: string) => void
+}) {
+  const { t } = useI18n()
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onPick(code)}
+        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-surface-2"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="text-[13px] font-semibold text-fg">{code}</span>
+          {title && <span className="ml-2 truncate text-[12px] text-subtle">{title}</span>}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] text-subtle">
+          <Search size={11} aria-hidden />
+          {t('planner.watch.findSections')}
+        </span>
       </button>
     </li>
   )

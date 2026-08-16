@@ -57,9 +57,10 @@ export default async function handler(req: any, res: any) {
 
     // Chunked so one oversized request can't time out the whole sync.
     let written = 0
+    let firstError: string | null = null
     for (let i = 0; i < rows.length; i += CHUNK) {
       const slice = rows.slice(i, i + CHUNK)
-      const r = await fetch(`${url}/rest/v1/course_catalog`, {
+      const r = await fetch(`${url}/rest/v1/course_catalog?on_conflict=id`, {
         method: 'POST',
         headers: {
           apikey: key,
@@ -69,10 +70,33 @@ export default async function handler(req: any, res: any) {
         },
         body: JSON.stringify(slice),
       })
-      if (r.ok) written += slice.length
+      if (r.ok) {
+        written += slice.length
+      } else if (firstError === null) {
+        // Keep the FIRST failure: later chunks tend to fail the same way, and
+        // the first one is the one that explains why.
+        firstError = `${r.status} ${(await r.text()).slice(0, 300)}`
+      }
     }
 
-    res.status(200).json({ fetched: courses.length, written })
+    // A sync that wrote nothing is a failed sync. Returning 200 here is how a
+    // completely broken run got mistaken for a successful one: the caller saw
+    // a 200, believed the catalogue was populated, and only found out later
+    // that every page depending on it was empty.
+    if (written === 0) {
+      res.status(502).json({
+        error: 'Fetched the catalogue but wrote nothing.',
+        fetched: courses.length,
+        cause: firstError ?? 'No rows survived filtering.',
+      })
+      return
+    }
+
+    res.status(written < rows.length ? 207 : 200).json({
+      fetched: courses.length,
+      written,
+      ...(firstError ? { partialFailure: firstError } : {}),
+    })
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : 'Sync failed.' })
   }

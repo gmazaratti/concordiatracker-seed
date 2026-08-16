@@ -66,7 +66,7 @@ export function PastCourseEntry() {
 
   return (
     <div className="rounded-xl border border-border bg-surface p-3">
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_110px_auto]">
+      <div className="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_160px_112px_auto]">
         <div className="relative">
           <Search
             size={15}
@@ -95,7 +95,6 @@ export function PastCourseEntry() {
           value={term}
           onChange={setTerm}
           ariaLabel="Term taken"
-          size="sm"
           options={pastTerms().map((t) => ({ value: t, label: t }))}
         />
 
