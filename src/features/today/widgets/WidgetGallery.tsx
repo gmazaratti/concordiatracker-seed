@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { MAX_BELOW, MAX_TOP, MAX_WIDGETS, WIDGETS, WIDGETS_BY_ID, fitsZone, type WidgetContext } from './registry'
+import {
+  MAX_BELOW,
+  MAX_TOP,
+  MAX_WIDGETS,
+  WIDGETS,
+  WIDGETS_BY_ID,
+  fitsZone,
+  type WidgetContext,
+  type WidgetDef,
+} from './registry'
 
 /**
  * Add, remove, and reorder the widgets on Today.
@@ -136,34 +145,16 @@ export function WidgetGallery({
           <p className="mb-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
             Available
           </p>
-          <ul className="flex flex-col gap-1.5">
-            {available.map((w) => {
-              const Icon = w.icon
-              return (
-                <li key={w.id}>
-                  <button
-                    type="button"
-                    disabled={full}
-                    onClick={() => onChange([...layout, w.id])}
-                    className={cn(
-                      'flex w-full items-start gap-2 rounded-lg border border-border bg-surface px-2.5 py-2 text-left transition-colors duration-150',
-                      full
-                        ? 'cursor-not-allowed opacity-50'
-                        : 'hover:border-border-strong hover:bg-surface-2',
-                    )}
-                  >
-                    <Icon size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[12.5px] font-medium text-fg">{w.name}</span>
-                      <span className="block text-[11.5px] leading-snug text-subtle">
-                        {w.description}
-                      </span>
-                    </span>
-                    {!full && <Plus size={13} className="mt-0.5 shrink-0 text-subtle" aria-hidden />}
-                  </button>
-                </li>
-              )
-            })}
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {available.map((w) => (
+              <li key={w.id}>
+                <WidgetPreviewCard
+                  def={w}
+                  disabled={full}
+                  onAdd={() => onChange([...layout, w.id])}
+                />
+              </li>
+            ))}
           </ul>
         </>
       )}
@@ -284,5 +275,57 @@ function BandZone({
         </p>
       )}
     </>
+  )
+}
+
+/**
+ * A widget in the library, shown as itself.
+ *
+ * The preview renders the REAL component with its real data, not a mockup — so
+ * "Next class" shows your actual next class and the shuttle shows today's real
+ * departures. A description told you what a widget was; this shows you, which is
+ * the difference between a list and a library.
+ *
+ * `inert` + pointer-events-none means the preview can't be interacted with:
+ * every click belongs to Add, and nothing inside can steal focus or navigate.
+ */
+function WidgetPreviewCard({
+  def,
+  disabled,
+  onAdd,
+}: {
+  def: WidgetDef
+  disabled: boolean
+  onAdd: () => void
+}) {
+  const Icon = def.icon
+  return (
+    <div
+      className={cn(
+        'overflow-hidden rounded-xl border border-border bg-canvas transition-colors duration-150',
+        disabled ? 'opacity-50' : 'hover:border-border-strong',
+      )}
+    >
+      <div className="pointer-events-none max-h-[132px] overflow-hidden p-2.5" inert>
+        {def.render('rail')}
+      </div>
+
+      <div className="flex items-start gap-2 border-t border-border bg-surface px-2.5 py-2">
+        <Icon size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12.5px] font-medium text-fg">{def.name}</span>
+          <span className="block text-[11.5px] leading-snug text-subtle">{def.description}</span>
+        </span>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onAdd}
+          aria-label={`Add ${def.name}`}
+          className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent transition-colors duration-150 hover:bg-accent hover:text-accent-contrast disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus size={14} aria-hidden />
+        </button>
+      </div>
+    </div>
   )
 }

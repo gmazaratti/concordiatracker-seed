@@ -24,7 +24,6 @@ import { useTour } from '@/features/tour/tour'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
-import { ThemeSwitcher } from './ThemeSwitcher'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
@@ -202,7 +201,6 @@ export function AvatarMenu({
 
           <div className="my-1.5 px-1">
             <p className="px-1 pb-1 text-[11px] text-subtle">{t('settings.theme')}</p>
-            <ThemeSwitcher showLabels={false} />
           </div>
 
           {/* Dev-only plan switch (self-grants "Semester") — admin-only so real

@@ -67,12 +67,12 @@ export function AddWidgetButton({
       </div>
 
       {open && (
-        <ModalShell label="Widgets" onClose={() => setOpen(false)} widthClass="sm:max-w-md">
+        <ModalShell label="Widgets" onClose={() => setOpen(false)} widthClass="sm:max-w-2xl">
           <div className="p-5">
             <h2 className="font-display text-[18px] font-semibold text-fg">Widgets</h2>
             <p className="mt-0.5 mb-4 text-[12.5px] text-subtle">
-              Pick what shows beside your due list. Nothing here is required — your deadlines
-              stay put either way.
+              Every widget below is shown with your real data — what you see is what you
+              get. Nothing here is required; your deadlines stay put either way.
             </p>
             <WidgetGallery
               layout={layout}
