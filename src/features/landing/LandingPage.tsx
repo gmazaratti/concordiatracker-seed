@@ -51,7 +51,7 @@ export function LandingPage() {
             <p className="text-[12px] font-medium tracking-[0.22em] text-subtle uppercase">
               {t('landing.eyebrow')}
             </p>
-            <h1 className="mt-5 font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] font-medium tracking-tight text-fg">
+            <h1 className="mt-5 font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] font-medium tracking-[-0.022em] text-fg">
               {t('landing.heroTitle')}{' '}
               <span className="text-accent">{t('landing.heroTitleAccent')}</span>.
             </h1>

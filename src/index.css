@@ -707,3 +707,40 @@ html {
 }
 .ct-wiggle:nth-child(2n)  { animation-delay: -0.14s; animation-duration: 0.46s; }
 .ct-wiggle:nth-child(3n)  { animation-delay: -0.28s; animation-duration: 0.39s; }
+
+/* ── Reduced transparency ─────────────────────────────────────────────────────
+ * Translucency is used on ~22 surfaces (modals, sticky chrome, the recessed
+ * widget panels). For people who find it hard to read, "reduced" means solid —
+ * raise the background to full opacity and drop the blur entirely, rather than
+ * merely softening it. */
+@media (prefers-reduced-transparency: reduce) {
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Any surface painted at partial alpha becomes its solid token. */
+  .bg-surface\/50,
+  .bg-surface\/60,
+  .bg-canvas\/55,
+  .bg-canvas\/60,
+  .bg-canvas\/70,
+  .bg-canvas\/80,
+  .bg-canvas\/85 {
+    background-color: var(--ct-surface) !important;
+  }
+}
+
+/* ── Increased contrast ───────────────────────────────────────────────────────
+ * Give every surface a defined edge and push the two quietest text tokens up.
+ * `--ct-subtle` already clears AA; at this setting it should clear AAA-ish. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme] {
+    --ct-border: var(--ct-border-strong);
+    --ct-subtle: var(--ct-muted);
+  }
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
