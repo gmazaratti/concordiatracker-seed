@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, Library, Loader2, Plus, Search, ShieldCheck, X } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
@@ -9,6 +9,7 @@ import { termRank } from '@/lib/term'
 import { Select } from '@/components/ui/Select'
 import { BlueprintList } from './BlueprintList'
 import { useAllBlueprintCourses, type BlueprintCodeMatch } from './useBlueprints'
+import { searchCoursesEnriched, type EnrichedCourse } from '@/lib/catalog'
 
 type SortMode = 'code' | 'term-desc' | 'term-asc'
 const SORT_OPTIONS = [
@@ -24,6 +25,7 @@ const SORT_OPTIONS = [
  * nothing is shared unless you opt in via "Share as blueprint". */
 export function BlueprintBrowserPage() {
   const { courses, courseById, createCourse } = useAppData()
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const selectedId = params.get('course')
   const selected = selectedId ? courseById(selectedId) : undefined
@@ -39,6 +41,34 @@ export function BlueprintBrowserPage() {
   }, [courses])
 
   const q = typed.trim().toLowerCase()
+
+  /**
+   * Courses from Concordia's catalogue, alongside the shared outlines.
+   *
+   * Searching here used to see only courses somebody had already uploaded an
+   * outline for, which is a small fraction of the calendar, so a real course
+   * with no outline yet simply did not exist. Now the whole catalogue is
+   * reachable, and picking one brings the official code, title and credits with
+   * it - which is most of what a student would otherwise type by hand and get
+   * subtly wrong.
+   */
+  const [catalogue, setCatalogue] = useState<EnrichedCourse[]>([])
+  useEffect(() => {
+    const needle = typed.trim()
+    if (!needle) {
+      return
+    }
+    let alive = true
+    const id = window.setTimeout(() => {
+      void searchCoursesEnriched(needle, 20)
+        .then((rows) => alive && setCatalogue(rows))
+        .catch(() => alive && setCatalogue([]))
+    }, 220)
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [typed])
   const filtered = useMemo(() => {
     const matched = outlines.filter(
       (o) => !q || o.code.toLowerCase().includes(q) || o.courseName.toLowerCase().includes(q),
@@ -53,10 +83,33 @@ export function BlueprintBrowserPage() {
 
   function onSearch(value: string) {
     setTyped(value)
+    if (!value.trim()) setCatalogue([])
     if (selected) setParams({}) // editing the search returns to the marketplace
   }
+  /** Courses in the calendar that no outline covers yet. */
+  const catalogueOnly = useMemo(() => {
+    const known = new Set(filtered.map((o) => normalizeCode(o.code)))
+    return catalogue.filter((c) => !known.has(normalizeCode(`${c.subject}${c.catalog}`)))
+  }, [catalogue, filtered])
+
+  async function addFromCatalogue(c: EnrichedCourse) {
+    const code = `${c.subject} ${c.catalog}`
+    const existing = enrolled.get(normalizeCode(code))
+    if (existing) {
+      navigate(`/app/courses/${existing.id}`)
+      return
+    }
+    const id = await createCourse({
+      code,
+      title: c.title,
+      credits: c.class_unit ?? undefined,
+    })
+    if (id) navigate(`/app/courses/${id}`)
+  }
+
   function clear() {
     setTyped('')
+    setCatalogue([])
     setParams({})
   }
   // Open an outline: enrolled → its own list; otherwise add the course, then open.
@@ -178,6 +231,27 @@ export function BlueprintBrowserPage() {
               ))}
             </ul>
           )}
+
+          {/* Everything else Concordia offers. Kept BELOW the outlines, because
+              a course someone has already mapped out saves more work than one
+              you would fill in yourself. */}
+          {q && catalogueOnly.length > 0 && (
+            <>
+              <p className="mt-5 mb-2 px-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+                From Concordia's calendar
+              </p>
+              <ul className="flex flex-col gap-2">
+                {catalogueOnly.map((c) => (
+                  <CatalogueRow
+                    key={c.id}
+                    course={c}
+                    mine={enrolled.get(normalizeCode(`${c.subject}${c.catalog}`))}
+                    onAdd={() => void addFromCatalogue(c)}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
     </div>
@@ -254,6 +328,58 @@ function OutlineRow({
             aria-hidden
           />
         </span>
+      </button>
+    </li>
+  )
+}
+
+/**
+ * A course from Concordia's calendar with no shared outline behind it.
+ *
+ * Adding it still brings the official code, title and credits, which is the
+ * part students most often type wrong. The deadlines come afterwards, from a
+ * syllabus or by hand.
+ */
+function CatalogueRow({
+  course,
+  mine,
+  onAdd,
+}: {
+  course: EnrichedCourse
+  mine?: Course
+  onAdd: () => void
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span className="text-[13.5px] font-semibold text-fg">
+              {course.subject} {course.catalog}
+            </span>
+            {mine && (
+              <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+                Already added
+              </span>
+            )}
+          </span>
+          <span className="mt-0.5 block truncate text-[12.5px] text-subtle">{course.title}</span>
+          <span className="mt-0.5 block text-[11.5px] text-subtle">
+            {course.class_unit ? `${course.class_unit} credits · ` : ''}No shared outline yet
+          </span>
+        </span>
+        {mine ? (
+          <ChevronRight size={15} className="shrink-0 text-subtle" aria-hidden />
+        ) : (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11.5px] font-medium text-muted">
+            <Plus size={11} aria-hidden />
+            Add
+          </span>
+        )}
       </button>
     </li>
   )

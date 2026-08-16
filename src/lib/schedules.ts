@@ -9,10 +9,28 @@ import type { SectionOption } from '@/lib/seats'
  * year after the section has been renumbered and the seat counts have moved on.
  */
 
+/**
+ * Where you actually stand with a section.
+ *
+ * A schedule with five classes on it means nothing without this: two enrolled,
+ * one waitlisted and two you have not touched is a completely different
+ * situation from five confirmed, and the grid looks identical either way.
+ */
+export type EnrollmentState = 'planned' | 'cart' | 'waitlisted' | 'enrolled'
+
+export const ENROLLMENT_STATES: { value: EnrollmentState; label: string; dot: string }[] = [
+  { value: 'planned', label: 'Planned', dot: 'bg-subtle' },
+  { value: 'cart', label: 'In course cart', dot: 'bg-info' },
+  { value: 'waitlisted', label: 'Waitlisted', dot: 'bg-warning' },
+  { value: 'enrolled', label: 'Enrolled', dot: 'bg-success' },
+]
+
 /** A section as it was when it was chosen, plus the course it belongs to. */
 export interface PickedSection {
   code: string
   section: SectionOption
+  /** Absent on schedules saved before this existed, which read as "planned". */
+  state?: EnrollmentState
 }
 
 /** A time the student is not available. */

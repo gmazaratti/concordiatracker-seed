@@ -341,7 +341,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // Course creation — insert a course (DB-generated id), adopt it. Blank for a
   // manual add; pre-filled code/title/section when added from a blueprint.
   const createCourse = useCallback(
-    async (init?: { code?: string; title?: string; section?: string }) => {
+    async (init?: { code?: string; title?: string; section?: string; credits?: number }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
@@ -351,6 +351,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           user_id: authUser.id,
           code: init?.code ?? '',
           name: init?.title ?? '',
+          ...(init?.credits ? { credits: init.credits } : {}),
           term: term.name,
           credits: 3,
           color,
@@ -424,6 +425,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
        *  otherwise come back out of storage as something the student did not
        *  enter. */
       finalLetter?: string
+      /** False for a term that has not happened yet: those are classes you are
+       *  about to take, and filing them as history would put them on the
+       *  transcript ungraded and hide them from the term you are running. */
+      archived?: boolean
     }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
@@ -444,7 +449,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           time: '',
           syllabus_url: '',
           origin: 'manual',
-          archived: true,
+          archived: init.archived ?? true,
           final_percent: init.finalPercent ?? null,
           final_letter:
             init.finalLetter ??

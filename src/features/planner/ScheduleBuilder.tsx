@@ -24,6 +24,8 @@ import {
   listSchedules,
   shareSchedule,
   updateSchedule,
+  ENROLLMENT_STATES,
+  type EnrollmentState,
   type PickedSection,
   type SavedSchedule,
   type TimeBlock,
@@ -357,8 +359,30 @@ export function ScheduleBuilder() {
                       {p.section.meetingTimes ?? 'Time TBA'}
                     </span>
                     {p.section.classNumber.startsWith('current-') && (
-                      <span className="text-[10.5px] text-subtle">from your current term</span>
+                      <span className="block text-[10.5px] text-subtle">from your current term</span>
                     )}
+                    <span className="mt-1 block">
+                      <Select
+                        value={p.state ?? 'planned'}
+                        onChange={(next) =>
+                          setPicked((prev) =>
+                            prev.map((x) =>
+                              x.section.classNumber === p.section.classNumber
+                                ? { ...x, state: next as EnrollmentState }
+                                : x,
+                            ),
+                          )
+                        }
+                        ariaLabel={`Status for ${p.code}`}
+                        size="sm"
+                        tone="control"
+                        options={ENROLLMENT_STATES.map((e) => ({
+                          value: e.value,
+                          label: e.label,
+                          dot: e.dot,
+                        }))}
+                      />
+                    </span>
                   </span>
                   <button
                     type="button"

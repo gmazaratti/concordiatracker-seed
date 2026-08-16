@@ -109,7 +109,13 @@ export interface AppDataContextValue {
   /** Create a student-made course in Supabase. Blank for a manual add, or
    * pre-filled (code/title/section) when added from a blueprint. Returns its new
    * id (DB-generated). */
-  createCourse: (init?: { code?: string; title?: string; section?: string }) => Promise<string>
+  createCourse: (init?: {
+    code?: string
+    title?: string
+    section?: string
+    /** From the catalogue, so a new course starts with the real credit value. */
+    credits?: number
+  }) => Promise<string>
   /** Delete a course and all its assessments (the Courses card "Delete" action). */
   removeCourse: (id: string) => void
 
@@ -133,6 +139,8 @@ export interface AppDataContextValue {
     finalPercent?: number
     /** Overrides the derived letter, for notations like FNS. */
     finalLetter?: string
+    /** False for an upcoming term: a plan, not history. */
+    archived?: boolean
   }) => Promise<string>
   /** OPT-IN: publish a course's current outline to the shared blueprint pool
    * (the Courses card "Share as blueprint" action). Courses are private otherwise. */

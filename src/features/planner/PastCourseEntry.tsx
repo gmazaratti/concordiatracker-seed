@@ -5,7 +5,7 @@ import { Select } from '@/components/ui/Select'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { parseFinalGrade } from '@/lib/gpa'
 import { GradeField } from '@/components/ui/GradeField'
-import { pastTerms } from './past-terms'
+import { allTerms, isUpcomingTerm } from './past-terms'
 
 /**
  * Add a finished course, fast.
@@ -21,7 +21,7 @@ export function PastCourseEntry() {
   const [q, setQ] = useState('')
   const [results, setResults] = useState<CatalogCourse[] | null>(null)
   const [chosen, setChosen] = useState<CatalogCourse | null>(null)
-  const [term, setTerm] = useState(pastTerms()[1] ?? pastTerms()[0])
+  const [term, setTerm] = useState(allTerms()[0])
   const [grade, setGrade] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -59,6 +59,7 @@ export function PastCourseEntry() {
       title: chosen.title,
       term,
       credits: chosen.class_unit ?? 3,
+      archived: !isUpcomingTerm(term),
       ...(percent === null ? {} : { finalPercent: percent }),
     })
     setBusy(false)
@@ -98,7 +99,10 @@ export function PastCourseEntry() {
           value={term}
           onChange={setTerm}
           ariaLabel="Term taken"
-          options={pastTerms().map((t) => ({ value: t, label: t }))}
+          options={allTerms().map((t) => ({
+            value: t,
+            label: isUpcomingTerm(t) ? `${t} · upcoming` : t,
+          }))}
         />
 
         <GradeField

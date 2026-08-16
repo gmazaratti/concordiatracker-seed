@@ -6,7 +6,7 @@ import { GradeField } from '@/components/ui/GradeField'
 import { Select } from '@/components/ui/Select'
 import { isNotation, parseFinalGrade, percentToGrade } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
-import { pastTerms } from './past-terms'
+import { allTerms, isUpcomingTerm } from './past-terms'
 
 /** Credit values Concordia actually uses. A free text box here invites "3.0 "
  *  and "three"; the real set is short. */
@@ -37,6 +37,9 @@ export function PastCourseRow({ course, superseded }: { course: Course; supersed
     if (!gradeOk) return
     updateCourse(course.id, {
       term,
+      // Moving a course to an upcoming term moves it OUT of history: it stops
+      // being a finished course and becomes one you are about to take.
+      archived: !isUpcomingTerm(term),
       credits: Number(credits) || course.credits,
       finalPercent: percent ?? undefined,
       // A notation keeps its own name. Deriving the letter from the percentage
@@ -71,9 +74,9 @@ export function PastCourseRow({ course, superseded }: { course: Course; supersed
             value={term}
             onChange={setTerm}
             ariaLabel={`Term for ${course.code}`}
-            options={[...new Set([course.term, ...pastTerms(24)])].map((t) => ({
+            options={[...new Set([course.term, ...allTerms()])].map((t) => ({
               value: t,
-              label: t,
+              label: isUpcomingTerm(t) ? `${t} · upcoming` : t,
             }))}
           />
           <Select

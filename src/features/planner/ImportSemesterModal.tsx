@@ -6,7 +6,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { isNotation, parseFinalGrade, percentToGrade } from '@/lib/gpa'
 import { GradeField } from '@/components/ui/GradeField'
-import { pastTerms } from './past-terms'
+import { allTerms, isUpcomingTerm, pastTerms } from './past-terms'
 
 /**
  * Add a whole semester at once.
@@ -66,6 +66,9 @@ export function ImportSemesterModal({
         title: r.course.title,
         term,
         credits: r.course.class_unit ?? 3,
+        // An upcoming term is a plan, so it lands in Courses rather than on the
+        // transcript.
+        archived: !isUpcomingTerm(term),
         ...(percent === null
           ? {}
           : {
@@ -86,8 +89,8 @@ export function ImportSemesterModal({
       <div className="p-4 sm:p-5">
         <h2 className="font-display text-[18px] font-semibold text-fg">Import a semester</h2>
         <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
-          Pick the term once, then add every class you took. Grades are optional and can be a letter
-          or a percentage.
+          Pick the term once, then add every class. Past terms take a grade; an upcoming term is
+          added to your courses instead, ready for the semester to start.
         </p>
 
         <div className="mt-4 flex items-center gap-3">
@@ -99,7 +102,10 @@ export function ImportSemesterModal({
               value={term}
               onChange={setTerm}
               ariaLabel="Term for every course below"
-              options={[...new Set([term, ...pastTerms(24)])].map((x) => ({ value: x, label: x }))}
+              options={[...new Set([term, ...allTerms()])].map((x) => ({
+                value: x,
+                label: isUpcomingTerm(x) ? `${x} · upcoming` : x,
+              }))}
             />
           </div>
           <span className="text-[12px] text-subtle">applies to every row</span>

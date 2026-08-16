@@ -1,3 +1,5 @@
+import { termRank } from '@/lib/term'
+
 /**
  * Term names for entering past courses.
  *
@@ -36,4 +38,42 @@ export function futureTerms(count = 9, now = new Date()): string[] {
     for (const s of ['Winter', 'Summer', 'Fall']) out.push(`${s} ${y}`)
   }
   return out.slice(0, count)
+}
+
+/**
+ * The term we are in right now, from the calendar.
+ *
+ * Concordia runs Winter (January to April), Summer (May to August) and Fall
+ * (September to December). Derived rather than configured, so it cannot go
+ * stale the way a hard-coded "current term" does.
+ */
+export function currentTermName(now = new Date()): string {
+  const m = now.getMonth()
+  const season = m <= 3 ? 'Winter' : m <= 7 ? 'Summer' : 'Fall'
+  return `${season} ${now.getFullYear()}`
+}
+
+/**
+ * Is this term the current one or a later one?
+ *
+ * The distinction decides whether a course is HISTORY or a PLAN: entering
+ * "Fall 2026" in the summer means classes you are about to take, and filing
+ * those away as a finished term would put them on your transcript with no
+ * grade and hide them from the term you are about to run.
+ */
+export function isUpcomingTerm(term: string, now = new Date()): boolean {
+  return termRank(term) >= termRank(currentTermName(now))
+}
+
+/**
+ * Every term worth offering, future first, then back through the past.
+ *
+ * One list rather than two, because a student registering in July is entering
+ * next term and last term in the same sitting, and making them find a different
+ * control for each is the kind of thing that gets a feature abandoned.
+ */
+export function allTerms(back = 15, ahead = 4, now = new Date()): string[] {
+  const future = futureTerms(ahead + 3, now).filter((t) => isUpcomingTerm(t, now))
+  const past = pastTerms(back, now).filter((t) => !isUpcomingTerm(t, now))
+  return [...future.slice(0, ahead), ...past]
 }

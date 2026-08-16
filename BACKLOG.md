@@ -44,7 +44,8 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 Agreed in order, not started:
 
 - [ ] **Prerequisite tree** - what each course unlocks, several levels deep.
-      NOT STARTED.
+      NEXT.
+- [ ] **Browser extension** - see the note under Data & integrations.
 - [ ] **Add-to-schedule from a saved course** - the builder takes a code today;
       one click from the shortlist would be better.
 - [ ] **Save a shared schedule as your own** - the share page shows it and
@@ -79,6 +80,16 @@ Agreed in order, not started:
       We store final grades, so this IS decidable; it just is not done. **IDEA.**
 
 ## Data & integrations
+
+- [ ] **Browser extension** - two very different halves, and they should not be
+      confused. READING the Student Centre to import a student's own courses is
+      a content script over a page they are already logged into, no credentials
+      handled, and mostly saves typing they would otherwise do. AUTOMATED
+      ENROLMENT is a different thing entirely: it acts on their behalf against
+      the registrar, and a bug enrols someone in the wrong class. Concordia's
+      terms almost certainly prohibit it, and it would put us in a fight with
+      the university we are otherwise trying to build a relationship with.
+      Recommendation: build the read half, never the enrol half. **IDEA.**
 
 - [ ] **RateMyProfessors ratings** — **held off deliberately.** Their ToS
       prohibits scraping, and we take real payments under a real name, so the
