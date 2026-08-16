@@ -8,7 +8,7 @@
  * run it less often is that a new course appearing mid-year should show up
  * without anyone remembering to press a button.
  */
-import { fetchCatalog } from './_concordia.js'
+import { fetchCatalog, type CatalogRow } from './_concordia.js'
 
 /**
  * Vercel kills a function at its duration limit with no response and no error,
@@ -29,6 +29,21 @@ const CHUNK = 2000
 /** How many chunks are in flight at once. Four requests, run together, is the
  *  difference between comfortably inside the limit and being killed by it. */
 const CONCURRENCY = 4
+
+/** One catalogue row as the mirror stores it. */
+function toRow(c: CatalogRow) {
+  return {
+    id: c.ID,
+    subject: c.subject,
+    catalog: c.catalog,
+    title: c.title ?? '',
+    career: c.career ?? null,
+    class_unit: c.classUnit ? Number(c.classUnit) : null,
+    prerequisites: c.prerequisites ?? null,
+    crosslisted: c.crosslisted ?? null,
+    synced_at: new Date().toISOString(),
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
@@ -59,19 +74,28 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    const rows = courses
-      .filter((c) => c.subject && c.catalog)
-      .map((c) => ({
-        id: c.ID,
-        subject: c.subject,
-        catalog: c.catalog,
-        title: c.title ?? '',
-        career: c.career ?? null,
-        class_unit: c.classUnit ? Number(c.classUnit) : null,
-        prerequisites: c.prerequisites ?? null,
-        crosslisted: c.crosslisted ?? null,
-        synced_at: new Date().toISOString(),
-      }))
+    /**
+     * Collapse duplicate IDs before writing.
+     *
+     * Concordia returns the same course several times - their own documented
+     * example shows ID 002625 repeated on consecutive rows - and PostgREST
+     * cannot upsert two rows sharing the conflict key in one request. Postgres
+     * rejects the WHOLE batch with "ON CONFLICT DO UPDATE command cannot affect
+     * row a second time", so one duplicate anywhere in a chunk loses all 2,000
+     * rows with it. That is why a larger chunk size made the write go from
+     * partial to zero: bigger batches are likelier to contain a repeat.
+     *
+     * Last occurrence wins. The duplicates carry identical data, so which one
+     * survives does not matter; that they are deduplicated does.
+     */
+    const byId = new Map<string, ReturnType<typeof toRow>>()
+    for (const c of courses) {
+      if (!c.subject || !c.catalog) continue
+      byId.set(c.ID, toRow(c))
+    }
+    const rows = [...byId.values()]
+
+
 
     // Chunked so one oversized request can't time out the whole sync, and run
     // with limited concurrency so the whole job fits inside the duration limit.
@@ -113,6 +137,7 @@ export default async function handler(req: any, res: any) {
       res.status(502).json({
         error: 'Fetched the catalogue but wrote nothing.',
         fetched: courses.length,
+        unique: rows.length,
         cause: firstError ?? 'No rows survived filtering.',
       })
       return
@@ -120,6 +145,7 @@ export default async function handler(req: any, res: any) {
 
     res.status(written < rows.length ? 207 : 200).json({
       fetched: courses.length,
+      unique: rows.length,
       written,
       ...(firstError ? { partialFailure: firstError } : {}),
     })
