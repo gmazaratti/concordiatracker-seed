@@ -46,7 +46,15 @@ export async function searchCoursesEnriched(q: string, limit = 40): Promise<Enri
     p_q: q,
     p_limit: limit,
   })
-  if (error) throw error
+  // Deploy order must not matter. If the annotation migration has not run yet,
+  // fall back to the plain catalogue search: the student still picks a real
+  // course with a real code, they just do not see which ones have an outline.
+  // Losing a badge is a degraded feature; a search box that returns nothing
+  // looks like the product is broken.
+  if (error) {
+    const rows = await searchCourses(q, limit)
+    return rows.map((r) => ({ ...r, blueprint_count: 0, has_verified: false, tracked_by: 0 }))
+  }
   return (data ?? []) as EnrichedCourse[]
 }
 
