@@ -8,6 +8,7 @@ import { SeatWatchPanel } from './SeatWatchPanel'
 import { MyRecordPanel } from './MyRecordPanel'
 import { SavedCoursesPanel } from './SavedCoursesPanel'
 import { ScheduleBuilder } from './ScheduleBuilder'
+import { PrereqTree } from './PrereqTree'
 
 /**
  * Planner: the pre-term half of the product.
@@ -31,7 +32,7 @@ const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; ready: boolean }[] = [
   { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, ready: true },
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, ready: true },
   { id: 'saved', labelKey: 'planner.tab.saved', icon: Bookmark, ready: true },
-  { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, ready: false },
+  { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, ready: true },
   { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, ready: true },
 ]
 
@@ -89,19 +90,8 @@ export function PlannerPage() {
       {tab === 'seats' && <SeatWatchPanel />}
       {tab === 'directory' && <CourseDirectory />}
       {tab === 'saved' && <SavedCoursesPanel />}
-      {tab === 'tree' && (
-        <Placeholder title={t('planner.tab.tree')} body={t('planner.tree.body')} />
-      )}
+      {tab === 'tree' && <PrereqTree />}
       {tab === 'schedule' && <ScheduleBuilder />}
-    </div>
-  )
-}
-
-function Placeholder({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-      <h2 className="font-display text-[17px] font-medium text-fg">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-subtle">{body}</p>
     </div>
   )
 }

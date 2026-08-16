@@ -75,7 +75,11 @@ returns text[] language sql immutable as $$
     array_agg(distinct public.ct_norm_code(m[1])),
     '{}'::text[]
   )
-  from regexp_matches(coalesce(p_text, ''), '([A-Z]{4}\s?[0-9]{3}[A-Z]?)', 'g') m;
+  -- 3 OR 4 letters and 3 OR 4 digits. The docs say 4 and 3; the live
+  -- catalogue has MBA 642 and COMP 5261. Requiring exactly 4 and 3 does not
+  -- just miss those - it truncates "COMP 5261" to "COMP 526", which then
+  -- matches a DIFFERENT course.
+  from regexp_matches(coalesce(p_text, ''), '([A-Z]{3,4}\s?[0-9]{3,4}[A-Z]?)', 'g') m;
 $$;
 grant execute on function public.prereq_codes(text) to anon, authenticated;
 

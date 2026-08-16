@@ -43,8 +43,6 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 
 Agreed in order, not started:
 
-- [ ] **Prerequisite tree** - what each course unlocks, several levels deep.
-      NEXT.
 - [ ] **Browser extension** - see the note under Data & integrations.
 - [ ] **Add-to-schedule from a saved course** - the builder takes a code today;
       one click from the shortlist would be better.
@@ -165,7 +163,10 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-**`db/saved_schedules.sql`** — saved and shareable schedules.
+1. **`db/academic_profile.sql`** again — its code-extraction regex was
+   truncating four-digit catalogue numbers, so "COMP 5261" read as "COMP 526",
+   a different course.
+2. **`db/prereq_tree.sql`** — the tree queries.
 
 ---
 

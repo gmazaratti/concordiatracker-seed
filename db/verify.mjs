@@ -275,6 +275,39 @@ await db.query('select public.unshare_schedule($1)', [mine])
 check('revoking breaks the link',
   (await db.query('select * from public.schedule_by_token($1)', [token])).rows.length, 0)
 
+// -- db/prereq_tree.sql ------------------------------------------------------
+console.log('\ndb/prereq_tree.sql')
+await db.exec(migration('prereq_tree.sql'))
+console.log('  ok    DDL applies')
+
+await db.exec(`
+  insert into course_catalog (id, subject, catalog, title, class_unit, prerequisites) values
+    ('20','MECH','300','Decoy',3,'Prerequisite: COMP 2480.'),
+    ('21','SOEN','287','Web',3,'Prerequisite: COMP 248.'),
+    ('22','COMP','248','OOP I',3,null);
+`)
+const byCodes = async (codes) =>
+  (await db.query('select * from public.courses_by_codes($1)', [codes])).rows
+check('a level is fetched in one call', (await byCodes(['COMP 249','COMP 352'])).length, 2)
+check('formatting does not matter', (await byCodes(['comp-249'])).length, 1)
+check('an unknown code returns nothing', (await byCodes(['ZZZZ 999'])).length, 0)
+check('an empty list returns nothing', (await byCodes([])).length, 0)
+
+const unlocked = async (code) =>
+  (await db.query('select subject, catalog from public.unlocked_by($1, 60)', [code])).rows
+const opened = await unlocked('COMP 248')
+check('finishing a course opens the ones naming it',
+  opened.map((r) => `${r.subject}${r.catalog}`).sort(), ['COMP249', 'COMP335', 'SOEN287'])
+// MECH 300 requires COMP 2480, a different course. If the code extractor
+// truncates four-digit catalogue numbers, "COMP 2480" becomes "COMP 248" and
+// this course appears in the wrong tree entirely.
+check('a four-digit code is not truncated into a different course',
+  opened.some((r) => r.subject === 'MECH'), false)
+check('and the four-digit course is found under its own code',
+  (await unlocked('COMP 2480')).map((r) => r.subject), ['MECH'])
+check('a course never unlocks itself',
+  opened.some((r) => `${r.subject}${r.catalog}` === 'COMP248'), false)
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

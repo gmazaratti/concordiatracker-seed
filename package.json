@@ -12,10 +12,11 @@
     "postbuild": "node docs-src/build.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run typecheck:api && npm run test:prereq && npm run test:gpa && npm run test:schedule && npm run db:verify",
+    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:gpa && npm run test:schedule && npm run db:verify",
     "test:gpa": "node src/lib/gpa.test.mjs",
     "typecheck:api": "tsc -p api --noEmit",
-    "test:schedule": "node src/features/planner/schedule.test.mjs"
+    "test:schedule": "node src/features/planner/schedule.test.mjs",
+    "test:tree": "node src/lib/prereq-tree.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

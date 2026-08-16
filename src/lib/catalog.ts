@@ -121,3 +121,24 @@ export function extractCourseCodes(prereq: string | null): string[] {
   const found = prereq.match(/\b([A-Z]{4})\s?(\d{3}[A-Z]?)\b/g) ?? []
   return [...new Set(found.map((c) => c.replace(/\s+/g, ' ').trim()))]
 }
+
+/**
+ * Catalogue rows for a set of codes, in one round trip.
+ *
+ * Feeds the prerequisite tree, which fetches a whole LEVEL at a time: a chain
+ * four deep with three branches each is forty requests one course at a time and
+ * four this way.
+ */
+export async function coursesByCodes(codes: string[]): Promise<CatalogCourse[]> {
+  if (codes.length === 0) return []
+  const { data, error } = await supabase.rpc('courses_by_codes', { p_codes: codes })
+  if (error) return []
+  return (data ?? []) as CatalogCourse[]
+}
+
+/** Courses that name this one in their prerequisites: what finishing it opens. */
+export async function unlockedBy(code: string, limit = 60): Promise<CatalogCourse[]> {
+  const { data, error } = await supabase.rpc('unlocked_by', { p_code: code, p_limit: limit })
+  if (error) return []
+  return (data ?? []) as CatalogCourse[]
+}
