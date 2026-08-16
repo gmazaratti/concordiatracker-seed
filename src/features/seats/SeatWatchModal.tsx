@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
-import { ArrowDownUp, Loader2, MapPin, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowDownUp, Loader2, MapPin, Search, ShieldCheck, User } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
+import { sectionInstructors, type SectionInstructor } from '@/lib/academic-record'
 import {
   addWatch,
   findSections,
@@ -24,6 +25,15 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState<string | null>(null)
+  /**
+   * Who teaches each section.
+   *
+   * Concordia's Open Data has NO instructor field: the schedule feed's 41
+   * fields do not include one, and /course/faculty is faculty-and-department
+   * structure rather than people. So this comes from our own outlines, and the
+   * row says which kind it is instead of asserting a name we cannot source.
+   */
+  const [teachers, setTeachers] = useState<SectionInstructor[]>([])
 
   // Filters. Applied to the fetched list rather than re-queried, since one
   // course is a small result set and Concordia should be asked once.
@@ -54,11 +64,27 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
   const terms = [...new Set(sections?.map((s) => s.termCode) ?? [])]
   const campuses = [...new Set((sections ?? []).map((s) => s.location).filter(Boolean))]
 
+  // Refreshed alongside the section list, keyed off what was actually found.
+  useEffect(() => {
+    if (!sections || sections.length === 0) return
+    let alive = true
+    void sectionInstructors(`${subject.trim()} ${catalog.trim()}`).then((rows) => {
+      if (alive) setTeachers(rows)
+    })
+    return () => {
+      alive = false
+    }
+    // subject/catalog are frozen for a given result set; re-running on every
+    // keystroke would query for a course nobody has searched yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections])
+
   async function search() {
     if (busy) return
     setBusy(true)
     setError(null)
     setSections(null)
+    setTeachers([])
     try {
       setSections(await findSections(subject, catalog))
     } catch (e: unknown) {
@@ -203,6 +229,9 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
                 const free =
                   s.capacity !== null && s.enrolled !== null ? s.capacity - s.enrolled : null
                 const isOpen = free !== null && free > 0
+                const teacher = teachers.find(
+                  (x) => x.section.toUpperCase() === s.section.toUpperCase(),
+                )
                 return (
                   <li key={`${s.termCode}-${s.classNumber}`} className="flex items-center gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
@@ -233,6 +262,24 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
                             it's what tells you whether watching is worthwhile. */}
                         {!isOpen && s.waitlisted ? ` · ${s.waitlisted} waitlisted` : ''}
                       </span>
+                      {teacher && (
+                        <span className="mt-0.5 flex items-center gap-1 text-[11.5px]">
+                          {teacher.verified ? (
+                            <ShieldCheck size={11} className="shrink-0 text-accent" aria-hidden />
+                          ) : (
+                            <User size={11} className="shrink-0 text-subtle" aria-hidden />
+                          )}
+                          <span className="text-muted">{teacher.professor}</span>
+                          {/* Published by the instructor of record, versus
+                              reported by students. Different claims, shown as
+                              different claims. */}
+                          <span className="text-subtle">
+                            {teacher.verified
+                              ? '· confirmed by the instructor'
+                              : `· reported by ${teacher.reports} ${teacher.reports === 1 ? 'student' : 'students'}`}
+                          </span>
+                        </span>
+                      )}
                     </span>
 
                     <button

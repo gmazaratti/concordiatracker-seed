@@ -406,9 +406,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   )
 
   /** Add a course from BEFORE you used the app — transcript-style: no
-   * assessments, just the final grade you already earned. */
+   * assessments, just the final grade you already earned.
+   *
+   * The grade is OPTIONAL. Someone rebuilding three years of history should not
+   * have to look up every mark to get their credit count and their unlocked
+   * courses; an ungraded row still counts for both and is simply skipped by the
+   * GPA math (currentGpa ignores a null percent). */
   const addPastCourse = useCallback(
-    async (init: { code: string; title: string; term: string; credits: number; finalPercent: number }) => {
+    async (init: { code: string; title: string; term: string; credits: number; finalPercent?: number }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
@@ -429,8 +434,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           syllabus_url: '',
           origin: 'manual',
           archived: true,
-          final_percent: init.finalPercent,
-          final_letter: percentToGrade(init.finalPercent).letter,
+          final_percent: init.finalPercent ?? null,
+          final_letter:
+            init.finalPercent === undefined ? null : percentToGrade(init.finalPercent).letter,
         })
         .select('*')
         .maybeSingle()

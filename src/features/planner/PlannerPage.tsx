@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Bell, BookOpen, GitBranch, CalendarRange } from 'lucide-react'
+import { Bell, BookOpen, GitBranch, CalendarRange, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useI18n } from '@/i18n/i18n'
 import type { Key } from '@/i18n/en'
 import { CourseDirectory } from './CourseDirectory'
 import { SeatWatchPanel } from './SeatWatchPanel'
+import { MyRecordPanel } from './MyRecordPanel'
 
 /**
  * Planner: the pre-term half of the product.
@@ -21,9 +22,10 @@ import { SeatWatchPanel } from './SeatWatchPanel'
  * still widgets rather than neighbours of this.
  */
 
-type Tab = 'seats' | 'directory' | 'tree' | 'schedule'
+type Tab = 'record' | 'seats' | 'directory' | 'tree' | 'schedule'
 
 const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; ready: boolean }[] = [
+  { id: 'record', labelKey: 'planner.tab.record', icon: GraduationCap, ready: true },
   { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, ready: true },
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, ready: true },
   { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, ready: false },
@@ -32,7 +34,7 @@ const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; ready: boolean }[] = [
 
 export function PlannerPage() {
   const { t } = useI18n()
-  const [tab, setTab] = useState<Tab>('seats')
+  const [tab, setTab] = useState<Tab>('record')
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
@@ -77,6 +79,7 @@ export function PlannerPage() {
         })}
       </div>
 
+      {tab === 'record' && <MyRecordPanel />}
       {tab === 'seats' && <SeatWatchPanel />}
       {tab === 'directory' && <CourseDirectory />}
       {tab === 'tree' && (

@@ -495,6 +495,7 @@ export const en = {
   'planner.subtitle': 'Everything for deciding what to take. Your current term lives on Today.',
   'planner.sections': 'Planner sections',
   'planner.soon': 'Soon',
+  'planner.tab.record': 'My record',
   'planner.tab.seats': 'Seat watch',
   'planner.tab.directory': 'Course directory',
   'planner.tab.tree': 'Prerequisite tree',

@@ -122,14 +122,15 @@ export interface AppDataContextValue {
   archiveCourse: (id: string) => void
   /** Undo an archive — back to the current term, grade unfrozen. */
   unarchiveCourse: (id: string) => void
-  /** Add a course from before you used the app (final grade only, no
-   * assessments). Returns the new id. */
+  /** Add a course from before you used the app (no assessments). The grade is
+   * OPTIONAL: without it the course still counts for credits and prerequisites
+   * and is skipped by GPA. Returns the new id. */
   addPastCourse: (init: {
     code: string
     title: string
     term: string
     credits: number
-    finalPercent: number
+    finalPercent?: number
   }) => Promise<string>
   /** OPT-IN: publish a course's current outline to the shared blueprint pool
    * (the Courses card "Share as blueprint" action). Courses are private otherwise. */

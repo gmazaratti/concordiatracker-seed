@@ -503,6 +503,7 @@ export const fr: Partial<Record<Key, string>> = {
     'Tout pour choisir vos cours. Votre trimestre en cours se trouve dans Aujourd’hui.',
   'planner.sections': 'Sections du planificateur',
   'planner.soon': 'Bientôt',
+  'planner.tab.record': 'Mon dossier',
   'planner.tab.seats': 'Veille de places',
   'planner.tab.directory': 'Répertoire des cours',
   'planner.tab.tree': 'Arbre des préalables',
