@@ -50,12 +50,12 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 - [ ] **Schedule builder** — build a week from real sections, flag conflicts,
       check cross-campus gaps against the shuttle timetable. Has its section data
       now that the catalogue is synced.
-- [ ] **A real prerequisite parser** — "My record" currently checks which
-      courses NAMED in a prerequisite you have finished, and deliberately does
-      not read the and/or logic. That means an "or" clause you already satisfy
-      still shows as missing: wrong in the safe direction, but wrong. A real
-      parser would fix it. **IDEA** — the current behaviour is honest and may be
-      good enough for a long time.
+- [ ] **Populate the catalogue** — `course_catalog` exists but has **0 rows**;
+      `/api/sync-catalog` has never run, so the directory and the unlock list
+      have nothing to show. **NEXT — one command, see the note below.**
+- [ ] **Minimum-grade conditions in prerequisites** — the parser handles and/or,
+      antirequisites and credit floors, but not "with a minimum grade of C-".
+      We store final grades, so this IS decidable; it just is not done. **IDEA.**
 
 ## Data & integrations
 
@@ -130,6 +130,16 @@ These are placeholders sitting in live legal documents right now.
 
 - *(none open right now.)*
 
+## Run once
+
+```
+curl -X POST https://concordiatracker.com/api/sync-catalog   -H "Authorization: Bearer $CRON_SECRET"
+```
+
+Fills `course_catalog` from Concordia (~7,900 courses, one 1.4MB fetch). Until
+this runs, the course directory and the unlock list are correctly empty. Worth a
+weekly cron so a new course appears without anyone remembering.
+
 ---
 
 ## Done
@@ -139,6 +149,13 @@ These are placeholders sitting in live legal documents right now.
   aggregate course-tracking counts.
 - **2026-08-16** — Planner "My record": year of study + minor, past courses with
   optional grades, credits / GPA / subjects, and a conservative unlock list.
+- **2026-08-16** — **Prerequisites are parsed for real** (`lib/prereq.ts`): ";"
+  as AND, " or " as OR, antirequisites, credit floors, and an explicit "cannot
+  decide" for permission clauses and "or equivalent". 30 checks against verbatim
+  calendar sentences. Replaced code-set matching, which reported "COMP 232 or
+  COEN 231" as needing both.
+- **2026-08-16** — `browse_courses` + `my_subjects`: the directory and seat
+  picker open with relevant courses and a Load more, instead of an empty box.
 - **2026-08-16** — `npm run db:verify` — migrations with real logic now run
   against a real Postgres (PGlite, WASM) before anyone else is asked to run
   them. Added after a migration shipped with `x = any ((select arr from t))`,
