@@ -22,9 +22,8 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'gpa.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: root },
 )
-const { parseFinalGrade, letterToPercent, percentToGrade, GRADE_LETTERS } = await import(
-  pathToFileURL(out).href
-)
+const { parseFinalGrade, letterToPercent, percentToGrade, GRADE_LETTERS, isNotation } =
+  await import(pathToFileURL(out).href)
 
 let failed = 0
 const check = (label, actual, expected) => {
@@ -36,10 +35,21 @@ const check = (label, actual, expected) => {
   )
 }
 
-console.log('\nevery letter round-trips to itself')
-for (const l of GRADE_LETTERS) {
+console.log('\nevery letter on the scale round-trips to itself')
+for (const l of GRADE_LETTERS.filter((x) => !isNotation(x))) {
   check(`${l} → percent → ${l}`, percentToGrade(letterToPercent(l)).letter, l)
 }
+
+console.log('\nnotations are one-way: they carry points but no percentage')
+// FNS, R and NR are not positions on the percentage scale, so they cannot come
+// back out of one. What has to hold is that they are worth 0.00 and that the
+// notation itself is preserved rather than silently becoming "F".
+for (const n of GRADE_LETTERS.filter(isNotation)) {
+  check(`${n} is recognised as a notation`, isNotation(n), true)
+  check(`${n} is worth 0 points`, percentToGrade(letterToPercent(n)).points, 0)
+  check(`${n} is accepted as typed`, parseFinalGrade(n), 0)
+}
+check('a letter is not a notation', isNotation('B+'), false)
 
 console.log('\nwhat a student might type')
 check('a percentage', parseFinalGrade('87'), 87)

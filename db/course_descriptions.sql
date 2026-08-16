@@ -19,6 +19,12 @@ create index if not exists course_catalog_search_idx
     (subject || ' ' || catalog || ' ' || title || ' ' || coalesce(description, '')) gin_trgm_ops
   );
 
+-- Postgres will not let CREATE OR REPLACE change a function's return type, and
+-- both of these gain a `description` column. Dropping first is the documented
+-- way; the CREATEs immediately below restore them, so nothing is left missing.
+drop function if exists public.search_courses(text, int);
+drop function if exists public.browse_courses(text[], int, int);
+
 /** Search, now including the description, and returning it. */
 create or replace function public.search_courses(p_q text, p_limit int default 40)
 returns table (

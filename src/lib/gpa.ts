@@ -1,5 +1,6 @@
 import type { Assessment, AssessmentKind, Course } from '@/data/types'
 import { gradeToPercent } from './grade'
+import { termRank } from './term'
 
 /** Concordia's 4.30 letter scale. Percentage cutoffs follow the common
  * undergraduate mapping (departments vary slightly — fine for a demo). */
@@ -26,6 +27,23 @@ const GRADE_SCALE: GradeBand[] = [
 ]
 
 /**
+ * Notations that carry grade points but are not on the percentage scale.
+ *
+ * FNS is "fail, no supplemental": a fail that cannot be redeemed by a
+ * supplemental exam. It is worth the same 0.00 as F and counts in the GPA
+ * identically, so a student rebuilding a transcript needs to be able to enter
+ * exactly what it says rather than translating it to F themselves.
+ *
+ * R (repeat) and NR (no record) are also 0.00 at Concordia. DNW (did not write)
+ * appears attached to another notation rather than alone.
+ */
+const NOTATIONS: { letter: string; points: number }[] = [
+  { letter: 'FNS', points: 0.0 },
+  { letter: 'R', points: 0.0 },
+  { letter: 'NR', points: 0.0 },
+]
+
+/**
  * A letter grade back to a percentage.
  *
  * Transcripts show letters, so that is what a student rebuilding their history
@@ -40,11 +58,23 @@ const GRADE_SCALE: GradeBand[] = [
 export function letterToPercent(raw: string): number | null {
   const key = raw.trim().toUpperCase().replace(/\s+/g, '')
   const band = GRADE_SCALE.find((b) => b.letter === key)
-  return band ? band.min : null
+  if (band) return band.min
+  // A notation has no percentage of its own; 0 is the honest stand-in, since
+  // every notation we accept is worth 0.00 grade points.
+  return NOTATIONS.some((n) => n.letter === key) ? 0 : null
+}
+
+/** True when the text is a notation rather than a letter on the scale. */
+export function isNotation(raw: string): boolean {
+  const key = raw.trim().toUpperCase().replace(/\s+/g, '')
+  return NOTATIONS.some((n) => n.letter === key)
 }
 
 /** Every letter on the scale, best first, for a picker. */
-export const GRADE_LETTERS: string[] = GRADE_SCALE.map((b) => b.letter)
+export const GRADE_LETTERS: string[] = [
+  ...GRADE_SCALE.map((b) => b.letter),
+  ...NOTATIONS.map((n) => n.letter),
+]
 
 /**
  * Read a grade the student typed, as either a percentage or a letter.
@@ -127,10 +157,49 @@ export function courseFinalPercent(course: Course, assessments: Assessment[]): n
 }
 
 /** Credit-weighted GPA across courses that have at least one graded assessment. */
+/**
+ * Courses a repeat has superseded.
+ *
+ * Concordia counts only the LATEST attempt of a repeated course:
+ *
+ *   "In the case of repeated courses, only the grade corresponding to the
+ *    latest attempt of the course will be used in the calculation of the CGPA."
+ *
+ * Counting both attempts is not a rounding difference, it is a different number
+ * entirely: one failed 3-credit course dragged a real 22-course record from
+ * 2.81 down to 2.66. The earlier attempt stays visible on the transcript,
+ * because it happened - it just stops counting.
+ *
+ * "Latest" is decided by term order, and only among courses that actually have
+ * a grade: an ungraded retake in progress must not suppress the grade you
+ * already earned.
+ */
+export function supersededCourseIds(courses: Course[], assessments: Assessment[]): Set<string> {
+  const byCode = new Map<string, Course[]>()
+  for (const course of courses) {
+    const code = course.code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (!code) continue
+    if (courseFinalPercent(course, assessments) === null) continue
+    byCode.set(code, [...(byCode.get(code) ?? []), course])
+  }
+
+  const superseded = new Set<string>()
+  for (const attempts of byCode.values()) {
+    if (attempts.length < 2) continue
+    const ordered = [...attempts].sort((a, b) => termRank(a.term) - termRank(b.term))
+    // Everything but the last attempt stops counting.
+    for (const course of ordered.slice(0, -1)) superseded.add(course.id)
+  }
+  return superseded
+}
+
+/** Credit-weighted GPA, with superseded attempts of repeated courses excluded. */
 export function currentGpa(courses: Course[], assessments: Assessment[]): number | null {
+  const superseded = supersededCourseIds(courses, assessments)
   let credits = 0
   let points = 0
   for (const course of courses) {
+    if (superseded.has(course.id)) continue
     const percent = courseFinalPercent(course, assessments)
     if (percent === null) continue
     credits += course.credits
@@ -138,6 +207,43 @@ export function currentGpa(courses: Course[], assessments: Assessment[]): number
   }
   if (credits === 0) return null
   return points / credits
+}
+
+/** One line of the GPA calculation, so the number can be checked rather than
+ *  trusted. */
+export interface GpaLine {
+  course: Course
+  percent: number | null
+  letter: string
+  points: number
+  credits: number
+  /** An earlier attempt at a course that was later repeated. */
+  superseded: boolean
+}
+
+/**
+ * Every course that went into the GPA, and every one that did not.
+ *
+ * Exists so a student can put this side by side with their transcript and find
+ * the row that differs, instead of taking our number on faith. When our GPA and
+ * Concordia's disagree, the disagreement is always a specific course.
+ */
+export function gpaLines(courses: Course[], assessments: Assessment[]): GpaLine[] {
+  const superseded = supersededCourseIds(courses, assessments)
+  return courses
+    .map((course) => {
+      const percent = courseFinalPercent(course, assessments)
+      const grade = percent === null ? null : percentToGrade(percent)
+      return {
+        course,
+        percent,
+        letter: grade?.letter ?? '',
+        points: grade?.points ?? 0,
+        credits: course.credits,
+        superseded: superseded.has(course.id),
+      }
+    })
+    .sort((a, b) => termRank(b.course.term) - termRank(a.course.term))
 }
 
 /** One past (or current) term on the transcript. */

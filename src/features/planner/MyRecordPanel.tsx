@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, Loader2, Trash2 } from 'lucide-react'
+import { CalendarPlus, Loader2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
-import { percentToGrade } from '@/lib/gpa'
+import { supersededCourseIds } from '@/lib/gpa'
 import { sortTermsDesc } from '@/lib/term'
 import {
   loadAcademicProfile,
@@ -13,6 +13,8 @@ import {
 import { browseCourses, type CatalogCourse } from '@/lib/catalog'
 import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
+import { GpaBreakdown } from './GpaBreakdown'
+import { PastCourseRow } from './PastCourseRow'
 import { Step } from './Step'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
@@ -28,11 +30,14 @@ import { ImportSemesterModal } from './ImportSemesterModal'
  * result and letting you wonder whether it is broken.
  */
 export function MyRecordPanel() {
-  const { pastCourses, assessments, user, setProgram, removeCourse } = useAppData()
+  const { pastCourses, assessments, user, setProgram } = useAppData()
   const [year, setYear] = useState<number | null>(null)
   const [minor, setMinor] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [importing, setImporting] = useState(false)
+  // A term name pre-selects the importer, so adding to an existing semester
+  // does not mean choosing it again.
+  const [importTerm, setImportTerm] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -49,6 +54,10 @@ export function MyRecordPanel() {
 
   const summary = useMemo(
     () => summarizeRecord(pastCourses, assessments),
+    [pastCourses, assessments],
+  )
+  const superseded = useMemo(
+    () => supersededCourseIds(pastCourses, assessments),
     [pastCourses, assessments],
   )
 
@@ -126,39 +135,23 @@ export function MyRecordPanel() {
             {sortTermsDesc([...new Set(pastCourses.map((c) => c.term))]).flatMap((term) => [
               <li
                 key={`h-${term}`}
-                className="bg-surface-2 px-4 py-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase"
+                className="flex items-center justify-between gap-2 bg-surface-2 px-4 py-1.5"
               >
-                {term}
+                <span className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
+                  {term}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setImportTerm(term)}
+                  className="text-[11px] font-medium text-subtle transition-colors duration-150 hover:text-accent"
+                >
+                  + Add a class
+                </button>
               </li>,
               ...pastCourses
                 .filter((c) => c.term === term)
                 .map((c) => (
-                  <li key={c.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <span className="min-w-0 flex-1">
-                      <span className="text-[13.5px] font-medium text-fg">{c.code}</span>
-                      {c.title && (
-                        <span className="ml-2 truncate text-[12px] text-subtle">{c.title}</span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-[12px] text-subtle tabular-nums">
-                      {c.credits} cr
-                    </span>
-                    <span className="w-14 shrink-0 text-right text-[13px] font-medium text-fg">
-                      {typeof c.finalPercent === 'number' ? (
-                        percentToGrade(c.finalPercent).letter
-                      ) : (
-                        <span className="text-subtle">&mdash;</span>
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeCourse(c.id)}
-                      aria-label={`Remove ${c.code}`}
-                      className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-danger"
-                    >
-                      <Trash2 size={13} aria-hidden />
-                    </button>
-                  </li>
+                  <PastCourseRow key={c.id} course={c} superseded={superseded.has(c.id)} />
                 )),
             ])}
           </ul>
@@ -189,6 +182,7 @@ export function MyRecordPanel() {
             note={summary.subjects.slice(0, 3).join(' \u00b7 ')}
           />
         </div>
+        <GpaBreakdown pastCourses={pastCourses} assessments={assessments} />
       </Step>
 
       <Step
@@ -205,7 +199,15 @@ export function MyRecordPanel() {
         />
       </Step>
 
-      {importing && <ImportSemesterModal onClose={() => setImporting(false)} />}
+      {(importing || importTerm !== null) && (
+        <ImportSemesterModal
+          initialTerm={importTerm ?? undefined}
+          onClose={() => {
+            setImporting(false)
+            setImportTerm(null)
+          }}
+        />
+      )}
     </div>
   )
 }

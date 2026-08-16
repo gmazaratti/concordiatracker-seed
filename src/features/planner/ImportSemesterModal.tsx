@@ -4,7 +4,7 @@ import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
-import { parseFinalGrade } from '@/lib/gpa'
+import { isNotation, parseFinalGrade, percentToGrade } from '@/lib/gpa'
 import { GradeField } from '@/components/ui/GradeField'
 import { pastTerms } from './past-terms'
 
@@ -33,9 +33,16 @@ interface Draft {
 let seq = 0
 const blank = (): Draft => ({ key: `d${seq++}`, course: null, query: '', grade: '' })
 
-export function ImportSemesterModal({ onClose }: { onClose: () => void }) {
+export function ImportSemesterModal({
+  onClose,
+  initialTerm,
+}: {
+  onClose: () => void
+  /** Pre-selects the term, for adding to a semester that already exists. */
+  initialTerm?: string
+}) {
   const { addPastCourse } = useAppData()
-  const [term, setTerm] = useState(pastTerms()[1] ?? pastTerms()[0])
+  const [term, setTerm] = useState(initialTerm ?? pastTerms()[1] ?? pastTerms()[0])
   const [rows, setRows] = useState<Draft[]>([blank(), blank(), blank()])
   const [saving, setSaving] = useState(false)
 
@@ -59,7 +66,15 @@ export function ImportSemesterModal({ onClose }: { onClose: () => void }) {
         title: r.course.title,
         term,
         credits: r.course.class_unit ?? 3,
-        ...(percent === null ? {} : { finalPercent: percent }),
+        ...(percent === null
+          ? {}
+          : {
+              finalPercent: percent,
+              // FNS is worth 0.00 like F but is not F, and a transcript says so.
+              finalLetter: isNotation(r.grade)
+                ? r.grade.trim().toUpperCase()
+                : percentToGrade(percent).letter,
+            }),
       })
     }
     setSaving(false)
@@ -84,7 +99,7 @@ export function ImportSemesterModal({ onClose }: { onClose: () => void }) {
               value={term}
               onChange={setTerm}
               ariaLabel="Term for every course below"
-              options={pastTerms(24).map((x) => ({ value: x, label: x }))}
+              options={[...new Set([term, ...pastTerms(24)])].map((x) => ({ value: x, label: x }))}
             />
           </div>
           <span className="text-[12px] text-subtle">applies to every row</span>

@@ -413,7 +413,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
    * courses; an ungraded row still counts for both and is simply skipped by the
    * GPA math (currentGpa ignores a null percent). */
   const addPastCourse = useCallback(
-    async (init: { code: string; title: string; term: string; credits: number; finalPercent?: number }) => {
+    async (init: {
+      code: string
+      title: string
+      term: string
+      credits: number
+      finalPercent?: number
+      /** Overrides the letter derived from the percentage. Needed for notations
+       *  like FNS, which are worth 0.00 but are not the letter F, and would
+       *  otherwise come back out of storage as something the student did not
+       *  enter. */
+      finalLetter?: string
+    }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
@@ -436,7 +447,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           archived: true,
           final_percent: init.finalPercent ?? null,
           final_letter:
-            init.finalPercent === undefined ? null : percentToGrade(init.finalPercent).letter,
+            init.finalLetter ??
+            (init.finalPercent === undefined ? null : percentToGrade(init.finalPercent).letter),
         })
         .select('*')
         .maybeSingle()

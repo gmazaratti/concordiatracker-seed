@@ -131,6 +131,8 @@ export interface AppDataContextValue {
     term: string
     credits: number
     finalPercent?: number
+    /** Overrides the derived letter, for notations like FNS. */
+    finalLetter?: string
   }) => Promise<string>
   /** OPT-IN: publish a course's current outline to the shared blueprint pool
    * (the Courses card "Share as blueprint" action). Courses are private otherwise. */
