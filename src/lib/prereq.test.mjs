@@ -110,6 +110,74 @@ console.log('\ncode normalisation')
 check('spacing does not matter', verdict(S1, rec(['comp248'])), 'met')
 check('punctuation does not matter', verdict(S1, rec(['COMP-248'])), 'met')
 
+console.log('\nthe Open Data dialect (strings taken from the live catalogue)')
+// These were 36% of the catalogue and were invisible until the mirror had real
+// rows in it. Every string below is copied from a real course.
+check('labelled prerequisite', verdict('Course Prerequisite: COMP352', rec(['COMP 352'])), 'met')
+check('no space after the colon', verdict('Prerequisite:MBA 642', rec(['MBA 642'])), 'met')
+check('three-letter subject code', verdict('Course Prerequisite: BTM 480', rec(['BTM 480'])), 'met')
+check('four-digit catalogue number', verdict('Course Prerequisite: COMP5461', rec(['COMP 5461'])), 'met')
+check('bare code with no label at all', verdict('SCUL 610', rec(['SCUL 610'])), 'met')
+check('bare code, not held', verdict('SCUL 610', rec([])), 'not-met')
+
+check(
+  'One of (...) is an OR group',
+  verdict('Course Prerequisite: One of (ACCO310, ACCO323)', rec(['ACCO 323'])),
+  'met',
+)
+check(
+  'One of (...) with "or" inside',
+  verdict('Course Prerequisite: One of (COMM226 or COMM301)', rec(['COMM 301'])),
+  'met',
+)
+check(
+  'a comma OUTSIDE the brackets is AND',
+  verdict('Course Prerequisite: DFTT209, DFTT210', rec(['DFTT 209'])),
+  'not-met',
+)
+check(
+  'both halves of that AND satisfy it',
+  verdict('Course Prerequisite: DFTT209, DFTT210', rec(['DFTT 209', 'DFTT 210'])),
+  'met',
+)
+check(
+  'a bare number inherits the subject',
+  verdict('Course Prerequisite: ELEC 242 or 364', rec(['ELEC 364'])),
+  'met',
+)
+
+// The highest-stakes case in the parser. Reading these as requirements would
+// tell a student to go and take the course that disqualifies them.
+check(
+  '"Never Taken" is an antirequisite, not a requirement',
+  verdict('Never Taken/Not Registered: ACCO213, ACCO218', rec(['ACCO 213'])),
+  'blocked',
+)
+check(
+  'and it does not block someone without those courses',
+  verdict('Never Taken/Not Registered: ACCO213, ACCO218', rec([])),
+  'met',
+)
+check(
+  '"must not have taken" is also an antirequisite',
+  verdict('Student must not have taken the following course: ADED496', rec(['ADED 496'])),
+  'blocked',
+)
+check(
+  'a requirement and an antirequisite in one clause stay separate',
+  missing('Course Prerequisite: One of (COMM226 or COMM301). Never Taken: DESC483', rec([])),
+  ['COMM226 or COMM301'],
+)
+check(
+  'and the antirequisite half still blocks',
+  verdict('Course Prerequisite: One of (COMM226 or COMM301). Never Taken: DESC483', rec(['COMM 226', 'DESC 483'])),
+  'blocked',
+)
+
+check('credits before the word', verdict('COURSE PREREQ: for students who have completed 48 credits', rec([], 60)), 'met')
+check('credits after the word', verdict('Must complete min number of credits: 6 in the subject.', rec([], 3)), 'not-met')
+check('French credits', verdict('Prerequisite: 12 crédits dans la spécialité', rec([], 30)), 'met')
+
 fs.unlinkSync(out)
 console.log(failed === 0 ? '\nAll checks passed.' : `\n${failed} check(s) FAILED.`)
 process.exit(failed === 0 ? 0 : 1)

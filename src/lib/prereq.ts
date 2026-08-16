@@ -29,7 +29,11 @@
  * unsure is a real answer here; a confident wrong one costs someone a semester.
  */
 
-const CODE = /\b([A-Z]{4})\s?(\d{3}[A-Z]?)\b/
+// The docs say a subject code is 4 characters. The live catalogue disagrees:
+// MBA, BTM and others are 3, and 4-digit catalogue numbers exist too (COMP
+// 5261). Requiring exactly 4 and 3 silently dropped every one of their
+// prerequisites, which is why "Prerequisite:MBA 642" read as unparseable.
+const CODE = /\b([A-Z]{3,4})\s?(\d{3,4}[A-Z]?)\b/
 
 export type Verdict = 'met' | 'not-met' | 'unknown' | 'blocked'
 
@@ -73,94 +77,219 @@ export function normalizeCode(raw: string): string {
 }
 
 /**
- * Split into sentences.
+ * Concordia writes prerequisites in TWO dialects, and both have to be read.
  *
- * ONLY on a full stop. Semicolons look like sentence breaks — they are always
- * followed by a capitalised course code — but ";" is this grammar's AND
- * operator, and splitting on it tears "COMP 233 or ENGR 371; COMP 352; ENCS 282"
- * into fragments that no longer parse as a requirement list.
+ * The calendar website uses prose:
+ *   "The following courses must be completed previously: COMP 233 or ENGR 371; COMP 352."
+ *
+ * The Open Data API uses a terser, more structured form, which is 36% of the
+ * catalogue and was invisible until the mirror was populated with real rows:
+ *   "Course Prerequisite: One of (COMM226 or COMM301). Never Taken: DESC483"
+ *   "Never Taken/Not Registered: ACCO213, ACCO218, ACCO230"
+ *   "Course Prerequisite: ELEC 242 or 364"
+ *
+ * Three things about the API dialect that a naive reader gets wrong:
+ *   - "One of (A, B, C)" is an OR group, but a comma OUTSIDE those brackets is
+ *     an AND separator, so comma handling depends on position.
+ *   - "Never Taken" and "Not Registered" are ANTIREQUISITES. Reading them as
+ *     requirements would invert the answer completely: it would tell a student
+ *     to go take the very course that disqualifies them.
+ *   - A bare number inherits the preceding subject, so "ELEC 242 or 364" means
+ *     ELEC 364, not course 364 of nothing.
+ *
+ * The lead-in is also spelled at least eight ways in the live data, including
+ * "PREREQ", "Prereq", "PREQUISITE" and the typo "Prerequisitie", so it is
+ * matched loosely rather than exactly.
  */
-function sentences(text: string): string[] {
-  return text
-    .replace(/\s+/g, ' ')
-    .split(/\.\s+(?=[A-Z"“])|\.\s*$/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+
+/** "ELEC 242 or 364" -> "ELEC 242 or ELEC 364". */
+function expandBareNumbers(text: string): string {
+  let subject: string | null = null
+  return text.replace(/\b([A-Z]{3,4})\s?(\d{3,4}[A-Z]?)\b|\b(\d{3,4}[A-Z]?)\b/g, (whole, subj, _num, bare) => {
+    if (subj) {
+      subject = subj
+      // Left exactly as written. This text is shown to the student, and
+      // rewriting "COMP 248" as "COMP248" would leak the parser's internals
+      // into the UI for no gain.
+      return whole
+    }
+    // A bare number only means a course if we have just seen a subject; a year
+    // or a credit count would otherwise be turned into a course code.
+    return subject ? `${subject} ${bare}` : whole
+  })
+}
+
+const LEAD_IN =
+  /(course\s+)?(pre-?req\w*|prereq\w*|prequisite\w*|prerequisitie\w*|co-?req\w*|corequisite\w*)\s*:?/i
+const CONCURRENT_LEAD = /co-?req|corequisite/i
+// "must not have taken" reads as a requirement to a careless matcher, and
+// getting this backwards is the worst error the parser can make: it would tell
+// a student to go and take the exact course that disqualifies them.
+const ANTI_LEAD =
+  /never\s+(have\s+)?taken|not\s+registered|must\s+not\s+have\s+taken|must\s+never\s+have\s+taken/i
+const UNDECIDABLE_LEAD =
+  /permission|reserved?\s|registration in|final year|honours program|program|students only|department is required/i
+
+/**
+ * Break the text into clauses.
+ *
+ * Splitting happens on a full stop, and on a semicolon ONLY when what follows
+ * starts a new labelled clause. In the prose dialect a semicolon separates AND
+ * terms inside one requirement list, so splitting on every semicolon would tear
+ * those lists apart - the exact bug that made "COMP 233 or ENGR 371; COMP 352;
+ * ENCS 282" unreadable.
+ */
+function clauses(text: string): string[] {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  const out: string[] = []
+  let buf = ''
+  const parts = flat.split(/([.;])/)
+  for (let i = 0; i < parts.length; i += 2) {
+    const chunk = parts[i]
+    const sep = parts[i + 1] ?? ''
+    const next = parts[i + 2] ?? ''
+    buf += chunk + (sep === ';' ? ';' : '')
+    const startsNewClause =
+      sep === '.' || (sep === ';' && (LEAD_IN.test(next) || ANTI_LEAD.test(next)))
+    if (startsNewClause) {
+      if (buf.trim()) out.push(buf.replace(/;\s*$/, '').trim())
+      buf = ''
+    }
+  }
+  if (buf.trim()) out.push(buf.trim())
+  return out.filter(Boolean)
 }
 
 function parseAlternative(raw: string): Alternative {
-  const text = raw.trim().replace(/^(and|or)\s+/i, '').replace(/[.;]+$/, '').trim()
+  const text = raw.trim().replace(/^(and|or)\s+/i, '').replace(/[.;()]+$/, '').trim()
   const m = text.match(CODE)
   return { code: m ? `${m[1]}${m[2]}` : null, text }
 }
 
 /**
- * Parse the requirement list that follows the colon.
+ * Parse a requirement list into AND terms.
  *
- * ";" separates terms that must ALL hold; " or " separates alternatives within
- * one term. A term is also allowed to start with "and", which the calendar uses
- * for emphasis rather than as a separate operator.
+ * "One of (...)" collapses to a single term whose alternatives are whatever is
+ * inside the brackets. Outside brackets, ";" and "," separate AND terms and
+ * " or " separates alternatives within one.
  */
 function parseTermList(list: string, concurrent: boolean): Term[] {
-  return list
-    .split(/;/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
-    .map((chunk) => ({
-      alternatives: chunk.split(/\s+or\s+/i).map(parseAlternative).filter((a) => a.text.length > 0),
-      concurrent,
-    }))
-    .filter((t) => t.alternatives.length > 0)
+  const terms: Term[] = []
+
+  // Pull out every "One of (...)" group first, so its internal commas are not
+  // mistaken for AND separators.
+  const oneOf = /one\s+of\s*\(([^)]*)\)/gi
+  let m: RegExpExecArray | null
+  while ((m = oneOf.exec(list)) !== null) {
+    const alternatives = m[1]
+      .split(/,|\s+or\s+/i)
+      .map(parseAlternative)
+      .filter((a) => a.text.length > 0)
+    if (alternatives.length > 0) terms.push({ alternatives, concurrent })
+  }
+  const rest = list.replace(oneOf, ' ')
+
+  for (const chunk of rest.split(/[;,]/)) {
+    const trimmed = chunk.trim()
+    if (!trimmed) continue
+    const alternatives = trimmed
+      .split(/\s+or\s+/i)
+      .map(parseAlternative)
+      .filter((a) => a.text.length > 0)
+    // A fragment with no course code and no meaningful words is punctuation
+    // left behind by removing a bracket group.
+    if (alternatives.length === 0) continue
+    if (alternatives.every((a) => a.code === null && a.text.length < 3)) continue
+    terms.push({ alternatives, concurrent })
+  }
+  return terms
 }
 
-export function parsePrereq(text: string | null | undefined): Prereq {
-  const out: Prereq = { terms: [], antirequisites: [], minCredits: null, undecidable: [] }
-  if (!text?.trim()) return out
+function allCodes(text: string): string[] {
+  return [...text.matchAll(new RegExp(CODE, 'g'))].map((m) => `${m[1]}${m[2]}`)
+}
 
-  for (const s of sentences(text)) {
-    // Antirequisite: having one of these makes the course unavailable.
-    if (/may not (take|be taken).*for credit/i.test(s)) {
-      for (const m of s.matchAll(new RegExp(CODE, 'g'))) {
-        out.antirequisites.push(`${m[1]}${m[2]}`)
+export function parsePrereq(raw: string | null | undefined): Prereq {
+  const out: Prereq = { terms: [], antirequisites: [], minCredits: null, undecidable: [] }
+  if (!raw?.trim()) return out
+  const text = expandBareNumbers(raw)
+
+  for (const s of clauses(text)) {
+    // ── Antirequisites. Checked FIRST: several clauses contain both a
+    // requirement lead-in and a "Never Taken" list, and reading the second as a
+    // requirement would tell a student to take the course that disqualifies
+    // them. Splitting on the antirequisite label keeps each half honest.
+    const antiAt = s.search(ANTI_LEAD)
+    if (antiAt >= 0) {
+      const before = s.slice(0, antiAt)
+      const after = s.slice(antiAt)
+      out.antirequisites.push(...allCodes(after))
+      if (LEAD_IN.test(before)) {
+        const list = before.replace(LEAD_IN, '').trim()
+        if (list) out.terms.push(...parseTermList(list, CONCURRENT_LEAD.test(before)))
       }
       continue
     }
 
-    // A credit floor. We know the student's credit total, so this is decidable.
-    const credits = s.match(/(\d{2,3})\s+credits?\b/i)
-    if (credits && /must (complete|have completed)|prior to enrolling|minimum of/i.test(s)) {
+    if (/may not (take|be taken).*for credit/i.test(s)) {
+      out.antirequisites.push(...allCodes(s))
+      continue
+    }
+
+    // A credit floor, in any of the phrasings the catalogue actually uses,
+    // including the French "crédits". When the clause names no course at all,
+    // the credit count IS the requirement rather than a detail of one, and we
+    // know the student's total, so it is decidable either way.
+    // Both orders occur: "48 credits" and "min number of credits: 6".
+    const credits =
+      s.match(/(\d{1,3})\s+cr[ée]dits?\b/i) ?? s.match(/cr[ée]dits?\s*:?\s*(\d{1,3})\b/i)
+    if (
+      credits &&
+      (/must (complete|have completed)|prior to enrolling|minimum of|min number|completed/i.test(s) ||
+        !CODE.test(s))
+    ) {
       out.minCredits = Math.max(out.minCredits ?? 0, Number(credits[1]))
       continue
     }
 
-    // The main requirement form.
-    const req = s.match(/must be completed (previously or concurrently|previously|concurrently)\s*:?\s*(.*)$/i)
-    if (req) {
-      const concurrent = /concurrently/i.test(req[1])
-      const list = req[2]
-      if (list.trim()) {
-        out.terms.push(...parseTermList(list, concurrent))
+    // The calendar's prose form.
+    const prose = s.match(/must be completed (previously or concurrently|previously|concurrently)\s*:?\s*(.*)$/i)
+    if (prose && prose[2].trim()) {
+      out.terms.push(...parseTermList(prose[2], /concurrently/i.test(prose[1])))
+      continue
+    }
+
+    // The API's labelled form, in any of its spellings.
+    if (LEAD_IN.test(s)) {
+      const list = s.replace(LEAD_IN, '').trim()
+      if (list && CODE.test(list)) {
+        out.terms.push(...parseTermList(list, CONCURRENT_LEAD.test(s)))
         continue
       }
     }
 
-    // Older / alternate phrasing that still names the requirement after a colon.
-    const colon = s.match(/^(?:pre-?requisites?|co-?requisites?)\s*:?\s*(.+)$/i)
-    if (colon) {
-      out.terms.push(...parseTermList(colon[1], /concurrent/i.test(s)))
-      continue
+    // Some entries are just the code, with no label at all: SCUL 611's entire
+    // prerequisite is the text "SCUL 610". If a clause is nothing but course
+    // codes and separators, it can only be a requirement.
+    if (CODE.test(s) && /^[\sA-Z0-9,;()]+$/i.test(s.replace(/\bor\b|\band\b/gi, ''))) {
+      const terms = parseTermList(s, false)
+      if (terms.length > 0) {
+        out.terms.push(...terms)
+        continue
+      }
     }
 
-    // Permission, standing, program registration: readable, not decidable.
-    if (/permission|registration in|final year|honours program|department is required/i.test(s)) {
+    // Readable, but hinging on something we cannot see.
+    if (UNDECIDABLE_LEAD.test(s)) {
       out.undecidable.push(s.replace(/\s*\.\s*$/, ''))
       continue
     }
 
-    // Anything else that mentions a course but does not match a known shape.
     if (CODE.test(s)) out.undecidable.push(s.replace(/\s*\.\s*$/, ''))
   }
 
+  // The same course named twice adds nothing and reads as noise.
+  out.antirequisites = [...new Set(out.antirequisites)]
   return out
 }
 

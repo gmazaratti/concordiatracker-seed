@@ -53,6 +53,10 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 - [ ] **Populate the catalogue** — `course_catalog` exists but has **0 rows**;
       `/api/sync-catalog` has never run, so the directory and the unlock list
       have nothing to show. **NEXT — one command, see the note below.**
+- [ ] **The last 12% of prerequisites** - program enrolment ("for students
+      Enrolled in Intermedia"), credits spelled as words ("at least six
+      credits"), and free-form department rules. These land as "cannot decide",
+      which is the safe answer, so this is polish rather than a gap.
 - [ ] **Minimum-grade conditions in prerequisites** — the parser handles and/or,
       antirequisites and credit floors, but not "with a minimum grade of C-".
       We store final grades, so this IS decidable; it just is not done. **IDEA.**
@@ -133,23 +137,7 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-Catalogue sync: **redeploy, then fire it again.** It was writing 1,946 of ~7,946
-rows and being killed by Vercel's function duration limit; chunks are now 2,000
-rows run four at a time with `maxDuration = 60`. The upsert is keyed on id, so
-re-running is safe and fills in the rest.
-
-```sql
-select net.http_post(
-  url := 'https://concordiatracker.com/api/sync-catalog',
-  headers := jsonb_build_object('Content-Type','application/json',
-    'Authorization','Bearer ' || substring(
-      (select command from cron.job where jobname = 'ct-sync-catalog') from 'Bearer '' \|\| ''([^'']+)')),
-  body := '{}'::jsonb,
-  timeout_milliseconds := 120000
-);
-```
-
-Then `select * from public.catalog_status();` should read ~7,900.
+*(nothing outstanding - the catalogue is populated and both cron jobs are live.)*
 
 ---
 
