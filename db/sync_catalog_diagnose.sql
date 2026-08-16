@@ -9,25 +9,26 @@
 
 -- ── STEP 1 ──────────────────────────────────────────────────────────────────
 -- What is actually stored, and does it even look like a secret?
+--
+-- RUN THIS ONE ON ITS OWN. The Supabase editor shows only the LAST statement's
+-- result, so running the whole file hides this behind Step 2. Select just this
+-- query and press Run, or paste it into an empty tab.
 select
   j.jobname,
-  case when j.command like '%Bearer%' then 'yes' else 'NO - no Bearer token in this job' end
-    as has_bearer,
-  length(substring(j.command from 'Bearer ([^'']+)'))          as secret_length,
-  -- The single most likely cause: db/reminders.sql ships with a placeholder,
-  -- and running it unedited stores the placeholder rather than a real secret.
+  j.active,
+  coalesce(length(substring(j.command from 'Bearer ([^'']+)')), 0) as secret_length,
   case
-    when substring(j.command from 'Bearer ([^'']+)') = '__CRON_SECRET__'
-      then 'PLACEHOLDER NEVER REPLACED - this is the problem'
     when substring(j.command from 'Bearer ([^'']+)') is null
-      then 'could not read a token'
+      then 'NO TOKEN IN THIS JOB'
+    -- The most likely cause: db/reminders.sql ships with a __CRON_SECRET__
+    -- placeholder, and running it unedited stores the placeholder verbatim.
+    when substring(j.command from 'Bearer ([^'']+)') like '%CRON_SECRET%'
+      then 'PLACEHOLDER NEVER REPLACED - this is the problem'
     else 'looks like a real value'
-  end                                                          as verdict,
+  end as verdict,
   -- Enough to compare against Vercel by eye, not enough to leak it.
-  left(substring(j.command from 'Bearer ([^'']+)'), 3) || '...' ||
-    right(substring(j.command from 'Bearer ([^'']+)'), 3)      as masked,
-  j.schedule,
-  j.active
+  left(coalesce(substring(j.command from 'Bearer ([^'']+)'), ''), 3) || '...' ||
+    right(coalesce(substring(j.command from 'Bearer ([^'']+)'), ''), 3) as masked
 from cron.job j
 where j.command like '%concordiatracker.com/api/%'
 order by j.jobname;
