@@ -12,8 +12,9 @@
     "postbuild": "node docs-src/build.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run test:prereq && npm run test:gpa && npm run db:verify",
-    "test:gpa": "node src/lib/gpa.test.mjs"
+    "test": "npm run typecheck:api && npm run test:prereq && npm run test:gpa && npm run db:verify",
+    "test:gpa": "node src/lib/gpa.test.mjs",
+    "typecheck:api": "tsc -p api --noEmit"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

@@ -1,0 +1,25 @@
+{
+  // The serverless functions were in NO tsconfig, so `tsc -b` never looked at
+  // them. That is how a change to api/sync-catalog.ts could ship without a
+  // single type being checked. This file closes that gap; `npm run
+  // typecheck:api` runs it, and `npm test` runs that.
+  //
+  // Deliberately standalone rather than a reference from the root config: these
+  // run on Node in Vercel's runtime, not in the browser bundle, so they want
+  // Node globals and no DOM, and nothing in src/ should import them.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["**/*.ts"]
+}

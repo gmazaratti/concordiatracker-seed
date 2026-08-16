@@ -133,23 +133,23 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-**`db/reminders.sql` was run with its `__CRON_SECRET__` placeholder unreplaced.**
-Confirmed by reading `cron.job`: the stored token is the literal 15-character
-placeholder, and `net._http_response` shows 26 responses, all 401, none
-successful. So **reminder pushes have never worked**, and the catalogue sync
-inherited the same dead token.
+Catalogue sync: **redeploy, then fire it again.** It was writing 1,946 of ~7,946
+rows and being killed by Vercel's function duration limit; chunks are now 2,000
+rows run four at a time with `maxDuration = 60`. The upsert is keyed on id, so
+re-running is safe and fills in the rest.
 
-Fix, in the Supabase SQL editor:
+```sql
+select net.http_post(
+  url := 'https://concordiatracker.com/api/sync-catalog',
+  headers := jsonb_build_object('Content-Type','application/json',
+    'Authorization','Bearer ' || substring(
+      (select command from cron.job where jobname = 'ct-sync-catalog') from 'Bearer '' \|\| ''([^'']+)')),
+  body := '{}'::jsonb,
+  timeout_milliseconds := 120000
+);
+```
 
-1. Confirm `CRON_SECRET` exists in Vercel (Settings, Environment Variables). If
-   it is missing, add any long random string.
-2. Run **STEP 3** of `db/sync_catalog_diagnose.sql` with that value pasted
-   between the `$secret$` markers. It rewrites BOTH jobs and fires one sync.
-3. About 30 seconds later:
-   `select status_code, content from net._http_response order by id desc limit 3;`
-
-`db/reminders.sql` now refuses to schedule while the placeholder is still in
-place, so this cannot recur silently.
+Then `select * from public.catalog_status();` should read ~7,900.
 
 ---
 
