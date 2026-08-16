@@ -271,6 +271,14 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    // Retire watches that opened a day ago and stayed open — they've done
+    // their job, and polling them forever is waste.
+    await fetch(`${supabaseUrl}/rest/v1/rpc/prune_seat_watches`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    }).catch(() => {})
+
     // Everyone whose class just opened.
     const alertRes = await fetch(`${supabaseUrl}/rest/v1/rpc/pending_seat_alerts`, {
       method: 'POST',

@@ -22,6 +22,60 @@ export interface ScheduleRow {
   currentWaitlistTotal: string
   hasSeatReserved: string
   classStatus: string
+  /** LEC / TUT / LAB — each is its own classNumber with its own capacity, so a
+   * student watching "COMP 248" has to say WHICH component they need. */
+  componentCode: string
+  componentDescription: string
+  /** SGW or LOY — the campus. Paired with meeting times this is what reveals a
+   * back-to-back pair that needs the shuttle. */
+  locationCode: string
+  instructionModeDescription: string
+  buildingCode: string
+  room: string
+  classStartTime: string
+  classEndTime: string
+  modays: string
+  tuesdays: string
+  wednesdays: string
+  thursdays: string
+  fridays: string
+  saturdays: string
+  sundays: string
+}
+
+/** Concordia spells Monday "modays" in the payload. Not a typo here. */
+const DAY_FIELDS = [
+  ['sundays', 'Sun'],
+  ['modays', 'Mon'],
+  ['tuesdays', 'Tue'],
+  ['wednesdays', 'Wed'],
+  ['thursdays', 'Thu'],
+  ['fridays', 'Fri'],
+  ['saturdays', 'Sat'],
+] as const
+
+/**
+ * "Mon · Wed 10:15–11:30" from a schedule row — the exact shape
+ * `course.meetingTimes` already uses, so the Next class widget's parser needs
+ * no changes.
+ *
+ * Times arrive as "10.15.00". Returns null rather than a partial string when
+ * anything is missing: a half-parsed meeting time is worse than none, because
+ * the widget treats unparseable input as "no class" and stays quiet.
+ */
+export function meetingTimeString(r: ScheduleRow): string | null {
+  const days = DAY_FIELDS.filter(([f]) => r[f] === 'Y').map(([, label]) => label)
+  if (!days.length) return null
+  const clock = (t: string | undefined) => {
+    if (!t) return null
+    const [h, m] = t.split('.')
+    if (h === undefined || m === undefined) return null
+    return `${h.padStart(2, '0')}:${m}`
+  }
+  const start = clock(r.classStartTime)
+  const end = clock(r.classEndTime)
+  if (!start || !end) return null
+  return `${days.join(' · ')} ${start}–${end}`
 }
 
 const BASE = 'https://opendata.concordia.ca/API/v1'

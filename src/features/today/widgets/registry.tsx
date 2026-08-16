@@ -1,4 +1,4 @@
-import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { ShuttleWidget } from './ShuttleWidget'
 import { WeatherWidget } from './WeatherWidget'
@@ -7,6 +7,7 @@ import { GradeGoalWidget } from './GradeGoalWidget'
 import { CourseShortcutsWidget } from './CourseShortcutsWidget'
 import { StreakWidget } from './StreakWidget'
 import { StudyTimerWidget } from './StudyTimerWidget'
+import { SeatWatchWidget } from './SeatWatchWidget'
 import { DebriefPanel } from '../DebriefPanel'
 
 /**
@@ -132,6 +133,14 @@ export const WIDGETS: WidgetDef[] = [
     icon: Timer,
     zones: ['rail', 'half'],
     render: () => <StudyTimerWidget />,
+  },
+  {
+    id: 'seat-watch',
+    name: 'Seat watch',
+    description: 'Get pushed the second a seat opens in a full class.',
+    icon: Bell,
+    zones: ['rail', 'half', 'wide'],
+    render: () => <SeatWatchWidget />,
   },
   {
     id: 'workload',
