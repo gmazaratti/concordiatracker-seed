@@ -20,8 +20,10 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'schedule.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: root },
 )
-const { placeSections, findConflicts, findCampusGaps, weeklyHours, daysOff, gridBounds } =
-  await import(pathToFileURL(out).href)
+const {
+  placeSections, findConflicts, findCampusGaps, weeklyHours, daysOff, gridBounds,
+  clashesWithBlocks,
+} = await import(pathToFileURL(out).href)
 
 let bad = 0
 const eq = (label, a, b) => { const ok = JSON.stringify(a) === JSON.stringify(b); if (!ok) bad++
@@ -98,6 +100,23 @@ eq('days off', daysOff(week), [4, 5])
 eq('grid starts on the hour', gridBounds(week).start, 600)
 eq('grid ends on the hour', gridBounds(week).end, 900)
 eq('an empty week still has a sane grid', gridBounds([]), { start: 480, end: 1080 })
+
+console.log('\nblocked times')
+const block = (day, start, end) => ({ id: 'b', day, start, end, label: 'Work' })
+eq('a class inside a blocked time clashes',
+  clashesWithBlocks('Mon 10:00-11:30', [block(1, '09:00', '12:00')]).length, 1)
+eq('a class on another day does not',
+  clashesWithBlocks('Tue 10:00-11:30', [block(1, '09:00', '12:00')]).length, 0)
+eq('a class that only touches the block does not',
+  clashesWithBlocks('Mon 12:00-13:00', [block(1, '09:00', '12:00')]).length, 0)
+// An unknown time is not a clash: "TBA" and online courses are exactly the ones
+// that fit around a blocked schedule, and hiding them would be backwards.
+eq('an unreadable time never clashes',
+  clashesWithBlocks('TBA', [block(1, '00:00', '23:59')]).length, 0)
+eq('no blocks means no clash', clashesWithBlocks('Mon 10:00-11:30', []).length, 0)
+eq('one class can hit two blocks',
+  clashesWithBlocks('Mon 10:00-11:30; Wed 10:00-11:30',
+    [block(1, '09:00', '12:00'), block(3, '09:00', '12:00')]).length, 2)
 
 console.log(bad === 0 ? '\nAll checks passed.' : `\n${bad} FAILED.`)
 process.exit(bad ? 1 : 0)

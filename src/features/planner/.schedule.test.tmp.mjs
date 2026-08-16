@@ -97,7 +97,23 @@ function daysOff(placed) {
   const used = new Set(placed.map((p) => p.slot.day));
   return [1, 2, 3, 4, 5].filter((d) => !used.has(d));
 }
+function clashesWithBlocks(meetingTimes, blocks) {
+  const slots = parseMeetingTimes(meetingTimes ?? "");
+  if (slots.length === 0) return [];
+  const hit = [];
+  for (const b of blocks) {
+    const bStart = toMinutes(b.start);
+    const bEnd = toMinutes(b.end);
+    for (const slot of slots) {
+      if (slot.day !== b.day) continue;
+      const overlap = Math.min(toMinutes(slot.end), bEnd) - Math.max(toMinutes(slot.start), bStart);
+      if (overlap > 0 && !hit.includes(b)) hit.push(b);
+    }
+  }
+  return hit;
+}
 export {
+  clashesWithBlocks,
   daysOff,
   findCampusGaps,
   findConflicts,

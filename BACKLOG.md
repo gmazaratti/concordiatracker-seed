@@ -47,6 +47,12 @@ Agreed in order, not started:
       NOT STARTED.
 - [ ] **Add-to-schedule from a saved course** - the builder takes a code today;
       one click from the shortlist would be better.
+- [ ] **Save a shared schedule as your own** - the share page shows it and
+      offers "Build your own", but does not yet copy it into your account.
+- [ ] **Bulk import** - paste a transcript or Student Centre screen and parse it.
+      BLOCKED on a real paste sample; the prerequisite parser went from 63% to
+      88% purely because it was built against real strings rather than imagined
+      ones, and this deserves the same.
 - [ ] **Bulk import without picking one by one** - paste a transcript or a
       Student Centre screen and parse it. A plain algorithm handles the common
       shapes; AI is the fallback for the messy ones and is where a Pro gate
@@ -148,7 +154,7 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-**`db/saved_courses.sql`** — the shortlist table. Nothing else outstanding.
+**`db/saved_schedules.sql`** — saved and shareable schedules.
 
 ---
 

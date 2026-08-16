@@ -15,6 +15,7 @@ import { PlannerPage } from '@/features/planner/PlannerPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
 import { PublicEventPage } from '@/features/community/PublicEventPage'
+import { SharedSchedulePage } from '@/features/planner/SharedSchedulePage'
 import { TeacherHome } from '@/features/teacher/TeacherHome'
 import { TeacherInvitePage } from '@/features/teacher/TeacherInvitePage'
 import { TeacherRequestPage } from '@/features/teacher/TeacherRequestPage'
@@ -114,6 +115,10 @@ export function AppRoutes() {
 
       {/* Public, shareable event page: viewable without an account */}
       <Route path="/e/:eventId" element={<PublicEventPage />} />
+
+      {/* Public, shareable schedule. Signed-out on purpose: the whole point is
+          sending it to a friend, and a login wall would kill that. */}
+      <Route path="/s/:token" element={<SharedSchedulePage />} />
 
       {/* Throwaway full-bleed promo reel for screen recording: not in app nav */}
       <Route path="/demo" element={<DemoReel />} />

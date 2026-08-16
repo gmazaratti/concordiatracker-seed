@@ -132,3 +132,42 @@ export function daysOff(placed: Placed[]): number[] {
   const used = new Set(placed.map((p) => p.slot.day))
   return [1, 2, 3, 4, 5].filter((d) => !used.has(d))
 }
+
+/** A time the student has blocked out. Mirrors lib/schedules TimeBlock. */
+export interface Block {
+  id: string
+  day: number
+  start: string
+  end: string
+  label: string
+}
+
+/**
+ * Does this section run during a time the student has blocked out?
+ *
+ * Used to grey out sections in the search rather than to hide them. A student
+ * who blocked Friday mornings for work may still want to SEE the Friday
+ * section and decide for themselves; removing it from the list entirely would
+ * look like the course does not exist.
+ *
+ * A section with no readable meeting time never clashes: "TBA" is unknown, and
+ * treating unknown as a clash would hide online and arranged courses, which are
+ * exactly the ones that fit around a blocked schedule.
+ */
+export function clashesWithBlocks(meetingTimes: string | null, blocks: Block[]): Block[] {
+  const slots = parseMeetingTimes(meetingTimes ?? '')
+  if (slots.length === 0) return []
+  const hit: Block[] = []
+  for (const b of blocks) {
+    const bStart = toMinutes(b.start)
+    const bEnd = toMinutes(b.end)
+    for (const slot of slots) {
+      if (slot.day !== b.day) continue
+      const overlap =
+        Math.min(toMinutes(slot.end), bEnd) - Math.max(toMinutes(slot.start), bStart)
+      // Touching is fine here for the same reason it is between two classes.
+      if (overlap > 0 && !hit.includes(b)) hit.push(b)
+    }
+  }
+  return hit
+}

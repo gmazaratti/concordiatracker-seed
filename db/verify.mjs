@@ -240,6 +240,41 @@ check('saving the same course twice is rejected', dup, '23505')
 await db.query('insert into public.saved_courses (user_id, code) values ($1,$2)', [OTHER, 'COMP 352'])
 check('but two students can save the same course', (await db.query('select count(*)::int n from public.saved_courses')).rows[0].n, 2)
 
+// -- db/saved_schedules.sql --------------------------------------------------
+console.log('\ndb/saved_schedules.sql')
+await db.exec(migration('saved_schedules.sql').replace(/references auth.users\(id\) on delete cascade/g, ''))
+console.log('  ok    DDL applies')
+
+const mine = (await db.query(
+  `insert into public.saved_schedules (user_id, name, term_code, sections)
+   values ($1,'Plan A','2254','[{"code":"COMP 248"}]'::jsonb) returning id`, [ME])).rows[0].id
+await db.query(
+  `insert into public.saved_schedules (user_id, name) values ($1,'Someone else')`, [OTHER])
+
+check('an unshared schedule has no token', (await db.query(
+  'select share_token from public.saved_schedules where id = $1', [mine])).rows[0].share_token, null)
+
+const token = (await db.query('select public.share_schedule($1) as t', [mine])).rows[0].t
+check('sharing mints a token', typeof token === 'string' && token.length >= 16, true)
+check('sharing twice keeps the same link',
+  (await db.query('select public.share_schedule($1) as t', [mine])).rows[0].t, token)
+
+const shared = (await db.query('select * from public.schedule_by_token($1)', [token])).rows
+check('the token opens the schedule', shared.length, 1)
+check('and it carries the sections', shared[0].sections, [{ code: 'COMP 248' }])
+check('but never the owner', Object.keys(shared[0]).includes('user_id'), false)
+
+check('a wrong token opens nothing',
+  (await db.query('select * from public.schedule_by_token($1)', ['nope'])).rows.length, 0)
+check('an empty token opens nothing',
+  (await db.query('select * from public.schedule_by_token($1)', [''])).rows.length, 0)
+check('a null token opens nothing',
+  (await db.query('select * from public.schedule_by_token($1)', [null])).rows.length, 0)
+
+await db.query('select public.unshare_schedule($1)', [mine])
+check('revoking breaks the link',
+  (await db.query('select * from public.schedule_by_token($1)', [token])).rows.length, 0)
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

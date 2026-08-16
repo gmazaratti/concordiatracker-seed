@@ -744,3 +744,23 @@ html {
     -webkit-backdrop-filter: none !important;
   }
 }
+
+/* ── Printing a schedule ────────────────────────────────────────────────────
+   The export is "put it on the fridge", so the printed page should be the
+   timetable and nothing else: no sidebar, no bottom nav, no toolbar. Colours
+   are forced to print rather than being dropped by the browser's default
+   background-graphics setting, since the colour IS how you tell the courses
+   apart. */
+@media print {
+  body {
+    background: #fff;
+  }
+  aside,
+  nav {
+    display: none !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
