@@ -29,6 +29,17 @@ export function GpaBreakdown({
   const credits = counted.reduce((sum, l) => sum + l.credits, 0)
   const points = counted.reduce((sum, l) => sum + l.points * l.credits, 0)
 
+  // Concordia says "only the grade corresponding to the latest attempt of the
+  // course will be used" and separately says to divide by "total credits
+  // attempted". It never states whether the earlier attempt's CREDITS still
+  // count. Both readings are defensible and they give different numbers, so
+  // when a repeat exists we show both rather than pick one and present it as
+  // fact. The transcript's own credit total settles which applies.
+  const allGraded = lines.filter((l) => l.percent !== null)
+  const allCredits = allGraded.reduce((sum, l) => sum + l.credits, 0)
+  const hasRepeat = credits !== allCredits
+  const alternate = allCredits > 0 ? points / allCredits : null
+
   if (lines.length === 0) return null
 
   return (
@@ -96,6 +107,28 @@ export function GpaBreakdown({
               </span>
             </p>
           </div>
+
+          {hasRepeat && alternate !== null && (
+            <div className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-subtle">
+              <p>
+                You have repeated a course, and Concordia&rsquo;s wording does not settle one thing:
+                it says only the latest attempt&rsquo;s <em>grade</em> is used, and separately says
+                to divide by &ldquo;total credits attempted&rdquo;, without saying whether the
+                earlier attempt&rsquo;s credits still count.
+              </p>
+              <p className="mt-1.5 text-fg">
+                Excluding those credits gives{' '}
+                <span className="font-medium tabular-nums">{(points / credits).toFixed(2)}</span> over{' '}
+                {credits}. Keeping them gives{' '}
+                <span className="font-medium tabular-nums">{alternate.toFixed(2)}</span> over{' '}
+                {allCredits}.
+              </p>
+              <p className="mt-1.5">
+                Your transcript shows which: compare its credit total against {credits} and{' '}
+                {allCredits}.
+              </p>
+            </div>
+          )}
 
           <p className="border-t border-border px-4 py-2.5 text-[11.5px] leading-relaxed text-subtle">
             If this does not match your record, compare it line by line: the difference is almost

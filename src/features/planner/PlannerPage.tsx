@@ -48,7 +48,10 @@ export function PlannerPage() {
       <div
         role="tablist"
         aria-label={t('planner.sections')}
-        className="mb-5 flex gap-1 overflow-x-auto border-b border-border"
+        // All five visible at once. A horizontally scrolled strip hid two of
+        // them behind an edge with nothing to indicate they were there, so on a
+        // phone the page looked like it had three sections.
+        className="mb-5 grid grid-cols-3 gap-1 border-b border-border sm:flex sm:gap-1"
       >
         {TABS.map((item) => {
           const Icon = item.icon
@@ -61,16 +64,16 @@ export function PlannerPage() {
               aria-selected={active}
               onClick={() => setTab(item.id)}
               className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
+                'inline-flex items-center justify-center gap-1.5 border-b-2 px-2 py-2.5 text-[12px] font-medium transition-colors duration-150 sm:shrink-0 sm:justify-start sm:px-3.5 sm:text-[13px] sm:whitespace-nowrap',
                 active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
               )}
             >
-              <Icon size={14} aria-hidden />
-              {t(item.labelKey)}
+              <Icon size={14} aria-hidden className="shrink-0" />
+              <span className="truncate">{t(item.labelKey)}</span>
               {/* Honest about what is not built yet, rather than an empty tab
                   that just looks broken. */}
               {!item.ready && (
-                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase">
+                <span className="hidden rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase sm:inline">
                   {t('planner.soon')}
                 </span>
               )}

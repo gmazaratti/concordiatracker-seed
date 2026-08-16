@@ -9,7 +9,12 @@
 -- planner needs and did not have.
 alter table public.user_profile
   add column if not exists year_of_study int,
-  add column if not exists minor text;
+  add column if not exists minor text,
+  -- Set by the student, not inferred. Prerequisite checking is only shown once
+  -- this is true, because colouring a requirement red against a half-entered
+  -- history tells someone they are ineligible for a course they have already
+  -- qualified for, and red is the kind of answer people act on.
+  add column if not exists record_complete boolean not null default false;
 
 -- A past course with no grade still counts for credits and still counts as a
 -- prerequisite met, so final_percent has to be genuinely optional. It already

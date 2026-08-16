@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BookOpen, Loader2, Search } from 'lucide-react'
 import { useI18n } from '@/i18n/i18n'
+import { useAppData } from '@/app/providers/app-data'
+import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
+import { normalizeCode } from '@/lib/prereq'
+import { PrereqChips } from './PrereqChips'
+import { CourseSections } from './CourseSections'
 import { formatMonthDay } from '@/lib/date'
 import {
   browseCourses,
@@ -23,6 +28,27 @@ const PAGE = 10
  */
 export function CourseDirectory() {
   const { t } = useI18n()
+  const { pastCourses, courses, assessments } = useAppData()
+  const [trusted, setTrusted] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void loadAcademicProfile().then((p) => {
+      if (alive) setTrusted(p.recordComplete)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  // Courses in progress count toward a prerequisite that allows concurrency,
+  // and toward one you will have met by the time the next term starts.
+  const record = useMemo(() => {
+    const summary = summarizeRecord(pastCourses, assessments)
+    const codes = new Set(summary.completedCodes.map(normalizeCode))
+    for (const c of courses) if (c.code.trim()) codes.add(normalizeCode(c.code))
+    return { completed: codes, credits: summary.credits }
+  }, [pastCourses, courses, assessments])
   const [q, setQ] = useState('')
   const [results, setResults] = useState<CatalogCourse[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -156,6 +182,8 @@ export function CourseDirectory() {
                     expanded={open === c.id}
                     onToggle={() => setOpen(open === c.id ? null : c.id)}
                     onFollowCode={setQ}
+                    record={record}
+                    trusted={trusted}
                   />
                 ))}
               </ul>
@@ -185,6 +213,8 @@ export function CourseDirectory() {
                 expanded={open === c.id}
                 onToggle={() => setOpen(open === c.id ? null : c.id)}
                 onFollowCode={setQ}
+                record={record}
+                trusted={trusted}
               />
             ))}
           </ul>
@@ -199,11 +229,15 @@ function CourseRow({
   expanded,
   onToggle,
   onFollowCode,
+  record,
+  trusted,
 }: {
   course: CatalogCourse
   expanded: boolean
   onToggle: () => void
   onFollowCode: (code: string) => void
+  record: { completed: Set<string>; credits: number }
+  trusted: boolean
 }) {
   const { t } = useI18n()
   const linked = extractCourseCodes(course.prerequisites)
@@ -244,36 +278,39 @@ function CourseRow({
           {course.description && (
             <p className="text-[12.5px] leading-relaxed text-muted">{course.description}</p>
           )}
+
           {course.prerequisites ? (
-            <>
-              <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                {t('planner.dir.prereqs')}
-              </p>
-              {/* Concordia's own sentence, verbatim. The codes below are pulled
-                  out for convenience, but the logic BETWEEN them is not
-                  interpreted: a half-understood rule presented as fact would be
-                  worse than the original text. */}
-              <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-                {course.prerequisites}
-              </p>
-              {linked.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {linked.map((code) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => onFollowCode(code)}
-                      className="rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-accent"
-                    >
-                      {code}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
+            <PrereqChips
+              prerequisites={course.prerequisites}
+              completed={record.completed}
+              credits={record.credits}
+              trusted={trusted}
+            />
           ) : (
-            <p className="text-[12.5px] text-subtle">{t('planner.dir.noPrereqs')}</p>
+            <p className="text-[12.5px] text-subtle">No prerequisites listed.</p>
           )}
+
+          {linked.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
+                Look up
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {linked.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => onFollowCode(code)}
+                    className="rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-accent"
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <CourseSections subject={course.subject} catalog={course.catalog} />
         </div>
       )}
     </li>

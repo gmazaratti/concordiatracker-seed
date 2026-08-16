@@ -38,6 +38,7 @@ export function MyRecordPanel() {
   // A term name pre-selects the importer, so adding to an existing semester
   // does not mean choosing it again.
   const [importTerm, setImportTerm] = useState<string | null>(null)
+  const [recordComplete, setRecordComplete] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -45,6 +46,7 @@ export function MyRecordPanel() {
       if (!alive) return
       setYear(p.yearOfStudy)
       setMinor(p.minor ?? '')
+      setRecordComplete(p.recordComplete)
       setLoaded(true)
     })
     return () => {
@@ -155,6 +157,26 @@ export function MyRecordPanel() {
                 )),
             ])}
           </ul>
+        )}
+        {hasHistory && (
+          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface px-3.5 py-3">
+            <input
+              type="checkbox"
+              checked={recordComplete}
+              onChange={(e) => {
+                setRecordComplete(e.target.checked)
+                void saveAcademicProfile({ recordComplete: e.target.checked })
+              }}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
+            />
+            <span className="text-[12.5px] leading-relaxed text-muted">
+              <span className="font-medium text-fg">This is everything I have finished.</span>{' '}
+              Turning this on lets the course directory mark prerequisites you have met in green and
+              the ones you have not in red. Until then it shows the requirement without a verdict,
+              because calling a course out of reach when a term is simply missing would be worse
+              than saying nothing.
+            </span>
+          </label>
         )}
       </Step>
 

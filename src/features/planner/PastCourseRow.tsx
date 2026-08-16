@@ -122,18 +122,24 @@ export function PastCourseRow({ course, superseded }: { course: Course; supersed
   return (
     <li className={cn('group flex items-center gap-3 px-4 py-2.5', superseded && 'opacity-60')}>
       <span className="min-w-0 flex-1">
-        <span className="text-[13.5px] font-medium text-fg">{course.code}</span>
-        {course.title && <span className="ml-2 truncate text-[12px] text-subtle">{course.title}</span>}
+        {/* Code and title on one line that truncates, rather than a flex child
+            that wraps "COMM" onto its own row and leaves "316" beneath it. */}
+        <span className="block truncate text-[13.5px] text-fg">
+          <span className="font-medium">{course.code}</span>
+          {course.title && <span className="ml-2 text-[12px] text-subtle">{course.title}</span>}
+        </span>
         {/* Named, not hidden: the attempt happened and stays on the transcript,
             it just stops counting toward the GPA. */}
         {superseded && (
-          <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+          <span className="mt-0.5 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
             Repeated later, not counted
           </span>
         )}
       </span>
-      <span className="shrink-0 text-[12px] text-subtle tabular-nums">{course.credits} cr</span>
-      <span className="w-14 shrink-0 text-right text-[13px] font-medium text-fg">
+      <span className="hidden shrink-0 text-[12px] text-subtle tabular-nums sm:block">
+        {course.credits} cr
+      </span>
+      <span className="w-10 shrink-0 text-right text-[13px] font-medium text-fg sm:w-14">
         {shown ?? <span className="text-subtle">&mdash;</span>}
       </span>
       <button
