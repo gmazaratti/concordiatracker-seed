@@ -50,24 +50,40 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
 -- Idempotent: drop a previous copy so re-running this file doesn't duplicate it.
-do $$
+--
+-- The whole block is wrapped so it REFUSES to schedule while the placeholder is
+-- still in place. Scheduling it anyway is silent: pg_cron happily runs a job
+-- that 401s every 15 minutes forever, nothing surfaces the failure, and the
+-- first symptom is a user asking why they never got a reminder. That happened.
+do $outer$
+declare
+  v_secret text := '__CRON_SECRET__';
 begin
+  if v_secret like '%CRON_SECRET%' then
+    raise exception
+      'Replace __CRON_SECRET__ in this file with the value of CRON_SECRET from Vercel before running it. Nothing was scheduled.';
+  end if;
+
   if exists (select 1 from cron.job where jobname = 'ct-run-reminders') then
     perform cron.unschedule('ct-run-reminders');
   end if;
-end $$;
 
-select cron.schedule(
-  'ct-run-reminders',
-  '*/15 * * * *',
-  $$
-  select net.http_post(
-    url := 'https://concordiatracker.com/api/run-reminders',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer __CRON_SECRET__'
-    ),
-    body := '{}'::jsonb
+  perform cron.schedule(
+    'ct-run-reminders',
+    '*/15 * * * *',
+    format(
+      $job$
+      select net.http_post(
+        url := 'https://concordiatracker.com/api/run-reminders',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || %L
+        ),
+        body := '{}'::jsonb
+      );
+      $job$,
+      v_secret
+    )
   );
-  $$
-);
+end
+$outer$;
