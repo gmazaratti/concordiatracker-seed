@@ -7,11 +7,11 @@ import { percentToGrade } from '@/lib/gpa'
 import { sortTermsDesc } from '@/lib/term'
 import {
   loadAcademicProfile,
-  prereqProgress,
   saveAcademicProfile,
   summarizeRecord,
-  type PrereqProgress,
 } from '@/lib/academic-record'
+import { browseCourses, type CatalogCourse } from '@/lib/catalog'
+import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
@@ -170,7 +170,7 @@ export function MyRecordPanel() {
         </div>
       </section>
 
-      <Unlocks completed={summary.completedCodes} subjects={summary.subjects} />
+      <Unlocks completed={summary.completedCodes} subjects={summary.subjects} credits={summary.credits} />
     </div>
   )
 }
@@ -178,30 +178,66 @@ export function MyRecordPanel() {
 /**
  * What the record opens up.
  *
- * The claim is precisely "every course named in the prerequisite is done", not
- * "you are eligible". Concordia writes prerequisites as prose: an "or" clause
- * may need only one of the codes, minimum grades are common, and some read
- * "written permission of the department". So the original sentence is always
- * one click away, and the caveat is stated rather than buried.
+ * This reads Concordia's prerequisite prose properly (see lib/prereq.ts): ";"
+ * is AND, " or " is OR, antirequisites exclude, and a credit floor is checked
+ * against the credits you have. So it answers the actual question — can I take
+ * this — rather than the weaker one it used to answer.
+ *
+ * Where it genuinely cannot decide, it says so instead of guessing. "Permission
+ * of the Department" and "or equivalent" both hinge on something we cannot see,
+ * and those land in their own group rather than being silently counted as a yes
+ * or a no.
  */
-function Unlocks({ completed, subjects }: { completed: string[]; subjects: string[] }) {
-  const [rows, setRows] = useState<PrereqProgress[] | null>(null)
+function Unlocks({
+  completed,
+  subjects,
+  credits,
+}: {
+  completed: string[]
+  subjects: string[]
+  credits: number
+}) {
+  const [rows, setRows] = useState<CatalogCourse[] | null>(null)
   const scan = useMemo(() => subjects.slice(0, 6), [subjects])
 
   useEffect(() => {
     let alive = true
-    // Nothing to scan resolves to an empty list through the same async path,
-    // so the effect never sets state synchronously.
-    const run = completed.length === 0 || scan.length === 0
-      ? Promise.resolve([] as PrereqProgress[])
-      : prereqProgress(completed, scan)
+    const run =
+      scan.length === 0
+        ? Promise.resolve({ rows: [] as CatalogCourse[], total: 0 })
+        : browseCourses({ subjects: scan, limit: 400 })
     void run.then((r) => {
-      if (alive) setRows(r)
+      if (alive) setRows(r.rows)
     })
     return () => {
       alive = false
     }
-  }, [completed, scan])
+  }, [scan])
+
+  const record = useMemo(
+    () => ({ completed: new Set(completed.map(normalizeCode)), credits }),
+    [completed, credits],
+  )
+
+  const groups = useMemo(() => {
+    const done = new Set(completed.map(normalizeCode))
+    const ready: { c: CatalogCourse; e: Evaluation }[] = []
+    const close: { c: CatalogCourse; e: Evaluation }[] = []
+    const unsure: { c: CatalogCourse; e: Evaluation }[] = []
+    for (const c of rows ?? []) {
+      // Nothing you have already finished.
+      if (done.has(normalizeCode(c.subject + c.catalog))) continue
+      const e = checkPrereq(c.prerequisites, record)
+      // A course with no prerequisite at all is true but not interesting: it
+      // was never locked, so listing it as "unlocked" is noise.
+      if (e.verdict === 'met' && e.unreadable) continue
+      if (e.verdict === 'blocked') continue
+      if (e.verdict === 'met') ready.push({ c, e })
+      else if (e.verdict === 'unknown') unsure.push({ c, e })
+      else if (e.missing.length === 1) close.push({ c, e })
+    }
+    return { ready, close, unsure }
+  }, [rows, record, completed])
 
   if (completed.length === 0) {
     return (
@@ -225,36 +261,34 @@ function Unlocks({ completed, subjects }: { completed: string[]; subjects: strin
     )
   }
 
-  const ready = rows.filter((r) => r.missing.length === 0)
-  const oneAway = rows.filter((r) => r.missing.length === 1)
-
   return (
     <section>
       <SectionHead
         n={4}
         title="What that unlocks"
-        sub={`Scanning ${scan.join(', ')} — the subjects you have taken most.`}
+        sub={`Reading the prerequisites for ${scan.join(', ')} against your record.`}
       />
-
-      <p className="mb-3 rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-[12px] leading-relaxed text-muted">
-        Concordia writes prerequisites as sentences, so this checks which
-        <strong className="font-medium text-fg"> courses named</strong> in them you have finished.
-        It does not read the and/or logic or minimum grades, so treat it as a shortlist and check
-        the sentence before you register.
-      </p>
 
       <UnlockGroup
-        title="Everything named is done"
+        title="You meet the prerequisites"
         empty="Nothing here yet."
-        rows={ready}
+        rows={groups.ready}
       />
       <div className="mt-4">
+        <UnlockGroup title="One requirement away" empty="Nothing here yet." rows={groups.close} />
+      </div>
+      <div className="mt-4">
         <UnlockGroup
-          title="One course away"
+          title="Depends on something we cannot check"
           empty="Nothing here yet."
-          rows={oneAway}
+          rows={groups.unsure}
         />
       </div>
+
+      <p className="mt-3 text-[11.5px] leading-relaxed text-subtle">
+        Prerequisites are read from the calendar text. Departments can still make
+        exceptions, and course pages are the final word: check before you register.
+      </p>
     </section>
   )
 }
@@ -266,7 +300,7 @@ function UnlockGroup({
 }: {
   title: string
   empty: string
-  rows: PrereqProgress[]
+  rows: { c: CatalogCourse; e: Evaluation }[]
 }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
@@ -283,36 +317,41 @@ function UnlockGroup({
         </p>
       ) : (
         <ul className="max-h-[40vh] divide-y divide-border overflow-y-auto rounded-xl border border-border bg-surface">
-          {rows.map((r) => (
-            <li key={r.id}>
+          {rows.map(({ c, e }) => (
+            <li key={c.id}>
               <button
                 type="button"
-                onClick={() => setOpen(open === r.id ? null : r.id)}
-                aria-expanded={open === r.id}
+                onClick={() => setOpen(open === c.id ? null : c.id)}
+                aria-expanded={open === c.id}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-surface-2"
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2">
                     <span className="text-[13px] font-semibold text-fg">
-                      {r.subject} {r.catalog}
+                      {c.subject} {c.catalog}
                     </span>
-                    <span className="truncate text-[12px] text-subtle">{r.title}</span>
+                    <span className="truncate text-[12px] text-subtle">{c.title}</span>
                   </span>
-                  {r.missing.length > 0 && (
+                  {e.missing.length > 0 && (
                     <span className="mt-0.5 block text-[11.5px] text-warning">
-                      Still need {r.missing.join(', ')}
+                      Still need {e.missing.map(describeTerm).join('; ')}
+                    </span>
+                  )}
+                  {e.verdict === 'unknown' && e.notes.length > 0 && (
+                    <span className="mt-0.5 block truncate text-[11.5px] text-subtle">
+                      {e.notes[0]}
                     </span>
                   )}
                 </span>
-                {r.class_unit !== null && (
+                {c.class_unit !== null && (
                   <span className="shrink-0 text-[11.5px] text-subtle tabular-nums">
-                    {r.class_unit} cr
+                    {c.class_unit} cr
                   </span>
                 )}
               </button>
-              {open === r.id && (
+              {open === c.id && (
                 <p className="border-t border-border/60 bg-canvas/40 px-4 py-2.5 text-[12.5px] leading-relaxed text-muted">
-                  {r.prerequisites}
+                  {c.prerequisites || 'No prerequisite listed.'}
                 </p>
               )}
             </li>

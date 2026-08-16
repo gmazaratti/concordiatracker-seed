@@ -18,9 +18,19 @@ import {
  * you whether watching is even necessary, and it proves the numbers are real
  * before you rely on an alert built from them.
  */
-export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [subject, setSubject] = useState('')
-  const [catalog, setCatalog] = useState('')
+export function SeatWatchModal({
+  onClose,
+  onAdded,
+  initialCode,
+}: {
+  onClose: () => void
+  onAdded: () => void
+  /** Prefill the code, e.g. "COMP 248", when opened from a suggestion. */
+  initialCode?: string
+}) {
+  const initial = initialCode?.trim().toUpperCase().match(/^([A-Z]{2,6})[\s-]*(\d{2,4}[A-Z]?)$/)
+  const [subject, setSubject] = useState(initial?.[1] ?? '')
+  const [catalog, setCatalog] = useState(initial?.[2] ?? '')
   const [sections, setSections] = useState<SectionOption[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)

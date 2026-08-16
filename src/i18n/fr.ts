@@ -514,6 +514,7 @@ export const fr: Partial<Record<Key, string>> = {
     'Construisez une semaine à partir de vraies sections, avec les conflits signalés et les déplacements entre campus vérifiés selon la navette. En attente du répertoire des cours, qui fournit les sections nécessaires.',
   'planner.watch.used': '{used} veilles sur {limit} utilisées',
   'planner.watch.usedOne': '{used} veille sur 1 utilisée',
+  'planner.watch.suggested': 'Vos cours, si vous voulez une autre section :',
   'planner.watch.add': 'Surveiller un cours',
   'planner.watch.emptyTitle': 'Aucune veille pour l’instant',
   'planner.watch.emptyBody':
@@ -536,6 +537,9 @@ export const fr: Partial<Record<Key, string>> = {
   'planner.dir.never': 'jamais',
   'planner.dir.hint':
     'Tous les cours de l’annuaire, avec leurs crédits et leurs préalables.',
+  'planner.dir.fromYourSubjects': 'Dans vos matières : {subjects}',
+  'planner.dir.browsing': 'Parcours de l’annuaire.',
+  'planner.dir.loadMore': 'Afficher plus ({shown} sur {total})',
   'planner.dir.noMatch': 'Aucun résultat.',
   'planner.dir.credits': '{n} crédits',
   'planner.dir.noCredits': 'Crédits non indiqués',

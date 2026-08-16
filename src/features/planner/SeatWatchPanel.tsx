@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bell, Loader2, Plus, X } from 'lucide-react'
+import { Bell, Loader2, Plus, Search, X } from 'lucide-react'
 import { useI18n } from '@/i18n/i18n'
+import { useAppData } from '@/app/providers/app-data'
 import { SeatWatchModal } from '@/features/seats/SeatWatchModal'
 import {
   myWatches,
@@ -20,10 +21,12 @@ import {
  */
 export function SeatWatchPanel() {
   const { t } = useI18n()
+  const { courses } = useAppData()
   const [watches, setWatches] = useState<SeatWatch[] | null>(null)
   const [limit, setLimit] = useState(1)
   const [tick, setTick] = useState(0)
-  const [picking, setPicking] = useState(false)
+  // The code to open the picker on, '' for a blank one, null for closed.
+  const [picking, setPicking] = useState<string | null>(null)
 
   const refresh = useCallback(() => setTick((n) => n + 1), [])
 
@@ -55,7 +58,7 @@ export function SeatWatchPanel() {
         </p>
         <button
           type="button"
-          onClick={() => setPicking(true)}
+          onClick={() => setPicking('')}
           disabled={atLimit}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -69,7 +72,7 @@ export function SeatWatchPanel() {
           <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
         </div>
       ) : watches.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-14 text-center">
+        <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
           <Bell size={22} className="mx-auto text-subtle" aria-hidden />
           <h2 className="mt-2 font-display text-[17px] font-medium text-fg">
             {t('planner.watch.emptyTitle')}
@@ -90,7 +93,38 @@ export function SeatWatchPanel() {
         <p className="mt-3 text-[12px] text-subtle">{t('planner.watch.atLimit')}</p>
       )}
 
-      {picking && <SeatWatchModal onClose={() => setPicking(false)} onAdded={refresh} />}
+      {/* Somewhere to start. A student's own courses are the classes they are
+          most likely to want a seat in, and one tap beats typing a code. */}
+      {watches !== null && !atLimit && courses.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-[11.5px] text-subtle">{t('planner.watch.suggested')}</p>
+          <ul className="flex flex-wrap gap-2">
+            {courses
+              .filter((c) => c.code.trim())
+              .slice(0, 8)
+              .map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => setPicking(c.code)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                  >
+                    <Search size={12} aria-hidden />
+                    {c.code}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
+      {picking !== null && (
+        <SeatWatchModal
+          initialCode={picking || undefined}
+          onClose={() => setPicking(null)}
+          onAdded={refresh}
+        />
+      )}
     </>
   )
 }

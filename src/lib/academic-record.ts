@@ -7,18 +7,6 @@ import { currentGpa } from '@/lib/gpa'
  * opens up.
  */
 
-/** A course in the catalogue, scored against what the student has completed. */
-export interface PrereqProgress {
-  id: string
-  subject: string
-  catalog: string
-  title: string
-  class_unit: number | null
-  prerequisites: string
-  /** Codes named in the prerequisite that are NOT in the completed set. */
-  missing: string[]
-}
-
 export interface SectionInstructor {
   section: string
   professor: string
@@ -41,29 +29,6 @@ export async function sectionInstructors(code: string): Promise<SectionInstructo
   const { data, error } = await supabase.rpc('section_instructors', { p_code: code })
   if (error) return []
   return (data ?? []) as SectionInstructor[]
-}
-
-/**
- * Every course in the given subjects, with the prerequisites you still lack.
- *
- * `missing.length === 0` means every course NAMED in the prerequisite is done.
- * That is deliberately not the same claim as "you are eligible": Concordia
- * writes prerequisites as prose, an "or" clause may need only one of the codes,
- * and minimum grades are common. Callers must not reword it.
- */
-export async function prereqProgress(
-  completed: string[],
-  subjects: string[],
-  limit = 200,
-): Promise<PrereqProgress[]> {
-  if (subjects.length === 0) return []
-  const { data, error } = await supabase.rpc('prereq_progress', {
-    p_completed: completed,
-    p_subjects: subjects,
-    p_limit: limit,
-  })
-  if (error) return []
-  return (data ?? []) as PrereqProgress[]
 }
 
 /** "COMP 248" → "COMP". Null when the code isn't shaped like one. */

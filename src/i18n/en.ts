@@ -506,6 +506,7 @@ export const en = {
     'Build a week from real sections, with conflicts flagged and cross-campus gaps checked against the shuttle. Waiting on the course directory, which supplies the sections it needs.',
   'planner.watch.used': '{used} of {limit} watches used',
   'planner.watch.usedOne': '{used} of 1 watch used',
+  'planner.watch.suggested': 'Your classes, if you want a different section:',
   'planner.watch.add': 'Watch a class',
   'planner.watch.emptyTitle': 'Nothing watched yet',
   'planner.watch.emptyBody':
@@ -525,6 +526,9 @@ export const en = {
   'planner.dir.synced': '{total} courses, synced {date}.',
   'planner.dir.never': 'never',
   'planner.dir.hint': 'Every course in the calendar, with its credits and prerequisites.',
+  'planner.dir.fromYourSubjects': 'From your subjects: {subjects}',
+  'planner.dir.browsing': 'Browsing the calendar.',
+  'planner.dir.loadMore': 'Load more ({shown} of {total})',
   'planner.dir.noMatch': 'Nothing matches that.',
   'planner.dir.credits': '{n} credits',
   'planner.dir.noCredits': 'Credits not listed',

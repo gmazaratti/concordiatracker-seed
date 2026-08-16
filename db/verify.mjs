@@ -194,6 +194,30 @@ check(
   2,
 )
 
+// -- db/course_browse.sql ----------------------------------------------------
+console.log('\ndb/course_browse.sql')
+await db.exec(migration('course_browse.sql'))
+console.log('  ok    DDL applies')
+
+const browse = async (subjects, offset, limit) =>
+  (await db.query('select * from public.browse_courses($1,$2,$3)', [subjects, offset, limit])).rows
+
+const all = await browse(null, 0, 100)
+check('null subjects means no filter', all.length > 3, true)
+check('every row carries a total so Load more can stop', all[0].total_count != null, true)
+check('an empty array also means no filter', (await browse([], 0, 100)).length, all.length)
+check('a subject filter narrows it', (await browse(['SOEN'], 0, 100)).every((r) => r.subject === 'SOEN'), true)
+
+const page1 = await browse(['COMP'], 0, 2)
+const page2 = await browse(['COMP'], 2, 2)
+check('a page is the size asked for', page1.length, 2)
+check('paging never repeats a row', page1.some((a) => page2.some((b) => b.id === a.id)), false)
+check('the total counts everything, not the page', Number(page1[0].total_count) > 2, true)
+check('past the end returns nothing', (await browse(['COMP'], 500, 10)).length, 0)
+
+const subs = (await db.query('select * from public.my_subjects()')).rows
+check('my_subjects reads only the caller own codes', subs.map((r) => r.subject).sort(), ['COMP'])
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

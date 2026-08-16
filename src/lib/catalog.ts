@@ -73,6 +73,30 @@ export async function courseTracking(code: string): Promise<{ tracked_by: number
   return row ?? { tracked_by: 0, watching: 0 }
 }
 
+/** A page of the catalogue, with the total so a Load more button knows when to
+ *  stop. Null or empty subjects means the whole calendar. */
+export async function browseCourses(opts: {
+  subjects?: string[] | null
+  offset?: number
+  limit?: number
+}): Promise<{ rows: CatalogCourse[]; total: number }> {
+  const { data, error } = await supabase.rpc('browse_courses', {
+    p_subjects: opts.subjects ?? null,
+    p_offset: opts.offset ?? 0,
+    p_limit: opts.limit ?? 10,
+  })
+  if (error) return { rows: [], total: 0 }
+  const rows = (data ?? []) as (CatalogCourse & { total_count: number | string })[]
+  return { rows, total: rows.length ? Number(rows[0].total_count) : 0 }
+}
+
+/** The subject codes the student has actually studied, most-used first. */
+export async function mySubjects(): Promise<string[]> {
+  const { data, error } = await supabase.rpc('my_subjects')
+  if (error) return []
+  return ((data ?? []) as { subject: string }[]).map((r) => r.subject)
+}
+
 export async function catalogStatus(): Promise<{ total: number; synced_at: string | null }> {
   const { data, error } = await supabase.rpc('catalog_status')
   if (error) return { total: 0, synced_at: null }
