@@ -133,18 +133,14 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-Run **`db/sync_catalog_cron.sql`** in the Supabase SQL editor. It schedules the
-weekly sync and fires one run immediately, reading CRON_SECRET out of the
-existing reminders job so nothing has to be copied by hand. Then, ~30 seconds
-later:
+The catalogue sync is returning **401**, so `course_catalog` is still empty and
+the directory, seat browse list and unlock list have nothing to show.
 
-```sql
-select status_code, content from net._http_response order by id desc limit 3;
-select * from public.catalog_status();
-```
-
-Until the catalogue has rows, the course directory, the seat browse list and the
-unlock list are all correctly empty.
+Run **`db/sync_catalog_diagnose.sql`** in the Supabase SQL editor. Step 1 names
+the cause without printing the secret; step 3 repairs it from the value in
+Vercel. Most likely `db/reminders.sql` was run with its `__CRON_SECRET__`
+placeholder unreplaced, which would also mean **every reminder push has been
+failing silently** on the same credential.
 
 ---
 
