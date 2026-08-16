@@ -72,9 +72,10 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
       request rate is acceptable. **BLOCKED on:** sending it.
 - [ ] **Regenerate the Concordia API key** — it was shared in a chat screenshot.
       **NEXT.**
-- [ ] **Catalogue re-sync on a schedule** — `/api/sync-catalog` exists and is
-      CRON_SECRET-gated, but nothing calls it periodically yet. Course
-      descriptions change yearly, so a monthly cron is enough.
+- [x] **Catalogue re-sync on a schedule** — `db/sync_catalog_cron.sql` schedules
+      it weekly via pg_cron and fires one run immediately. It lifts CRON_SECRET
+      out of the existing reminders job rather than asking anyone to copy a
+      secret through a terminal.
 
 ## Monetization & growth
 
@@ -132,13 +133,18 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-```
-curl -X POST https://concordiatracker.com/api/sync-catalog   -H "Authorization: Bearer $CRON_SECRET"
+Run **`db/sync_catalog_cron.sql`** in the Supabase SQL editor. It schedules the
+weekly sync and fires one run immediately, reading CRON_SECRET out of the
+existing reminders job so nothing has to be copied by hand. Then, ~30 seconds
+later:
+
+```sql
+select status_code, content from net._http_response order by id desc limit 3;
+select * from public.catalog_status();
 ```
 
-Fills `course_catalog` from Concordia (~7,900 courses, one 1.4MB fetch). Until
-this runs, the course directory and the unlock list are correctly empty. Worth a
-weekly cron so a new course appears without anyone remembering.
+Until the catalogue has rows, the course directory, the seat browse list and the
+unlock list are all correctly empty.
 
 ---
 
