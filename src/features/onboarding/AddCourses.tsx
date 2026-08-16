@@ -3,9 +3,9 @@ import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Search, ShieldCheck } 
 import { useAppData } from '@/app/providers/app-data'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { COMM221_PARSED, RAW_ROWS, type Phase } from '@/features/landing/parse-demo-data'
-import { useAllBlueprintCourses } from '@/features/courses/useBlueprints'
 import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
 import { blueprintFromRow, normalizeCode, type BlueprintRow } from '@/lib/supabase-adapters'
+import { searchCoursesEnriched, TRACKED_MIN, type EnrichedCourse } from '@/lib/catalog'
 import { supabase } from '@/lib/supabase'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
@@ -79,6 +79,14 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
     record({ code, count: items.length })
   }
 
+  /** Add a catalogue course with no outline behind it. */
+  const addEmpty = async (code: string, name: string) => {
+    if (enrolled(code)) return record({ code, count: 0, already: true })
+    const id = await createCourse({ code, title: name })
+    if (!id) return
+    record({ code, count: 0 })
+  }
+
   const importSample = async () => {
     const c = ONBOARD_COURSES[0]
     if (enrolled(c.code)) return record({ code: c.code, count: 0, already: true })
@@ -102,7 +110,11 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
   if (mode === 'search') {
     return (
       <SearchCourses
-        onPick={(code, name) => {
+        onPick={(code, name, hasOutline) => {
+          // No outline yet is no longer a dead end: the course still gets added
+          // with Concordia's exact code and title, and deadlines can come from
+          // a syllabus or by hand afterwards.
+          if (!hasOutline) return void addEmpty(code, name)
           setPick({ code, name })
           setMode('pick')
         }}
@@ -190,19 +202,45 @@ function SearchCourses({
   onParseInstead,
   onBack,
 }: {
-  onPick: (code: string, name: string) => void
+  onPick: (code: string, name: string, hasOutline: boolean) => void
   onParseInstead: () => void
   onBack: () => void
 }) {
   const t = useT()
-  const { list, loading } = useAllBlueprintCourses()
   const [q, setQ] = useState('')
-  // Hide codes whose most-recent outline is an older semester.
-  const current = list.filter((c) => notPastTerm(c.term))
-  const needle = q.trim().toLowerCase()
-  const results = needle
-    ? current.filter((c) => c.code.toLowerCase().includes(needle) || c.courseName.toLowerCase().includes(needle))
-    : current.slice(0, 6)
+  const [results, setResults] = useState<EnrichedCourse[] | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Debounced so a fast typist fires one query rather than eight.
+  useEffect(() => {
+    const needle = q.trim()
+    let alive = true
+    const id = window.setTimeout(
+      () => {
+        if (!needle) {
+          if (alive) setResults(null)
+          return
+        }
+        if (alive) setLoading(true)
+        void searchCoursesEnriched(needle, 30)
+          .then((rows) => {
+            if (!alive) return
+            setResults(rows)
+            setLoading(false)
+          })
+          .catch(() => {
+            if (!alive) return
+            setResults([])
+            setLoading(false)
+          })
+      },
+      needle ? 220 : 0,
+    )
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [q])
 
   return (
     <div className="mx-auto w-full max-w-lg">
@@ -217,36 +255,29 @@ function SearchCourses({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t('courses.searchPlaceholder')}
-          className="w-full rounded-xl border border-border bg-surface py-2.5 pr-3 pl-10 text-[15px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none sm:py-3"
+          className="w-full rounded-xl border border-border bg-surface py-2.5 pr-10 pl-10 text-[15px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none sm:py-3"
         />
+        {loading && (
+          <Loader2 size={15} className="absolute top-1/2 right-3.5 -translate-y-1/2 animate-spin text-accent" aria-hidden />
+        )}
       </div>
 
-      <div className="mt-3 max-h-[38vh] space-y-2 overflow-y-auto sm:max-h-none">
-        {loading ? (
-          <div className="grid place-items-center py-8">
-            <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
-          </div>
+      <div className="mt-3 max-h-[38vh] space-y-2 overflow-y-auto sm:max-h-[42vh]">
+        {results === null ? (
+          <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[13px] text-subtle">
+            {t('courses.searchEveryCourse')}
+          </p>
         ) : results.length === 0 ? (
           <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-[13px] text-subtle">
-            No outline for that course this term.
+            {t('courses.searchNoMatch')}
           </p>
         ) : (
           results.map((c) => (
-            <button
-              key={c.code}
-              type="button"
-              onClick={() => onPick(c.code, c.courseName || c.code)}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-2.5 text-left transition-colors duration-150 hover:border-accent sm:p-3.5"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-[14px] font-semibold text-fg">{c.code}</span>
-                  {c.hasVerified && <ShieldCheck size={14} className="text-accent" aria-label="Teacher-verified" />}
-                </span>
-                <span className="block truncate text-[12px] text-subtle">{c.courseName || 'Tap to choose a section'}</span>
-              </span>
-              <ArrowRight size={15} className="shrink-0 text-subtle" aria-hidden />
-            </button>
+            <CatalogPick
+              key={c.id}
+              course={c}
+              onPick={() => onPick(`${c.subject} ${c.catalog}`, c.title, c.blueprint_count > 0)}
+            />
           ))
         )}
       </div>
@@ -260,6 +291,58 @@ function SearchCourses({
         <ArrowRight size={14} aria-hidden />
       </button>
     </div>
+  )
+}
+
+/**
+ * One catalogue result.
+ *
+ * Every course Concordia publishes is pickable, so the code and title are
+ * always exactly right and nobody types "COMP248 - intro to programing". What
+ * separates the rows is what we can ADD on top: a teacher-verified outline, a
+ * community outline, or nothing yet. That difference is the whole point of the
+ * marketplace, so it is the loudest thing on the row.
+ */
+function CatalogPick({ course, onPick }: { course: EnrichedCourse; onPick: () => void }) {
+  const t = useT()
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-xl border bg-surface p-2.5 text-left transition-colors duration-150 sm:p-3.5',
+        course.has_verified ? 'border-accent/50 hover:border-accent' : 'border-border hover:border-accent',
+      )}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-[14px] font-semibold text-fg">
+            {course.subject} {course.catalog}
+          </span>
+          {course.has_verified ? (
+            <span className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-accent">
+              <ShieldCheck size={11} aria-hidden />
+              {t('courses.outlineVerified')}
+            </span>
+          ) : course.blueprint_count > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-muted">
+              <FileText size={11} aria-hidden />
+              {course.blueprint_count === 1
+                ? t('courses.outlineOne')
+                : t('courses.outlineMany', { n: course.blueprint_count })}
+            </span>
+          ) : null}
+        </span>
+        <span className="mt-0.5 block truncate text-[12px] text-subtle">{course.title}</span>
+        {/* Only once a number means something. "1 student" reads as nobody. */}
+        {course.tracked_by >= TRACKED_MIN && (
+          <span className="mt-0.5 block text-[11px] text-subtle">
+            {t('courses.trackedBy', { n: course.tracked_by })}
+          </span>
+        )}
+      </span>
+      <ArrowRight size={15} className="shrink-0 text-subtle" aria-hidden />
+    </button>
   )
 }
 

@@ -532,6 +532,12 @@ export const en = {
   'planner.dir.prereqCountOne': '1 prerequisite',
   'planner.dir.prereqs': 'Prerequisites',
   'planner.dir.noPrereqs': 'No prerequisites listed.',
+  'courses.searchEveryCourse': 'Search any course Concordia offers.',
+  'courses.searchNoMatch': 'No course matches that.',
+  'courses.outlineVerified': 'Verified outline',
+  'courses.outlineOne': '1 outline',
+  'courses.outlineMany': '{n} outlines',
+  'courses.trackedBy': '{n} students here track this course',
 } as const
 
 export type Key = keyof typeof en

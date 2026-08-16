@@ -75,6 +75,42 @@ export async function removeWatch(id: string): Promise<void> {
   if (error) throw error
 }
 
+/** A watch whose seat is open and that the student has not dismissed yet. */
+export interface SeatAlert {
+  id: string
+  class_number: string
+  term_code: string
+  subject: string
+  catalog: string
+  section: string
+  course_title: string | null
+  last_enrollment: number | null
+  last_capacity: number | null
+  has_reserved: boolean
+  notified_at: string
+}
+
+/**
+ * Open seats the student has not acknowledged.
+ *
+ * Deliberately not time-boxed. The push fires once when the seat opens; this
+ * survives until it is dismissed, so a seat that opened overnight is still the
+ * first thing you see in the morning.
+ */
+export async function mySeatAlerts(): Promise<SeatAlert[]> {
+  const { data, error } = await supabase.rpc('my_seat_alerts')
+  if (error) return []
+  return (data ?? []) as SeatAlert[]
+}
+
+export async function ackSeatAlert(id: string): Promise<void> {
+  await supabase.rpc('ack_seat_alert', { p_id: id })
+}
+
+export async function ackSeatAlerts(): Promise<void> {
+  await supabase.rpc('ack_seat_alerts')
+}
+
 export async function watchLimit(): Promise<number> {
   const { data, error } = await supabase.rpc('seat_watch_limit')
   if (error) return 1

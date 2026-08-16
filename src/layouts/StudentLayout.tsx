@@ -12,6 +12,7 @@ import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
+import { SeatAlertLayer } from '@/features/seats/SeatAlertLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { AdminActivityToaster } from '@/features/admin/AdminActivityToaster'
 import { GettingStartedChecklist } from '@/features/getting-started/GettingStartedChecklist'
@@ -68,6 +69,7 @@ export function StudentLayout() {
       <SettingsLayer />
       <SupportLayer />
       <UpdatesLayer />
+      <SeatAlertLayer />
       <InstallPrompt />
       <GettingStartedChecklist />
       <Coachmark

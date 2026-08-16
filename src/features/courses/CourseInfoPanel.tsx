@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { ChevronDown, ExternalLink, Mail, Wand2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronDown, ExternalLink, Mail, Users, Wand2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
 import { courseColor, withAlpha } from '@/lib/course-color'
 import { parseCourseCode } from '@/lib/course-sections'
+import { courseTracking, TRACKED_MIN } from '@/lib/catalog'
 import { cn } from '@/lib/cn'
 import { EditableField } from './EditableField'
 import { SectionAutofillModal } from './SectionAutofillModal'
@@ -198,6 +199,8 @@ export function CourseInfoPanel({
             </span>
           </Row>
 
+          <TrackingRow code={course.code} />
+
           <Row label="Syllabus">
             <a
               href={course.syllabusUrl}
@@ -220,6 +223,45 @@ export function CourseInfoPanel({
         />
       )}
     </Card>
+  )
+}
+
+/**
+ * How many other students here are in this class.
+ *
+ * Aggregate only, and the RPC behind it cannot return anything else: there is
+ * no version of this that names a classmate. It also stays hidden until the
+ * number is big enough to mean something, since "2 students" both reads as
+ * dead and says more about those two people than it should.
+ */
+function TrackingRow({ code }: { code: string }) {
+  const [counts, setCounts] = useState<{ tracked_by: number; watching: number } | null>(null)
+
+  useEffect(() => {
+    if (!code.trim()) return
+    let alive = true
+    void courseTracking(code).then((c) => {
+      if (alive) setCounts(c)
+    })
+    return () => {
+      alive = false
+    }
+  }, [code])
+
+  if (!counts || counts.tracked_by < TRACKED_MIN) return null
+
+  return (
+    <Row label="Classmates">
+      <span className="flex items-center gap-1.5 text-[13px] text-fg">
+        <Users size={13} className="shrink-0 text-subtle" aria-hidden />
+        {counts.tracked_by} tracking this course
+      </span>
+      {counts.watching > 0 && (
+        <span className="block text-[11.5px] text-subtle">
+          {counts.watching} watching for a seat
+        </span>
+      )}
+    </Row>
   )
 }
 

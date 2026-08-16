@@ -543,4 +543,10 @@ export const fr: Partial<Record<Key, string>> = {
   'planner.dir.prereqCountOne': '1 préalable',
   'planner.dir.prereqs': 'Préalables',
   'planner.dir.noPrereqs': 'Aucun préalable indiqué.',
+  'courses.searchEveryCourse': 'Cherchez n’importe quel cours offert à Concordia.',
+  'courses.searchNoMatch': 'Aucun cours ne correspond.',
+  'courses.outlineVerified': 'Plan vérifié',
+  'courses.outlineOne': '1 plan',
+  'courses.outlineMany': '{n} plans',
+  'courses.trackedBy': '{n} étudiants suivent ce cours ici',
 }
