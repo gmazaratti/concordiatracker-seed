@@ -79,7 +79,9 @@ begin
           'Content-Type', 'application/json',
           'Authorization', 'Bearer ' || %L
         ),
-        body := '{}'::jsonb
+        body := '{}'::jsonb,
+        -- pg_net's default is 5 seconds; sending a batch of pushes outlasts it.
+        timeout_milliseconds := 60000
       );
       $job$,
       v_secret

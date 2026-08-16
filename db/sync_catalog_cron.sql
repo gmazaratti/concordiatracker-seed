@@ -56,7 +56,8 @@ begin
           'Content-Type', 'application/json',
           'Authorization', 'Bearer ' || %L
         ),
-        body := '{}'::jsonb
+        body := '{}'::jsonb,
+        timeout_milliseconds := 120000
       );
       $job$,
       v_url, v_secret
@@ -70,7 +71,12 @@ begin
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || v_secret
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    -- pg_net defaults to a 5 SECOND timeout, which this job always exceeds: it
+    -- fetches 1.4MB from Concordia and writes ~7,900 rows in sixteen chunks.
+    -- Without this the response records as NULL and the run looks like it
+    -- vanished, even though the request was sent and may have succeeded.
+    timeout_milliseconds := 120000
   );
 
   -- The length is enough to spot a truncated read without printing the secret.

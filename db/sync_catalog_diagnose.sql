@@ -92,7 +92,8 @@ order by responses desc;
 --     select net.http_post(
 --       url := 'https://concordiatracker.com/api/sync-catalog',
 --       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || %L),
---       body := '{}'::jsonb
+--       body := '{}'::jsonb,
+--       timeout_milliseconds := 120000
 --     );
 --     $job$, v_secret));
 --
@@ -101,7 +102,8 @@ order by responses desc;
 --     select net.http_post(
 --       url := 'https://concordiatracker.com/api/run-reminders',
 --       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || %L),
---       body := '{}'::jsonb
+--       body := '{}'::jsonb,
+--       timeout_milliseconds := 60000
 --     );
 --     $job$, v_secret));
 --
@@ -109,7 +111,9 @@ order by responses desc;
 --   perform net.http_post(
 --     url := 'https://concordiatracker.com/api/sync-catalog',
 --     headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || v_secret),
---     body := '{}'::jsonb
+--     body := '{}'::jsonb,
+--     -- pg_net defaults to 5 seconds, far less than this sync needs.
+--     timeout_milliseconds := 120000
 --   );
 -- end
 -- $outer$;
