@@ -106,7 +106,7 @@ export function RequestComposer({
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title — what do you want?"
+              placeholder="Title: what do you want?"
               maxLength={120}
               className="w-full bg-transparent text-[15px] font-semibold text-fg placeholder:text-subtle focus:outline-none"
             />

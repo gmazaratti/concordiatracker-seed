@@ -155,7 +155,7 @@ function HowCalculated({ assessments }: { assessments: Assessment[] }) {
       {open && (
         <div className="space-y-3 px-3.5 pb-3.5 text-[12px] leading-relaxed text-muted">
           <p>
-            Your grade is a <span className="font-medium text-fg">weighted average</span> —
+            Your grade is a <span className="font-medium text-fg">weighted average</span>:
             each category counts in proportion to its weight, divided by the weight
             graded so far.
           </p>
@@ -171,7 +171,7 @@ function HowCalculated({ assessments }: { assessments: Assessment[] }) {
 
           {result === null ? (
             <p className="text-subtle">
-              Nothing is graded yet — enter a grade and the worked-out math appears here.
+              Nothing is graded yet: enter a grade and the worked-out math appears here.
             </p>
           ) : (
             <div className="rounded-lg bg-surface-2 px-3 py-2.5">

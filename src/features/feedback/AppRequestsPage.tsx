@@ -40,7 +40,7 @@ export function AppRequestsPage() {
         <p className="text-[12px] text-subtle">Around the product</p>
         <h1 className="font-display text-[26px] leading-tight font-medium text-fg">Feedback</h1>
         <p className="mt-1 text-[13px] text-subtle">
-          Vote on ideas and suggest what we build next — or report a bug privately.
+          Vote on ideas and suggest what we build next: or report a bug privately.
         </p>
       </header>
 
@@ -94,7 +94,7 @@ function SurveyNudge({ onGo }: { onGo: () => void }) {
         <p className="text-[12px] text-subtle">
           {plan === 'free'
             ? 'Recommend us at the end to unlock a referral code that discounts your semester pass.'
-            : 'Recommend us at the end to unlock a referral code — credits stack toward next term.'}
+            : 'Recommend us at the end to unlock a referral code: credits stack toward next term.'}
         </p>
       </div>
       <button

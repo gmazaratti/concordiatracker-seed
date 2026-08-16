@@ -13,8 +13,8 @@ import { useAllBlueprintCourses, type BlueprintCodeMatch } from './useBlueprints
 type SortMode = 'code' | 'term-desc' | 'term-asc'
 const SORT_OPTIONS = [
   { value: 'code', label: 'Course code' },
-  { value: 'term-desc', label: 'Term — newest' },
-  { value: 'term-asc', label: 'Term — oldest' },
+  { value: 'term-desc', label: 'Term: newest' },
+  { value: 'term-asc', label: 'Term: oldest' },
 ]
 
 /** The blueprint browser — a full page inside Courses (NOT a sidebar tab). Leads
@@ -90,7 +90,7 @@ export function BlueprintBrowserPage() {
           Blueprints
         </h1>
         <p className="mt-0.5 text-[13px] text-subtle">
-          Import a classmate's or teacher's syllabus — every assessment, weight, and date.
+          Import a classmate's or teacher's syllabus: every assessment, weight, and date.
         </p>
       </header>
 
@@ -168,7 +168,7 @@ export function BlueprintBrowserPage() {
               {q ? (
                 <>No shared outline matches “{typed}” yet.</>
               ) : (
-                <>No shared outlines yet — be the first to contribute one.</>
+                <>No shared outlines yet: be the first to contribute one.</>
               )}
             </p>
           ) : (

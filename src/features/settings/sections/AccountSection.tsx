@@ -71,7 +71,7 @@ export function AccountSection() {
         >
           <HandleEditor />
         </Row>
-        <Row label="Email address" description="Connected through Google — not editable here.">
+        <Row label="Email address" description="Connected through Google: not editable here.">
           <span className="text-[13px] text-muted">{user.email}</span>
         </Row>
         <Row label="School / Faculty" description="Used to tailor your dashboard and Community feed." stacked>
@@ -83,7 +83,7 @@ export function AccountSection() {
             className="max-w-sm"
           />
         </Row>
-        <Row label="Major / Program" description="Search Concordia's program list — or choose Other." stacked>
+        <Row label="Major / Program" description="Search Concordia's program list: or choose Other." stacked>
           <ProgramField />
         </Row>
         <Row label="Profile photo" description="Synced from your Google account.">
@@ -189,10 +189,10 @@ function HandleEditor() {
     setSaving(true)
     const { error: err } = await changeHandle(value)
     setSaving(false)
-    if (err === 'taken') return setError(`@${value} is taken — try another.`)
+    if (err === 'taken') return setError(`@${value} is taken: try another.`)
     if (err === 'cooldown') return setError('You can only change your handle once every 14 days.')
     if (err === 'invalid') return setError('3–20 lowercase letters, numbers, or underscores.')
-    if (err) return setError('Couldn’t save — please try again.')
+    if (err) return setError('Couldn’t save: please try again.')
     setChangedAt(new Date().toISOString())
     setEditing(false)
   }
@@ -333,7 +333,7 @@ function DeleteAccountRow() {
 
       {done && (
         <p className="mt-3 rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-[12px] text-subtle">
-          Account deletion is mocked in this seed — no backend to delete from.
+          Account deletion is mocked in this seed: no backend to delete from.
         </p>
       )}
     </div>

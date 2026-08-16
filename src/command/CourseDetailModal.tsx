@@ -33,7 +33,7 @@ export function CourseDetailModal({ id }: { id: string }) {
   }
 
   return (
-    <ModalShell label={`${course.code} — ${course.title}`} onClose={closeTarget}>
+    <ModalShell label={`${course.code}: ${course.title}`} onClose={closeTarget}>
       <div
         className="px-5 py-4"
         style={{

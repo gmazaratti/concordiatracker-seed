@@ -15,14 +15,14 @@ export function BugChannel() {
 
       <section>
         <h2 className="mb-1 text-[14px] font-semibold text-fg">Recently fixed &amp; known issues</h2>
-        <p className="mb-3 text-[12px] text-subtle">A curated list — not a public complaint feed.</p>
+        <p className="mb-3 text-[12px] text-subtle">A curated list: not a public complaint feed.</p>
         {loading ? (
           <div className="grid place-items-center py-10">
             <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
           </div>
         ) : items.length === 0 ? (
           <p className="rounded-xl border border-border bg-surface px-4 py-8 text-center text-[13px] text-subtle">
-            Nothing to report right now — all clear.
+            Nothing to report right now: all clear.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -84,7 +84,7 @@ function BugForm() {
     return (
       <div className="rounded-xl border border-success/40 bg-success/10 p-4">
         <div className="flex items-center gap-2 text-[14px] font-medium text-success">
-          <CheckCircle2 size={18} aria-hidden /> Thanks — we got it.
+          <CheckCircle2 size={18} aria-hidden /> Thanks: we got it.
         </div>
         <p className="mt-1 text-[12px] text-muted">Your report is private; only the team sees it.</p>
         <Button size="sm" variant="outline" className="mt-3" onClick={() => setDone(false)}>
@@ -97,7 +97,7 @@ function BugForm() {
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
-        <Lock size={14} className="text-subtle" aria-hidden /> Report a bug — privately
+        <Lock size={14} className="text-subtle" aria-hidden /> Report a bug: privately
       </div>
       <p className="mt-0.5 text-[12px] text-subtle">Only the team sees this. You won't see others' reports.</p>
 

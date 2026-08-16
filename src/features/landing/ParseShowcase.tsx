@@ -175,7 +175,7 @@ export function ParseShowcase() {
 
           <ParseRevealDemo phase={phase} revealed={revealed} scannerRef={scannerRef} />
 
-          {/* Cursor + dragged PDF — decorative overlays positioned from `coords` */}
+          {/* Cursor + dragged PDF: decorative overlays positioned from `coords` */}
           {!reduced && pdf && (
             <div
               aria-hidden

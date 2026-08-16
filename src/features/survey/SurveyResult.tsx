@@ -30,7 +30,7 @@ export function SurveyResult({
           <Check size={28} strokeWidth={2.5} aria-hidden />
         </span>
         <h1 className="mt-4 font-display text-[25px] leading-tight font-semibold text-fg sm:text-[28px]">
-          That genuinely helps — thank you.
+          That genuinely helps: thank you.
         </h1>
         <p className="mx-auto mt-2.5 max-w-md text-[14px] leading-relaxed text-muted">
           I read every response myself.
@@ -43,7 +43,7 @@ export function SurveyResult({
             {pitchHeadline(pitches)}
           </p>
           {/* Their answer is the quiet label; the benefit is the thing you read.
-              Numbered rather than iconned — a row of decorative glyphs makes the
+              Numbered rather than iconned: a row of decorative glyphs makes the
               whole block scan as filler. */}
           <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
             {pitches.map((p, i) => (

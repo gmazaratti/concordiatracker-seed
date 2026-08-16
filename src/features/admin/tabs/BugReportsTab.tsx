@@ -106,7 +106,7 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={1}
-            placeholder="Internal notes — root cause, fix, follow-up…"
+            placeholder="Internal notes: root cause, fix, follow-up…"
             className="mt-1 w-full resize-y rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-[12px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
           />
         </div>
@@ -129,7 +129,7 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
           {isPublic ? 'Shown in known issues' : 'Show in known issues'}
         </button>
         <span className="text-[11px] text-subtle">
-          {isPublic ? `Visible publicly as “${status === 'resolved' ? 'Fixed' : 'Known issue'}”` : 'Off — private to the team'}
+          {isPublic ? `Visible publicly as “${status === 'resolved' ? 'Fixed' : 'Known issue'}”` : 'Off: private to the team'}
         </span>
       </div>
       {err && <p className="mt-1 text-[12px] text-danger">{err}</p>}

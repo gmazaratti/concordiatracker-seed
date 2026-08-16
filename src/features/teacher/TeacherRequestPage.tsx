@@ -37,8 +37,8 @@ export function TeacherRequestPage({ role = 'teacher' }: { role?: 'teacher' | 'o
         </h1>
         <p className="mt-1 text-[13px] text-subtle">
           {isOrg
-            ? `Student groups & campus orgs join by invitation — request one and we'll review it.`
-            : `Teachers join by invitation — request one and we'll review it.`}
+            ? `Student groups & campus orgs join by invitation: request one and we'll review it.`
+            : `Teachers join by invitation: request one and we'll review it.`}
         </p>
 
         <div role="tablist" className="mt-4 mb-4 flex gap-1 rounded-lg bg-surface-2 p-1">
@@ -140,8 +140,8 @@ function RequestForm({
           rows={2}
           placeholder={
             isOrg
-              ? 'e.g. HackConcordia — hackathons, workshops & socials'
-              : 'e.g. COMP 352 — Data Structures, section AA'
+              ? 'e.g. HackConcordia: hackathons, workshops & socials'
+              : 'e.g. COMP 352: Data Structures, section AA'
           }
           className={cn(field, 'resize-none')}
         />
@@ -163,7 +163,7 @@ function Submitted({ req }: { req: AccessRequest }) {
         <div>
           <p className="text-[13px] font-medium text-success">Request submitted</p>
           <p className="mt-0.5 text-[12px] text-muted">
-            Your case ID is <strong className="font-semibold text-fg">{req.caseId}</strong> — keep
+            Your case ID is <strong className="font-semibold text-fg">{req.caseId}</strong>: keep
             it to check your status.
           </p>
         </div>
@@ -262,9 +262,9 @@ export function RequestStatusView({ req }: { req: AccessRequest }) {
       </div>
       <p className="mt-1 text-[12px] text-subtle">
         {req.status === 'pending'
-          ? 'Under review — check back here with your case ID.'
+          ? 'Under review: check back here with your case ID.'
           : req.status === 'accepted'
-            ? 'Approved — an invite has been sent to your email.'
+            ? 'Approved: an invite has been sent to your email.'
             : 'Not approved this time. Contact us if you think this is a mistake.'}
       </p>
     </div>

@@ -35,7 +35,7 @@ export function WhatsNewToast() {
           </span>
           <span className="min-w-0 text-[13px] text-fg">
             New in <span className="font-semibold">v{currentVersion}</span>
-            <span className="text-muted"> — see what's changed</span>
+            <span className="text-muted">: see what's changed</span>
           </span>
         </button>
         <button

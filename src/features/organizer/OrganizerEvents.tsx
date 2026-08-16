@@ -19,7 +19,7 @@ export function OrganizerEvents() {
       <header className="mb-5">
         <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Events</h1>
         <p className="text-[13px] text-subtle">
-          Everything you've posted — upcoming and past. Click any event to edit it.
+          Everything you've posted: upcoming and past. Click any event to edit it.
         </p>
       </header>
       <OrgEventsTab

@@ -87,7 +87,7 @@ const STEPS: StepDef[] = [
     railHint: 'Who you are',
     icon: UserCog,
     title: 'First, make it look like you',
-    body: 'Your profile is your face in the feed — set it up right here and watch the preview update. Students recognize (and trust) orgs that look real.',
+    body: 'Your profile is your face in the feed: set it up right here and watch the preview update. Students recognize (and trust) orgs that look real.',
     isDone: (o) => !!o.org.bio?.trim() || !!o.org.logo,
     primaryLabel: 'Save & continue',
   },
@@ -97,7 +97,7 @@ const STEPS: StepDef[] = [
     railHint: 'What students see',
     icon: CalendarPlus,
     title: 'Post your first event',
-    body: 'An event card lands in Community where any student can open it, add it to their calendar, and set a reminder. Draft it now — it goes live the moment you’re approved.',
+    body: 'An event card lands in Community where any student can open it, add it to their calendar, and set a reminder. Draft it now: it goes live the moment you’re approved.',
     isDone: (o) => o.events.length > 0,
     createsEvent: true,
     primaryLabel: 'Create an event',
@@ -108,7 +108,7 @@ const STEPS: StepDef[] = [
     railHint: 'Run it together',
     icon: Users,
     title: 'Don’t run it alone',
-    body: 'Invite co-organizers with a link — they get the same dashboard, so anyone on your exec can post and edit events.',
+    body: 'Invite co-organizers with a link: they get the same dashboard, so anyone on your exec can post and edit events.',
     isDone: (o) => o.members.length > 1,
     to: '/organizer/team',
     primaryLabel: 'Invite my team',
@@ -118,7 +118,7 @@ const STEPS: StepDef[] = [
     railLabel: 'Finish',
     railHint: 'What happens next',
     icon: PartyPopper,
-    title: 'You’re set — here’s what happens next',
+    title: 'You’re set: here’s what happens next',
     body: '',
     primaryLabel: 'Go to my dashboard',
   },
@@ -178,7 +178,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
 
   return createPortal(
     <div className="ct-animate-fade fixed inset-0 z-[80] flex bg-canvas">
-      {/* Grid as a background layer (not on this content container — its radial
+      {/* Grid as a background layer (not on this content container: its radial
           mask would clip the wizard's content to ≤50% opacity). */}
       <div className="ct-grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />
       {/* Steps rail (desktop) */}
@@ -275,7 +275,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
             {last && <NextUp approved={org.status === 'approved'} />}
             {sDone && !last && s.id !== 'profile' && (
               <p className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent">
-                <CheckCircle2 size={15} aria-hidden /> Already done — nice.
+                <CheckCircle2 size={15} aria-hidden /> Already done: nice.
               </p>
             )}
 
@@ -309,7 +309,7 @@ function OrgOnboardingWizard({ org, onClose }: { org: OrgAccount; onClose: () =>
                   </label>
                 </div>
                 <p className="text-[11.5px] text-subtle">
-                  Banner and social links live in the full editor — Profile in the sidebar, anytime.
+                  Banner and social links live in the full editor: Profile in the sidebar, anytime.
                 </p>
               </div>
             )}
@@ -369,7 +369,7 @@ function StepVisual({
         <div className="overflow-hidden rounded-2xl border border-border bg-surface">
           <PillarRow icon={CalendarPlus} title="Post events" sub="They appear in every student's Community feed" />
           <PillarRow icon={UserPlus} title="Grow a following" sub="Followers get a heads-up when you post" border />
-          <PillarRow icon={BarChart3} title="See what worked" sub="Views, saves, and follows — aggregate only" border />
+          <PillarRow icon={BarChart3} title="See what worked" sub="Views, saves, and follows: aggregate only" border />
         </div>
       )
     case 'profile':
@@ -499,8 +499,8 @@ function NextUp({ approved }: { approved: boolean }) {
     <ul className="mt-4 space-y-2.5">
       {[
         approved
-          ? 'You’re approved — your profile and events are live in Community.'
-          : 'An admin reviews your org — usually quickly.',
+          ? 'You’re approved: your profile and events are live in Community.'
+          : 'An admin reviews your org: usually quickly.',
         approved
           ? 'Post events anytime; followers get a heads-up when you do.'
           : 'Once approved, your profile and events go live in Community.',

@@ -38,7 +38,7 @@ export function AnnouncementsDigest() {
 
       {items.length === 0 ? (
         <p className="px-4 py-6 text-center text-[12px] text-subtle">
-          No new announcements — you're all caught up.
+          No new announcements: you're all caught up.
         </p>
       ) : (
         <ul className="divide-y divide-border/60">

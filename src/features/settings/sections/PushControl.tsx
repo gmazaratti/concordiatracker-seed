@@ -34,7 +34,7 @@ export function PushControl() {
     setBusy(null)
     if (r.ok) setNote({ tone: 'ok', text: 'Notifications are on for this device.' })
     else if (r.reason === 'denied')
-      setNote({ tone: 'err', text: 'Permission was blocked — turn it on in your device settings.' })
+      setNote({ tone: 'err', text: 'Permission was blocked: turn it on in your device settings.' })
     else if (r.reason === 'unsupported')
       setNote({ tone: 'err', text: 'This browser can’t receive push notifications.' })
     else setNote({ tone: 'err', text: 'Couldn’t enable notifications. Try again.' })
@@ -47,7 +47,7 @@ export function PushControl() {
     setBusy(null)
     setNote(
       r.ok
-        ? { tone: 'ok', text: 'Sent — it should arrive in a moment.' }
+        ? { tone: 'ok', text: 'Sent: it should arrive in a moment.' }
         : { tone: 'err', text: r.error || 'Could not send the test.' },
     )
   }
@@ -57,7 +57,7 @@ export function PushControl() {
       {iosNeedsInstall ? (
         <Row
           label="Add to your home screen first"
-          description="On iPhone, push only works from the installed app — tap Share → Add to Home Screen, then open it from there."
+          description="On iPhone, push only works from the installed app: tap Share → Add to Home Screen, then open it from there."
         />
       ) : !isPushSupported() ? (
         <Row

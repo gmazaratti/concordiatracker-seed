@@ -213,7 +213,7 @@ function FollowingPanel({ orgs, people }: { orgs: EventOrg[]; people: PublicPers
 
       {rows.length === 0 ? (
         <p className="px-3.5 py-4 text-center text-[12px] text-subtle">
-          {tab === 'orgs' ? 'No organizations yet.' : 'No people yet — search to find classmates.'}
+          {tab === 'orgs' ? 'No organizations yet.' : 'No people yet: search to find classmates.'}
         </p>
       ) : (
         <>

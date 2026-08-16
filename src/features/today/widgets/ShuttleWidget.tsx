@@ -52,7 +52,7 @@ export function ShuttleWidget() {
           .
         </WidgetEmpty>
       ) : noServiceToday ? (
-        <WidgetEmpty>No shuttle today — it runs Monday to Friday.</WidgetEmpty>
+        <WidgetEmpty>No shuttle today: it runs Monday to Friday.</WidgetEmpty>
       ) : doneForToday ? (
         <WidgetEmpty>Last bus has left for today.</WidgetEmpty>
       ) : (
@@ -86,7 +86,7 @@ export function ShuttleWidget() {
             ))}
           </ul>
           <p className="px-3.5 py-2 text-[11px] leading-snug text-subtle">
-            Scheduled times — buses can leave early once full. ID card required.
+            Scheduled times: buses can leave early once full. ID card required.
           </p>
         </>
       )}

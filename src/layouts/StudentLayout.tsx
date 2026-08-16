@@ -48,7 +48,7 @@ export function StudentLayout() {
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar — pad past the status bar / notch in standalone mode */}
+        {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
         <header className="flex items-center justify-between border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
           <Logo />
           <AvatarMenu align="top" compact />
@@ -59,7 +59,7 @@ export function StudentLayout() {
         </main>
 
         {/* In-flow at the bottom of the column (not fixed) so content fills exactly
-            up to it — no viewport-math compensation, no gap. Hidden on desktop. */}
+            up to it: no viewport-math compensation, no gap. Hidden on desktop. */}
         <MobileNav />
       </div>
 
@@ -74,7 +74,7 @@ export function StudentLayout() {
         id="add-course"
         selector='[data-coach="add-course"]'
         title="Start with a course"
-        body="Add your first course — import a syllabus or pick a classmate's blueprint. Everything builds from here."
+        body="Add your first course: import a syllabus or pick a classmate's blueprint. Everything builds from here."
       />
       <Coachmark
         id="mark-done"

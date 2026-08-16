@@ -62,7 +62,7 @@ export function CommentList({
   onDelete: (c: Comment) => void
 }) {
   if (comments.length === 0) {
-    return <p className="py-3 text-[13px] text-subtle">No comments yet — start the conversation.</p>
+    return <p className="py-3 text-[13px] text-subtle">No comments yet: start the conversation.</p>
   }
   return (
     <ul className="space-y-4">

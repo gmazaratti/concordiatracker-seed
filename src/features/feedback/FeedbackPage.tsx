@@ -53,7 +53,7 @@ export function FeedbackPage() {
       <main className="mx-auto w-full max-w-3xl px-5 py-6">
         <h1 className="font-display text-[22px] font-semibold text-fg">Feedback</h1>
         <p className="mt-1 text-[13px] text-subtle">
-          Shape what we build next — vote on ideas, or report a bug privately.
+          Shape what we build next: vote on ideas, or report a bug privately.
         </p>
 
         <div

@@ -60,7 +60,7 @@ export function TeacherSignIn() {
           Explore a demo teacher
         </button>
         <p className="mt-1.5 text-[12px] text-subtle">
-          For teachers who want to look around before they're set up — no account needed. It's a
+          For teachers who want to look around before they're set up: no account needed. It's a
           sandbox: nothing you do is saved or affects the real site.
         </p>
       </div>

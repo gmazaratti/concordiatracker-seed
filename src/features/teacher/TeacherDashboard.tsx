@@ -30,7 +30,7 @@ export function TeacherDashboard() {
       {pending && (
         <div className="mt-4 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
           <strong className="font-semibold">Pending approval.</strong> An admin will review your
-          account shortly. You can set up your course outline now — publishing unlocks once you're
+          account shortly. You can set up your course outline now: publishing unlocks once you're
           approved.
         </div>
       )}

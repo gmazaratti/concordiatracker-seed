@@ -242,7 +242,7 @@ export function WidgetBoard({
     <Ctx value={value}>
       {children}
       {/* The travelling copy. Fixed-position and portalled so it can move
-          between zones — the real element can never leave its parent. */}
+          between zones: the real element can never leave its parent. */}
       {drag &&
         dragged &&
         createPortal(

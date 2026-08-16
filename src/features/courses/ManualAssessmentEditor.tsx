@@ -28,7 +28,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-[14px] font-semibold text-fg">Assessments</h2>
-        <span className="inline-flex items-center gap-1.5 text-[11px] text-prov-unverified" title="Dates you enter are self-entered — unverified until classmates corroborate them.">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-prov-unverified" title="Dates you enter are self-entered: unverified until classmates corroborate them.">
           <ShieldQuestion size={13} aria-hidden />
           Self-entered · unverified
         </span>
@@ -36,7 +36,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
 
       {rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border-strong bg-surface/50 px-4 py-8 text-center text-[13px] text-subtle">
-          No assessments yet — add your first below, then fill in the dates and weights.
+          No assessments yet: add your first below, then fill in the dates and weights.
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
               total === 100 ? 'text-success' : 'text-warning',
             )}
           >
-            Total weight: {total}%{total !== 100 && ' — should be 100%'}
+            Total weight: {total}%{total !== 100 && ': should be 100%'}
           </span>
         )}
       </div>

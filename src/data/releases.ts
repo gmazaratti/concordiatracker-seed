@@ -30,10 +30,10 @@ export const RELEASES: Release[] = [
     name: 'Payments live, and français',
     date: '2026-08-14',
     changes: [
-      { kind: 'new', text: 'ConcordiaTracker now speaks French. Pick your language during setup or any time in Settings → General — the whole app follows, dates included ("Dû demain", "2 jours de retard"), and so does the public site.' },
+      { kind: 'new', text: 'ConcordiaTracker now speaks French. Pick your language during setup or any time in Settings → General: the whole app follows, dates included ("Dû demain", "2 jours de retard"), and so does the public site.' },
       { kind: 'new', text: 'Checkout is live. The Semester pass ($15 CAD) and monthly ($5 CAD) are real payments now, taken inside the app.' },
       { kind: 'new', text: 'Every plan opens with a 3-day free trial. A card is required up front, nothing is charged until the trial ends, and cancelling before then costs you nothing.' },
-      { kind: 'fixed', text: 'The pricing page no longer describes checkout as a mock — it now reflects whether payments are actually live, on its own.' },
+      { kind: 'fixed', text: 'The pricing page no longer describes checkout as a mock: it now reflects whether payments are actually live, on its own.' },
     ],
   },
   {
@@ -41,10 +41,10 @@ export const RELEASES: Release[] = [
     name: 'Go Pro',
     date: '2026-07-27',
     changes: [
-      { kind: 'new', text: 'Subscriptions are live — the Semester pass ($15) or monthly ($5), paid right inside Settings → Billing without leaving the app.' },
+      { kind: 'new', text: 'Subscriptions are live: the Semester pass ($15) or monthly ($5), paid right inside Settings → Billing without leaving the app.' },
       { kind: 'new', text: 'Every plan starts with a 7-day free trial. Cancel before it ends and you’re never charged.' },
       { kind: 'new', text: 'Upgrading never wastes what you’ve paid for: switch from monthly to the Semester pass and your remaining days carry straight over.' },
-      { kind: 'new', text: 'Invoices live in Billing with PDF receipts, and you can cancel or resume in one click — access always runs to the end of the period you paid for.' },
+      { kind: 'new', text: 'Invoices live in Billing with PDF receipts, and you can cancel or resume in one click: access always runs to the end of the period you paid for.' },
       { kind: 'improved', text: 'Prices are shown in Canadian dollars for everyone, so what you see is exactly what you’re charged.' },
     ],
   },
@@ -53,10 +53,10 @@ export const RELEASES: Release[] = [
     name: 'Know your term',
     date: '2026-07-26',
     changes: [
-      { kind: 'new', text: 'A Daily Debrief on Today reads your situation back to you — what’s landing next, and how much of your grade is due this week.' },
-      { kind: 'new', text: 'Tell it what you want to prioritise — catching up, protecting your GPA, getting ahead, or one specific class — and the briefing rewrites itself around that.' },
+      { kind: 'new', text: 'A Daily Debrief on Today reads your situation back to you: what’s landing next, and how much of your grade is due this week.' },
+      { kind: 'new', text: 'Tell it what you want to prioritise: catching up, protecting your GPA, getting ahead, or one specific class: and the briefing rewrites itself around that.' },
       { kind: 'new', text: '“Your term, week by week” charts your workload by weight, so you can see the crunch weeks coming.' },
-      { kind: 'new', text: 'A study planner ranks what to work on by weight, urgency, and how much each class can still move — with the reasoning shown, never a black box.' },
+      { kind: 'new', text: 'A study planner ranks what to work on by weight, urgency, and how much each class can still move: with the reasoning shown, never a black box.' },
       { kind: 'new', text: 'Past semesters: keep finished terms, see your transcript, and track a cumulative GPA across your degree.' },
       { kind: 'improved', text: 'The sidebar now badges overdue work and classmate date changes waiting on you.' },
     ],
@@ -66,9 +66,9 @@ export const RELEASES: Release[] = [
     name: 'A smoother start',
     date: '2026-07-22',
     changes: [
-      { kind: 'improved', text: 'Onboarding is shorter and clearer — the confusing hands-on steps are gone, replaced by one calm overview.' },
+      { kind: 'improved', text: 'Onboarding is shorter and clearer: the confusing hands-on steps are gone, replaced by one calm overview.' },
       { kind: 'new', text: 'Finished setting up? You’ll be offered the guided tour, and the Getting-started checklist stays in the corner if you’d rather explore alone.' },
-      { kind: 'new', text: 'Feedback moved into the app — request features, report bugs, and vote without losing your sidebar.' },
+      { kind: 'new', text: 'Feedback moved into the app: request features, report bugs, and vote without losing your sidebar.' },
       { kind: 'new', text: 'After a few days with the app you can take a short survey and get 3 days of Pro, free.' },
       { kind: 'improved', text: 'Teachers get a proper sidebar, with each class split into Assignments, Course outline, Announcements, and Student blueprints.' },
       { kind: 'fixed', text: 'Onboarding no longer faded its own content out on the background grid.' },
@@ -81,7 +81,7 @@ export const RELEASES: Release[] = [
     name: 'Take the tour',
     date: '2026-07-01',
     changes: [
-      { kind: 'new', text: 'A guided walkthrough of every tab — launch it anytime from your profile menu → Take a tour.' },
+      { kind: 'new', text: 'A guided walkthrough of every tab: launch it anytime from your profile menu → Take a tour.' },
       { kind: 'new', text: 'It runs on a temporary demo course, so the tour never touches your real classes.' },
       { kind: 'improved', text: 'Each step highlights the real feature, scrolls it into view, and explains it in a clear side panel (a bottom sheet on mobile).' },
     ],
@@ -91,7 +91,7 @@ export const RELEASES: Release[] = [
     name: 'Clearer and calmer',
     date: '2026-06-29',
     changes: [
-      { kind: 'improved', text: 'Grade fields are simpler — just type a percent, or a score like 15/20.' },
+      { kind: 'improved', text: 'Grade fields are simpler: just type a percent, or a score like 15/20.' },
       { kind: 'improved', text: 'Assignment rows are more compact and consistent, with a ⋯ menu to edit or delete.' },
       { kind: 'new', text: 'A “Getting started” checklist tracks your first steps and fades away once you’re set up.' },
       { kind: 'new', text: 'Gentle one-time tips point out the key spots the first time you visit.' },
@@ -102,7 +102,7 @@ export const RELEASES: Release[] = [
     name: 'Never miss a deadline',
     date: '2026-06-27',
     changes: [
-      { kind: 'new', text: 'Get a push notification before a deadline — choose 1 hour, 1 day, or 1 week ahead.' },
+      { kind: 'new', text: 'Get a push notification before a deadline: choose 1 hour, 1 day, or 1 week ahead.' },
       { kind: 'new', text: 'Turn on notifications in Settings and send yourself a test to check it works.' },
       { kind: 'new', text: '“Remind me” on any campus event, so you don’t forget the ones you’re into.' },
     ],
@@ -112,7 +112,7 @@ export const RELEASES: Release[] = [
     name: 'Install it like an app',
     date: '2026-06-24',
     changes: [
-      { kind: 'new', text: 'Install ConcordiaTracker on your phone or desktop — add it to your home screen and open it like a native app.' },
+      { kind: 'new', text: 'Install ConcordiaTracker on your phone or desktop: add it to your home screen and open it like a native app.' },
       { kind: 'new', text: 'It launches full-screen, with proper notch and safe-area handling on iPhone.' },
       { kind: 'fixed', text: 'Your theme now stays put between visits.' },
       { kind: 'fixed', text: 'No more empty gap beneath the bottom navigation on installed iPhones.' },
@@ -123,7 +123,7 @@ export const RELEASES: Release[] = [
     name: 'Public profiles',
     date: '2026-06-20',
     changes: [
-      { kind: 'new', text: 'Public profiles at concordiatracker.com/@yourhandle — your name, program, courses, and uploaded blueprints.' },
+      { kind: 'new', text: 'Public profiles at concordiatracker.com/@yourhandle: your name, program, courses, and uploaded blueprints.' },
       { kind: 'new', text: 'Choose public or private when you pick your handle; a private profile shows only your handle.' },
       { kind: 'new', text: 'Add a bio and flip your profile public/private any time in Settings → Privacy.' },
     ],
@@ -133,8 +133,8 @@ export const RELEASES: Release[] = [
     name: 'Pick your program',
     date: '2026-06-20',
     changes: [
-      { kind: 'new', text: 'Choose your program from a searchable list of Concordia programs — just start typing.' },
-      { kind: 'new', text: 'Can’t find yours? Choose “Other” and tell us — we’ll add it.' },
+      { kind: 'new', text: 'Choose your program from a searchable list of Concordia programs: just start typing.' },
+      { kind: 'new', text: 'Can’t find yours? Choose “Other” and tell us: we’ll add it.' },
       { kind: 'improved', text: 'Programs are now stored as consistent data, so program-based features work reliably.' },
     ],
   },
@@ -143,9 +143,9 @@ export const RELEASES: Release[] = [
     name: 'Hands-on welcome',
     date: '2026-06-20',
     changes: [
-      { kind: 'new', text: 'The welcome tour is now interactive — check off a task, toggle calendar layers, and mark an assignment yourself.' },
+      { kind: 'new', text: 'The welcome tour is now interactive: check off a task, toggle calendar layers, and mark an assignment yourself.' },
       { kind: 'new', text: 'Change your @handle from Settings → Account (once every 14 days).' },
-      { kind: 'improved', text: 'The Today preview in onboarding is clearer — no longer zoomed in.' },
+      { kind: 'improved', text: 'The Today preview in onboarding is clearer: no longer zoomed in.' },
       { kind: 'fixed', text: 'Replaying onboarding no longer re-asks for your name, handle, or major.' },
     ],
   },
@@ -154,7 +154,7 @@ export const RELEASES: Release[] = [
     name: 'A smoother welcome',
     date: '2026-06-19',
     changes: [
-      { kind: 'new', text: 'Pick your theme right in onboarding — the whole app reskins as you choose.' },
+      { kind: 'new', text: 'Pick your theme right in onboarding: the whole app reskins as you choose.' },
       { kind: 'new', text: 'Add several courses during setup, not just one.' },
       { kind: 'new', text: 'Import now shows the section you’re adding, and lets you choose it.' },
       { kind: 'new', text: 'New welcome tour pages explaining the calendar and how editing & marking work.' },
@@ -166,8 +166,8 @@ export const RELEASES: Release[] = [
     name: 'Two new looks',
     date: '2026-06-19',
     changes: [
-      { kind: 'new', text: 'A clean Light theme — calm and premium, with the signature sage accent.' },
-      { kind: 'new', text: 'A Purple Dark theme — deep navy surfaces with a vivid purple accent.' },
+      { kind: 'new', text: 'A clean Light theme: calm and premium, with the signature sage accent.' },
+      { kind: 'new', text: 'A Purple Dark theme: deep navy surfaces with a vivid purple accent.' },
       { kind: 'improved', text: 'The theme switcher and ⌘K “Switch theme” now cycle through all four themes.' },
     ],
   },
@@ -177,7 +177,7 @@ export const RELEASES: Release[] = [
     date: '2026-06-19',
     changes: [
       { kind: 'new', text: 'Pick your own keyboard shortcut for the search & command palette, in Settings → General.' },
-      { kind: 'improved', text: 'A redesigned “What’s new” — a proper changelog timeline (you’re reading it).' },
+      { kind: 'improved', text: 'A redesigned “What’s new”: a proper changelog timeline (you’re reading it).' },
       { kind: 'improved', text: 'Date-confidence badges now use distinct icons, not just colored dots, so they’re clearer at a glance.' },
     ],
   },
@@ -186,7 +186,7 @@ export const RELEASES: Release[] = [
     name: 'Smoother & more reliable',
     date: '2026-06-19',
     changes: [
-      { kind: 'improved', text: 'A cleaner, more trustworthy Google sign-in — it now shows our own concordiatracker.com address.' },
+      { kind: 'improved', text: 'A cleaner, more trustworthy Google sign-in: it now shows our own concordiatracker.com address.' },
       { kind: 'fixed', text: 'Your @handle is now guaranteed unique, with a live availability check as you pick one.' },
       { kind: 'fixed', text: 'The setup preview now greets you by your own name.' },
     ],
@@ -196,7 +196,7 @@ export const RELEASES: Release[] = [
     name: 'Make it yours',
     date: '2026-06-18',
     changes: [
-      { kind: 'new', text: 'Add a course your way — find a blueprint, upload a syllabus, or create one by hand.' },
+      { kind: 'new', text: 'Add a course your way: find a blueprint, upload a syllabus, or create one by hand.' },
       { kind: 'new', text: 'Build a course from scratch: edit the class details and add assessments inline.' },
       { kind: 'improved', text: 'Dates you enter yourself are clearly marked unverified, so provenance stays honest.' },
     ],
@@ -206,7 +206,7 @@ export const RELEASES: Release[] = [
     name: 'Share & connect',
     date: '2026-06-18',
     changes: [
-      { kind: 'new', text: 'Share any event with a direct link — anyone can open it, no account needed.' },
+      { kind: 'new', text: 'Share any event with a direct link: anyone can open it, no account needed.' },
       { kind: 'new', text: 'Org profiles now link out to Instagram, X, LinkedIn, and a custom site.' },
       { kind: 'improved', text: 'A custom colour picker and image-upload tips when you set up a profile.' },
       { kind: 'improved', text: 'Outbound links tell you before they open an external site in a new tab.' },
@@ -219,7 +219,7 @@ export const RELEASES: Release[] = [
     changes: [
       { kind: 'new', text: 'An Organizer portal for clubs and student orgs to post and manage their events.' },
       { kind: 'new', text: 'Invite teammates to help run your org’s dashboard.' },
-      { kind: 'new', text: 'See your reach — followers, calendar adds, and views (aggregate only, never per-student).' },
+      { kind: 'new', text: 'See your reach: followers, calendar adds, and views (aggregate only, never per-student).' },
     ],
   },
   {
@@ -227,11 +227,11 @@ export const RELEASES: Release[] = [
     name: 'Teachers & community',
     date: '2026-06-18',
     changes: [
-      { kind: 'new', text: 'A Community tab — campus events from clubs, faculties, and student orgs.' },
+      { kind: 'new', text: 'A Community tab: campus events from clubs, faculties, and student orgs.' },
       { kind: 'new', text: 'Follow an org and get a heads-up when it posts something new.' },
-      { kind: 'new', text: 'Teacher portal — professors publish their outline as a verified blueprint.' },
-      { kind: 'new', text: 'Blueprint browser — import a classmate’s or teacher’s syllabus in a tap.' },
-      { kind: 'new', text: 'Peer date-corrections — when classmates move a date, you decide whether to follow.' },
+      { kind: 'new', text: 'Teacher portal: professors publish their outline as a verified blueprint.' },
+      { kind: 'new', text: 'Blueprint browser: import a classmate’s or teacher’s syllabus in a tap.' },
+      { kind: 'new', text: 'Peer date-corrections: when classmates move a date, you decide whether to follow.' },
     ],
   },
   {
@@ -243,7 +243,7 @@ export const RELEASES: Release[] = [
       { kind: 'new', text: 'Concordia academic dates and your deadlines as toggleable layers.' },
       { kind: 'new', text: 'Add personal tasks and notes to any day.' },
       { kind: 'improved', text: 'Upgrade prompts collapse to a slim bar on mobile.' },
-      { kind: 'improved', text: 'Today reads calmer — less per-row clutter.' },
+      { kind: 'improved', text: 'Today reads calmer: less per-row clutter.' },
       { kind: 'fixed', text: 'The sidebar no longer scrolls away from the profile block.' },
     ],
   },
@@ -266,7 +266,7 @@ export const RELEASES: Release[] = [
     changes: [
       { kind: 'new', text: 'Google-Classroom-style course cards with per-class colors.' },
       { kind: 'new', text: 'Command palette: edit a grade or open a class from anywhere.' },
-      { kind: 'improved', text: 'Smart grade field — type 15/20 and it reads 75%.' },
+      { kind: 'improved', text: 'Smart grade field: type 15/20 and it reads 75%.' },
       { kind: 'improved', text: 'A roomier course detail panel for instructor and logistics.' },
     ],
   },
@@ -285,9 +285,9 @@ export const RELEASES: Release[] = [
     name: 'A fresh start',
     date: '2026-06-13',
     changes: [
-      { kind: 'improved', text: 'A complete rebuild — the entire interface was remade from scratch, replacing the old site.' },
+      { kind: 'improved', text: 'A complete rebuild: the entire interface was remade from scratch, replacing the old site.' },
       { kind: 'new', text: 'A brand-new design system, navigation, and foundation built to grow into a real product.' },
-      { kind: 'fixed', text: 'The old version was an early testing phase — its accounts and data were wiped, so everyone begins fresh here.' },
+      { kind: 'fixed', text: 'The old version was an early testing phase: its accounts and data were wiped, so everyone begins fresh here.' },
     ],
   },
 ]

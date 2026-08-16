@@ -175,7 +175,7 @@ export function AvatarMenu({
           >
             {t('nav.takeTour')}
           </MenuButton>
-          {/* Deferred contexts — admin-only so regular users don't wander into the
+          {/* Deferred contexts: admin-only so regular users don't wander into the
            * half-wired teacher/organizer flows. (Their routes also gate access.) */}
           {isAdmin && (
             <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
@@ -188,7 +188,7 @@ export function AvatarMenu({
               {t('nav.organizerPortal')}
             </MenuLink>
           )}
-          {/* Admin-only — hidden for everyone but the platform administrator. The
+          {/* Admin-only: hidden for everyone but the platform administrator. The
            * route + every RPC are independently gated, so this is the UX layer only. */}
           {isAdmin && (
             <MenuLink to="/admin" icon={ShieldCheck} onSelect={() => setOpen(false)}>
@@ -203,7 +203,7 @@ export function AvatarMenu({
             <p className="px-1 pb-1 text-[11px] text-subtle">{t('settings.theme')}</p>
           </div>
 
-          {/* Dev-only plan switch (self-grants "Semester") — admin-only so real
+          {/* Dev-only plan switch (self-grants "Semester"): admin-only so real
            * users can't flip their own plan. Real upgrades go through Settings → Billing. */}
           {isAdmin && (
             <div className="my-1.5 px-1">

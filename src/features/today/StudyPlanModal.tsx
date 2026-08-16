@@ -51,7 +51,7 @@ export function StudyPlanModal({ onClose }: { onClose: () => void }) {
 
         {plan.items.length === 0 ? (
           <p className="mt-5 rounded-xl border border-dashed border-border-strong px-4 py-8 text-center text-[13px] text-subtle">
-            Nothing open in this window. Enjoy it — or get a head start on what&rsquo;s next.
+            Nothing open in this window. Enjoy it: or get a head start on what&rsquo;s next.
           </p>
         ) : (
           <ol className="mt-4 space-y-2">
@@ -86,7 +86,7 @@ export function StudyPlanModal({ onClose }: { onClose: () => void }) {
                       <p className="text-[10.5px] text-subtle">of your time</p>
                     </div>
                   </div>
-                  {/* Share bar — a visual read of the same number. */}
+                  {/* Share bar: a visual read of the same number. */}
                   <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-2">
                     <div className="h-full rounded-full bg-accent" style={{ width: `${item.share}%` }} />
                   </div>

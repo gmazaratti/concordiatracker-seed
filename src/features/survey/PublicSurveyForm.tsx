@@ -51,7 +51,7 @@ export function PublicSurveyForm({
       await submitPublicSurvey(a)
       onDone(a)
     } catch {
-      setError('Couldn’t send that — please try again.')
+      setError('Couldn’t send that: please try again.')
       setBusy(false)
     }
   }
@@ -140,7 +140,7 @@ export function PublicSurveyForm({
           </section>
         ))}
 
-        {/* Signed-out visitors only — an existing user already has an account. */}
+        {/* Signed-out visitors only: an existing user already has an account. */}
         {!compact && (
           <section className="rounded-xl border border-accent/40 bg-accent-soft/40 p-4">
             <label className="block">

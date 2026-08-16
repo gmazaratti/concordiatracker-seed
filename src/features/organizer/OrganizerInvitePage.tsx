@@ -70,7 +70,7 @@ export function OrganizerInvitePage() {
       <InviteCard
         orgName={legacy.orgName}
         orgHandle={legacy.orgHandle}
-        note={`Confirm it's you — we sent a code to ${maskEmail(legacy.recipientEmail)}. This invite link is single-use and ${expiresInLabel(legacy).toLowerCase()}.`}
+        note={`Confirm it's you: we sent a code to ${maskEmail(legacy.recipientEmail)}. This invite link is single-use and ${expiresInLabel(legacy).toLowerCase()}.`}
         busy={busy}
         err={err}
         cta="Confirm & set up my dashboard"
@@ -83,7 +83,7 @@ export function OrganizerInvitePage() {
             return
           }
           setBusy(false)
-          setErr("Couldn't set this up — you may already manage an org on this account.")
+          setErr("Couldn't set this up: you may already manage an org on this account.")
         }}
       />
     )
@@ -128,14 +128,14 @@ export function OrganizerInvitePage() {
       orgHandle={dbInvite.org_handle}
       note={
         authUser
-          ? `You're signed in as ${authUser.email} — accepting sets up ${dbInvite.org_name}'s dashboard on this account. The link is single-use.`
-          : 'Sign in with your Google account first — your org dashboard will be tied to it. The link is single-use.'
+          ? `You're signed in as ${authUser.email}: accepting sets up ${dbInvite.org_name}'s dashboard on this account. The link is single-use.`
+          : 'Sign in with your Google account first: your org dashboard will be tied to it. The link is single-use.'
       }
       busy={busy}
       err={err}
       success={
         dryRun
-          ? 'Link verified ✓ — admin test run. Nothing was consumed or changed; this exact link still works for the recipient.'
+          ? 'Link verified ✓: admin test run. Nothing was consumed or changed; this exact link still works for the recipient.'
           : undefined
       }
       cta={authUser ? 'Accept & set up my dashboard' : 'Sign in with Google to continue'}
@@ -194,7 +194,7 @@ function InviteCard({
           <p className="mt-2 text-center text-[12px] text-danger">{err}</p>
         ) : (
           <p className="mt-2 text-center text-[11px] text-subtle">
-            You'll start as <span className="text-warning">pending approval</span> — a guided setup
+            You'll start as <span className="text-warning">pending approval</span>: a guided setup
             walks you through your profile, first event, and team.
           </p>
         )}

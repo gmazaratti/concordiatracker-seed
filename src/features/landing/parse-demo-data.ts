@@ -18,11 +18,11 @@ export type ParsedItem = {
 }
 
 export const COMM221_PARSED: ParsedItem[] = [
-  { id: 'q1', kind: 'quiz', title: 'Quiz 1 — Time value & NPV', weight: 8, due: 'Feb 8', provenance: { status: 'official' } },
-  { id: 'q2', kind: 'quiz', title: 'Quiz 2 — Risk, CAPM & ESG', weight: 8, due: 'Feb 22', provenance: { status: 'official' } },
-  { id: 'q3', kind: 'quiz', title: 'Quiz 3 — Markets & equilibria', weight: 8, due: 'Mar 15', provenance: { status: 'official' } },
-  { id: 'q4', kind: 'quiz', title: 'Quiz 4 — Resource allocation', weight: 8, due: 'Mar 29', provenance: { status: 'official' } },
-  { id: 'q5', kind: 'quiz', title: 'Quiz 5 — Finance history & regulation', weight: 8, due: 'Apr 5', provenance: { status: 'official' } },
+  { id: 'q1', kind: 'quiz', title: 'Quiz 1: Time value & NPV', weight: 8, due: 'Feb 8', provenance: { status: 'official' } },
+  { id: 'q2', kind: 'quiz', title: 'Quiz 2: Risk, CAPM & ESG', weight: 8, due: 'Feb 22', provenance: { status: 'official' } },
+  { id: 'q3', kind: 'quiz', title: 'Quiz 3: Markets & equilibria', weight: 8, due: 'Mar 15', provenance: { status: 'official' } },
+  { id: 'q4', kind: 'quiz', title: 'Quiz 4: Resource allocation', weight: 8, due: 'Mar 29', provenance: { status: 'official' } },
+  { id: 'q5', kind: 'quiz', title: 'Quiz 5: Finance history & regulation', weight: 8, due: 'Apr 5', provenance: { status: 'official' } },
   { id: 'final', kind: 'final', title: 'Final Common Exam', weight: 60, due: 'Apr · exam period', provenance: { status: 'confirmed', confirmations: 9 } },
 ]
 

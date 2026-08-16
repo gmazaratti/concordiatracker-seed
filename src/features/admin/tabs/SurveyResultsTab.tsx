@@ -63,7 +63,7 @@ function ProductFeedbackResults() {
   if (error) {
     return (
       <div className="rounded-xl border border-border bg-surface p-5 text-[13px] text-muted">
-        Couldn&rsquo;t load survey results — {error}. If this persists, run{' '}
+        Couldn&rsquo;t load survey results: {error}. If this persists, run{' '}
         <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/survey_admin.sql</code> in Supabase.
       </div>
     )
@@ -201,7 +201,7 @@ function RespondentCard({ row }: { row: SurveyResponseRow }) {
   if (row.answers?.stopped) {
     texts.push({
       label: 'Almost stopped?',
-      value: row.answers.stopped === 'yes' ? `Yes — ${row.answers.stopped_detail ?? '(no detail)'}` : 'No',
+      value: row.answers.stopped === 'yes' ? `Yes: ${row.answers.stopped_detail ?? '(no detail)'}` : 'No',
     })
   }
   for (const q of TEXT_QUESTIONS) {
@@ -320,7 +320,7 @@ export function SurveyResultsTab() {
         <p className="text-[13px] text-subtle">
           {view === 'product'
             ? 'Feedback from students already using ConcordiaTracker.'
-            : 'Research from students who haven’t used it — shared via /survey.'}
+            : 'Research from students who haven’t used it: shared via /survey.'}
         </p>
         <div className="mt-3 max-w-xs">
           <Segmented value={view} onChange={setView} options={SURVEY_VIEWS} ariaLabel="Survey audience" />

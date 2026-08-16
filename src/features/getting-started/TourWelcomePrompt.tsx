@@ -32,7 +32,7 @@ export function TourWelcomePrompt() {
           You&rsquo;re new here 👋
         </h2>
         <p className="mx-auto mt-2.5 max-w-sm text-[14.5px] leading-relaxed text-muted">
-          Let me show you around — a quick, hands-on tour of everything you can do here. It takes
+          Let me show you around: a quick, hands-on tour of everything you can do here. It takes
           about two minutes, and you can start it anytime from your profile menu.
         </p>
         <div className="mt-6 flex flex-col items-center gap-2.5">
@@ -54,7 +54,7 @@ export function TourWelcomePrompt() {
             Maybe later
           </button>
           <p className="text-[11.5px] text-subtle">
-            No rush — the <span className="font-medium text-muted">Getting started</span> checklist
+            No rush: the <span className="font-medium text-muted">Getting started</span> checklist
             stays in the corner whenever you want it.
           </p>
         </div>

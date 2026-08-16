@@ -91,7 +91,7 @@ export function WeatherWidget() {
             </span>
             <span className="text-[12.5px] text-muted">{meta?.label}</span>
           </div>
-          {/* "Feels like" only when it actually differs — a line that repeats the
+          {/* "Feels like" only when it actually differs: a line that repeats the
               number above is noise. */}
           {Math.abs(current.apparent_temperature - current.temperature_2m) >= 1 && (
             <p className="mt-1 text-[11.5px] text-subtle">

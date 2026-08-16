@@ -30,7 +30,7 @@ export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClos
         </div>
 
         <p className="mt-3 text-[12px] text-muted">
-          Anyone with this link can view the event — no account needed.
+          Anyone with this link can view the event: no account needed.
         </p>
 
         <div className="mt-2 flex items-center gap-2">

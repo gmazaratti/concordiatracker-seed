@@ -201,7 +201,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
             <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-5 py-2 text-[12px] text-warning">
               <FlaskConical size={14} className="shrink-0" aria-hidden />
               <span>
-                <strong className="font-semibold">Demo mode.</strong> You're exploring a sample portal —
+                <strong className="font-semibold">Demo mode.</strong> You're exploring a sample portal:
                 nothing you do here is saved or affects the real site.
               </span>
               <button type="button" onClick={signOut} className="ml-auto shrink-0 font-medium underline underline-offset-2">

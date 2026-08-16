@@ -38,7 +38,7 @@ export function OutlineEditor({
     <div>
       {items.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border-strong bg-surface/50 px-4 py-6 text-center text-[13px] text-subtle">
-          No assessments yet — add your first, or upload a syllabus to parse it.
+          No assessments yet: add your first, or upload a syllabus to parse it.
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -119,7 +119,7 @@ export function OutlineEditor({
             total === 100 ? 'text-success' : 'text-warning',
           )}
         >
-          Total weight: {total}%{total !== 100 && ' — should be 100%'}
+          Total weight: {total}%{total !== 100 && ': should be 100%'}
         </span>
       </div>
     </div>

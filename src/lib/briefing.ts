@@ -55,7 +55,7 @@ export function buildBriefing(
 
   if (open.length === 0) {
     return {
-      text: 'Nothing open right now — you are genuinely clear.',
+      text: 'Nothing open right now: you are genuinely clear.',
       detail: 'A good moment to read ahead or bank some work for the busy weeks.',
     }
   }
@@ -72,7 +72,7 @@ export function buildBriefing(
     if (openMine.length === 0) {
       const cur = standing.currentPercent
       return {
-        text: `${code} is clear — nothing open.`,
+        text: `${code} is clear: nothing open.`,
         detail: cur === null ? 'No grades in yet.' : `You are sitting at ${pct(cur)} on graded work.`,
       }
     }
@@ -94,14 +94,14 @@ export function buildBriefing(
   // ── Catch up on overdue ──────────────────────────────────────────────────
   if (focus === 'catch-up') {
     if (overdue.length === 0) {
-      return { text: 'Nothing is overdue — you are caught up.', detail: 'Switch to Get ahead to bank some time.' }
+      return { text: 'Nothing is overdue: you are caught up.', detail: 'Switch to Get ahead to bank some time.' }
     }
     const biggest = [...overdue].sort((a, b) => b.weight - a.weight)[0]
     const code = courses.find((c) => c.id === biggest.courseId)?.code ?? ''
     const weightSum = Math.round(overdue.reduce((s, a) => s + a.weight, 0))
     return {
       text: `${overdue.length} item${overdue.length === 1 ? '' : 's'} overdue, ${weightSum}% of grades between them. Start with ${code ? `${code} ` : ''}${biggest.title}.`,
-      detail: 'Late work often still earns partial credit — worth more than a perfect start on something new.',
+      detail: 'Late work often still earns partial credit: worth more than a perfect start on something new.',
     }
   }
 
@@ -128,7 +128,7 @@ export function buildBriefing(
         ? `To finish at a B-, you need ${pct(need.percent)} across the remaining ${pct(worst.remaining)}.`
         : need.kind === 'secured'
           ? 'A B- is already secured there.'
-          : 'That target is out of reach now — aim for the next band down.'
+          : 'That target is out of reach now: aim for the next band down.'
     return {
       text: `${worst.course.code} is your softest grade at ${pct(worst.percent)}, with ${pct(worst.remaining)} still unmarked.`,
       detail: needLine,
@@ -160,7 +160,7 @@ export function buildBriefing(
   if (!top) {
     return {
       text: 'Nothing due in the next seven days.',
-      detail: 'Quiet week — a good one to get ahead of the next crunch.',
+      detail: 'Quiet week: a good one to get ahead of the next crunch.',
     }
   }
   const code = top.course?.code ? `${top.course.code} ` : ''

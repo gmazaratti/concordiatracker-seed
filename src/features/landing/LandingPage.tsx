@@ -79,7 +79,7 @@ export function LandingPage() {
             </p>
           </div>
 
-          {/* Preview — overruns the right viewport edge to signal depth, but capped
+          {/* Preview: overruns the right viewport edge to signal depth, but capped
               so it never stretches the dashboard on ultra-wide screens. The right
               rounded corner sits off-screen while it bleeds and only becomes visible
               once the cap turns it into a contained card on very wide viewports. */}
@@ -113,7 +113,7 @@ export function LandingPage() {
         />
       </section>
 
-      {/* ---- Features: an editorial, divider-ruled row — not cards ---- */}
+      {/* ---- Features: an editorial, divider-ruled row: not cards ---- */}
       <section className="border-t border-border/60 px-5 py-24 sm:py-32">
         <div className="mx-auto w-full max-w-6xl">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-10">

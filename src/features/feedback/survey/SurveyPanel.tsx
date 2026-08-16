@@ -85,7 +85,7 @@ export function SurveyPanel() {
       }
       patchUiState({ surveyDone: true })
     } catch {
-      setError('Couldn’t save that — please try again.')
+      setError('Couldn’t save that: please try again.')
       setSaving(false)
     }
   }
@@ -158,7 +158,7 @@ export function SurveyPanel() {
               id="stopped_detail"
               value={resp.answers.stopped_detail ?? ''}
               onChange={(e) => setAnswer('stopped_detail', e.target.value)}
-              placeholder="The honest stuff helps most — what nearly lost you?"
+              placeholder="The honest stuff helps most: what nearly lost you?"
               rows={2}
               maxLength={2000}
               className="w-full resize-y rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
@@ -214,7 +214,7 @@ function Req() {
 function MinHint({ value }: { value: string }) {
   const len = value.trim().length
   if (len === 0 || len >= MIN_TEXT) return null
-  return <p className="mt-1 text-[11.5px] text-subtle">A little more detail, please — at least {MIN_TEXT} characters.</p>
+  return <p className="mt-1 text-[11.5px] text-subtle">A little more detail, please: at least {MIN_TEXT} characters.</p>
 }
 
 // ── Rating scale ────────────────────────────────────────────────────────────────
@@ -323,7 +323,7 @@ function ReferralReward({ handle, userId }: { handle?: string | null; userId?: s
       <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
         Share this link. Every friend who signs up takes{' '}
         <span className="font-semibold text-fg">${REFERRAL_SIGNUP_CREDIT.toFixed(2)}</span> off your
-        semester pass — and{' '}
+        semester pass: and{' '}
         <span className="font-semibold text-fg">${REFERRAL_PAYING_CREDIT.toFixed(2)}</span> when they
         upgrade to a paid plan. Credits stack and apply automatically.
       </p>
@@ -358,7 +358,7 @@ function LockedCard({ daysUsed }: { daysUsed: number }) {
       <div className="mx-auto mt-4 h-1.5 w-48 overflow-hidden rounded-full bg-surface-2">
         <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-3 text-[12px] text-subtle">Come back on another day — we&rsquo;ll be ready.</p>
+      <p className="mt-3 text-[12px] text-subtle">Come back on another day: we&rsquo;ll be ready.</p>
     </div>
   )
 }
@@ -379,7 +379,7 @@ function DoneCard({
       <span className="mx-auto grid size-12 place-items-center rounded-xl bg-accent-soft text-accent">
         <Check size={24} strokeWidth={2.5} aria-hidden />
       </span>
-      <h3 className="mt-3.5 text-[17px] font-semibold text-fg">Thank you — genuinely.</h3>
+      <h3 className="mt-3.5 text-[17px] font-semibold text-fg">Thank you: genuinely.</h3>
       <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-muted">
         Your answers go straight into what we build next. If something changes because of you,
         you&rsquo;ll see it in <span className="font-medium text-fg">What&rsquo;s new</span>.
@@ -388,7 +388,7 @@ function DoneCard({
         <div className="mx-auto mt-5 flex max-w-md items-center gap-3 rounded-xl border border-accent/50 bg-accent-soft/40 p-4 text-left">
           <Gift className="size-6 shrink-0 text-accent" aria-hidden />
           <p className="text-[13px] leading-relaxed text-fg">
-            <span className="font-semibold">{REWARD_DAYS} days of Pro unlocked</span> — it&rsquo;s
+            <span className="font-semibold">{REWARD_DAYS} days of Pro unlocked</span>: it&rsquo;s
             active on your account right now. Enjoy the GPA predictor, unlimited scans and more.
           </p>
         </div>

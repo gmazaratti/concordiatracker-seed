@@ -208,7 +208,7 @@ export function AssessmentRow({
         <textarea
           value={assessment.notes}
           onChange={(e) => setNotes(assessment.id, e.target.value)}
-          placeholder="Add a note — what to review, where you lost marks, prof's feedback…"
+          placeholder="Add a note: what to review, where you lost marks, prof's feedback…"
           rows={2}
           className="mt-2 w-full resize-y rounded-lg border border-border bg-surface-2 px-2.5 py-2 text-[13px] text-fg placeholder:text-subtle focus-visible:border-border-strong focus-visible:outline-none"
         />

@@ -235,11 +235,11 @@ export const SEED_TEACHERS: TeacherAccount[] = [
         courseId: 'comp248', code: 'COMP 248', title: 'Object-Oriented Programming I', section: 'BB',
         published: true, stats: { upvotes: 64, downvotes: 1, imports: 412, uploadedDaysAgo: 38 },
         outline: mkOutline('c248', [
-          { kind: 'lab', title: 'Lab 1 — Environment setup', weight: 5, due: daysFromNow(-18, 23, 59) },
-          { kind: 'assignment', title: 'Assignment 1 — Methods & arrays', weight: 10, due: daysFromNow(-8, 23, 59) },
-          { kind: 'assignment', title: 'Assignment 2 — Inheritance', weight: 10, due: daysFromNow(2, 23, 59) },
+          { kind: 'lab', title: 'Lab 1: Environment setup', weight: 5, due: daysFromNow(-18, 23, 59) },
+          { kind: 'assignment', title: 'Assignment 1: Methods & arrays', weight: 10, due: daysFromNow(-8, 23, 59) },
+          { kind: 'assignment', title: 'Assignment 2: Inheritance', weight: 10, due: daysFromNow(2, 23, 59) },
           { kind: 'midterm', title: 'Midterm exam', weight: 25, due: daysFromNow(9, 14, 0) },
-          { kind: 'project', title: 'Final project — Console app', weight: 20, due: daysFromNow(28, 23, 59) },
+          { kind: 'project', title: 'Final project: Console app', weight: 20, due: daysFromNow(28, 23, 59) },
           { kind: 'final', title: 'Final exam', weight: 30, due: daysFromNow(40, 9, 0) },
         ]),
       },
@@ -252,9 +252,9 @@ export const SEED_TEACHERS: TeacherAccount[] = [
         courseId: 'poli202', code: 'POLI 202', title: 'Introduction to Political Science', section: 'D',
         published: true, stats: { upvotes: 47, downvotes: 0, imports: 263, uploadedDaysAgo: 33 },
         outline: mkOutline('poli', [
-          { kind: 'assignment', title: 'Response paper 1 — Social contract', weight: 10, due: daysFromNow(-9, 23, 59) },
-          { kind: 'assignment', title: 'Discussion post — Federalism', weight: 5, due: daysFromNow(-1, 23, 59) },
-          { kind: 'quiz', title: 'Reading quiz — Comparative systems', weight: 5, due: daysFromNow(6, 14, 0) },
+          { kind: 'assignment', title: 'Response paper 1: Social contract', weight: 10, due: daysFromNow(-9, 23, 59) },
+          { kind: 'assignment', title: 'Discussion post: Federalism', weight: 5, due: daysFromNow(-1, 23, 59) },
+          { kind: 'quiz', title: 'Reading quiz: Comparative systems', weight: 5, due: daysFromNow(6, 14, 0) },
           { kind: 'midterm', title: 'Midterm exam', weight: 30, due: daysFromNow(14, 18, 0) },
           { kind: 'final', title: 'Final exam', weight: 50, due: daysFromNow(32, 9, 0) },
         ]),
@@ -268,7 +268,7 @@ export const SEED_TEACHERS: TeacherAccount[] = [
         courseId: 'math205', code: 'MATH 205', title: 'Differential & Integral Calculus II', section: 'C',
         published: false,
         outline: mkOutline('math', [
-          { kind: 'quiz', title: 'Quiz 1 — Integration techniques', weight: 8, due: daysFromNow(-15, 23, 59) },
+          { kind: 'quiz', title: 'Quiz 1: Integration techniques', weight: 8, due: daysFromNow(-15, 23, 59) },
           { kind: 'midterm', title: 'Midterm exam', weight: 30, due: daysFromNow(3, 14, 0) },
         ]),
       },
@@ -292,11 +292,11 @@ export const SEED_INVITES: TeacherInvite[] = [
 export const SEED_REQUESTS: AccessRequest[] = [
   {
     caseId: 'REQ-1041', role: 'teacher', name: 'Dr. Liang Wu', email: 'liang.wu@concordia.ca',
-    message: 'I teach COMP 352 — Data Structures & Algorithms.', status: 'pending', requestedDaysAgo: 2,
+    message: 'I teach COMP 352: Data Structures & Algorithms.', status: 'pending', requestedDaysAgo: 2,
   },
   {
     caseId: 'REQ-1042', role: 'organizer', name: 'Concordia Robotics Society', email: 'robotics@concordia.ca',
-    message: 'Student robotics club — we run builds, comps, and workshops.', status: 'pending', requestedDaysAgo: 3,
+    message: 'Student robotics club: we run builds, comps, and workshops.', status: 'pending', requestedDaysAgo: 3,
   },
   {
     caseId: 'REQ-1043', role: 'teacher', name: 'Prof. Renée Bélanger', email: 'renee.belanger@concordia.ca',

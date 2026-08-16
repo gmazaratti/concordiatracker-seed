@@ -43,7 +43,7 @@ async function reencodeToWebp(file: File, maxDim: number): Promise<Blob> {
   const source = await loadImage(file)
   const w0 = 'width' in source ? source.width : 0
   const h0 = 'height' in source ? source.height : 0
-  if (!w0 || !h0) throw new Error('That image looked empty — try another.')
+  if (!w0 || !h0) throw new Error('That image looked empty: try another.')
   const scale = Math.min(1, maxDim / Math.max(w0, h0))
   const w = Math.max(1, Math.round(w0 * scale))
   const h = Math.max(1, Math.round(h0 * scale))

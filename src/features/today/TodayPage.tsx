@@ -148,12 +148,12 @@ export function TodayPage() {
           <PeerNudge />
 
           {/* The band above the due list: one wide card, or two halves. Empty by
-              default — this space used to be the workload panel for everyone,
+              default: this space used to be the workload panel for everyone,
               and it's now something you opt into. */}
           {(topWidgets.length > 0 || editing) && (
             <WidgetZoneView
               zone={zoneById('top')}
-              emptyHint="Drop a widget here — above your deadlines"
+              emptyHint="Drop a widget here: above your deadlines"
               className={cn(
                 'grid gap-3',
                 topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
@@ -182,7 +182,7 @@ export function TodayPage() {
           {(belowWidgets.length > 0 || editing) && (
             <WidgetZoneView
               zone={zoneById('below')}
-              emptyHint="Drop a widget here — under your deadlines"
+              emptyHint="Drop a widget here: under your deadlines"
               className={cn(
                 'grid gap-3',
                 belowWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
@@ -221,7 +221,7 @@ export function TodayPage() {
               )
             }
           />
-          {/* Contextual nudges are NOT widgets — they appear because something
+          {/* Contextual nudges are NOT widgets: they appear because something
               needs attention, not because you chose them. */}
           {showPain && <PainNudge count={groups.count} />}
           <AddWidgetButton

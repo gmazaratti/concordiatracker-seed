@@ -42,7 +42,7 @@ export function AttributionTab() {
   if (error || !data) {
     return (
       <div className="rounded-xl border border-border bg-surface p-5 text-[13px] text-muted">
-        Couldn&rsquo;t load attribution{error ? ` — ${error}` : ''}. If this persists, run
+        Couldn&rsquo;t load attribution{error ? `: ${error}` : ''}. If this persists, run
         <code className="mx-1 rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/attribution.sql</code>
         in Supabase.
       </div>

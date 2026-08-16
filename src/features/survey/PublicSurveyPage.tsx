@@ -29,7 +29,7 @@ export function PublicSurveyPage() {
             </h1>
             <p className="mt-2.5 text-[14.5px] leading-relaxed text-muted">
               I&rsquo;m a Concordia student building a tool to make deadlines and grades less of a
-              mess. These answers decide what I build next — there are no wrong ones, and being
+              mess. These answers decide what I build next: there are no wrong ones, and being
               harsh is more useful than being nice.
             </p>
             <p className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] text-subtle">

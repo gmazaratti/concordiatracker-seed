@@ -16,8 +16,8 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'welcome',
     route: '/app',
     type: 'read',
-    title: 'Welcome — the 2-minute tour',
-    body: "I've added a temporary “DEMO 101” course just for this walkthrough — your real classes are untouched, and it disappears when we're done. Use Next or →, and Esc to skip anytime.",
+    title: 'Welcome: the 2-minute tour',
+    body: "I've added a temporary “DEMO 101” course just for this walkthrough: your real classes are untouched, and it disappears when we're done. Use Next or →, and Esc to skip anytime.",
   },
   {
     id: 'today-glance',
@@ -25,7 +25,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app',
     type: 'read',
     title: 'Today is your launchpad',
-    body: 'This panel is your at-a-glance: current GPA, what’s due this week, and what’s coming next — so the first thing you see each day is what actually matters.',
+    body: 'This panel is your at-a-glance: current GPA, what’s due this week, and what’s coming next: so the first thing you see each day is what actually matters.',
   },
   {
     id: 'today-done',
@@ -33,7 +33,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app',
     type: 'read',
     title: 'Check things off',
-    body: 'Every task has a circle — tap it to mark it done. It slides into “Completed today” with an undo, and your progress updates instantly.',
+    body: 'Every task has a circle: tap it to mark it done. It slides into “Completed today” with an undo, and your progress updates instantly.',
   },
   {
     id: 'today-customize',
@@ -41,7 +41,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app',
     type: 'read',
     title: 'Make Today yours',
-    body: 'Group your list by time or by course, show or hide weights, and switch density — Today bends to how you like to work.',
+    body: 'Group your list by time or by course, show or hide weights, and switch density: Today bends to how you like to work.',
   },
   {
     id: 'courses-import',
@@ -56,7 +56,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app/courses/sample-course',
     type: 'read',
     title: 'Inside a course',
-    body: 'Open any class to manage it. This is our DEMO course — let’s walk through what each part does.',
+    body: 'Open any class to manage it. This is our DEMO course: let’s walk through what each part does.',
   },
   {
     id: 'course-assessments',
@@ -64,7 +64,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app/courses/sample-course',
     type: 'read',
     title: 'Your assignments',
-    body: 'Open the editor to add assignments or change a status, grade, or note. Each row also has a ⋮ menu for quick edits — same mark-done circle as Today.',
+    body: 'Open the editor to add assignments or change a status, grade, or note. Each row also has a ⋮ menu for quick edits: same mark-done circle as Today.',
   },
   {
     id: 'course-breakdown',
@@ -72,22 +72,22 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app/courses/sample-course',
     type: 'read',
     title: 'How your grade is built',
-    body: 'See every category, its weight, and your average — with a “How is this calculated?” breakdown so the number is never a mystery.',
+    body: 'See every category, its weight, and your average: with a “How is this calculated?” breakdown so the number is never a mystery.',
   },
   {
     id: 'course-grade-needed',
     target: '[data-tour="grade-needed"]',
     route: '/app/courses/sample-course',
     type: 'read',
-    title: 'Grade calculator — free',
-    body: 'Pick a target grade and see the exact average you need on what’s left. Real arithmetic, no guessing — and it’s free, forever.',
+    title: 'Grade calculator: free',
+    body: 'Pick a target grade and see the exact average you need on what’s left. Real arithmetic, no guessing: and it’s free, forever.',
   },
   {
     id: 'course-gpa',
     target: '[data-tour="gpa-predict"]',
     route: '/app/courses/sample-course',
     type: 'read',
-    title: 'Predict your GPA — Pro',
+    title: 'Predict your GPA: Pro',
     body: 'Drag a what-if grade and watch your projected course % and overall GPA move live. This one’s part of the Semester pass.',
   },
   {
@@ -96,7 +96,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app/courses/sample-course',
     type: 'read',
     title: 'Class details',
-    body: 'Instructor, section, office hours, room — all here and editable inline, so the practical stuff is one tap away.',
+    body: 'Instructor, section, office hours, room: all here and editable inline, so the practical stuff is one tap away.',
   },
   {
     id: 'calendar',
@@ -112,7 +112,7 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app/community',
     type: 'read',
     title: 'What’s on campus',
-    body: 'Follow clubs and orgs to get their events. Community is a calm, read-only events feed — never a social network.',
+    body: 'Follow clubs and orgs to get their events. Community is a calm, read-only events feed: never a social network.',
   },
   {
     id: 'community-add',
@@ -127,6 +127,6 @@ export const TOUR_STEPS: TourStep[] = [
     route: '/app',
     type: 'read',
     title: 'That’s the tour 🎉',
-    body: 'The DEMO course is gone now — back to your real stuff. The “Getting started” card tracks your first steps, and you can replay this anytime from the menu.',
+    body: 'The DEMO course is gone now: back to your real stuff. The “Getting started” card tracks your first steps, and you can replay this anytime from the menu.',
   },
 ]

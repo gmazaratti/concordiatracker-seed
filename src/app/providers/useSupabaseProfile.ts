@@ -138,7 +138,7 @@ export function useSupabaseProfile() {
 
   const updateProfile = useCallback(
     (patch: Partial<{ name: string; school: string; program: string }>) => {
-      setRow((r) => (r ? { ...r, ...patch } : r)) // optimistic — UI updates live
+      setRow((r) => (r ? { ...r, ...patch } : r)) // optimistic: UI updates live
       pendingRef.current = { ...pendingRef.current, ...patch }
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => {

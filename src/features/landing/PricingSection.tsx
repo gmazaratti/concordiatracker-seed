@@ -38,7 +38,7 @@ export function PricingSection() {
             cta={t('pricing.freeCta')}
           />
 
-          {/* Semester — hero */}
+          {/* Semester: hero */}
           <PlanCard
             featured
             name={t('pricing.semester')}

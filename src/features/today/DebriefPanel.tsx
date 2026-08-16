@@ -68,7 +68,7 @@ export function DebriefPanel() {
 
         {!collapsed && (
           <>
-            {/* Term shape — the chart they asked to lead with. */}
+            {/* Term shape: the chart they asked to lead with. */}
             {hasChart && (
               <>
                 <div className="mt-4 flex items-end gap-1.5 sm:gap-2" style={{ height: 92 }} aria-hidden>
@@ -104,7 +104,7 @@ export function DebriefPanel() {
               </>
             )}
 
-            {/* The briefing — types in on every recompute. */}
+            {/* The briefing: types in on every recompute. */}
             <div className="mt-4 border-t border-border pt-3.5">
               <p
                 className="min-h-[2.6rem] text-[13.5px] leading-relaxed text-fg"
@@ -120,7 +120,7 @@ export function DebriefPanel() {
               )}
             </div>
 
-            {/* Focus picker — what the student wants to prioritise. */}
+            {/* Focus picker: what the student wants to prioritise. */}
             <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
               <span className="mr-0.5 text-[11.5px] font-medium text-subtle">Prioritise:</span>
               {options.map((o) => {

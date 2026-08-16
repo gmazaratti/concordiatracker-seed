@@ -66,11 +66,11 @@ export function GradeGoalWidget() {
         </div>
         <p className="mt-2.5 text-[13px]">
           {result.kind === 'no-remaining' ? (
-            <span className="text-muted">Everything&rsquo;s graded — the final is set.</span>
+            <span className="text-muted">Everything&rsquo;s graded: the final is set.</span>
           ) : result.kind === 'secured' ? (
             <span className="text-success">Already secured.</span>
           ) : result.kind === 'unreachable' ? (
-            <span className="text-danger">Out of reach — even a perfect score finishes below.</span>
+            <span className="text-danger">Out of reach: even a perfect score finishes below.</span>
           ) : (
             <span className="text-fg">
               You need{' '}

@@ -114,7 +114,7 @@ export function BlueprintList({ course }: { course: Course }) {
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12px] text-warning">
           <AlertTriangle size={15} className="mt-px shrink-0" aria-hidden />
           <p>
-            You're enrolled in <strong>section {yourSection}</strong> — these are for{' '}
+            You're enrolled in <strong>section {yourSection}</strong>: these are for{' '}
             <strong>section {activeSection}</strong>, whose dates may differ.{' '}
             <button
               type="button"
@@ -159,7 +159,7 @@ export function BlueprintList({ course }: { course: Course }) {
               (current.length > 0 ? (
                 <Collapser
                   summary={`${past.length} from past term${past.length === 1 ? '' : 's'}`}
-                  hint="older — dates may have changed"
+                  hint="older: dates may have changed"
                 >
                   {past.map((b) => (
                     <BlueprintRow key={b.id} {...rowProps(b)} />
@@ -168,7 +168,7 @@ export function BlueprintList({ course }: { course: Course }) {
               ) : (
                 <>
                   <p className="px-1 text-[12px] text-subtle">
-                    From a past term — dates may have changed.
+                    From a past term: dates may have changed.
                   </p>
                   {past.map((b) => (
                     <BlueprintRow key={b.id} {...rowProps(b)} />
@@ -185,7 +185,7 @@ export function BlueprintList({ course }: { course: Course }) {
         className="mt-5 inline-flex items-center gap-2 text-[12px] text-subtle transition-colors duration-150 hover:text-accent"
       >
         <Sprout size={14} aria-hidden />
-        Contribute your outline — earn theme credits
+        Contribute your outline: earn theme credits
       </button>
 
       {contributeOpen && (

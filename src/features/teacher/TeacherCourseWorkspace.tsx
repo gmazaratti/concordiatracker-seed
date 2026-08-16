@@ -92,7 +92,7 @@ export function TeacherCourseWorkspace() {
 
       {pending && (
         <div className="mt-4 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
-          <strong className="font-semibold">Pending approval.</strong> You can prepare your outline now —
+          <strong className="font-semibold">Pending approval.</strong> You can prepare your outline now:
           publishing unlocks once an admin approves your account.
         </div>
       )}
@@ -153,7 +153,7 @@ export function TeacherCourseWorkspace() {
                         Publish as shared outline
                       </Button>
                       <span className="text-[12px] text-subtle">
-                        {pending ? 'Approval needed to publish' : weight === 100 ? 'Weights total 100% — ready to share' : `Weights total ${weight}% — you can still share`}
+                        {pending ? 'Approval needed to publish' : weight === 100 ? 'Weights total 100%: ready to share' : `Weights total ${weight}%: you can still share`}
                       </span>
                     </div>
                   ) : dirty ? (
@@ -173,7 +173,7 @@ export function TeacherCourseWorkspace() {
                   ) : (
                     <p className="inline-flex items-center gap-2 text-[13px] font-medium text-success">
                       <Check size={16} aria-hidden />
-                      In sync — students see these assignments.
+                      In sync: students see these assignments.
                     </p>
                   )}
                 </div>
@@ -247,7 +247,7 @@ export function TeacherCourseWorkspace() {
       </div>
 
       <p className="mt-8 rounded-lg border border-border bg-surface/50 px-4 py-3 text-[12px] text-subtle">
-        Publish-only — you contribute course content. You don&rsquo;t see student grades, standings, or who
+        Publish-only: you contribute course content. You don&rsquo;t see student grades, standings, or who
         imported your outline.
       </p>
 

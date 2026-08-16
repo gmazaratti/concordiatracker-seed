@@ -73,7 +73,7 @@ function ProfileView({ handle }: { handle: string }) {
           <NotFound handle={handle} />
         ) : (
           <>
-            {/* Identity header — same language as org profiles. */}
+            {/* Identity header: same language as org profiles. */}
             <div
               className={cn(
                 'h-40 overflow-hidden rounded-2xl sm:h-52',

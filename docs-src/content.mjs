@@ -1,7 +1,7 @@
 /**
- * Docs content. Plain data — the renderer turns it into static HTML.
+ * Docs content. Plain data: the renderer turns it into static HTML.
  *
- * SCOPE: this documents the PRODUCT — what the features are, how they work, how
+ * SCOPE: this documents the PRODUCT: what the features are, how they work, how
  * billing works. It deliberately contains nothing that expires: no term dates,
  * no deadlines, no academic calendar. Those live in the app, where they're
  * generated from data; a doc page repeating them would eventually be confidently
@@ -55,7 +55,7 @@ const SUPPORT_STATUS_STYLE = `<style>.ticket-tool{margin:18px 0 8px}.ticket-look
 
 const SUPPORT_STATUS_SCRIPT = `
 // Ticket status + reply, for people who are not signed in. Everything is gated
-// on the access key from the ticket link — a guessed case number reveals nothing.
+// on the access key from the ticket link: a guessed case number reveals nothing.
 (function () {
   var caseEl = document.getElementById('t-case');
   var tokEl = document.getElementById('t-token');
@@ -196,7 +196,7 @@ export const PAGES = {
 
       { h2: '2. Set up your profile' },
       {
-        p: 'Onboarding asks for a display name, a handle, and your program. The program is used to mark campus events as relevant to you — nothing else. You also pick a theme and a language here, and both are changeable later in Settings.',
+        p: 'Onboarding asks for a display name, a handle, and your program. The program is used to mark campus events as relevant to you: nothing else. You also pick a theme and a language here, and both are changeable later in Settings.',
       },
       {
         note: 'Your profile is **private by default**. Other students cannot find you in search until you turn on the public profile switch in Settings → Privacy.',
@@ -235,7 +235,7 @@ export const PAGES = {
     title: 'FAQ',
     section: 'Getting started',
     description:
-      'Common questions about ConcordiaTracker — whether it connects to Moodle, how the GPA scale works, what is free, and who can see your data.',
+      'Common questions about ConcordiaTracker: whether it connects to Moodle, how the GPA scale works, what is free, and who can see your data.',
     blocks: [
       { h2: 'Is it affiliated with Concordia University?' },
       {
@@ -259,12 +259,12 @@ export const PAGES = {
 
       { h2: 'Do I need to install anything?' },
       {
-        p: 'No. It runs in any modern browser. You can optionally install it as an app on your phone or desktop for a full-screen experience and notifications — your browser will offer this, or you can use **Add to Home Screen** on iOS.',
+        p: 'No. It runs in any modern browser. You can optionally install it as an app on your phone or desktop for a full-screen experience and notifications: your browser will offer this, or you can use **Add to Home Screen** on iOS.',
       },
 
       { h2: 'Can other students see my grades?' },
       {
-        p: 'No. Grades are private to your account and are never shared, shown to other students, or published anywhere. What can be shared is a course **outline** — the list of assessments, dates, and weights — and only if you choose to contribute one. See [Privacy](/docs/privacy).',
+        p: 'No. Grades are private to your account and are never shared, shown to other students, or published anywhere. What can be shared is a course **outline**: the list of assessments, dates, and weights: and only if you choose to contribute one. See [Privacy](/docs/privacy).',
       },
 
       { h2: 'What happens to my data if I stop paying?' },
@@ -312,7 +312,7 @@ export const PAGES = {
 
       { h2: 'Before you write' },
       {
-        p: 'The [FAQ](/docs/faq) covers the most common questions. If a deadline looks wrong, check its provenance badge first — an unverified date came from a single student and may simply need correcting, which you can do yourself in seconds. See [Provenance](/docs/provenance).',
+        p: 'The [FAQ](/docs/faq) covers the most common questions. If a deadline looks wrong, check its provenance badge first: an unverified date came from a single student and may simply need correcting, which you can do yourself in seconds. See [Provenance](/docs/provenance).',
       },
     ],
   },
@@ -324,7 +324,7 @@ export const PAGES = {
     title: 'Support',
     section: 'Getting started',
     description:
-      'How ConcordiaTracker support works — open a ticket from the app or the docs, and follow the conversation with a case number.',
+      'How ConcordiaTracker support works: open a ticket from the app or the docs, and follow the conversation with a case number.',
     blocks: [
       {
         p: 'Support is a conversation, not a form that disappears into an inbox. Every ticket keeps its full history, and you can reply to it as long as it is open.',
@@ -341,7 +341,7 @@ export const PAGES = {
         p: 'Use the **Support** button at the top of any page in these docs. It only needs an email address so we can reach you.',
       },
       {
-        note: 'You will get a **case number** like `TKT-1001` and a private link. Save the link — it is the only way back into the conversation, and we cannot recover it for you if it is lost.',
+        note: 'You will get a **case number** like `TKT-1001` and a private link. Save the link: it is the only way back into the conversation, and we cannot recover it for you if it is lost.',
       },
       { p: 'To pick a conversation back up, use [Check a ticket](/docs/support-status).' },
 
@@ -352,7 +352,7 @@ export const PAGES = {
           rows: [
             ['**Open**', 'Waiting on us. Newly submitted tickets and any you have replied to.'],
             ['**Answered**', 'We have replied and it is with you. Reply again and it reopens.'],
-            ['**Solved**', 'Closed out. Writing back on it opens it again — nothing is ever locked.'],
+            ['**Solved**', 'Closed out. Writing back on it opens it again: nothing is ever locked.'],
           ],
         },
       },
@@ -366,7 +366,7 @@ export const PAGES = {
         ],
       },
       {
-        p: 'For billing questions, write from the email address on the account — it saves a round trip. And if a charge looks wrong, please open a ticket before disputing it with your bank; almost everything is sorted out faster directly.',
+        p: 'For billing questions, write from the email address on the account: it saves a round trip. And if a charge looks wrong, please open a ticket before disputing it with your bank; almost everything is sorted out faster directly.',
       },
     ],
   },
@@ -379,7 +379,7 @@ export const PAGES = {
     script: SUPPORT_STATUS_SCRIPT,
     blocks: [
       {
-        p: 'Enter the case number and access key from your ticket link to read the conversation and reply. Both are required — a case number on its own will not open anything.',
+        p: 'Enter the case number and access key from your ticket link to read the conversation and reply. Both are required: a case number on its own will not open anything.',
       },
       { raw: SUPPORT_STATUS_STYLE + SUPPORT_STATUS_UI },
       {
@@ -392,7 +392,7 @@ export const PAGES = {
     title: 'Adding courses',
     section: 'Your courses',
     description:
-      'Three ways to add a Concordia course to ConcordiaTracker — import a shared blueprint, upload a syllabus PDF, or enter it manually.',
+      'Three ways to add a Concordia course to ConcordiaTracker: import a shared blueprint, upload a syllabus PDF, or enter it manually.',
     blocks: [
       {
         p: 'Every course needs the same information: what is due, when, and what each item is worth. There are three ways to get it in, and they differ only in how much typing you do.',
@@ -400,7 +400,7 @@ export const PAGES = {
 
       { h2: 'Import a blueprint (fastest)' },
       {
-        p: 'A **blueprint** is a course outline someone has already shared — another student in your section, or the professor. Importing one fills in every assessment, date, and weight at once. This is the fastest method and gets faster as more outlines are shared.',
+        p: 'A **blueprint** is a course outline someone has already shared: another student in your section, or the professor. Importing one fills in every assessment, date, and weight at once. This is the fastest method and gets faster as more outlines are shared.',
       },
       {
         p: 'From Courses, choose **Add a course → Find a blueprint**, search your course code, then pick your section. Read more in [Blueprints](/docs/blueprints).',
@@ -421,7 +421,7 @@ export const PAGES = {
 
       { h2: 'Course details' },
       {
-        p: 'Whichever method you use, each course has an editable details panel: instructor, TA, section, meeting times, office hours, location, credits, and a link to the syllabus. Credits matter — they are what weights each course in your GPA.',
+        p: 'Whichever method you use, each course has an editable details panel: instructor, TA, section, meeting times, office hours, location, credits, and a link to the syllabus. Credits matter: they are what weights each course in your GPA.',
       },
 
       { h2: 'Past terms' },
@@ -435,7 +435,7 @@ export const PAGES = {
     title: 'Blueprints',
     section: 'Your courses',
     description:
-      'Blueprints are shared Concordia course outlines — teacher-verified or community-uploaded — that fill in every deadline and weight in one import.',
+      'Blueprints are shared Concordia course outlines: teacher-verified or community-uploaded: that fill in every deadline and weight in one import.',
     blocks: [
       {
         p: 'A blueprint is a course outline that someone has already entered and shared: the full list of assessments with their dates and weights. Importing one means you never type a syllabus in twice, and neither does anyone else in your section.',
@@ -447,8 +447,8 @@ export const PAGES = {
       },
       {
         ul: [
-          '**Teacher-verified** — published by the professor through the teacher portal. These are pinned to the top of the list and their dates import as **official**.',
-          '**Community** — uploaded by a student. These are ranked by votes from other students in the section, and their dates import as **unverified**, because a single upload has nothing corroborating it yet.',
+          '**Teacher-verified**: published by the professor through the teacher portal. These are pinned to the top of the list and their dates import as **official**.',
+          '**Community**: uploaded by a student. These are ranked by votes from other students in the section, and their dates import as **unverified**, because a single upload has nothing corroborating it yet.',
         ],
       },
       {
@@ -462,7 +462,7 @@ export const PAGES = {
 
       { h2: 'Judging a blueprint' },
       {
-        p: 'Each entry shows who uploaded it, when, how many items it contains, how many students have imported it, and its net votes. Expanding **Preview outline** shows exactly what will be added — every assessment with its kind, date, and weight, plus whether the weights total 100%.',
+        p: 'Each entry shows who uploaded it, when, how many items it contains, how many students have imported it, and its net votes. Expanding **Preview outline** shows exactly what will be added: every assessment with its kind, date, and weight, plus whether the weights total 100%.',
       },
       {
         note: 'Blueprints from past terms are collapsed separately and hidden by default. An outline from a previous year is often close but rarely exact.',
@@ -470,7 +470,7 @@ export const PAGES = {
 
       { h2: 'Contributing' },
       {
-        p: 'Once you have a course set up, you can share your outline back so the next student in your section does not have to. Contributing earns theme credits. Only the outline is shared — never your grades, and never your name unless you choose a public handle.',
+        p: 'Once you have a course set up, you can share your outline back so the next student in your section does not have to. Contributing earns theme credits. Only the outline is shared: never your grades, and never your name unless you choose a public handle.',
       },
 
       { h2: 'Limits' },
@@ -495,7 +495,7 @@ export const PAGES = {
         ol: [
           'From Courses, choose **Add a course → Upload a syllabus**.',
           'Drop in the PDF. Most Concordia syllabi are a direct download from Moodle or the department site.',
-          'Watch the extraction — the assessments appear as they are found.',
+          'Watch the extraction: the assessments appear as they are found.',
           'Review the result, then confirm to add them to the course.',
         ],
       },
@@ -510,7 +510,7 @@ export const PAGES = {
 
       { h2: 'Always check the result' },
       {
-        note: 'Extraction is automated and it is not perfect. Check the dates and weights before you rely on them — particularly that the weights total 100%. Anything that looks wrong can be edited directly.',
+        note: 'Extraction is automated and it is not perfect. Check the dates and weights before you rely on them: particularly that the weights total 100%. Anything that looks wrong can be edited directly.',
       },
       {
         p: 'Imported dates are marked **unverified** until other students in your section confirm them. See [Provenance](/docs/provenance).',
@@ -518,7 +518,7 @@ export const PAGES = {
 
       { h2: 'Limits' },
       {
-        p: 'Syllabus uploads are rate-limited on the free plan, with the allowance resetting monthly; your current usage is shown in Settings → Usage. The Semester pass raises the limit. This is a cost control on the processing, not a paywall on the feature — the free allowance covers a normal course load.',
+        p: 'Syllabus uploads are rate-limited on the free plan, with the allowance resetting monthly; your current usage is shown in Settings → Usage. The Semester pass raises the limit. This is a cost control on the processing, not a paywall on the feature: the free allowance covers a normal course load.',
       },
     ],
   },
@@ -548,7 +548,7 @@ export const PAGES = {
         },
       },
       {
-        p: 'Unverified is not an accusation. It is the honest state of a date that one person typed in — including one you typed in yourself.',
+        p: 'Unverified is not an accusation. It is the honest state of a date that one person typed in: including one you typed in yourself.',
       },
 
       { h2: 'Where badges appear' },
@@ -558,7 +558,7 @@ export const PAGES = {
 
       { h2: 'Peer date corrections' },
       {
-        p: 'When classmates in your section move a date that you also have — a midterm pushed back a week, say — the app surfaces it as a suggestion showing the raw numbers: how many students changed it, out of how many in the section, and what they changed it to.',
+        p: 'When classmates in your section move a date that you also have: a midterm pushed back a week, say: the app surfaces it as a suggestion showing the raw numbers: how many students changed it, out of how many in the section, and what they changed it to.',
       },
       {
         note: 'Nothing changes automatically. You see **“5 of 6 classmates moved this”** and decide. A single voice reads as weak on purpose; a clear majority reads as strong. The app never invents a consensus it does not have.',
@@ -578,7 +578,7 @@ export const PAGES = {
       'How to record grades and assessment status in ConcordiaTracker, including percentage or raw-score entry.',
     blocks: [
       {
-        p: 'Grades go in on the course page, in the assessment table. Everything downstream — your course standing, the calculators, your GPA — is computed from what you enter here.',
+        p: 'Grades go in on the course page, in the assessment table. Everything downstream: your course standing, the calculators, your GPA: is computed from what you enter here.',
       },
 
       { h2: 'Two ways to type a grade' },
@@ -587,8 +587,8 @@ export const PAGES = {
       },
       {
         ul: [
-          'A **percentage** — type `85` for 85%.',
-          'A **raw score** — type `17/20` and it resolves to 85% as you type.',
+          'A **percentage**: type `85` for 85%.',
+          'A **raw score**: type `17/20` and it resolves to 85% as you type.',
         ],
       },
       {
@@ -614,7 +614,7 @@ export const PAGES = {
         },
       },
       {
-        note: 'Status is set by you and never guessed from the date. An item you finished on time still reads **Done** even if you record it weeks later — the app will not quietly mark your work late.',
+        note: 'Status is set by you and never guessed from the date. An item you finished on time still reads **Done** even if you record it weeks later: the app will not quietly mark your work late.',
       },
 
       { h2: 'Saving' },
@@ -642,7 +642,7 @@ export const PAGES = {
         p: 'Two calculators, both doing real arithmetic on your actual grades and weights. Neither estimates or guesses.',
       },
 
-      { h2: 'Grade needed — free' },
+      { h2: 'Grade needed: free' },
       {
         p: 'Pick a target letter grade and the calculator solves for the average you need across everything still ungraded.',
       },
@@ -653,12 +653,12 @@ export const PAGES = {
         note: 'This is free and stays free. Knowing what you need to pass is the question students most need answered, and it should not sit behind a payment.',
       },
 
-      { h2: 'GPA what-if — Semester pass' },
+      { h2: 'GPA what-if: Semester pass' },
       {
         p: 'The projection tool takes the opposite direction: assume a score on everything still outstanding, and see where the course and your term GPA land.',
       },
       {
-        p: 'Move the slider and both update live — the projected course percentage with its letter grade, and your projected term GPA with the change from where you are now. It is how you find out which deadline actually moves your average, which is rarely the one that feels most urgent.',
+        p: 'Move the slider and both update live: the projected course percentage with its letter grade, and your projected term GPA with the change from where you are now. It is how you find out which deadline actually moves your average, which is rarely the one that feels most urgent.',
       },
 
       { h2: 'The GPA scale' },
@@ -674,7 +674,7 @@ export const PAGES = {
     title: 'Today',
     section: 'Planning your term',
     description:
-      'Today is the ConcordiaTracker launch screen — what is due, what is next, and where your GPA stands.',
+      'Today is the ConcordiaTracker launch screen: what is due, what is next, and where your GPA stands.',
     blocks: [
       {
         p: 'Today is what opens when you sign in. It answers one question: what needs attention now.',
@@ -682,13 +682,13 @@ export const PAGES = {
 
       { h2: 'The due list' },
       {
-        p: 'The centre of the screen, grouped into Overdue, This week, and Coming up. Each row shows the title, the course, the kind of assessment, and when it is due — with overdue and same-day items coloured, and everything else deliberately calm.',
+        p: 'The centre of the screen, grouped into Overdue, This week, and Coming up. Each row shows the title, the course, the kind of assessment, and when it is due: with overdue and same-day items coloured, and everything else deliberately calm.',
       },
       { p: 'Tapping the circle on a row marks it done. It moves to a **Completed today** section with an undo, so a mis-tap costs nothing.' },
 
       { h2: 'Row actions' },
       {
-        p: 'The menu on each row opens the full editor for that item — due date and time, status, grade, and notes — or jumps to it inside its course, or deletes it. Deleting is undoable from the toast that follows.',
+        p: 'The menu on each row opens the full editor for that item: due date and time, status, grade, and notes: or jumps to it inside its course, or deletes it. Deleting is undoable from the toast that follows.',
       },
 
       { h2: 'At a glance' },
@@ -732,8 +732,8 @@ export const PAGES = {
       },
       {
         ul: [
-          '**My calendar** — your assignment deadlines and any personal tasks you add.',
-          '**Concordia** — the official academic calendar: term boundaries, exam periods, reading weeks, closures, and registration deadlines.',
+          '**My calendar**: your assignment deadlines and any personal tasks you add.',
+          '**Concordia**: the official academic calendar: term boundaries, exam periods, reading weeks, closures, and registration deadlines.',
         ],
       },
       { p: 'They are layers rather than separate tabs so you never have to check two places to find a conflict.' },
@@ -752,7 +752,7 @@ export const PAGES = {
 
       { h2: 'Personal tasks' },
       {
-        p: 'Open any day to see everything on it and add a task with its own date and time — study blocks, a group meeting, anything that is not a graded deadline. Tasks live on the My calendar layer and can be checked off or deleted.',
+        p: 'Open any day to see everything on it and add a task with its own date and time: study blocks, a group meeting, anything that is not a graded deadline. Tasks live on the My calendar layer and can be checked off or deleted.',
       },
 
       { h2: 'Adding campus events' },
@@ -774,7 +774,7 @@ export const PAGES = {
 
       { h2: 'Turning them on' },
       {
-        p: 'Enable notifications in Settings → General. Your browser or phone will ask for permission — that prompt is the operating system’s, and the app cannot send anything until you accept it.',
+        p: 'Enable notifications in Settings → General. Your browser or phone will ask for permission: that prompt is the operating system’s, and the app cannot send anything until you accept it.',
       },
       {
         note: 'On iPhone, web push requires the app to be **installed to the Home Screen** first. Open the site in Safari, tap Share, then **Add to Home Screen**, and enable notifications from there.',
@@ -807,7 +807,7 @@ export const PAGES = {
       'Community is a feed of Concordia campus events from student organizations, with follows, program relevance, and one-tap calendar adds.',
     blocks: [
       {
-        p: 'Community answers a different question from the rest of the app: what is happening around you that is not your own coursework. It is an events feed, not a social network — there are no posts, comments, or friend requests.',
+        p: 'Community answers a different question from the rest of the app: what is happening around you that is not your own coursework. It is an events feed, not a social network: there are no posts, comments, or friend requests.',
       },
 
       { h2: 'The events feed' },
@@ -815,7 +815,7 @@ export const PAGES = {
         p: 'Events are published by student organizations and university offices. Each shows its host, category, date and time, whether it is in person or online, and where.',
       },
       {
-        p: 'Filter by category, or switch on **For my program** to show only events relevant to what you study — matched against the program on your profile, so keeping that accurate makes the filter better.',
+        p: 'Filter by category, or switch on **For my program** to show only events relevant to what you study: matched against the program on your profile, so keeping that accurate makes the filter better.',
       },
 
       { h2: 'Event pages' },
@@ -825,16 +825,16 @@ export const PAGES = {
 
       { h2: 'Organizations' },
       {
-        p: 'Every host has a profile with its bio, links, upcoming and past events. A blue seal marks a verified organization — an account confirmed as genuinely representing that group.',
+        p: 'Every host has a profile with its bio, links, upcoming and past events. A blue seal marks a verified organization: an account confirmed as genuinely representing that group.',
       },
       { p: 'Following an organization keeps its events in view and can notify you when it posts. Manage who you follow from the Following list in the Community header.' },
 
       { h2: 'Finding people' },
       {
-        p: 'Search covers both organizations and students. Only **public** profiles appear — yours is private until you turn it on in Settings → Privacy, and a private profile is genuinely unsearchable rather than merely hidden.',
+        p: 'Search covers both organizations and students. Only **public** profiles appear: yours is private until you turn it on in Settings → Privacy, and a private profile is genuinely unsearchable rather than merely hidden.',
       },
       {
-        note: 'Follower counts are public. Follower **lists** are not, and cannot be retrieved — nobody can enumerate who follows whom.',
+        note: 'Follower counts are public. Follower **lists** are not, and cannot be retrieved: nobody can enumerate who follows whom.',
       },
     ],
   },
@@ -869,12 +869,12 @@ export const PAGES = {
 
       { h2: 'Price' },
       {
-        p: 'All prices are in **Canadian dollars** and are the same for everyone — no currency conversion at checkout.',
+        p: 'All prices are in **Canadian dollars** and are the same for everyone: no currency conversion at checkout.',
       },
       {
         ul: [
-          '**Semester pass — $15 CAD**, renewing every four months, which is the length of a Concordia term.',
-          '**Monthly — $5 CAD**, renewing monthly.',
+          '**Semester pass: $15 CAD**, renewing every four months, which is the length of a Concordia term.',
+          '**Monthly: $5 CAD**, renewing monthly.',
         ],
       },
       {
@@ -889,7 +889,7 @@ export const PAGES = {
 
       { h2: 'Switching plans' },
       {
-        p: 'Switching from monthly to the Semester pass carries your remaining paid days across — you are never charged twice for the same period.',
+        p: 'Switching from monthly to the Semester pass carries your remaining paid days across: you are never charged twice for the same period.',
       },
 
       { h2: 'If you stop paying' },
@@ -916,12 +916,12 @@ export const PAGES = {
 
       { h2: 'Subscribing' },
       {
-        p: 'Choose a plan in Settings → Billing and complete checkout in place — no redirect to another site. Your plan activates immediately, starting with the [free trial](/docs/plans).',
+        p: 'Choose a plan in Settings → Billing and complete checkout in place: no redirect to another site. Your plan activates immediately, starting with the [free trial](/docs/plans).',
       },
 
       { h2: 'Auto-renewal' },
       {
-        note: 'Subscriptions **renew automatically** at the end of each period — every four months for the Semester pass, monthly for the monthly plan — until you cancel. This is stated at checkout and in Settings → Billing.',
+        note: 'Subscriptions **renew automatically** at the end of each period: every four months for the Semester pass, monthly for the monthly plan: until you cancel. This is stated at checkout and in Settings → Billing.',
       },
 
       { h2: 'Updating your card' },
@@ -944,7 +944,7 @@ export const PAGES = {
 
       { h2: 'Refunds and problems' },
       {
-        p: 'If something went wrong with a charge, email [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) from the address on the account. Please write before disputing a charge with your bank — a dispute is slower for you and costly for us, and almost everything can be sorted out directly.',
+        p: 'If something went wrong with a charge, email [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) from the address on the account. Please write before disputing a charge with your bank: a dispute is slower for you and costly for us, and almost everything can be sorted out directly.',
       },
     ],
   },
@@ -953,7 +953,7 @@ export const PAGES = {
     title: 'Settings',
     section: 'Account & billing',
     description:
-      'ConcordiaTracker settings — themes, language, notifications, account details, and usage.',
+      'ConcordiaTracker settings: themes, language, notifications, account details, and usage.',
     blocks: [
       {
         p: 'Settings opens as a panel over whatever you are doing, from the gear beside your profile or the profile menu. Five sections.',
@@ -964,7 +964,7 @@ export const PAGES = {
         p: 'Themes, language, notifications, and update notes.',
       },
       {
-        p: 'There are **four themes** — Refined Dark, Concordia Maroon, Light, and Purple Dark. Choosing one animates the change outward from the swatch you clicked. Language is English or French, and switching updates the whole interface including dates.',
+        p: 'There are **four themes**: Refined Dark, Concordia Maroon, Light, and Purple Dark. Choosing one animates the change outward from the swatch you clicked. Language is English or French, and switching updates the whole interface including dates.',
       },
 
       { h2: 'Account' },
@@ -982,7 +982,7 @@ export const PAGES = {
 
       { h2: 'Usage' },
       {
-        p: 'What you have used this month against your plan’s limits — syllabus uploads, blueprint imports, and which features are locked.',
+        p: 'What you have used this month against your plan’s limits: syllabus uploads, blueprint imports, and which features are locked.',
       },
 
       { h2: 'Keyboard' },
@@ -1011,7 +1011,7 @@ export const PAGES = {
       },
       {
         ul: [
-          'A course **outline** you contribute as a blueprint — assessments, dates, and weights, with no grades attached.',
+          'A course **outline** you contribute as a blueprint: assessments, dates, and weights, with no grades attached.',
           'Your profile, if you switch it to public. Private is the default, and a private profile is genuinely unsearchable.',
           'Your follower count, if your profile is public. Your follower list is never retrievable by anyone.',
         ],
@@ -1053,7 +1053,7 @@ export const PAGES = {
 
       { h2: '1. Request access' },
       {
-        p: 'Go to [concordiatracker.com/teacher/request](/teacher/request) and fill in your name, your Concordia email, and what you teach. Use your university address — it is how we confirm you are faculty.',
+        p: 'Go to [concordiatracker.com/teacher/request](/teacher/request) and fill in your name, your Concordia email, and what you teach. Use your university address: it is how we confirm you are faculty.',
       },
       {
         p: 'You will get a **case number** back, something like `REQ-1043`. Keep it: the same page has a **Check a request** tab where you can enter it to see where your request stands.',
@@ -1072,7 +1072,7 @@ export const PAGES = {
 
       { h2: '3. Find your way around' },
       {
-        p: 'The teacher portal has its own layout — a sidebar of your courses, each expanding to its own sections. It is deliberately plainer than the student app; it is a publishing tool, not a dashboard.',
+        p: 'The teacher portal has its own layout: a sidebar of your courses, each expanding to its own sections. It is deliberately plainer than the student app; it is a publishing tool, not a dashboard.',
       },
 
       { h2: '4. Link your courses' },
@@ -1088,7 +1088,7 @@ export const PAGES = {
         p: 'Set the instructor name, TA, meeting times, office hours, location, credits, and a syllabus link. Students see all of it on the course page, and **Preview as student** shows you exactly what they see.',
       },
       {
-        p: 'Credits are worth getting right — they weight the course in every student’s GPA.',
+        p: 'Credits are worth getting right: they weight the course in every student’s GPA.',
       },
 
       {
@@ -1117,15 +1117,15 @@ export const PAGES = {
       'How to build, preview, and publish a course outline so your students import verified dates, and how to post announcements.',
     blocks: [
       {
-        p: 'Publishing an outline is the highest-value thing you can do here. It replaces every student in your section separately transcribing your syllabus — and it makes their dates **official** instead of guesses.',
+        p: 'Publishing an outline is the highest-value thing you can do here. It replaces every student in your section separately transcribing your syllabus: and it makes their dates **official** instead of guesses.',
       },
 
       { h2: '1. Build the outline' },
       { p: 'Two ways, and you can mix them:' },
       {
         ul: [
-          '**Upload your syllabus** — the PDF is read for you and the assessments, dates, and weights are filled in.',
-          '**Enter it manually** — add a row at a time with a kind, title, due date, and weight.',
+          '**Upload your syllabus**: the PDF is read for you and the assessments, dates, and weights are filled in.',
+          '**Enter it manually**: add a row at a time with a kind, title, due date, and weight.',
         ],
       },
       {
@@ -1134,7 +1134,7 @@ export const PAGES = {
 
       { h2: '2. Adopt a student outline instead' },
       {
-        p: 'If students in your section have already uploaded one, the community blueprints panel lists them. Expand **Review** to see the full dated list first — never verify one blind.',
+        p: 'If students in your section have already uploaded one, the community blueprints panel lists them. Expand **Review** to see the full dated list first: never verify one blind.',
       },
       {
         p: 'Adopting it makes it your outline, promotes its dates to **official**, and removes it from the community pool. It is often faster than starting from scratch, since a student has usually already done the transcription.',
@@ -1142,7 +1142,7 @@ export const PAGES = {
 
       { h2: '3. Preview as a student' },
       {
-        p: '**Preview as student** opens the real course view your students will see — the same components, filled with your outline. Check the dates and weights here before publishing.',
+        p: '**Preview as student** opens the real course view your students will see: the same components, filled with your outline. Check the dates and weights here before publishing.',
       },
 
       { h2: '4. Publish' },
@@ -1150,7 +1150,7 @@ export const PAGES = {
         p: 'Publishing makes your outline the **teacher-verified blueprint** for that course and section. It is pinned above community uploads, and students who import it get dates marked official.',
       },
       {
-        note: 'Publishing is **live**. Editing a published outline updates what students see immediately — there is no separate draft-then-release step. Get it right in preview first.',
+        note: 'Publishing is **live**. Editing a published outline updates what students see immediately: there is no separate draft-then-release step. Get it right in preview first.',
       },
 
       { h2: '5. Post an announcement' },
@@ -1158,7 +1158,7 @@ export const PAGES = {
         p: 'The announcement composer posts to every student enrolled in that course. It appears on their Today screen and on the course page, with the date it was posted.',
       },
       {
-        p: 'Announcements can be edited or deleted afterwards, and an edit is visibly marked as edited — so a corrected deadline never looks like it was always that way.',
+        p: 'Announcements can be edited or deleted afterwards, and an edit is visibly marked as edited: so a corrected deadline never looks like it was always that way.',
       },
 
       { h2: 'What students cannot see' },
@@ -1175,7 +1175,7 @@ export const PAGES = {
       'Step-by-step: request access to the ConcordiaTracker organizer portal, set up your public profile, and invite your team.',
     blocks: [
       {
-        p: 'From no account to a public profile students can follow. Worth doing properly once — your profile is what every event you post is attached to.',
+        p: 'From no account to a public profile students can follow. Worth doing properly once: your profile is what every event you post is attached to.',
       },
 
       { h2: '1. Request access' },
@@ -1197,11 +1197,11 @@ export const PAGES = {
       },
       {
         ul: [
-          '**Name and handle** — the handle is your permanent URL, so pick it deliberately.',
-          '**Bio** — a couple of lines on who you are and what you run. Multi-line is supported.',
-          '**Logo and banner** — the logo appears on every event card; the banner heads your profile.',
-          '**Brand colour** — used for your event cards when an event has no image of its own.',
-          '**Links** — website, Instagram, X, LinkedIn. Only the ones you fill in are shown.',
+          '**Name and handle**: the handle is your permanent URL, so pick it deliberately.',
+          '**Bio**: a couple of lines on who you are and what you run. Multi-line is supported.',
+          '**Logo and banner**: the logo appears on every event card; the banner heads your profile.',
+          '**Brand colour**: used for your event cards when an event has no image of its own.',
+          '**Links**: website, Instagram, X, LinkedIn. Only the ones you fill in are shown.',
         ],
       },
       {
@@ -1210,7 +1210,7 @@ export const PAGES = {
 
       { h2: '4. Get verified' },
       {
-        p: 'Verified organizations show a blue seal, which tells students the account genuinely represents your group. Verification is granted by an administrator — reach out once your profile is filled in.',
+        p: 'Verified organizations show a blue seal, which tells students the account genuinely represents your group. Verification is granted by an administrator: reach out once your profile is filled in.',
       },
 
       { h2: '5. Invite your team' },
@@ -1254,14 +1254,14 @@ export const PAGES = {
       { p: 'From your dashboard choose **Create event** and fill in:' },
       {
         ul: [
-          '**Title** — specific beats clever. Students scan the feed quickly.',
-          '**Date and time** — pick both; the time drives where it lands in the day.',
-          '**Mode** — in person or online. In-person events show a location; online ones show joining details.',
-          '**Location** — the building and room, or the platform.',
-          '**Description** — what it is, who it is for, and whether newcomers are welcome.',
-          '**Category** — clubs, career, academic, or official. This drives the feed filters.',
-          '**Banner image** — optional. Without one your card uses your brand colour and initials, which still looks intentional.',
-          '**Relevant programs** — optional. Tagging programs makes the event show for students in them under **For my program**.',
+          '**Title**: specific beats clever. Students scan the feed quickly.',
+          '**Date and time**: pick both; the time drives where it lands in the day.',
+          '**Mode**: in person or online. In-person events show a location; online ones show joining details.',
+          '**Location**: the building and room, or the platform.',
+          '**Description**: what it is, who it is for, and whether newcomers are welcome.',
+          '**Category**: clubs, career, academic, or official. This drives the feed filters.',
+          '**Banner image**: optional. Without one your card uses your brand colour and initials, which still looks intentional.',
+          '**Relevant programs**: optional. Tagging programs makes the event show for students in them under **For my program**.',
         ],
       },
 
@@ -1272,17 +1272,17 @@ export const PAGES = {
 
       { h2: '3. Publish' },
       {
-        p: 'Publishing puts it in the Community feed and on your public profile. Every event also gets a **public link that anyone can open without an account** — paste it into Instagram, a group chat, or a poster QR code.',
+        p: 'Publishing puts it in the Community feed and on your public profile. Every event also gets a **public link that anyone can open without an account**: paste it into Instagram, a group chat, or a poster QR code.',
       },
 
       { h2: '4. Notify your followers' },
       {
-        p: 'Once approved, you can notify followers when you post something new. Use it deliberately — a group that notifies on everything gets unfollowed.',
+        p: 'Once approved, you can notify followers when you post something new. Use it deliberately: a group that notifies on everything gets unfollowed.',
       },
 
       { h2: '5. Read your reach' },
       {
-        p: 'The dashboard reports followers, calendar adds, event follows, and views. **Calendar adds are the number worth watching** — a view is a glance, but adding an event to a calendar is a student telling you they intend to come.',
+        p: 'The dashboard reports followers, calendar adds, event follows, and views. **Calendar adds are the number worth watching**: a view is a glance, but adding an event to a calendar is a student telling you they intend to come.',
       },
       {
         note: 'Metrics are **aggregate only**. You can never see which individual students viewed, followed, or added an event, and there is no tier that changes that.',
@@ -1371,13 +1371,13 @@ export const PAGES = {
 
       { h2: 'Your team' },
       {
-        p: 'Invite teammates with a shareable single-use link and assign roles. Useful when an executive team turns over each year — remove the outgoing members, invite the incoming ones, and the account continues.',
+        p: 'Invite teammates with a shareable single-use link and assign roles. Useful when an executive team turns over each year: remove the outgoing members, invite the incoming ones, and the account continues.',
       },
     ],
   },
 }
 
-/** Flattened page order — drives prev/next and the sitemap. */
+/** Flattened page order: drives prev/next and the sitemap. */
 export function flatten() {
   const out = []
   for (const group of NAV) {

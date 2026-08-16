@@ -170,7 +170,7 @@ function UserRow({ u, open, onToggle, onChanged }: { u: AdminUser; open: boolean
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Private admin notes — e.g. VIP, refunded, flagged…"
+              placeholder="Private admin notes: e.g. VIP, refunded, flagged…"
               className="mt-1.5 w-full resize-y rounded-md border border-border bg-surface-2 px-2.5 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
             <div className="mt-2 flex justify-end">

@@ -79,7 +79,7 @@ export function BlueprintContributeModal({
           <p className="mt-3 text-[12px] text-subtle">
             We share every assessment, weight, and deadline you've added. Shared dates land as
             <span className="text-prov-unverified"> unverified</span> until classmates
-            confirm them — contributors earn theme credits.
+            confirm them: contributors earn theme credits.
           </p>
           <div className="mt-4 flex items-center justify-end gap-2">
             <button

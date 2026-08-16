@@ -536,7 +536,7 @@ export function optionalCols(
       const { error } = await client.from(table).select(cols.join(', ')).limit(1)
       if (error?.code === '42703') {
         console.warn(
-          `[schema] ${table} is missing ${cols.join(', ')} — a migration is pending. ` +
+          `[schema] ${table} is missing ${cols.join(', ')}: a migration is pending. ` +
             'Continuing without those columns.',
         )
         return false

@@ -86,7 +86,7 @@ function TeamView({
       <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Team</h1>
       <p className="text-[13px] text-subtle">People who can manage this org's events and profile.</p>
 
-      {/* Invite — only for those allowed to manage the team */}
+      {/* Invite: only for those allowed to manage the team */}
       {canManage && (
       <div className="mt-5 rounded-xl border border-border bg-surface p-4">
         <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
@@ -109,8 +109,8 @@ function TeamView({
               value={role}
               onChange={(v) => setRoleState(v as OrgRole)}
               options={[
-                { value: 'admin', label: 'Admin — can edit' },
-                { value: 'member', label: 'Member — listed' },
+                { value: 'admin', label: 'Admin: can edit' },
+                { value: 'member', label: 'Member: listed' },
               ]}
             />
           </label>
@@ -122,7 +122,7 @@ function TeamView({
         <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-subtle">
           <Lock size={12} className="mt-0.5 shrink-0" aria-hidden />
           Admins get the full dashboard; members can view. Fine-tune anyone's permissions below.
-          Invite emails are stubbed — share the generated link directly.
+          Invite emails are stubbed: share the generated link directly.
         </p>
       </div>
       )}
@@ -273,7 +273,7 @@ function MemberRow({
         <span className="shrink-0 text-[11px] text-subtle">
           {invited ? 'Awaiting acceptance' : joinedLabel(member.joinedDaysAgo)}
         </span>
-        {/* Permissions (Discord-style) — owners hold everything, immutably */}
+        {/* Permissions (Discord-style): owners hold everything, immutably */}
         {canManage && !locked && (
           <button
             type="button"
@@ -397,7 +397,7 @@ function ActivityTrail({ orgId, real }: { orgId: string; real: boolean }) {
         </p>
       ) : rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-5 text-center text-[12.5px] text-subtle">
-          Nothing yet — actions your team takes (posting events, editing the profile, team changes)
+          Nothing yet: actions your team takes (posting events, editing the profile, team changes)
           show up here.
         </p>
       ) : (

@@ -194,7 +194,7 @@ export function OrganizerLayout() {
               <FlaskConical size={14} className="shrink-0" aria-hidden />
               <span>
                 <strong className="font-semibold">Demo mode.</strong> You're exploring a sample
-                portal — nothing you do here is saved or affects the real site.
+                portal: nothing you do here is saved or affects the real site.
               </span>
               <button
                 type="button"
@@ -211,7 +211,7 @@ export function OrganizerLayout() {
           <Outlet />
         </main>
 
-        {/* Mobile bottom nav — in-flow (not fixed), same pattern as the student app */}
+        {/* Mobile bottom nav: in-flow (not fixed), same pattern as the student app */}
         <nav className="flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink

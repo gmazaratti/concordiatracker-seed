@@ -64,7 +64,7 @@ export function WidgetGallery({
       </p>
       {layout.length === 0 ? (
         <p className="mb-3 rounded-lg border border-dashed border-border px-3 py-2.5 text-[12.5px] text-subtle">
-          No widgets. Your due list is still here — add anything below to fill the rail.
+          No widgets. Your due list is still here: add anything below to fill the rail.
         </p>
       ) : (
         <ul className="mb-3 flex flex-col gap-1.5">
@@ -161,7 +161,7 @@ export function WidgetGallery({
 
       {full && (
         <p className="mt-2 text-[11.5px] text-subtle">
-          {MAX_WIDGETS} widgets is the cap — remove one to add another. Today stays
+          {MAX_WIDGETS} widgets is the cap: remove one to add another. Today stays
           glanceable on purpose.
         </p>
       )}
@@ -182,7 +182,7 @@ export function WidgetGallery({
           Below the due list
         </p>
         <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
-          Fills the space under your deadlines — useful on a light term, when the
+          Fills the space under your deadlines: useful on a light term, when the
           side column is otherwise much taller than the list.
         </p>
         <BandZone layout={belowLayout} onChange={onBelowChange} ctx={ctx} max={MAX_BELOW} />

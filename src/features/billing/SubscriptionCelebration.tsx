@@ -62,13 +62,13 @@ export function SubscriptionCelebration() {
           <p className="mx-auto mt-2.5 max-w-md text-[14.5px] leading-relaxed text-muted">
             {status.stacked ? (
               <>
-                Your {semester ? 'semester pass' : 'monthly plan'} is active — and the time you had
+                Your {semester ? 'semester pass' : 'monthly plan'} is active: and the time you had
                 left <span className="font-semibold text-fg">carried straight over</span>. Nothing
                 lost.
               </>
             ) : (
               <>
-                Thank you — genuinely. You&rsquo;re backing something built by a Concordia student,
+                Thank you: genuinely. You&rsquo;re backing something built by a Concordia student,
                 for Concordia students.
               </>
             )}
@@ -82,7 +82,7 @@ export function SubscriptionCelebration() {
 
           {/* What they just unlocked */}
           <ul className="mx-auto mt-5 max-w-sm space-y-2 text-left">
-            <Perk icon={TrendingUp}>GPA predictor — see where you land before you get there</Perk>
+            <Perk icon={TrendingUp}>GPA predictor: see where you land before you get there</Perk>
             <Perk icon={Sparkles}>Unlimited syllabus scans</Perk>
             <Perk icon={Check}>Every feature, all term</Perk>
           </ul>

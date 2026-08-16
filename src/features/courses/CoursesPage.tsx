@@ -50,7 +50,7 @@ export function CoursesPage() {
         </div>
         <div className="flex items-center gap-2">
           {!showPast && <ViewToggle view={coursesView} onChange={setCoursesView} />}
-          {/* Shortcut straight to the blueprint browser — the real import path
+          {/* Shortcut straight to the blueprint browser: the real import path
               (find a classmate's/teacher's outline). */}
           <Link
             to="/app/courses/blueprints"

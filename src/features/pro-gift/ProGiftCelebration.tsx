@@ -69,7 +69,7 @@ export function ProGiftCelebration() {
           </h2>
           <p className="mx-auto mt-2.5 max-w-md text-[14.5px] leading-relaxed text-muted">
             {firstName} upgraded you to <span className="font-semibold text-fg">ConcordiaTracker Pro</span>{' '}
-            — personally, and on the house. No charge, no catch. It genuinely means a lot that
+           : personally, and on the house. No charge, no catch. It genuinely means a lot that
             you&rsquo;re here early, and this is our way of saying <span className="font-medium text-fg">thank you</span> for
             supporting what we&rsquo;re building.
           </p>
@@ -77,15 +77,15 @@ export function ProGiftCelebration() {
           <div className="mx-auto mt-4 flex max-w-md items-center gap-2.5 rounded-xl border border-accent/40 bg-accent-soft/40 p-3 text-left">
             <Sparkles className="size-5 shrink-0 text-accent" aria-hidden />
             <p className="text-[12.5px] leading-relaxed text-fg">
-              Everything&rsquo;s unlocked now — the GPA predictor, unlimited syllabus scans, and every
+              Everything&rsquo;s unlocked now: the GPA predictor, unlimited syllabus scans, and every
               other Pro feature.
             </p>
           </div>
 
-          {/* Invite others — their referral link */}
+          {/* Invite others: their referral link */}
           <div className="mx-auto mt-3 max-w-md text-left">
             <p className="mb-1.5 text-[12.5px] text-muted">
-              Pay it forward? Share your link — every friend who joins takes{' '}
+              Pay it forward? Share your link: every friend who joins takes{' '}
               <span className="font-semibold text-fg">${REFERRAL_SIGNUP_CREDIT.toFixed(2)}</span> off a
               future term ({' '}
               <span className="font-semibold text-fg">${REFERRAL_PAYING_CREDIT.toFixed(2)}</span> if they
@@ -106,7 +106,7 @@ export function ProGiftCelebration() {
               }}
               className="inline-flex items-center gap-1 text-[13px] font-medium text-accent transition-colors hover:underline"
             >
-              Help shape what&rsquo;s next — take the 2-min survey
+              Help shape what&rsquo;s next: take the 2-min survey
               <ArrowRight size={14} aria-hidden />
             </button>
           </div>

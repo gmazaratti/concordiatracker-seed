@@ -54,7 +54,7 @@ export function PublicSurveyResults() {
   if (err || !data) {
     return (
       <div className="rounded-xl border border-border bg-surface p-5 text-[13px] text-muted">
-        Couldn&rsquo;t load{err ? ` — ${err}` : ''}. If this persists, run{' '}
+        Couldn&rsquo;t load{err ? `: ${err}` : ''}. If this persists, run{' '}
         <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/public_survey.sql</code>.
       </div>
     )
@@ -67,7 +67,7 @@ export function PublicSurveyResults() {
         </span>
         <h3 className="mt-3.5 text-[15px] font-semibold text-fg">No responses yet</h3>
         <p className="mx-auto mt-1 max-w-sm text-[13px] leading-relaxed text-subtle">
-          Share <code className="rounded bg-surface-2 px-1">concordiatracker.com/survey</code> — add{' '}
+          Share <code className="rounded bg-surface-2 px-1">concordiatracker.com/survey</code>: add{' '}
           <code className="rounded bg-surface-2 px-1">?src=instagram</code> to see which channel each
           response came from.
         </p>

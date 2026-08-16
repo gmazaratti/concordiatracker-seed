@@ -70,7 +70,7 @@ export const CHOICE_QUESTIONS: ChoiceQ[] = [
     id: 'tools',
     label: 'What do you use right now to stay organized? (pick any)',
     options: [
-      'Nothing — I just remember',
+      'Nothing: I just remember',
       'Phone calendar',
       'Notes app',
       'Notion',
@@ -83,7 +83,7 @@ export const CHOICE_QUESTIONS: ChoiceQ[] = [
   },
   {
     id: 'missed',
-    label: 'Have you ever missed — or nearly missed — something because you didn’t know it was due?',
+    label: 'Have you ever missed: or nearly missed: something because you didn’t know it was due?',
     options: ['Yes, missed it', 'Nearly missed it', 'No, never'],
   },
   {
@@ -113,7 +113,7 @@ export const TEXT_QUESTIONS: TextQ[] = [
   {
     id: 'frustration',
     label: 'What’s the single most annoying thing about staying organized at Concordia?',
-    placeholder: 'Be blunt — this is the most useful answer on the page.',
+    placeholder: 'Be blunt: this is the most useful answer on the page.',
   },
   {
     id: 'wish',
@@ -191,7 +191,7 @@ export function buildPitch(a: PublicSurveyAnswers): Pitch[] {
       (r.uncertainty ?? 0) * 2,
       'You’re often unsure what’s due',
       'Upload the syllabus once',
-      'Every date and weight comes out structured — and each one is tagged with whether it came from your professor or a classmate.',
+      'Every date and weight comes out structured: and each one is tagged with whether it came from your professor or a classmate.',
     )
   }
   if ((r.grade_clarity ?? 3) <= 2) {
@@ -209,7 +209,7 @@ export function buildPitch(a: PublicSurveyAnswers): Pitch[] {
       (r.scattered ?? 0) * 1.5,
       'Your course info is scattered',
       'One screen instead of five',
-      'Moodle, eConcordia, PDFs and email end up in one place — next to Concordia’s real add/drop and exam dates.',
+      'Moodle, eConcordia, PDFs and email end up in one place: next to Concordia’s real add/drop and exam dates.',
     )
   }
   if (has(a, 'missed', 'missed')) {
@@ -255,7 +255,7 @@ export function buildPitch(a: PublicSurveyAnswers): Pitch[] {
 /** One-line summary above the cards, matched to their sharpest pain. */
 export function pitchHeadline(pitches: Pitch[]): string {
   if (pitches.length === 0) {
-    return 'Sounds like you’ve got a system that works — genuinely, that’s rarer than you’d think.'
+    return 'Sounds like you’ve got a system that works: genuinely, that’s rarer than you’d think.'
   }
   return 'What would change for you'
 }

@@ -114,7 +114,7 @@ export function ProgramPicker({
             lg ? 'px-4 py-3 text-[16px]' : 'px-3 py-2 text-[13px]',
           )}
         />
-        <p className="mt-1.5 text-[12px] text-subtle">We’ll add programs we’re missing — thanks for flagging it.</p>
+        <p className="mt-1.5 text-[12px] text-subtle">We’ll add programs we’re missing: thanks for flagging it.</p>
         <button
           type="button"
           disabled={!otherText.trim()}
@@ -182,7 +182,7 @@ export function ProgramPicker({
 
       <ul id={listId} role="listbox" className="mt-2 max-h-[46vh] space-y-1 overflow-y-auto sm:max-h-72">
         {query.trim() && results.length === 0 && (
-          <li className="px-1 py-2 text-[13px] text-subtle">No match — choose “Other” below.</li>
+          <li className="px-1 py-2 text-[13px] text-subtle">No match: choose “Other” below.</li>
         )}
         {results.map((p, i) => (
           <li key={p.id} role="option" aria-selected={i === active}>

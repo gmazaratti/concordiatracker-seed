@@ -25,7 +25,7 @@ export function PublicEventPage() {
 
   usePageMeta({
     title: event ? `${event.title} · ConcordiaTracker` : 'Event · ConcordiaTracker',
-    description: event ? `${event.title} — hosted by ${event.org.name}. View on ConcordiaTracker.` : undefined,
+    description: event ? `${event.title}: hosted by ${event.org.name}. View on ConcordiaTracker.` : undefined,
     path: `/e/${eventId ?? ''}`,
   })
 

@@ -37,7 +37,7 @@ export function SurveyTab() {
         ) : (
           <>
             <p className="mb-4 text-[13px] leading-relaxed text-muted">
-              A few questions about how you handle deadlines in general — not about this app. It
+              A few questions about how you handle deadlines in general: not about this app. It
               helps me understand what students actually struggle with.
             </p>
             <PublicSurveyForm compact onDone={setSentHabits} />
@@ -52,7 +52,7 @@ export function SurveyTab() {
       <SurveyCard
         icon={Gift}
         title="About the app"
-        description="How ConcordiaTracker is working for you — what's good, what's broken, what's missing."
+        description="How ConcordiaTracker is working for you: what's good, what's broken, what's missing."
         meta="~2 min · 3 days of Pro when you finish"
         done={!!uiState.surveyDone}
         onOpen={() => setOpen('product')}
@@ -60,7 +60,7 @@ export function SurveyTab() {
       <SurveyCard
         icon={ClipboardList}
         title="About your habits"
-        description="How you keep track of deadlines and grades in general — nothing to do with this app."
+        description="How you keep track of deadlines and grades in general: nothing to do with this app."
         meta="~2 min"
         done={!!sentHabits}
         onOpen={() => setOpen('habits')}

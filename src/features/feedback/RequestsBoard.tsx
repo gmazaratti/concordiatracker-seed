@@ -187,7 +187,7 @@ export function RequestsBoard() {
         </div>
       ) : sorted.length === 0 ? (
         <p className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-[13px] text-subtle">
-          No requests yet — be the first to suggest one.
+          No requests yet: be the first to suggest one.
         </p>
       ) : (
         <ul className="space-y-3">

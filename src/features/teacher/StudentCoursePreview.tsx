@@ -54,7 +54,7 @@ export function StudentCoursePreview({
             Back to workspace
           </button>
           <span className="hidden text-[12px] text-subtle sm:block">
-            Student preview — class details are editable; grades are each student's own.
+            Student preview: class details are editable; grades are each student's own.
           </span>
           <button
             type="button"
@@ -88,7 +88,7 @@ function ReadOnlyAssessments({ assessments }: { assessments: Assessment[] }) {
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-border px-4 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        Assessments — what students import
+        Assessments: what students import
       </div>
       {assessments.length === 0 ? (
         <p className="px-4 py-8 text-center text-[13px] text-subtle">No assessments yet.</p>

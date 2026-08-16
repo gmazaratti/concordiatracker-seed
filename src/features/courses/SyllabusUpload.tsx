@@ -70,7 +70,7 @@ function usageState(u: ParseUsage): { remaining: number; blocked: boolean; messa
   if (u.used >= u.limit) return { remaining, blocked: true, message: `You've used all ${u.limit} uploads this month.` }
   if (u.cooldownUntil) {
     const ms = new Date(u.cooldownUntil).getTime() - Date.now()
-    if (ms > 0) return { remaining, blocked: true, message: `Just uploaded — try again in ${Math.ceil(ms / 60000)} min.` }
+    if (ms > 0) return { remaining, blocked: true, message: `Just uploaded: try again in ${Math.ceil(ms / 60000)} min.` }
   }
   return { remaining, blocked: false, message: null }
 }
@@ -147,7 +147,7 @@ export function SyllabusUploadPage() {
     })
     if (!id) {
       setSaving(false)
-      setError('Couldn’t create the course — try again.')
+      setError('Couldn’t create the course: try again.')
       setPhase('error')
       return
     }
@@ -197,7 +197,7 @@ export function SyllabusUploadPage() {
             <Sparkles size={18} className="text-accent" aria-hidden /> Upload a syllabus
           </h1>
           <p className="mt-1 text-[13px] text-muted">
-            Drop your syllabus PDF — we’ll pull out the course details and every assessment for you to review.
+            Drop your syllabus PDF: we’ll pull out the course details and every assessment for you to review.
           </p>
         </>
       )}
@@ -259,7 +259,7 @@ export function SyllabusUploadPage() {
               {undated > 0 && (
                 <p className="mb-2 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-1.5 text-[12px] font-medium text-warning">
                   <AlertTriangle size={14} aria-hidden />
-                  {undated} {undated === 1 ? 'item has' : 'items have'} no date — set or remove{' '}
+                  {undated} {undated === 1 ? 'item has' : 'items have'} no date: set or remove{' '}
                   {undated === 1 ? 'it' : 'them'} to add.
                 </p>
               )}
@@ -467,7 +467,7 @@ function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p:
         </button>
       </div>
 
-      {/* Labeled Due + Weight — the at-a-glance indicators */}
+      {/* Labeled Due + Weight: the at-a-glance indicators */}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-0.5">
         <Labeled label="Due">
           {noDate ? (

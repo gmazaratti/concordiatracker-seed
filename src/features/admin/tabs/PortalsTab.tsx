@@ -81,7 +81,7 @@ export function PortalsTab() {
         </Panel>
       </div>
 
-      {/* Invites — kept visible so you can see who's opened a link (before signup). */}
+      {/* Invites: kept visible so you can see who's opened a link (before signup). */}
       <OrgInvitesPanel />
 
       {/* Creating a fresh org is rare → tucked behind a toggle so it doesn't

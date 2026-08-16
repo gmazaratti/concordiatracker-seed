@@ -140,7 +140,7 @@ function AddAction({ added, onAdd, title }: { added: boolean; onAdd: () => void;
       <Link
         to="/app/calendar"
         data-tour="event-add"
-        aria-label="Added to your calendar — view in calendar"
+        aria-label="Added to your calendar: view in calendar"
         className="inline-flex items-center gap-1.5 rounded-lg bg-success/15 px-2.5 py-1.5 text-[12px] font-medium text-success transition-colors duration-150 hover:bg-success/25"
       >
         <CalendarCheck size={14} aria-hidden />

@@ -49,7 +49,7 @@ export function TranscriptView() {
           <h3 className="mt-3.5 text-[15px] font-semibold text-fg">No past semesters yet</h3>
           <p className="mx-auto mt-1 max-w-sm text-[13px] leading-relaxed text-subtle">
             Finished a term? Archive its courses and they&rsquo;ll appear here with your term GPA. Studied
-            before you found ConcordiaTracker? Add those courses by hand — just the final grade.
+            before you found ConcordiaTracker? Add those courses by hand: just the final grade.
           </p>
           <Button className="mt-4" size="sm" onClick={() => setAdding(true)}>
             <Plus size={15} aria-hidden />

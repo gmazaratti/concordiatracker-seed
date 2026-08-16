@@ -51,9 +51,9 @@ const privacy: LegalDoc = {
           kind: 'list',
           items: [
             { label: 'Identification', text: 'Email address, display name, and profile picture (via Google OAuth).' },
-            { label: 'Academic Data', text: 'Course names, assignment titles, weights, due dates, and grades — all entered voluntarily by the user.' },
+            { label: 'Academic Data', text: 'Course names, assignment titles, weights, due dates, and grades: all entered voluntarily by the user.' },
             { label: 'Technical Data', text: 'Our hosting and database providers process your IP address and browser information to keep the service secure and to mitigate abuse. We do not store your IP address ourselves, and it is never used for analytics or advertising.' },
-            { label: 'Usage Statistics', text: 'Anonymous statistics about how the service is used — see Usage Analytics below for exactly what is and is not recorded.' },
+            { label: 'Usage Statistics', text: 'Anonymous statistics about how the service is used: see Usage Analytics below for exactly what is and is not recorded.' },
           ],
         },
       ],
@@ -177,9 +177,9 @@ const privacy: LegalDoc = {
         {
           kind: 'list',
           items: [
-            { label: 'Anonymous identifiers', text: 'two randomly generated ids stored in your browser — one per browser (to distinguish new from returning visitors) and one per tab session (to count how many people are using the site at a given moment). They are random values that identify a browser, not a person, and contain no personal information.' },
-            { label: 'Page visited', text: 'the general route you viewed (for example, /app/courses). Addresses that contain private links — such as invitation links — are stripped of their unique code before anything is recorded, so those codes are never stored.' },
-            { label: 'Referring website', text: 'the domain that linked you here (for example, instagram.com) — never the full address, which can itself contain personal information.' },
+            { label: 'Anonymous identifiers', text: 'two randomly generated ids stored in your browser: one per browser (to distinguish new from returning visitors) and one per tab session (to count how many people are using the site at a given moment). They are random values that identify a browser, not a person, and contain no personal information.' },
+            { label: 'Page visited', text: 'the general route you viewed (for example, /app/courses). Addresses that contain private links: such as invitation links: are stripped of their unique code before anything is recorded, so those codes are never stored.' },
+            { label: 'Referring website', text: 'the domain that linked you here (for example, instagram.com): never the full address, which can itself contain personal information.' },
             { label: 'Campaign tags', text: 'if you arrived through a tagged link we share (for example, a link posted by a student club), the tag on that link.' },
             { label: 'Device type', text: 'whether the screen is phone-sized or desktop-sized.' },
           ],
@@ -194,7 +194,7 @@ const privacy: LegalDoc = {
       n: 10,
       title: 'Age Requirement',
       blocks: [
-        { kind: 'p', text: 'This service is not intended for children under the age of [AGE_MINIMUM — TBD]. By creating an account, you confirm that you are at least [AGE_MINIMUM — TBD] years of age. If we learn that we have collected personal information from a child under [AGE_MINIMUM — TBD] without parental consent, we will delete that information immediately.' },
+        { kind: 'p', text: 'This service is not intended for children under the age of [AGE_MINIMUM: TBD]. By creating an account, you confirm that you are at least [AGE_MINIMUM: TBD] years of age. If we learn that we have collected personal information from a child under [AGE_MINIMUM: TBD] without parental consent, we will delete that information immediately.' },
       ],
     },
     {
@@ -224,7 +224,7 @@ const terms: LegalDoc = {
           items: [
             'Accounts are created via Google OAuth 2.0. We only access your email, name, and profile picture for authentication purposes.',
             'You are responsible for maintaining the security of your Google account, which provides access to this service.',
-            'You must be at least [AGE_MINIMUM — TBD] years of age to create an account.',
+            'You must be at least [AGE_MINIMUM: TBD] years of age to create an account.',
           ],
         },
       ],
@@ -252,8 +252,8 @@ const terms: LegalDoc = {
           items: [
             { label: 'Free Tier', text: 'Core features are available at no cost with no time limit.' },
             { label: 'Pro Accounts', text: 'Premium features require a paid subscription. Payments are processed securely via Stripe [VERIFY]. We do not store credit card information on our servers.' },
-            { label: 'Auto-Renewal', text: 'Paid subscriptions renew automatically at the end of each billing period (the Semester pass at term end; monthly plans each month). We notify you [NOTICE PERIOD — TBD] before each renewal. You can cancel anytime before the renewal date via Settings → Billing; access continues until the end of the paid period.' },
-            { label: 'Refunds', text: '[REFUND POLICY — NEEDS REVIEW]. Subscriptions can be canceled at any time to prevent future billing; access continues until the end of the current billing period.' },
+            { label: 'Auto-Renewal', text: 'Paid subscriptions renew automatically at the end of each billing period (the Semester pass at term end; monthly plans each month). We notify you [NOTICE PERIOD: TBD] before each renewal. You can cancel anytime before the renewal date via Settings → Billing; access continues until the end of the paid period.' },
+            { label: 'Refunds', text: '[REFUND POLICY: NEEDS REVIEW]. Subscriptions can be canceled at any time to prevent future billing; access continues until the end of the current billing period.' },
             { label: 'Price Changes', text: 'We reserve the right to modify subscription pricing with 30 days’ notice to existing subscribers.' },
           ],
         },
@@ -288,11 +288,11 @@ const educator: LegalDoc = {
   lastUpdated: LAST_UPDATED,
   intro: 'Governs use of ConcordiaTracker by instructors and institutions. Its terms have not been drafted yet.',
   sections: [
-    { n: 1, title: 'Purpose & Scope', blocks: [{ kind: 'p', text: '[PLACEHOLDER] — to be drafted.' }] },
-    { n: 2, title: 'Eligibility & Verification', blocks: [{ kind: 'p', text: '[PLACEHOLDER] — to be drafted.' }] },
-    { n: 3, title: 'Student Data & Privacy Responsibilities', blocks: [{ kind: 'p', text: '[PLACEHOLDER] — to be drafted. Will align with the Privacy Policy and Quebec Law 25.' }] },
-    { n: 4, title: 'Acceptable Use', blocks: [{ kind: 'p', text: '[PLACEHOLDER] — to be drafted.' }] },
-    { n: 5, title: 'Termination', blocks: [{ kind: 'p', text: '[PLACEHOLDER] — to be drafted.' }] },
+    { n: 1, title: 'Purpose & Scope', blocks: [{ kind: 'p', text: '[PLACEHOLDER]: to be drafted.' }] },
+    { n: 2, title: 'Eligibility & Verification', blocks: [{ kind: 'p', text: '[PLACEHOLDER]: to be drafted.' }] },
+    { n: 3, title: 'Student Data & Privacy Responsibilities', blocks: [{ kind: 'p', text: '[PLACEHOLDER]: to be drafted. Will align with the Privacy Policy and Quebec Law 25.' }] },
+    { n: 4, title: 'Acceptable Use', blocks: [{ kind: 'p', text: '[PLACEHOLDER]: to be drafted.' }] },
+    { n: 5, title: 'Termination', blocks: [{ kind: 'p', text: '[PLACEHOLDER]: to be drafted.' }] },
   ],
 }
 

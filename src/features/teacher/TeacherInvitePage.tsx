@@ -44,7 +44,7 @@ export function TeacherInvitePage() {
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface-2/50 px-3.5 py-3">
           <MailCheck size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <p className="text-[12px] leading-relaxed text-subtle">
-            Confirm it's you — we sent a code to{' '}
+            Confirm it's you: we sent a code to{' '}
             <span className="font-medium text-fg">{maskEmail(invite.recipientEmail)}</span>. This
             invite link is single-use and {expiresInLabel(invite).toLowerCase()}.
           </p>

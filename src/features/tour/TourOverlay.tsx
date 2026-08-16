@@ -124,7 +124,7 @@ export function TourOverlay() {
             style={{ top: T, left: L, width: R - L, height: B - T, boxShadow: '0 0 0 100vmax rgba(0,0,0,0.62)' }}
             aria-hidden
           />
-          {/* Spotlight ring — glides + pulses so the highlight is unmistakable */}
+          {/* Spotlight ring: glides + pulses so the highlight is unmistakable */}
           <div
             className="ct-spotlight-ring pointer-events-none absolute rounded-xl ring-2 ring-accent"
             style={{ top: T, left: L, width: R - L, height: B - T }}
@@ -135,7 +135,7 @@ export function TourOverlay() {
         <div className="absolute inset-0 bg-black/60" />
       )}
 
-      {/* Docked panel — ALWAYS bottom-centered (never switches sides), so it
+      {/* Docked panel: ALWAYS bottom-centered (never switches sides), so it
           doesn't teleport across the screen step to step. */}
       <aside
         role="dialog"
@@ -170,12 +170,12 @@ export function TourOverlay() {
           <p className="mt-2 text-[14px] leading-relaxed text-muted">{step.body}</p>
           {step.type === 'action' && box && (
             <p className="mt-2.5 text-[13px] font-medium text-accent">
-              Try it on the highlighted item — or hit Next to continue.
+              Try it on the highlighted item: or hit Next to continue.
             </p>
           )}
         </div>
 
-        {/* Footer — Back bottom-left, Next bottom-right */}
+        {/* Footer: Back bottom-left, Next bottom-right */}
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"

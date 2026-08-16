@@ -65,7 +65,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'GPA, overdue count, what is due this week, and term progress.',
     icon: Gauge,
     zones: ['rail'],
-    render: () => null, // supplied by TodayPage — see renderWidget there
+    render: () => null, // supplied by TodayPage: see renderWidget there
   },
   {
     id: 'next-class',
@@ -87,7 +87,7 @@ export const WIDGETS: WidgetDef[] = [
   {
     id: 'weather',
     name: 'Weather',
-    description: 'Montreal conditions — for the walk between buildings.',
+    description: 'Montreal conditions: for the walk between buildings.',
     icon: CloudSun,
     zones: ['rail', 'half', 'wide'],
     render: () => <WeatherWidget />,
@@ -103,7 +103,7 @@ export const WIDGETS: WidgetDef[] = [
   {
     id: 'grade-goal',
     name: 'Grade goal',
-    description: 'Pick a course and a target — see what you need on what is left.',
+    description: 'Pick a course and a target: see what you need on what is left.',
     icon: Target,
     zones: ['rail', 'half', 'wide'],
     render: () => <GradeGoalWidget />,

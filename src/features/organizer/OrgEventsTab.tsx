@@ -61,7 +61,7 @@ export function OrgEventsTab({
         )
       ) : (
         <div className="flex flex-col gap-6">
-          <Section title="Upcoming" count={upcoming.length} events={upcoming} view={view} orgColor={orgColor} emptyLabel="No upcoming events — post one to reach students." />
+          <Section title="Upcoming" count={upcoming.length} events={upcoming} view={view} orgColor={orgColor} emptyLabel="No upcoming events: post one to reach students." />
           {past.length > 0 && (
             <Section title="Past" count={past.length} events={past} view={view} orgColor={orgColor} />
           )}

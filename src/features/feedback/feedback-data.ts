@@ -255,7 +255,7 @@ export function guardContent(title: string, body: string): string | null {
   if (t.length < 3) return 'Add a short, clear title (at least 3 characters).'
   if (t.length > 120) return 'Title is too long (120 characters max).'
   if (body.length > 2000) return 'Description is too long (2000 characters max).'
-  if (BANNED.test(`${title} ${body}`)) return 'Please keep it respectful — that wording is blocked.'
+  if (BANNED.test(`${title} ${body}`)) return 'Please keep it respectful: that wording is blocked.'
   return null
 }
 

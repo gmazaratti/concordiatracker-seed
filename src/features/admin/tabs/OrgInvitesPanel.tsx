@@ -129,7 +129,7 @@ export function OrgInvitesPanel() {
           {created && (
             <div className="rounded-lg border border-accent/40 bg-accent-soft/40 p-3">
               <p className="mb-2 text-[12px] font-medium text-fg">
-                Invite for <strong>{created.org_name}</strong> is live — send them this link:
+                Invite for <strong>{created.org_name}</strong> is live: send them this link:
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <CopyChip value={inviteUrl(created.token)} title="Copy invite link" />
@@ -153,7 +153,7 @@ export function OrgInvitesPanel() {
         {invites.loading ? (
           <Loading />
         ) : invites.items.length === 0 ? (
-          <EmptyState>No invites yet — create one above.</EmptyState>
+          <EmptyState>No invites yet: create one above.</EmptyState>
         ) : (
           <ul className="divide-y divide-border">
             {invites.items.map((inv) => (
@@ -206,7 +206,7 @@ function InviteRow({
           {invite.org_handle}
           {invite.recipient_email ? ` · ${invite.recipient_email}` : ''}
         </span>
-        {/* Opened signal — so you know someone's engaging before they finish signup. */}
+        {/* Opened signal: so you know someone's engaging before they finish signup. */}
         {invite.opened_count && invite.opened_count > 0 ? (
           <span className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
             <Eye size={12} aria-hidden />
@@ -297,7 +297,7 @@ function ExtendButton({ invite, onDone }: { invite: InviteRowData; onDone: () =>
           {d}d
         </button>
       ))}
-      {/* Only offered when the link is spent — otherwise it's a confusing no-op. */}
+      {/* Only offered when the link is spent: otherwise it's a confusing no-op. */}
       {consumed && (
         <button
           type="button"
@@ -375,7 +375,7 @@ function inviteState(inv: InviteRowData): { label: string; tone: string } {
 }
 
 function mailtoInvite(inv: InviteRowData): string {
-  const subject = encodeURIComponent(`Your ConcordiaTracker organizer invite — ${inv.org_name}`)
+  const subject = encodeURIComponent(`Your ConcordiaTracker organizer invite: ${inv.org_name}`)
   const body = encodeURIComponent(
     `Hi,\n\nHere's your organizer sign-up link for ${inv.org_name} on ConcordiaTracker:\n\n${inviteUrl(inv.token)}\n\n` +
       `Open it, sign in with Google, and the onboarding will walk you through setting up your profile and posting your first event. ` +

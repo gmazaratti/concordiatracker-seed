@@ -44,7 +44,7 @@ export function BlueprintRow({
       )}
     >
       <div className="flex items-stretch gap-3 p-3">
-        {/* Popularity — vote column */}
+        {/* Popularity: vote column */}
         <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 px-0.5">
           <VoteButton active={userVote === 1} label={`Upvote ${blueprint.author}'s blueprint`} onClick={() => onVote(1)}>
             <ArrowBigUp size={18} />

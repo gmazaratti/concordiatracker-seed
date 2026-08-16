@@ -69,8 +69,8 @@ export function SetupStep({
             className="ml-0.5 w-full bg-transparent text-[18px] text-fg placeholder:text-subtle focus:outline-none"
           />
         </div>
-        {handle.length > 0 && !valid && <p className="mt-2 text-[12px] text-warning">A little longer — at least 3 characters.</p>}
-        {valid && handleStatus === 'taken' && <p className="mt-2 text-[12px] text-danger">@{handle} is taken — try another.</p>}
+        {handle.length > 0 && !valid && <p className="mt-2 text-[12px] text-warning">A little longer: at least 3 characters.</p>}
+        {valid && handleStatus === 'taken' && <p className="mt-2 text-[12px] text-danger">@{handle} is taken: try another.</p>}
         {valid && handleStatus === 'free' && <p className="mt-2 text-[12px] text-success">@{handle} is available.</p>}
 
         <VisibilityChoice value={profilePublic} onChange={setProfilePublic} handle={handle} />

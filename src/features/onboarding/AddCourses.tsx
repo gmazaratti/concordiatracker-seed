@@ -367,7 +367,7 @@ function PickSection({
         onClick={onParseInstead}
         className="mt-5 inline-flex w-full items-center justify-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
       >
-        I don't see my section — upload a syllabus instead
+        I don't see my section: upload a syllabus instead
         <ArrowRight size={14} aria-hidden />
       </button>
     </div>

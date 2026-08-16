@@ -71,7 +71,7 @@ export function AddWidgetButton({
           <div className="p-5">
             <h2 className="font-display text-[18px] font-semibold text-fg">Widgets</h2>
             <p className="mt-0.5 mb-4 text-[12.5px] text-subtle">
-              Every widget below is shown with your real data — what you see is what you
+              Every widget below is shown with your real data: what you see is what you
               get. Nothing here is required; your deadlines stay put either way.
             </p>
             <WidgetGallery

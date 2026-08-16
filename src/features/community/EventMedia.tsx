@@ -39,7 +39,7 @@ export function EventMedia({
       className={cn('relative shrink-0 overflow-hidden select-none', v.box, className)}
       style={{ backgroundColor: color }}
     >
-      {/* Branded banner (always rendered — also the graceful fallback behind a real image). */}
+      {/* Branded banner (always rendered: also the graceful fallback behind a real image). */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/35" />
       <span className={cn('absolute font-extrabold leading-none text-white/15', v.glyph)}>
         {event.org.glyph}
@@ -59,7 +59,7 @@ export function EventMedia({
         </span>
       )}
 
-      {/* Real image, on top — hides itself on error so the branded banner shows. */}
+      {/* Real image, on top: hides itself on error so the branded banner shows. */}
       {event.image && (
         <img
           src={event.image}

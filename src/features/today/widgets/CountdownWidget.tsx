@@ -32,7 +32,7 @@ export function CountdownWidget() {
   if (!target) {
     return (
       <WidgetCard title="Countdown" icon={CalendarClock}>
-        <WidgetEmpty>Nothing scheduled ahead — enjoy it.</WidgetEmpty>
+        <WidgetEmpty>Nothing scheduled ahead: enjoy it.</WidgetEmpty>
       </WidgetCard>
     )
   }

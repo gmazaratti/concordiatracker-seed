@@ -165,7 +165,7 @@ export function EventDetailView({
             className="inline-flex items-center gap-2 rounded-lg bg-success/15 px-4 py-2.5 text-[14px] font-medium text-success transition-colors duration-150 hover:bg-success/25"
           >
             <CalendarCheck size={16} aria-hidden />
-            Added — view in calendar
+            Added: view in calendar
           </Link>
         ) : (
           <button
@@ -239,7 +239,7 @@ function RemindButton({
       type="button"
       onClick={handle}
       aria-pressed={on}
-      title={on ? 'Reminder set — 1 day before' : 'Remind me 1 day before this event'}
+      title={on ? 'Reminder set: 1 day before' : 'Remind me 1 day before this event'}
       className={cn(
         'inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-medium transition-colors duration-150',
         on
@@ -273,7 +273,7 @@ function MapPlaceholder({ location }: { location: string }) {
             <MapPin size={18} aria-hidden />
           </span>
           <span className="text-[13px] font-medium text-fg">{location}</span>
-          <span className="text-[11px] text-subtle">Map preview — static in this build</span>
+          <span className="text-[11px] text-subtle">Map preview: static in this build</span>
         </div>
       </div>
     </div>

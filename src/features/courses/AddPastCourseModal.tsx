@@ -48,7 +48,7 @@ export function AddPastCourseModal({ onClose }: { onClose: () => void }) {
     })
     if (!id) {
       setBusy(false)
-      setErr('Couldn’t save that — please try again.')
+      setErr('Couldn’t save that: please try again.')
       return
     }
     onClose()
@@ -62,7 +62,7 @@ export function AddPastCourseModal({ onClose }: { onClose: () => void }) {
       <div className="p-5 sm:p-6">
         <h2 className="font-display text-[19px] font-semibold text-fg">Add a past course</h2>
         <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
-          For classes you took before using ConcordiaTracker. Just the final grade — no assignments
+          For classes you took before using ConcordiaTracker. Just the final grade: no assignments
           needed.
         </p>
 
@@ -126,7 +126,7 @@ export function AddPastCourseModal({ onClose }: { onClose: () => void }) {
           )}
           {!letter && (
             <p className="text-[11.5px] text-subtle">
-              Enter a percentage — we map it to a letter using the {GRADE_TARGETS.length + 1}-band Concordia
+              Enter a percentage: we map it to a letter using the {GRADE_TARGETS.length + 1}-band Concordia
               scale.
             </p>
           )}

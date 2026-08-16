@@ -58,7 +58,7 @@ export function InstallPrompt() {
   const install = async () => {
     const accepted = await promptInstall()
     if (accepted) setGone(true)
-    else dismiss() // declined the native dialog — don't nag again for a while
+    else dismiss() // declined the native dialog: don't nag again for a while
   }
 
   return (
@@ -99,7 +99,7 @@ export function InstallPrompt() {
             </p>
           ) : (
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-              Add it to your home screen for a faster, full-screen experience — no app store needed.
+              Add it to your home screen for a faster, full-screen experience: no app store needed.
             </p>
           )}
         </div>

@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Loader2, MapPin, Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ArrowDownUp, Loader2, MapPin, Search } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
+import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
 import {
   addWatch,
@@ -23,6 +24,35 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [added, setAdded] = useState<string | null>(null)
+
+  // Filters. Applied to the fetched list rather than re-queried, since one
+  // course is a small result set and Concordia should be asked once.
+  const [term, setTerm] = useState('all')
+  const [campus, setCampus] = useState('all')
+  const [day, setDay] = useState('all')
+  const [openOnly, setOpenOnly] = useState(false)
+  const [sort, setSort] = useState<'default' | 'fewest' | 'most'>('default')
+
+  const filtered = useMemo(() => {
+    if (!sections) return null
+    const free = (s: SectionOption) =>
+      s.capacity !== null && s.enrolled !== null ? s.capacity - s.enrolled : -1
+    return sections
+      .filter((s) => term === 'all' || s.termCode === term)
+      .filter((s) => campus === 'all' || s.location === campus)
+      .filter((s) => day === 'all' || (s.meetingTimes ?? '').includes(day))
+      .filter((s) => !openOnly || free(s) > 0)
+      .sort((a, b) => {
+        if (sort === 'fewest') return free(a) - free(b)
+        if (sort === 'most') return free(b) - free(a)
+        return 0
+      })
+  }, [sections, term, campus, day, openOnly, sort])
+
+  // Options come from what actually came back, so a course taught only at SGW
+  // never offers a Loyola filter that would return nothing.
+  const terms = [...new Set(sections?.map((s) => s.termCode) ?? [])]
+  const campuses = [...new Set((sections ?? []).map((s) => s.location).filter(Boolean))]
 
   async function search() {
     if (busy) return
@@ -62,7 +92,7 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
             We check Concordia&rsquo;s course data and push you the moment a seat opens.
           </p>
 
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -70,7 +100,7 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
               placeholder="COMP"
               aria-label="Subject"
               maxLength={6}
-              className={cn(field, 'w-[92px]')}
+              className={field}
             />
             <input
               value={catalog}
@@ -79,13 +109,13 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
               placeholder="248"
               aria-label="Course number"
               maxLength={4}
-              className={cn(field, 'w-[80px]')}
+              className={field}
             />
             <button
               type="button"
               onClick={() => void search()}
               disabled={busy || !subject.trim() || !catalog.trim()}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? (
                 <Loader2 size={14} className="animate-spin" aria-hidden />
@@ -96,6 +126,64 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
             </button>
           </div>
           {error && <p className="mt-2 text-[12px] font-medium text-danger">{error}</p>}
+
+          {sections && sections.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              <FilterSelect
+                label="Term"
+                value={term}
+                onChange={setTerm}
+                options={[
+                  { value: 'all', label: 'Any term' },
+                  ...terms.map((t) => ({ value: t, label: termLabel(t) })),
+                ]}
+              />
+              {campuses.length > 1 && (
+                <FilterSelect
+                  label="Campus"
+                  value={campus}
+                  onChange={setCampus}
+                  options={[
+                    { value: 'all', label: 'Any campus' },
+                    ...campuses.map((c) => ({ value: c, label: c })),
+                  ]}
+                />
+              )}
+              <FilterSelect
+                label="Day"
+                value={day}
+                onChange={setDay}
+                options={[
+                  { value: 'all', label: 'Any day' },
+                  ...['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((d) => ({ value: d, label: d })),
+                ]}
+              />
+              <FilterSelect
+                label="Sort"
+                value={sort}
+                onChange={(v) => setSort(v as typeof sort)}
+                icon
+                options={[
+                  { value: 'default', label: 'Section order' },
+                  { value: 'fewest', label: 'Fewest seats' },
+                  { value: 'most', label: 'Most seats' },
+                ]}
+              />
+              <button
+                type="button"
+                onClick={() => setOpenOnly((v) => !v)}
+                aria-pressed={openOnly}
+                className={cn(
+                  'rounded-md border px-2 py-1 text-[11.5px] font-medium transition-colors duration-150',
+                  openOnly
+                    ? 'border-accent bg-accent-soft text-accent'
+                    : 'border-border text-subtle hover:text-fg',
+                )}
+              >
+                Open only
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -103,13 +191,15 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
             <p className="px-4 py-10 text-center text-[13px] text-subtle">
               Enter a course code to see its sections and how full they are.
             </p>
-          ) : sections.length === 0 ? (
+          ) : filtered!.length === 0 ? (
             <p className="px-4 py-10 text-center text-[13px] text-subtle">
-              No scheduled sections found for that course.
+              {sections.length === 0
+                ? 'No scheduled sections found for that course.'
+                : 'No sections match those filters.'}
             </p>
           ) : (
             <ul className="divide-y divide-border">
-              {sections.map((s) => {
+              {filtered!.map((s) => {
                 const free =
                   s.capacity !== null && s.enrolled !== null ? s.capacity - s.enrolled : null
                 const isOpen = free !== null && free > 0
@@ -167,10 +257,41 @@ export function SeatWatchModal({ onClose, onAdded }: { onClose: () => void; onAd
 
         <p className="border-t border-border px-4 py-2.5 text-[11px] leading-snug text-subtle">
           Seat counts come from Concordia&rsquo;s published course data and are checked
-          periodically — not continuously. Some sections hold seats for specific programs, so an
+          periodically: not continuously. Some sections hold seats for specific programs, so an
           open seat isn&rsquo;t always one you can take.
         </p>
       </div>
     </ModalShell>
+  )
+}
+
+/** A compact native-free filter chip. Uses the app's Select so the dropdown
+ * portals above the modal rather than clipping inside it. */
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  icon = false,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  icon?: boolean
+}) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {icon && <ArrowDownUp size={11} className="text-subtle" aria-hidden />}
+      <Select
+        ariaLabel={label}
+        value={value}
+        onChange={onChange}
+        size="sm"
+        tone="control"
+        className="w-[124px]"
+        options={options}
+      />
+    </span>
   )
 }

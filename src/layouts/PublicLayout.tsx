@@ -39,7 +39,7 @@ export function PublicLayout() {
               </Button>
             </Link>
             {/* Kept before the CTA so French is visible without scrolling or
-                hunting — availability is the point, not decoration. */}
+                hunting: availability is the point, not decoration. */}
             <LangToggle className="mr-1" />
             <Link to="/app">
               <Button size="sm">{t('landing.ctaPrimary')}</Button>
@@ -56,7 +56,7 @@ export function PublicLayout() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-5 py-6 text-[12px] text-subtle sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <p>{t('landing.notAffiliated')}</p>
-            <p>ConcordiaTracker — a student-built academic hub. Mock seed build.</p>
+            <p>ConcordiaTracker: a student-built academic hub. Mock seed build.</p>
           </div>
           <nav className="flex flex-wrap gap-x-4 gap-y-1">
             <a href="/docs/introduction" className="transition-colors hover:text-fg">

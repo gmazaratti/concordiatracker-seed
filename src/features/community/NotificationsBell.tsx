@@ -104,7 +104,7 @@ export function NotificationsBell({ onOpenEvent }: { onOpenEvent: (id: string) =
           )}
 
           <p className="mt-1 border-t border-border px-2 pt-1.5 pb-0.5 text-[10px] text-subtle">
-            Demo — notifications are mocked from your follows.
+            Demo: notifications are mocked from your follows.
           </p>
         </div>
       )}

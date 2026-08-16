@@ -128,7 +128,7 @@ export function dynamicCommands(
   for (const c of courses) {
     out.push({
       id: `open-${c.id}`,
-      title: `${c.code} — ${c.title}`,
+      title: `${c.code}: ${c.title}`,
       hint: 'Open class',
       group: 'Actions',
       icon: BookOpen,

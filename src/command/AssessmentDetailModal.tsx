@@ -190,7 +190,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               {resolved.letter} · {resolved.points.toFixed(1)} pts
             </>
           ) : (
-            'No grade yet — enter a percent like 82, or a score like 15/20.'
+            'No grade yet: enter a percent like 82, or a score like 15/20.'
           )}
         </p>
 

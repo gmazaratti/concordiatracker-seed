@@ -60,7 +60,7 @@ export function AppRoutes() {
         <Route path="requests" element={<AppRequestsPage />} />
       </Route>
 
-      {/* Teacher portal context — a separate, invite-based auth context */}
+      {/* Teacher portal context: a separate, invite-based auth context */}
       <Route path="/teacher" element={<PortalLayout role="teacher" />}>
         <Route index element={<TeacherHome />} />
         <Route path="invite/:token" element={<TeacherInvitePage />} />
@@ -68,7 +68,7 @@ export function AppRoutes() {
         <Route path="course/:courseId" element={<TeacherCourseWorkspace />} />
       </Route>
 
-      {/* Organizer portal context — its own app-like shell (sidebar + pages) */}
+      {/* Organizer portal context: its own app-like shell (sidebar + pages) */}
       <Route path="/organizer" element={<OrganizerLayout />}>
         <Route index element={<OrganizerHome />} />
         <Route path="events" element={<OrganizerEvents />} />
@@ -81,42 +81,42 @@ export function AppRoutes() {
         <Route path="team" element={<OrganizerTeam />} />
       </Route>
 
-      {/* Short organizer invite links (email-friendly): /join/<token> — same
+      {/* Short organizer invite links (email-friendly): /join/<token>: same
           accept page as /organizer/invite/<token>, slimmer URL. */}
       <Route path="/join" element={<OrganizerLayout />}>
         <Route path=":token" element={<OrganizerInvitePage />} />
       </Route>
 
-      {/* Admin console — STANDALONE, admin-only. Gated three ways: the menu entry
+      {/* Admin console: STANDALONE, admin-only. Gated three ways: the menu entry
           is hidden for non-admins, this page shows "Not authorized" to non-admins,
           and every underlying RPC is denied at the database unless is_admin(). */}
       <Route path="/admin" element={<AdminConsole />} />
 
-      {/* Feedback — feature-request board + private bug submission. Reached from the
+      {/* Feedback: feature-request board + private bug submission. Reached from the
           avatar menu and Today; not a sidebar tab. */}
       <Route path="/feedback" element={<FeedbackPage />} />
 
-      {/* Public market-research survey — shareable, works signed-out. */}
+      {/* Public market-research survey: shareable, works signed-out. */}
       <Route path="/survey" element={<PublicSurveyPage />} />
 
       {/* First-login student onboarding (full-screen). The /app gate redirects
           un-onboarded users here. */}
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Standalone legal documents — clean top-level URLs + a /legal/:doc form */}
+      {/* Standalone legal documents: clean top-level URLs + a /legal/:doc form */}
       <Route path="/terms" element={<LegalPage doc="terms" />} />
       <Route path="/privacy" element={<LegalPage doc="privacy" />} />
       <Route path="/privacypolicy" element={<LegalPage doc="privacy" />} />
       <Route path="/educator" element={<LegalPage doc="educator" />} />
       <Route path="/legal/:doc" element={<LegalPage />} />
 
-      {/* Public, shareable event page — viewable without an account */}
+      {/* Public, shareable event page: viewable without an account */}
       <Route path="/e/:eventId" element={<PublicEventPage />} />
 
-      {/* Throwaway full-bleed promo reel for screen recording — not in app nav */}
+      {/* Throwaway full-bleed promo reel for screen recording: not in app nav */}
       <Route path="/demo" element={<DemoReel />} />
 
-      {/* Public user profile — concordiatracker.com/@handle (anyone can view).
+      {/* Public user profile: concordiatracker.com/@handle (anyone can view).
           Dynamic single-segment, so every static route above wins; the component
           requires the leading "@" and 404s otherwise. Keep last (before *). */}
       <Route path="/:handle" element={<UserProfilePage />} />

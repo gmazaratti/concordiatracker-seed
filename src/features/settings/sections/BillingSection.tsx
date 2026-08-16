@@ -216,7 +216,7 @@ export function BillingSection() {
               </button>
             )}
 
-            {/* Embedded checkout — in-app (its own overlay), never a second tab. */}
+            {/* Embedded checkout: in-app (its own overlay), never a second tab. */}
             {(pane === 'semester' || pane === 'monthly') && (
               <EmbeddedCheckoutPanel
                 title={pane === 'semester' ? 'Semester pass' : 'Monthly plan'}

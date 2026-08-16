@@ -94,7 +94,7 @@ export function PeerSuggestion({
         >
           Dismiss
         </button>
-        <span className="ml-auto text-[11px] text-subtle">You decide — nothing changes automatically.</span>
+        <span className="ml-auto text-[11px] text-subtle">You decide: nothing changes automatically.</span>
       </div>
     </div>
   )

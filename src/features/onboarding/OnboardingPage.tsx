@@ -84,13 +84,13 @@ export function OnboardingPage() {
     })
     if (error === 'handle-taken') {
       setLeaving(false)
-      setSubmitError('That handle was just taken — please pick another.')
+      setSubmitError('That handle was just taken: please pick another.')
       setStep(1)
       return
     }
     if (error) {
       setLeaving(false)
-      setSubmitError('Something went wrong saving — please try again.')
+      setSubmitError('Something went wrong saving: please try again.')
       return
     }
     navigate('/app', { replace: true })
@@ -110,7 +110,7 @@ export function OnboardingPage() {
     if (res.error === 'handle-taken') res = await completeOnboarding(base)
     if (res.error) {
       setLeaving(false)
-      setSubmitError('Something went wrong — please try again.')
+      setSubmitError('Something went wrong: please try again.')
       return
     }
     navigate('/app', { replace: true })
@@ -164,7 +164,7 @@ export function OnboardingPage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {/* Blueprint grid as a dedicated BACKGROUND layer, not on the content
-          container — the utility's radial mask would otherwise clip the whole
+          container: the utility's radial mask would otherwise clip the whole
           element (all the content) to ≤50% opacity. `fixed` makes this div a
           stacking context, so the -z-10 grid paints above the canvas + below UI. */}
       <div className="ct-grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />

@@ -21,7 +21,7 @@ export function CommunityPage() {
           Community
         </h1>
         <p className="mt-0.5 text-[13px] text-subtle">
-          Events, fairs, and deadlines around Concordia — beyond your own coursework.
+          Events, fairs, and deadlines around Concordia: beyond your own coursework.
         </p>
       </header>
 

@@ -71,7 +71,7 @@ export function SocialLinks({ links, className }: { links?: OrgLinks; className?
             href={href}
             target="_blank"
             rel="noreferrer noopener"
-            aria-label={`${f.label} — opens in a new tab`}
+            aria-label={`${f.label}: opens in a new tab`}
             className="group relative grid size-9 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors duration-150 hover:border-border-strong hover:text-fg"
           >
             <SocialFieldIcon field={f.key} size={16} />
@@ -84,7 +84,7 @@ export function SocialLinks({ links, className }: { links?: OrgLinks; className?
                 <ExternalLink size={11} aria-hidden />
               </span>
               <span className="mt-0.5 block text-[11px] leading-snug text-subtle">
-                External link — opens {hostOf(href)} in a new tab.
+                External link: opens {hostOf(href)} in a new tab.
               </span>
             </span>
           </a>

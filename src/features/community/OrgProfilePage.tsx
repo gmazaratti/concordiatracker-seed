@@ -39,7 +39,7 @@ export function OrgProfilePage() {
         Community
       </Link>
 
-      {/* Identity header — Twitter/X-inspired: banner, overlapping circular
+      {/* Identity header: Twitter/X-inspired: banner, overlapping circular
           avatar, actions top-right, then name / handle / bio / stats. */}
       <div className="relative h-40 overflow-hidden rounded-2xl sm:h-52" style={{ backgroundColor: org.color }}>
         {org.banner ? (
@@ -99,7 +99,7 @@ export function OrgProfilePage() {
         </div>
       </div>
 
-      {/* Divider — the social links sit ON it, right-aligned: the line ends,
+      {/* Divider: the social links sit ON it, right-aligned: the line ends,
           then the buttons, then a short segment continues to the right edge. */}
       <LinksDivider links={org.links} />
 

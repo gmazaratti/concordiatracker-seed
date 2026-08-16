@@ -24,7 +24,7 @@ export function LoginScreen() {
     if (error) {
       setError(
         /not enabled|provider/i.test(error)
-          ? "Google sign-in isn't switched on for this project yet — use a test account below."
+          ? "Google sign-in isn't switched on for this project yet: use a test account below."
           : error,
       )
     }

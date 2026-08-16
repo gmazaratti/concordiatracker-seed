@@ -40,7 +40,7 @@ export function CommunityBlueprintsPanel({
       <div className="mb-3">
         <h2 className="text-[15px] font-semibold text-fg">Student blueprints for your section</h2>
         <p className="text-[12px] text-subtle">
-          Review one and verify it to make it the official outline — it becomes yours and pins for
+          Review one and verify it to make it the official outline: it becomes yours and pins for
           students.
         </p>
       </div>

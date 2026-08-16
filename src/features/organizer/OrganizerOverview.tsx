@@ -72,7 +72,7 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
       {pending && (
         <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
           <strong className="font-semibold">Pending approval.</strong> You can set up your profile
-          and draft events now — they go live in Community once an admin approves your org.
+          and draft events now: they go live in Community once an admin approves your org.
         </div>
       )}
 
@@ -136,7 +136,7 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
               className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-8 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
             >
               <Plus size={16} aria-hidden />
-              {events.length === 0 ? 'Create your first event' : 'No upcoming events — post one'}
+              {events.length === 0 ? 'Create your first event' : 'No upcoming events: post one'}
             </button>
           ) : (
             <ul className="flex flex-col gap-2">

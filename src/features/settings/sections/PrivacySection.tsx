@@ -109,7 +109,7 @@ export function PrivacySection() {
       <p className="mb-5 text-[13px] leading-relaxed text-muted">
         ConcordiaTracker complies with Quebec&rsquo;s Law 25. The full documents
         below are <span className="font-medium text-warning">drafts pending review</span>{' '}
-        — not finalized legal text.
+       : not finalized legal text.
       </p>
 
       <Group label={t('settings.legalDocs')}>

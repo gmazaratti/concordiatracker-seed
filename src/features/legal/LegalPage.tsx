@@ -60,7 +60,7 @@ export function LegalPage({ doc: docProp }: { doc?: LegalDoc['slug'] }) {
         <div className="mb-8 flex gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3.5">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" aria-hidden />
           <div className="text-[13px] leading-relaxed text-muted">
-            <p className="font-semibold text-fg">Draft — pending review</p>
+            <p className="font-semibold text-fg">Draft: pending review</p>
             <p className="mt-0.5">
               This document is not finalized legal text. Bracketed items like{' '}
               <span className="rounded bg-warning/15 px-1 py-0.5 font-mono text-[0.85em] font-medium text-warning">

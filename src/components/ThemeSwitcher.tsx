@@ -49,7 +49,7 @@ export function ThemeSwitcher({
               style={{ backgroundColor: opt.swatch[0] }}
               aria-hidden
             >
-              {/* card, then accent — the same three tokens the Settings tiles
+              {/* card, then accent: the same three tokens the Settings tiles
                   show, shrunk to something legible at 24px */}
               <span
                 className="h-2 flex-1 rounded-[1.5px]"

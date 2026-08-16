@@ -35,7 +35,7 @@ export function OrganizerSignIn() {
     const h = (handle.trim() || suggestHandle(name)).replace(/^@?/, '@')
     const id = await createOrg({ name: name.trim(), handle: h, glyph: initials(name), color: '#5b9cf6' })
     setBusy(false)
-    if (!id) setCreateError(`Couldn't create it — the handle ${h} may be taken. Try another.`)
+    if (!id) setCreateError(`Couldn't create it: the handle ${h} may be taken. Try another.`)
     // On success, createOrg signs you into the portal (the dashboard renders).
   }
 
@@ -115,7 +115,7 @@ export function OrganizerSignIn() {
           Explore a demo org
         </button>
         <p className="mt-1.5 text-[12px] text-subtle">
-          For organizers who want to look around before they're set up — no account needed. It's a
+          For organizers who want to look around before they're set up: no account needed. It's a
           sandbox: nothing you do is saved or affects the real site.
         </p>
       </div>

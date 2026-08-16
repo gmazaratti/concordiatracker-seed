@@ -92,13 +92,13 @@ function ReachTab({ followers, events }: { followers: number; events: ManagedEve
         </div>
         <p className="mt-2.5 flex items-start gap-1.5 text-[12px] text-subtle">
           <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
-          Aggregate numbers only — you never see which students viewed, followed, or added an event.
+          Aggregate numbers only: you never see which students viewed, followed, or added an event.
         </p>
       </div>
 
       {noData ? (
         <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-8 text-center text-[13px] text-subtle">
-          Numbers start counting as students open, follow, and save your events — post one and check
+          Numbers start counting as students open, follow, and save your events: post one and check
           back.
         </p>
       ) : (
@@ -149,7 +149,7 @@ function SaveRateHero({ totals }: { totals: { views: number; calendarAdds: numbe
         <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted">
           Of every student who opens one of your events,{' '}
           <strong className="font-medium text-fg">{pct(totals.calendarAdds, totals.views)} commit
-          it to their calendar</strong> — {totals.calendarAdds.toLocaleString()} saves from{' '}
+          it to their calendar</strong>: {totals.calendarAdds.toLocaleString()} saves from{' '}
           {totals.views.toLocaleString()} views. This is the number to grow.
         </p>
       </div>
@@ -170,12 +170,12 @@ function Funnel({ totals }: { totals: { views: number; follows: number; calendar
   return (
     <section>
       <h2 className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        The funnel — from a view to a saved seat
+        The funnel: from a view to a saved seat
       </h2>
       <p className="mb-3 text-[12.5px] text-subtle">
         Of everyone who opens your events, {pct(totals.follows, totals.views)} follow one and{' '}
         <strong className="font-medium text-fg">{pct(totals.calendarAdds, totals.views)} save it
-        to their calendar</strong> — that save rate is your strongest signal.
+        to their calendar</strong>: that save rate is your strongest signal.
       </p>
       <div className="overflow-hidden rounded-xl border border-border">
         {stages.map((s, i) => {
@@ -237,7 +237,7 @@ function CategorySplit({ events }: { events: ManagedEvent[] }) {
         What lands, by category
       </h2>
       <p className="mb-3 text-[12.5px] text-subtle">
-        Calendar adds per event category — where your audience actually commits.
+        Calendar adds per event category: where your audience actually commits.
       </p>
       <ul className="overflow-hidden rounded-xl border border-border">
         {byCat
@@ -348,7 +348,7 @@ function Achievements({ org }: { org: OrgAccount }) {
     <div>
       <p className="mb-4 flex items-center gap-2 text-[13px] text-muted">
         <Award size={15} className="text-accent" aria-hidden />
-        <strong className="font-semibold text-fg">{earned}</strong> of {list.length} earned — all
+        <strong className="font-semibold text-fg">{earned}</strong> of {list.length} earned: all
         from your real numbers.
       </p>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

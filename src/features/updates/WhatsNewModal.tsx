@@ -30,7 +30,7 @@ export function WhatsNewModal() {
   const { closeHistory } = useUpdates()
   return (
     <ModalShell label="What's new" onClose={closeHistory} widthClass="sm:max-w-2xl" scroll={false}>
-      {/* Pinned header + footer, only the list scrolls — so the scrollbar never
+      {/* Pinned header + footer, only the list scrolls: so the scrollbar never
           reaches the rounded corners and the list opens at the top. */}
       <div className="flex max-h-[85vh] flex-col">
         <div className="shrink-0 border-b border-border px-6 pt-6 pb-5">

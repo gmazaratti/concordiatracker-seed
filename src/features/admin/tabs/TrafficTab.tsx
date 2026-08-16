@@ -79,7 +79,7 @@ export function TrafficTab() {
   if (err || !data) {
     return (
       <div className="rounded-xl border border-border bg-surface p-5 text-[13px] text-muted">
-        Couldn&rsquo;t load traffic{err ? ` — ${err}` : ''}. If this persists, run{' '}
+        Couldn&rsquo;t load traffic{err ? `: ${err}` : ''}. If this persists, run{' '}
         <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/analytics.sql</code> in Supabase.
       </div>
     )
@@ -92,7 +92,7 @@ export function TrafficTab() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-[22px] font-semibold text-fg">Traffic</h1>
-          <p className="text-[13px] text-subtle">Anonymous, first-party — no third-party trackers.</p>
+          <p className="text-[13px] text-subtle">Anonymous, first-party: no third-party trackers.</p>
         </div>
         <div className="flex items-center gap-2">
           <Segmented value={days} onChange={setDays} options={RANGES} ariaLabel="Date range" />
@@ -159,7 +159,7 @@ export function TrafficTab() {
 
       <p className="rounded-lg border border-border bg-surface/50 px-4 py-3 text-[12px] leading-relaxed text-subtle">
         Anonymous by design: random per-browser ids, referrer host only, and paths are normalized
-        before they&rsquo;re stored — so invite tokens never land in analytics. No cookies, no IP
+        before they&rsquo;re stored: so invite tokens never land in analytics. No cookies, no IP
         addresses, no third-party scripts.
       </p>
     </div>

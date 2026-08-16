@@ -45,7 +45,7 @@ export function StreakWidget() {
         <p className="mt-1 text-[11.5px] text-subtle">
           {current === 0
             ? 'Open the app tomorrow to start one.'
-            : 'One missed day is forgiven — keep going.'}
+            : 'One missed day is forgiven: keep going.'}
         </p>
       </div>
     </WidgetCard>

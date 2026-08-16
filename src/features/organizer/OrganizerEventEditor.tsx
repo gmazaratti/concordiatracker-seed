@@ -247,7 +247,7 @@ function EventEditorForm({
             shape="wide"
           />
 
-          <Field label="Relevant programs" hint="Comma-separated — drives the opt-in “for your program” tag.">
+          <Field label="Relevant programs" hint="Comma-separated: drives the opt-in “for your program” tag.">
             <input
               value={relevant}
               onChange={(e) => {
@@ -364,7 +364,7 @@ function Metrics({ metrics }: { metrics: EventMetrics }) {
       </ul>
       <p className="mt-2 flex items-start gap-1.5 text-[11px] text-subtle">
         <Lock size={12} className="mt-0.5 shrink-0" aria-hidden />
-        Aggregate only — never which students.
+        Aggregate only: never which students.
       </p>
     </div>
   )

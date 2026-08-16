@@ -107,7 +107,7 @@ function SeoPage({
           <h2 className="font-display text-[clamp(1.8rem,4vw,2.6rem)] leading-tight font-medium text-fg">
             See it on your own courses.
           </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted">Jump into a live demo term — no sign-up needed.</p>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">Jump into a live demo term: no sign-up needed.</p>
           <Link to="/app" className="mt-7 inline-block">
             <Button size="lg" className="group">
               Open the live demo
@@ -141,7 +141,7 @@ const GPA_FAQS: Faq[] = [
   },
   {
     q: 'Does it work for any Concordia course?',
-    a: 'Yes — any course or faculty. Import a shared outline, upload your syllabus, or enter your assessments by hand.',
+    a: 'Yes: any course or faculty. Import a shared outline, upload your syllabus, or enter your assessments by hand.',
   },
 ]
 
@@ -152,17 +152,17 @@ export function ConcordiaGpaCalculatorPage() {
       description="A free Concordia GPA calculator on the 4.30 scale. See your GPA, the grade you need on what's left to hit your target, and run what-if scenarios. Built for Concordia students."
       path="/concordia-gpa-calculator"
       h1="Concordia GPA Calculator"
-      intro="Calculate your GPA on Concordia's official 4.30 scale, see exactly what you need on what's left to hit your target, and project where you'll land — without maintaining a spreadsheet."
+      intro="Calculate your GPA on Concordia's official 4.30 scale, see exactly what you need on what's left to hit your target, and project where you'll land: without maintaining a spreadsheet."
       faqs={GPA_FAQS}
       related={{ to: '/concordia-syllabus-tracker', label: 'Concordia syllabus tracker' }}
       sections={[
         {
           h2: "Built on Concordia's 4.30 GPA scale",
-          body: "ConcordiaTracker uses Concordia's official 4.30 grade-point scale, so the number you see is the number on your transcript — not an approximation. Enter your grades per assessment, weighted exactly how your syllabus lays them out, and your course grade and overall GPA update as you go.",
+          body: "ConcordiaTracker uses Concordia's official 4.30 grade-point scale, so the number you see is the number on your transcript: not an approximation. Enter your grades per assessment, weighted exactly how your syllabus lays them out, and your course grade and overall GPA update as you go.",
         },
         {
           h2: 'Know the exact grade you need',
-          body: 'Set a target — a pass, a B+, whatever you’re aiming for — and the grade-needed calculator tells you the average you need on everything that’s left. It’s real arithmetic from your actual weights, and it’s free. No more guessing whether you can still pull off the grade you want.',
+          body: 'Set a target: a pass, a B+, whatever you’re aiming for: and the grade-needed calculator tells you the average you need on everything that’s left. It’s real arithmetic from your actual weights, and it’s free. No more guessing whether you can still pull off the grade you want.',
         },
         {
           h2: 'Project your GPA before the marks post',
@@ -181,7 +181,7 @@ const SYLLABUS_FAQS: Faq[] = [
   },
   {
     q: 'Can it track assignments and deadlines across all my courses?',
-    a: 'Yes. Every course’s deadlines land on a single Today view, sorted by what’s due next — your whole semester in one place.',
+    a: 'Yes. Every course’s deadlines land on a single Today view, sorted by what’s due next: your whole semester in one place.',
   },
   {
     q: "What if my course or syllabus isn't listed?",
@@ -189,7 +189,7 @@ const SYLLABUS_FAQS: Faq[] = [
   },
   {
     q: 'Is the syllabus tracker free?',
-    a: 'Yes — importing syllabi, tracking deadlines, and your course dashboard are all free.',
+    a: 'Yes: importing syllabi, tracking deadlines, and your course dashboard are all free.',
   },
 ]
 
@@ -200,21 +200,21 @@ export function ConcordiaSyllabusTrackerPage() {
       description="Upload any Concordia course syllabus and ConcordiaTracker auto-fills every deadline, weight, and exam. The syllabus, assignment, and deadline tracker built for Concordia students."
       path="/concordia-syllabus-tracker"
       h1="Concordia Syllabus Tracker"
-      intro="Turn every course syllabus into a live plan — deadlines, weights, and exams filled in automatically — so your whole Concordia semester stays in one organized view."
+      intro="Turn every course syllabus into a live plan: deadlines, weights, and exams filled in automatically: so your whole Concordia semester stays in one organized view."
       faqs={SYLLABUS_FAQS}
       related={{ to: '/concordia-gpa-calculator', label: 'Concordia GPA calculator' }}
       sections={[
         {
           h2: 'Upload a syllabus, skip the typing',
-          body: 'Drop in a course syllabus and ConcordiaTracker reads it — pulling out every quiz, assignment, midterm, and final with its date and weight. No more copying a messy PDF into your calendar by hand in the first week of class.',
+          body: 'Drop in a course syllabus and ConcordiaTracker reads it: pulling out every quiz, assignment, midterm, and final with its date and weight. No more copying a messy PDF into your calendar by hand in the first week of class.',
         },
         {
           h2: 'Every assignment and deadline in one place',
-          body: 'Across all your courses, every due date lands on one Today view, sorted by what’s next. It’s an assignment tracker and deadline tracker for your entire Concordia term — so nothing buried in a syllabus catches you off guard.',
+          body: 'Across all your courses, every due date lands on one Today view, sorted by what’s next. It’s an assignment tracker and deadline tracker for your entire Concordia term: so nothing buried in a syllabus catches you off guard.',
         },
         {
           h2: 'Trust every date',
-          body: 'Each date carries a provenance badge — official, confirmed by classmates, or unverified — so you always know what to rely on. When a date you imported turns out wrong, classmates’ corrections keep it honest.',
+          body: 'Each date carries a provenance badge: official, confirmed by classmates, or unverified: so you always know what to rely on. When a date you imported turns out wrong, classmates’ corrections keep it honest.',
         },
       ]}
     />

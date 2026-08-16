@@ -129,20 +129,20 @@ export function buildStudyPlan(
 }
 
 function headlineFor(items: StudyItem[], horizonDays: number): string {
-  if (items.length === 0) return `Nothing due in the next ${horizonDays} days — a good week to get ahead.`
+  if (items.length === 0) return `Nothing due in the next ${horizonDays} days: a good week to get ahead.`
 
   const top = items[0]
   const label = top.course?.code ? `${top.course.code} ` : ''
   const lead =
     top.daysLeft < 0
-      ? `${label}${top.assessment.title} is overdue and still the biggest lever — start there.`
-      : `Start with ${label}${top.assessment.title} — it carries the most weight right now.`
+      ? `${label}${top.assessment.title} is overdue and still the biggest lever: start there.`
+      : `Start with ${label}${top.assessment.title}: it carries the most weight right now.`
 
   // Overdue work that ISN'T top of the list gets a truthful mention rather than
   // a "do this first" claim the ranking below would contradict.
   const otherOverdue = items.slice(1).filter((i) => i.daysLeft < 0).length
   if (otherOverdue > 0) {
-    return `${lead} ${otherOverdue} smaller item${otherOverdue === 1 ? ' is' : 's are'} overdue — mop up after.`
+    return `${lead} ${otherOverdue} smaller item${otherOverdue === 1 ? ' is' : 's are'} overdue: mop up after.`
   }
   return lead
 }
