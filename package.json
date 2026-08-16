@@ -12,7 +12,8 @@
     "postbuild": "node docs-src/build.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run test:prereq && npm run db:verify"
+    "test": "npm run test:prereq && npm run test:gpa && npm run db:verify",
+    "test:gpa": "node src/lib/gpa.test.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

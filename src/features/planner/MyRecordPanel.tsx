@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Trash2 } from 'lucide-react'
+import { CalendarPlus, Loader2, Trash2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -16,6 +16,7 @@ import { cn } from '@/lib/cn'
 import { Step } from './Step'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
+import { ImportSemesterModal } from './ImportSemesterModal'
 
 /**
  * Your record, and what it opens up.
@@ -31,6 +32,7 @@ export function MyRecordPanel() {
   const [year, setYear] = useState<number | null>(null)
   const [minor, setMinor] = useState('')
   const [loaded, setLoaded] = useState(false)
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -64,7 +66,7 @@ export function MyRecordPanel() {
         state={knowsWhere ? 'done' : 'active'}
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Year of study">
+          <Field label="What year are you in right now?">
             <Select
               value={year === null ? '' : String(year)}
               onChange={(v) => {
@@ -72,7 +74,7 @@ export function MyRecordPanel() {
                 setYear(n)
                 void saveAcademicProfile({ yearOfStudy: n })
               }}
-              ariaLabel="Year of study"
+              ariaLabel="What year are you in right now"
               placeholder={loaded ? 'Choose a year' : 'Loading'}
               options={YEARS.map((y) => ({ value: String(y.value), label: y.label }))}
             />
@@ -107,6 +109,17 @@ export function MyRecordPanel() {
         sub="Grades are optional. Without one a course still counts for credits and prerequisites, it just does not move your GPA."
         state={hasHistory ? 'done' : 'active'}
       >
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] text-subtle">Add one class, or bring in a whole term at once.</p>
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+          >
+            <CalendarPlus size={13} aria-hidden />
+            Import a semester
+          </button>
+        </div>
         <PastCourseEntry />
         {hasHistory && (
           <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
@@ -191,6 +204,8 @@ export function MyRecordPanel() {
           credits={summary.credits}
         />
       </Step>
+
+      {importing && <ImportSemesterModal onClose={() => setImporting(false)} />}
     </div>
   )
 }

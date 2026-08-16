@@ -21,7 +21,12 @@ declare
   v_url    text := 'https://concordiatracker.com/api/sync-catalog';
 begin
   -- Lift CRON_SECRET out of the existing reminders job.
-  select substring(j.command from 'Bearer ([A-Za-z0-9._~+/=-]+)')
+  --
+  -- Match everything up to the CLOSING QUOTE, not a list of allowed characters.
+  -- An earlier version used [A-Za-z0-9._~+/=-], which silently truncated any
+  -- secret containing !@#$%^& at the first one and produced a 401 that looked
+  -- like a configuration problem rather than a parsing bug.
+  select substring(j.command from 'Bearer ([^'']+)')
     into v_secret
   from cron.job j
   where j.jobname = 'ct-run-reminders'
@@ -68,7 +73,8 @@ begin
     body := '{}'::jsonb
   );
 
-  raise notice 'Scheduled ct-sync-catalog and fired one run. Check the result with the query below in ~30 seconds.';
+  -- The length is enough to spot a truncated read without printing the secret.
+  raise notice 'Scheduled ct-sync-catalog and fired one run using a % character secret. Compare that against CRON_SECRET in Vercel if you get a 401.', length(v_secret);
 end
 $outer$;
 

@@ -25,6 +25,41 @@ const GRADE_SCALE: GradeBand[] = [
   { min: 0, letter: 'F', points: 0.0 },
 ]
 
+/**
+ * A letter grade back to a percentage.
+ *
+ * Transcripts show letters, so that is what a student rebuilding their history
+ * has in front of them, and making them convert by hand invites errors. The
+ * band's MINIMUM is used rather than its midpoint: it is the only number the
+ * letter actually guarantees, and inventing a midpoint would quietly inflate a
+ * GPA the student never earned.
+ *
+ * Returns null for anything that is not a grade on this scale, so a typo lands
+ * as "not entered" rather than as an F.
+ */
+export function letterToPercent(raw: string): number | null {
+  const key = raw.trim().toUpperCase().replace(/\s+/g, '')
+  const band = GRADE_SCALE.find((b) => b.letter === key)
+  return band ? band.min : null
+}
+
+/** Every letter on the scale, best first, for a picker. */
+export const GRADE_LETTERS: string[] = GRADE_SCALE.map((b) => b.letter)
+
+/**
+ * Read a grade the student typed, as either a percentage or a letter.
+ *
+ * "87" and "A" are both valid answers to "what did you get", and which one a
+ * person reaches for depends on which document they are looking at.
+ */
+export function parseFinalGrade(raw: string): number | null {
+  const text = raw.trim()
+  if (!text) return null
+  const n = Number(text.replace(/%$/, ''))
+  if (!Number.isNaN(n)) return n >= 0 && n <= 100 ? n : null
+  return letterToPercent(text)
+}
+
 export function percentToGrade(percent: number): { letter: string; points: number } {
   const band = GRADE_SCALE.find((b) => percent >= b.min) ?? GRADE_SCALE.at(-1)!
   return { letter: band.letter, points: band.points }

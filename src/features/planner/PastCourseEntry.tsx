@@ -3,6 +3,7 @@ import { Loader2, Plus, Search } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
+import { parseFinalGrade } from '@/lib/gpa'
 import { pastTerms } from './past-terms'
 
 /**
@@ -42,10 +43,11 @@ export function PastCourseEntry() {
     }
   }, [q, chosen])
 
-  const percent = Number(grade)
-  // Blank is valid and means ungraded. A non-numeric or out-of-range entry is
-  // not, and blocks the add rather than silently storing nonsense.
-  const gradeOk = grade.trim() === '' || (!Number.isNaN(percent) && percent >= 0 && percent <= 100)
+  // Blank is valid and means ungraded. Anything else must read as a percentage
+  // or a letter on Concordia's scale; nonsense blocks the add rather than being
+  // silently stored.
+  const percent = parseFinalGrade(grade)
+  const gradeOk = grade.trim() === '' || percent !== null
   const canAdd = chosen !== null && gradeOk && !busy
 
   async function add() {
@@ -56,7 +58,7 @@ export function PastCourseEntry() {
       title: chosen.title,
       term,
       credits: chosen.class_unit ?? 3,
-      ...(grade.trim() === '' ? {} : { finalPercent: percent }),
+      ...(percent === null ? {} : { finalPercent: percent }),
     })
     setBusy(false)
     setChosen(null)
@@ -104,9 +106,9 @@ export function PastCourseEntry() {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && canAdd) void add()
           }}
-          placeholder="Grade %"
-          aria-label="Final grade percent, optional"
-          inputMode="decimal"
+          placeholder="Grade or A-"
+          aria-label="Final grade, percentage or letter, optional"
+          
           className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
         />
 
@@ -122,7 +124,7 @@ export function PastCourseEntry() {
       </div>
 
       {!gradeOk && (
-        <p className="mt-1.5 text-[11.5px] text-danger">Enter a percent between 0 and 100, or leave it blank.</p>
+        <p className="mt-1.5 text-[11.5px] text-danger">Enter a percentage (0 to 100) or a letter like A-, or leave it blank.</p>
       )}
 
       {results !== null && results.length > 0 && (
