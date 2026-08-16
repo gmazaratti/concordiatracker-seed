@@ -8,6 +8,7 @@
  * marks them sent so they never repeat. Expired endpoints (404/410) are pruned.
  */
 import webpush from 'web-push'
+import { bySection, fetchSchedule, num } from './_concordia.js'
 
 interface Reminder {
   id: string
@@ -71,6 +72,24 @@ function trialBody(t: TrialEnding): string {
         )
   const charge = amount ? `${amount} CAD on ${when}` : `Your subscription starts ${when}`
   return `${charge} · Cancel any time in Billing`
+}
+
+interface SectionKey {
+  term_code: string
+  subject: string
+  catalog: string
+}
+
+interface SeatAlert {
+  id: string
+  user_id: string
+  subject: string
+  catalog: string
+  section: string
+  course_title: string | null
+  last_enrollment: number | null
+  last_capacity: number | null
+  has_reserved: boolean
 }
 
 const BATCH = 200
@@ -210,6 +229,86 @@ export default async function handler(req: any, res: any) {
     /* trial warnings are best-effort — never block reminders */
   }
 
+  // Seat watching — poll Concordia Open Data for the sections anyone is
+  // watching and push on a full → open transition. One API call per SECTION,
+  // not per watcher, so a hundred people watching COMP 248 costs one request.
+  // Best-effort: an outage here must never stop the reminders above.
+  let seatSent = 0
+  try {
+    const secRes = await fetch(`${supabaseUrl}/rest/v1/rpc/seat_watch_sections`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    const sections = secRes.ok ? ((await secRes.json()) as SectionKey[]) : []
+
+    // De-duplicate by course: one fetch covers every section of COMP 248.
+    const courses = new Map<string, SectionKey>()
+    for (const s of sections) courses.set(`${s.subject}:${s.catalog}`, s)
+
+    for (const course of courses.values()) {
+      const rows = await fetchSchedule(course.subject, course.catalog).catch(() => [])
+      for (const row of bySection(rows).values()) {
+        const cap = num(row.enrollmentCapacity)
+        const enrolled = num(row.currentEnrollment)
+        // A record without both numbers tells us nothing; recording it would
+        // overwrite a good previous reading with nulls.
+        if (cap === null || enrolled === null) continue
+
+        await fetch(`${supabaseUrl}/rest/v1/rpc/record_seat_state`, {
+          method: 'POST',
+          headers: { ...svc, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            p_term_code: row.termCode,
+            p_class_number: row.classNumber,
+            p_enrollment: enrolled,
+            p_capacity: cap,
+            p_waitlist_total: num(row.currentWaitlistTotal) ?? 0,
+            p_waitlist_cap: num(row.waitlistCapacity) ?? 0,
+            p_has_reserved: row.hasSeatReserved === 'Y',
+          }),
+        })
+      }
+    }
+
+    // Everyone whose class just opened.
+    const alertRes = await fetch(`${supabaseUrl}/rest/v1/rpc/pending_seat_alerts`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    const alerts = alertRes.ok ? ((await alertRes.json()) as SeatAlert[]) : []
+    for (const a of alerts) {
+      const seats = (a.last_capacity ?? 0) - (a.last_enrollment ?? 0)
+      const subs = await subsFor(a.user_id)
+      const payload = JSON.stringify({
+        title: `Seat open — ${a.subject} ${a.catalog}`,
+        // "may be reserved" is stated when Concordia flags held seats, rather
+        // than sending someone to a seat they turn out not to qualify for.
+        body:
+          `Section ${a.section} · ${seats} seat${seats === 1 ? '' : 's'}` +
+          (a.has_reserved ? ' (some may be reserved)' : '') +
+          ' · register now',
+        url: '/app/courses',
+        tag: `ct-seat-${a.id}`,
+      })
+      for (const s of subs) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            payload,
+          )
+          seatSent++
+        } catch (err: unknown) {
+          const code = (err as { statusCode?: number })?.statusCode
+          if (code === 404 || code === 410) stale.add(s.endpoint)
+        }
+      }
+    }
+  } catch {
+    /* seat watching is best-effort — never block reminders */
+  }
+
   // Admin activity digest — one consolidated push per admin with new activity
   // (the RPC also stamps their last-push time, so it never resends). Best-effort.
   let adminSent = 0
@@ -276,5 +375,5 @@ export default async function handler(req: any, res: any) {
     )
   }
 
-  res.status(200).json({ processed: processedIds.length, sent, adminSent })
+  res.status(200).json({ processed: processedIds.length, sent, trialSent, seatSent, adminSent })
 }
