@@ -139,6 +139,12 @@ These are placeholders sitting in live legal documents right now.
   aggregate course-tracking counts.
 - **2026-08-16** — Planner "My record": year of study + minor, past courses with
   optional grades, credits / GPA / subjects, and a conservative unlock list.
+- **2026-08-16** — `npm run db:verify` — migrations with real logic now run
+  against a real Postgres (PGlite, WASM) before anyone else is asked to run
+  them. Added after a migration shipped with `x = any ((select arr from t))`,
+  which Postgres reads as the SUBQUERY form of ANY and fails on. It verifies
+  LOGIC only: GRANT/REVOKE lines are stripped because Supabase's roles do not
+  exist there, so **RLS and permissions still need review by eye**.
 - **2026-08-16** — **Instructor per section: ANSWERED.** Concordia's Open Data
   publishes no instructor name anywhere (the schedule feed's 41 fields have
   none; `/course/faculty` is faculty-and-department structure, not people). Now

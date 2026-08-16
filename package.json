@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "docs": "node docs-src/build.mjs",
-    "postbuild": "node docs-src/build.mjs"
+    "postbuild": "node docs-src/build.mjs",
+    "db:verify": "node db/verify.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",
@@ -23,6 +24,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^24.12.3",

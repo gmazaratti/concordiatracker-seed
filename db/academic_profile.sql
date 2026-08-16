@@ -94,28 +94,41 @@ returns table (
 )
 language sql security definer set search_path = public stable as $$
   with done as (
-    select coalesce(array_agg(public.ct_norm_code(c)), '{}'::text[]) as codes
-    from unnest(coalesce(p_completed, '{}'::text[])) c
+    select coalesce(array_agg(public.ct_norm_code(t.code)), '{}'::text[]) as codes
+    from unnest(coalesce(p_completed, '{}'::text[])) as t(code)
+  ),
+  -- The completed set is CROSS JOINed rather than read with a scalar subquery.
+  -- `x = any ((select arr from t))` is the SUBQUERY form of ANY, which compares
+  -- x against each ROW of the subquery: that is text = text[], and it fails.
+  -- Joining makes d.codes a plain array expression, which is the array form.
+  scored as (
+    select
+      c.id           as course_id,
+      c.subject      as course_subject,
+      c.catalog      as course_catalog,
+      c.title        as course_title,
+      c.class_unit   as course_units,
+      c.prerequisites as course_prereqs,
+      array(
+        select pc.code
+        from unnest(public.prereq_codes(c.prerequisites)) as pc(code)
+        where not (pc.code = any (d.codes))
+      ) as missing_codes
+    from public.course_catalog c
+    cross join done d
+    where c.subject = any (coalesce(p_subjects, '{}'::text[]))
+      and coalesce(c.prerequisites, '') <> ''
+      -- Only courses that actually name a course. "Written permission of the
+      -- department" is a prerequisite we cannot reason about at all.
+      and cardinality(public.prereq_codes(c.prerequisites)) > 0
+      -- Nothing you have already finished.
+      and not (public.ct_norm_code(c.subject || c.catalog) = any (d.codes))
   )
-  select c.id, c.subject, c.catalog, c.title, c.class_unit, c.prerequisites,
-         array(
-           select code from unnest(public.prereq_codes(c.prerequisites)) code
-           where not (code = any((select codes from done)))
-         ) as missing
-  from public.course_catalog c
-  where c.subject = any(coalesce(p_subjects, '{}'::text[]))
-    and coalesce(c.prerequisites, '') <> ''
-    -- Only courses that actually name a course. "Written permission of the
-    -- department" is a prerequisite we cannot reason about at all.
-    and cardinality(public.prereq_codes(c.prerequisites)) > 0
-    -- Nothing you have already finished.
-    and not (public.ct_norm_code(c.subject || c.catalog) = any((select codes from done)))
-  order by cardinality(
-    array(
-      select code from unnest(public.prereq_codes(c.prerequisites)) code
-      where not (code = any((select codes from done)))
-    )
-  ), c.subject, c.catalog
+  select s.course_id, s.course_subject, s.course_catalog, s.course_title,
+         s.course_units, s.course_prereqs, s.missing_codes
+  from scored s
+  -- Closest first: everything named already done, then one course away.
+  order by cardinality(s.missing_codes), s.course_subject, s.course_catalog
   limit greatest(1, least(coalesce(p_limit, 200), 400));
 $$;
 grant execute on function public.prereq_progress(text[], text[], int) to anon, authenticated;
