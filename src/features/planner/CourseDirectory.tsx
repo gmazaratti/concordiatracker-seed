@@ -240,7 +240,10 @@ function CourseRow({
       </button>
 
       {expanded && (
-        <div className="border-t border-border/60 bg-canvas/40 px-4 py-3">
+        <div className="space-y-3 border-t border-border/60 bg-canvas/40 px-4 py-3">
+          {course.description && (
+            <p className="text-[12.5px] leading-relaxed text-muted">{course.description}</p>
+          )}
           {course.prerequisites ? (
             <>
               <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">

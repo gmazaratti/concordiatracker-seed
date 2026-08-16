@@ -8,7 +8,7 @@
  * run it less often is that a new course appearing mid-year should show up
  * without anyone remembering to press a button.
  */
-import { fetchCatalog, type CatalogRow } from './_concordia.js'
+import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
 
 /**
  * Vercel kills a function at its duration limit with no response and no error,
@@ -31,7 +31,7 @@ const CHUNK = 2000
 const CONCURRENCY = 4
 
 /** One catalogue row as the mirror stores it. */
-function toRow(c: CatalogRow) {
+function toRow(c: CatalogRow, description: string | null) {
   return {
     id: c.ID,
     subject: c.subject,
@@ -41,6 +41,7 @@ function toRow(c: CatalogRow) {
     class_unit: c.classUnit ? Number(c.classUnit) : null,
     prerequisites: c.prerequisites ?? null,
     crosslisted: c.crosslisted ?? null,
+    description,
     synced_at: new Date().toISOString(),
   }
 }
@@ -67,7 +68,15 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const courses = await fetchCatalog()
+    // Both in parallel: two independent endpoints, and the descriptions are
+    // the slower of the two.
+    const [courses, descriptions] = await Promise.all([
+      fetchCatalog(),
+      // A missing description is a missing paragraph, not a failed sync, so a
+      // fault here must not cost us the catalogue.
+      fetchDescriptions().catch(() => []),
+    ])
+    const describedBy = new Map(descriptions.map((d) => [d.ID, d.description]))
     if (courses.length === 0) {
       // Never wipe a good mirror because one fetch came back empty.
       res.status(502).json({ error: 'Catalogue returned no courses; keeping the existing mirror.' })
@@ -91,7 +100,7 @@ export default async function handler(req: any, res: any) {
     const byId = new Map<string, ReturnType<typeof toRow>>()
     for (const c of courses) {
       if (!c.subject || !c.catalog) continue
-      byId.set(c.ID, toRow(c))
+      byId.set(c.ID, toRow(c, describedBy.get(c.ID) ?? null))
     }
     const rows = [...byId.values()]
 
@@ -146,6 +155,7 @@ export default async function handler(req: any, res: any) {
     res.status(written < rows.length ? 207 : 200).json({
       fetched: courses.length,
       unique: rows.length,
+      described: descriptions.length,
       written,
       ...(firstError ? { partialFailure: firstError } : {}),
     })

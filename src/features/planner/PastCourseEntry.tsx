@@ -4,6 +4,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { parseFinalGrade } from '@/lib/gpa'
+import { GradeField } from '@/components/ui/GradeField'
 import { pastTerms } from './past-terms'
 
 /**
@@ -100,16 +101,11 @@ export function PastCourseEntry() {
           options={pastTerms().map((t) => ({ value: t, label: t }))}
         />
 
-        <input
+        <GradeField
           value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && canAdd) void add()
-          }}
+          onChange={setGrade}
+          ariaLabel="Final grade, percentage or letter, optional"
           placeholder="Grade or A-"
-          aria-label="Final grade, percentage or letter, optional"
-          
-          className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
         />
 
         <button

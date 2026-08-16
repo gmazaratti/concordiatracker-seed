@@ -14,6 +14,9 @@ export interface CatalogCourse {
   career: string | null
   class_unit: number | null
   prerequisites: string | null
+  /** Concordia's own course description. Null until the sync has run with
+   *  db/course_descriptions.sql applied. */
+  description?: string | null
 }
 
 export async function searchCourses(q: string, limit = 40): Promise<CatalogCourse[]> {

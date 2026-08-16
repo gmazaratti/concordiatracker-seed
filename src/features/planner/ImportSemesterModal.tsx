@@ -4,8 +4,8 @@ import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
-import { GRADE_LETTERS, parseFinalGrade, percentToGrade } from '@/lib/gpa'
-import { cn } from '@/lib/cn'
+import { parseFinalGrade } from '@/lib/gpa'
+import { GradeField } from '@/components/ui/GradeField'
 import { pastTerms } from './past-terms'
 
 /**
@@ -187,9 +187,6 @@ function DraftRow({
     }
   }, [row.query, row.course])
 
-  const percent = row.grade.trim() === '' ? null : parseFinalGrade(row.grade)
-  const letter = percent === null ? null : percentToGrade(percent).letter
-
   return (
     <li className="relative">
       <div className="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_130px_auto]">
@@ -205,42 +202,25 @@ function DraftRow({
               onChange({ course: null, query: e.target.value })
               if (!e.target.value.trim()) setHits(null)
             }}
+            onKeyDown={(e) => {
+              // Enter opens another row, so a whole semester can be entered
+              // from the keyboard without reaching for "Add another class".
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                onEnter()
+              }
+            }}
             placeholder={`Class ${index + 1}`}
             aria-label={`Class ${index + 1}`}
             className="w-full rounded-lg border border-border bg-canvas py-2 pr-3 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
           />
         </div>
 
-        <div className="relative">
-          <input
-            value={row.grade}
-            onChange={(e) => onChange({ grade: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onEnter()
-            }}
-            list={`letters-${row.key}`}
-            placeholder="Grade"
-            aria-label={`Grade for class ${index + 1}, optional`}
-            className={cn(
-              'w-full rounded-lg border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:outline-none',
-              row.grade.trim() !== '' && percent === null
-                ? 'border-danger'
-                : 'border-border focus:border-accent',
-            )}
-          />
-          <datalist id={`letters-${row.key}`}>
-            {GRADE_LETTERS.map((l) => (
-              <option key={l} value={l} />
-            ))}
-          </datalist>
-          {/* Typing 87 and seeing "A" confirms the scale being applied, which
-              matters when someone is entering a dozen of them in a row. */}
-          {letter && !/^[A-Za-z]/.test(row.grade.trim()) && (
-            <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-[11px] font-medium text-subtle">
-              {letter}
-            </span>
-          )}
-        </div>
+        <GradeField
+          value={row.grade}
+          onChange={(grade) => onChange({ grade })}
+          ariaLabel={`Grade for class ${index + 1}, optional`}
+        />
 
         <button
           type="button"

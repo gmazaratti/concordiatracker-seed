@@ -42,12 +42,12 @@ begin
     perform cron.unschedule('ct-sync-catalog');
   end if;
 
-  -- Mondays at 04:00 UTC. The calendar changes about once a year; the only
-  -- reason to run it weekly at all is so a course added mid-year appears
-  -- without anyone remembering to press anything.
+  -- Daily at 04:00 UTC. The calendar itself changes about once a year, but a
+  -- course added or corrected mid-year should appear without anyone noticing it
+  -- was missing, and one API call a day is nothing to either side.
   perform cron.schedule(
     'ct-sync-catalog',
-    '0 4 * * 1',
+    '0 4 * * *',
     format(
       $job$
       select net.http_post(

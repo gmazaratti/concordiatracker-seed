@@ -144,3 +144,25 @@ export async function fetchCatalog(): Promise<CatalogRow[]> {
   const rows = (await res.json()) as CatalogRow[]
   return Array.isArray(rows) ? rows : []
 }
+
+/** One course description, keyed by the same ID the catalogue uses. */
+export interface DescriptionRow {
+  ID: string
+  description: string
+}
+
+/**
+ * Every course description in one call.
+ *
+ * A separate endpoint from the catalogue, joined on ID. Same wildcard shape, so
+ * the same "fetch it all once and mirror it" approach applies: descriptions
+ * change about as often as the catalogue does.
+ */
+export async function fetchDescriptions(): Promise<DescriptionRow[]> {
+  const res = await fetch(`${BASE}/course/description/filter/*`, {
+    headers: { Authorization: auth() },
+  })
+  if (!res.ok) throw new Error(`Concordia descriptions ${res.status}`)
+  const rows = (await res.json()) as DescriptionRow[]
+  return Array.isArray(rows) ? rows : []
+}
