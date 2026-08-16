@@ -50,7 +50,12 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 - [ ] **Schedule builder** — build a week from real sections, flag conflicts,
       check cross-campus gaps against the shuttle timetable. Has its section data
       now that the catalogue is synced.
-- [ ] **Instructor per section in the seat watcher** — see *Open questions*.
+- [ ] **A real prerequisite parser** — "My record" currently checks which
+      courses NAMED in a prerequisite you have finished, and deliberately does
+      not read the and/or logic. That means an "or" clause you already satisfy
+      still shows as missing: wrong in the safe direction, but wrong. A real
+      parser would fix it. **IDEA** — the current behaviour is honest and may be
+      good enough for a long time.
 
 ## Data & integrations
 
@@ -123,9 +128,7 @@ These are placeholders sitting in live legal documents right now.
 
 ## Open questions
 
-- **Does Concordia's Open Data schedule feed include the instructor?** If it
-  does, the seat watcher and section autofill should both show who teaches each
-  section. If it doesn't, say nothing rather than guess.
+- *(none open right now.)*
 
 ---
 
@@ -134,3 +137,11 @@ These are placeholders sitting in live legal documents right now.
 - **2026-08-16** — Planner tab (seat watch + course directory), meeting-times
   autofill, catalogue-backed course picker, acknowledgement-based seat alerts,
   aggregate course-tracking counts.
+- **2026-08-16** — Planner "My record": year of study + minor, past courses with
+  optional grades, credits / GPA / subjects, and a conservative unlock list.
+- **2026-08-16** — **Instructor per section: ANSWERED.** Concordia's Open Data
+  publishes no instructor name anywhere (the schedule feed's 41 fields have
+  none; `/course/faculty` is faculty-and-department structure, not people). Now
+  sourced from our own outlines instead — teacher-portal publications are
+  "confirmed by the instructor", student uploads are "reported by N students",
+  shown as different claims.
