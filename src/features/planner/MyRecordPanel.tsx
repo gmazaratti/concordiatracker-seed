@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, Loader2 } from 'lucide-react'
+import { CalendarPlus, ListChecks, Loader2, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -159,24 +159,61 @@ export function MyRecordPanel() {
           </ul>
         )}
         {hasHistory && (
-          <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface px-3.5 py-3">
-            <input
-              type="checkbox"
-              checked={recordComplete}
-              onChange={(e) => {
-                setRecordComplete(e.target.checked)
-                void saveAcademicProfile({ recordComplete: e.target.checked })
-              }}
-              className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
-            />
-            <span className="text-[12.5px] leading-relaxed text-muted">
-              <span className="font-medium text-fg">This is everything I have finished.</span>{' '}
-              Turning this on lets the course directory mark prerequisites you have met in green and
-              the ones you have not in red. Until then it shows the requirement without a verdict,
-              because calling a course out of reach when a term is simply missing would be worse
-              than saying nothing.
-            </span>
-          </label>
+          <div
+            className={cn(
+              'mt-3 rounded-xl border p-3.5 transition-colors duration-200',
+              recordComplete ? 'border-accent/50 bg-accent-soft' : 'border-border bg-surface',
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  'mt-0.5 grid size-8 shrink-0 place-items-center rounded-full',
+                  recordComplete ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-subtle',
+                )}
+              >
+                {recordComplete ? <ShieldCheck size={16} aria-hidden /> : <ListChecks size={16} aria-hidden />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13.5px] font-semibold text-fg">
+                  {recordComplete
+                    ? 'Your record is marked complete'
+                    : 'Is this every course you have finished?'}
+                </p>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-subtle">
+                  {recordComplete
+                    ? 'Prerequisites are checked against it, so the course directory marks what you have met in green and what you have not in red.'
+                    : 'Say yes and the course directory will mark prerequisites you have met in green and the ones you have not in red. Until then it shows the requirement without a verdict, because calling a course out of reach when a term is simply missing is worse than saying nothing.'}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {recordComplete ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordComplete(false)
+                        void saveAcademicProfile({ recordComplete: false })
+                      }}
+                      className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
+                    >
+                      Something is missing
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordComplete(true)
+                        void saveAcademicProfile({ recordComplete: true })
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                    >
+                      <ShieldCheck size={13} aria-hidden />
+                      Yes, that is everything
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </Step>
 

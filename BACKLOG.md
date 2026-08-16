@@ -43,19 +43,10 @@ Status key: **NEXT** (agreed, not started) · **NEEDS A DECISION** (blocked on y
 
 Agreed in order, not started:
 
-- [ ] **Saved courses page** - notes per course, which term you plan to take it,
-      side-by-side comparison, and workload where a blueprint exists to source
-      it from. Save and Add-to-schedule buttons.
-- [ ] **Course directory detail** - sections, seats, times and instructor inline,
-      so the directory is the one place you evaluate a course.
-- [ ] **Prerequisites coloured against your record** - green when satisfied, red
-      when not. GATED on a complete record: colouring against a half-entered
-      history would confidently tell someone they are ineligible for a course
-      they can take.
 - [ ] **Prerequisite tree** - what each course unlocks, several levels deep.
-- [ ] **Schedule builder** - modelled on Concordia's own so it reads as
-      familiar, then better: their layout is a list plus a week grid, and the
-      parts worth keeping are the colour-per-course and the seats/waitlist line.
+      NOT STARTED.
+- [ ] **Add-to-schedule from a saved course** - the builder takes a code today;
+      one click from the shortlist would be better.
 - [ ] **Bulk import without picking one by one** - paste a transcript or a
       Student Centre screen and parse it. A plain algorithm handles the common
       shapes; AI is the fallback for the messy ones and is where a Pro gate
@@ -157,19 +148,7 @@ These are placeholders sitting in live legal documents right now.
 
 ## Run once
 
-1. **`db/course_descriptions.sql`** - adds the description column and teaches
-   search to look inside it.
-2. Redeploy, then fire the sync so descriptions populate:
-
-```sql
-select net.http_post(
-  url := 'https://concordiatracker.com/api/sync-catalog',
-  headers := jsonb_build_object('Content-Type','application/json',
-    'Authorization','Bearer auf4_8AP6-ZkzaC9wAW4HuFp1rfjTCGVw8_QrcuIG5Q'),
-  body := '{}'::jsonb, timeout_milliseconds := 120000);
-```
-
-3. **`db/sync_catalog_cron.sql`** again to move the job from weekly to daily.
+**`db/saved_courses.sql`** — the shortlist table. Nothing else outstanding.
 
 ---
 

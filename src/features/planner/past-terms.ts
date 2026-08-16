@@ -23,3 +23,17 @@ export const YEARS: { value: number; label: string }[] = [
   { value: 5, label: 'Year 5 or beyond' },
   { value: 9, label: 'Graduate' },
 ]
+
+/**
+ * Terms ahead of now, for saying when you intend to take something.
+ *
+ * The opposite direction from pastTerms: a shortlist is about the future, and
+ * offering "Fall 2023" as a plan would be nonsense.
+ */
+export function futureTerms(count = 9, now = new Date()): string[] {
+  const out: string[] = []
+  for (let y = now.getFullYear(); out.length < count; y++) {
+    for (const s of ['Winter', 'Summer', 'Fall']) out.push(`${s} ${y}`)
+  }
+  return out.slice(0, count)
+}

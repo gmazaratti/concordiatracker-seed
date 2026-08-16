@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { BookOpen, Loader2, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Bookmark, BookOpen, Check, Loader2, Search } from 'lucide-react'
 import { useI18n } from '@/i18n/i18n'
 import { useAppData } from '@/app/providers/app-data'
 import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
+import { cn } from '@/lib/cn'
+import { listSaved, saveCourse, unsaveCourse } from '@/lib/saved-courses'
 import { PrereqChips } from './PrereqChips'
 import { CourseSections } from './CourseSections'
 import { formatMonthDay } from '@/lib/date'
@@ -30,11 +32,15 @@ export function CourseDirectory() {
   const { t } = useI18n()
   const { pastCourses, courses, assessments } = useAppData()
   const [trusted, setTrusted] = useState(false)
+  const [savedCodes, setSavedCodes] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let alive = true
     void loadAcademicProfile().then((p) => {
       if (alive) setTrusted(p.recordComplete)
+    })
+    void listSaved().then((rows) => {
+      if (alive) setSavedCodes(new Set(rows.map((r) => r.code)))
     })
     return () => {
       alive = false
@@ -79,6 +85,20 @@ export function CourseDirectory() {
       alive = false
     }
   }, [])
+
+  const toggleSave = useCallback(async (course: CatalogCourse) => {
+    const code = `${course.subject} ${course.catalog}`
+    // Optimistic: saving is reversible and instant feedback matters more here
+    // than surviving a failed write, which the next load corrects anyway.
+    setSavedCodes((prev) => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
+    if (savedCodes.has(code)) await unsaveCourse(code)
+    else await saveCourse(code, course.title)
+  }, [savedCodes])
 
   async function loadMore() {
     setLoadingMore(true)
@@ -184,6 +204,8 @@ export function CourseDirectory() {
                     onFollowCode={setQ}
                     record={record}
                     trusted={trusted}
+                    saved={savedCodes}
+                    onToggleSave={toggleSave}
                   />
                 ))}
               </ul>
@@ -215,6 +237,8 @@ export function CourseDirectory() {
                 onFollowCode={setQ}
                 record={record}
                 trusted={trusted}
+                saved={savedCodes}
+                onToggleSave={toggleSave}
               />
             ))}
           </ul>
@@ -231,6 +255,8 @@ function CourseRow({
   onFollowCode,
   record,
   trusted,
+  saved,
+  onToggleSave,
 }: {
   course: CatalogCourse
   expanded: boolean
@@ -238,6 +264,8 @@ function CourseRow({
   onFollowCode: (code: string) => void
   record: { completed: Set<string>; credits: number }
   trusted: boolean
+  saved: Set<string>
+  onToggleSave: (course: CatalogCourse) => void
 }) {
   const { t } = useI18n()
   const linked = extractCourseCodes(course.prerequisites)
@@ -255,12 +283,12 @@ function CourseRow({
   ].filter(Boolean)
 
   return (
-    <li>
+    <li className="relative">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-surface-2"
+        className="flex w-full items-center gap-3 py-3 pr-24 pl-4 text-left transition-colors duration-150 hover:bg-surface-2"
       >
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
@@ -271,6 +299,28 @@ function CourseRow({
           </span>
           <span className="mt-0.5 block text-[11.5px] text-subtle">{meta.join(' · ')}</span>
         </span>
+      </button>
+
+      {/* A sibling of the expand button, not a child of it: a button inside a
+          button is invalid, and clicking Save should not also toggle the row. */}
+      <button
+        type="button"
+        onClick={() => onToggleSave(course)}
+        aria-pressed={saved.has(`${course.subject} ${course.catalog}`)}
+        aria-label={`${saved.has(`${course.subject} ${course.catalog}`) ? 'Remove' : 'Save'} ${course.subject} ${course.catalog}`}
+        className={cn(
+          'absolute top-2.5 right-3 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors duration-150',
+          saved.has(`${course.subject} ${course.catalog}`)
+            ? 'border-accent bg-accent-soft text-accent'
+            : 'border-border text-subtle hover:border-accent hover:text-fg',
+        )}
+      >
+        {saved.has(`${course.subject} ${course.catalog}`) ? (
+          <Check size={11} aria-hidden />
+        ) : (
+          <Bookmark size={11} aria-hidden />
+        )}
+        {saved.has(`${course.subject} ${course.catalog}`) ? 'Saved' : 'Save'}
       </button>
 
       {expanded && (

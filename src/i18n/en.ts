@@ -498,6 +498,7 @@ export const en = {
   'planner.tab.record': 'My record',
   'planner.tab.seats': 'Seat watch',
   'planner.tab.directory': 'Course directory',
+  'planner.tab.saved': 'Saved',
   'planner.tab.tree': 'Prerequisite tree',
   'planner.tab.schedule': 'Schedule builder',
   'planner.tree.body':

@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Bell, BookOpen, GitBranch, CalendarRange, GraduationCap } from 'lucide-react'
+import { Bell, BookOpen, Bookmark, GitBranch, CalendarRange, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useI18n } from '@/i18n/i18n'
 import type { Key } from '@/i18n/en'
 import { CourseDirectory } from './CourseDirectory'
 import { SeatWatchPanel } from './SeatWatchPanel'
 import { MyRecordPanel } from './MyRecordPanel'
+import { SavedCoursesPanel } from './SavedCoursesPanel'
+import { ScheduleBuilder } from './ScheduleBuilder'
 
 /**
  * Planner: the pre-term half of the product.
@@ -22,14 +24,15 @@ import { MyRecordPanel } from './MyRecordPanel'
  * still widgets rather than neighbours of this.
  */
 
-type Tab = 'record' | 'seats' | 'directory' | 'tree' | 'schedule'
+type Tab = 'record' | 'seats' | 'directory' | 'saved' | 'tree' | 'schedule'
 
 const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; ready: boolean }[] = [
   { id: 'record', labelKey: 'planner.tab.record', icon: GraduationCap, ready: true },
   { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, ready: true },
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, ready: true },
+  { id: 'saved', labelKey: 'planner.tab.saved', icon: Bookmark, ready: true },
   { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, ready: false },
-  { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, ready: false },
+  { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, ready: true },
 ]
 
 export function PlannerPage() {
@@ -85,12 +88,11 @@ export function PlannerPage() {
       {tab === 'record' && <MyRecordPanel />}
       {tab === 'seats' && <SeatWatchPanel />}
       {tab === 'directory' && <CourseDirectory />}
+      {tab === 'saved' && <SavedCoursesPanel />}
       {tab === 'tree' && (
         <Placeholder title={t('planner.tab.tree')} body={t('planner.tree.body')} />
       )}
-      {tab === 'schedule' && (
-        <Placeholder title={t('planner.tab.schedule')} body={t('planner.schedule.body')} />
-      )}
+      {tab === 'schedule' && <ScheduleBuilder />}
     </div>
   )
 }

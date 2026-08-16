@@ -32,17 +32,25 @@ function check(label, actual, expected) {
   console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${label}${ok ? '' : `\n         expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`}`)
 }
 
-/** Load a migration, minus the statements that need Supabase's roles. */
+/**
+ * Load a migration, minus the statements that need Supabase's own objects.
+ *
+ * Removal happens per STATEMENT, not per line. A line filter looks simpler and
+ * is wrong: `alter table public.user_profile\n  add column ...;` spans two
+ * lines, and dropping only the line that matched leaves the other half behind
+ * to blow up the whole file. It also cannot tell that ALTER apart from the one
+ * on seat_watches, which we do want.
+ */
 function migration(name) {
-  return fs
-    .readFileSync(path.join(DB_DIR, name), 'utf8')
+  const sql = fs.readFileSync(path.join(DB_DIR, name), 'utf8')
+  // user_profile is Supabase's, and auth.users does not exist here.
+  const withoutProfile = sql.replace(/alter table public\.user_profile[\s\S]*?;/gi, '')
+  return withoutProfile
     .split('\n')
     .filter(
       (l) =>
         !/^\s*(grant|revoke)\b/i.test(l) &&
         !/^\s*from public, anon, authenticated;/i.test(l) &&
-        !/alter table public\.user_profile/i.test(l) &&
-        !/add column if not exists (year_of_study|minor)/i.test(l) &&
         !/comment on column/i.test(l) &&
         !/^\s*'Frozen final grade/i.test(l),
     )
@@ -217,6 +225,20 @@ check('past the end returns nothing', (await browse(['COMP'], 500, 10)).length, 
 
 const subs = (await db.query('select * from public.my_subjects()')).rows
 check('my_subjects reads only the caller own codes', subs.map((r) => r.subject).sort(), ['COMP'])
+
+// -- db/saved_courses.sql ----------------------------------------------------
+console.log('\ndb/saved_courses.sql')
+await db.exec(migration('saved_courses.sql').replace(/references auth.users\(id\) on delete cascade/g, ''))
+console.log('  ok    DDL applies')
+await db.query('insert into public.saved_courses (user_id, code, title) values ($1,$2,$3)', [ME, 'COMP 352', 'Data Structures'])
+check('a course can be saved', (await db.query('select count(*)::int n from public.saved_courses')).rows[0].n, 1)
+let dup = null
+try {
+  await db.query('insert into public.saved_courses (user_id, code) values ($1,$2)', [ME, 'COMP 352'])
+} catch (e) { dup = e.code }
+check('saving the same course twice is rejected', dup, '23505')
+await db.query('insert into public.saved_courses (user_id, code) values ($1,$2)', [OTHER, 'COMP 352'])
+check('but two students can save the same course', (await db.query('select count(*)::int n from public.saved_courses')).rows[0].n, 2)
 
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)

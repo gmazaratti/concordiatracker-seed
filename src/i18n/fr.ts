@@ -506,6 +506,7 @@ export const fr: Partial<Record<Key, string>> = {
   'planner.tab.record': 'Mon dossier',
   'planner.tab.seats': 'Veille de places',
   'planner.tab.directory': 'Répertoire des cours',
+  'planner.tab.saved': 'Enregistrés',
   'planner.tab.tree': 'Arbre des préalables',
   'planner.tab.schedule': 'Créateur d’horaire',
   'planner.tree.body':
