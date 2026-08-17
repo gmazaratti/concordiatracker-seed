@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Inbox, PanelLeftClose, Radar, Settings } from 'lucide-react'
+import { Inbox, PanelLeftClose, Radar, Settings, Wallet } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
@@ -164,6 +164,36 @@ export function Sidebar() {
           ) : (
             <>
               <span className="flex-1">Radar</span>
+              <span className="rounded bg-accent-soft px-1 py-0.5 text-[9px] font-semibold tracking-wide text-accent uppercase">
+                Beta
+              </span>
+            </>
+          )}
+        </NavLink>
+
+        <NavLink
+          to="/app/money"
+          title={collapsed ? 'Money' : undefined}
+          className={({ isActive }) =>
+            cn(
+              'group flex items-center gap-3 rounded-lg py-2 text-sm transition-colors duration-150',
+              collapsed ? 'justify-center px-0' : 'px-3',
+              isActive
+                ? 'bg-accent-soft font-medium text-fg'
+                : 'text-muted hover:bg-surface-2 hover:text-fg',
+            )
+          }
+        >
+          <Wallet
+            size={18}
+            className="shrink-0 text-subtle transition-colors duration-150 group-hover:text-muted"
+            aria-hidden
+          />
+          {collapsed ? (
+            <span className="sr-only">Money</span>
+          ) : (
+            <>
+              <span className="flex-1">Money</span>
               <span className="rounded bg-accent-soft px-1 py-0.5 text-[9px] font-semibold tracking-wide text-accent uppercase">
                 Beta
               </span>

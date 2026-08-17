@@ -12,6 +12,7 @@ import {
   Radar,
   Settings,
   ShieldCheck,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
@@ -157,6 +158,9 @@ export function AvatarMenu({
           </MenuButton>
           <MenuLink to="/app/radar" icon={Radar} onSelect={() => setOpen(false)}>
             Radar
+          </MenuLink>
+          <MenuLink to="/app/money" icon={Wallet} onSelect={() => setOpen(false)}>
+            Money
           </MenuLink>
           <MenuLink to="/app/requests" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             {t('nav.feedback')}

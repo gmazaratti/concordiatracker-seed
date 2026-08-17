@@ -13,6 +13,7 @@ import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { PlannerPage } from '@/features/planner/PlannerPage'
 import { RadarPage } from '@/features/radar/RadarPage'
+import { MoneyPage } from '@/features/money/MoneyPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
 import { PublicEventPage } from '@/features/community/PublicEventPage'
@@ -60,6 +61,7 @@ export function AppRoutes() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="planner" element={<PlannerPage />} />
         <Route path="radar" element={<RadarPage />} />
+        <Route path="money" element={<MoneyPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
         <Route path="requests" element={<AppRequestsPage />} />
