@@ -1,10 +1,16 @@
-import { useTheme } from '@/app/providers/theme'
-import { THEMES } from '@/app/providers/theme'
+import { useTheme, THEMES, type ThemeOption } from '@/app/providers/theme'
+import { useAppData } from '@/app/providers/app-data'
+import { accentTokens } from '@/lib/color'
 import { cn } from '@/lib/cn'
 
 /** Segmented swatch control. Themes swap purely from the tokens file. Set
  * `showLabels={false}` for a compact swatches-only form (e.g. the narrow avatar
- * menu, where long theme names overflow) — the name stays as the title/aria-label. */
+ * menu, where long theme names overflow) — the name stays as the title/aria-label.
+ *
+ * This form shows only the themes you can actually pick. There is no room here
+ * for a padlock and an explanation, and a swatch that silently refuses to apply
+ * is worse than one that isn't offered; the full picker in Settings is where
+ * the locked themes are shown and sold. */
 export function ThemeSwitcher({
   className,
   showLabels = true,
@@ -12,7 +18,26 @@ export function ThemeSwitcher({
   className?: string
   showLabels?: boolean
 }) {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, custom } = useTheme()
+  const { plan } = useAppData()
+  const pro = plan === 'semester'
+
+  const options: ThemeOption[] = pro
+    ? [
+        ...THEMES,
+        {
+          id: 'custom',
+          label: 'Your colour',
+          swatch: [
+            custom.base === 'dark' ? '#0f0f16' : '#f5f6f4',
+            accentTokens(custom.accent, custom.base)['--ct-accent'],
+          ],
+          surface: custom.base === 'dark' ? '#191926' : '#ffffff',
+          scheme: custom.base,
+        },
+      ]
+    : THEMES.filter((t) => !t.pro)
+
   return (
     <div
       role="radiogroup"
@@ -22,7 +47,7 @@ export function ThemeSwitcher({
         className,
       )}
     >
-      {THEMES.map((opt) => {
+      {options.map((opt) => {
         const selected = opt.id === theme
         return (
           <button

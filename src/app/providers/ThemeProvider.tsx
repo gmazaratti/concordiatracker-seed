@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { ThemeContext, THEMES, type Theme, type ThemeOrigin } from './theme'
+import {
+  ThemeContext,
+  THEMES,
+  DEFAULT_CUSTOM,
+  type CustomTheme,
+  type Theme,
+  type ThemeOrigin,
+} from './theme'
+import { accentTokens } from '@/lib/color'
 
 const DEFAULT_THEME: Theme = 'dark'
 const STORAGE_KEY = 'ct_theme'
+const CUSTOM_KEY = 'ct_theme_custom'
+const VARS_KEY = 'ct_theme_vars'
 /** Long enough to read as a sweep, short enough not to be in the way. */
 const REVEAL_MS = 600
 
@@ -11,11 +21,33 @@ const REVEAL_MS = 600
 function readStoredTheme(): Theme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved && THEMES.some((t) => t.id === saved)) return saved as Theme
+    if (saved === 'custom' || (saved && THEMES.some((t) => t.id === saved))) return saved as Theme
   } catch {
     /* localStorage unavailable */
   }
   return DEFAULT_THEME
+}
+
+/** The saved custom palette. Anything malformed falls back rather than throwing. */
+function readStoredCustom(): CustomTheme {
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY)
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw)
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        'accent' in parsed &&
+        typeof (parsed as CustomTheme).accent === 'string'
+      ) {
+        const c = parsed as CustomTheme
+        return { base: c.base === 'light' ? 'light' : 'dark', accent: c.accent }
+      }
+    }
+  } catch {
+    /* unreadable or unparseable — use the default */
+  }
+  return DEFAULT_CUSTOM
 }
 
 /** The View Transitions API isn't in every TS DOM lib yet — narrow it here. */
@@ -37,15 +69,31 @@ type ViewTransitionDoc = Document & {
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
+  const [custom, setCustomState] = useState<CustomTheme>(readStoredCustom)
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
+    const root = document.documentElement
+    // A custom theme rides ON one of the base palettes: data-theme still names
+    // the base, so every tuned surface, border and text token stays exactly as
+    // designed, and only the accent variables are overwritten below.
+    root.dataset.theme = theme === 'custom' ? custom.base : theme
+
+    const tokens = accentTokens(custom.accent, custom.base)
+    for (const name of Object.keys(tokens)) {
+      if (theme === 'custom') root.style.setProperty(name, tokens[name])
+      else root.style.removeProperty(name)
+    }
+
     try {
       localStorage.setItem(STORAGE_KEY, theme)
+      localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom))
+      // Cached for the pre-paint script in index.html, which replays these
+      // rather than reimplementing the derivation.
+      localStorage.setItem(VARS_KEY, JSON.stringify(tokens))
     } catch {
       /* localStorage unavailable — theme just won't persist */
     }
-  }, [theme])
+  }, [theme, custom])
 
   const setTheme = useCallback((next: Theme, origin?: ThemeOrigin) => {
     const doc = document as ViewTransitionDoc
@@ -97,7 +145,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [theme, setTheme],
   )
 
-  const value = useMemo(() => ({ theme, setTheme, toggleTheme }), [theme, setTheme, toggleTheme])
+  const value = useMemo(
+    () => ({ theme, setTheme, toggleTheme, custom, setCustom: setCustomState }),
+    [theme, setTheme, toggleTheme, custom],
+  )
 
   return <ThemeContext value={value}>{children}</ThemeContext>
 }

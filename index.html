@@ -8,6 +8,16 @@
         var t = localStorage.getItem('ct_theme')
         if (t === 'dark' || t === 'maroon' || t === 'light' || t === 'purple' || t === 'rose')
           document.documentElement.dataset.theme = t
+        else if (t === 'custom') {
+          // A custom theme is a base palette plus derived accent variables. The
+          // derivation lives in lib/color.ts and is NOT repeated here — the
+          // provider caches its result, and this replays it. A stale or missing
+          // cache costs one frame of the default accent, never a broken page.
+          var c = JSON.parse(localStorage.getItem('ct_theme_custom') || '{}')
+          document.documentElement.dataset.theme = c.base === 'light' ? 'light' : 'dark'
+          var v = JSON.parse(localStorage.getItem('ct_theme_vars') || '{}')
+          for (var k in v) document.documentElement.style.setProperty(k, v[k])
+        }
       } catch (e) {}
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
