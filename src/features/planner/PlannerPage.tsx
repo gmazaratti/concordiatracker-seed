@@ -75,8 +75,19 @@ export function PlannerPage() {
     </>
   )
 
+  // With the rail, the PAGE never changes width — only the content column
+  // inside it does. Letting the page resize per section moved the rail itself
+  // every time you switched, which reads as the navigation running away from
+  // you. The other layouts sit above the content, so they can resize freely.
+  const railed = nav === 'rail'
+
   return (
-    <div className={cn('mx-auto w-full px-5 py-5 sm:px-6', wide ? 'max-w-[1600px]' : 'max-w-5xl')}>
+    <div
+      className={cn(
+        'mx-auto w-full px-5 py-5 sm:px-6',
+        railed || wide ? 'max-w-[1600px]' : 'max-w-5xl',
+      )}
+    >
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div className="min-w-0">
           <h1 className="font-display text-[26px] leading-tight font-medium text-fg">
@@ -87,10 +98,20 @@ export function PlannerPage() {
         {isAdmin && <NavLayoutToggle current={nav} />}
       </header>
 
-      {nav === 'rail' ? (
+      {railed ? (
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
           <PlannerNavBar layout="rail" items={items} active={tab} onChange={setTab} />
-          <div className="min-w-0 flex-1">{panel}</div>
+          {/* The column, not the page, is what narrows for a reading section —
+              and it eases rather than snapping, so the change reads as the
+              content settling instead of the layout jumping. */}
+          <div
+            className={cn(
+              'min-w-0 flex-1 transition-[max-width] duration-300 ease-out',
+              wide ? 'max-w-full' : 'max-w-5xl',
+            )}
+          >
+            {panel}
+          </div>
         </div>
       ) : (
         <>

@@ -745,6 +745,41 @@ html {
   }
 }
 
+/* Range input, themed. The browser default is the one control that ignores
+   every token we set, so it stands out as foreign wherever it appears. */
+.ct-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--ct-border-strong);
+  outline: none;
+}
+
+.ct-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ct-accent);
+  cursor: pointer;
+  border: 0;
+}
+
+.ct-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ct-accent);
+  cursor: pointer;
+  border: 0;
+}
+
+.ct-range:focus-visible {
+  box-shadow: 0 0 0 3px var(--ct-accent-ring);
+}
+
 /* ── Loading placeholders ───────────────────────────────────────────────────
    A sweep across a gradient rather than a pulsing opacity: it reads as
    "something is arriving" instead of "something is broken", and animating
