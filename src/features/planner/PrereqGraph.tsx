@@ -40,6 +40,46 @@ interface Node extends Positioned {
 
 const codeOf = (c: CatalogCourse) => `${c.subject} ${c.catalog}`
 
+function Description({ text }: { text: string | null | undefined }) {
+  const [open, setOpen] = useState(false)
+  if (!text) {
+    return (
+      <span className="mt-1 block text-[11px] text-subtle italic">
+        No description in the mirror yet.
+      </span>
+    )
+  }
+  // Calendar descriptions run to a full paragraph with NOTE1/NOTE2 appended.
+  // Two lines is enough to tell two courses apart, which is what the list is
+  // for; the rest is available but not in the way.
+  return (
+    <>
+      <span
+        className={cn('mt-1 block text-[11px] leading-snug text-subtle', !open && 'line-clamp-2')}
+      >
+        {text}
+      </span>
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((o) => !o)
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          e.stopPropagation()
+          setOpen((o) => !o)
+        }}
+        className="mt-0.5 inline-block cursor-pointer text-[10.5px] font-medium text-accent hover:underline"
+      >
+        {open ? 'Show less' : 'Read more'}
+      </span>
+    </>
+  )
+}
+
 export function PrereqGraph({
   completed,
   trusted,
@@ -273,9 +313,7 @@ export function PrereqGraph({
                       <span className="mt-0.5 block truncate text-[11.5px] text-muted">
                         {c.title}
                       </span>
-                      <span className="mt-1 line-clamp-2 block text-[11px] leading-snug text-subtle">
-                        {c.description ?? 'No description in the mirror yet.'}
-                      </span>
+                      <Description text={c.description} />
                     </button>
                   </li>
                 )
@@ -296,8 +334,15 @@ export function PrereqGraph({
             const raw = e.dataTransfer.getData('text/ct-course')
             if (raw) void add(JSON.parse(raw) as CatalogCourse)
           }}
-          className="ct-grid-bg relative h-[60svh] flex-1 overflow-auto rounded-xl border border-border bg-canvas lg:h-auto"
+          className="relative h-[60svh] flex-1 overflow-auto rounded-xl border border-border bg-canvas lg:h-auto"
         >
+          {/* Its own layer, sized to the board. Putting the grid on the
+              scrolling container meant its mask faded out the cards too. */}
+          <div
+            className="ct-grid-plain pointer-events-none absolute top-0 left-0"
+            style={{ width: board.w * zoom, height: board.h * zoom }}
+            aria-hidden
+          />
           {/* One scaled layer holds the arrows and the cards together, so zoom
               cannot drift them apart. */}
           <div

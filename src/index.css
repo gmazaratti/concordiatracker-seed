@@ -578,6 +578,17 @@ html {
 /* Faint blueprint grid behind the landing hero — two hairline gradients on the
  * border token, masked to fade out before it reaches the content below. Reads as
  * texture, never as lines you actually look at. */
+/* A plain grid, for surfaces that hold content. Deliberately NOT ct-grid-bg:
+   that one carries a mask, and a mask applies to every descendant, so anything
+   drawn on top of it inherits the fade. */
+.ct-grid-plain {
+  background-image:
+    linear-gradient(to right, var(--ct-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ct-border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.45;
+}
+
 .ct-grid-bg {
   background-image:
     linear-gradient(to right, var(--ct-border) 1px, transparent 1px),
