@@ -164,8 +164,8 @@ export function Sidebar() {
           ) : (
             <>
               <span className="flex-1">Radar</span>
-              <span className="rounded bg-surface-2 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-subtle uppercase">
-                New
+              <span className="rounded bg-accent-soft px-1 py-0.5 text-[9px] font-semibold tracking-wide text-accent uppercase">
+                Beta
               </span>
             </>
           )}

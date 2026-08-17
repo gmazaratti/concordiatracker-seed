@@ -18,7 +18,15 @@ import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { cn } from '@/lib/cn'
 import { DropSimulator } from './DropSimulator'
 import { TermStrip } from './TermStrip'
-import { radarSummary, runRadar, weeklyLoad, type Severity, type Signal } from './rules'
+import { WhatItWatches } from './WhatItWatches'
+import {
+  checkStates,
+  radarSummary,
+  runRadar,
+  weeklyLoad,
+  type Severity,
+  type Signal,
+} from './rules'
 
 /**
  * Radar — the things that go wrong quietly.
@@ -98,6 +106,19 @@ export function RadarPage() {
     [now, liveCourses, pastCourses, liveAssessments, recordComplete],
   )
 
+  const states = useMemo(
+    () =>
+      checkStates({
+        now,
+        courses: liveCourses,
+        pastCourses,
+        assessments: liveAssessments,
+        calendar: ACADEMIC_CALENDAR,
+        recordComplete,
+      }),
+    [now, liveCourses, pastCourses, liveAssessments, recordComplete],
+  )
+
   const summary = radarSummary(signals)
   const weeks = useMemo(() => weeklyLoad(liveAssessments, now, 15), [liveAssessments, now])
   const hasLoad = weeks.some((w) => w.weight > 0)
@@ -108,11 +129,22 @@ export function RadarPage() {
       <header className="mb-5">
         <div className="flex items-center gap-2">
           <h1 className="font-display text-[26px] leading-tight font-medium text-fg">Radar</h1>
-          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase">
-            Trial
+          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+            Beta
           </span>
         </div>
-        <p className="mt-0.5 text-[13px] text-subtle">The things that go wrong quietly.</p>
+        {/* The old subtitle was a slogan. A page nobody can describe after
+            reading its title has failed at the title. */}
+        <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted">
+          An automatic check on your semester. It reads your courses, grades, outlines and the
+          registrar&rsquo;s calendar, and tells you about problems that are coming but not yet
+          obvious — a week where too much of your grade lands at once, a drop deadline about to
+          close, a course the marks can no longer save.
+        </p>
+        <p className="mt-1.5 text-[12.5px] text-subtle">
+          Today shows what is due. Calendar shows when. Radar is the one that says whether the term
+          ahead is survivable — which needs every course added together, so nothing else can.
+        </p>
       </header>
 
       {/* ── Status ───────────────────────────────────────────────────── */}
@@ -139,8 +171,8 @@ export function RadarPage() {
             </p>
           )}
           <p className="mt-0.5 text-[12px] text-subtle">
-            Checked against your courses, your grades, your outlines and the registrar&rsquo;s
-            calendar. Nothing here leaves your account.
+            {states.length} checks ran just now, on your account alone. Nothing here is sent
+            anywhere, and none of it changes your registration.
           </p>
         </div>
       </section>
@@ -149,9 +181,9 @@ export function RadarPage() {
       {hasLoad && (
         <section className="mt-4 rounded-xl border border-border bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[13px] font-semibold text-fg">The shape of your term</h2>
+            <h2 className="text-[13px] font-semibold text-fg">How heavy each week is</h2>
             <p className="text-[11.5px] text-subtle">
-              Every course, on one axis — which is the only place a collision shows up.
+              Each bar is one week of the term
             </p>
           </div>
           <TermStrip weeks={weeks} />
@@ -175,19 +207,36 @@ export function RadarPage() {
       )}
 
       {/* ── Signals ──────────────────────────────────────────────────── */}
-      <div className="mt-4 space-y-3">
-        {signals.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-            <ShieldCheck size={22} className="mx-auto text-success" aria-hidden />
-            <p className="mt-3 text-[14px] font-medium text-fg">Nothing on the radar</p>
-            <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-subtle">
-              No collisions, no deadlines closing, no course whose arithmetic has turned. This page
-              is quiet on purpose — it is meant to be empty most of the time and loud when it is not.
-            </p>
+      {signals.length > 0 && (
+        <>
+          <h2 className="mt-6 mb-2 text-[13px] font-semibold text-fg">
+            What it found{' '}
+            <span className="font-normal text-subtle">
+              · {signals.length} {signals.length === 1 ? 'thing' : 'things'}, most pressing first
+            </span>
+          </h2>
+          <div className="space-y-3">
+            {signals.map((signal) => (
+              <SignalCard key={signal.id} signal={signal} />
+            ))}
           </div>
-        ) : (
-          signals.map((signal) => <SignalCard key={signal.id} signal={signal} />)
-        )}
+        </>
+      )}
+
+      {signals.length === 0 && (
+        <div className="mt-4 rounded-xl border border-dashed border-border px-6 py-10 text-center">
+          <ShieldCheck size={22} className="mx-auto text-success" aria-hidden />
+          <p className="mt-3 text-[14px] font-medium text-fg">Nothing to flag</p>
+          <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-subtle">
+            Every check below came back clear. This page is meant to be empty most of the time and
+            loud when it is not.
+          </p>
+        </div>
+      )}
+
+      {/* Always shown, found something or not: see the sweep, not just the hits. */}
+      <div className="mt-6">
+        <WhatItWatches states={states} />
       </div>
 
       <p className="mt-5 text-[11.5px] leading-relaxed text-subtle">

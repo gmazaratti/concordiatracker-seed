@@ -366,17 +366,130 @@ function recordGap({ recordComplete, pastCourses }: RadarInput): Signal[] {
   ]
 }
 
-const RULES: ((input: RadarInput) => Signal[])[] = [
-  fullTimeLoad,
-  crunch,
-  sameDay,
-  atRisk,
-  deadlines,
-  lowFinals,
-  unverified,
-  blindSpots,
-  recordGap,
+/**
+ * A check is a rule that can describe itself.
+ *
+ * The first version was a bare array of functions, which made the page
+ * impossible to explain: when nothing fired you saw an empty screen and had to
+ * take on faith that anything had been looked at. A radar that only shows hits
+ * is indistinguishable from a radar that is switched off.
+ *
+ * So every check declares what it watches for, and whether it has the data to
+ * look at all. The page renders that list whether or not anything fired, which
+ * means a quiet term reads as "nine things checked, all clear" instead of as a
+ * blank page.
+ */
+export interface RadarCheck {
+  id: string
+  label: string
+  /** One line, plain: what this looks for. Shown to the student. */
+  watches: string
+  topic: Signal['topic']
+  /** Whether there is enough on file for this check to mean anything. */
+  ready: (input: RadarInput) => boolean
+  /** What it would need. Shown when `ready` is false. */
+  needs: string
+  run: (input: RadarInput) => Signal[]
+}
+
+const hasDated = (i: RadarInput) => i.assessments.length > 0
+
+export const CHECKS: RadarCheck[] = [
+  {
+    id: 'full-time',
+    label: 'Course load',
+    watches: `Whether you are under the ${FULL_TIME_CREDITS} credits Concordia counts as full time.`,
+    topic: 'load',
+    ready: (i) => i.courses.length > 0,
+    needs: 'courses in your current term',
+    run: fullTimeLoad,
+  },
+  {
+    id: 'crunch',
+    label: 'Crunch weeks',
+    watches: 'Weeks where a large share of your grade lands at once, across every course together.',
+    topic: 'load',
+    ready: hasDated,
+    needs: 'at least one course outline with dates in it',
+    run: crunch,
+  },
+  {
+    id: 'same-day',
+    label: 'Same-day collisions',
+    watches: 'Two or more heavy things due on the same calendar day, in different courses.',
+    topic: 'load',
+    ready: hasDated,
+    needs: 'at least one course outline with dates in it',
+    run: sameDay,
+  },
+  {
+    id: 'at-risk',
+    label: 'Courses at risk',
+    watches: 'Courses where the marks left can no longer realistically get you to a C.',
+    topic: 'grades',
+    ready: (i) => i.assessments.some((a) => a.grade !== null),
+    needs: 'a grade entered on at least one assessment',
+    run: atRisk,
+  },
+  {
+    id: 'deadlines',
+    label: 'Registrar deadlines',
+    watches: 'Add, drop and withdrawal windows closing in the next three weeks.',
+    topic: 'deadlines',
+    ready: (i) => i.courses.length > 0,
+    needs: 'courses in your current term',
+    run: deadlines,
+  },
+  {
+    id: 'low-finals',
+    label: 'Grades that may block you',
+    watches: 'Finished courses below C-, which some programmes require you to repeat.',
+    topic: 'grades',
+    ready: (i) => i.pastCourses.length > 0,
+    needs: 'your past courses',
+    run: lowFinals,
+  },
+  {
+    id: 'unverified',
+    label: 'Dates worth double-checking',
+    watches: 'Upcoming dates that came from one person’s upload and nobody has confirmed.',
+    topic: 'coverage',
+    ready: hasDated,
+    needs: 'at least one course outline with dates in it',
+    run: unverified,
+  },
+  {
+    id: 'blind-spots',
+    label: 'Blind spots',
+    watches: 'Courses with no outline, which nothing above can see into.',
+    topic: 'coverage',
+    ready: (i) => i.courses.length > 0,
+    needs: 'courses in your current term',
+    run: blindSpots,
+  },
+  {
+    id: 'record-gap',
+    label: 'Your history',
+    watches: 'Whether enough of your record is on file for the rest of this to be worth trusting.',
+    topic: 'coverage',
+    ready: () => true,
+    needs: '',
+    run: recordGap,
+  },
 ]
+
+export type CheckState = 'alert' | 'clear' | 'idle'
+
+/** Every check, what it found, and whether it could look. */
+export function checkStates(
+  input: RadarInput,
+): { check: RadarCheck; state: CheckState; count: number }[] {
+  return CHECKS.map((check) => {
+    if (!check.ready(input)) return { check, state: 'idle' as const, count: 0 }
+    const found = check.run(input)
+    return { check, state: found.length > 0 ? ('alert' as const) : ('clear' as const), count: found.length }
+  })
+}
 
 const ORDER: Record<Severity, number> = { critical: 0, warning: 1, watch: 2, clear: 3 }
 
@@ -388,7 +501,7 @@ const ORDER: Record<Severity, number> = { critical: 0, warning: 1, watch: 2, cle
  * which a student can still do something about them.
  */
 export function runRadar(input: RadarInput): Signal[] {
-  const signals = RULES.flatMap((rule) => rule(input))
+  const signals = CHECKS.filter((c) => c.ready(input)).flatMap((c) => c.run(input))
   return signals.sort((a, b) => ORDER[a.severity] - ORDER[b.severity])
 }
 
