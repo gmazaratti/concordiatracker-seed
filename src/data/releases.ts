@@ -26,6 +26,57 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.23.0',
+    name: 'The Planner',
+    date: '2026-08-16',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Planner is a new tab. Next term lives here — your record, the course directory, what a class unlocks, and a schedule you can build — so the term you are running stays on Today, Courses and Calendar.',
+      },
+      {
+        kind: 'new',
+        text: 'My record: add the courses you have already taken, with or without grades. It works out your credits and GPA, and from then on every course in the app knows whether you can take it.',
+      },
+      {
+        kind: 'new',
+        text: 'Paste your transcript instead of typing it. Everything it reads lands in a table next to the line it came from, and nothing is saved until you have checked it.',
+      },
+      {
+        kind: 'new',
+        text: 'Schedule builder: search Concordia for real sections, drop them on a week, and see clashes and back-to-back classes on opposite campuses before you register. Save as many versions as you like, print one, or share a read-only link.',
+      },
+      {
+        kind: 'new',
+        text: 'Drag on the week to block out hours you work, commute or sleep. Sections that clash get marked in the search rather than hidden, so it is still your call.',
+      },
+      {
+        kind: 'new',
+        text: 'Prerequisite tree: pick a course and see what it needs, all the way down, with what you have already done marked off. Or start from a course you have passed and see what it opens up.',
+      },
+      {
+        kind: 'new',
+        text: 'Course directory: all 7,884 courses Concordia publishes, with descriptions, credits and the prerequisite text as the calendar words it.',
+      },
+      {
+        kind: 'new',
+        text: 'Saved courses: keep a shortlist for a future term, add notes, and compare a few side by side.',
+      },
+      {
+        kind: 'new',
+        text: 'Seat watch tells you the moment a section opens, and now keeps telling you until you have seen it, with the class number ready to copy into the Student Centre.',
+      },
+      {
+        kind: 'improved',
+        text: 'Past terms are editable, future ones too — enter your fall classes in the summer. FNS and the other notations are supported, and repeated courses follow Concordia’s rule.',
+      },
+      {
+        kind: 'improved',
+        text: 'Adding a course searches every course in the calendar, not only ones somebody has already uploaded an outline for.',
+      },
+    ],
+  },
+  {
     version: '1.22.0',
     name: 'Payments live, and français',
     date: '2026-08-14',

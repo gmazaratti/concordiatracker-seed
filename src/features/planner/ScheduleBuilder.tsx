@@ -16,7 +16,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
 import { COURSE_COLORS } from '@/lib/course-color'
-import { termLabel, type SectionOption } from '@/lib/seats'
+import type { SectionOption } from '@/lib/seats'
 import { weekdayNames } from '@/lib/date'
 import {
   createSchedule,
@@ -40,7 +40,7 @@ import {
 } from './schedule'
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
-import { TimeBlocks } from './TimeBlocks'
+import { ScheduleFilters } from './ScheduleFilters'
 
 /**
  * Build a week from real sections.
@@ -175,11 +175,11 @@ export function ScheduleBuilder() {
   return (
     <div>
       {/* ── Toolbar ──────────────────────────────────────────────────── */}
-      {/* Two groups, not seven loose controls: what this schedule IS on the
-          left, what you can DO with it on the right. Every action says what it
-          does on hover, because "Save as new" and "Share" both have a
-          consequence you cannot guess from three words. */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border pb-3 print:hidden">
+      {/* Three things: what this schedule is called, what is being filtered
+          out, and what you can do with it. Term, eligibility and blocked time
+          used to be three controls in three shapes in three places; they do one
+          job between them, so they are one button now. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3 print:hidden">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -187,43 +187,16 @@ export function ScheduleBuilder() {
           className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-64"
         />
 
-        <div className="w-36">
-          <Select
-            value={termCode}
-            onChange={setTermCode}
-            ariaLabel="Term"
-            placeholder="Any term"
-            size="sm"
-            options={[
-              { value: '', label: 'Any term' },
-              ...terms.map((c) => ({ value: c, label: termLabel(c) })),
-            ]}
-          />
-        </div>
-
-        <button
-          type="button"
-          role="switch"
-          aria-checked={eligibleOnly}
-          disabled={!trusted}
-          onClick={() => setEligibleOnly((v) => !v)}
-          title={
-            trusted
-              ? 'Hide courses whose prerequisites you have not met'
-              : 'Mark your record complete in My record to use this'
-          }
-          className="inline-flex items-center gap-2 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
-        >
-          <span
-            className={cn(
-              'grid size-4 shrink-0 place-items-center rounded-full border transition-colors duration-150',
-              eligibleOnly ? 'border-accent bg-accent' : 'border-border-strong',
-            )}
-          >
-            {eligibleOnly && <Check size={10} className="text-accent-contrast" aria-hidden />}
-          </span>
-          Only what I can take
-        </button>
+        <ScheduleFilters
+          termCode={termCode}
+          onTermChange={setTermCode}
+          terms={terms}
+          eligibleOnly={eligibleOnly}
+          onEligibleChange={setEligibleOnly}
+          eligibleAvailable={trusted}
+          blocks={blocks}
+          onBlocksChange={setBlocks}
+        />
 
         <span className="ml-auto flex items-center gap-1.5">
           <ToolbarButton
@@ -241,7 +214,7 @@ export function ScheduleBuilder() {
             onClick={() => window.print()}
             icon={Printer}
             label="Print"
-            hint="Print or save the week as a PDF"
+            hint="Print the week, or save it as a PDF"
           />
           <ToolbarButton
             onClick={() => void share()}
@@ -331,8 +304,11 @@ export function ScheduleBuilder() {
       )}
 
       {/* ── Three panes ──────────────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-[260px_210px_minmax(0,1fr)]">
-        <div className="print:hidden">
+      {/* Each one a card with its own heading. Previously they were three
+          columns of loose content with nothing between them, so the eye could
+          not tell where finding ended and choosing began. */}
+      <div className="grid gap-3 lg:grid-cols-[280px_220px_minmax(0,1fr)]">
+        <Pane title="Find a course" className="print:hidden">
           <ScheduleSearch
             blocks={blocks}
             termCode={termCode}
@@ -342,13 +318,13 @@ export function ScheduleBuilder() {
             eligibleOnly={eligibleOnly}
             record={record}
           />
-          <TimeBlocks blocks={blocks} onChange={setBlocks} />
-        </div>
+        </Pane>
 
-        <div className="min-w-0 print:hidden">
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-            In this schedule
-          </p>
+        <Pane
+          title="In this schedule"
+          count={picked.length}
+          className="print:hidden"
+        >
           {picked.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[12px] text-subtle">
               Nothing added yet.
@@ -358,7 +334,7 @@ export function ScheduleBuilder() {
               {picked.map((p) => (
                 <li
                   key={p.section.classNumber}
-                  className="flex items-start gap-2 rounded-lg border border-border bg-surface px-2.5 py-2"
+                  className="flex items-start gap-2 rounded-lg border border-border bg-canvas px-2.5 py-2"
                 >
                   <span
                     className="mt-1 size-2.5 shrink-0 rounded-full"
@@ -373,9 +349,6 @@ export function ScheduleBuilder() {
                     <span className="block truncate text-[11px] text-subtle">
                       {p.section.meetingTimes ?? 'Time TBA'}
                     </span>
-                    {p.section.classNumber.startsWith('current-') && (
-                      <span className="block text-[10.5px] text-subtle">from your current term</span>
-                    )}
                     <span className="mt-1 block">
                       <Select
                         value={p.state ?? 'planned'}
@@ -415,11 +388,36 @@ export function ScheduleBuilder() {
               ))}
             </ul>
           )}
-        </div>
+        </Pane>
 
         <div className="min-w-0">
-          <h2 className="mb-1.5 hidden text-[14px] font-semibold text-fg print:block">{name}</h2>
-          <WeekGrid placed={placed} blocks={blocks} colourOf={colourOf} conflicts={conflicts} />
+          {/* Print header. Hidden on screen, because on screen the name is
+              already in the toolbar; on paper there is no toolbar and a sheet
+              on a fridge should say what it is and where it came from. */}
+          <div className="mb-3 hidden items-end justify-between border-b border-border pb-2 print:flex">
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-subtle uppercase">
+                ConcordiaTracker
+              </p>
+              <h2 className="font-display text-[20px] font-semibold text-fg">{name}</h2>
+            </div>
+            <p className="text-[11px] text-subtle">
+              {picked.length} class{picked.length === 1 ? '' : 'es'} · {weeklyHours(placed)} hours a
+              week
+            </p>
+          </div>
+          <WeekGrid
+            placed={placed}
+            blocks={blocks}
+            colourOf={colourOf}
+            conflicts={conflicts}
+            onBlock={(day, start, end) =>
+              setBlocks((prev) => [
+                ...prev,
+                { id: `b${Date.now()}-${prev.length}`, day, start, end, label: 'Busy' },
+              ])
+            }
+          />
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-subtle">
             <span>{weeklyHours(placed)} hours a week</span>
@@ -463,7 +461,30 @@ export function ScheduleBuilder() {
             </div>
           )}
 
-          <p className="mt-3 text-[11px] text-subtle">
+          {/* On paper the middle pane is gone, so the classes are listed here
+              instead: a timetable grid without room numbers is half a sheet. */}
+          {picked.length > 0 && (
+            <ul className="mt-3 hidden grid-cols-2 gap-x-6 gap-y-1 print:grid">
+              {picked.map((p) => (
+                <li key={p.section.classNumber} className="flex items-baseline gap-2 text-[11px]">
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: colourOf.get(p.code) }}
+                    aria-hidden
+                  />
+                  <span className="font-medium text-fg">
+                    {p.code} {p.section.section}
+                  </span>
+                  <span className="text-subtle">
+                    {p.section.meetingTimes ?? 'Time TBA'}
+                    {p.section.building ? ` · ${p.section.building}${p.section.room}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <p className="mt-3 text-[11px] text-subtle print:mt-4">
             A plan, not a registration. Seat counts were read when each section was added and can
             change; register in the Student Centre.
           </p>
@@ -507,5 +528,32 @@ function ToolbarButton({
       <Icon size={13} aria-hidden />
       {label}
     </button>
+  )
+}
+
+/** One column of the builder. Titled and bounded, so the three read as three. */
+function Pane({
+  title,
+  count,
+  className,
+  children,
+}: {
+  title: string
+  count?: number
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className={cn('min-w-0 rounded-xl border border-border bg-surface p-3', className)}>
+      <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+        {title}
+        {count !== undefined && count > 0 && (
+          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+            {count}
+          </span>
+        )}
+      </h2>
+      {children}
+    </section>
   )
 }

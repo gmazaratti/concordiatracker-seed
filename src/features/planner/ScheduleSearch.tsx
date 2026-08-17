@@ -93,7 +93,7 @@ export function ScheduleSearch({
           e.preventDefault()
           void lookup(query)
         }}
-        className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+        className="space-y-2"
       >
         <div className="relative">
           <Search
@@ -104,7 +104,7 @@ export function ScheduleSearch({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Add a course, e.g. COMP 248"
+            placeholder="Course code, e.g. COMP 248"
             aria-label="Add a course by code"
             className="w-full rounded-lg border border-border bg-canvas py-2 pr-3 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
           />
@@ -112,14 +112,14 @@ export function ScheduleSearch({
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
         >
           {loading ? (
             <Loader2 size={14} className="animate-spin" aria-hidden />
           ) : (
             <Plus size={14} aria-hidden />
           )}
-          Find
+          Find sections
         </button>
       </form>
 

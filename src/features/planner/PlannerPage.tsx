@@ -42,7 +42,7 @@ export function PlannerPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
-      <header className="mb-4">
+      <header className="mb-4 print:hidden">
         <h1 className="font-display text-[26px] leading-tight font-medium text-fg">
           {t('planner.title')}
         </h1>
@@ -55,7 +55,7 @@ export function PlannerPage() {
         // All five visible at once. A horizontally scrolled strip hid two of
         // them behind an edge with nothing to indicate they were there, so on a
         // phone the page looked like it had three sections.
-        className="mb-5 grid grid-cols-3 gap-1 border-b border-border sm:flex sm:gap-1"
+        className="mb-5 grid grid-cols-3 gap-1 border-b border-border sm:flex sm:gap-1 print:hidden"
       >
         {TABS.map((item) => {
           const Icon = item.icon

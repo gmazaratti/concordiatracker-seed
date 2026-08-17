@@ -763,4 +763,23 @@ html {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /* A printer palette, whatever theme is on screen. Without this a dark theme
+     prints a dark sheet — heavy on ink, and the pale text a dark theme relies
+     on is close to invisible once a printer lightens it. Course colours are
+     inline hex on the blocks themselves, so they survive; only the chrome
+     around them turns to paper. */
+  :root {
+    --ct-canvas: #ffffff;
+    --ct-surface: #ffffff;
+    --ct-surface-2: #f3f4f2;
+    --ct-border: #c9ccc6;
+    --ct-border-strong: #a8aca5;
+    --ct-fg: #141614;
+    --ct-muted: #3f443e;
+    --ct-subtle: #5c625a;
+    --ct-accent: #35604a;
+    --ct-accent-contrast: #ffffff;
+    --ct-shadow: none;
+  }
 }
