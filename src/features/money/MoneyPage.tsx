@@ -18,6 +18,7 @@ import { courseColor } from '@/lib/course-color'
 import { formatMonthDay } from '@/lib/date'
 import { parseDay } from '@/features/calendar/calendar'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
+import { PaywallLock } from '@/features/courses/Paywall'
 
 /**
  * Money — what the term costs, and what a decision about it costs.
@@ -71,7 +72,7 @@ export function MoneyPage() {
     path: '/app/money',
     robots: 'noindex',
   })
-  const { courses } = useAppData()
+  const { courses, plan } = useAppData()
   const [profile, setProfile] = useState<Profile>(readProfile)
 
   useEffect(() => {
@@ -100,10 +101,10 @@ export function MoneyPage() {
     setProfile((p) => ({ ...p, [key]: value }))
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+    <div className="mx-auto w-full max-w-3xl">
       <header className="mb-5">
         <div className="flex items-center gap-2">
-          <h1 className="font-display text-[26px] leading-tight font-medium text-fg">Money</h1>
+          <h2 className="font-display text-[20px] leading-tight font-medium text-fg">Money</h2>
           <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
             Beta
           </span>
@@ -172,6 +173,7 @@ export function MoneyPage() {
       </section>
 
       {/* ── The number ───────────────────────────────────────────────── */}
+      <PaywallLock locked={plan === 'free'} feature="Cost breakdown">
       <section className="mt-4 rounded-xl border border-border bg-surface p-4">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
@@ -220,9 +222,10 @@ export function MoneyPage() {
           Centre is the only authority on what you owe.
         </p>
       </section>
+      </PaywallLock>
 
       {/* ── What a course is worth ───────────────────────────────────── */}
-      {courses.length > 0 && (
+      {courses.length > 0 && plan !== 'free' && (
         <section className="mt-4 rounded-xl border border-border bg-surface p-4">
           <h2 className="text-[13px] font-semibold text-fg">What each course is costing you</h2>
           <p className="mt-0.5 mb-3 text-[12px] leading-relaxed text-subtle">
@@ -272,7 +275,7 @@ export function MoneyPage() {
       )}
 
       {/* ── The one fee you can get back ─────────────────────────────── */}
-      {profile.includeHealth && profile.term === 'fall' && (
+      {profile.includeHealth && profile.term === 'fall' && plan !== 'free' && (
         <section className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-surface p-4">
           <ShieldQuestion size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <div className="min-w-0">

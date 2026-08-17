@@ -63,7 +63,7 @@ export function RadarWidget() {
 
   return (
     <WidgetCard title="Radar">
-      <Link to="/app/radar" className="group block">
+      <Link to="/app/planner?tab=radar" className="group block">
         <span className="flex items-start gap-2">
           <Icon size={15} className={cn('mt-0.5 shrink-0', tone)} aria-hidden />
           <span className="min-w-0 flex-1">

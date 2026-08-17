@@ -1,17 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { CalendarPlus, Plus } from 'lucide-react'
-import { Select } from '@/components/ui/Select'
-import { useAppData } from '@/app/providers/app-data'
 import type { Assessment, Course } from '@/data/types'
-import { futureTerms, currentTermName } from '@/features/planner/past-terms'
+import { futureTerms } from '@/features/planner/past-terms'
+import { AddUpcomingModal } from './AddUpcomingModal'
 import { CourseGridCard } from './CourseGridCard'
-
-/** The terms you can file a class under here: later ones only. */
-function laterTerms(): string[] {
-  const now = currentTermName()
-  return futureTerms(6).filter((t) => t !== now)
-}
 
 /**
  * Add a class to a term you have not started yet.
@@ -22,39 +14,19 @@ function laterTerms(): string[] {
  * thing the control asks for rather than something to fix afterwards.
  */
 export function AddForTerm() {
-  const { createCourse } = useAppData()
-  const navigate = useNavigate()
-  const terms = laterTerms()
-  const [term, setTerm] = useState(terms[0] ?? '')
-  const [busy, setBusy] = useState(false)
-
-  async function add() {
-    if (!term || busy) return
-    setBusy(true)
-    const id = await createCourse({ term })
-    setBusy(false)
-    if (id) navigate(`/app/courses/${id}`)
-  }
-
+  const [open, setOpen] = useState(false)
   return (
-    <div className="flex items-center gap-1.5">
-      <Select
-        value={term}
-        onChange={setTerm}
-        ariaLabel="Term to add to"
-        size="sm"
-        options={terms.map((t) => ({ value: t, label: t }))}
-      />
+    <>
       <button
         type="button"
-        onClick={() => void add()}
-        disabled={busy || !term}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
       >
         <Plus size={14} aria-hidden />
         Add a class
       </button>
-    </div>
+      {open && <AddUpcomingModal onClose={() => setOpen(false)} />}
+    </>
   )
 }
 
@@ -78,9 +50,9 @@ export function UpcomingCourses({
         <CalendarPlus size={22} className="mx-auto text-subtle" aria-hidden />
         <p className="mt-3 text-[15px] font-medium text-fg">Nothing lined up yet</p>
         <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-subtle">
-          Already registered for next term? Add those classes here and they will wait until the
-          term starts, without touching this term&rsquo;s deadlines or your GPA. You can build the
-          outline now and it will be ready on day one.
+          Already registered for next term? Add those classes and they will wait here until the
+          term starts, without touching this term&rsquo;s deadlines or your GPA. Assignments come
+          later, when the outlines are actually published.
         </p>
       </div>
     )

@@ -29,6 +29,20 @@ export const NAV = [
     pages: ['today', 'calendar', 'notifications'],
   },
   {
+    title: 'Planner',
+    pages: [
+      'planner',
+      'my-record',
+      'my-programme',
+      'course-directory',
+      'prerequisites',
+      'schedule-builder',
+      'seat-watch',
+      'radar',
+      'costs',
+    ],
+  },
+  {
     title: 'Community',
     pages: ['community'],
   },
@@ -794,6 +808,310 @@ export const PAGES = {
       { h2: 'Turning them off' },
       {
         p: 'Switch them off in Settings → General, or revoke the permission in your browser or phone settings. Either stops delivery immediately.',
+      },
+    ],
+  },
+
+  /* ── Planner ───────────────────────────────────────────────────────────── */
+
+  planner: {
+    title: 'Planner',
+    section: 'Planner',
+    description:
+      'The Planner is where you decide what to take next term at Concordia: your record, your degree requirements, the course calendar, prerequisites, a schedule builder, and seat alerts.',
+    blocks: [
+      {
+        p: 'Today, Courses and Calendar are all about the term you are running. The Planner is about the one you are choosing, plus the checks that tell you whether the current one is going well.',
+      },
+      {
+        p: 'It is one tab with several sections, grouped by the order you actually work through them.',
+      },
+
+      { h2: 'What you have done' },
+      {
+        p: '**My record** is everything you have already passed. **My programme** measures that against your degree requirements. **Radar** checks the term you are in now for problems that are coming but not obvious yet.',
+      },
+
+      { h2: 'What you could take' },
+      {
+        p: '**Course directory** searches every course Concordia publishes. **Prerequisite tree** shows what a course needs and what it unlocks. **Saved** is your shortlist for a future term.',
+      },
+
+      { h2: 'What you are taking' },
+      {
+        p: '**Schedule builder** puts real sections on a week so you can see clashes before you register. **Seat watch** tells you when a full section opens. **Costs** prices the term.',
+      },
+
+      {
+        note: 'Every section has its own link. Copy the address bar and you are sending someone to exactly the section you are looking at, not the top of the Planner.',
+      },
+    ],
+  },
+
+  'my-record': {
+    title: 'My record',
+    section: 'Planner',
+    description:
+      'Add the Concordia courses you have already passed so ConcordiaTracker can work out your credits, your GPA, and which courses you are eligible to take.',
+    blocks: [
+      {
+        p: 'Your record is the list of courses you have finished. Almost everything else in the Planner depends on it: prerequisite checks, degree progress, and the eligibility filter in the schedule builder all read from it.',
+      },
+
+      { h2: 'Adding courses' },
+      {
+        p: 'Add them one at a time, or paste your transcript and let the app read it. Pasting shows you every row it found next to the line of text it came from, and nothing is saved until you have checked it. Rows it could not place a term for are held back rather than guessed at.',
+      },
+      { p: 'Grades are optional. A course without one still counts toward your credits and still satisfies prerequisites; it just does not affect the GPA.' },
+
+      { h2: 'Marking it complete' },
+      {
+        p: 'When your record is complete, say so. Until you do, nothing in the app will tell you that you are missing a prerequisite, because telling somebody they lack a course they took two years ago is worse than staying quiet.',
+      },
+
+      { h2: 'Past and future terms' },
+      {
+        p: 'Terms that have already happened are editable at any time, including grades and notations like FNS. Repeated courses follow Concordia’s rule for which attempt counts.',
+      },
+    ],
+  },
+
+  'my-programme': {
+    title: 'My programme',
+    section: 'Planner',
+    description:
+      'See how far through your Concordia degree you are: which required courses you have cleared, what is left, and how many credits are still unaccounted for.',
+    blocks: [
+      {
+        p: 'Pick your programme and this measures your record against the requirements published in Concordia’s undergraduate calendar.',
+      },
+
+      { h2: 'What it counts exactly' },
+      {
+        p: 'Requirement groups that name their courses, like the Computer Science Core or the JMSB Core, are ticked off precisely. Every course shows as done or outstanding, with the credit value the calendar gives it.',
+      },
+
+      { h2: 'What it deliberately does not count' },
+      {
+        p: 'Elective requirements are rules, not lists: "14 credits chosen from Computer Science courses at the 300 level or above, subject to exclusions". Those are shown in the calendar’s own words and counted at zero.',
+      },
+      {
+        note: 'This is on purpose. A tool that guessed at those rules would eventually tell somebody they could graduate when they could not, and that is the most expensive mistake this app could make.',
+      },
+      {
+        p: 'What fills the gap is a figure that is a fact rather than a guess: credits you have passed that no named requirement has claimed. Those almost certainly go toward your electives, and an advisor would start from the same number.',
+      },
+
+      { h2: 'Checking it' },
+      {
+        p: 'Each programme shows the calendar year it was transcribed from and links to the page it came from. Requirements change; the year tells you whether this one has.',
+      },
+      { p: 'Programmes are added by hand, one at a time. If yours is not listed yet, ask and it can be.' },
+    ],
+  },
+
+  'course-directory': {
+    title: 'Course directory',
+    section: 'Planner',
+    description:
+      'Search every course in Concordia’s calendar by code or name, with credits, prerequisites and descriptions.',
+    blocks: [
+      {
+        p: 'The directory mirrors Concordia’s published course calendar: every subject, every course, searchable by code or by words in the title.',
+      },
+
+      { h2: 'What a course shows' },
+      {
+        p: 'The code, the title, the credit value, the prerequisite text exactly as the calendar words it, and the description where one has been published. Expanding a course pulls the course codes out of its prerequisite sentence so you can follow the chain.',
+      },
+
+      { h2: 'Prerequisite colouring' },
+      {
+        p: 'Once your record is marked complete, prerequisite codes are marked as met or outstanding against it. Where the wording is a rule the app cannot read — "18 credits in the programme" — it says so instead of guessing.',
+      },
+
+      { h2: 'Saving for later' },
+      { p: 'Anything can be saved to your shortlist, which lives in the Saved section with room for notes and a planned term.' },
+
+      { h2: 'How fresh it is' },
+      { p: 'The mirror is refreshed on a schedule and the page states when it last ran. Registration always goes through the Student Centre.' },
+    ],
+  },
+
+  prerequisites: {
+    title: 'Prerequisite tree',
+    section: 'Planner',
+    description:
+      'See what a Concordia course requires, all the way down, and what taking it would unlock.',
+    blocks: [
+      {
+        p: 'Two views of the same question, because the two questions are different.',
+      },
+
+      { h2: 'Board' },
+      {
+        p: 'A course library on the left and a canvas on the right. Drag a course onto the board and it brings in what it requires above it and what it unlocks below, so one drag gives you a chain rather than a single card. Cards can be moved, zoomed, and tidied back into rows.',
+      },
+      {
+        p: 'An arrow between two cards means Concordia’s calendar names the upper course inside the lower one’s prerequisite. Where the wording is a rule that cannot be read as a course code, no arrow is drawn rather than a wrong one.',
+      },
+
+      { h2: 'List' },
+      {
+        p: 'Pick one course and see its full requirement chain as an indented list, with what you have already cleared marked off, plus every course that names it as a prerequisite.',
+      },
+
+      {
+        note: 'Meeting a prerequisite is not the only condition a course can carry. Standing, programme and permission requirements exist too, and the department is the authority.',
+      },
+    ],
+  },
+
+  'schedule-builder': {
+    title: 'Schedule builder',
+    section: 'Planner',
+    description:
+      'Build a Concordia timetable from real sections, see clashes and campus gaps before you register, and save or share drafts.',
+    blocks: [
+      {
+        p: 'Search a course, pick a section, and it lands on a week. The point is to find the problems before registration rather than during it.',
+      },
+
+      { h2: 'Finding sections' },
+      {
+        p: 'Typing suggests courses by name from the calendar; picking one then looks up its real sections, with meeting times, rooms and how many seats are open.',
+      },
+
+      { h2: 'What it warns about' },
+      {
+        p: 'Two classes at the same time. Back-to-back classes on opposite campuses, where the shuttle will not get you there. Sections that fall inside time you have blocked out.',
+      },
+
+      { h2: 'Blocking out time' },
+      {
+        p: 'Drag down a column to block hours you work, commute or sleep, or type one in Filters — day, from, to. Right-click a block to remove it. Sections that clash get marked in the search rather than hidden, so it stays your call.',
+      },
+
+      { h2: 'Filters' },
+      {
+        p: 'Term, "only what I can take", and blocked time all narrow the same thing, so they sit behind one control with a count of how many are active.',
+      },
+
+      { h2: 'Saving, printing, sharing' },
+      {
+        p: 'Keep as many drafts as you like. Print produces a clean sheet with the week and the class list including rooms. Share creates a read-only link that shows the timetable without touching your account.',
+      },
+
+      {
+        note: 'A schedule here is a plan, not a registration. Seat counts were read when you added the section and change constantly. Register in the Student Centre.',
+      },
+    ],
+  },
+
+  'seat-watch': {
+    title: 'Seat watch',
+    section: 'Planner',
+    description:
+      'Get told the moment a full Concordia section opens up, with the class number ready to paste into the Student Centre.',
+    blocks: [
+      {
+        p: 'Pick a section that is full and the app checks it for you. When a seat appears you get a notification, and the app keeps telling you until you have acknowledged it, so an opening at three in the morning is still in front of you at nine.',
+      },
+
+      { h2: 'What the alert gives you' },
+      {
+        p: 'The class number first, with a copy button, because that is exactly what the Student Centre’s enrolment box asks for. Registration itself happens there; the app cannot enrol you.',
+      },
+
+      { h2: 'Waitlists and reserved seats' },
+      {
+        p: 'Where a section has a waitlist, its depth is shown: an open seat behind forty people waiting is not the same as an open seat. Some sections also hold seats back for particular programmes, and the alert says so when that applies.',
+      },
+
+      { h2: 'Limits' },
+      { p: 'Free accounts can watch a small number of sections at once. The Semester pass raises the limit.' },
+    ],
+  },
+
+  radar: {
+    title: 'Radar',
+    section: 'Planner',
+    description:
+      'An automatic check on your Concordia semester: crunch weeks, closing drop deadlines, and courses the marks can no longer save.',
+    blocks: [
+      {
+        p: 'Today shows what is due. The calendar shows when. Radar is the one that says whether the term ahead is survivable, which needs every course added together — so nothing else in the app can answer it.',
+      },
+      {
+        p: 'It runs every time you open it, against your own account. Nothing is sent anywhere and nothing it finds changes your registration.',
+      },
+
+      { h2: 'What it checks' },
+      {
+        p: '**Course load** — whether you have dropped under the 12 credits Concordia counts as full time, which affects loans, bursaries and some insurance.',
+      },
+      {
+        p: '**Crunch weeks** — weeks where a large share of your grade lands at once, summed across every course rather than one at a time.',
+      },
+      { p: '**Same-day collisions** — two or more heavy things due on one day, in different courses.' },
+      { p: '**Courses at risk** — where the marks left can no longer realistically reach a C.' },
+      { p: '**Registrar deadlines** — add, drop and withdrawal windows closing in the next three weeks.' },
+      { p: '**Grades that may block you** — finished courses below C-, which some programmes require you to repeat.' },
+      { p: '**Dates worth double-checking** — upcoming dates nobody has confirmed.' },
+      { p: '**Blind spots** — courses with no outline, which nothing above can see into.' },
+
+      { h2: 'Seeing the whole sweep' },
+      {
+        p: 'Every check is listed with its state whether or not it found anything: found something, clear, or waiting on data. A check that cannot run says what it needs. A quiet page means nine things were looked at, not that nothing was.',
+      },
+
+      { h2: 'Why am I seeing this?' },
+      {
+        p: 'Every warning will show you the basis for its claim. A warning you cannot check is a warning you learn to ignore.',
+      },
+
+      { h2: 'The shape of your term' },
+      {
+        p: 'One bar per week, as tall as the share of your final grades landing in it. Tap a bar for what is in it.',
+      },
+      {
+        p: 'Switching a course off re-runs every check without it, so you can see the term you would have if you dropped it — including what dropping it would cost, like falling under full time. Nothing is written to your account; it is a question, not an action.',
+      },
+
+      {
+        note: 'Radar reads what you have already told the app. It cannot see a course you have not added or an outline you have not imported, and it is not advice: for anything touching your registration, your loan or your graduation, the department is the authority.',
+      },
+    ],
+  },
+
+  costs: {
+    title: 'Costs',
+    section: 'Planner',
+    description:
+      'What a Concordia term costs at the published rates, worked out from the credits you are registered for, and what a course is worth if you are deciding whether to keep it.',
+    blocks: [
+      {
+        p: 'Concordia publishes its tuition rates and publishes its refund deadlines, and never puts the two together. This does.',
+      },
+      { p: 'Costs is part of the Semester pass.' },
+
+      { h2: 'What it works out' },
+      {
+        p: 'Tuition at the rate for your fee status, plus every compulsory fee: administrative, student services, recreation, technology, copyright, your faculty’s student association, registration, and the rest. Each line shows its own arithmetic — rate times credits — so you can reconcile it against a real invoice instead of taking a total on trust.',
+      },
+
+      { h2: 'What a course is worth' },
+      {
+        p: 'Everything that scales with your load is added up separately, because that is the only figure that answers "what does dropping save". Each of your courses is then priced at its own credit count, next to the refund deadline.',
+      },
+
+      { h2: 'The health plan' },
+      {
+        p: 'The health and dental plan is billed once in the fall and covers the year. It is the one compulsory fee you can get back: if you are already covered elsewhere you can opt out through the student union, but the window closes early in the term and does not reopen.',
+      },
+
+      {
+        note: 'This is an estimate at the published rates, not a bill. It does not know about bursaries, exemptions, late penalties or anything specific to your file. The Birks Student Service Centre is the only authority on what you owe.',
       },
     ],
   },

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronDown, Loader2, Pencil, Upload } from 'lucide-react'
+import { CalendarClock, ChevronDown, Loader2, Pencil, Upload } from 'lucide-react'
 import type { Assessment } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { courseStanding } from '@/lib/gpa'
@@ -16,6 +16,7 @@ import { GradeNeeded } from './GradeNeeded'
 import { GpaWhatIf } from './GpaWhatIf'
 import { PaywallLock } from './Paywall'
 import { SyllabusParseReveal } from './SyllabusParseReveal'
+import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
 
 /** Course detail — the grade workspace. An empty course leads with the syllabus
  * parse-reveal (the hero); a populated one is a two-column editor: a LEFT panel
@@ -31,6 +32,9 @@ export function CourseDetailPage() {
     useAppData()
   const navigate = useNavigate()
   const course = courseId ? courseById(courseId) : undefined
+  /** Opt-in for the rare student who has next term's syllabus already. Hoisted
+   *  above the early returns below, because hooks cannot follow them. */
+  const [outlineEarly, setOutlineEarly] = useState(false)
 
   // On a hard refresh the data is still loading — wait for it before deciding the
   // course doesn't exist, otherwise we'd redirect away from a perfectly valid course.
@@ -52,6 +56,19 @@ export function CourseDetailPage() {
   const empty = courseAssessments.length === 0
   const manual = course.origin === 'manual'
   const courseId2 = course.id
+
+  /**
+   * A term that has not started yet.
+   *
+   * These courses get the class details and nothing else. Outlines are published
+   * in the first week, so there is nothing real to enter — and a blueprint from
+   * a previous term would hand you dates that are confidently wrong, which is
+   * worse than an empty page because you would plan around them. The rare
+   * student who genuinely has the syllabus early can say so; everyone else is
+   * not shown a form they cannot fill.
+   */
+  const upcoming = !!course.term && isUpcomingTerm(course.term) && course.term !== currentTermName()
+  const holding = upcoming && empty && !outlineEarly && !importItems
 
   // The parse-reveal plays whenever there are in-flight import items (a blueprint
   // import or the "Upload a syllabus" sample) — even onto a manual course.
@@ -76,7 +93,41 @@ export function CourseDetailPage() {
 
       <CourseAnnouncements courseCode={course.code} />
 
-      {revealItems ? (
+      {holding ? (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+            <CourseInfoPanel
+              course={course}
+              totalAssessments={0}
+              editableIdentity={manual}
+            />
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <div className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
+              <CalendarClock size={22} className="mx-auto text-subtle" aria-hidden />
+              <p className="mt-3 text-[15px] font-medium text-fg">Waiting for {course.term}</p>
+              <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-subtle">
+                This class is saved and out of the way until the term begins. Assignments and dates
+                come from the outline, which your professor publishes in the first week — nothing
+                worth entering exists yet.
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-subtle">
+                You can still fill in the class details on the left whenever you like.
+              </p>
+              {/* Deliberately quiet. It is the right door for a handful of
+                  people and a wrong turn for everyone else. */}
+              <button
+                type="button"
+                onClick={() => setOutlineEarly(true)}
+                className="mt-4 text-[12px] text-subtle underline underline-offset-2 transition-colors duration-150 hover:text-fg"
+              >
+                I already have the outline
+              </button>
+            </div>
+          </main>
+        </div>
+      ) : revealItems ? (
         <SyllabusParseReveal
           course={course}
           items={revealItems}

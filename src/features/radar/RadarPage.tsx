@@ -125,10 +125,10 @@ export function RadarPage() {
   const Icon = TONE[summary.severity].icon
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+    <div className="mx-auto w-full max-w-3xl">
       <header className="mb-5">
         <div className="flex items-center gap-2">
-          <h1 className="font-display text-[26px] leading-tight font-medium text-fg">Radar</h1>
+          <h2 className="font-display text-[20px] leading-tight font-medium text-fg">Radar</h2>
           <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
             Beta
           </span>

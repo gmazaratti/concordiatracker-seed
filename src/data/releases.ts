@@ -26,6 +26,45 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.24.0',
+    name: 'Radar, and knowing where you stand',
+    date: '2026-08-17',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Radar checks your semester for you. It reads your courses, grades, outlines and the registrar’s calendar and tells you what is coming but not yet obvious — a week where too much of your grade lands at once, a drop deadline about to close, a course the marks can no longer save. Nine checks, and it shows you all of them, whether or not it found anything.',
+      },
+      {
+        kind: 'new',
+        text: 'See the shape of your term: one bar per week, as tall as the share of your grade landing in it. Switch a course off to see the rest of the term without it — including what dropping it would cost you.',
+      },
+      {
+        kind: 'new',
+        text: 'My programme: how far through your degree you are. Required courses tick off exactly against your record; elective rules are shown in the calendar’s own words rather than guessed at. Computer Science and Commerce to start.',
+      },
+      {
+        kind: 'new',
+        text: 'Money (Pro): what the term costs at Concordia’s published rates, worked out from the credits you are actually registered for — and what each course is worth if you are deciding whether to keep it, next to the refund deadline.',
+      },
+      {
+        kind: 'new',
+        text: 'Add next term’s classes from the calendar itself, so the code, title and credits are right from the start.',
+      },
+      {
+        kind: 'improved',
+        text: 'A class for a term that has not started now waits quietly instead of asking for assignments. Outlines are published in the first week — last term’s dates would be wrong in a way you would plan around.',
+      },
+      {
+        kind: 'improved',
+        text: 'Every section of the Planner now has its own link, so the back button works and you can send someone straight to the right place.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The prerequisite board no longer stacks courses on top of each other, and you can read the cards.',
+      },
+    ],
+  },
+  {
     version: '1.23.0',
     name: 'The Planner',
     date: '2026-08-16',

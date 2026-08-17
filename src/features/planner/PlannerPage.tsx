@@ -1,5 +1,15 @@
-import { useState } from 'react'
-import { Bell, BookOpen, Bookmark, GitBranch, CalendarRange, GraduationCap } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  Bell,
+  BookOpen,
+  Bookmark,
+  GitBranch,
+  CalendarRange,
+  GraduationCap,
+  Radar as RadarIcon,
+  Target,
+  Wallet,
+} from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useI18n } from '@/i18n/i18n'
 import type { Key } from '@/i18n/en'
@@ -10,6 +20,9 @@ import { MyRecordPanel } from './MyRecordPanel'
 import { SavedCoursesPanel } from './SavedCoursesPanel'
 import { ScheduleBuilder } from './ScheduleBuilder'
 import { PrereqTree } from './PrereqTree'
+import { ProgramProgress } from './ProgramProgress'
+import { RadarPage } from '@/features/radar/RadarPage'
+import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerNavBar, type NavItem, type Phase } from './PlannerNav'
 import { NAV_LAYOUTS, setPlannerNav, usePlannerNav } from './nav-layout'
 
@@ -28,7 +41,16 @@ import { NAV_LAYOUTS, setPlannerNav, usePlannerNav } from './nav-layout'
  * widgets rather than neighbours of this.
  */
 
-type Tab = 'record' | 'seats' | 'directory' | 'saved' | 'tree' | 'schedule'
+type Tab =
+  | 'record'
+  | 'program'
+  | 'radar'
+  | 'seats'
+  | 'directory'
+  | 'saved'
+  | 'tree'
+  | 'schedule'
+  | 'money'
 
 /**
  * Ordered by the sequence someone actually does this in, and grouped into the
@@ -39,6 +61,12 @@ type Tab = 'record' | 'seats' | 'directory' | 'saved' | 'tree' | 'schedule'
  */
 const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; phase: Phase }[] = [
   { id: 'record', labelKey: 'planner.tab.record', icon: GraduationCap, phase: 'know' },
+  { id: 'program', labelKey: 'planner.tab.program', icon: Target, phase: 'know' },
+  // Radar is about the term you are RUNNING, not the one you are choosing,
+  // which argued for a tab of its own. But it is a sit-down-and-review surface
+  // used occasionally and deliberately, and that is Planner's mode rather than
+  // Today's. Folding it in also settles the mobile bar, full at six slots.
+  { id: 'radar', labelKey: 'planner.tab.radar', icon: RadarIcon, phase: 'know' },
 
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, phase: 'explore' },
   { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, phase: 'explore' },
@@ -46,13 +74,28 @@ const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; phase: Phase }[] = [
 
   { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, phase: 'commit' },
   { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, phase: 'commit' },
+  { id: 'money', labelKey: 'planner.tab.money', icon: Wallet, phase: 'commit' },
 ]
+
+const TAB_IDS = new Set<string>(TABS.map((x) => x.id))
 
 export function PlannerPage() {
   const { t } = useI18n()
   const { isAdmin } = useIsAdmin()
-  const [tab, setTab] = useState<Tab>('record')
   const nav = usePlannerNav()
+
+  /**
+   * The open section lives in the URL.
+   *
+   * Which makes every part of the planner linkable — from a Today widget, from
+   * a signal's action, from a message to a friend — and makes the back button
+   * do what it looks like it does. It was component state, so `/app/planner`
+   * always landed on My record however you arrived.
+   */
+  const [params, setParams] = useSearchParams()
+  const fromUrl = params.get('tab')
+  const tab: Tab = fromUrl && TAB_IDS.has(fromUrl) ? (fromUrl as Tab) : 'record'
+  const setTab = (next: Tab) => setParams(next === 'record' ? {} : { tab: next })
 
   // The schedule builder and the prerequisite graph are the only sections that
   // want more than a reading column, so they are the only ones that get it.
@@ -67,6 +110,9 @@ export function PlannerPage() {
   const panel = (
     <>
       {tab === 'record' && <MyRecordPanel />}
+      {tab === 'program' && <ProgramProgress />}
+      {tab === 'radar' && <RadarPage />}
+      {tab === 'money' && <MoneyPage />}
       {tab === 'seats' && <SeatWatchPanel />}
       {tab === 'directory' && <CourseDirectory />}
       {tab === 'saved' && <SavedCoursesPanel />}
