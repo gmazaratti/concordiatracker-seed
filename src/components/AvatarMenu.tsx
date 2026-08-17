@@ -9,6 +9,7 @@ import {
   LogOut,
   Megaphone,
   MessagesSquare,
+  Radar,
   Settings,
   ShieldCheck,
   type LucideIcon,
@@ -154,6 +155,9 @@ export function AvatarMenu({
           >
             {t('nav.whatsNew')}
           </MenuButton>
+          <MenuLink to="/app/radar" icon={Radar} onSelect={() => setOpen(false)}>
+            Radar
+          </MenuLink>
           <MenuLink to="/app/requests" icon={MessagesSquare} onSelect={() => setOpen(false)}>
             {t('nav.feedback')}
           </MenuLink>

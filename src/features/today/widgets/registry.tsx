@@ -1,4 +1,4 @@
-import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { ShuttleWidget } from './ShuttleWidget'
 import { WeatherWidget } from './WeatherWidget'
@@ -8,6 +8,7 @@ import { CourseShortcutsWidget } from './CourseShortcutsWidget'
 import { StreakWidget } from './StreakWidget'
 import { StudyTimerWidget } from './StudyTimerWidget'
 import { SeatWatchWidget } from './SeatWatchWidget'
+import { RadarWidget } from './RadarWidget'
 import { DebriefPanel } from '../DebriefPanel'
 
 /**
@@ -74,6 +75,15 @@ export const WIDGETS: WidgetDef[] = [
     icon: GraduationCap,
     zones: ['rail', 'half', 'wide'],
     render: (zone) => <NextClassWidget zone={zone} />,
+    availableWhen: (ctx) => ctx.courseCount > 0,
+  },
+  {
+    id: 'radar',
+    name: 'Radar',
+    description: 'The worst thing the term is about to throw at you, if anything.',
+    icon: RadarIcon,
+    zones: ['rail', 'half', 'wide'],
+    render: () => <RadarWidget />,
     availableWhen: (ctx) => ctx.courseCount > 0,
   },
   {
