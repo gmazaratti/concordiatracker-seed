@@ -41,6 +41,8 @@ import {
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { ScheduleFilters } from './ScheduleFilters'
+import { setBuilderLayout, useBuilderLayout } from './builder-layout'
+import { useIsAdmin } from '@/features/admin/admin-data'
 
 /**
  * Build a week from real sections.
@@ -56,6 +58,9 @@ import { ScheduleFilters } from './ScheduleFilters'
  */
 export function ScheduleBuilder() {
   const { courses } = useAppData()
+  const { isAdmin } = useIsAdmin()
+  const layout = useBuilderLayout()
+  const wide = layout === 'wide'
   const [picked, setPicked] = useState<PickedSection[]>([])
   const [blocks, setBlocks] = useState<TimeBlock[]>([])
   const [termCode, setTermCode] = useState('')
@@ -187,18 +192,33 @@ export function ScheduleBuilder() {
           className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-64"
         />
 
-        <ScheduleFilters
-          termCode={termCode}
-          onTermChange={setTermCode}
-          terms={terms}
-          eligibleOnly={eligibleOnly}
-          onEligibleChange={setEligibleOnly}
-          eligibleAvailable={trusted}
-          blocks={blocks}
-          onBlocksChange={setBlocks}
-        />
-
         <span className="ml-auto flex items-center gap-1.5">
+          {isAdmin && (
+            <span className="mr-1 hidden items-center gap-1 rounded-lg border border-border p-0.5 lg:inline-flex">
+              <span className="px-1 text-[10px] font-semibold tracking-wide text-subtle uppercase">
+                Dev
+              </span>
+              {(['classic', 'wide'] as const).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setBuilderLayout(id)}
+                  aria-pressed={layout === id}
+                  title={
+                    id === 'classic'
+                      ? 'Three equal panes in the reading column'
+                      : 'Narrow rail, and the week takes the rest of the screen'
+                  }
+                  className={cn(
+                    'rounded-md px-2 py-1 text-[11px] font-medium capitalize transition-colors duration-150',
+                    layout === id ? 'bg-surface-2 text-fg' : 'text-subtle hover:text-fg',
+                  )}
+                >
+                  {id}
+                </button>
+              ))}
+            </span>
+          )}
           <ToolbarButton
             onClick={() => void save()}
             icon={savedFlash ? Check : Save}
@@ -307,8 +327,32 @@ export function ScheduleBuilder() {
       {/* Each one a card with its own heading. Previously they were three
           columns of loose content with nothing between them, so the eye could
           not tell where finding ended and choosing began. */}
-      <div className="grid gap-3 lg:grid-cols-[280px_220px_minmax(0,1fr)]">
-        <Pane title="Find a course" className="print:hidden">
+      <div
+        className={cn(
+          'grid gap-3',
+          wide
+            ? // One rail, and every remaining pixel to the week.
+              'lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start'
+            : 'lg:grid-cols-[280px_220px_minmax(0,1fr)]',
+        )}
+      >
+        <div className={cn(wide && 'space-y-3')}>
+        <Pane
+          title="Find a course"
+          className="print:hidden"
+          action={
+            <ScheduleFilters
+              termCode={termCode}
+              onTermChange={setTermCode}
+              terms={terms}
+              eligibleOnly={eligibleOnly}
+              onEligibleChange={setEligibleOnly}
+              eligibleAvailable={trusted}
+              blocks={blocks}
+              onBlocksChange={setBlocks}
+            />
+          }
+        >
           <ScheduleSearch
             blocks={blocks}
             termCode={termCode}
@@ -389,6 +433,8 @@ export function ScheduleBuilder() {
             </ul>
           )}
         </Pane>
+
+        </div>
 
         <div className="min-w-0">
           {/* Print header. Hidden on screen, because on screen the name is
@@ -536,23 +582,29 @@ function Pane({
   title,
   count,
   className,
+  action,
   children,
 }: {
   title: string
   count?: number
   className?: string
+  /** A control that belongs to THIS pane, not to the schedule as a whole. */
+  action?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <section className={cn('min-w-0 rounded-xl border border-border bg-surface p-3', className)}>
-      <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        {title}
-        {count !== undefined && count > 0 && (
-          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
-            {count}
-          </span>
-        )}
-      </h2>
+      <div className="mb-2 flex items-center gap-1.5">
+        <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+          {title}
+          {count !== undefined && count > 0 && (
+            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+              {count}
+            </span>
+          )}
+        </h2>
+        {action && <span className="ml-auto">{action}</span>}
+      </div>
       {children}
     </section>
   )

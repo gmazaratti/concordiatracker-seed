@@ -13,10 +13,17 @@ import { gridBounds, toMinutes, type Block, type Conflict, type Placed } from '.
  * Dragging on it blocks time. That is the natural gesture for "I am busy then"
  * and it beats a form: you can see the hours you are carving out against the
  * classes already there, which is the whole reason you are blocking them.
+ *
+ * WITH A MOUSE ONLY. On a touch screen that same gesture is scrolling, and it
+ * cannot be both — trying to serve both meant blocking out Tuesday afternoon
+ * every time someone swiped down the page. Phones get the typed form in Filters
+ * instead, which is a better fit for a thumb anyway.
  */
 const PX_PER_MIN = 0.9
 /** Blocks snap to half hours. Nobody is busy from 09:07. */
 const SNAP = 30
+/** Movement, in pixels, before a press counts as a drag rather than a click. */
+const DRAG_THRESHOLD = 4
 
 export function WeekGrid({
   placed,
@@ -32,8 +39,16 @@ export function WeekGrid({
   /** Absent on a shared schedule, which is read-only. */
   onBlock?: (day: number, start: string, end: string) => void
 }) {
-  const [drag, setDrag] = useState<{ day: number; from: number; to: number } | null>(null)
+  const [drag, setDrag] = useState<{
+    day: number
+    from: number
+    to: number
+    /** False until the pointer has actually travelled. A press is not a block. */
+    moved: boolean
+  } | null>(null)
   const colRef = useRef<HTMLDivElement>(null)
+  /** Where the press started, for the movement threshold. */
+  const pressY = useRef(0)
 
   const blockBounds = blocks.map((b) => ({
     slot: { day: b.day, start: b.start, end: b.end, startMinutes: 0 },
@@ -62,10 +77,10 @@ export function WeekGrid({
     if (!drag || !onBlock) return setDrag(null)
     const from = Math.min(drag.from, drag.to)
     const to = Math.max(drag.from, drag.to)
-    // A click with no movement is not a block. Half an hour is the smallest
-    // thing worth carving out, and it stops a stray click creating a 0-minute
-    // block nobody can see or remove.
-    if (to - from >= SNAP) onBlock(drag.day, hhmm(from), hhmm(to))
+    // Both conditions matter. `moved` rules out a plain click, which used to
+    // create a silent half-hour block because the drag was seeded at
+    // from + SNAP; the length check rules out a drag that went nowhere.
+    if (drag.moved && to - from >= SNAP) onBlock(drag.day, hhmm(from), hhmm(to))
     setDrag(null)
   }
 
@@ -106,22 +121,24 @@ export function WeekGrid({
               <div
                 key={day}
                 ref={day === 1 ? colRef : undefined}
-                className={cn(
-                  'relative border-l border-border/60',
-                  onBlock && 'cursor-crosshair touch-none',
-                )}
+                className={cn('relative border-l border-border/60', onBlock && 'md:cursor-crosshair')}
                 style={{ paddingTop: 9 }}
                 onPointerDown={(e) => {
-                  if (!onBlock) return
+                  // Touch and pen scroll the page. Only a mouse draws.
+                  if (!onBlock || e.pointerType !== 'mouse') return
                   // Only an empty part of the grid starts a drag; pressing on a
                   // class should not silently become "block this class".
                   if ((e.target as HTMLElement).closest('[data-block-target="no"]')) return
                   e.currentTarget.setPointerCapture(e.pointerId)
+                  pressY.current = e.clientY
                   const m = minutesAt(e.clientY)
-                  setDrag({ day, from: m, to: m + SNAP })
+                  setDrag({ day, from: m, to: m, moved: false })
                 }}
                 onPointerMove={(e) => {
-                  if (drag?.day === day) setDrag({ ...drag, to: minutesAt(e.clientY) })
+                  if (drag?.day !== day) return
+                  const moved =
+                    drag.moved || Math.abs(e.clientY - pressY.current) >= DRAG_THRESHOLD
+                  setDrag({ ...drag, to: minutesAt(e.clientY), moved })
                 }}
               >
                 {hours.map((m) => (
@@ -155,7 +172,7 @@ export function WeekGrid({
 
                 {/* The drag in progress, with its times, so you can see what you
                     are about to create before you let go. */}
-                {drag?.day === day && (
+                {drag?.day === day && drag.moved && (
                   <div
                     className="pointer-events-none absolute inset-x-0 rounded border border-accent bg-accent-soft"
                     style={{
@@ -215,8 +232,8 @@ export function WeekGrid({
       </div>
 
       {onBlock && (
-        <p className="border-t border-border px-3 py-1.5 text-[11px] text-subtle print:hidden">
-          Drag on an empty column to block time you are not available.
+        <p className="hidden border-t border-border px-3 py-1.5 text-[11px] text-subtle md:block print:hidden">
+          Drag on an empty column to block time you are not available, or add one in Filters.
         </p>
       )}
     </div>

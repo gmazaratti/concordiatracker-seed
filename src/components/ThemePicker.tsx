@@ -5,7 +5,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { useSettings } from '@/app/providers/settings'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Segmented } from '@/features/settings/controls'
-import { accentTokens } from '@/lib/color'
+import { customTheme, BASE_CANVAS } from '@/lib/color'
 import { cn } from '@/lib/cn'
 
 /**
@@ -22,8 +22,6 @@ import { cn } from '@/lib/cn'
  * come with the Semester pass — locked tiles are shown in full rather than
  * hidden, because you cannot want what you cannot see, and a greyed-out tile
  * with a padlock is a clearer offer than a list of feature names.
- *
- * The compact ThemeSwitcher covers the avatar menu, where space is tight.
  */
 export function ThemePicker() {
   const { theme, setTheme, custom, setCustom } = useTheme()
@@ -44,13 +42,19 @@ export function ThemePicker() {
     setTheme(id, { x: e.clientX, y: e.clientY })
   }
 
-  const customTokens = accentTokens(custom.accent, custom.base)
+  // The tile previews the REAL derivation — same function the provider paints
+  // with — so the swatch and the page it produces cannot disagree.
+  const derived = customTheme(custom)
   const customOption: ThemeOption = {
     id: 'custom',
     label: 'Your colour',
-    swatch: [custom.base === 'dark' ? '#0f0f16' : '#f5f6f4', customTokens['--ct-accent']],
-    surface: custom.base === 'dark' ? '#191926' : '#ffffff',
-    scheme: custom.base,
+    swatch: [
+      derived.tokens['--ct-canvas'] ?? BASE_CANVAS[derived.base],
+      derived.tokens['--ct-accent'],
+    ],
+    surface:
+      derived.tokens['--ct-surface'] ?? (derived.base === 'dark' ? '#191926' : '#ffffff'),
+    scheme: derived.base,
     pro: true,
   }
 
@@ -87,33 +91,60 @@ export function ThemePicker() {
             Your colour
           </p>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+          <div className="space-y-3">
             <label className="flex items-center gap-2 text-[12.5px] text-muted">
-              Accent
+              <span className="w-12 shrink-0">Accent</span>
               <ColorPicker
                 value={custom.accent}
                 onChange={(hex) => setCustom({ ...custom, accent: hex })}
                 ariaLabel="Accent colour"
               />
+              <span className="text-[11.5px] text-subtle">Buttons, links, the active tab.</span>
             </label>
 
-            <label className="flex items-center gap-2 text-[12.5px] text-muted">
-              Base
+            {/* Base is one control with three answers, not a colour field plus
+                a toggle that silently overrides it. Dark and Light are the
+                tuned palettes; "My colour" hands the page over. */}
+            <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
+              <span className="w-12 shrink-0">Base</span>
               <Segmented
-                value={custom.base}
-                onChange={(v) => setCustom({ ...custom, base: v })}
+                value={custom.canvas ? 'custom' : custom.base}
+                onChange={(v) =>
+                  setCustom(
+                    v === 'custom'
+                      ? { ...custom, canvas: custom.canvas ?? BASE_CANVAS[custom.base] }
+                      : { base: v as 'dark' | 'light', accent: custom.accent },
+                  )
+                }
                 ariaLabel="Base palette"
                 options={[
                   { value: 'dark', label: 'Dark' },
                   { value: 'light', label: 'Light' },
+                  { value: 'custom', label: 'My colour' },
                 ]}
               />
-            </label>
+              {custom.canvas && (
+                <ColorPicker
+                  value={custom.canvas}
+                  onChange={(hex) => setCustom({ ...custom, canvas: hex })}
+                  ariaLabel="Background colour"
+                />
+              )}
+            </div>
           </div>
 
-          <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
-            Backgrounds and text stay as they are — those are where readability lives. If the
-            colour you pick would disappear against the page, it is nudged until it does not.
+          <p className="mt-3 text-[11.5px] leading-relaxed text-subtle">
+            Text is worked out from the background, not chosen — that is what keeps it readable
+            whatever you pick. A colour too close to the page is nudged away from it, and a
+            mid-tone background is deepened until text can sit on it.
+            {derived.adjusted && (
+              <>
+                {' '}
+                <span className="text-warning">
+                  Yours was deepened to {derived.page} so text could sit on it.
+                </span>
+              </>
+            )}
           </p>
         </div>
       )}

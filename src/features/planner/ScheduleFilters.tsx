@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, SlidersHorizontal, X } from 'lucide-react'
+import { Check, Plus, SlidersHorizontal, X } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { termLabel } from '@/lib/seats'
 import type { TimeBlock } from '@/lib/schedules'
@@ -19,6 +19,18 @@ import { cn } from '@/lib/cn'
  * forgotten about is a filter that makes the product look broken when a course
  * you know exists does not appear.
  */
+
+/** Half-hour steps across a day that anybody actually schedules around. */
+const TIMES = Array.from({ length: 34 }, (_, i) => {
+  const m = 7 * 60 + i * 30
+  return {
+    value: `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`,
+    label: `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`,
+  }
+})
+
+const EVERY_DAY = 'all'
+
 export function ScheduleFilters({
   termCode,
   onTermChange,
@@ -41,6 +53,7 @@ export function ScheduleFilters({
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
   const names = weekdayNames()
 
   const active = (termCode ? 1 : 0) + (eligibleOnly ? 1 : 0) + (blocks.length > 0 ? 1 : 0)
@@ -53,7 +66,13 @@ export function ScheduleFilters({
     }
     place()
     const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+      // The popover is portaled to <body>, so it is NOT inside wrapRef. Testing
+      // only the trigger meant every click INSIDE the panel counted as an
+      // outside click and closed it — which is why removing a blocked day did
+      // nothing: the panel was gone before the button's click ever landed.
+      const t = e.target as Node
+      if (wrapRef.current?.contains(t) || popRef.current?.contains(t)) return
+      setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
@@ -97,8 +116,9 @@ export function ScheduleFilters({
         pos &&
         createPortal(
           <div
+            ref={popRef}
             style={{ position: 'fixed', top: pos.top, right: pos.right }}
-            className="z-[60] w-[300px] rounded-xl border border-border bg-surface p-3 shadow-lg"
+            className="z-[60] max-h-[70vh] w-[310px] overflow-y-auto rounded-xl border border-border bg-surface p-3 shadow-lg"
           >
             <label className="block">
               <span className="mb-1 block text-[11px] font-semibold tracking-wide text-subtle uppercase">
@@ -145,13 +165,9 @@ export function ScheduleFilters({
               <span className="mb-1.5 block text-[11px] font-semibold tracking-wide text-subtle uppercase">
                 Times to avoid
               </span>
-              {blocks.length === 0 ? (
-                <p className="text-[11.5px] leading-relaxed text-subtle">
-                  Drag on the calendar to block hours you work or travel. Sections that clash get
-                  marked in the search.
-                </p>
-              ) : (
-                <ul className="space-y-1">
+
+              {blocks.length > 0 && (
+                <ul className="mb-2 space-y-1">
                   {blocks.map((b) => (
                     <li
                       key={b.id}
@@ -165,7 +181,7 @@ export function ScheduleFilters({
                         type="button"
                         onClick={() => onBlocksChange(blocks.filter((x) => x.id !== b.id))}
                         aria-label={`Remove ${b.label}`}
-                        className="grid size-5 shrink-0 place-items-center rounded text-subtle transition-colors duration-150 hover:text-danger"
+                        className="grid size-5 shrink-0 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-danger"
                       >
                         <X size={11} aria-hidden />
                       </button>
@@ -173,10 +189,107 @@ export function ScheduleFilters({
                   ))}
                 </ul>
               )}
+
+              <AddBlock existing={blocks} onAdd={(next) => onBlocksChange([...blocks, ...next])} />
+
+              <p className="mt-2 hidden text-[11px] leading-relaxed text-subtle md:block">
+                Or drag straight down a column on the calendar.
+              </p>
             </div>
           </div>,
           document.body,
         )}
+    </div>
+  )
+}
+
+/**
+ * Type a block instead of drawing one.
+ *
+ * Needed on phones, where dragging is scrolling, and better than dragging
+ * anywhere when the answer is "every weekday before ten" — that is one sentence
+ * and five drags.
+ */
+function AddBlock({
+  existing,
+  onAdd,
+}: {
+  existing: TimeBlock[]
+  onAdd: (blocks: TimeBlock[]) => void
+}) {
+  const names = weekdayNames()
+  const [day, setDay] = useState<string>(EVERY_DAY)
+  const [start, setStart] = useState('09:00')
+  const [end, setEnd] = useState('12:00')
+  const [label, setLabel] = useState('')
+  const invalid = end <= start
+
+  function add() {
+    if (invalid) return
+    const days = day === EVERY_DAY ? [1, 2, 3, 4, 5] : [Number(day)]
+    const text = label.trim() || 'Busy'
+    onAdd(
+      days.map((d, i) => ({
+        id: `b${String(existing.length + i)}-${d}-${start}-${end}`,
+        day: d,
+        start,
+        end,
+        label: text,
+      })),
+    )
+    setLabel('')
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-canvas p-2">
+      <div className="grid grid-cols-2 gap-1.5">
+        <span className="col-span-2">
+          <Select
+            value={day}
+            onChange={setDay}
+            ariaLabel="Day to block"
+            size="sm"
+            tone="control"
+            options={[
+              { value: EVERY_DAY, label: 'Every weekday' },
+              ...[1, 2, 3, 4, 5].map((d) => ({ value: String(d), label: names[d] })),
+            ]}
+          />
+        </span>
+        <Select
+          value={start}
+          onChange={setStart}
+          ariaLabel="From"
+          size="sm"
+          tone="control"
+          options={TIMES}
+        />
+        <Select
+          value={end}
+          onChange={setEnd}
+          ariaLabel="To"
+          size="sm"
+          tone="control"
+          options={TIMES}
+        />
+      </div>
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Work, commute, gym…"
+        aria-label="What is this time for"
+        className="mt-1.5 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-[12px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+      />
+      {invalid && <p className="mt-1 text-[11px] text-danger">The end has to be after the start.</p>}
+      <button
+        type="button"
+        onClick={add}
+        disabled={invalid}
+        className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
+      >
+        <Plus size={12} aria-hidden />
+        Block this time
+      </button>
     </div>
   )
 }

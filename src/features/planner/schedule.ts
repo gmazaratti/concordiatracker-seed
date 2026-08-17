@@ -104,17 +104,27 @@ export function findCampusGaps(placed: Placed[], minMinutes = 45): CampusGap[] {
 
 /** The earliest start and latest end across the week, so the grid only draws
  *  hours that contain something. */
+/**
+ * The window the week is always drawn over, whatever is in it.
+ *
+ * A grid that resizes as you use it is disorienting: blocking out an hour used
+ * to reshape the whole calendar under the cursor, because the bounds were
+ * computed from whatever happened to be on it. Anchoring to a normal teaching
+ * day means anything you draw INSIDE that day changes nothing.
+ */
+const DAY_START = 8 * 60
+const DAY_END = 18 * 60
+
 export function gridBounds(placed: Placed[]): { start: number; end: number } {
-  if (placed.length === 0) return { start: 8 * 60, end: 18 * 60 }
-  let start = Infinity
-  let end = -Infinity
+  let start = DAY_START
+  let end = DAY_END
   for (const p of placed) {
     start = Math.min(start, toMinutes(p.slot.start))
     end = Math.max(end, toMinutes(p.slot.end))
   }
   // Rounded out to whole hours so the row labels read 9, 10, 11 rather than
-  // 9:05. No padding beyond that: the grid draws only hours that contain
-  // something, and empty rows at the top and bottom are wasted phone screen.
+  // 9:05. An 8am class or a 6am block still extends the window — you have to be
+  // able to see the thing you added — but nothing inside the normal day moves it.
   return { start: Math.floor(start / 60) * 60, end: Math.ceil(end / 60) * 60 }
 }
 

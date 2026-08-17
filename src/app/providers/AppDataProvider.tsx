@@ -341,7 +341,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   // Course creation — insert a course (DB-generated id), adopt it. Blank for a
   // manual add; pre-filled code/title/section when added from a blueprint.
   const createCourse = useCallback(
-    async (init?: { code?: string; title?: string; section?: string; credits?: number }) => {
+    async (init?: {
+      code?: string
+      title?: string
+      section?: string
+      credits?: number
+      /** A later term, for classes you are registered in but not yet taking.
+       *  Defaults to the term you are running. */
+      term?: string
+    }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
@@ -351,9 +359,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           user_id: authUser.id,
           code: init?.code ?? '',
           name: init?.title ?? '',
-          ...(init?.credits ? { credits: init.credits } : {}),
-          term: term.name,
-          credits: 3,
+          term: init?.term ?? term.name,
+          // Was below the spread that set it, so an explicit credit count was
+          // always overwritten with 3.
+          credits: init?.credits ?? 3,
           color,
           section: init?.section ?? '',
           professor: '',

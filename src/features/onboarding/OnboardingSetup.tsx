@@ -197,8 +197,11 @@ export function ThemeStep() {
           })}
         </div>
       </div>
+      {/* Only the free themes here. Setup is not the place to meet a padlock —
+          the rest of the palette and a colour of your own are shown, and sold,
+          in Settings once someone is actually using the product. */}
       <div className="mt-1 grid grid-cols-2 gap-3">
-        {THEMES.map((opt) => {
+        {THEMES.filter((o) => !o.pro).map((opt) => {
           const selected = opt.id === theme
           return (
             <button

@@ -26,7 +26,6 @@ import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
-import { ThemeSwitcher } from '@/components/ThemeSwitcher'
 
 /** The people who built this — badged "Founder" with a verification seal in
  * the profile block (cosmetic; admin rights are gated separately in the DB). */
@@ -34,7 +33,7 @@ const FOUNDER_EMAILS = new Set(['alexxdegryse@gmail.com', 'concordiatracker@gmai
 
 /**
  * Profile menu — the home for everything that deliberately ISN'T a sidebar
- * tab (Settings, Teacher portal, marketing site, theme, sign out), keeping
+ * tab (Settings, Teacher portal, marketing site, sign out), keeping
  * the sidebar to exactly the four destinations.
  */
 export function AvatarMenu({
@@ -199,14 +198,6 @@ export function AvatarMenu({
           <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
             {t('nav.landing')}
           </MenuLink>
-
-          <div className="my-1.5 px-1">
-            <p className="px-1 pb-1 text-[11px] text-subtle">{t('settings.theme')}</p>
-            {/* Swatches only: the names do not fit this menu's width. Free
-                accounts see the two free themes here; the locked ones are shown
-                and explained in Settings, where there is room to. */}
-            <ThemeSwitcher showLabels={false} />
-          </div>
 
           {/* Dev-only plan switch (self-grants "Semester"): admin-only so real
            * users can't flip their own plan. Real upgrades go through Settings → Billing. */}

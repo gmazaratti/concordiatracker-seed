@@ -16,6 +16,7 @@ import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 import { AddCourseChooser } from './AddCourseChooser'
 import { TranscriptView } from './TranscriptView'
+import { AddForTerm, UpcomingCourses } from './UpcomingTerms'
 
 /** Courses — the grade hub. The class list switches between a dense List (rows)
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
@@ -71,7 +72,10 @@ export function CoursesPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {!showPast && <ViewToggle view={coursesView} onChange={setCoursesView} />}
+          {tab === 'upcoming' && <AddForTerm />}
+          {!showPast && tab !== 'upcoming' && (
+            <ViewToggle view={coursesView} onChange={setCoursesView} />
+          )}
           {/* Shortcut straight to the blueprint browser: the real import path
               (find a classmate's/teacher's outline). */}
           <Link
@@ -91,11 +95,15 @@ export function CoursesPage() {
       <div role="tablist" aria-label={t('courses.termsAria')} className="mb-4 flex gap-1 border-b border-border">
         {([
           { id: 'current', label: t('courses.thisTerm') },
-          // Only offered once there is something in it: an empty tab is a
-          // question the student has to answer by clicking.
-          ...(upcoming.length > 0
-            ? ([{ id: 'upcoming', label: `Upcoming (${upcoming.length})` }] as const)
-            : []),
+          // Always offered, even empty. It used to appear only once it had
+          // something in it, so the feature was invisible to exactly the people
+          // who needed telling it existed — you cannot find the place to enter
+          // next term's classes if that place only appears after you have
+          // entered them.
+          {
+            id: 'upcoming',
+            label: upcoming.length > 0 ? `Upcoming (${upcoming.length})` : 'Upcoming',
+          },
           {
             id: 'past',
             label: `${t('courses.pastSemesters')}${pastCourses.length ? ` (${pastCourses.length})` : ''}`,
@@ -122,7 +130,17 @@ export function CoursesPage() {
 
       {showPast && <TranscriptView />}
 
-      <div className={cn('flex flex-col gap-4 lg:flex-row lg:items-start', showPast && 'hidden')}>
+      {/* Upcoming is its own view, not the current-term grid with a filter: it
+          has no rail, because a GPA and an overdue count for classes that have
+          not started would both read zero and mean nothing. */}
+      {tab === 'upcoming' && <UpcomingCourses courses={upcoming} byCourse={byCourse} />}
+
+      <div
+        className={cn(
+          'flex flex-col gap-4 lg:flex-row lg:items-start',
+          tab !== 'current' && 'hidden',
+        )}
+      >
         <main className="order-2 min-w-0 flex-1 lg:order-1">
           {coursesView === 'grid' ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -137,7 +155,9 @@ export function CoursesPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-              {courses.map((c) => (
+              {/* `shown`, not `courses` — the list view was ignoring the tab
+                  and showing next term's classes alongside this term's. */}
+              {shown.map((c) => (
                 <CourseCard
                   key={c.id}
                   course={c}

@@ -32,15 +32,24 @@ export const THEMES: ThemeOption[] = [
 /**
  * A theme the student builds: one of the two base palettes, plus a colour.
  *
- * Only the accent is chosen. Canvas, surfaces, borders and text keep the tuned
- * values from the base theme, because those are where contrast lives — letting
- * someone set their own background is how you end up with grey-on-grey and a
- * support ticket. See `lib/color.ts` for how the rest of the accent tokens are
- * derived from the one colour.
+ * Two colours at most: an accent, and optionally the page itself. What is NOT
+ * offered is the text — that is derived from the page in `lib/color.ts`, along
+ * with the card and border steps, so a chosen background can change the mood
+ * but never the readability. Choosing both a background and a text colour is
+ * how you get grey on grey and a support ticket.
  */
 export interface CustomTheme {
+  /** Which built-in palette the derivations lean on, and the fallback page
+   *  colour when no `canvas` is chosen. */
   base: 'dark' | 'light'
   accent: string
+  /**
+   * A page colour of their own. Optional on purpose: most people want a colour
+   * for the buttons and a background someone else already tuned, and asking
+   * everyone to pick two colours to get one is how a nice feature becomes a
+   * chore. Undefined means "just use dark or light".
+   */
+  canvas?: string
 }
 
 export const DEFAULT_CUSTOM: CustomTheme = { base: 'dark', accent: '#7aa2f7' }

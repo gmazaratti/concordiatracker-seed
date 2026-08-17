@@ -8,7 +8,7 @@ import {
   type Theme,
   type ThemeOrigin,
 } from './theme'
-import { accentTokens } from '@/lib/color'
+import { customTheme } from '@/lib/color'
 
 const DEFAULT_THEME: Theme = 'dark'
 const STORAGE_KEY = 'ct_theme'
@@ -41,7 +41,11 @@ function readStoredCustom(): CustomTheme {
         typeof (parsed as CustomTheme).accent === 'string'
       ) {
         const c = parsed as CustomTheme
-        return { base: c.base === 'light' ? 'light' : 'dark', accent: c.accent }
+        return {
+          base: c.base === 'light' ? 'light' : 'dark',
+          accent: c.accent,
+          ...(typeof c.canvas === 'string' ? { canvas: c.canvas } : {}),
+        }
       }
     }
   } catch {
@@ -73,12 +77,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement
-    // A custom theme rides ON one of the base palettes: data-theme still names
-    // the base, so every tuned surface, border and text token stays exactly as
-    // designed, and only the accent variables are overwritten below.
-    root.dataset.theme = theme === 'custom' ? custom.base : theme
-
-    const tokens = accentTokens(custom.accent, custom.base)
+    // A custom theme rides ON one of the base palettes. data-theme still names
+    // that base, so everything NOT derived here — shadows, the status and
+    // provenance colours — keeps its tuned value; only what we compute is
+    // overwritten inline.
+    const { base, tokens } = customTheme(custom)
+    root.dataset.theme = theme === 'custom' ? base : theme
     for (const name of Object.keys(tokens)) {
       if (theme === 'custom') root.style.setProperty(name, tokens[name])
       else root.style.removeProperty(name)

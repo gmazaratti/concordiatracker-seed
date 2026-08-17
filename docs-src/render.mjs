@@ -248,7 +248,15 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
 </dialog>
 
 <div class="shell">
-  <nav class="sidebar" aria-label="Documentation">${sidebar(nav, page.slug)}</nav>
+  <nav class="sidebar" aria-label="Documentation">
+    <details class="nav-shell">
+      <summary>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        All documentation
+      </summary>
+      <div class="nav-body">${sidebar(nav, page.slug)}</div>
+    </details>
+  </nav>
 
   <main>
     <p class="crumb">${esc(page.section)}</p>
@@ -393,6 +401,8 @@ a{color:inherit}
 .sidebar:hover::-webkit-scrollbar-thumb,.sidebar:focus-within::-webkit-scrollbar-thumb{background:var(--border-strong)}
 .nav-group + .nav-group{margin-top:16px}
 .nav-group-title{margin:0 0 5px;font-family:var(--display);font-size:12px;font-weight:600;color:var(--fg)}
+.nav-shell summary{display:none}
+.nav-shell>.nav-body{display:block}
 .sidebar ul{list-style:none;margin:0;padding:0}
 .sidebar a{display:block;padding:4px 10px;border-radius:7px;color:var(--muted);text-decoration:none;transition:color .15s,background .15s}
 .sidebar a:hover{color:var(--fg);background:var(--surface)}
@@ -479,11 +489,29 @@ dialog#support textarea{resize:vertical}
   .toc{display:none}
 }
 @media (max-width:760px){
-  .topbar{flex-wrap:wrap;gap:10px}
+  /* The bar wraps to two rows on a phone — 139px of permanently sticky chrome,
+     nearly a fifth of the screen, and anything you tried to tap just under it
+     hit the bar instead. It scrolls away here. Ctrl-K was never a phone
+     gesture, so nothing is lost by letting search scroll with the page. */
+  .topbar{flex-wrap:wrap;gap:10px;position:static}
   .search{position:static;transform:none;order:3;width:100%}
   .portal{margin-left:0}
   .shell{grid-template-columns:minmax(0,1fr);padding:22px 18px 60px}
-  .sidebar{position:static;max-height:none;border-bottom:1px solid var(--border);padding-bottom:18px}
+  /* The full tree is 26 links. Printed above every page it buries the page you
+     actually opened, so on a phone it collapses to one tappable line. */
+  .sidebar{position:static;max-height:none;padding-bottom:0}
+  .nav-shell{border:1px solid var(--border);border-radius:11px;background:var(--surface);margin-bottom:18px}
+  .nav-shell summary{display:flex;align-items:center;gap:9px;padding:12px 14px;font-size:14px;font-weight:500;
+    color:var(--fg);cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+  .nav-shell summary::-webkit-details-marker{display:none}
+  .nav-shell summary svg{width:17px;height:17px;color:var(--subtle);flex:none}
+  .nav-shell summary::after{content:'';margin-left:auto;width:7px;height:7px;border-right:2px solid var(--subtle);
+    border-bottom:2px solid var(--subtle);transform:rotate(45deg) translateY(-2px);transition:transform .18s}
+  .nav-shell[open] summary::after{transform:rotate(-135deg) translateY(-2px)}
+  .nav-shell[open] summary{border-bottom:1px solid var(--border)}
+  .nav-shell>.nav-body{padding:12px 14px 14px}
+  /* Comfortably tappable rows — 4px of padding is a 21px target. */
+  .sidebar a{padding:9px 10px}
   .cards{grid-template-columns:minmax(0,1fr)}
   .pager{grid-template-columns:minmax(0,1fr)}
   h1{font-size:29px}
