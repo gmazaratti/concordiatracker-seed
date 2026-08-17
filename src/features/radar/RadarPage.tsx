@@ -16,6 +16,7 @@ import { formatMonthDay } from '@/lib/date'
 import { parseDay } from '@/features/calendar/calendar'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { cn } from '@/lib/cn'
+import { DropSimulator } from './DropSimulator'
 import { TermStrip } from './TermStrip'
 import { radarSummary, runRadar, weeklyLoad, type Severity, type Signal } from './rules'
 
@@ -56,6 +57,8 @@ export function RadarPage() {
   })
   const { courses, pastCourses, assessments } = useAppData()
   const [recordComplete, setRecordComplete] = useState(false)
+  /** Courses switched off in the simulator. Never written anywhere. */
+  const [excluded, setExcluded] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     let alive = true
@@ -70,21 +73,33 @@ export function RadarPage() {
   // One `now` per render pass, so every rule agrees about what day it is.
   const now = useMemo(() => new Date(), [])
 
+  // The simulator works by feeding the rules a smaller term. Nothing branches
+  // on "are we simulating" — the same rules run on a different input, which is
+  // why dropping a course correctly surfaces the cost of dropping it.
+  const liveCourses = useMemo(
+    () => courses.filter((c) => !excluded.has(c.id)),
+    [courses, excluded],
+  )
+  const liveAssessments = useMemo(
+    () => assessments.filter((a) => !excluded.has(a.courseId)),
+    [assessments, excluded],
+  )
+
   const signals = useMemo(
     () =>
       runRadar({
         now,
-        courses,
+        courses: liveCourses,
         pastCourses,
-        assessments,
+        assessments: liveAssessments,
         calendar: ACADEMIC_CALENDAR,
         recordComplete,
       }),
-    [now, courses, pastCourses, assessments, recordComplete],
+    [now, liveCourses, pastCourses, liveAssessments, recordComplete],
   )
 
   const summary = radarSummary(signals)
-  const weeks = useMemo(() => weeklyLoad(assessments, now, 15), [assessments, now])
+  const weeks = useMemo(() => weeklyLoad(liveAssessments, now, 15), [liveAssessments, now])
   const hasLoad = weeks.some((w) => w.weight > 0)
   const Icon = TONE[summary.severity].icon
 
@@ -114,6 +129,15 @@ export function RadarPage() {
         <Icon size={18} className={cn('mt-0.5 shrink-0', TONE[summary.severity].text)} aria-hidden />
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-medium text-fg">{summary.headline}</p>
+          {excluded.size > 0 && (
+            <p className="mt-1 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
+              Simulated — without{' '}
+              {courses
+                .filter((c) => excluded.has(c.id))
+                .map((c) => c.code)
+                .join(', ')}
+            </p>
+          )}
           <p className="mt-0.5 text-[12px] text-subtle">
             Checked against your courses, your grades, your outlines and the registrar&rsquo;s
             calendar. Nothing here leaves your account.
@@ -131,6 +155,22 @@ export function RadarPage() {
             </p>
           </div>
           <TermStrip weeks={weeks} />
+
+          <div className="mt-4 border-t border-border pt-3.5">
+            <DropSimulator
+              courses={courses}
+              excluded={excluded}
+              onToggle={(id) =>
+                setExcluded((prev) => {
+                  const next = new Set(prev)
+                  if (next.has(id)) next.delete(id)
+                  else next.add(id)
+                  return next
+                })
+              }
+              onReset={() => setExcluded(new Set())}
+            />
+          </div>
         </section>
       )}
 
