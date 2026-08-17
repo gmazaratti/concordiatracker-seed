@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, Check, Loader2, Lock, Search, Unlock, X } from 'lucide-react'
+import { ArrowUpRight, Check, ListTree, Loader2, Lock, Network, Search, Unlock, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
 import { coursesByCodes, searchCourses, unlockedBy, type CatalogCourse } from '@/lib/catalog'
 import { parseCourseCode } from '@/lib/course-sections'
 import { buildPrereqTree, outstanding, type TreeNode } from '@/lib/prereq-tree'
+import { PrereqGraph } from './PrereqGraph'
 import { cn } from '@/lib/cn'
 
 /**
  * What a course needs, and what it opens up.
  *
- * Drawn as an indented list rather than a node graph. A graph looks more
- * impressive in a screenshot and is worse to use: it needs space a phone does
- * not have, it hides the ordering that actually matters, and prerequisite
- * chains are shallow enough that indentation says everything a layout engine
- * would. The thing a student wants is "what do I still owe, in what order",
- * which is a list.
+ * Two views, because the two questions are different. The LIST answers "what do
+ * I still owe, in what order" — indentation says everything a layout engine
+ * would, and it works on a phone. The BOARD answers "if I take this, what does
+ * it get me", which is a shape, not an order, and wants room to spread out.
  *
  * Colouring follows the same gate as everywhere else: without a record marked
  * complete, nothing is called met or missing, because telling someone in red
@@ -24,6 +23,7 @@ import { cn } from '@/lib/cn'
  */
 export function PrereqTree() {
   const { pastCourses, courses, assessments } = useAppData()
+  const [view, setView] = useState<'list' | 'board'>('list')
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<CatalogCourse[]>([])
   const [tree, setTree] = useState<TreeNode | null>(null)
@@ -83,9 +83,33 @@ export function PrereqTree() {
 
   const left = tree ? outstanding(tree) : []
 
+  /**
+   * Somewhere to start.
+   *
+   * The page used to open on an empty search box, which asks the student to
+   * already know the answer. These are courses they are in or have taken —
+   * the ones whose chains they actually care about — so there is always
+   * something to press.
+   */
+  const starters = useMemo(() => {
+    const seen = new Set<string>()
+    const out: string[] = []
+    for (const c of [...courses, ...pastCourses]) {
+      const code = c.code.trim()
+      if (!code || seen.has(normalizeCode(code))) continue
+      seen.add(normalizeCode(code))
+      out.push(code)
+      if (out.length === 8) break
+    }
+    return out
+  }, [courses, pastCourses])
+
   return (
     <div>
-      <div className="relative max-w-lg">
+      {/* One control, centred, because on this page it IS the page until you
+          have picked something. */}
+      <div className="mx-auto max-w-xl">
+      <div className="relative">
         <Search
           size={16}
           aria-hidden
@@ -121,7 +145,7 @@ export function PrereqTree() {
       </div>
 
       {suggestions.length > 0 && !tree && (
-        <ul className="mt-2 max-w-lg divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
+        <ul className="mt-2 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
           {suggestions.map((c) => (
             <li key={c.id}>
               <button
@@ -139,20 +163,67 @@ export function PrereqTree() {
         </ul>
       )}
 
-      {!trusted && tree && (
+      {!tree && !loading && suggestions.length === 0 && starters.length > 0 && (
+        <div className="mt-4 text-center">
+          <p className="text-[12px] text-subtle">Or start from one of yours</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+            {starters.map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => void open(code)}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+              >
+                {code}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* The board does not need a course chosen first — you build it by
+          dragging — so the switch sits outside the search. */}
+      <div className="mt-5 flex justify-center">
+        <div className="inline-flex gap-0.5 rounded-lg border border-border bg-surface p-1">
+          {(['list', 'board'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              aria-pressed={view === v}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium capitalize transition-colors duration-150',
+                view === v ? 'bg-accent-soft text-fg' : 'text-muted hover:text-fg',
+              )}
+            >
+              {v === 'list' ? <ListTree size={13} aria-hidden /> : <Network size={13} aria-hidden />}
+              {v === 'list' ? 'List' : 'Board'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'board' && (
+        <div className="mt-4">
+          <PrereqGraph completed={completed} trusted={trusted} />
+        </div>
+      )}
+
+      {view === 'list' && !trusted && tree && (
         <p className="mt-3 rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-[12px] leading-relaxed text-subtle">
           Mark your record complete in My record and this will show which of these you have already
           cleared.
         </p>
       )}
 
-      {loading && (
+      {view === 'list' && loading && (
         <div className="grid place-items-center py-16">
           <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
         </div>
       )}
 
-      {tree && !loading && (
+      {view === 'list' && tree && !loading && (
         <div className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
           <section className="min-w-0">
             <h2 className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-fg">

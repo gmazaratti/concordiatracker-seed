@@ -5,6 +5,7 @@ import { parseCourseCode, sortSections } from '@/lib/course-sections'
 import { checkPrereq } from '@/lib/prereq'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { cn } from '@/lib/cn'
+import { SectionSkeleton } from '@/components/ui/Skeleton'
 import { clashesWithBlocks, type Block } from './schedule'
 
 /**
@@ -189,6 +190,12 @@ export function ScheduleSearch({
 
       {/* Course suggestions: names first, so you can tell COMP 352 from COMP 353
           before waiting on either one's sections. */}
+      {suggesting && matches === null && searching && (
+        <div className="mt-2">
+          <SectionSkeleton rows={3} />
+        </div>
+      )}
+
       {suggesting && matches !== null && (
         <ul className="mt-2 divide-y divide-border overflow-hidden rounded-lg border border-border">
           {matches.length === 0 ? (
@@ -214,11 +221,17 @@ export function ScheduleSearch({
         </ul>
       )}
 
+      {/* Sections come from Concordia and take a couple of seconds, which is
+          long enough that a spinner alone reads as a stall. The skeleton holds
+          the shape the rows will take, so nothing jumps when they land. */}
       {loading && (
-        <p className="mt-2 flex items-center gap-1.5 text-[12px] text-subtle">
-          <Loader2 size={13} className="animate-spin" aria-hidden />
-          Looking up sections…
-        </p>
+        <>
+          <p className="mt-2 flex items-center gap-1.5 text-[12px] text-subtle">
+            <Loader2 size={13} className="animate-spin" aria-hidden />
+            Looking up sections at Concordia…
+          </p>
+          <SectionSkeleton />
+        </>
       )}
 
       {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}

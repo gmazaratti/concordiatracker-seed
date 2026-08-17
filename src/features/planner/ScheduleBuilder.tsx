@@ -41,8 +41,6 @@ import {
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { ScheduleFilters } from './ScheduleFilters'
-import { setBuilderLayout, useBuilderLayout } from './builder-layout'
-import { useIsAdmin } from '@/features/admin/admin-data'
 
 /**
  * Build a week from real sections.
@@ -58,9 +56,6 @@ import { useIsAdmin } from '@/features/admin/admin-data'
  */
 export function ScheduleBuilder() {
   const { courses } = useAppData()
-  const { isAdmin } = useIsAdmin()
-  const layout = useBuilderLayout()
-  const wide = layout === 'wide'
   const [picked, setPicked] = useState<PickedSection[]>([])
   const [blocks, setBlocks] = useState<TimeBlock[]>([])
   const [termCode, setTermCode] = useState('')
@@ -193,32 +188,6 @@ export function ScheduleBuilder() {
         />
 
         <span className="ml-auto flex items-center gap-1.5">
-          {isAdmin && (
-            <span className="mr-1 hidden items-center gap-1 rounded-lg border border-border p-0.5 lg:inline-flex">
-              <span className="px-1 text-[10px] font-semibold tracking-wide text-subtle uppercase">
-                Dev
-              </span>
-              {(['classic', 'wide'] as const).map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setBuilderLayout(id)}
-                  aria-pressed={layout === id}
-                  title={
-                    id === 'classic'
-                      ? 'Three equal panes in the reading column'
-                      : 'Narrow rail, and the week takes the rest of the screen'
-                  }
-                  className={cn(
-                    'rounded-md px-2 py-1 text-[11px] font-medium capitalize transition-colors duration-150',
-                    layout === id ? 'bg-surface-2 text-fg' : 'text-subtle hover:text-fg',
-                  )}
-                >
-                  {id}
-                </button>
-              ))}
-            </span>
-          )}
           <ToolbarButton
             onClick={() => void save()}
             icon={savedFlash ? Check : Save}
@@ -327,16 +296,10 @@ export function ScheduleBuilder() {
       {/* Each one a card with its own heading. Previously they were three
           columns of loose content with nothing between them, so the eye could
           not tell where finding ended and choosing began. */}
-      <div
-        className={cn(
-          'grid gap-3',
-          wide
-            ? // One rail, and every remaining pixel to the week.
-              'lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start'
-            : 'lg:grid-cols-[280px_220px_minmax(0,1fr)]',
-        )}
-      >
-        <div className={cn(wide && 'space-y-3')}>
+      {/* One rail, and every remaining pixel to the week. The week is the thing
+          you are actually reading; find and picked are how you feed it. */}
+      <div className="grid gap-3 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
+        <div className="space-y-3">
         <Pane
           title="Find a course"
           className="print:hidden"
@@ -463,6 +426,7 @@ export function ScheduleBuilder() {
                 { id: `b${Date.now()}-${prev.length}`, day, start, end, label: 'Busy' },
               ])
             }
+            onRemoveBlock={(id) => setBlocks((prev) => prev.filter((b) => b.id !== id))}
           />
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-subtle">

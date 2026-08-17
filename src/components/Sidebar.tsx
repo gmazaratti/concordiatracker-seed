@@ -49,15 +49,38 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden shrink-0 flex-col gap-1 border-r border-border bg-surface/40 p-3 md:flex',
+        'relative hidden shrink-0 flex-col gap-1 border-r border-border bg-surface/40 p-3 md:flex',
         // Width is the only thing that transitions. Fading the labels in and out
         // as well made a 200ms toggle feel like a page load.
         'transition-[width] duration-200 ease-out',
         collapsed ? 'w-[68px]' : 'w-64',
       )}
     >
-      <div className={cn('py-3', collapsed ? 'grid place-items-center' : 'px-2')}>
+      {/* The wordmark keeps its place; the toggle sits beside it. A control
+          that lives at the bottom of a rail is a control nobody finds. */}
+      <div
+        className={cn(
+          'flex items-center py-3',
+          collapsed ? 'justify-center' : 'gap-2 px-2',
+        )}
+      >
         <Logo showText={!collapsed} />
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
+            collapsed ? 'absolute top-3 right-2' : 'ml-auto',
+          )}
+        >
+          <PanelLeftClose
+            size={16}
+            className={cn('transition-transform duration-200', collapsed && 'rotate-180')}
+            aria-hidden
+          />
+        </button>
       </div>
 
       {!collapsed && <SearchTrigger className="mb-2" />}
@@ -135,24 +158,6 @@ export function Sidebar() {
       </nav>
 
       <div className="flex-1" />
-
-      <button
-        type="button"
-        onClick={toggle}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className={cn(
-          'mb-1 flex items-center gap-3 rounded-lg py-2 text-sm text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
-          collapsed ? 'justify-center px-0' : 'px-3',
-        )}
-      >
-        <PanelLeftClose
-          size={18}
-          className={cn('shrink-0 transition-transform duration-200', collapsed && 'rotate-180')}
-          aria-hidden
-        />
-        {!collapsed && <span>Collapse</span>}
-      </button>
 
       <div className={cn('flex items-center gap-1.5', collapsed && 'flex-col')}>
         <div className={cn('min-w-0', !collapsed && 'flex-1')}>

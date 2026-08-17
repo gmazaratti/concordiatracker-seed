@@ -4,6 +4,7 @@ import { useI18n } from '@/i18n/i18n'
 import { useAppData } from '@/app/providers/app-data'
 import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
+import { CourseSkeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/cn'
 import { listSaved, saveCourse, unsaveCourse } from '@/lib/saved-courses'
 import { PrereqChips } from './PrereqChips'
@@ -66,20 +67,30 @@ export function CourseDirectory() {
   const [total, setTotal] = useState(0)
   const [subjects, setSubjects] = useState<string[]>([])
   const [loadingMore, setLoadingMore] = useState(false)
+  // The very first page, which is a network round trip before anything at all
+  // is on screen. Distinct from `loadingMore`, which has rows above it already.
+  const [loadingFirst, setLoadingFirst] = useState(true)
 
   useEffect(() => {
     let alive = true
     void (async () => {
       // Someone in Computer Science should be shown COMP courses without
       // having to ask for them; with no history, the whole calendar.
-      const [s, subs] = await Promise.all([catalogStatus(), mySubjects()])
+      const [s, subs] = await Promise.all([
+        catalogStatus().catch(() => null),
+        mySubjects().catch(() => []),
+      ])
       if (!alive) return
       setStatus(s)
       setSubjects(subs)
-      const page = await browseCourses({ subjects: subs.slice(0, 4), limit: PAGE })
+      const page = await browseCourses({ subjects: subs.slice(0, 4), limit: PAGE }).catch(() => ({
+        rows: [],
+        total: 0,
+      }))
       if (!alive) return
       setBrowsed(page.rows)
       setTotal(page.total)
+      setLoadingFirst(false)
     })()
     return () => {
       alive = false
@@ -181,7 +192,9 @@ export function CourseDirectory() {
       )}
 
       <div className="mt-4">
-        {results === null ? (
+        {loadingFirst ? (
+          <CourseSkeleton />
+        ) : results === null ? (
           browsed.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border px-6 py-14 text-center">
               <BookOpen size={22} className="mx-auto text-subtle" aria-hidden />
@@ -325,8 +338,12 @@ function CourseRow({
 
       {expanded && (
         <div className="space-y-3 border-t border-border/60 bg-canvas/40 px-4 py-3">
-          {course.description && (
+          {course.description ? (
             <p className="text-[12.5px] leading-relaxed text-muted">{course.description}</p>
+          ) : (
+            <p className="text-[12px] text-subtle italic">
+              No description in the mirror for this course yet.
+            </p>
           )}
 
           {course.prerequisites ? (

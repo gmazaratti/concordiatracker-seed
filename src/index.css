@@ -745,6 +745,32 @@ html {
   }
 }
 
+/* ── Loading placeholders ───────────────────────────────────────────────────
+   A sweep across a gradient rather than a pulsing opacity: it reads as
+   "something is arriving" instead of "something is broken", and animating
+   background-position keeps it off the layout path. The global reduced-motion
+   rule zeroes the duration, leaving a plain block, which is still a fine
+   placeholder. */
+.ct-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--ct-surface-2) 0%,
+    var(--ct-border) 40%,
+    var(--ct-surface-2) 80%
+  );
+  background-size: 300% 100%;
+  animation: ct-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes ct-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
 /* ── Printing a schedule ────────────────────────────────────────────────────
    The export is "put it on the fridge", so the printed page should be the
    timetable and nothing else: no sidebar, no bottom nav, no toolbar. Colours

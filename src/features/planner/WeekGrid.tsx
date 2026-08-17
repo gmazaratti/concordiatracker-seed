@@ -31,6 +31,7 @@ export function WeekGrid({
   colourOf,
   conflicts,
   onBlock,
+  onRemoveBlock,
 }: {
   placed: Placed[]
   blocks: Block[]
@@ -38,6 +39,8 @@ export function WeekGrid({
   conflicts: Conflict[]
   /** Absent on a shared schedule, which is read-only. */
   onBlock?: (day: number, start: string, end: string) => void
+  /** Right-click a block to take it off. Same read-only rule. */
+  onRemoveBlock?: (id: string) => void
 }) {
   const [drag, setDrag] = useState<{
     day: number
@@ -87,18 +90,18 @@ export function WeekGrid({
   return (
     <div className="rounded-xl border border-border bg-surface print:border-0">
       <div className="overflow-x-auto">
-        <div className="min-w-[380px]">
-          <div className="grid grid-cols-[38px_repeat(5,minmax(0,1fr))] border-b border-border">
+        <div className="min-w-[296px]">
+          <div className="grid grid-cols-[30px_repeat(5,minmax(0,1fr))] border-b border-border sm:grid-cols-[38px_repeat(5,minmax(0,1fr))]">
             <span />
             {days.map((d) => (
-              <span key={d} className="px-1 py-2 text-center text-[11.5px] font-medium text-subtle">
+              <span key={d} className="px-0.5 py-2 text-center text-[11px] font-medium text-subtle sm:px-1 sm:text-[11.5px]">
                 {names[d].slice(0, 3)}
               </span>
             ))}
           </div>
 
           <div
-            className="relative grid grid-cols-[38px_repeat(5,minmax(0,1fr))]"
+            className="relative grid grid-cols-[30px_repeat(5,minmax(0,1fr))] sm:grid-cols-[38px_repeat(5,minmax(0,1fr))]"
             // One extra row of height so the last hour label is not clipped in
             // half by its own centring, which is what was cutting 18:00 off.
             style={{ height: span * PX_PER_MIN + 18 }}
@@ -109,7 +112,7 @@ export function WeekGrid({
               {hours.map((m) => (
                 <span
                   key={m}
-                  className="absolute right-1.5 -translate-y-1/2 text-[10.5px] text-subtle tabular-nums"
+                  className="absolute right-1 -translate-y-1/2 text-[9.5px] text-subtle tabular-nums sm:right-1.5 sm:text-[10.5px]"
                   style={{ top: (m - start) * PX_PER_MIN + 9 }}
                 >
                   {hhmm(m)}
@@ -162,7 +165,15 @@ export function WeekGrid({
                         top: (toMinutes(b.start) - start) * PX_PER_MIN + 9,
                         height: Math.max((toMinutes(b.end) - toMinutes(b.start)) * PX_PER_MIN, 14),
                       }}
-                      title={b.label}
+                      title={onRemoveBlock ? `${b.label} — right-click to remove` : b.label}
+                      onContextMenu={
+                        onRemoveBlock
+                          ? (e) => {
+                              e.preventDefault()
+                              onRemoveBlock(b.id)
+                            }
+                          : undefined
+                      }
                     >
                       <span className="block truncate px-1 pt-0.5 text-[9.5px] text-subtle">
                         {b.label}
@@ -233,7 +244,8 @@ export function WeekGrid({
 
       {onBlock && (
         <p className="hidden border-t border-border px-3 py-1.5 text-[11px] text-subtle md:block print:hidden">
-          Drag on an empty column to block time you are not available, or add one in Filters.
+          Drag on an empty column to block time you are not available; right-click a block to
+          remove it. You can also type one in Filters.
         </p>
       )}
     </div>

@@ -70,11 +70,18 @@ export default async function handler(req: any, res: any) {
   try {
     // Both in parallel: two independent endpoints, and the descriptions are
     // the slower of the two.
+    // A missing description is a missing paragraph, not a failed sync, so a
+    // fault here must not cost us the catalogue — but it must not be silent
+    // either. Swallowing it is how 7,884 courses ended up with no description
+    // and no way to tell whether the endpoint, the column or the cron was at
+    // fault. The reason now travels back in the response.
+    let descriptionError: string | null = null
     const [courses, descriptions] = await Promise.all([
       fetchCatalog(),
-      // A missing description is a missing paragraph, not a failed sync, so a
-      // fault here must not cost us the catalogue.
-      fetchDescriptions().catch(() => []),
+      fetchDescriptions().catch((e: unknown) => {
+        descriptionError = e instanceof Error ? e.message : 'Descriptions fetch failed.'
+        return []
+      }),
     ])
     const describedBy = new Map(descriptions.map((d) => [d.ID, d.description]))
     if (courses.length === 0) {
@@ -152,12 +159,24 @@ export default async function handler(req: any, res: any) {
       return
     }
 
+    // Count what actually carries a description, not how many the endpoint
+    // returned: a full response that joins onto nothing looks identical to a
+    // working sync if you only report the length.
+    const withDescription = rows.filter((r) => r.description).length
     res.status(written < rows.length ? 207 : 200).json({
       fetched: courses.length,
       unique: rows.length,
       described: descriptions.length,
+      withDescription,
       written,
       ...(firstError ? { partialFailure: firstError } : {}),
+      ...(descriptionError ? { descriptionError } : {}),
+      ...(withDescription === 0
+        ? {
+            warning:
+              'No course carries a description. Either /course/description failed, or db/course_descriptions.sql has not been run.',
+          }
+        : {}),
     })
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : 'Sync failed.' })
