@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, ListChecks, Loader2, ShieldCheck } from 'lucide-react'
+import { CalendarPlus, ClipboardPaste, ListChecks, Loader2, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -19,6 +19,7 @@ import { Step } from './Step'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
 import { ImportSemesterModal } from './ImportSemesterModal'
+import { PasteTranscriptModal } from './PasteTranscriptModal'
 
 /**
  * Your record, and what it opens up.
@@ -39,6 +40,7 @@ export function MyRecordPanel() {
   // does not mean choosing it again.
   const [importTerm, setImportTerm] = useState<string | null>(null)
   const [recordComplete, setRecordComplete] = useState(false)
+  const [pasting, setPasting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -122,14 +124,26 @@ export function MyRecordPanel() {
       >
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[12px] text-subtle">Add one class, or bring in a whole term at once.</p>
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            <CalendarPlus size={13} aria-hidden />
-            Import a semester
-          </button>
+          <span className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPasting(true)}
+              title="Paste your transcript and confirm what was read"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+            >
+              <ClipboardPaste size={13} aria-hidden />
+              Paste my courses
+            </button>
+            <button
+              type="button"
+              onClick={() => setImporting(true)}
+              title="Add a term one course at a time"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+            >
+              <CalendarPlus size={13} aria-hidden />
+              Import a semester
+            </button>
+          </span>
         </div>
         <PastCourseEntry />
         {hasHistory && (
@@ -257,6 +271,8 @@ export function MyRecordPanel() {
           credits={summary.credits}
         />
       </Step>
+
+      {pasting && <PasteTranscriptModal onClose={() => setPasting(false)} />}
 
       {(importing || importTerm !== null) && (
         <ImportSemesterModal

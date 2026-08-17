@@ -41,9 +41,12 @@ export function WeekGrid({
   )
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface print:border-0">
-      <div className="min-w-[560px]">
-        <div className="grid grid-cols-[46px_repeat(5,1fr)] border-b border-border">
+    // No horizontal scroll on a desktop-width column: five days should fit,
+    // and a week where Friday is hidden behind a scrollbar is not a week. The
+    // minimum only bites on a phone, where scrolling is the honest answer.
+    <div className="overflow-x-auto rounded-xl border border-border bg-surface print:border-0 print:overflow-visible">
+      <div className="min-w-[400px]">
+        <div className="grid grid-cols-[38px_repeat(5,minmax(0,1fr))] border-b border-border">
           <span />
           {days.map((d) => (
             <span key={d} className="px-2 py-2 text-center text-[11.5px] font-medium text-subtle">
@@ -53,7 +56,7 @@ export function WeekGrid({
         </div>
 
         <div
-          className="relative grid grid-cols-[46px_repeat(5,1fr)]"
+          className="relative grid grid-cols-[38px_repeat(5,minmax(0,1fr))]"
           style={{ height: span * PX_PER_MIN }}
         >
           <div className="relative">

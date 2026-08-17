@@ -4,6 +4,7 @@ import { LayoutGrid, Plus, Rows3, Upload } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
+import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
 import { coursePercent, currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
@@ -23,7 +24,26 @@ export function CoursesPage() {
   const t = useT()
   const { plan, courses, pastCourses, assessments, coursesView, setCoursesView } = useAppData()
   const [chooserOpen, setChooserOpen] = useState(false)
-  const [showPast, setShowPast] = useState(false)
+  const [tab, setTab] = useState<'current' | 'upcoming' | 'past'>('current')
+  const showPast = tab === 'past'
+
+  /**
+   * Courses split into the term you are running and terms you are about to.
+   *
+   * A course entered for next term is not archived - it has not happened yet -
+   * so without this it sat in "This term" alongside the classes you are
+   * actually attending, with nothing to tell them apart. Which is exactly where
+   * it went missing.
+   */
+  const upcoming = useMemo(
+    () => courses.filter((c) => c.term && isUpcomingTerm(c.term) && c.term !== currentTermName()),
+    [courses],
+  )
+  const thisTerm = useMemo(
+    () => courses.filter((c) => !upcoming.includes(c)),
+    [courses, upcoming],
+  )
+  const shown = tab === 'upcoming' ? upcoming : thisTerm
 
   const byCourse = useMemo(() => {
     const map = new Map<string, typeof assessments>()
@@ -43,7 +63,9 @@ export function CoursesPage() {
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
       <header className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[12px] text-subtle">{term.name}</p>
+          <p className="text-[12px] text-subtle">
+            {tab === 'upcoming' ? 'Terms ahead' : term.name}
+          </p>
           <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
             {t('courses.title')}
           </h1>
@@ -69,25 +91,30 @@ export function CoursesPage() {
       <div role="tablist" aria-label={t('courses.termsAria')} className="mb-4 flex gap-1 border-b border-border">
         {([
           { id: 'current', label: t('courses.thisTerm') },
+          // Only offered once there is something in it: an empty tab is a
+          // question the student has to answer by clicking.
+          ...(upcoming.length > 0
+            ? ([{ id: 'upcoming', label: `Upcoming (${upcoming.length})` }] as const)
+            : []),
           {
             id: 'past',
             label: `${t('courses.pastSemesters')}${pastCourses.length ? ` (${pastCourses.length})` : ''}`,
           },
-        ] as const).map((tab) => {
-          const active = (tab.id === 'past') === showPast
+        ] as const).map((item) => {
+          const active = item.id === tab
           return (
             <button
-              key={tab.id}
+              key={item.id}
               type="button"
               role="tab"
               aria-selected={active}
-              onClick={() => setShowPast(tab.id === 'past')}
+              onClick={() => setTab(item.id)}
               className={cn(
                 'border-b-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
                 active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
               )}
             >
-              {tab.label}
+              {item.label}
             </button>
           )
         })}
@@ -99,7 +126,7 @@ export function CoursesPage() {
         <main className="order-2 min-w-0 flex-1 lg:order-1">
           {coursesView === 'grid' ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {courses.map((c) => (
+              {shown.map((c) => (
                 <CourseGridCard
                   key={c.id}
                   course={c}

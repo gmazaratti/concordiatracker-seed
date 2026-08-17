@@ -175,14 +175,19 @@ export function ScheduleBuilder() {
   return (
     <div>
       {/* ── Toolbar ──────────────────────────────────────────────────── */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 print:hidden">
+      {/* Two groups, not seven loose controls: what this schedule IS on the
+          left, what you can DO with it on the right. Every action says what it
+          does on hover, because "Save as new" and "Share" both have a
+          consequence you cannot guess from three words. */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border pb-3 print:hidden">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           aria-label="Schedule name"
-          className="min-w-0 flex-1 rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] font-medium text-fg focus:border-accent focus:outline-none sm:max-w-56"
+          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-64"
         />
-        <div className="w-40">
+
+        <div className="w-36">
           <Select
             value={termCode}
             onChange={setTermCode}
@@ -196,49 +201,59 @@ export function ScheduleBuilder() {
           />
         </div>
 
-        <label className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-muted">
-          <input
-            type="checkbox"
-            checked={eligibleOnly}
-            onChange={(e) => setEligibleOnly(e.target.checked)}
-            disabled={!trusted}
-            className="size-3.5 accent-[var(--ct-accent)]"
-          />
-          {/* Off by default, and unavailable until the record is complete:
-              filtering by eligibility we cannot verify would hide courses a
-              student is perfectly able to take. */}
-          <span title={trusted ? undefined : 'Mark your record complete in My record first'}>
-            Only what I can take
+        <button
+          type="button"
+          role="switch"
+          aria-checked={eligibleOnly}
+          disabled={!trusted}
+          onClick={() => setEligibleOnly((v) => !v)}
+          title={
+            trusted
+              ? 'Hide courses whose prerequisites you have not met'
+              : 'Mark your record complete in My record to use this'
+          }
+          className="inline-flex items-center gap-2 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
+        >
+          <span
+            className={cn(
+              'grid size-4 shrink-0 place-items-center rounded-full border transition-colors duration-150',
+              eligibleOnly ? 'border-accent bg-accent' : 'border-border-strong',
+            )}
+          >
+            {eligibleOnly && <Check size={10} className="text-accent-contrast" aria-hidden />}
           </span>
-        </label>
+          Only what I can take
+        </button>
 
         <span className="ml-auto flex items-center gap-1.5">
-          <button
-            type="button"
+          <ToolbarButton
             onClick={() => void save()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            {savedFlash ? <Check size={13} className="text-success" aria-hidden /> : <Save size={13} aria-hidden />}
-            {savedFlash ? 'Saved' : currentId ? 'Save' : 'Save as new'}
-          </button>
-          <button
-            type="button"
+            icon={savedFlash ? Check : Save}
+            label={savedFlash ? 'Saved' : currentId ? 'Save' : 'Save as new'}
+            hint={
+              currentId
+                ? 'Update this saved schedule'
+                : 'Keep this as a saved draft you can come back to'
+            }
+            highlight={savedFlash}
+          />
+          <ToolbarButton
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            <Printer size={13} aria-hidden />
-            Print
-          </button>
-          <button
-            type="button"
+            icon={Printer}
+            label="Print"
+            hint="Print or save the week as a PDF"
+          />
+          <ToolbarButton
             onClick={() => void share()}
+            icon={Link2}
+            label="Share"
             disabled={!currentId}
-            title={currentId ? undefined : 'Save it first'}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg disabled:opacity-50"
-          >
-            <Link2 size={13} aria-hidden />
-            Share
-          </button>
+            hint={
+              currentId
+                ? 'Create a link anyone can open to view this timetable'
+                : 'Save it first, then you can share a link'
+            }
+          />
         </span>
       </div>
 
@@ -316,7 +331,7 @@ export function ScheduleBuilder() {
       )}
 
       {/* ── Three panes ──────────────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-[290px_240px_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[260px_210px_minmax(0,1fr)]">
         <div className="print:hidden">
           <ScheduleSearch
             blocks={blocks}
@@ -455,5 +470,42 @@ export function ScheduleBuilder() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** One toolbar action. Same shape for every one of them, and every one says
+ *  what it does on hover rather than relying on a three-word label. */
+function ToolbarButton({
+  onClick,
+  icon: Icon,
+  label,
+  hint,
+  disabled,
+  highlight,
+}: {
+  onClick: () => void
+  icon: typeof Save
+  label: string
+  hint: string
+  disabled?: boolean
+  highlight?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={hint}
+      aria-label={`${label}. ${hint}`}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+        highlight
+          ? 'border-success/50 bg-success/10 text-success'
+          : 'border-border text-muted hover:border-accent hover:text-fg',
+      )}
+    >
+      <Icon size={13} aria-hidden />
+      {label}
+    </button>
   )
 }

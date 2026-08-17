@@ -48,10 +48,13 @@ Agreed in order, not started:
       one click from the shortlist would be better.
 - [ ] **Save a shared schedule as your own** - the share page shows it and
       offers "Build your own", but does not yet copy it into your account.
-- [ ] **Bulk import** - paste a transcript or Student Centre screen and parse it.
-      BLOCKED on a real paste sample; the prerequisite parser went from 63% to
-      88% purely because it was built against real strings rather than imagined
-      ones, and this deserves the same.
+- [ ] **Harden the paste parser against a real sample** - it ships built against
+      INFERRED layouts. The prerequisite parser went from 63% to 88% purely
+      because it was rewritten against real strings, and this will be the same.
+      One paste of a real transcript is all it needs.
+- [ ] **Prerequisite tree: node-graph view** - the indented list is built and a
+      toggle to a drag-and-drop graph is still wanted, with a course library
+      beside it.
 - [ ] **Bulk import without picking one by one** - paste a transcript or a
       Student Centre screen and parse it. A plain algorithm handles the common
       shapes; AI is the fallback for the messy ones and is where a Pro gate
@@ -79,8 +82,8 @@ Agreed in order, not started:
 
 ## Data & integrations
 
-- [ ] **Browser extension** - two very different halves, and they should not be
-      confused. READING the Student Centre to import a student's own courses is
+- [ ] **Read the Student Centre (browser extension)** - AGREED, do this. Two
+      very different halves, and they should not be confused. READING the Student Centre to import a student's own courses is
       a content script over a page they are already logged into, no credentials
       handled, and mostly saves typing they would otherwise do. AUTOMATED
       ENROLMENT is a different thing entirely: it acts on their behalf against
