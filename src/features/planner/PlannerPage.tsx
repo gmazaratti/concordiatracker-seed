@@ -13,7 +13,6 @@ import {
 import { cn } from '@/lib/cn'
 import { useI18n } from '@/i18n/i18n'
 import type { Key } from '@/i18n/en'
-import { useIsAdmin } from '@/features/admin/admin-data'
 import { CourseDirectory } from './CourseDirectory'
 import { SeatWatchPanel } from './SeatWatchPanel'
 import { MyRecordPanel } from './MyRecordPanel'
@@ -24,7 +23,6 @@ import { ProgramProgress } from './ProgramProgress'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerNavBar, type NavItem, type Phase } from './PlannerNav'
-import { NAV_LAYOUTS, setPlannerNav, usePlannerNav } from './nav-layout'
 
 /**
  * Planner: the pre-term half of the product.
@@ -81,8 +79,6 @@ const TAB_IDS = new Set<string>(TABS.map((x) => x.id))
 
 export function PlannerPage() {
   const { t } = useI18n()
-  const { isAdmin } = useIsAdmin()
-  const nav = usePlannerNav()
 
   /**
    * The open section lives in the URL.
@@ -121,19 +117,11 @@ export function PlannerPage() {
     </>
   )
 
-  // With the rail, the PAGE never changes width — only the content column
-  // inside it does. Letting the page resize per section moved the rail itself
-  // every time you switched, which reads as the navigation running away from
-  // you. The other layouts sit above the content, so they can resize freely.
-  const railed = nav === 'rail'
-
+  // The PAGE never changes width — only the content column inside it does.
+  // Letting the page resize per section moved the rail itself every time you
+  // switched, which reads as the navigation running away from you.
   return (
-    <div
-      className={cn(
-        'mx-auto w-full px-5 py-5 sm:px-6',
-        railed || wide ? 'max-w-[1600px]' : 'max-w-5xl',
-      )}
-    >
+    <div className="mx-auto w-full max-w-[1600px] px-5 py-5 sm:px-6">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
         <div className="min-w-0">
           <h1 className="font-display text-[26px] leading-tight font-medium text-fg">
@@ -141,56 +129,22 @@ export function PlannerPage() {
           </h1>
           <p className="mt-0.5 text-[13px] text-subtle">{t('planner.subtitle')}</p>
         </div>
-        {isAdmin && <NavLayoutToggle current={nav} />}
       </header>
 
-      {railed ? (
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
-          <PlannerNavBar layout="rail" items={items} active={tab} onChange={setTab} />
-          {/* The column, not the page, is what narrows for a reading section —
-              and it eases rather than snapping, so the change reads as the
-              content settling instead of the layout jumping. */}
-          <div
-            className={cn(
-              'min-w-0 flex-1 transition-[max-width] duration-300 ease-out',
-              wide ? 'max-w-full' : 'max-w-5xl',
-            )}
-          >
-            {panel}
-          </div>
-        </div>
-      ) : (
-        <>
-          <PlannerNavBar layout={nav} items={items} active={tab} onChange={setTab} />
-          {panel}
-        </>
-      )}
-    </div>
-  )
-}
-
-/** Temporary: four arrangements, compared on the real screens. Admin-only. */
-function NavLayoutToggle({ current }: { current: string }) {
-  return (
-    <span className="hidden items-center gap-1 rounded-lg border border-border p-0.5 sm:inline-flex">
-      <span className="px-1 text-[10px] font-semibold tracking-wide text-subtle uppercase">
-        Nav
-      </span>
-      {NAV_LAYOUTS.map((l) => (
-        <button
-          key={l.id}
-          type="button"
-          onClick={() => setPlannerNav(l.id)}
-          aria-pressed={current === l.id}
-          title={l.hint}
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
+        <PlannerNavBar items={items} active={tab} onChange={setTab} />
+        {/* The column, not the page, is what narrows for a reading section —
+            and it eases rather than snapping, so the change reads as the
+            content settling instead of the layout jumping. */}
+        <div
           className={cn(
-            'rounded-md px-2 py-1 text-[11px] font-medium transition-colors duration-150',
-            current === l.id ? 'bg-surface-2 text-fg' : 'text-subtle hover:text-fg',
+            'min-w-0 flex-1 transition-[max-width] duration-300 ease-out',
+            wide ? 'max-w-full' : 'max-w-5xl',
           )}
         >
-          {l.label}
-        </button>
-      ))}
-    </span>
+          {panel}
+        </div>
+      </div>
+    </div>
   )
 }

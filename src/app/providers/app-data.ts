@@ -118,6 +118,8 @@ export interface AppDataContextValue {
     /** A later term, for classes you are registered in but not yet taking.
      *  Defaults to the term you are running. */
     term?: string
+    /** Omitted means registered — see the note on Course.enrollment. */
+    enrollment?: Course['enrollment']
   }) => Promise<string>
   /** Delete a course and all its assessments (the Courses card "Delete" action). */
   removeCourse: (id: string) => void

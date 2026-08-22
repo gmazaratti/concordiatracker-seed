@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ExternalLink, Mail, Users, Wand2 } from 'lucide-react'
+import { ChevronDown, ExternalLink, Flag, Mail, Users, Wand2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
@@ -7,7 +7,9 @@ import { courseColor, withAlpha } from '@/lib/course-color'
 import { parseCourseCode } from '@/lib/course-sections'
 import { courseTracking, TRACKED_MIN } from '@/lib/catalog'
 import { cn } from '@/lib/cn'
+import { Select } from '@/components/ui/Select'
 import { EditableField } from './EditableField'
+import { ReportDataModal } from './ReportDataModal'
 import { SectionAutofillModal } from './SectionAutofillModal'
 
 /** Course-detail LEFT panel: the class's logistics, accent-themed and inline-
@@ -17,16 +19,23 @@ export function CourseInfoPanel({
   course,
   totalAssessments,
   editableIdentity = false,
+  autoFill = false,
 }: {
   course: Course
   totalAssessments: number
+  /** Open the section picker straight away. Set when a class was just added, so
+   *  the published schedule is the default rather than an errand. */
+  autoFill?: boolean
   /** Manual courses: also let the code + name be edited here (seeded courses get
    * those from the catalog, so they're read-only on the banner). */
   editableIdentity?: boolean
 }) {
   const { updateCourse } = useAppData()
   const [open, setOpen] = useState(false)
-  const [autofilling, setAutofilling] = useState(false)
+  // Initial state, not an effect: the picker opens on the first paint and stays
+  // closed once dismissed, with nothing to re-trigger it.
+  const [autofilling, setAutofilling] = useState(autoFill && !!parseCourseCode(course.code))
+  const [reporting, setReporting] = useState(false)
   const { hex } = courseColor(course.color)
   // Only offered when the code is something Concordia can be asked about; a
   // button that can only fail is worse than no button.
@@ -126,6 +135,26 @@ export function CourseInfoPanel({
             )}
           </Row>
 
+          <Row label="Enrolment">
+            {/* Null means registered. A course you added is one you are in until
+                you say otherwise, so the common case costs nothing — and the
+                distinction only starts to matter for a term that has not begun,
+                where a waitlisted seat may never arrive. */}
+            <Select
+              value={course.enrollment ?? 'registered'}
+              onChange={(v) =>
+                patch({ enrollment: v as NonNullable<Course['enrollment']> })
+              }
+              ariaLabel="Enrolment status"
+              size="sm"
+              options={[
+                { value: 'registered', label: 'Registered' },
+                { value: 'waitlisted', label: 'On the waitlist' },
+                { value: 'planned', label: 'Planning to take' },
+              ]}
+            />
+          </Row>
+
           <Row label="Section">
             <EditableField
               value={course.section}
@@ -213,7 +242,21 @@ export function CourseInfoPanel({
             </a>
           </Row>
         </dl>
+
+        {/* Almost everything above came from a mirror of Concordia's calendar,
+            which is only as fresh as the last sync. Saying so, and giving a way
+            to push back, is cheaper than being quietly wrong. */}
+        <button
+          type="button"
+          onClick={() => setReporting(true)}
+          className="mt-2 inline-flex items-center gap-1.5 px-3.5 pb-1 text-[11.5px] text-subtle transition-colors duration-150 hover:text-warning"
+        >
+          <Flag size={11} aria-hidden />
+          Something here is wrong
+        </button>
       </div>
+
+      {reporting && <ReportDataModal course={course} onClose={() => setReporting(false)} />}
 
       {autofilling && (
         <SectionAutofillModal

@@ -349,6 +349,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       /** A later term, for classes you are registered in but not yet taking.
        *  Defaults to the term you are running. */
       term?: string
+      /** Omitted means registered — see the note on Course.enrollment. */
+      enrollment?: Course['enrollment']
     }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
@@ -371,6 +373,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           time: '',
           syllabus_url: '',
           origin: 'manual',
+          enrollment: init?.enrollment ?? null,
         })
         .select('*')
         .maybeSingle()

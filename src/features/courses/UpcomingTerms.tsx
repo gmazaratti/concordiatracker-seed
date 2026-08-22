@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarPlus, Plus } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
-import { futureTerms } from '@/features/planner/past-terms'
+import { termRank } from '@/lib/term'
 import { AddUpcomingModal } from './AddUpcomingModal'
 import { CourseGridCard } from './CourseGridCard'
 
@@ -65,10 +65,9 @@ export function UpcomingCourses({
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(c)
   }
-  const ordered = [...groups.entries()].sort((a, b) => {
-    const all = futureTerms(9)
-    return all.indexOf(a[0]) - all.indexOf(b[0])
-  })
+  // Ranked, not looked up in a list: a course filed under a term that has since
+  // passed is not in the future list at all, and indexOf's -1 sorted it first.
+  const ordered = [...groups.entries()].sort((a, b) => termRank(a[0]) - termRank(b[0]))
 
   return (
     <div className="space-y-6">

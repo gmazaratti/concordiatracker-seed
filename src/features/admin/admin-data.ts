@@ -166,6 +166,44 @@ export async function adminListOrgMembers(orgId: string): Promise<OrgMember[]> {
   return (data ?? []) as OrgMember[]
 }
 
+/**
+ * Reports that the data we show does not match the university.
+ *
+ * Two shapes in one queue, because they are the same job: `course_info` says a
+ * field is wrong, `missing_course` says the calendar mirror does not have the
+ * course at all. Both are checkable against Concordia, which is the point - the
+ * queue exists so a stale mirror gets caught by someone rather than believed.
+ */
+export interface DataReport {
+  id: string
+  user_email: string | null
+  kind: string
+  course_code: string | null
+  field: string | null
+  current_value: string | null
+  suggested_value: string | null
+  note: string | null
+  payload: Record<string, unknown> | null
+  status: string
+  admin_notes: string | null
+  created_at: string
+}
+
+export async function adminListDataReports(): Promise<DataReport[]> {
+  const { data, error } = await supabase.rpc('admin_list_data_reports')
+  if (error) throw error
+  return (data ?? []) as DataReport[]
+}
+
+export async function adminUpdateDataReport(id: string, status: string, notes: string) {
+  const { error } = await supabase.rpc('admin_update_data_report', {
+    p_id: id,
+    p_status: status,
+    p_notes: notes,
+  })
+  if (error) throw error
+}
+
 export async function adminListBugReports(): Promise<BugReport[]> {
   const { data, error } = await supabase.rpc('admin_list_bug_reports')
   if (error) throw error

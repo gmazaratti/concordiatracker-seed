@@ -4,7 +4,13 @@ import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
 import { findSections, termLabel, type SectionOption } from '@/lib/seats'
-import { newestTerm, parseCourseCode, sectionPatch, sortSections } from '@/lib/course-sections'
+import {
+  newestTerm,
+  parseCourseCode,
+  sectionPatch,
+  sortSections,
+  termCodeFor,
+} from '@/lib/course-sections'
 import type { Course } from '@/data/types'
 
 /**
@@ -17,6 +23,10 @@ import type { Course } from '@/data/types'
  *
  * Lecture, tutorial and lab are separate registrations with separate times, so
  * one of each can be selected and both patterns are written.
+ *
+ * It opens on the course's OWN term. Defaulting to whichever term sorted highest
+ * meant picking Fall and then being shown Winter, which is the app arguing with
+ * a choice the student had just made.
  */
 export function SectionAutofillModal({
   course,
@@ -41,7 +51,12 @@ export function SectionAutofillModal({
       .then((rows) => {
         if (!alive) return
         setSections(rows)
-        setTerm(newestTerm(rows) ?? '')
+        // The term the student said this course is in, when Concordia publishes
+        // sections for it. Otherwise the furthest-ahead one, which is the best
+        // guess available for a course with no term set.
+        const want = termCodeFor(course.term)
+        const has = want && rows.some((r) => r.termCode === want)
+        setTerm(has ? want : (newestTerm(rows) ?? ''))
       })
       .catch((e: unknown) => {
         if (!alive) return
@@ -51,7 +66,7 @@ export function SectionAutofillModal({
     return () => {
       alive = false
     }
-  }, [parsed?.subject, parsed?.catalog]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [parsed?.subject, parsed?.catalog, course.term]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const terms = useMemo(() => {
     const seen = [...new Set((sections ?? []).map((s) => s.termCode))]
@@ -87,6 +102,9 @@ export function SectionAutofillModal({
       section: preview.section,
       ...(preview.meetingTimes ? { meetingTimes: preview.meetingTimes } : {}),
       ...(preview.location ? { location: preview.location } : {}),
+      // Only when there is nothing there. A student who renamed a class to
+      // something they recognise should not have it renamed back.
+      ...(preview.title && !course.title.trim() ? { title: preview.title } : {}),
     })
     onClose()
   }
@@ -167,11 +185,14 @@ export function SectionAutofillModal({
                             <span className="text-[12px] text-subtle">No time listed</span>
                           )}
                         </span>
-                        <span className="mt-0.5 flex items-center gap-1 text-[11.5px] text-subtle">
-                          <MapPin size={11} aria-hidden />
-                          {[s.building && s.room ? `${s.building} ${s.room}` : null, s.location]
-                            .filter(Boolean)
-                            .join(' · ') || s.instructionMode}
+                        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-subtle">
+                          <span className="flex items-center gap-1">
+                            <MapPin size={11} aria-hidden />
+                            {[s.building && s.room ? `${s.building} ${s.room}` : null, s.location]
+                              .filter(Boolean)
+                              .join(' · ') || s.instructionMode}
+                          </span>
+                          <Seats section={s} />
                         </span>
                       </span>
                     </button>
@@ -198,6 +219,16 @@ export function SectionAutofillModal({
           </div>
         )}
 
+        {/* Concordia publishes no teaching staff in the schedule feed, so the
+            one field a student expects here and will not get is named, rather
+            than left as a silent gap they assume is a bug. */}
+        {sections !== null && !error && visible.length > 0 && (
+          <p className="mt-3 text-[11.5px] leading-relaxed text-subtle">
+            Concordia&rsquo;s schedule does not publish the instructor, so that one stays yours to
+            fill in.
+          </p>
+        )}
+
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
@@ -218,4 +249,19 @@ export function SectionAutofillModal({
       </div>
     </ModalShell>
   )
+}
+
+/** Open / full / waiting, from the same counts the seat watcher reads. Shown
+ *  because "which section" and "can I still get into it" are one question. */
+function Seats({ section: s }: { section: SectionOption }) {
+  if (s.capacity === null || s.enrolled === null) return null
+  const left = s.capacity - s.enrolled
+  if (left > 0)
+    return (
+      <span className="text-success">
+        {left} seat{left === 1 ? '' : 's'} open
+      </span>
+    )
+  const wl = s.waitlisted ?? 0
+  return <span className="text-warning">Full{wl > 0 ? ` · ${wl} waiting` : ''}</span>
 }

@@ -25,7 +25,14 @@ import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
 export function CourseDetailPage() {
   const { courseId } = useParams()
   const location = useLocation()
-  const state = location.state as { focus?: string; importItems?: Assessment[] } | null
+  const state = location.state as {
+    focus?: string
+    importItems?: Assessment[]
+    /** Set by "add a class": land with the section picker already open, so the
+     *  schedule Concordia publishes fills itself instead of waiting for someone
+     *  to notice a small link and type it out by hand. */
+    autofill?: boolean
+  } | null
   const focusId = state?.focus
   const importItems = state?.importItems
   const { plan, courses, assessments, dataLoading, courseById, addAssessments, peerCorrections } =
@@ -35,6 +42,9 @@ export function CourseDetailPage() {
   /** Opt-in for the rare student who has next term's syllabus already. Hoisted
    *  above the early returns below, because hooks cannot follow them. */
   const [outlineEarly, setOutlineEarly] = useState(false)
+  // Read once, on mount. Kept in state rather than off `location.state` on every
+  // render so closing the picker sticks — the router entry is not rewritten.
+  const [autoFill] = useState(() => !!state?.autofill)
 
   // On a hard refresh the data is still loading — wait for it before deciding the
   // course doesn't exist, otherwise we'd redirect away from a perfectly valid course.
@@ -97,6 +107,7 @@ export function CourseDetailPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <CourseInfoPanel
+              autoFill={autoFill}
               course={course}
               totalAssessments={0}
               editableIdentity={manual}
@@ -138,6 +149,7 @@ export function CourseDetailPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <CourseInfoPanel
+              autoFill={autoFill}
               course={course}
               totalAssessments={courseAssessments.length}
               editableIdentity
@@ -175,6 +187,7 @@ export function CourseDetailPage() {
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <div data-tour="course-info">
               <CourseInfoPanel
+                autoFill={autoFill}
                 course={course}
                 totalAssessments={courseAssessments.length}
               />

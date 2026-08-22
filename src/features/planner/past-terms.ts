@@ -41,6 +41,28 @@ export function futureTerms(count = 9, now = new Date()): string[] {
 }
 
 /**
+ * Terms strictly AFTER the one we are in.
+ *
+ * `futureTerms` starts at January of the current calendar year, so in August it
+ * still leads with the Winter that finished in April. That is right for a list
+ * meant to cover the whole year and wrong for the question "which term are you
+ * registering for", where offering a term that has already ended is offering a
+ * mistake. Filtering by name only removed the current term and left the earlier
+ * ones in, which is exactly the bug this replaces.
+ */
+export function laterTerms(count = 6, now = new Date()): string[] {
+  const cutoff = termRank(currentTermName(now))
+  const out: string[] = []
+  for (let y = now.getFullYear(); out.length < count; y++) {
+    for (const s of ['Winter', 'Summer', 'Fall']) {
+      const t = `${s} ${y}`
+      if (termRank(t) > cutoff) out.push(t)
+    }
+  }
+  return out.slice(0, count)
+}
+
+/**
  * The term we are in right now, from the calendar.
  *
  * Concordia runs Winter (January to April), Summer (May to August) and Fall

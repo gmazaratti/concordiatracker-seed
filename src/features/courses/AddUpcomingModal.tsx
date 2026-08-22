@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Loader2, Search } from 'lucide-react'
+import { Check, Loader2, PlusCircle, Search } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { CourseSkeleton } from '@/components/ui/Skeleton'
 import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
-import { futureTerms, currentTermName } from '@/features/planner/past-terms'
+import { laterTerms } from '@/features/planner/past-terms'
+import { fileDataReport } from '@/lib/data-reports'
 import { cn } from '@/lib/cn'
 
 /**
@@ -24,7 +25,10 @@ import { cn } from '@/lib/cn'
 export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
   const { createCourse } = useAppData()
   const navigate = useNavigate()
-  const terms = futureTerms(6).filter((t) => t !== currentTermName())
+  // Strictly after the term we are in. The old filter removed the current term
+  // by NAME, which left the earlier terms of the same calendar year in the list
+  // — so in August you could file a class under a Winter that ended in April.
+  const terms = laterTerms(6)
 
   const [term, setTerm] = useState(terms[0] ?? '')
   const [query, setQuery] = useState('')
@@ -32,6 +36,13 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
   const [searching, setSearching] = useState(false)
   const [chosen, setChosen] = useState<CatalogCourse | null>(null)
   const [saving, setSaving] = useState(false)
+  // The escape hatch. The mirror is a snapshot of the calendar, so a brand-new
+  // course or one added between syncs genuinely is not in it, and "we cannot
+  // find it" must never be the end of the road.
+  const [manual, setManual] = useState<{ code: string; title: string; credits: string } | null>(
+    null,
+  )
+  const [waitlisted, setWaitlisted] = useState(false)
 
   const q = query.trim()
   const canSearch = q.length >= 2 && !chosen
@@ -52,6 +63,8 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
     }
   }, [q, canSearch])
 
+  const enrollment = waitlisted ? ('waitlisted' as const) : undefined
+
   async function add() {
     if (!chosen || !term || saving) return
     setSaving(true)
@@ -62,6 +75,37 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
       // guessing it wrong throws off everything downstream that counts credits.
       credits: chosen.class_unit ?? 3,
       term,
+      enrollment,
+    })
+    setSaving(false)
+    // Land on the class with the section picker already open. Everything
+    // Concordia publishes about it — times, room, mode, section — is one step
+    // away, and making that step the default is the difference between a
+    // schedule that fills itself and one nobody ever gets round to typing.
+    if (id) navigate(`/app/courses/${id}`, { state: { autofill: true } })
+  }
+
+  /** Add a course the calendar does not have, and tell us it is missing. */
+  async function addManual() {
+    if (!manual || !term || saving) return
+    const code = manual.code.trim().toUpperCase()
+    if (!code) return
+    setSaving(true)
+    const credits = Number(manual.credits)
+    const id = await createCourse({
+      code,
+      title: manual.title.trim(),
+      credits: Number.isFinite(credits) && credits > 0 ? credits : 3,
+      term,
+      enrollment,
+    })
+    // Filed alongside, never instead of. The student is not blocked on us
+    // fixing the mirror, and we still learn what it is missing.
+    void fileDataReport({
+      kind: 'missing_course',
+      courseCode: code,
+      note: manual.title.trim() || undefined,
+      payload: { term, credits: manual.credits, searched: q },
     })
     setSaving(false)
     if (id) navigate(`/app/courses/${id}`)
@@ -86,7 +130,52 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
           />
         </label>
 
-        {chosen ? (
+        {manual ? (
+          <div className="mt-3 space-y-2.5 rounded-lg border border-border bg-surface-2 px-3 py-3">
+            <p className="text-[12px] leading-relaxed text-subtle">
+              Fill in what your portal says. It goes in as a normal class straight away, and it
+              also tells us what the calendar is missing so we can add it properly.
+            </p>
+            <div className="flex gap-2">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1 block text-[11px] text-subtle">Course code</span>
+                <input
+                  value={manual.code}
+                  onChange={(e) => setManual({ ...manual, code: e.target.value })}
+                  placeholder="COMP 248"
+                  autoFocus
+                  className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+                />
+              </label>
+              <label className="w-24 shrink-0">
+                <span className="mb-1 block text-[11px] text-subtle">Credits</span>
+                <input
+                  value={manual.credits}
+                  onChange={(e) => setManual({ ...manual, credits: e.target.value })}
+                  inputMode="decimal"
+                  placeholder="3"
+                  className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+                />
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-[11px] text-subtle">Course name</span>
+              <input
+                value={manual.title}
+                onChange={(e) => setManual({ ...manual, title: e.target.value })}
+                placeholder="Object-Oriented Programming I"
+                className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setManual(null)}
+              className="text-[11.5px] text-subtle transition-colors duration-150 hover:text-fg"
+            >
+              Search the calendar instead
+            </button>
+          </div>
+        ) : chosen ? (
           <div className="mt-3 rounded-lg border border-accent bg-accent-soft/40 px-3 py-2.5">
             <div className="flex items-start gap-2">
               <Check size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden />
@@ -172,8 +261,36 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
                 )}
               </ul>
             )}
+            <button
+              type="button"
+              onClick={() =>
+                setManual({ code: q.toUpperCase(), title: '', credits: '3' })
+              }
+              className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-subtle transition-colors duration-150 hover:text-accent"
+            >
+              <PlusCircle size={12} aria-hidden />
+              My course isn&rsquo;t here — add it myself
+            </button>
           </>
         )}
+
+        {/* Registration is not the same as being in the class. Asked here rather
+            than left to be corrected later, because a waitlisted class is one
+            whose credits may never count and this is the moment you know. */}
+        <label className="mt-3 flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={waitlisted}
+            onChange={(e) => setWaitlisted(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
+          />
+          <span className="text-[12.5px] leading-relaxed text-muted">
+            I&rsquo;m on the waitlist for this one
+            <span className="block text-[11.5px] text-subtle">
+              Marked as a maybe, so its credits don&rsquo;t get counted as certain.
+            </span>
+          </span>
+        </label>
 
         {/* The honest bit. A blueprint for a course you take next term carries
             LAST term's dates, which is worse than having none — you would plan
@@ -195,11 +312,12 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="button"
-            onClick={() => void add()}
-            disabled={!chosen || !term || saving}
+            onClick={() => void (manual ? addManual() : add())}
+            disabled={(manual ? !manual.code.trim() : !chosen) || !term || saving}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover',
-              (!chosen || saving) && 'cursor-not-allowed opacity-50',
+              ((manual ? !manual.code.trim() : !chosen) || saving) &&
+                'cursor-not-allowed opacity-50',
             )}
           >
             {saving && <Loader2 size={14} className="animate-spin" aria-hidden />}

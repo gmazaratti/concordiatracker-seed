@@ -27,6 +27,29 @@ export function newestTerm(sections: SectionOption[]): string | null {
   return best
 }
 
+/**
+ * The inverse of `termLabel`: "Fall 2026" -> "2262".
+ *
+ * Needed because a course carries the term as a NAME (what the student picked)
+ * while Concordia's sections carry it as a CODE. Without the mapping the section
+ * picker defaulted to whatever term happened to sort highest, so choosing Fall
+ * and then asking for its schedule offered Winter.
+ *
+ * Winter belongs to the academic year that began the previous autumn, so its
+ * code year is one behind its name.
+ */
+export function termCodeFor(termName: string): string | null {
+  const m = termName.trim().match(/^(Winter|Summer|Fall)\s+(\d{4})$/i)
+  if (!m) return null
+  const season = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase()
+  const digit: Record<string, string> = { Summer: '1', Fall: '2', Winter: '4' }
+  const d = digit[season]
+  if (!d) return null
+  const year = Number(m[2]) - (season === 'Winter' ? 1 : 0)
+  if (year < 2000 || year > 2099) return null
+  return `2${String(year).slice(2)}${d}`
+}
+
 /** Component order for display: the lecture is what people mean by "my class". */
 const COMPONENT_RANK: Record<string, number> = { LEC: 0, TUT: 1, LAB: 2 }
 
@@ -43,6 +66,9 @@ export interface SectionPatch {
   section: string
   meetingTimes: string
   location: string
+  /** The calendar's own title for the course. Filled because we have it, and a
+   *  student should never retype something the university already published. */
+  title: string
 }
 
 /**
@@ -53,17 +79,27 @@ export interface SectionPatch {
  * Component codes deliberately stay OUT of that string: the parser reads the
  * text before the time as days, and "LEC Mon" is not a day. They live in the
  * section field instead, where they belong anyway.
+ *
+ * A section with no building falls back to how it is delivered — "Online" is a
+ * real answer to "where is this", and a blank field reads as missing data rather
+ * than as a class that has no room.
+ *
+ * The instructor is NOT here, and cannot be. Concordia's published schedule
+ * carries the class number, the times, the room, the mode and the seat counts,
+ * and no teaching staff at all. Inventing one would be the worst kind of wrong:
+ * plausible, unverifiable, and attached to a real person's name.
  */
 export function sectionPatch(chosen: SectionOption[]): SectionPatch {
   const ordered = sortSections(chosen)
+  const place = (s: SectionOption) =>
+    s.building && s.room ? `${s.building} ${s.room}` : s.location || s.instructionMode || ''
   return {
     section: ordered.map((s) => `${s.section} ${s.component}`.trim()).join(' · '),
     meetingTimes: ordered
       .map((s) => s.meetingTimes)
       .filter((t): t is string => !!t)
       .join('; '),
-    location: [...new Set(ordered.map((s) => s.building && s.room ? `${s.building} ${s.room}` : ''))]
-      .filter(Boolean)
-      .join(' · '),
+    location: [...new Set(ordered.map(place))].filter(Boolean).join(' · '),
+    title: ordered.find((s) => s.courseTitle)?.courseTitle ?? '',
   }
 }

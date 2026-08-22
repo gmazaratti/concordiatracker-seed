@@ -60,6 +60,18 @@ export function CourseGridCard({
             {course.code || t('courses.newCourse')}
           </span>
           <span className="text-[11px] text-white/80">{course.credits} cr</span>
+          {/* Waitlisted is worth seeing without opening the class: it is the one
+              status where the credits on this card may never actually count. */}
+          {course.enrollment === 'waitlisted' && (
+            <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-white">
+              Waitlisted
+            </span>
+          )}
+          {course.enrollment === 'planned' && (
+            <span className="rounded border border-white/40 px-1.5 py-0.5 text-[10.5px] font-medium text-white/90">
+              Planned
+            </span>
+          )}
         </div>
         <h3 className="mt-1.5 truncate font-display text-[17px] font-medium text-white">
           {course.title || t('courses.untitledCourse')}

@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  ClipboardCheck,
   Compass,
   GraduationCap,
   Inbox,
@@ -27,6 +28,7 @@ import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
+import { DataReportsTab } from './tabs/DataReportsTab'
 import { TicketsTab } from './tabs/TicketsTab'
 import { AttributionTab } from './tabs/AttributionTab'
 import { TrafficTab } from './tabs/TrafficTab'
@@ -43,6 +45,7 @@ const TABS = [
   { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
+  { id: 'data', label: 'Data reports', icon: ClipboardCheck },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
 ] as const
 
@@ -119,6 +122,7 @@ export function AdminConsole() {
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}
         {current === 'tickets' && <TicketsTab />}
+        {current === 'data' && <DataReportsTab />}
         {current === 'bugs' && <BugReportsTab />}
       </div>
     </div>

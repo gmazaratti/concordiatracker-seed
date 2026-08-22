@@ -139,6 +139,16 @@ export interface Course {
   /** The class's letter-grade scale / cutoffs, if the syllabus stated one
    * (free text, e.g. "A: 90-100, A-: 85-89, …"). Populated by the parser. */
   gradingScale?: string
+  /**
+   * Whether you are actually IN this class.
+   *
+   * Null means registered — a course you added is one you are in until you say
+   * otherwise, so the common case costs nothing. The distinction matters for a
+   * term that has not started: a waitlisted class is one whose seat may never
+   * arrive, and counting its credits toward full-time status or a tuition
+   * estimate states as fact something that is still a maybe.
+   */
+  enrollment?: 'registered' | 'waitlisted' | 'planned'
   /** How the class entered the app. `manual` = the student created it by hand
    * (vs the seeded catalog) → the detail view leads with the fill-by-hand editor
    * and lets the code/name be edited. Omitted for seeded courses. */

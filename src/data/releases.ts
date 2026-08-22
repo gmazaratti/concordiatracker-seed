@@ -26,6 +26,37 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.25.0',
+    name: 'Next term, filled in for you',
+    date: '2026-08-22',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Adding a class for a later term now lands you straight on Concordia’s section list, so the times, room and section fill themselves. Pick the lecture and the tutorial you registered for and the schedule is done.',
+      },
+      {
+        kind: 'new',
+        text: 'Say you are on the waitlist. A waitlisted class is marked as a maybe rather than counted as a certainty, so its credits do not quietly become part of your full-time status or your cost estimate.',
+      },
+      {
+        kind: 'new',
+        text: 'Course not in the calendar? Add it yourself. It goes in immediately as a normal class, and tells us what our copy of the calendar is missing so we can fix it for everyone.',
+      },
+      {
+        kind: 'new',
+        text: '“Something here is wrong” on every class. Almost everything in the class details came from a mirror of Concordia’s calendar, which is only as fresh as the last sync — now there is a way to say so, and someone reads it.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The upcoming-term picker was still offering terms that had already ended, and asking for a Fall schedule showed you Winter. Both fixed.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Demo announcements from the teacher-portal build were attaching themselves to real classes that happened to share a course code. They are gone.',
+      },
+    ],
+  },
+  {
     version: '1.24.0',
     name: 'Radar, and knowing where you stand',
     date: '2026-08-17',

@@ -39,6 +39,7 @@ export interface CourseRow {
   syllabus_url: string | null
   term: string | null
   origin: string | null
+  enrollment: string | null
   grading_scale: string | null
   archived: boolean | null
   final_percent: number | null
@@ -62,6 +63,10 @@ export function courseFromRow(r: CourseRow): Course {
     syllabusUrl: r.syllabus_url ?? '',
     gradingScale: r.grading_scale ?? undefined,
     origin: r.origin === 'manual' ? 'manual' : undefined,
+    enrollment:
+      r.enrollment === 'waitlisted' || r.enrollment === 'planned' || r.enrollment === 'registered'
+        ? r.enrollment
+        : undefined,
     archived: r.archived ?? undefined,
     finalPercent: r.final_percent ?? undefined,
     finalLetter: r.final_letter ?? undefined,
@@ -95,6 +100,7 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   if ('syllabusUrl' in patch) row.syllabus_url = patch.syllabusUrl
   if ('gradingScale' in patch) row.grading_scale = patch.gradingScale ?? null
   if ('origin' in patch) row.origin = patch.origin
+  if ('enrollment' in patch) row.enrollment = patch.enrollment ?? null
   return row
 }
 

@@ -437,9 +437,34 @@ export const PAGES = {
         note: 'Manually entered dates are marked **unverified**, because they came from one person with nothing to cross-check against. That is a statement about corroboration, not about you being wrong.',
       },
 
+      { h2: 'Next term, before it starts' },
+      {
+        p: 'From **Courses → Upcoming**, add a class for a term that has not begun. Pick it out of Concordia’s calendar so the code, title and credit value are the university’s own rather than something you retyped, then choose the term.',
+      },
+      {
+        p: 'You land on the class with the section list already open, so the meeting times, room and section fill themselves from what Concordia publishes. Lectures, tutorials and labs are separate registrations, so pick one of each you attend.',
+      },
+      {
+        note: 'The instructor is the one field that will not fill in. Concordia’s published schedule carries the class number, times, room, delivery mode and seat counts, and no teaching staff at all: guessing one would attach a real person’s name to something unverifiable.',
+      },
+      {
+        p: 'No assignments or dates are added for a future term. Outlines are published in the first week, and last term’s dates would be wrong in a way you would plan around. If you genuinely have the syllabus early, the course page has a quiet way in.',
+      },
+      {
+        p: 'If you are **on the waitlist**, say so when you add the class. It is then marked as a maybe rather than a certainty, so its credits are not folded into your full-time status or your cost estimate as though the seat were already yours.',
+      },
+
+      { h2: 'A course the calendar does not have' },
+      {
+        p: 'Our copy of the course calendar is a mirror, refreshed on a schedule, so a brand-new course or one added between syncs genuinely will not be there. Choose **My course isn’t here** and fill in the code, name and credits. It goes in immediately as a normal class, and it also tells us what the mirror is missing.',
+      },
+
       { h2: 'Course details' },
       {
-        p: 'Whichever method you use, each course has an editable details panel: instructor, TA, section, meeting times, office hours, location, credits, and a link to the syllabus. Credits matter: they are what weights each course in your GPA.',
+        p: 'Whichever method you use, each course has an editable details panel: instructor, TA, section, meeting times, office hours, location, credits, enrolment status, and a link to the syllabus. Credits matter: they are what weights each course in your GPA.',
+      },
+      {
+        p: 'Most of that came from a mirror of Concordia’s calendar, which is only as fresh as its last sync. Every field is editable, so fix yours straight away, and **Something here is wrong** at the bottom of the panel reports it so the copy everyone else sees gets fixed too. Filing a report never blocks you.',
       },
 
       { h2: 'Past terms' },
