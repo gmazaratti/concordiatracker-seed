@@ -88,6 +88,17 @@ section('Content without JavaScript')
   check('homepage names the product', /ConcordiaTracker/.test(text))
   check('homepage links to the docs', /href="\/docs\//.test(inner))
   check('homepage links to developer resources', /href="\/developers"/.test(inner))
+
+  // The fallback must be invisible to anyone running JavaScript. It sat visible
+  // for a few hundred milliseconds before React mounted, which read as the page
+  // flashing the hero and the FAQ and then replacing them.
+  check('the fallback is hidden once JS runs', /\.js #ct-prerender\s*\{[^}]*display:\s*none/.test(html))
+  check(
+    'the js class is set in <head>, before the body paints',
+    html.indexOf("className += ' js'") > -1 &&
+      html.indexOf("className += ' js'") < html.indexOf('<body'),
+  )
+  check('the fallback is still in the document for crawlers', /id="ct-prerender"/.test(html))
 }
 
 /* ── 2. Structured data ───────────────────────────────────────────────────── */

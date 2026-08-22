@@ -2,7 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      /*
+        The crawler fallback.
+
+        The build injects the real page copy into #root so that clients which do
+        not run JavaScript — GPTBot, PerplexityBot, ClaudeBot — read something
+        other than an empty div. React clears the container when it mounts, but
+        "when it mounts" is several hundred milliseconds after first paint, so
+        the fallback was visible as a flash of the hero and the FAQ before the
+        app appeared.
+
+        Hiding it is keyed to the class set by the script below, which runs in
+        <head> before the body is parsed. A client running JavaScript therefore
+        never paints it at all; a client that is not gets the text, because the
+        class is never added. The markup stays in the document either way, which
+        is what the crawlers actually read.
+      */
+      .js #ct-prerender {
+        display: none !important;
+      }
+    </style>
     <script>
+      // Set before the body is parsed, so the rule above applies to the very
+      // first paint rather than to the second one.
+      document.documentElement.className += ' js'
+
       // Apply the saved theme before first paint so there's no flash of the default.
       try {
         var t = localStorage.getItem('ct_theme')
