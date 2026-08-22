@@ -77,8 +77,14 @@ small{color:#8b8898;display:block;margin-top:24px}
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function handler(req: any, res: any) {
   const accept = String(req.headers?.accept ?? '')
-  const wantsMarkdown = /text\/markdown/i.test(accept)
-  const wantsJson = !wantsMarkdown && /application\/json/i.test(accept) && !/text\/html/i.test(accept)
+  // vercel.json routes unknown /api/* paths here with ?json=1, because the
+  // site-wide catch-all was answering them with an HTML page — unparseable to
+  // the one caller guaranteed to be a program rather than a person.
+  const forcedJson = /[?&]json=1(&|$)/.test(String(req.url ?? ''))
+  const wantsMarkdown = !forcedJson && /text\/markdown/i.test(accept)
+  const wantsJson =
+    forcedJson ||
+    (!wantsMarkdown && /application\/json/i.test(accept) && !/text\/html/i.test(accept))
 
   // Cached variants must not be crossed over between callers asking for
   // different representations of the same URL.

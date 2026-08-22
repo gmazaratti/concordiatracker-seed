@@ -3,75 +3,164 @@
   "rewrites": [
     {
       "source": "/",
-      "has": [{ "type": "header", "key": "accept", "value": ".*text/markdown.*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*text/markdown.*)"
+        }
+      ],
       "destination": "/index.md"
     },
     {
       "source": "/docs/:slug",
-      "has": [{ "type": "header", "key": "accept", "value": ".*text/markdown.*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*text/markdown.*)"
+        }
+      ],
       "destination": "/docs/:slug/index.md"
     },
     {
       "source": "/:page(about|contact|developers)",
-      "has": [{ "type": "header", "key": "accept", "value": ".*text/markdown.*" }],
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "(.*text/markdown.*)"
+        }
+      ],
       "destination": "/:page/index.md"
     },
-
-    { "source": "/openapi.json", "destination": "/api/openapi" },
-    { "source": "/.well-known/openapi.json", "destination": "/api/openapi" },
-
-    { "source": "/docs", "destination": "/docs/index.html" },
-    { "source": "/docs/:slug", "destination": "/docs/:slug/index.html" },
-    { "source": "/:page(about|contact|developers)", "destination": "/:page/index.html" },
-
-    { "source": "/app/:path*", "destination": "/index.html" },
-    { "source": "/teacher/:path*", "destination": "/index.html" },
-    { "source": "/organizer/:path*", "destination": "/index.html" },
-    { "source": "/join/:path*", "destination": "/index.html" },
-    { "source": "/legal/:path*", "destination": "/index.html" },
-    { "source": "/e/:path*", "destination": "/index.html" },
-    { "source": "/s/:path*", "destination": "/index.html" },
+    {
+      "source": "/openapi.json",
+      "destination": "/api/openapi"
+    },
+    {
+      "source": "/.well-known/openapi.json",
+      "destination": "/api/openapi"
+    },
+    {
+      "source": "/docs",
+      "destination": "/docs/index.html"
+    },
+    {
+      "source": "/docs/:slug",
+      "destination": "/docs/:slug/index.html"
+    },
+    {
+      "source": "/:page(about|contact|developers)",
+      "destination": "/:page/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/teacher/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/organizer/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/join/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/legal/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/e/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/s/:path*",
+      "destination": "/index.html"
+    },
     {
       "source": "/:page(app|teacher|organizer|admin|feedback|survey|onboarding|demo|concordia-gpa-calculator|concordia-syllabus-tracker)",
       "destination": "/index.html"
     },
-
     {
       "source": "/:doc(terms|privacy|privacypolicy|educator)",
       "destination": "/prerendered/:doc.html"
     },
-
-    { "source": "/:handle([a-z0-9_]{3,20})", "destination": "/index.html" },
-
-    { "source": "/:path*", "destination": "/api/not-found" }
+    {
+      "source": "/:handle([a-z0-9_]{3,20})",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/not-found?json=1"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/not-found"
+    }
   ],
   "headers": [
     {
       "source": "/",
-      "headers": [{ "key": "Vary", "value": "Accept, Accept-Encoding" }]
+      "headers": [
+        {
+          "key": "Vary",
+          "value": "Accept, Accept-Encoding"
+        }
+      ]
     },
     {
       "source": "/docs/:slug*",
-      "headers": [{ "key": "Vary", "value": "Accept, Accept-Encoding" }]
+      "headers": [
+        {
+          "key": "Vary",
+          "value": "Accept, Accept-Encoding"
+        }
+      ]
     },
     {
       "source": "/:page(about|contact|developers)",
-      "headers": [{ "key": "Vary", "value": "Accept, Accept-Encoding" }]
+      "headers": [
+        {
+          "key": "Vary",
+          "value": "Accept, Accept-Encoding"
+        }
+      ]
     },
     {
       "source": "/(.*).md",
       "headers": [
-        { "key": "Content-Type", "value": "text/markdown; charset=utf-8" },
-        { "key": "Vary", "value": "Accept, Accept-Encoding" }
+        {
+          "key": "Content-Type",
+          "value": "text/markdown; charset=utf-8"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept, Accept-Encoding"
+        }
       ]
     },
     {
       "source": "/(llms.txt|sitemap.xml|openapi.json)",
-      "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     },
     {
       "source": "/llms.txt",
-      "headers": [{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }]
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
     }
   ]
 }
