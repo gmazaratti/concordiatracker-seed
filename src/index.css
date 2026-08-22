@@ -855,3 +855,70 @@ html {
     --ct-shadow: none;
   }
 }
+
+/* ---- Mascot ----------------------------------------------------------------
+ * A slow breath and an occasional blink. Both are long-period and low-amplitude
+ * on purpose: this sits in empty states, which are places a student has arrived
+ * at because there is nothing to do, and a mascot that jitters turns "nothing is
+ * wrong" into "something needs you".
+ *
+ * The global reduced-motion block above collapses the durations, which leaves
+ * the cloud sitting still with its eyes open — the correct resting frame,
+ * because every keyframe here starts and ends at the identity transform.
+ */
+@keyframes ct-mascot-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2.5px) scale(1.025);
+  }
+}
+
+@keyframes ct-mascot-blink {
+  /* A 6-second cycle that is flat for 94% of it: the blink is the event, not
+   * the animation. */
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes ct-mascot-think {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-2px) rotate(-2.5deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(2.5deg);
+  }
+}
+
+.ct-mascot .ct-mascot-body {
+  animation: ct-mascot-breathe 4.5s ease-in-out infinite;
+}
+
+.ct-mascot .ct-mascot-eyes {
+  transform-origin: 51px 54px;
+  animation: ct-mascot-blink 6s ease-in-out infinite;
+}
+
+/* Thinking drifts side to side instead of breathing — it reads as "working on
+ * it" rather than "waiting for you". */
+.ct-mascot[data-mood='thinking'] .ct-mascot-body {
+  animation: ct-mascot-think 2.4s ease-in-out infinite;
+}
+
+/* Resting has its eyes closed already; blinking them would be a twitch. */
+.ct-mascot[data-mood='resting'] .ct-mascot-eyes,
+.ct-mascot[data-mood='happy'] .ct-mascot-eyes {
+  animation: none;
+}
