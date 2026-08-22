@@ -22,9 +22,17 @@
     "verify:agents:live": "node scripts/verify-agent-readiness.mjs --live https://concordiatracker.com",
     "verify:routing": "node scripts/verify-routing.mjs",
     "test:terms": "node src/lib/course-sections.test.mjs",
-    "email:test": "node --env-file=.env.local scripts/send-test-email.mjs"
+    "email:test": "node --env-file=.env.local scripts/send-test-email.mjs",
+    "cap:sync": "npm run build && cap sync ios",
+    "ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.12.0",
     "@supabase/supabase-js": "^2.108.2",
@@ -36,6 +44,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@electric-sql/pglite": "^0.5.5",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.1",

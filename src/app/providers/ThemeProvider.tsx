@@ -9,6 +9,7 @@ import {
   type ThemeOrigin,
 } from './theme'
 import { customTheme } from '@/lib/color'
+import { setNativeStatusBar } from '@/lib/native'
 
 const DEFAULT_THEME: Theme = 'dark'
 const STORAGE_KEY = 'ct_theme'
@@ -100,6 +101,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (active === 'custom') root.style.setProperty(name, tokens[name])
       else root.style.removeProperty(name)
     }
+
+    // In the native shell the status bar is drawn by iOS, not by us, so it has
+    // to be told which way to go — light glyphs on a dark app, dark on a light
+    // one. No-op in a browser.
+    // The custom theme carries its own base; every other one declares a scheme
+    // in THEMES, so neither is guessed from the id.
+    const scheme =
+      active === 'custom' ? base : (THEMES.find((t) => t.id === active)?.scheme ?? 'dark')
+    void setNativeStatusBar(scheme)
 
     // Only the chosen theme is persisted. Storing a preview would survive the
     // reload that is meant to end it.

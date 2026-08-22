@@ -1,0 +1,208 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>ConcordiaTracker mascot — moods</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--ct-canvas:#0f0f16;--accent:#8fb39a}
+body{background:#0f0f16;margin:0;padding:48px 24px;font-family:'Hanken Grotesk',system-ui,sans-serif;color:#8b8898}
+h1{color:#f2f2f5;font-size:22px;font-weight:600;margin:0 0 4px;text-align:center}
+p.sub{text-align:center;margin:0 0 36px;font-size:13px}
+.grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:1000px;margin:0 auto}
+figure{margin:0;width:210px;background:#191926;border:1px solid #2a2a38;border-radius:14px;padding:18px 14px 16px;text-align:center}
+figcaption b{display:block;color:#f2f2f5;font-size:13.5px;margin-top:8px}
+figcaption span{display:block;font-size:11.5px;margin-top:3px;line-height:1.5}
+.ct-mascot{color:var(--accent)}
+.note{max-width:640px;margin:36px auto 0;font-size:12.5px;line-height:1.7;text-align:center;border-top:1px solid #2a2a38;padding-top:20px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important}}
+/* ---- Mascot ----------------------------------------------------------------
+ * One keyframe per mood, all of them low-amplitude and long-period. This lives
+ * in empty states and waiting states — places a student has arrived at because
+ * there is nothing for them to do — and a mascot that jitters turns "nothing is
+ * wrong" into "something needs you".
+ *
+ * Every keyframe starts AND ends at the identity transform, so the global
+ * reduced-motion block above (which collapses durations to ~0) leaves the cloud
+ * in its correct resting frame rather than frozen mid-squash.
+ *
+ * `transform-box: fill-box` makes the percentage origins below resolve against
+ * each group's own bounding box instead of the SVG viewport, which is what lets
+ * one set of keyframes serve every size.
+ */
+.ct-mascot .ct-mascot-body,
+.ct-mascot .ct-mascot-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes ct-mascot-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2.5px) scale(1.025);
+  }
+}
+
+@keyframes ct-mascot-blink {
+  /* A 6-second cycle that is flat for 94% of it: the blink is the event, not
+   * the animation. */
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes ct-mascot-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.5deg);
+  }
+}
+
+@keyframes ct-mascot-sway {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateX(-2px) rotate(-2.5deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(2.5deg);
+  }
+}
+
+/* Eyes drift ahead of the sway, so it reads as looking around rather than as
+ * the whole cloud wobbling. */
+@keyframes ct-mascot-glance {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2.5px);
+  }
+  75% {
+    transform: translateX(2.5px);
+  }
+}
+
+/* Squash and stretch: the oldest signal in animation for "this thing is
+ * exerting effort". Volume is roughly preserved, which is what stops it looking
+ * like a scaling bug. */
+@keyframes ct-mascot-squash {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  40% {
+    transform: scale(1.07, 0.9) translateY(2px);
+  }
+  70% {
+    transform: scale(0.95, 1.06) translateY(-2px);
+  }
+}
+
+@keyframes ct-mascot-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  55% {
+    transform: scale(1.09);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ct-mascot-hop {
+  0%,
+  55%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  20% {
+    transform: translateY(-9px) scale(0.95, 1.07);
+  }
+  42% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+}
+
+@keyframes ct-mascot-sink {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(1.5px) scale(1.015, 0.985);
+  }
+}
+
+/* ── Moods ─────────────────────────────────────────────────────────────────── */
+.ct-mascot .ct-mascot-body {
+  animation: ct-mascot-breathe 4.5s ease-in-out infinite;
+}
+.ct-mascot .ct-mascot-eyes {
+  animation: ct-mascot-blink 6s ease-in-out infinite;
+}
+
+.ct-mascot[data-mood='happy'] .ct-mascot-body {
+  animation: ct-mascot-bob 3s ease-in-out infinite;
+}
+
+.ct-mascot[data-mood='thinking'] .ct-mascot-body {
+  animation: ct-mascot-sway 2.4s ease-in-out infinite;
+}
+.ct-mascot[data-mood='thinking'] .ct-mascot-eyes {
+  animation: ct-mascot-glance 2.4s ease-in-out infinite;
+}
+
+.ct-mascot[data-mood='working'] .ct-mascot-body {
+  animation: ct-mascot-squash 1.1s ease-in-out infinite;
+}
+
+/* One shot, held. A pop that loops is a twitch. */
+.ct-mascot[data-mood='surprised'] .ct-mascot-body {
+  animation: ct-mascot-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Hops with a long flat tail, so it celebrates and then settles rather than
+ * bouncing at you indefinitely. */
+.ct-mascot[data-mood='celebrate'] .ct-mascot-body {
+  animation: ct-mascot-hop 2.6s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+
+.ct-mascot[data-mood='sad'] .ct-mascot-body {
+  animation: ct-mascot-sink 5s ease-in-out infinite;
+}
+.ct-mascot[data-mood='resting'] .ct-mascot-body {
+  animation: ct-mascot-breathe 6.5s ease-in-out infinite;
+}
+
+/* Moods whose eyes are already a fixed shape must not blink — closed eyes that
+ * blink are a twitch, and an arc that scales to nothing just vanishes. */
+.ct-mascot[data-mood='resting'] .ct-mascot-eyes,
+.ct-mascot[data-mood='happy'] .ct-mascot-eyes,
+.ct-mascot[data-mood='celebrate'] .ct-mascot-eyes,
+.ct-mascot[data-mood='sad'] .ct-mascot-eyes,
+.ct-mascot[data-mood='surprised'] .ct-mascot-eyes {
+  animation: none;
+}
+
+</style></head><body>
+<h1>Mascot moods</h1>
+<p class="sub">The real component CSS, straight out of <code>src/index.css</code>.</p>
+<div class="grid"><figure><svg class="ct-mascot" data-mood="idle" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><ellipse cx="43" cy="54" rx="3.8" ry="4.6"/><ellipse cx="59" cy="54" rx="3.8" ry="4.6"/></g></g></svg><figcaption><b>idle</b><span>Default. Anywhere it just sits.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="resting" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><rect x="37.5" y="53" width="11" height="3.2" rx="1.6"/><rect x="53.5" y="53" width="11" height="3.2" rx="1.6"/></g></g></svg><figcaption><b>resting</b><span>Empty inbox, empty ticket list.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="happy" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><path d="M38.5 55c2.2-3.6 6.8-3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/><path d="M54.5 55c2.2-3.6 6.8-3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/></g></g></svg><figcaption><b>happy</b><span>&ldquo;All caught up&rdquo; on Today.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="thinking" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><ellipse cx="43" cy="54" rx="3.8" ry="4.6"/><ellipse cx="59" cy="54" rx="3.8" ry="4.6"/></g></g></svg><figcaption><b>thinking</b><span>Blueprint import, syllabus parse.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="working" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><ellipse cx="43" cy="54" rx="3.8" ry="4.6"/><ellipse cx="59" cy="54" rx="3.8" ry="4.6"/></g></g></svg><figcaption><b>working</b><span>Catalogue indexing, section lookup.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="surprised" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><ellipse cx="43" cy="54" rx="5.2" ry="6.2"/><ellipse cx="59" cy="54" rx="5.2" ry="6.2"/></g></g></svg><figcaption><b>surprised</b><span>Something appeared. One-shot.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="celebrate" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><path d="M38.5 55c2.2-3.6 6.8-3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/><path d="M54.5 55c2.2-3.6 6.8-3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/></g></g></svg><figcaption><b>celebrate</b><span>A finished import.</span></figcaption></figure><figure><svg class="ct-mascot" data-mood="sad" width="120" height="120" viewBox="0 0 100 100" fill="none"><g class="ct-mascot-body"><g fill="currentColor"><circle cx="27" cy="55" r="15"/><circle cx="46" cy="45" r="20"/><circle cx="66" cy="49" r="17"/><circle cx="79" cy="57" r="12"/><rect x="12" y="55" width="79" height="19" rx="9.5"/></g><g class="ct-mascot-eyes" fill="var(--ct-canvas)"><path d="M38.5 52c2.2 3.6 6.8 3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/><path d="M54.5 52c2.2 3.6 6.8 3.6 9 0" stroke="var(--ct-canvas)" stroke-width="3.2" stroke-linecap="round" fill="none"/></g></g></svg><figcaption><b>sad</b><span>Search found nothing. Never bad news.</span></figcaption></figure></div>
+<p class="note"><b style="color:#f2f2f5">The rule:</b> it marks moments when nothing is wrong.
+It must be absent from Radar, Money, grades and payments &mdash; a cartoon next to bad news reads
+as software that did not understand what it just said. <code>sad</code> is for &ldquo;we found
+nothing&rdquo;, never for news.</p>
+</body></html>
