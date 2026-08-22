@@ -11,4 +11,10 @@ Disallow: /onboarding
 Disallow: /feedback
 Disallow: /demo
 
+# Machine-readable indexes for agents and answer engines.
+# llms.txt carries a "when to use this" section; openapi.json describes the API.
 Sitemap: https://concordiatracker.com/sitemap.xml
+
+# https://concordiatracker.com/llms.txt
+# https://concordiatracker.com/openapi.json
+# https://concordiatracker.com/developers

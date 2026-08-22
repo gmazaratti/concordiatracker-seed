@@ -59,8 +59,20 @@ export function PublicLayout() {
             <p>ConcordiaTracker: a student-built academic hub. Mock seed build.</p>
           </div>
           <nav className="flex flex-wrap gap-x-4 gap-y-1">
+            {/* Plain anchors, not <Link>: these are build-time static pages
+                outside the SPA, and client-side routing would send them to the
+                profile route instead. */}
             <a href="/docs/introduction" className="transition-colors hover:text-fg">
               {t('landing.docs')}
+            </a>
+            <a href="/developers" className="transition-colors hover:text-fg">
+              API
+            </a>
+            <a href="/about" className="transition-colors hover:text-fg">
+              About
+            </a>
+            <a href="/contact" className="transition-colors hover:text-fg">
+              Contact
             </a>
             <Link to="/privacy" className="transition-colors hover:text-fg">
               Privacy

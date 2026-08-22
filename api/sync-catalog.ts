@@ -9,6 +9,7 @@
  * without anyone remembering to press a button.
  */
 import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
+import { fail } from './_respond.js'
 
 /**
  * Vercel kills a function at its duration limit with no response and no error,
@@ -49,21 +50,21 @@ function toRow(c: CatalogRow, description: string | null) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
   const cronSecret = process.env.CRON_SECRET
   const header: string = req.headers['authorization'] || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
   if (!cronSecret || token !== cronSecret) {
-    res.status(401).json({ error: 'Unauthorized' })
+    fail(res, 401, 'Unauthorized')
     return
   }
 
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) {
-    res.status(500).json({ error: 'Supabase is not configured.' })
+    fail(res, 500, 'Supabase is not configured.')
     return
   }
 
@@ -86,7 +87,7 @@ export default async function handler(req: any, res: any) {
     const describedBy = new Map(descriptions.map((d) => [d.ID, d.description]))
     if (courses.length === 0) {
       // Never wipe a good mirror because one fetch came back empty.
-      res.status(502).json({ error: 'Catalogue returned no courses; keeping the existing mirror.' })
+      fail(res, 502, 'Catalogue returned no courses; keeping the existing mirror.')
       return
     }
 
@@ -150,8 +151,16 @@ export default async function handler(req: any, res: any) {
     // a 200, believed the catalogue was populated, and only found out later
     // that every page depending on it was empty.
     if (written === 0) {
+      // Keeps its diagnostic fields — this one is read by a human debugging a
+      // cron run, not by a client branching on it.
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
       res.status(502).json({
         error: 'Fetched the catalogue but wrote nothing.',
+        code: 'upstream_error',
+        message: 'Fetched the catalogue but wrote nothing.',
+        hint: 'The fetch succeeded and the write did not. Check the cause field and Supabase credentials.',
+        status: 502,
+        docs: 'https://concordiatracker.com/docs/api',
         fetched: courses.length,
         unique: rows.length,
         cause: firstError ?? 'No rows survived filtering.',
@@ -179,6 +188,6 @@ export default async function handler(req: any, res: any) {
         : {}),
     })
   } catch (err) {
-    res.status(502).json({ error: err instanceof Error ? err.message : 'Sync failed.' })
+    fail(res, 502, err instanceof Error ? err.message : 'Sync failed.')
   }
 }

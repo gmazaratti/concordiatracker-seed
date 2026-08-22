@@ -27,10 +27,15 @@ dist-ssr
 CLAUDE.md
 .claude/
 
-# Go-live dev notes + verification scripts (local only — not part of the app)
+# Go-live dev notes + throwaway scripts (local only — not part of the app)
 connection_plan.md
 backend_infrastructure_audit.md
-scripts/
+# `scripts/*` rather than `scripts/`: git cannot re-include a file whose parent
+# directory is excluded, and the verify-* scripts below run in `npm test`, so
+# they have to be tracked.
+scripts/*
+!scripts/verify-agent-readiness.mjs
+!scripts/verify-routing.mjs
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/

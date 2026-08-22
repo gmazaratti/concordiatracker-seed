@@ -11,6 +11,7 @@
  */
 import type Stripe from 'stripe'
 import { getProfile, getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
+import { fail } from './_respond.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
@@ -113,13 +114,13 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
   const secret = process.env.STRIPE_WEBHOOK_SECRET
   if (!secret) {
-    res.status(500).json({ error: 'Webhook is not configured.' })
+    fail(res, 500, 'Webhook is not configured.')
     return
   }
 
@@ -132,7 +133,7 @@ export default async function handler(req: any, res: any) {
   } catch (err) {
     // A bad signature means it isn't Stripe — refuse it.
     const message = err instanceof Error ? err.message : 'Invalid signature'
-    res.status(400).json({ error: `Webhook signature verification failed: ${message}` })
+    fail(res, 400, `Webhook signature verification failed: ${message}`)
     return
   }
 
@@ -203,6 +204,6 @@ export default async function handler(req: any, res: any) {
   } catch (err) {
     // 500 tells Stripe to retry — better than silently dropping a state change.
     const message = err instanceof Error ? err.message : 'Webhook handling failed'
-    res.status(500).json({ error: message })
+    fail(res, 500, message)
   }
 }

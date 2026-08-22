@@ -97,9 +97,22 @@ const week = placeSections([
 ])
 eq('weekly hours', weeklyHours(week), 4)
 eq('days off', daysOff(week), [4, 5])
-eq('grid starts on the hour', gridBounds(week).start, 600)
-eq('grid ends on the hour', gridBounds(week).end, 900)
+// The grid is anchored to a normal teaching day (08:00-18:00) and only ever
+// grows from there. That is deliberate: bounds computed from whatever happened
+// to be on the calendar meant blocking out an hour reshaped the whole week
+// under the cursor. These assertions previously expected the old tight fit.
+eq('a normal week keeps the standard grid', gridBounds(week), { start: 480, end: 1080 })
 eq('an empty week still has a sane grid', gridBounds([]), { start: 480, end: 1080 })
+eq(
+  'an early class extends the grid upward',
+  gridBounds([{ code: 'C 300', section: sec('3', 'Mon 06:30-07:30') }].flatMap((x) => placeSections([x]))).start,
+  360,
+)
+eq(
+  'a late class extends the grid downward',
+  gridBounds(placeSections([{ code: 'D 400', section: sec('4', 'Mon 20:00-21:30') }])).end,
+  1320,
+)
 
 console.log('\nblocked times')
 const block = (day, start, end) => ({ id: 'b', day, start, end, label: 'Work' })

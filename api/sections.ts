@@ -7,6 +7,7 @@
  * return only the fields the picker needs, rather than shipping the raw payload.
  */
 import { bySection, fetchSchedule, meetingTimeString, num } from './_concordia.js'
+import { fail } from './_respond.js'
 
 export interface SectionOption {
   classNumber: string
@@ -37,7 +38,7 @@ export default async function handler(req: any, res: any) {
   const catalog = String(q.catalog ?? '').trim()
 
   if (!/^[A-Z]{2,6}$/.test(subject) || !/^[0-9]{2,4}[A-Z]?$/.test(catalog)) {
-    res.status(400).json({ error: 'Give a subject and catalog number, e.g. COMP 248.' })
+    fail(res, 400, 'Give a subject and catalog number, e.g. COMP 248.')
     return
   }
 
@@ -67,8 +68,9 @@ export default async function handler(req: any, res: any) {
 
     res.status(200).json({ subject, catalog, sections: options })
   } catch (err) {
-    res.status(502).json({
-      error: err instanceof Error ? err.message : 'Could not reach the course directory.',
+    fail(res, 502, err instanceof Error ? err.message : 'Could not reach the course directory.', {
+      code: 'upstream_error',
+      hint: 'Concordia’s course directory did not answer. Retry in a minute.',
     })
   }
 }

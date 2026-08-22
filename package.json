@@ -12,12 +12,15 @@
     "postbuild": "node docs-src/build.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run db:verify",
+    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run db:verify && npm run verify:agents && npm run verify:routing",
     "test:gpa": "node src/lib/gpa.test.mjs",
     "typecheck:api": "tsc -p api --noEmit",
     "test:schedule": "node src/features/planner/schedule.test.mjs",
     "test:tree": "node src/lib/prereq-tree.test.mjs",
-    "test:paste": "node src/lib/transcript-parse.test.mjs"
+    "test:paste": "node src/lib/transcript-parse.test.mjs",
+    "verify:agents": "node scripts/verify-agent-readiness.mjs",
+    "verify:agents:live": "node scripts/verify-agent-readiness.mjs --live https://concordiatracker.com",
+    "verify:routing": "node scripts/verify-routing.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

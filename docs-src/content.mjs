@@ -51,6 +51,10 @@ export const NAV = [
     pages: ['plans', 'billing', 'settings', 'privacy'],
   },
   {
+    title: 'Developers',
+    pages: ['api'],
+  },
+  {
     title: 'For teachers',
     pages: ['teacher-portal', 'teacher-setup', 'teacher-first-outline'],
   },
@@ -1112,6 +1116,89 @@ export const PAGES = {
 
       {
         note: 'This is an estimate at the published rates, not a bill. It does not know about bursaries, exemptions, late penalties or anything specific to your file. The Birks Student Service Centre is the only authority on what you owe.',
+      },
+    ],
+  },
+
+  /* -- Developers ---------------------------------------------------------- */
+
+  api: {
+    title: 'API reference',
+    section: 'Developers',
+    description:
+      'The ConcordiaTracker HTTP API: the OpenAPI specification, authentication, the open course '
+      + 'section endpoint, JSON error codes, and markdown content negotiation.',
+    blocks: [
+      {
+        p: 'ConcordiaTracker exposes a small HTTP API. Most of it backs the web app and needs a signed-in user, but one endpoint is open to anyone and is the useful one for an automated client: live section, meeting-time, and seat data for any Concordia course.',
+      },
+      {
+        note: 'The machine-readable description lives at [/openapi.json](/openapi.json). It is OpenAPI 3.1, and every operation has a unique operationId, typed parameters, and a response schema, so it converts straight into tool definitions for an LLM function-calling runtime.',
+      },
+
+      { h2: 'Base URL' },
+      { p: 'Every endpoint is under `https://concordiatracker.com/api/`. Every response, including every error, is JSON.' },
+
+      { h2: 'Course sections (no authentication)' },
+      {
+        p: '`GET /api/sections?subject=COMP&catalog=248` returns every published section of that course for the terms Concordia currently lists, newest first.',
+      },
+      {
+        ul: [
+          '`subject` — two to six letters, case-insensitive. For example `COMP`.',
+          '`catalog` — two to four digits with an optional trailing letter. For example `248`.',
+        ],
+      },
+      {
+        p: 'Each section carries `classNumber` (the value Concordia\u2019s Student Centre asks for when you enrol), `termCode`, `section`, `component`, `meetingTimes`, `building`, `room`, `instructionMode`, and live `enrolled`, `capacity`, `waitlisted`, and `waitlistCap` counts. `hasReserved` is true when some seats are held for particular programmes, which is why an apparently open section can still refuse you.',
+      },
+
+      { h2: 'Authentication' },
+      {
+        p: 'Everything else requires a signed-in user. Send a Supabase access token as `Authorization: Bearer <token>`. Two endpoints are internal scheduled jobs authenticated by a deployment secret rather than a user token; they are listed in the specification for completeness and are not callable by clients.',
+      },
+
+      { h2: 'Errors' },
+      {
+        p: 'Every failure returns the same shape, so one parser handles all of them: `error` (the human message, kept for older clients), `code`, `message`, `hint`, `status`, and `docs`.',
+      },
+      {
+        p: '`code` is stable and safe to branch on. The values are `bad_request`, `unauthorized`, `forbidden`, `not_found`, `method_not_allowed`, `conflict`, `rate_limited`, `not_configured`, `upstream_error`, and `internal_error`.',
+      },
+      {
+        p: 'An unknown path under `/api/` returns a JSON `not_found`, never an HTML error page. An unknown path anywhere else on the site returns a real HTTP 404 with a short body pointing at the sitemap, llms.txt, and this reference.',
+      },
+
+      { h2: 'Markdown content negotiation' },
+      {
+        p: 'The homepage, every documentation page, and the About, Contact, and Developers pages are available as markdown. Send `Accept: text/markdown` and you get markdown back, with `Vary: Accept` set so a shared cache cannot hand you the wrong variant.',
+      },
+
+      { h2: 'Rate limits and etiquette' },
+      {
+        p: 'There is no published quota on the sections endpoint, but it proxies Concordia\u2019s own directory: cache what you fetch, do not poll in a tight loop, and identify your client with a `User-Agent`. Ticket creation is rate limited per IP address. If you are building something that needs more than casual use, get in touch first.',
+      },
+
+      { h2: 'For AI agents' },
+      {
+        p: 'Start from [llms.txt](/llms.txt). It carries a "when to use this" section naming the questions this site can answer well \u2014 course content, prerequisites, section times and seats, Concordia\u2019s GPA scale, tuition rates, registrar deadlines \u2014 and states plainly what it cannot answer, namely anything about an individual student\u2019s private record.',
+      },
+
+      {
+        cards: [
+          {
+            icon: 'book',
+            title: 'OpenAPI specification',
+            desc: 'The full machine-readable description of every endpoint.',
+            href: '/openapi.json',
+          },
+          {
+            icon: 'check',
+            title: 'Developer overview',
+            desc: 'The same material with runnable examples, outside the docs shell.',
+            href: '/developers',
+          },
+        ],
       },
     ],
   },

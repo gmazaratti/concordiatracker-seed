@@ -174,6 +174,7 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}" />
 <link rel="canonical" href="${esc(url)}" />
+<link rel="alternate" type="text/markdown" href="${esc(url)}.md" />
 <meta name="robots" content="index, follow" />
 <meta name="color-scheme" content="dark" />
 <meta name="theme-color" content="#0f0f16" />
@@ -266,6 +267,11 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
     <footer class="foot">
       <span>&copy; ${year} ConcordiaTracker</span>
       <span>Not affiliated with Concordia University.</span>
+      <a href="/developers">Developers</a>
+      <a href="/openapi.json">OpenAPI</a>
+      <a href="/llms.txt">llms.txt</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
     </footer>
   </main>
 

@@ -15,6 +15,8 @@
  * so a guessed TKT-1002 can't read someone else's conversation.
  */
 
+import { fail } from './_respond.js'
+
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const MAX_PER_WINDOW = 3
 
@@ -74,7 +76,7 @@ interface Body {
 export default async function handler(req: any, res: any) {
   // The docs are served from the same origin, so no CORS dance is needed.
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
@@ -82,7 +84,7 @@ export default async function handler(req: any, res: any) {
   try {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {})
   } catch {
-    res.status(400).json({ error: 'Malformed request.' })
+    fail(res, 400, 'Malformed request.')
     return
   }
 
@@ -91,13 +93,13 @@ export default async function handler(req: any, res: any) {
       const caseId = (body.caseId ?? '').trim()
       const token = (body.token ?? '').trim()
       if (!caseId || !token) {
-        res.status(400).json({ error: 'A case number and its link are both required.' })
+        fail(res, 400, 'A case number and its link are both required.')
         return
       }
 
       if (body.action === 'reply') {
         if (rateLimited(clientIp(req))) {
-          res.status(429).json({ error: 'Too many messages just now. Try again shortly.' })
+          fail(res, 429, 'Too many messages just now. Try again shortly.')
           return
         }
         const r = await rpc('reply_ticket_by_token', {
@@ -106,24 +108,24 @@ export default async function handler(req: any, res: any) {
           p_body: body.message ?? '',
         })
         if (!r.ok) {
-          res.status(400).json({ error: 'Could not add that message.' })
+          fail(res, 400, 'Could not add that message.')
           return
         }
         const ok = await r.json()
         if (ok !== true) {
-          res.status(404).json({ error: 'No ticket matches that case number and link.' })
+          fail(res, 404, 'No ticket matches that case number and link.')
           return
         }
       }
 
       const r = await rpc('ticket_by_token', { p_case_id: caseId, p_token: token })
       if (!r.ok) {
-        res.status(500).json({ error: 'Could not look that up.' })
+        fail(res, 500, 'Could not look that up.')
         return
       }
       const rows = (await r.json()) as unknown[]
       if (!rows.length) {
-        res.status(404).json({ error: 'No ticket matches that case number and link.' })
+        fail(res, 404, 'No ticket matches that case number and link.')
         return
       }
       res.status(200).json({ ticket: rows[0] })
@@ -138,7 +140,7 @@ export default async function handler(req: any, res: any) {
       return
     }
     if (rateLimited(clientIp(req))) {
-      res.status(429).json({ error: 'Too many tickets from here recently. Try again in an hour.' })
+      fail(res, 429, 'Too many tickets from here recently. Try again in an hour.')
       return
     }
 
@@ -159,7 +161,7 @@ export default async function handler(req: any, res: any) {
       // Postgres RAISE messages are written for humans, so pass them through —
       // "a valid email address is required" is more useful than "bad request".
       const detail = (await r.json().catch(() => null)) as { message?: string } | null
-      res.status(400).json({ error: detail?.message ?? 'Could not create that ticket.' })
+      fail(res, 400, detail?.message ?? 'Could not create that ticket.')
       return
     }
 
@@ -167,6 +169,6 @@ export default async function handler(req: any, res: any) {
     const row = rows[0]
     res.status(200).json({ caseId: row.case_id, token: row.lookup_token })
   } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Something went wrong.' })
+    fail(res, 500, err instanceof Error ? err.message : 'Something went wrong.')
   }
 }

@@ -76,10 +76,11 @@ function findCampusGaps(placed, minMinutes = 45) {
   }
   return out;
 }
+var DAY_START = 8 * 60;
+var DAY_END = 18 * 60;
 function gridBounds(placed) {
-  if (placed.length === 0) return { start: 8 * 60, end: 18 * 60 };
-  let start = Infinity;
-  let end = -Infinity;
+  let start = DAY_START;
+  let end = DAY_END;
   for (const p of placed) {
     start = Math.min(start, toMinutes(p.slot.start));
     end = Math.max(end, toMinutes(p.slot.end));

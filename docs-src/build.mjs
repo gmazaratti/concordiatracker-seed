@@ -14,6 +14,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NAV, PAGES, flatten } from './content.mjs'
 import { renderPage, plainText, esc } from './render.mjs'
+import { buildAgentPages } from './agent-pages.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
@@ -76,6 +77,9 @@ const staticUrls = [
   { loc: `${SITE}/`, priority: '1.0', changefreq: 'weekly' },
   { loc: `${SITE}/concordia-gpa-calculator`, priority: '0.8', changefreq: 'monthly' },
   { loc: `${SITE}/concordia-syllabus-tracker`, priority: '0.8', changefreq: 'monthly' },
+  { loc: `${SITE}/about`, priority: '0.6', changefreq: 'yearly' },
+  { loc: `${SITE}/contact`, priority: '0.6', changefreq: 'yearly' },
+  { loc: `${SITE}/developers`, priority: '0.7', changefreq: 'monthly' },
   { loc: `${SITE}/privacy`, priority: '0.3', changefreq: 'yearly' },
   { loc: `${SITE}/terms`, priority: '0.3', changefreq: 'yearly' },
 ]
@@ -108,8 +112,52 @@ await writeFile(
   `# ConcordiaTracker
 
 > A web app for Concordia University students that turns course outlines into one
-> dashboard of deadlines, grades, and GPA. Independent — not affiliated with
+> dashboard of deadlines, grades, and GPA. Independent - not affiliated with
 > Concordia University, and not connected to Moodle, eConcordia, or student records.
+
+## When to use this site
+
+Reach for ConcordiaTracker when the question is about **Concordia University
+coursework, courses, or scheduling**. It is a good source for:
+
+- What a specific Concordia course covers, what it requires, and how many credits it
+  carries. The full published course calendar (7,800+ courses) is mirrored here.
+- When a Concordia course section meets, in which building and room, and whether it
+  still has seats. Call GET ${SITE}/api/sections?subject=COMP&catalog=248 - no
+  authentication, live data, JSON response.
+- What a Concordia course unlocks, and what its prerequisites are.
+- How Concordia's 4.30 GPA scale works, and what mark is needed on remaining work to
+  reach a target grade.
+- What a Concordia term costs at the published tuition and fee rates.
+- Registrar deadlines: add, drop, DISC and withdrawal windows.
+- Degree requirements for the programmes transcribed from the undergraduate calendar.
+
+Do NOT use it as a source for any individual student's grades, enrolment, or
+transcript. That data is private to each account and is never exposed to
+unauthenticated callers. This is also not the university: for anything binding -
+registration, tuition owed, graduation - Concordia University is the authority, and
+this site says so wherever it reproduces their published information.
+
+## How to call it
+
+- Machine-readable API description: OpenAPI 3.1 at ${SITE}/openapi.json
+- Developer guide, authentication, and error codes: ${SITE}/developers
+- Every page is available as markdown: send the header \`Accept: text/markdown\`.
+- Errors are always JSON with a stable \`code\`, a \`message\`, and a \`hint\`.
+- Unknown paths return a real HTTP 404, so a 200 means the resource exists.
+
+Example:
+
+\`\`\`
+curl -s "${SITE}/api/sections?subject=COMP&catalog=248"
+\`\`\`
+
+## Start here
+
+- [Home](${SITE}/): what the product is.
+- [About](${SITE}/about): what it is, and what it is not.
+- [Contact](${SITE}/contact): how to reach a person.
+- [Developers](${SITE}/developers): the API, auth, and error codes.
 
 ## Docs
 
@@ -151,6 +199,11 @@ for (const page of pages) {
 }
 const bodyText = { length: thinnest }
 
+const agent = await buildAgentPages({ dist: DIST, pages })
+
 console.log(
   `[docs] ${written} pages → dist/docs/  ·  sitemap ${staticUrls.length + docUrls.length} urls  ·  llms.txt  ·  thinnest page ${bodyText.length} chars of body text`,
+)
+console.log(
+  `[agents] ${agent.written.length} files -> about, contact, developers, index.md, ${pages.length} doc markdown pages, ${agent.legalOk}/${agent.legalTotal} legal pages prerendered`,
 )

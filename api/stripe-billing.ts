@@ -13,20 +13,21 @@
  * crafted request can't cancel or read anybody else's subscription.
  */
 import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
+import { fail } from './_respond.js'
 
 type Action = 'summary' | 'cancel' | 'resume' | 'update-card' | 'checkout-status'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
   try {
     const user = await authedUser(req)
     if (!user) {
-      res.status(401).json({ error: 'Please sign in first.' })
+      fail(res, 401, 'Please sign in first.')
       return
     }
 
@@ -38,14 +39,14 @@ export default async function handler(req: any, res: any) {
     // have to wait on the webhook, which may still be in flight.
     if (action === 'checkout-status') {
       if (!sessionId) {
-        res.status(400).json({ error: 'Missing session.' })
+        fail(res, 400, 'Missing session.')
         return
       }
       const session = await stripe.checkout.sessions.retrieve(sessionId).catch(() => null)
       // Only ever report on the caller's OWN session.
       const owner = session?.metadata?.supabase_user_id
       if (!session || owner !== user.id) {
-        res.status(404).json({ error: 'Unknown checkout.' })
+        fail(res, 404, 'Unknown checkout.')
         return
       }
       const sub =
@@ -111,7 +112,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (!subscriptionId) {
-      res.status(400).json({ error: 'No active subscription.' })
+      fail(res, 400, 'No active subscription.')
       return
     }
 
@@ -130,7 +131,7 @@ export default async function handler(req: any, res: any) {
 
     if (action === 'update-card') {
       if (!customerId) {
-        res.status(400).json({ error: 'No billing account yet.' })
+        fail(res, 400, 'No billing account yet.')
         return
       }
       // A dedicated embedded session just for swapping the card.
@@ -146,9 +147,9 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    res.status(400).json({ error: 'Unknown action.' })
+    fail(res, 400, 'Unknown action.')
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Billing request failed.'
-    res.status(500).json({ error: message })
+    fail(res, 500, message)
   }
 }

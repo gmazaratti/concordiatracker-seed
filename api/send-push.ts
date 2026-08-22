@@ -11,6 +11,7 @@
  * only the PUBLIC key is embedded here (it's public by design).
  */
 import webpush from 'web-push'
+import { fail } from './_respond.js'
 
 interface SubRow {
   endpoint: string
@@ -21,7 +22,7 @@ interface SubRow {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
@@ -31,14 +32,14 @@ export default async function handler(req: any, res: any) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
   if (!publicKey || !privateKey || !supabaseUrl || !anon) {
-    res.status(500).json({ error: 'Push is not configured on the server yet.' })
+    fail(res, 500, 'Push is not configured on the server yet.')
     return
   }
 
   const authHeader: string = req.headers['authorization'] || ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
   if (!token) {
-    res.status(401).json({ error: 'Sign in to send a notification.' })
+    fail(res, 401, 'Sign in to send a notification.')
     return
   }
 
@@ -47,13 +48,13 @@ export default async function handler(req: any, res: any) {
     headers: { Authorization: `Bearer ${token}`, apikey: anon },
   })
   if (!who.ok) {
-    res.status(401).json({ error: 'Your session expired — sign in again.' })
+    fail(res, 401, 'Your session expired — sign in again.')
     return
   }
   const user = await who.json()
   const userId: string | undefined = user?.id
   if (!userId) {
-    res.status(401).json({ error: 'Could not identify you.' })
+    fail(res, 401, 'Could not identify you.')
     return
   }
 
@@ -63,12 +64,12 @@ export default async function handler(req: any, res: any) {
     { headers: { apikey: anon, Authorization: `Bearer ${token}` } },
   )
   if (!subsRes.ok) {
-    res.status(500).json({ error: 'Could not load your devices.' })
+    fail(res, 500, 'Could not load your devices.')
     return
   }
   const subs: SubRow[] = await subsRes.json()
   if (!subs.length) {
-    res.status(409).json({ error: 'No device is subscribed yet — enable notifications first.' })
+    fail(res, 409, 'No device is subscribed yet — enable notifications first.')
     return
   }
 

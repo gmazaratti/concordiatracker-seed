@@ -9,6 +9,7 @@
  */
 import webpush from 'web-push'
 import { bySection, fetchSchedule, num } from './_concordia.js'
+import { fail } from './_respond.js'
 
 interface Reminder {
   id: string
@@ -97,7 +98,7 @@ const BATCH = 200
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
@@ -106,7 +107,7 @@ export default async function handler(req: any, res: any) {
   const authHeader: string = req.headers['authorization'] || ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
   if (!cronSecret || token !== cronSecret) {
-    res.status(401).json({ error: 'Unauthorized' })
+    fail(res, 401, 'Unauthorized')
     return
   }
 
@@ -116,7 +117,7 @@ export default async function handler(req: any, res: any) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!publicKey || !privateKey || !supabaseUrl || !serviceKey) {
-    res.status(500).json({ error: 'Reminder sending is not configured.' })
+    fail(res, 500, 'Reminder sending is not configured.')
     return
   }
 
@@ -131,7 +132,7 @@ export default async function handler(req: any, res: any) {
     { headers: svc },
   )
   if (!dueRes.ok) {
-    res.status(500).json({ error: 'Could not read reminders.' })
+    fail(res, 500, 'Could not read reminders.')
     return
   }
   // Note: do NOT early-return when there are no due reminders — the admin

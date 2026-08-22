@@ -9,6 +9,7 @@
  * body — so nobody can start a subscription against someone else's account.
  */
 import { authedUser, ensureCustomer, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
+import { fail } from './_respond.js'
 
 type Plan = 'semester' | 'monthly'
 
@@ -19,21 +20,21 @@ function priceFor(plan: Plan): string | undefined {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' })
+    fail(res, 405, 'Method not allowed')
     return
   }
 
   try {
     const user = await authedUser(req)
     if (!user) {
-      res.status(401).json({ error: 'Please sign in first.' })
+      fail(res, 401, 'Please sign in first.')
       return
     }
 
     const { plan = 'semester' } = readJson<{ plan?: Plan }>(req)
     const price = priceFor(plan)
     if (!price) {
-      res.status(500).json({ error: 'That plan is not configured yet.' })
+      fail(res, 500, 'That plan is not configured yet.')
       return
     }
 
@@ -125,6 +126,6 @@ export default async function handler(req: any, res: any) {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Could not start checkout.'
-    res.status(500).json({ error: message })
+    fail(res, 500, message)
   }
 }
