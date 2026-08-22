@@ -11,6 +11,7 @@ import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { SupportLayer } from '@/features/support/SupportLayer'
+import { ThemePreviewBar } from '@/components/ThemePreviewBar'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { SeatAlertLayer } from '@/features/seats/SeatAlertLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
@@ -69,6 +70,7 @@ export function StudentLayout() {
       <SettingsLayer />
       <SupportLayer />
       <UpdatesLayer />
+      <ThemePreviewBar />
       <SeatAlertLayer />
       <InstallPrompt />
       <GettingStartedChecklist />

@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { LEGAL_DOCS, type Block, type LegalDoc, type ListItem } from './legal-content'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
@@ -56,21 +56,6 @@ export function LegalPage({ doc: docProp }: { doc?: LegalDoc['slug'] }) {
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:py-14">
-        {/* Draft banner */}
-        <div className="mb-8 flex gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3.5">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" aria-hidden />
-          <div className="text-[13px] leading-relaxed text-muted">
-            <p className="font-semibold text-fg">Draft: pending review</p>
-            <p className="mt-0.5">
-              This document is not finalized legal text. Bracketed items like{' '}
-              <span className="rounded bg-warning/15 px-1 py-0.5 font-mono text-[0.85em] font-medium text-warning">
-                [LIKE THIS]
-              </span>{' '}
-              are unresolved placeholders awaiting review.
-            </p>
-          </div>
-        </div>
-
         <h1 className="font-display text-[clamp(1.9rem,4vw,2.6rem)] leading-tight font-medium text-fg">
           {data.title}
         </h1>

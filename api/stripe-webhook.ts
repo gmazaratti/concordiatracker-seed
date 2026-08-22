@@ -12,6 +12,7 @@
 import type Stripe from 'stripe'
 import { getProfile, getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
 import { fail } from './_respond.js'
+import { formatAmount, formatEmailDate, sendEmail } from './_email.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
@@ -184,6 +185,13 @@ export default async function handler(req: any, res: any) {
         await syncSubscription(event.data.object as Stripe.Subscription)
         break
       }
+      case 'invoice.upcoming': {
+        // The renewal notice the Terms commit us to. Stripe sends this ahead of
+        // the charge; the lead time is a dashboard setting and must be 7 days,
+        // because no amount of code makes a 3-day webhook arrive earlier.
+        await sendRenewalNotice(event.data.object as Stripe.Invoice)
+        break
+      }
       case 'invoice.paid':
       case 'invoice.payment_failed': {
         // Re-read the subscription so status/period reflect the payment outcome.
@@ -205,5 +213,51 @@ export default async function handler(req: any, res: any) {
     // 500 tells Stripe to retry — better than silently dropping a state change.
     const message = err instanceof Error ? err.message : 'Webhook handling failed'
     fail(res, 500, message)
+  }
+}
+
+/**
+ * "Your pass renews on Monday."
+ *
+ * Sent by us, not by Stripe's own reminder toggle, for three reasons: it has to
+ * match the wording in the Terms, it has to carry the cancel link into our
+ * Settings rather than a generic portal, and it is the one email a student is
+ * most likely to resent receiving late — so its timing needs to be something we
+ * can point at rather than a checkbox in someone else's dashboard.
+ *
+ * Never throws. A failed email must not 500 the webhook and make Stripe retry
+ * the whole event.
+ */
+async function sendRenewalNotice(invoice: Stripe.Invoice) {
+  try {
+    const to = invoice.customer_email
+    if (!to) return
+    // A zero-amount or trial invoice is not a renewal anyone needs warning about.
+    const amount = invoice.amount_due ?? 0
+    if (amount <= 0) return
+
+    const renewsAt =
+      invoice.next_payment_attempt ??
+      (invoice as unknown as { period_end?: number }).period_end ??
+      null
+
+    await sendEmail({
+      to,
+      subject: `Your ConcordiaTracker pass renews ${renewsAt ? 'on ' + formatEmailDate(renewsAt) : 'soon'}`,
+      heading: 'Your pass renews soon',
+      paragraphs: [
+        'This is the heads-up we promise in our Terms, so a renewal never arrives as a surprise on your statement.',
+        'Nothing to do if you want to keep going \u2014 it renews on its own.',
+      ],
+      facts: [
+        { label: 'Amount', value: formatAmount(amount, invoice.currency ?? 'cad') },
+        ...(renewsAt ? [{ label: 'Renews', value: formatEmailDate(renewsAt) }] : []),
+      ],
+      button: { label: 'Manage your plan', href: 'https://concordiatracker.com/app?settings=billing' },
+      footnote:
+        'Cancel any time before that date and you keep access until the end of the period you have already paid for. If it renews and you would rather it had not, you have 14 days to ask for a full refund \u2014 just reply to this email.',
+    })
+  } catch (err) {
+    console.error('[stripe-webhook] renewal notice failed', err)
   }
 }

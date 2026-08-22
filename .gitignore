@@ -36,9 +36,11 @@ backend_infrastructure_audit.md
 scripts/*
 !scripts/verify-agent-readiness.mjs
 !scripts/verify-routing.mjs
+!scripts/send-test-email.mjs
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/
 
 .vercel
 .env*
+email-preview.html

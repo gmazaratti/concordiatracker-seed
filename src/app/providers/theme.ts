@@ -72,9 +72,32 @@ export interface ThemeContextValue {
   toggleTheme: (origin?: ThemeOrigin) => void
   custom: CustomTheme
   setCustom: (next: CustomTheme) => void
+  /**
+   * A theme being TRIED ON, not chosen.
+   *
+   * It paints the whole app and is never written to storage, so a reload or a
+   * timeout puts you back where you were. A tile in a settings grid cannot tell
+   * you what a palette feels like across a due list, a course banner and a
+   * calendar; wearing it for two minutes can.
+   */
+  preview: Theme | null
+  startPreview: (theme: Theme, origin?: ThemeOrigin) => void
+  endPreview: (origin?: ThemeOrigin) => void
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null)
+
+/**
+ * Where a Pro theme lands when the pass lapses.
+ *
+ * The nearest FREE theme of the same scheme, not a hard reset to dark: someone
+ * on Light Rose chose a light app, and answering a lapsed subscription by
+ * turning their screen black at midnight is a punishment, not a downgrade.
+ */
+export function freeFallbackFor(id: Theme, custom?: { base: 'dark' | 'light' }): Theme {
+  const scheme = id === 'custom' ? (custom?.base ?? 'dark') : THEMES.find((t) => t.id === id)?.scheme
+  return scheme === 'light' ? 'light' : 'dark'
+}
 
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext)

@@ -26,6 +26,33 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.26.0',
+    name: 'Try before you buy',
+    date: '2026-08-22',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Tap a locked theme to wear it. It takes over the whole app for two minutes so you can see how it reads across your own due list and course banners, then hands itself back \u2014 which is a fairer way to decide than a ninety-pixel swatch.',
+      },
+      {
+        kind: 'new',
+        text: 'A renewal email at least seven days before every charge, with the amount and the date. Nobody should find out their pass renewed from their bank statement.',
+      },
+      {
+        kind: 'improved',
+        text: 'Refunds are now written down: 14 days, no reason needed, and it covers renewal charges too. Email us and it is done.',
+      },
+      {
+        kind: 'improved',
+        text: 'The Terms, Privacy Policy and Educator Agreement are finalised \u2014 no more bracketed placeholders. The minimum age is 16, and the Educator Agreement now spells out the thing instructors ask first: a teacher account can publish, and can never see a single student\u2019s grades.',
+      },
+      {
+        kind: 'fixed',
+        text: 'A Semester theme now steps back to Dark or Light when a pass lapses, matching whichever you were on. It is held rather than forgotten, so it returns on its own the moment the pass does.',
+      },
+    ],
+  },
+  {
     version: '1.25.0',
     name: 'Next term, filled in for you',
     date: '2026-08-22',

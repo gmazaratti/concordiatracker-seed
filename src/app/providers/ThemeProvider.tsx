@@ -16,6 +16,14 @@ const CUSTOM_KEY = 'ct_theme_custom'
 const VARS_KEY = 'ct_theme_vars'
 /** Long enough to read as a sweep, short enough not to be in the way. */
 const REVEAL_MS = 600
+/**
+ * How long a locked theme stays on before it hands itself back.
+ *
+ * Long enough to open a couple of screens and form an opinion; short enough
+ * that it is unmistakably a trial rather than the theme quietly being free.
+ * It ends itself, so nobody is left wondering why their app looks different.
+ */
+const PREVIEW_MS = 120_000
 
 /** The saved theme (localStorage), validated against the registered set. */
 function readStoredTheme(): Theme {
@@ -74,6 +82,11 @@ type ViewTransitionDoc = Document & {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(readStoredTheme)
   const [custom, setCustomState] = useState<CustomTheme>(readStoredCustom)
+  const [preview, setPreview] = useState<Theme | null>(null)
+
+  // What is on screen. A preview paints but is never saved, so the app you come
+  // back to is the one you chose.
+  const active = preview ?? theme
 
   useEffect(() => {
     const root = document.documentElement
@@ -82,11 +95,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // provenance colours — keeps its tuned value; only what we compute is
     // overwritten inline.
     const { base, tokens } = customTheme(custom)
-    root.dataset.theme = theme === 'custom' ? base : theme
+    root.dataset.theme = active === 'custom' ? base : active
     for (const name of Object.keys(tokens)) {
-      if (theme === 'custom') root.style.setProperty(name, tokens[name])
+      if (active === 'custom') root.style.setProperty(name, tokens[name])
       else root.style.removeProperty(name)
     }
+
+    // Only the chosen theme is persisted. Storing a preview would survive the
+    // reload that is meant to end it.
+    if (preview) return
 
     try {
       localStorage.setItem(STORAGE_KEY, theme)
@@ -97,15 +114,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* localStorage unavailable — theme just won't persist */
     }
-  }, [theme, custom])
+  }, [active, preview, theme, custom])
 
-  const setTheme = useCallback((next: Theme, origin?: ThemeOrigin) => {
+  /**
+   * Apply a state change under the circular reveal.
+   *
+   * Shared by choosing a theme and trying one on, so a preview cannot end up
+   * feeling like a different, cheaper interaction than the real thing.
+   */
+  const swap = useCallback((apply: () => void, origin?: ThemeOrigin) => {
     const doc = document as ViewTransitionDoc
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     // No click point, no support, or motion turned down → just swap.
     if (!origin || reduced || typeof doc.startViewTransition !== 'function') {
-      setThemeState(next)
+      apply()
       return
     }
 
@@ -120,7 +143,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const transition = doc.startViewTransition(() => {
       // flushSync so the DOM is already on the new theme when the browser takes
       // its "after" snapshot — otherwise React batches and both frames match.
-      flushSync(() => setThemeState(next))
+      flushSync(apply)
     })
 
     void transition.ready.then(() => {
@@ -138,6 +161,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const setTheme = useCallback(
+    (next: Theme, origin?: ThemeOrigin) => {
+      // Choosing anything ends a preview: the choice IS the answer to it.
+      swap(() => {
+        setPreview(null)
+        setThemeState(next)
+      }, origin)
+    },
+    [swap],
+  )
+
+  /** Try a theme on. Same sweep as choosing one — it should feel identical,
+   *  because the whole point is finding out what it feels like. */
+  const startPreview = useCallback(
+    (next: Theme, origin?: ThemeOrigin) => {
+      swap(() => setPreview(next), origin)
+    },
+    [swap],
+  )
+
+  const endPreview = useCallback(
+    (origin?: ThemeOrigin) => {
+      swap(() => setPreview(null), origin)
+    },
+    [swap],
+  )
+
+  // It hands itself back. An unattended preview that never ends is just the
+  // paid theme, and a student who wandered off should not return to a palette
+  // they did not choose with no idea how it got there.
+  useEffect(() => {
+    if (!preview) return
+    const id = window.setTimeout(() => setPreview(null), PREVIEW_MS)
+    return () => window.clearTimeout(id)
+  }, [preview])
+
   // Cycle through every registered theme (in THEMES order) so the palette's
   // "Switch theme" action reaches the new themes too. From 'dark' the first
   // step still lands on 'maroon', preserving the original behavior.
@@ -150,8 +209,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ theme, setTheme, toggleTheme, custom, setCustom: setCustomState }),
-    [theme, setTheme, toggleTheme, custom],
+    () => ({
+      theme,
+      setTheme,
+      toggleTheme,
+      custom,
+      setCustom: setCustomState,
+      preview,
+      startPreview,
+      endPreview,
+    }),
+    [theme, setTheme, toggleTheme, custom, preview, startPreview, endPreview],
   )
 
   return <ThemeContext value={value}>{children}</ThemeContext>

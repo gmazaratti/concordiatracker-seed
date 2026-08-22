@@ -24,16 +24,25 @@ import { cn } from '@/lib/cn'
  * with a padlock is a clearer offer than a list of feature names.
  */
 export function ThemePicker() {
-  const { theme, setTheme, custom, setCustom } = useTheme()
+  const { theme, setTheme, custom, setCustom, startPreview } = useTheme()
   const { plan } = useAppData()
-  const { openSettings } = useSettings()
+  const { closeSettings } = useSettings()
   const pro = plan === 'semester'
   const [editing, setEditing] = useState(false)
 
-  /** A locked tile sells rather than fails: it opens billing. */
+  /**
+   * A locked tile TRIES ON rather than fails.
+   *
+   * Sending someone straight to a price is asking them to buy a colour they
+   * have seen as a 90-pixel rectangle. Wearing it for two minutes across their
+   * own courses is the actual pitch, and the bar it puts up carries the way to
+   * keep it. Settings closes, because a full-screen panel is the one thing you
+   * cannot see the theme through.
+   */
   const pick = (id: Theme, locked: boolean, e: React.MouseEvent) => {
     if (locked) {
-      openSettings('billing')
+      startPreview(id, { x: e.clientX, y: e.clientY })
+      closeSettings()
       return
     }
     if (id === 'custom') setEditing(true)
@@ -77,8 +86,9 @@ export function ThemePicker() {
 
       {!pro && (
         <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
-          Dark and Light are free, always. The rest of the palette and a colour of your own come
-          with the Semester pass.
+          Dark and Light are free, always. Tap a locked one to wear it for two minutes and see
+          how it reads across your own term — the rest of the palette, and a colour of your own,
+          come with the Semester pass.
         </p>
       )}
 

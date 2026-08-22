@@ -21,7 +21,8 @@
     "verify:agents": "node scripts/verify-agent-readiness.mjs",
     "verify:agents:live": "node scripts/verify-agent-readiness.mjs --live https://concordiatracker.com",
     "verify:routing": "node scripts/verify-routing.mjs",
-    "test:terms": "node src/lib/course-sections.test.mjs"
+    "test:terms": "node src/lib/course-sections.test.mjs",
+    "email:test": "node --env-file=.env.local scripts/send-test-email.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",

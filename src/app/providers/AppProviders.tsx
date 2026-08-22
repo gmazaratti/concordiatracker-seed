@@ -2,6 +2,7 @@ import { ThemeProvider } from './ThemeProvider'
 import { I18nProvider } from '@/i18n/I18nProvider'
 import { CommandPaletteProvider } from './CommandPaletteProvider'
 import { AppDataProvider } from './AppDataProvider'
+import { ThemeEntitlement } from './ThemeEntitlement'
 import { UiStateProvider } from './UiStateProvider'
 import { CommunityProvider } from './CommunityProvider'
 import { QuickActionsProvider } from './QuickActionsProvider'
@@ -17,6 +18,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <I18nProvider>
     <ThemeProvider>
       <AppDataProvider>
+        {/* Renders nothing; keeps the active theme and the active plan in
+            agreement wherever the app runs, not only where the picker is. */}
+        <ThemeEntitlement />
         <UiStateProvider>
           <CommunityProvider>
           <TeacherProvider>
