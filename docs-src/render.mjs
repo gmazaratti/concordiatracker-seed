@@ -230,7 +230,7 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
     <p class="support-lead">Tell us what is going wrong and we will reply by email. No account needed.</p>
     <label>Your email<input type="email" id="s-email" autocomplete="email" required /></label>
     <label>Your name <span class="opt">(optional)</span><input type="text" id="s-name" autocomplete="name" /></label>
-    <label>What is this about?
+    <label id="s-cat-label">What is this about?
       <select id="s-cat">
         <option value="bug">Something is broken</option>
         <option value="billing">Billing or subscription</option>
@@ -250,13 +250,14 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
 
 <div class="shell">
   <nav class="sidebar" aria-label="Documentation">
-    <details class="nav-shell">
-      <summary>
+    <div class="nav-shell">
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" />
+      <label class="nav-summary" for="nav-toggle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         All documentation
-      </summary>
+      </label>
       <div class="nav-body">${sidebar(nav, page.slug)}</div>
-    </details>
+    </div>
   </nav>
 
   <main>
@@ -310,6 +311,116 @@ document.addEventListener('keydown', function (e) {
 // limiting — see api/ticket.ts.
 var dlg = document.getElementById('support');
 document.getElementById('support-open').addEventListener('click', function () { dlg.showModal(); });
+
+/* Enhance the category <select> into a themed listbox. The native element stays
+   in the DOM and stays the source of truth, so the submit handler is unchanged
+   and the form still works if this script never runs. */
+(function () {
+  var native = document.getElementById('s-cat');
+  if (!native) return;
+  document.documentElement.classList.add('js');
+  native.classList.add('support-native');
+  native.setAttribute('tabindex', '-1');
+  native.setAttribute('aria-hidden', 'true');
+
+  var opts = Array.prototype.slice.call(native.options).map(function (o) {
+    return { value: o.value, label: o.textContent };
+  });
+  var open = false;
+  var active = Math.max(0, native.selectedIndex);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'ct-select';
+  wrap.setAttribute('data-open', 'false');
+
+  var trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'ct-select-trigger';
+  trigger.setAttribute('role', 'combobox');
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+  trigger.setAttribute('aria-labelledby', 's-cat-label');
+  var value = document.createElement('span');
+  value.className = 'ct-select-value';
+  var caret = document.createElement('span');
+  caret.className = 'ct-select-caret';
+  trigger.appendChild(value);
+  trigger.appendChild(caret);
+
+  var list = document.createElement('ul');
+  list.className = 'ct-select-list';
+  list.setAttribute('role', 'listbox');
+  list.id = 's-cat-list';
+  trigger.setAttribute('aria-controls', 's-cat-list');
+
+  opts.forEach(function (o, i) {
+    var li = document.createElement('li');
+    li.className = 'ct-select-option';
+    li.setAttribute('role', 'option');
+    li.id = 's-cat-opt-' + i;
+    li.textContent = o.label;
+    li.addEventListener('click', function () { pick(i); });
+    li.addEventListener('mousemove', function () { setActive(i); });
+    list.appendChild(li);
+  });
+
+  wrap.appendChild(trigger);
+  wrap.appendChild(list);
+  native.parentNode.insertBefore(wrap, native.nextSibling);
+
+  function render() {
+    value.textContent = opts[native.selectedIndex] ? opts[native.selectedIndex].label : '';
+    wrap.setAttribute('data-open', open ? 'true' : 'false');
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    for (var i = 0; i < list.children.length; i++) {
+      var li = list.children[i];
+      li.setAttribute('aria-selected', i === native.selectedIndex ? 'true' : 'false');
+      li.classList.toggle('active', open && i === active);
+    }
+    // Focus stays on the trigger; the active option is announced instead, so
+    // this composes with the dialog's own focus handling.
+    trigger.setAttribute('aria-activedescendant', open ? 's-cat-opt-' + active : '');
+  }
+
+  function setOpen(next) { open = next; if (next) active = Math.max(0, native.selectedIndex); render(); }
+  function setActive(i) { active = (i + opts.length) % opts.length; render(); }
+  function pick(i) {
+    native.selectedIndex = i;
+    native.dispatchEvent(new Event('change', { bubbles: true }));
+    setOpen(false);
+    trigger.focus();
+  }
+
+  trigger.addEventListener('click', function () { setOpen(!open); });
+  trigger.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'Home' || k === 'End') {
+      e.preventDefault();
+      if (!open) return setOpen(true);
+      if (k === 'ArrowDown') setActive(active + 1);
+      else if (k === 'ArrowUp') setActive(active - 1);
+      else if (k === 'Home') setActive(0);
+      else setActive(opts.length - 1);
+      return;
+    }
+    if (k === 'Enter' || k === ' ') {
+      e.preventDefault();
+      if (open) pick(active); else setOpen(true);
+      return;
+    }
+    if (k === 'Escape' && open) {
+      // Stop here rather than letting <dialog> close on the same keypress.
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    }
+  });
+  document.addEventListener('mousedown', function (e) {
+    if (open && !wrap.contains(e.target)) setOpen(false);
+  });
+
+  render();
+})();
 var sendBtn = document.getElementById('s-send');
 var errEl = document.getElementById('s-err');
 function val(id) { return (document.getElementById(id).value || '').trim(); }
@@ -384,7 +495,7 @@ a{color:inherit}
 .brand-dim{color:var(--muted)}
 .brand-pill{font-size:9.5px;font-weight:700;letter-spacing:.1em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:2px 5px}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;position:relative;z-index:1}
-.portal{flex-shrink:0;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
+.portal{flex-shrink:0;font:inherit;font-size:13px;font-weight:500;color:var(--muted);background:transparent;text-decoration:none;border:1px solid var(--border);border-radius:8px;padding:6px 12px;transition:color .15s,border-color .15s}
 .portal:hover{color:var(--fg);border-color:var(--border-strong)}
 
 .search{position:absolute;left:50%;transform:translateX(-50%);width:min(420px,38vw);display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:0 10px}
@@ -407,7 +518,9 @@ a{color:inherit}
 .sidebar:hover::-webkit-scrollbar-thumb,.sidebar:focus-within::-webkit-scrollbar-thumb{background:var(--border-strong)}
 .nav-group + .nav-group{margin-top:16px}
 .nav-group-title{margin:0 0 5px;font-family:var(--display);font-size:12px;font-weight:600;color:var(--fg)}
-.nav-shell summary{display:none}
+/* Desktop: the disclosure is invisible chrome — the nav is simply there. */
+.nav-toggle{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
+.nav-summary{display:none}
 .nav-shell>.nav-body{display:block}
 .sidebar ul{list-style:none;margin:0;padding:0}
 .sidebar a{display:block;padding:4px 10px;border-radius:7px;color:var(--muted);text-decoration:none;transition:color .15s,background .15s}
@@ -487,6 +600,28 @@ dialog#support textarea{resize:vertical}
 .support-x button{background:none;border:0;color:var(--subtle);font-size:22px;line-height:1;cursor:pointer;padding:2px 6px}
 .support-x button:hover{color:var(--fg)}
 .support-open{cursor:pointer;font-family:inherit}
+
+/* Custom dropdown. Mirrors components/ui/Select.tsx in the app: the native
+   control paints itself in the OS palette, which on a dark dialog reads as a
+   different product entirely. */
+.ct-select{position:relative;margin-top:4px}
+.ct-select-trigger{display:flex;align-items:center;gap:8px;width:100%;background:var(--canvas);
+  border:1px solid var(--border);border-radius:9px;padding:8px 10px;color:var(--fg);font:inherit;
+  font-size:13.5px;text-align:left;cursor:pointer}
+.ct-select-trigger:hover{border-color:var(--border-strong)}
+.ct-select-trigger:focus-visible,.ct-select[data-open="true"] .ct-select-trigger{outline:0;border-color:var(--accent)}
+.ct-select-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ct-select-caret{flex:none;width:8px;height:8px;border-right:2px solid var(--subtle);
+  border-bottom:2px solid var(--subtle);transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s}
+.ct-select[data-open="true"] .ct-select-caret{transform:rotate(-135deg) translate(-2px,-2px)}
+.ct-select-list{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 6px);margin:0;padding:5px;
+  list-style:none;background:var(--surface);border:1px solid var(--border);border-radius:11px;
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.6);max-height:240px;overflow-y:auto}
+.ct-select[data-open="false"] .ct-select-list{display:none}
+.ct-select-option{padding:8px 10px;border-radius:7px;font-size:13.5px;color:var(--muted);cursor:pointer}
+.ct-select-option[aria-selected="true"]{color:var(--fg);background:var(--surface-2)}
+.ct-select-option.active{color:var(--fg);background:var(--accent-soft)}
+.js .support-native{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 .support-ok{text-align:center;padding:8px 0}
 .support-ok .case{font-family:ui-monospace,monospace;font-size:19px;color:var(--accent);margin:10px 0}
 
@@ -507,15 +642,18 @@ dialog#support textarea{resize:vertical}
      actually opened, so on a phone it collapses to one tappable line. */
   .sidebar{position:static;max-height:none;padding-bottom:0}
   .nav-shell{border:1px solid var(--border);border-radius:11px;background:var(--surface);margin-bottom:18px}
-  .nav-shell summary{display:flex;align-items:center;gap:9px;padding:12px 14px;font-size:14px;font-weight:500;
-    color:var(--fg);cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
-  .nav-shell summary::-webkit-details-marker{display:none}
-  .nav-shell summary svg{width:17px;height:17px;color:var(--subtle);flex:none}
-  .nav-shell summary::after{content:'';margin-left:auto;width:7px;height:7px;border-right:2px solid var(--subtle);
+  .nav-summary{display:flex;align-items:center;gap:9px;padding:12px 14px;font-size:14px;font-weight:500;
+    color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .nav-summary svg{width:17px;height:17px;color:var(--subtle);flex:none}
+  .nav-summary::after{content:'';margin-left:auto;width:7px;height:7px;border-right:2px solid var(--subtle);
     border-bottom:2px solid var(--subtle);transform:rotate(45deg) translateY(-2px);transition:transform .18s}
-  .nav-shell[open] summary::after{transform:rotate(-135deg) translateY(-2px)}
-  .nav-shell[open] summary{border-bottom:1px solid var(--border)}
-  .nav-shell>.nav-body{padding:12px 14px 14px}
+  .nav-toggle:focus-visible+.nav-summary{outline:2px solid var(--accent);outline-offset:-2px}
+  /* Collapsed by default on a phone: the full tree is 36 links, and printed
+     above every page it buries the page you actually opened. */
+  .nav-shell>.nav-body{display:none;padding:12px 14px 14px}
+  .nav-toggle:checked~.nav-body{display:block}
+  .nav-toggle:checked+.nav-summary{border-bottom:1px solid var(--border)}
+  .nav-toggle:checked+.nav-summary::after{transform:rotate(-135deg) translateY(-2px)}
   /* Comfortably tappable rows — 4px of padding is a 21px target. */
   .sidebar a{padding:9px 10px}
   .cards{grid-template-columns:minmax(0,1fr)}

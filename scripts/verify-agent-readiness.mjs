@@ -352,6 +352,34 @@ section('Trust anchors and discoverability')
     check(`/${doc} contains the policy, not the homepage`, !/Stop guessing/.test(text))
   }
 
+  // The docs sidebar disappeared once already: it was a <details> held open on
+  // desktop by styling its child, and Chrome now hides collapsed <details>
+  // content through ::details-content, which no child style can override. It is
+  // a checkbox disclosure now, and these pin both halves of that.
+  const doc = await read(path.join('docs', 'introduction', 'index.html'))
+  const navLinks = (doc.match(/class="nav-group"/g) ?? []).length
+  check('docs page renders its sidebar groups', navLinks >= 5, `${navLinks} groups`)
+  check(
+    'sidebar links are present in the markup',
+    (doc.match(/<li><a href="\/docs\//g) ?? []).length >= 30,
+  )
+  check('the sidebar is not gated behind <details>', !/<details[^>]*nav-shell/.test(doc))
+  check('the mobile disclosure is a checkbox', /id="nav-toggle"/.test(doc))
+
+  // The Support control is a <button> beside an <a> styled identically; without
+  // an explicit background it renders in the UA's grey.
+  const shellCss = await readFile(path.join(ROOT, 'docs-src', 'render.mjs'), 'utf8')
+  check(
+    'the header buttons declare a background',
+    /\.portal\{[^}]*background:transparent/.test(shellCss),
+  )
+  check('the support form has no native dropdown on screen', /support-native/.test(shellCss))
+  check('the custom dropdown is keyboard-driven', /aria-activedescendant/.test(shellCss))
+  check(
+    'the native select survives for no-JS callers',
+    /<select id="s-cat">/.test(doc) && (doc.match(/<option/g) ?? []).length >= 5,
+  )
+
   const llms = await read('llms.txt')
   check('llms.txt has a when-to-use section', /##\s*When to use/i.test(llms))
   check('llms.txt names concrete use cases', /api\/sections/.test(llms))
