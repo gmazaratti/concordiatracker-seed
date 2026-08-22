@@ -18,6 +18,14 @@
 # and commit it, or those edits will be wiped on every run.
 name: iOS
 
+# Manual only. There is a Mac now, and a Mac is faster than a runner and needs
+# no upload step to test on a real phone — so CI is the second opinion, not the
+# main path. It stays because it catches the one failure a local build can hide:
+# something that only compiles because of a tool already installed on that Mac.
+#
+# (Actions minutes are free on this repo regardless, since it is public. On a
+# private repo the macOS multiplier is 10x, which turns a 15-minute build into
+# 150 charged minutes and eats a Pro plan in two runs.)
 on:
   workflow_dispatch:
     inputs:
@@ -25,16 +33,6 @@ on:
         description: 'Upload to TestFlight (requires signing secrets)'
         type: boolean
         default: false
-  push:
-    branches: [master]
-    paths:
-      # Only when something that reaches the app actually changed. A docs commit
-      # should not spend fifteen minutes of macOS runner time.
-      - 'src/**'
-      - 'public/**'
-      - 'capacitor.config.ts'
-      - 'package.json'
-      - '.github/workflows/ios.yml'
 
 jobs:
   build:
