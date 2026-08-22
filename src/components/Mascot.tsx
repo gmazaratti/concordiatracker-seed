@@ -20,6 +20,11 @@ import { cn } from '@/lib/cn'
  * a logo. Colour comes from `currentColor`, so it inherits `text-accent` and
  * follows every theme including a custom one.
  *
+ * NEVER SOFTEN IT WITH A COLOUR ALPHA (`text-accent/70`). The body is four
+ * overlapping circles; a translucent fill composites every overlap twice and
+ * the shape falls apart into visible seams. Use the `soft` prop, which puts the
+ * opacity on the <svg> so the finished drawing is faded once, as one layer.
+ *
  * THE RULE FOR USING IT: it marks moments when nothing is wrong. An empty
  * inbox, a caught-up week, a wait that is going fine. The moment something IS
  * wrong — a failing grade, a missed deadline, a payment problem, anything in
@@ -50,11 +55,14 @@ const SIZES = { xs: 28, sm: 44, md: 72, lg: 104, xl: 160 } as const
 export function Mascot({
   mood = 'idle',
   size = 'md',
+  soft = false,
   className,
   label,
 }: {
   mood?: MascotMood
   size?: keyof typeof SIZES
+  /** Fade the whole cloud. Group opacity, never a fill alpha — see above. */
+  soft?: boolean
   className?: string
   /** Given only when the mascot carries meaning on its own. Inside a panel that
    *  already says "All caught up", it is decoration and stays unlabelled. */
@@ -68,6 +76,7 @@ export function Mascot({
       viewBox="0 0 100 100"
       fill="none"
       className={cn('ct-mascot', className)}
+      style={soft ? { opacity: 0.72 } : undefined}
       data-mood={mood}
       role={label ? 'img' : undefined}
       aria-label={label}
@@ -172,13 +181,47 @@ export function MascotEmpty({
 }) {
   return (
     <div className={cn('px-6 py-10 text-center', className)}>
-      <Mascot mood={mood} size="md" className="mx-auto text-accent/70" />
+      <Mascot mood={mood} size="md" soft className="mx-auto text-accent" />
       <p className="mt-3 text-[15px] font-medium text-fg">{title}</p>
       {children && (
         <div className="mx-auto mt-1 max-w-sm text-[13px] leading-relaxed text-subtle">
           {children}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * A wait with a face on it.
+ *
+ * For the waits that are long enough to be noticed — parsing a syllabus,
+ * importing an outline, asking Concordia about a section. A spinner says "still
+ * going"; it does not say what is going on or how long it might take, and for a
+ * fifteen-second wait that difference is what separates patience from a reload.
+ *
+ * `working` for something we are doing to a file, `thinking` for something we
+ * are waiting on someone else for. Both are honest about which is which.
+ */
+export function MascotLoading({
+  mood = 'working',
+  title,
+  hint,
+  className,
+}: {
+  mood?: Extract<MascotMood, 'working' | 'thinking'>
+  title: string
+  /** How long, or what is happening. Optional, but it is the useful half. */
+  hint?: string
+  className?: string
+}) {
+  return (
+    <div className={cn('flex items-center gap-3', className)}>
+      <Mascot mood={mood} size="sm" className="shrink-0 text-accent" label={title} />
+      <div className="min-w-0">
+        <p className="text-[13px] font-medium text-fg">{title}</p>
+        {hint && <p className="mt-0.5 text-[11.5px] leading-relaxed text-subtle">{hint}</p>}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, Loader2, Plus, Search, X } from 'lucide-react'
+import { MascotLoading } from '@/components/Mascot'
 import { useI18n } from '@/i18n/i18n'
 import { browseCourses, mySubjects, type CatalogCourse } from '@/lib/catalog'
 import { useAppData } from '@/app/providers/app-data'
@@ -72,7 +73,11 @@ export function SeatWatchPanel() {
 
       {watches === null ? (
         <div className="grid place-items-center py-14">
-          <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
+          <MascotLoading
+            mood="thinking"
+            title="Checking with Concordia…"
+            hint="Reading the live section list. This one is their server, not ours."
+          />
         </div>
       ) : watches.length === 0 ? (
         <div className="flex items-start gap-3 rounded-xl border border-dashed border-border px-4 py-3.5">

@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { Mascot } from '@/components/Mascot'
+import { CheckCircle2, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
@@ -206,9 +205,9 @@ function EmptyState() {
   const t = useT()
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-      {/* The one screen a student reaches BECAUSE there is nothing wrong, which
-          is exactly the condition the mascot is for. */}
-      <Mascot mood="happy" size="md" className="text-accent/70" />
+      <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-accent">
+        <CheckCircle2 size={26} aria-hidden />
+      </span>
       <h3 className="font-display text-xl font-medium text-fg">{t('today.allCaughtUp')}</h3>
       <p className="max-w-xs text-sm text-muted">
         {t('today.allCaughtUpSub')}

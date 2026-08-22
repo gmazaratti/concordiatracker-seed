@@ -119,7 +119,7 @@ function TicketList({
   if (!tickets.length) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-        <Mascot mood="resting" size="md" className="text-accent/70" />
+        <Mascot mood="resting" size="md" soft className="text-accent" />
         <h3 className="font-display text-[17px] font-medium text-fg">No tickets yet</h3>
         <p className="max-w-xs text-[13px] text-muted">
           Something not working, or a question about your account? Open a ticket and we&rsquo;ll

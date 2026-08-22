@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkl
 import { useAppData } from '@/app/providers/app-data'
 import { getParseUsage, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
 import { KIND_LABEL } from '@/lib/assessment'
+import { MascotLoading } from '@/components/Mascot'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
@@ -347,10 +348,11 @@ function DropZone({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
 function Scanning() {
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface p-5">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-fg">
-        <Loader2 size={15} className="animate-spin text-accent" aria-hidden />
-        Reading your syllabus…
-      </div>
+      <MascotLoading
+        mood="working"
+        title="Reading your syllabus…"
+        hint="Pulling out every date, weight and assessment. Usually 5–15 seconds."
+      />
       <div className="relative mt-3 overflow-hidden rounded-lg border border-border bg-canvas/50 p-4 font-mono text-[11px] leading-relaxed text-subtle">
         <div className="flex items-center gap-1.5 text-muted">
           <FileText size={13} aria-hidden /> syllabus.pdf
