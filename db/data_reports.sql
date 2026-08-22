@@ -35,7 +35,10 @@ create table if not exists public.data_reports (
   -- The course this is about, normalised ("COMP 248"). Nullable for a report
   -- that is not about a course at all.
   course_code  text,
-  course_id    uuid references public.courses(id) on delete set null,
+  -- TEXT, not uuid: public.courses.id is `text primary key default
+  -- gen_random_uuid()::text`, and a foreign key has to match the column it
+  -- points at exactly.
+  course_id    text references public.courses(id) on delete set null,
   -- The specific field, when the report is about one ("meetingTimes", "credits").
   field        text,
   current_value text,
