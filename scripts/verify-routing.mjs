@@ -181,15 +181,34 @@ for (const r of notFound) {
   check(`${r} → 404`, dest === '/api/not-found', dest ?? '(no match)')
 }
 
-console.log('\nMarkdown negotiation')
-for (const [r, expected] of [
+console.log('\nMarkdown negotiation (middleware, ahead of the rewrite table)')
+// Negotiation is NOT in the rewrite table. `has` conditions on the accept
+// header were deployed twice, bare and grouped, and never fired -- and could
+// never have worked for `/` regardless, because Vercel consults the filesystem
+// first and `/` is a real index.html. Middleware runs ahead of both.
+//
+// What the rewrite table still owes is that the markdown targets exist, and
+// that an ordinary request for the same URL keeps resolving to HTML.
+const middleware = await readFile(path.join(ROOT, 'middleware.ts'), 'utf8')
+const matcher = middleware.match(/matcher:\s*\[([^\]]*)\]/)?.[1] ?? ''
+for (const [route, md] of [
   ['/', '/index.md'],
   ['/docs/introduction', '/docs/introduction/index.md'],
   ['/about', '/about/index.md'],
+  ['/contact', '/contact/index.md'],
+  ['/developers', '/developers/index.md'],
 ]) {
-  const dest = resolve(r, { markdown: true })
-  check(`Accept: text/markdown ${r} → ${expected}`, dest === expected, dest ?? '(no match)')
-  check(`${expected} exists`, isStatic(expected))
+  const covered =
+    matcher.includes(`'${route}'`) ||
+    (route.startsWith('/docs/') && matcher.includes("'/docs/:path*'"))
+  check(`middleware covers ${route}`, covered)
+  check(`${md} exists for it to serve`, isStatic(md))
+}
+for (const [route, expected] of [
+  ['/about', '/about/index.html'],
+  ['/docs/introduction', '/docs/introduction/index.html'],
+]) {
+  check(`${route} without the header still resolves to HTML`, resolve(route) === expected)
 }
 
 console.log('\nStatic assets are served by the filesystem, not the rules')

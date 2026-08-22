@@ -253,10 +253,23 @@ section('Markdown content negotiation')
   }
 
   const vercel = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'))
-  const mdRewrites = vercel.rewrites.filter((r) =>
-    (r.has ?? []).some((h) => h.key === 'accept' && /markdown/.test(h.value)),
+
+  // Negotiation is done by middleware, not by a `has` condition on a rewrite.
+  // Two deploys proved the rewrite form never fires — and it could never have
+  // worked for `/` regardless, since Vercel consults the filesystem first and
+  // `/` resolves to a real index.html. See middleware.ts.
+  const mw = await readFile(path.join(ROOT, 'middleware.ts'), 'utf8')
+  check('middleware handles Accept: text/markdown', mw.includes('text') && mw.includes('markdown'))
+  const matcher = mw.match(/matcher:\s*\[([^\]]*)\]/)?.[1] ?? ''
+  for (const p of ['/', '/about', '/contact', '/developers', '/docs/:path*']) {
+    check(`middleware matches ${p}`, matcher.includes(`'${p}'`))
+  }
+  check('middleware sets Vary on the markdown variant', /Vary:\s*'Accept/.test(mw))
+  check('middleware falls through when markdown is not asked for', /return undefined/.test(mw))
+  check(
+    'no dead accept-conditioned rewrites remain',
+    !vercel.rewrites.some((r) => (r.has ?? []).some((h) => h.key === 'accept')),
   )
-  check('Accept: text/markdown is routed', mdRewrites.length >= 3, `${mdRewrites.length} rules`)
   const varyRules = vercel.headers.filter((h) =>
     h.headers.some((x) => x.key === 'Vary' && /Accept/.test(x.value)),
   )

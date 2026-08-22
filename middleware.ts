@@ -12,13 +12,14 @@
  * `index.html`, so no rewrite is ever consulted for the homepage. Middleware
  * runs before both, which is the only place `/` can be intercepted.
  *
- * SCOPE. Deliberately matched to a single page for its first deploy. If
- * returning `undefined` does not fall through to the static asset the way it is
- * documented to, exactly one page breaks instead of the homepage and all 36
- * docs pages. Widen the matcher once the behaviour is confirmed in production.
+ * SCOPE. This shipped matched to /developers alone, and was widened only after
+ * production confirmed both halves: `Accept: text/markdown` returned
+ * `text/markdown` with `X-Content-Negotiation: middleware`, and a browser
+ * `Accept` header still returned the full 10,479-byte HTML page. The
+ * fall-through is the risky half, and it is the half that was measured.
  */
 export const config = {
-  matcher: ['/developers'],
+  matcher: ['/', '/about', '/contact', '/developers', '/docs/:path*'],
 }
 
 export default async function middleware(request: Request): Promise<Response | undefined> {
@@ -29,6 +30,10 @@ export default async function middleware(request: Request): Promise<Response | u
   if (!/text\/markdown/i.test(accept)) return undefined
 
   const url = new URL(request.url)
+  // A request for the .md file itself already matches the matcher; without this
+  // it would look for <file>.md/index.md, 404, and fall through anyway — right
+  // answer, wasted round trip.
+  if (url.pathname.endsWith('.md')) return undefined
   const clean = url.pathname.replace(/\/$/, '')
   const target = new URL(clean === '' ? '/index.md' : `${clean}/index.md`, url.origin)
 
