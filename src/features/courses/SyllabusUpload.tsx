@@ -136,7 +136,7 @@ export function SyllabusUploadPage() {
 
   const undated = items.filter((i) => !i.due).length
   const total = items.reduce((s, i) => s + i.weight, 0)
-  const canCommit = items.length > 0 && undated === 0 && !saving
+  const canCommit = items.length > 0 && !saving
 
   async function commit() {
     if (!canCommit) return
@@ -258,10 +258,16 @@ export function SyllabusUploadPage() {
               </div>
 
               {undated > 0 && (
-                <p className="mb-2 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-1.5 text-[12px] font-medium text-warning">
-                  <AlertTriangle size={14} aria-hidden />
-                  {undated} {undated === 1 ? 'item has' : 'items have'} no date: set or remove{' '}
-                  {undated === 1 ? 'it' : 'them'} to add.
+                <p className="mb-2 flex items-start gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-muted">
+                  <Clock size={14} className="mt-px shrink-0 text-subtle" aria-hidden />
+                  <span>
+                    {undated} {undated === 1 ? 'item has' : 'items have'} no date &mdash; usually a
+                    final the registrar hasn&rsquo;t scheduled. That&rsquo;s fine:{' '}
+                    {undated === 1 ? 'it' : 'they'} will be added as{' '}
+                    <span className="font-medium text-fg">date not set</span> and show up on Today
+                    under &ldquo;No date yet&rdquo;. Set{' '}
+                    {undated === 1 ? 'it' : 'them'} whenever the date is published.
+                  </span>
                 </p>
               )}
 

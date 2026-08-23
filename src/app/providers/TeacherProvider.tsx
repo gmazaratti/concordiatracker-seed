@@ -601,7 +601,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       courseId: string,
       tc: TeacherCourse,
       teacherName: string,
-      dates: { title: string; kind: OutlineItem['kind']; weight: number; due: string }[],
+      dates: { title: string; kind: OutlineItem['kind']; weight: number; due: string | null }[],
     ) => {
       if (sessionId !== SELF || !authUser) return
       const row = {

@@ -22,7 +22,7 @@ export interface BlueprintDate {
   kind: AssessmentKind
   weight: number
   /** ISO due timestamp (runtime-relative, like the rest of the seed). */
-  due: string
+  due: string | null
   /** `official` only on teacher-verified blueprints; community = `unverified`. */
   provenance: Provenance
 }

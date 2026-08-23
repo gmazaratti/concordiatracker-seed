@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatDueDateTime } from '@/lib/date'
+import { formatDueDateTime, tbdLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { Select } from './Select'
 
@@ -50,12 +50,24 @@ export function DateTimePicker({
   value,
   onChange,
   ariaLabel,
+  clearable = false,
 }: {
-  value: string
-  onChange: (iso: string) => void
+  /** Null means the date is genuinely not known yet, not "unset by mistake". */
+  value: string | null
+  onChange: (iso: string | null) => void
   ariaLabel: string
+  /**
+   * Offer "No date yet".
+   *
+   * Opt-in, because most dates here are known and a clear button on a personal
+   * reminder is a way to make a task that never reminds anyone. It belongs where
+   * the SOURCE may genuinely not have a date: a syllabus, a course outline.
+   */
+  clearable?: boolean
 }) {
-  const selected = new Date(value)
+  // With no date the calendar still has to open on some month and focus some
+  // day. Today is the least surprising choice; nothing is marked selected.
+  const selected = value ? new Date(value) : new Date()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<Pos | null>(null)
   const [view, setView] = useState(() => startOfMonth(selected))
@@ -149,7 +161,7 @@ export function DateTimePicker({
         className="flex w-full items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-left text-[13px] text-fg transition-colors hover:bg-surface"
       >
         <CalendarDays size={15} className="shrink-0 text-subtle" aria-hidden />
-        <span className="flex-1 truncate">{formatDueDateTime(value)}</span>
+        <span className="flex-1 truncate">{value ? formatDueDateTime(value) : tbdLabel()}</span>
       </button>
 
       {open &&
@@ -257,13 +269,36 @@ export function DateTimePicker({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => { setOpen(false); triggerRef.current?.focus() }}
-              className="mt-2.5 w-full rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors hover:bg-accent-hover"
-            >
-              Done
-            </button>
+            <div className="mt-2.5 flex gap-2">
+              {/* "Not known yet" is a real answer, and it has to be reachable
+                  without picking a date first — otherwise the only way to say
+                  it is to enter something wrong and hope to remember. */}
+              {clearable && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(null)
+                    setOpen(false)
+                    triggerRef.current?.focus()
+                  }}
+                  className={cn(
+                    'shrink-0 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors',
+                    value
+                      ? 'border-border text-muted hover:text-fg'
+                      : 'border-accent bg-accent-soft text-fg',
+                  )}
+                >
+                  No date yet
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setOpen(false); triggerRef.current?.focus() }}
+                className="flex-1 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors hover:bg-accent-hover"
+              >
+                Done
+              </button>
+            </div>
           </div>,
           document.body,
         )}

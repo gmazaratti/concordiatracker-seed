@@ -36,9 +36,15 @@ const notPastTerm = (t: string) => {
 /** Shift a blueprint's dates so the earliest lands ~5 days out (upcoming). */
 function rebaseUpcoming(items: Assessment[]): Assessment[] {
   if (items.length === 0) return items
-  const minDue = Math.min(...items.map((a) => +new Date(a.due)))
+  // Shifting only makes sense for dated items; an undated one stays undated,
+  // because there is nothing to shift it from.
+  const dated = items.filter((a) => !!a.due)
+  if (dated.length === 0) return items
+  const minDue = Math.min(...dated.map((a) => +new Date(a.due!)))
   const offset = Date.now() + 5 * DAY - minDue
-  return items.map((a) => ({ ...a, due: new Date(+new Date(a.due) + offset).toISOString() }))
+  return items.map((a) =>
+    a.due ? { ...a, due: new Date(+new Date(a.due) + offset).toISOString() } : a,
+  )
 }
 
 /**

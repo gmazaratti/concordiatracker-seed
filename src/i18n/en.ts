@@ -347,6 +347,7 @@ export const en = {
   'today.customize': 'Customize',
   'today.customizeToday': 'Customize Today',
   'today.comingUp': 'Coming up',
+  'today.noDateYet': 'No date yet',
   'today.course': 'Course',
   'today.showFewer': 'Show fewer',
   'today.showMore': 'Show {count} more',

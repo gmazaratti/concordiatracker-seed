@@ -30,7 +30,7 @@ export interface OutlineItem {
   kind: AssessmentKind
   title: string
   /** ISO due timestamp (runtime-relative, like the rest of the seed). */
-  due: string
+  due: string | null
   weight: number
 }
 

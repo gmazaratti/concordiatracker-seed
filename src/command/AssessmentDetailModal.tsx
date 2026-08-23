@@ -40,7 +40,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
     assessment?.status ?? 'not-started',
   )
   const [gradeText, setGradeText] = useState(() => gradeToInput(assessment?.grade ?? null))
-  const [dueISO, setDueISO] = useState(assessment?.due ?? '')
+  // null is a real value here: an item whose date the syllabus never gave.
+  const [dueISO, setDueISO] = useState<string | null>(assessment?.due ?? null)
   const [notes, setNotes] = useState(assessment?.notes ?? '')
   const [reminderOffset, setReminderOffset] = useState(0)
   const [reminderInitial, setReminderInitial] = useState(0)
@@ -68,7 +69,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
 
   const statusDirty = status !== assessment.status
   const gradeDirty = gradeToInput(parsed) !== gradeToInput(assessment.grade)
-  const dueDirty = !!dueISO && dueISO !== assessment.due
+  const dueDirty = dueISO !== assessment.due
   const notesDirty = notes !== assessment.notes
   const reminderDirty = reminderOffset !== reminderInitial
   const dirty = statusDirty || gradeDirty || dueDirty || notesDirty || reminderDirty
@@ -198,6 +199,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <Field label="Due date & time">
             <DateTimePicker
               value={dueISO}
+              clearable
               onChange={setDueISO}
               ariaLabel="Due date and time"
             />

@@ -5,7 +5,7 @@ import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { KIND_LABEL } from '@/lib/assessment'
-import { daysUntil } from '@/lib/date'
+import { daysUntil, tbdLabel } from '@/lib/date'
 import { isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import { ACADEMIC_META, type CalendarItem } from './calendar'
@@ -35,7 +35,7 @@ export function ItemRow({
   if (item.kind === 'assessment') {
     const a = item.assessment
     const done = a.status === 'done'
-    const overdue = isOpen(a.status) && daysUntil(a.due) < 0
+    const overdue = isOpen(a.status) && !!a.due && daysUntil(a.due) < 0
     return (
       <div className="flex items-start gap-3 px-3 py-2.5">
         <button
@@ -78,7 +78,7 @@ export function ItemRow({
             overdue ? 'text-danger' : 'text-subtle',
           )}
         >
-          {overdue ? t('today.overdue') : TIME.format(new Date(a.due))}
+          {overdue ? t('today.overdue') : a.due ? TIME.format(new Date(a.due)) : tbdLabel()}
         </span>
       </div>
     )

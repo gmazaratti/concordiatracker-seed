@@ -111,6 +111,7 @@ function Row({
         <DateTimePicker
           ariaLabel="Due date"
           value={a.due}
+          clearable
           onChange={(v) => onPatch(a.id, { due: v })}
         />
       </div>

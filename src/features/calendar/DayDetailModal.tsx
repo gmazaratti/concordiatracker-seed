@@ -91,7 +91,11 @@ export function DayDetailModal({
         />
         <div className="mt-2 flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <DateTimePicker value={due} onChange={setDue} ariaLabel={t('calendar.taskWhenAria')} />
+            <DateTimePicker
+              value={due}
+              onChange={(v) => v && setDue(v)}
+              ariaLabel={t('calendar.taskWhenAria')}
+            />
           </div>
           <button
             type="button"

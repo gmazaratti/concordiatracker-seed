@@ -76,6 +76,7 @@ export function OutlineEditor({
                 <DateTimePicker
                   ariaLabel="Due date"
                   value={it.due}
+                  clearable
                   onChange={(v) => update(it.id, { due: v })}
                 />
               </div>

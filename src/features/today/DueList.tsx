@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { byDue } from '@/lib/date'
 import { CheckCircle2, ChevronDown, SlidersHorizontal } from 'lucide-react'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
@@ -11,9 +12,6 @@ import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
 import { CustomizeToday } from './CustomizeToday'
 import type { DueGroups } from './due'
-
-const byDue = (a: Assessment, b: Assessment) =>
-  new Date(a.due).getTime() - new Date(b.due).getTime()
 
 interface RowSection {
   key: string
@@ -32,7 +30,7 @@ function buildSections(
 ): RowSection[] {
   if (groupBy === 'course') {
     const map = new Map<string, Assessment[]>()
-    for (const a of [...groups.active, ...groups.later].sort(byDue)) {
+    for (const a of [...groups.active, ...groups.later, ...groups.undated].sort(byDue)) {
       const arr = map.get(a.courseId) ?? []
       arr.push(a)
       map.set(a.courseId, arr)
@@ -63,6 +61,12 @@ function buildSections(
     out.push({ key: 'thisweek', label: t('today.thisWeek'), tone: 'muted', items: groups.thisWeek })
   if (groups.later.length)
     out.push({ key: 'later', label: t('today.comingUp'), tone: 'muted', items: groups.later })
+  // Last, always, and in its own section rather than the bottom of "Coming up".
+  // These are not late and they are not soon — they are unscheduled, which is a
+  // different problem with a different fix, and burying them in a time bucket
+  // would imply a date we do not have.
+  if (groups.undated.length)
+    out.push({ key: 'undated', label: t('today.noDateYet'), tone: 'muted', items: groups.undated })
   return out
 }
 

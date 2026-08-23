@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
+import { byDue } from '@/lib/date'
 import type { Assessment } from '@/data/types'
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/cn'
 import { AssessmentRow } from './AssessmentRow'
 
 type Tab = 'grades' | 'notes'
-
-const byDue = (a: Assessment, b: Assessment) =>
-  new Date(a.due).getTime() - new Date(b.due).getTime()
 
 /** The course's full assessment list, in due order. Two views over the same
  * rows: Grades (the status + grade editor) and Notes (per-assessment notes).

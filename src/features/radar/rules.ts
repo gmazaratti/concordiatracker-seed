@@ -2,6 +2,7 @@ import type { AcademicEvent } from '@/data/academic-calendar'
 import type { Assessment, Course } from '@/data/types'
 import { isOpen } from '@/lib/status'
 import { gradeToPercent } from '@/lib/grade'
+import { byDue } from '@/lib/date'
 import { parseDay, ymd } from '@/features/calendar/calendar'
 
 /**
@@ -95,7 +96,9 @@ export interface WeekLoad {
   start: string
   /** Total percent-of-final-grade landing this week, across all courses. */
   weight: number
-  items: Assessment[]
+  /** Dated work only — a week bucket is a point in time, so undated work has
+   *  no bucket to go in. */
+  items: (Assessment & { due: string })[]
 }
 
 /**
@@ -115,14 +118,26 @@ export function weeklyLoad(assessments: Assessment[], from: Date, weeks: number)
     monday.setDate(monday.getDate() + 7)
   }
   const index = new Map(out.map((w) => [w.start, w]))
-  for (const a of assessments) {
+  for (const a of dated(assessments)) {
     const bucket = index.get(weekStart(new Date(a.due)))
     if (!bucket) continue
     bucket.items.push(a)
     bucket.weight += a.weight
   }
-  for (const w of out) w.items.sort((a, b) => a.due.localeCompare(b.due))
+  for (const w of out) w.items.sort(byDue)
   return out
+}
+
+/**
+ * The dated half of a list.
+ *
+ * Every rule below reasons about a point in time — a week, a day, a horizon —
+ * and none of them can say anything about work with no date. Narrowing once
+ * here beats a null check inside six separate filters, and the type makes it
+ * impossible to forget one.
+ */
+function dated<T extends { due: string | null }>(list: T[]): (T & { due: string })[] {
+  return list.filter((a): a is T & { due: string } => !!a.due)
 }
 
 // ── Rules ───────────────────────────────────────────────────────────────────
@@ -181,7 +196,7 @@ function deadlines({ now, calendar, courses }: RadarInput): Signal[] {
 
 /** Weeks where too much of your grade lands at once. */
 function crunch({ now, assessments }: RadarInput): Signal[] {
-  const open = assessments.filter((a) => isOpen(a.status) && new Date(a.due) >= now)
+  const open = dated(assessments).filter((a) => isOpen(a.status) && new Date(a.due) >= now)
   const weeks = weeklyLoad(open, now, 16).filter(
     (w) =>
       w.weight >= 30 &&
@@ -211,7 +226,7 @@ function crunch({ now, assessments }: RadarInput): Signal[] {
 
 /** Two heavy things on the same day. */
 function sameDay({ now, assessments }: RadarInput): Signal[] {
-  const open = assessments.filter((a) => isOpen(a.status) && new Date(a.due) >= now)
+  const open = dated(assessments).filter((a) => isOpen(a.status) && new Date(a.due) >= now)
   const byDay = new Map<string, Assessment[]>()
   for (const a of open) {
     const key = dayOf(a.due)
@@ -306,7 +321,7 @@ function lowFinals({ pastCourses }: RadarInput): Signal[] {
 /** Dates ahead that rest on one classmate's word. */
 function unverified({ now, assessments }: RadarInput): Signal[] {
   const horizon = new Date(now.getTime() + 21 * DAY)
-  const shaky = assessments.filter(
+  const shaky = dated(assessments).filter(
     (a) =>
       isOpen(a.status) &&
       a.provenance.status === 'unverified' &&
@@ -345,6 +360,40 @@ function blindSpots({ courses, assessments }: RadarInput): Signal[] {
         'them. An empty course is not a quiet one — it is one this page is blind to.',
       basis: 'Courses in your term with no assessments entered.',
       action: { label: 'Add an outline', to: '/app/courses' },
+    },
+  ]
+}
+
+/**
+ * Work with no date on it yet.
+ *
+ * The one signal on this page about what Radar CANNOT see. Everything else here
+ * reasons over a calendar, and an undated final is invisible to all of it — it
+ * cannot land in a crunch week, cannot collide with anything, cannot be counted
+ * against a deadline. So the weight is stated plainly, because a term that
+ * looks light may only look that way.
+ */
+function undated({ courses, assessments }: RadarInput): Signal[] {
+  const open = assessments.filter((a) => isOpen(a.status) && !a.due)
+  if (open.length === 0) return []
+  const weight = open.reduce((sum, a) => sum + a.weight, 0)
+  const codes = [...new Set(open.map((a) => courses.find((c) => c.id === a.courseId)?.code))]
+    .filter(Boolean)
+    .join(', ')
+  return [
+    {
+      id: 'undated-items',
+      // Escalates on WEIGHT, not on count: one undated final worth 50% matters
+      // more than four undated quizzes worth two each.
+      severity: weight >= 25 ? 'warning' : 'watch',
+      topic: 'coverage',
+      title: `${open.length} item${open.length === 1 ? '' : 's'} with no date yet`,
+      detail:
+        `${codes || 'Some of your courses'} — ${Math.round(weight)}% of your grade has no date ` +
+        'attached to it. None of the checks above can see this work, so a term that looks light ' +
+        'may only look that way. Add the dates once the registrar or your professor publishes them.',
+      basis: 'Open assessments saved without a due date.',
+      action: { label: 'Open Courses', to: '/app/courses' },
     },
   ]
 }
@@ -466,6 +515,15 @@ export const CHECKS: RadarCheck[] = [
     ready: (i) => i.courses.length > 0,
     needs: 'courses in your current term',
     run: blindSpots,
+  },
+  {
+    id: 'undated-items',
+    label: 'Undated work',
+    watches: 'Assessments saved with no date, which every other check here is blind to.',
+    topic: 'coverage',
+    ready: (i) => i.assessments.length > 0,
+    needs: 'assessments in your current term',
+    run: undated,
   },
   {
     id: 'record-gap',

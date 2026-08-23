@@ -84,11 +84,14 @@ for (const status of Object.keys(STATUS_COLORS) as AssessmentStatus[]) {
  * "X days overdue". `neutral` is the caller's color for non-urgent labels (Today
  * wants its due text prominent → 'text-fg'; the editor wants it subtle). */
 export function dueLabel(
-  due: string,
+  due: string | null,
   status: AssessmentStatus,
   neutral = 'text-subtle',
 ): { label: string; tone: string } {
   const days = daysUntil(due)
+  // An undated item is never late and never urgent, so it takes the neutral
+  // tone and the "not set" wording rather than a colour that implies a deadline.
+  if (!due) return { label: relativeDueLabel(null), tone: neutral }
   if (isOpen(status)) {
     return {
       label: relativeDueLabel(due),

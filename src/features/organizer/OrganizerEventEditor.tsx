@@ -175,6 +175,7 @@ function EventEditorForm({
               <DateTimePicker
                 value={start}
                 onChange={(iso) => {
+                  if (!iso) return
                   setStart(iso)
                   touch()
                 }}

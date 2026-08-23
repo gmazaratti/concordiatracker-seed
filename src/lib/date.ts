@@ -19,8 +19,42 @@ export function daysFromNow(n: number, hour = 23, minute = 59): string {
   return d.toISOString()
 }
 
-/** Whole calendar days from today to `due` (negative = overdue). */
-export function daysUntil(due: string): number {
+/**
+ * The label for an assessment whose date is genuinely not known.
+ *
+ * One string, one place. A syllabus that says "final exam: TBA, scheduled by
+ * the registrar" is stating a fact, and the app repeats it rather than making
+ * the student invent a deadline to get past a form.
+ */
+export function tbdLabel(): string {
+  return LANG === 'fr' ? 'Date à confirmer' : 'Date not set'
+}
+
+/**
+ * Sort comparator for anything with a due date.
+ *
+ * Undated items go LAST, always. They are not urgent — nothing with no date
+ * can be — and floating them to the top of a due list would make the one thing
+ * you cannot act on the first thing you see.
+ */
+export function byDue<T extends { due: string | null }>(a: T, b: T): number {
+  if (!a.due && !b.due) return 0
+  if (!a.due) return 1
+  if (!b.due) return -1
+  return a.due.localeCompare(b.due)
+}
+
+/**
+ * Whole calendar days from today to `due` (negative = overdue).
+ *
+ * An undated item returns Infinity — never overdue, never soon, and last in any
+ * ordering, which is exactly how "we do not know when this is" should behave.
+ * Note the one thing it does NOT do: `daysUntil(null) >= 0` is true, so any
+ * caller using that test to mean "upcoming" must check for a date itself. Every
+ * such caller in the codebase does.
+ */
+export function daysUntil(due: string | null): number {
+  if (!due) return Number.POSITIVE_INFINITY
   const target = new Date(due)
   target.setHours(0, 0, 0, 0)
   return Math.round((target.getTime() - startOfToday().getTime()) / DAY_MS)
@@ -62,7 +96,10 @@ function fmt(key: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat
 }
 
 /** Compact, human due label: "2 days overdue", "Due today", "Due Fri", "Due Jun 20". */
-export function relativeDueLabel(due: string): string {
+export function relativeDueLabel(due: string | null): string {
+  // Accepts null so the ~17 call sites do not each grow a branch. An undated
+  // item says so wherever it appears, which is the whole point.
+  if (!due) return tbdLabel()
   const days = daysUntil(due)
   const fr = LANG === 'fr'
   if (days < 0) {
@@ -94,12 +131,14 @@ export function termProgress(
 }
 
 /** Full date for tooltips / secondary lines: "Fri, Jun 20". */
-export function formatFull(due: string): string {
+export function formatFull(due: string | null): string {
+  if (!due) return tbdLabel()
   return fmt('full', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(due))
 }
 
 /** Human due date + time for the editor summary: "Fri, Jun 20 · 11:59 PM". */
-export function formatDueDateTime(iso: string): string {
+export function formatDueDateTime(iso: string | null): string {
+  if (!iso) return tbdLabel()
   return fmt('dueDateTime', {
     weekday: 'short',
     month: 'short',

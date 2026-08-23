@@ -20,8 +20,10 @@ export function CountdownWidget() {
   const { assessments, courseById } = useAppData()
   const { uiState, patchUiState } = useUiState()
 
+  // A countdown to an unknown date is not a countdown, so undated work is
+  // excluded rather than shown at zero.
   const upcoming = assessments
-    .filter((a) => isOpen(a.status) && daysUntil(a.due) >= 0)
+    .filter((a): a is typeof a & { due: string } => isOpen(a.status) && !!a.due && daysUntil(a.due) >= 0)
     .sort((a, b) => +new Date(a.due) - +new Date(b.due))
 
   const pinned = upcoming.find((a) => a.id === uiState.countdownId)

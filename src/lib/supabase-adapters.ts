@@ -109,7 +109,7 @@ export interface AssignmentRow {
   id: string
   course_id: string | null
   title: string | null
-  date: string
+  date: string | null
   type: string | null
   weight: number | null
   score: number | null
@@ -265,7 +265,9 @@ interface BlueprintItem {
   name?: string
   kind?: string
   weight?: number
-  due?: string
+  /** Null when the outline itself gave no date — an exam the registrar has not
+   *  scheduled yet. Carried through the import rather than invented. */
+  due?: string | null
 }
 
 export interface BlueprintRow {

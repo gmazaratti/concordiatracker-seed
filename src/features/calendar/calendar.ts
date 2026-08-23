@@ -78,8 +78,10 @@ export function dayItems(day: Date, src: CalendarSource, prefs: CalendarPrefs): 
   const items: CalendarItem[] = []
   if (prefs.showMine) {
     src.assessments
-      .filter((a) => ymd(new Date(a.due)) === key)
-      .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime())
+      // Undated work is deliberately absent from the grid: there is no square
+      // for "sometime". Today lists it, and Radar counts it.
+      .filter((a) => !!a.due && ymd(new Date(a.due)) === key)
+      .sort((a, b) => new Date(a.due!).getTime() - new Date(b.due!).getTime())
       .forEach((a) => items.push({ kind: 'assessment', id: a.id, assessment: a }))
     src.tasks
       .filter((t) => ymd(new Date(t.due)) === key)

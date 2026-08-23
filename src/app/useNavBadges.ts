@@ -28,7 +28,7 @@ export function useNavBadges(): Record<string, NavBadge | undefined> {
     let overdue = 0
     let dueToday = 0
     for (const a of assessments) {
-      if (!isOpen(a.status)) continue
+      if (!isOpen(a.status) || !a.due) continue
       const d = daysUntil(a.due)
       if (d < 0) overdue++
       else if (d === 0) dueToday++

@@ -45,6 +45,8 @@ export function termWorkload(
   }))
 
   for (const a of assessments) {
+    // A week bucket is a point in time; undated work has no bucket.
+    if (!a.due) continue
     const due = new Date(a.due).getTime()
     if (!due || due < start) continue
     const idx = Math.floor((due - start) / (7 * DAY_MS))

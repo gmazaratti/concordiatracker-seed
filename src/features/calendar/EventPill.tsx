@@ -10,6 +10,7 @@ function isOverdue(item: CalendarItem): boolean {
   return (
     item.kind === 'assessment' &&
     isOpen(item.assessment.status) &&
+    !!item.assessment.due &&
     daysUntil(item.assessment.due) < 0
   )
 }

@@ -177,7 +177,7 @@ export function CoursesPage() {
             coursesGraded={coursesGraded}
             coursesTotal={courses.length}
             openItems={open.length}
-            overdue={open.filter((a) => daysUntil(a.due) < 0).length}
+            overdue={open.filter((a) => !!a.due && daysUntil(a.due) < 0).length}
           />
           {plan === 'free' && <PaywallCallout />}
         </aside>

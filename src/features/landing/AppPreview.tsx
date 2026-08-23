@@ -24,14 +24,17 @@ import { useT } from '@/i18n/i18n'
  * are disabled by the caller; nothing here is wired to the store. */
 const courseById = (id: string) => courses.find((c) => c.id === id)
 
-const dueItems: Assessment[] = seedAssessments
-  .filter((a) => a.status === 'not-started')
+// Narrowed rather than asserted: if the seed ever gains an undated item, the
+// front page quietly omits it instead of rendering "Invalid Date".
+const dueItems: (Assessment & { due: string })[] = seedAssessments
+  .filter((a): a is Assessment & { due: string } => a.status === 'not-started' && !!a.due)
   .sort((a, b) => daysUntil(a.due) - daysUntil(b.due))
   .slice(0, 6)
 
 const gpa = currentGpa(courses, seedAssessments)
 
-function dueTone(due: string): string {
+function dueTone(due: string | null): string {
+  if (!due) return 'text-subtle'
   const d = daysUntil(due)
   if (d < 0) return 'text-danger'
   if (d === 0) return 'text-warning'

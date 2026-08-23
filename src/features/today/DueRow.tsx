@@ -14,7 +14,9 @@ import { useT } from '@/i18n/i18n'
 
 /** Due labels lean on color only as urgency reinforcement — the text says it too,
  * and everything that isn't urgent stays neutral so the row reads calm. */
-function dueTone(due: string): string {
+function dueTone(due: string | null): string {
+  // No date, no urgency colour: the row still says "Date not set", quietly.
+  if (!due) return 'text-subtle'
   const days = daysUntil(due)
   if (days < 0) return 'text-danger'
   if (days === 0) return 'text-warning'

@@ -14,6 +14,7 @@ import {
   type OutlineItem,
 } from '@/data/teacher'
 import { KIND_LABEL } from '@/lib/assessment'
+import { tbdLabel } from '@/lib/date'
 import { term } from '@/data/mock'
 import { SyllabusParseReveal } from '@/features/courses/SyllabusParseReveal'
 import { Button } from '@/components/ui/Button'
@@ -272,9 +273,10 @@ function SharedOutlineList({ items }: { items: OutlineItem[] }) {
   )
 }
 
-function dueLabel(due: string): string {
+function dueLabel(due: string | null): string {
+  if (!due) return tbdLabel()
   const d = new Date(due)
-  return isNaN(d.getTime()) ? 'TBA' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return isNaN(d.getTime()) ? tbdLabel() : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function AnnouncementComposer({

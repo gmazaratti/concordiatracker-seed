@@ -81,8 +81,16 @@ export interface Assessment {
   courseId: string
   title: string
   kind: AssessmentKind
-  /** ISO 8601 due timestamp. */
-  due: string
+  /**
+   * ISO 8601 due timestamp, or null when the date is genuinely not known yet.
+   *
+   * Null is a real state, not a gap to be filled. A syllabus that says the final
+   * is "TBA — scheduled by the registrar" is telling you something true, and
+   * making the student invent a date to get past a form turns that truth into a
+   * wrong deadline they will then plan around. Everything that sorts, buckets or
+   * warns has to handle it; that is the cost of not lying.
+   */
+  due: string | null
   /** Percentage of the final grade this is worth (0–100). */
   weight: number
   provenance: Provenance
