@@ -37,9 +37,14 @@ import {
   findConflicts,
   placeSections,
   weeklyHours,
+  type Placed,
 } from './schedule'
+import { parseCourseCode } from '@/lib/course-sections'
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
+import { SuggestedCourses } from './SuggestedCourses'
+import { useProgramForUser } from './useProgramForUser'
+import { findSections } from '@/lib/seats'
 import { ScheduleFilters } from './ScheduleFilters'
 
 /**
@@ -79,10 +84,67 @@ export function ScheduleBuilder() {
     }
   }, [])
 
+  const program = useProgramForUser()
+  // Clicking a suggestion fills the search box rather than adding the course
+  // outright: which SECTION you want is still yours to pick, and we have no
+  // business choosing a in-person 8am for someone.
+  const [seedQuery, setSeedQuery] = useState('')
+
+  /**
+   * The course being hovered in the suggestions list, drawn on the week as a
+   * dashed outline.
+   *
+   * Fetched on hover and cached, because the useful question is not "what is
+   * this course" but "where would it land" — and answering that needs its real
+   * meeting times. Cached because moving down a list of eight would otherwise
+   * be eight round trips, and re-entering a row a ninth.
+   */
+  const [ghostCode, setGhostCode] = useState<string | null>(null)
+  const [ghostCache, setGhostCache] = useState<Map<string, Placed[]>>(new Map())
+
+  // DERIVED, not stored. The effect only ever fetches — writing the visible
+  // ghost from inside it would be a setState during render, and the empty case
+  // needs no state at all.
+  const ghost = ghostCode ? (ghostCache.get(ghostCode) ?? []) : []
+
+  useEffect(() => {
+    if (!ghostCode || ghostCache.has(ghostCode)) return
+    const parsed = parseCourseCode(ghostCode)
+    if (!parsed) return
+    let alive = true
+    void findSections(parsed.subject, parsed.catalog)
+      .then((rows) => {
+        if (!alive) return
+        // One section per component, from the term being planned. A preview
+        // drawing all fourteen lectures of a course is not a preview.
+        const inTerm = rows.filter((r) => r.termCode === termCode && r.meetingTimes)
+        const firstPer = new Map<string, (typeof rows)[number]>()
+        for (const r of inTerm) if (!firstPer.has(r.component)) firstPer.set(r.component, r)
+        const drawn = placeSections(
+          [...firstPer.values()].map((section) => ({ code: ghostCode, section })),
+        )
+        setGhostCache((prev) => new Map(prev).set(ghostCode, drawn))
+      })
+      .catch(() => {
+        // A course we cannot look up simply draws nothing. Cached as empty so
+        // re-entering the row does not retry on every mouse move.
+        if (alive) setGhostCache((prev) => new Map(prev).set(ghostCode, []))
+      })
+    return () => {
+      alive = false
+    }
+  }, [ghostCode, termCode, ghostCache])
+
   const record = useMemo(() => {
     const summary = summarizeRecord(pastCourses, assessments)
     return { completed: new Set(summary.completedCodes.map(normalizeCode)), credits: summary.credits }
   }, [pastCourses, assessments])
+
+  // Passed, plus already on this schedule. Suggesting either back is noise.
+  const taken = useMemo(
+    () => [...record.completed, ...picked.map((p) => p.code)],
+    [record, picked],
+  )
 
   /**
    * Seed from the classes you are already in.
@@ -317,6 +379,8 @@ export function ScheduleBuilder() {
           }
         >
           <ScheduleSearch
+            key={seedQuery}
+            initialQuery={seedQuery}
             blocks={blocks}
             termCode={termCode}
             onTermFound={setTerms}
@@ -324,6 +388,14 @@ export function ScheduleBuilder() {
             taken={new Set(picked.map((p) => p.section.classNumber))}
             eligibleOnly={eligibleOnly}
             record={record}
+          />
+          {/* Only when the search is empty — see the note in SuggestedCourses.
+              The moment someone types, they know what they want. */}
+          <SuggestedCourses
+            program={program}
+            taken={taken}
+            onPick={setSeedQuery}
+            onHover={setGhostCode}
           />
         </Pane>
 
@@ -417,6 +489,7 @@ export function ScheduleBuilder() {
           </div>
           <WeekGrid
             placed={placed}
+            ghost={ghost}
             blocks={blocks}
             colourOf={colourOf}
             conflicts={conflicts}

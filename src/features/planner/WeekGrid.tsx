@@ -27,6 +27,7 @@ const DRAG_THRESHOLD = 4
 
 export function WeekGrid({
   placed,
+  ghost,
   blocks,
   colourOf,
   conflicts,
@@ -34,6 +35,14 @@ export function WeekGrid({
   onRemoveBlock,
 }: {
   placed: Placed[]
+  /**
+   * A course being considered, not chosen.
+   *
+   * Drawn dashed and hollow so it can never be mistaken for something already
+   * on the timetable — the whole value is seeing the hole it would fill (or the
+   * clash it would cause) BEFORE committing to it.
+   */
+  ghost?: Placed[]
   blocks: Block[]
   colourOf: Map<string, string>
   conflicts: Conflict[]
@@ -56,7 +65,9 @@ export function WeekGrid({
   const blockBounds = blocks.map((b) => ({
     slot: { day: b.day, start: b.start, end: b.end, startMinutes: 0 },
   })) as unknown as Placed[]
-  const { start, end } = gridBounds([...placed, ...blockBounds])
+  // The ghost is included in the bounds, so previewing an 8am class does not
+  // draw it off the top of a grid that starts at nine.
+  const { start, end } = gridBounds([...placed, ...(ghost ?? []), ...blockBounds])
   const span = Math.max(end - start, 240)
   const hours = Array.from({ length: Math.ceil(span / 60) + 1 }, (_, i) => start + i * 60)
   const days = [1, 2, 3, 4, 5]
@@ -196,6 +207,30 @@ export function WeekGrid({
                     </span>
                   </div>
                 )}
+
+                {(ghost ?? [])
+                  .filter((p) => p.slot.day === day)
+                  .map((p, i) => {
+                    const top = (toMinutes(p.slot.start) - start) * PX_PER_MIN + 9
+                    const height = Math.max(
+                      (toMinutes(p.slot.end) - toMinutes(p.slot.start)) * PX_PER_MIN,
+                      20,
+                    )
+                    return (
+                      <div
+                        key={`ghost-${p.section.classNumber}-${i}`}
+                        data-block-target="no"
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0.5 overflow-hidden rounded border-2 border-dashed border-accent bg-accent-soft/60 px-1.5 py-1 text-[10.5px] leading-tight"
+                        style={{ top, height }}
+                      >
+                        <span className="block truncate font-medium text-accent">{p.code}</span>
+                        <span className="block truncate text-subtle">
+                          {p.slot.start}–{p.slot.end}
+                        </span>
+                      </div>
+                    )
+                  })}
 
                 {placed
                   .filter((p) => p.slot.day === day)

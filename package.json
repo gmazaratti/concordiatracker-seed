@@ -12,7 +12,7 @@
     "postbuild": "node docs-src/build.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run test:terms && npm run test:undated && npm run db:verify && npm run verify:agents && npm run verify:routing",
+    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run test:terms && npm run test:undated && npm run test:recommend && npm run db:verify && npm run verify:agents && npm run verify:routing",
     "test:gpa": "node src/lib/gpa.test.mjs",
     "typecheck:api": "tsc -p api --noEmit",
     "test:schedule": "node src/features/planner/schedule.test.mjs",
@@ -25,7 +25,8 @@
     "email:test": "node --env-file=.env.local scripts/send-test-email.mjs",
     "cap:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "test:undated": "node src/features/today/undated.test.mjs"
+    "test:undated": "node src/features/today/undated.test.mjs",
+    "test:recommend": "node src/lib/recommend.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

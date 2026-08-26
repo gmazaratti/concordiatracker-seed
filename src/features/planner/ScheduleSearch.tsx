@@ -24,6 +24,7 @@ import { clashesWithBlocks, type Block } from './schedule'
  * course is not offered.
  */
 export function ScheduleSearch({
+  initialQuery = '',
   blocks,
   termCode,
   onTermFound,
@@ -32,6 +33,9 @@ export function ScheduleSearch({
   eligibleOnly,
   record,
 }: {
+  /** Seeded when a suggestion is clicked. The parent remounts on change (a
+   *  `key`), so this is an initial value and never fights what you type. */
+  initialQuery?: string
   blocks: Block[]
   termCode: string
   onTermFound: (terms: string[]) => void
@@ -40,7 +44,7 @@ export function ScheduleSearch({
   eligibleOnly: boolean
   record: { completed: Set<string>; credits: number }
 }) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [matches, setMatches] = useState<CatalogCourse[] | null>(null)
   const [searching, setSearching] = useState(false)
 

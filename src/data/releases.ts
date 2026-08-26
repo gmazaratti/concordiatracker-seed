@@ -190,7 +190,7 @@ export const RELEASES: Release[] = [
     date: '2026-07-27',
     changes: [
       { kind: 'new', text: 'Subscriptions are live: the Semester pass ($15) or monthly ($5), paid right inside Settings → Billing without leaving the app.' },
-      { kind: 'new', text: 'Every plan starts with a 7-day free trial. Cancel before it ends and you’re never charged.' },
+      { kind: 'new', text: 'Every plan starts with a free trial. Cancel before it ends and you’re never charged.' },
       { kind: 'new', text: 'Upgrading never wastes what you’ve paid for: switch from monthly to the Semester pass and your remaining days carry straight over.' },
       { kind: 'new', text: 'Invoices live in Billing with PDF receipts, and you can cancel or resume in one click: access always runs to the end of the period you paid for.' },
       { kind: 'improved', text: 'Prices are shown in Canadian dollars for everyone, so what you see is exactly what you’re charged.' },
