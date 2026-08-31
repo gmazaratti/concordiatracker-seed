@@ -12,8 +12,13 @@
  *   • other static → StaleWhileRevalidate (icons, manifest, og image).
  *   • /api/* + any cross-origin (Supabase, Google, fonts) → untouched (network).
  *
- * Updating: bump VERSION on a breaking change — `activate` purges every cache
- * that doesn't match, so old entries can't linger.
+ * Updating: VERSION is STAMPED AT BUILD TIME by scripts/stamp-sw.mjs with the
+ * entry bundle's content hash. It used to be a hand-bumped constant, which meant
+ * sw.js was byte-identical on every deploy — and a browser only installs a new
+ * worker when the SCRIPT changes, so an installed app sat on an old bundle until
+ * someone happened to fully relaunch it. Do not put a literal back here; the
+ * value below is only what a dev build sees. `activate` purges every cache that
+ * doesn't match, so old entries can't linger.
  *
  * KILL SWITCH: if caching ever misbehaves, replace this whole file's body with:
  *     self.addEventListener('install', () => self.skipWaiting())
@@ -23,7 +28,7 @@
  *         .then(() => self.clients.matchAll()).then((cs) => cs.forEach((c) => c.navigate(c.url)))))
  *   Deploy it; every client self-unregisters and clears its caches on next load.
  */
-const VERSION = 'ct-v5'
+const VERSION = 'ct-dev'
 const SHELL_CACHE = `${VERSION}-shell`
 const ASSET_CACHE = `${VERSION}-assets`
 const SHELL_URL = '/index.html'

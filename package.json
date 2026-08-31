@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "docs": "node docs-src/build.mjs",
-    "postbuild": "node docs-src/build.mjs",
+    "postbuild": "node docs-src/build.mjs && node scripts/stamp-sw.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
     "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run test:terms && npm run test:undated && npm run test:recommend && npm run db:verify && npm run verify:agents && npm run verify:routing",
