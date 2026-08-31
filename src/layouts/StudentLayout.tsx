@@ -52,10 +52,12 @@ export function StudentLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
-        <header className="flex items-center gap-2.5 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
-          <Logo showText={false} />
-          <MobileSearchButton />
-          <AvatarMenu align="top" compact />
+        <header className="flex items-center justify-between gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
+          <Logo />
+          <div className="flex shrink-0 items-center gap-1">
+            <MobileSearchButton />
+            <AvatarMenu align="top" compact />
+          </div>
         </header>
 
         <main className="relative flex-1 overflow-y-auto">

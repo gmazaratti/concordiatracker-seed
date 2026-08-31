@@ -80,7 +80,7 @@ export function AvatarMenu({
         aria-label="Account menu"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex items-center gap-2.5 rounded-lg text-left transition-colors duration-150 hover:bg-surface-2',
+          'flex shrink-0 items-center gap-2.5 rounded-lg text-left transition-colors duration-150 hover:bg-surface-2',
           compact ? 'p-0.5' : 'w-full p-1.5',
         )}
       >

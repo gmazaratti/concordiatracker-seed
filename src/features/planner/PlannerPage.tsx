@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Bell,
@@ -23,6 +24,7 @@ import { ProgramProgress } from './ProgramProgress'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerNavBar, type NavItem, type Phase } from './PlannerNav'
+import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
 
 /**
  * Planner: the pre-term half of the product.
@@ -79,6 +81,7 @@ const TAB_IDS = new Set<string>(TABS.map((x) => x.id))
 
 export function PlannerPage() {
   const { t } = useI18n()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   /**
    * The open section lives in the URL.
@@ -130,6 +133,21 @@ export function PlannerPage() {
           <p className="mt-0.5 text-[13px] text-subtle">{t('planner.subtitle')}</p>
         </div>
       </header>
+
+      {/* Phones get the same rail, slid in from the left. A dropdown listed
+          the eight sections as eight equal strings and lost what the rail
+          exists to say — that they are a sequence, not a menu. */}
+      <PlannerDrawerButton
+        label={items.find((i) => i.id === tab)?.label ?? t('planner.title')}
+        onClick={() => setDrawerOpen(true)}
+      />
+      <PlannerDrawer
+        items={items}
+        active={tab}
+        onChange={setTab}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      />
 
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
         <PlannerNavBar items={items} active={tab} onChange={setTab} />
