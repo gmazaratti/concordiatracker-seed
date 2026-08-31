@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { Select } from '@/components/ui/Select'
 
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -29,7 +30,13 @@ const PHASE_LABEL: Record<Phase, string> = {
  * switched to, and it is the only shape with room to name the phases — know,
  * explore, commit — which is what turns six sections into one sequence.
  *
- * Horizontal and scrollable below `lg`, where there is no room for a rail.
+ * Below `lg` it is a SELECT, not a scrolling strip. The strip was the obvious
+ * translation of a rail to a narrow screen and it was wrong: eight sections in
+ * three phases means most of them are off-screen at any moment, so you cannot
+ * see where you are in the sequence, cannot see what else there is, and have to
+ * swipe a row of tabs to find out — inside a page that already scrolls. A
+ * closed control that names the current section answers "where am I" in one
+ * line and opens to the full list.
  */
 export function PlannerNavBar<T extends string>({
   items,
@@ -41,11 +48,22 @@ export function PlannerNavBar<T extends string>({
   onChange: (id: T) => void
 }) {
   return (
+    <>
+      {/* Phones. One line that says where you are; tapping shows everything. */}
+      <div className="mb-4 lg:hidden">
+        <Select
+          value={active}
+          onChange={(v) => onChange(v as T)}
+          ariaLabel="Planner section"
+          options={items.map((i) => ({ value: i.id, label: i.label }))}
+        />
+      </div>
+
     <nav
       role="tablist"
       aria-label="Planner sections"
       aria-orientation="vertical"
-      className="mb-4 flex gap-1 overflow-x-auto lg:mb-0 lg:w-[190px] lg:shrink-0 lg:flex-col lg:gap-0 lg:overflow-visible print:hidden"
+      className="hidden lg:mb-0 lg:flex lg:w-[190px] lg:shrink-0 lg:flex-col lg:gap-0 print:hidden"
     >
       {items.map((item, i) => {
         const Icon = item.icon
@@ -82,5 +100,6 @@ export function PlannerNavBar<T extends string>({
         )
       })}
     </nav>
+    </>
   )
 }

@@ -129,7 +129,7 @@ export function CommunitySearch() {
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        placeholder="Search people and organizations"
+        placeholder="Search organizations"
         className="w-full rounded-lg border border-border bg-surface py-2 pr-8 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
       />
       {query && (

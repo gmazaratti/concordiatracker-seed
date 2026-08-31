@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react'
-import { CalendarRange, LayoutGrid, Rows3, type LucideIcon } from 'lucide-react'
+import {
+  CalendarRange,
+  ChevronDown,
+  LayoutGrid,
+  Rows3,
+  SlidersHorizontal,
+  type LucideIcon,
+} from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { isRelevantTo, type EventCategory } from '@/data/community'
@@ -52,17 +59,30 @@ export function EventsFeed() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
+      {/* Search gets its own row below sm. Sharing one with two buttons left
+          it about 180px wide, which is where the placeholder was being cut
+          off — the fix is the layout, not a shorter string. */}
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
         <CommunitySearch />
-        {/* The rail owns Following on xl+; this stays for narrower screens
-            rather than being deleted, or they'd lose access to the list. */}
-        <span className="xl:hidden">
-          <FollowingMenu />
-        </span>
-        <NotificationsBell onOpenEvent={openEvent} />
+        <div className="flex items-center gap-2">
+          {/* The rail owns Following on xl+; this stays for narrower screens
+              rather than being deleted, or they'd lose access to the list. */}
+          <span className="xl:hidden">
+            <FollowingMenu />
+          </span>
+          <NotificationsBell />
+          <span className="ml-auto sm:hidden">
+            <ViewToggle view={communityView} onChange={setCommunityView} />
+          </span>
+        </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      {/* Below sm the chips are behind a disclosure. Six of them plus two
+          controls wrapped to three rows and pushed the first event most of a
+          screen down — on the one tab whose entire job is showing events. */}
+      <FilterBar
+        activeCount={(filter === 'all' ? 0 : 1) + (forYou ? 1 : 0)}
+      >
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
           All
         </Chip>
@@ -78,7 +98,7 @@ export function EventsFeed() {
           </Chip>
         ))}
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 sm:ml-auto">
           {user.program && (
             <button
               type="button"
@@ -94,9 +114,11 @@ export function EventsFeed() {
               For my program
             </button>
           )}
-          <ViewToggle view={communityView} onChange={setCommunityView} />
+          <span className="hidden sm:inline-flex">
+            <ViewToggle view={communityView} onChange={setCommunityView} />
+          </span>
         </div>
-      </div>
+      </FilterBar>
 
       <AnimatedEventList
         key={communityView}
@@ -222,6 +244,51 @@ function EmptyState({ forYou }: { forYou: boolean }) {
           ? 'Try clearing the “For my program” filter to see everything coming up.'
           : 'No events match this filter right now. New events show up here as orgs post them.'}
       </p>
+    </div>
+  )
+}
+
+/**
+ * The filter row, collapsible below sm.
+ *
+ * Six category chips plus two controls wrapped to three rows on a phone and
+ * pushed the first event most of a screen down — on the tab whose entire job is
+ * showing events. Above sm there is room, so nothing is hidden and the button
+ * does not exist. The count on the button is the point: a filter you have
+ * forgotten is a filter that makes the app look broken.
+ */
+function FilterBar({ activeCount, children }: { activeCount: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mb-4">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 active:bg-surface-2 sm:hidden"
+      >
+        <SlidersHorizontal size={14} aria-hidden />
+        Filters
+        {activeCount > 0 && (
+          <span className="rounded bg-accent-soft px-1.5 text-[11px] font-semibold text-accent tabular-nums">
+            {activeCount}
+          </span>
+        )}
+        <ChevronDown
+          size={14}
+          aria-hidden
+          className={cn('transition-transform duration-150', open && 'rotate-180')}
+        />
+      </button>
+
+      <div
+        className={cn(
+          'flex-wrap items-center gap-1.5 sm:flex',
+          open ? 'mt-2 flex' : 'hidden',
+        )}
+      >
+        {children}
+      </div>
     </div>
   )
 }

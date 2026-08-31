@@ -13,6 +13,8 @@ import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { PlannerPage } from '@/features/planner/PlannerPage'
 import { CommunityPage } from '@/features/community/CommunityPage'
+import { FollowingPage } from '@/features/community/FollowingPage'
+import { NotificationsPage } from '@/features/community/NotificationsPage'
 import { OrgProfilePage } from '@/features/community/OrgProfilePage'
 import { PublicEventPage } from '@/features/community/PublicEventPage'
 import { SharedSchedulePage } from '@/features/planner/SharedSchedulePage'
@@ -63,6 +65,8 @@ export function AppRoutes() {
         <Route path="radar" element={<Navigate to="/app/planner?tab=radar" replace />} />
         <Route path="money" element={<Navigate to="/app/planner?tab=money" replace />} />
         <Route path="community" element={<CommunityPage />} />
+        <Route path="community/following" element={<FollowingPage />} />
+        <Route path="community/notifications" element={<NotificationsPage />} />
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
         <Route path="requests" element={<AppRequestsPage />} />
       </Route>

@@ -5,6 +5,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { LoginScreen } from '@/features/auth/LoginScreen'
 import { Sidebar } from '@/components/Sidebar'
 import { MobileNav } from '@/components/MobileNav'
+import { MobileSearchButton } from '@/components/MobileSearchButton'
 import { Logo } from '@/components/Logo'
 import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
@@ -51,8 +52,9 @@ export function StudentLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
-        <header className="flex items-center justify-between border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
-          <Logo />
+        <header className="flex items-center gap-2.5 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
+          <Logo showText={false} />
+          <MobileSearchButton />
           <AvatarMenu align="top" compact />
         </header>
 

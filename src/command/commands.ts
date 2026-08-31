@@ -1,18 +1,30 @@
 import type { NavigateFunction } from 'react-router-dom'
 import {
+  Bell,
   BookOpen,
   CalendarDays,
+  Compass,
+  CreditCard,
+  FileText,
   GraduationCap,
   Home,
+  LifeBuoy,
+  Megaphone,
+  Network,
   Palette,
+  Plus,
+  Radar,
   Settings,
   Sparkles,
   SquarePen,
+  Table,
   Upload,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
+import type { SettingsSection } from '@/app/providers/settings'
 
 export type CommandGroup = 'Navigate' | 'Actions'
 
@@ -26,7 +38,11 @@ export interface CommandContext {
   openAssessment: (id: string) => void
   openCourse: (id: string) => void
   /** Open the floating settings panel (optionally on a section). */
-  openSettings: () => void
+  openSettings: (section?: SettingsSection) => void
+  /** The support-ticket panel. */
+  openSupport: () => void
+  /** The release-history modal. */
+  openUpdates: () => void
 }
 
 export interface Command {
@@ -65,10 +81,28 @@ export const STATIC_COMMANDS: Command[] = [
   { id: 'nav-today', title: 'Today', hint: 'Go to', group: 'Navigate', icon: Home, keywords: ['home', 'launch', 'due'], perform: go('/app') },
   { id: 'nav-courses', title: 'Courses', hint: 'Go to', group: 'Navigate', icon: BookOpen, keywords: ['grades', 'classes', 'gpa'], perform: go('/app/courses') },
   { id: 'nav-calendar', title: 'Calendar', hint: 'Go to', group: 'Navigate', icon: CalendarDays, keywords: ['month', 'week', 'schedule', 'dates'], perform: go('/app/calendar') },
+  { id: 'nav-planner', title: 'Planner', hint: 'Go to', group: 'Navigate', icon: Compass, keywords: ['next term', 'plan', 'register', 'degree', 'what to take'], perform: go('/app/planner') },
   { id: 'nav-community', title: 'Community', hint: 'Go to', group: 'Navigate', icon: Users, keywords: ['events', 'orgs', 'clubs'], perform: go('/app/community') },
-  { id: 'nav-settings', title: 'Settings', hint: 'Open', group: 'Navigate', icon: Settings, keywords: ['profile', 'billing', 'theme', 'account', 'usage', 'privacy'], perform: (ctx) => { ctx.openSettings(); ctx.close() } },
+
+  // Planner sections. Each is a real destination with its own URL, so leaving
+  // them out meant the palette could reach four of the app's twelve screens.
+  { id: 'nav-record', title: 'My record', hint: 'Planner', group: 'Navigate', icon: Table, keywords: ['transcript', 'past', 'gpa', 'history', 'credits'], perform: go('/app/planner?tab=record') },
+  { id: 'nav-program', title: 'My programme', hint: 'Planner', group: 'Navigate', icon: GraduationCap, keywords: ['degree', 'requirements', 'major', 'graduate', 'core'], perform: go('/app/planner?tab=program') },
+  { id: 'nav-directory', title: 'Course directory', hint: 'Planner', group: 'Navigate', icon: BookOpen, keywords: ['catalog', 'calendar', 'search courses', 'browse'], perform: go('/app/planner?tab=directory') },
+  { id: 'nav-prereq', title: 'Prerequisite tree', hint: 'Planner', group: 'Navigate', icon: Network, keywords: ['prereq', 'unlock', 'chain', 'board'], perform: go('/app/planner?tab=prereq') },
+  { id: 'nav-schedule', title: 'Schedule builder', hint: 'Planner', group: 'Navigate', icon: CalendarDays, keywords: ['timetable', 'sections', 'conflicts', 'week'], perform: go('/app/planner?tab=schedule') },
+  { id: 'nav-seats', title: 'Seat watch', hint: 'Planner', group: 'Navigate', icon: Bell, keywords: ['waitlist', 'full', 'alert', 'spot', 'open'], perform: go('/app/planner?tab=seats') },
+  { id: 'nav-radar', title: 'Radar', hint: 'Planner', group: 'Navigate', icon: Radar, keywords: ['risk', 'crunch', 'deadline', 'warning', 'workload'], perform: go('/app/planner?tab=radar') },
+  { id: 'nav-money', title: 'What it costs', hint: 'Planner', group: 'Navigate', icon: Wallet, keywords: ['tuition', 'fees', 'money', 'refund', 'drop'], perform: go('/app/planner?tab=money') },
+
+  { id: 'nav-settings', title: 'Settings', hint: 'Open', group: 'Navigate', icon: Settings, keywords: ['profile', 'theme', 'account', 'usage', 'privacy', 'preferences'], perform: (ctx) => { ctx.openSettings(); ctx.close() } },
+  { id: 'nav-billing', title: 'Billing & plan', hint: 'Open', group: 'Navigate', icon: CreditCard, keywords: ['pay', 'subscription', 'upgrade', 'pro', 'semester pass', 'invoice', 'cancel'], perform: (ctx) => { ctx.openSettings('billing'); ctx.close() } },
+  { id: 'nav-support', title: 'Support', hint: 'Open', group: 'Navigate', icon: LifeBuoy, keywords: ['help', 'ticket', 'contact', 'bug', 'problem'], perform: (ctx) => { ctx.openSupport(); ctx.close() } },
+  { id: 'nav-whats-new', title: "What's new", hint: 'Open', group: 'Navigate', icon: Megaphone, keywords: ['release', 'changelog', 'updates', 'version'], perform: (ctx) => { ctx.openUpdates(); ctx.close() } },
   { id: 'nav-teacher', title: 'Teacher portal', hint: 'Go to', group: 'Navigate', icon: GraduationCap, keywords: ['instructor', 'class', 'blueprint', 'announcement'], perform: go('/teacher') },
-  { id: 'nav-landing', title: 'Marketing site', hint: 'Go to', group: 'Navigate', icon: Sparkles, keywords: ['landing', 'home', 'pricing', 'public'], perform: go('/') },
+  { id: 'nav-organizer', title: 'Organizer portal', hint: 'Go to', group: 'Navigate', icon: Users, keywords: ['club', 'org', 'event', 'society', 'post'], perform: go('/organizer') },
+  { id: 'nav-docs', title: 'Documentation', hint: 'Go to', group: 'Navigate', icon: FileText, keywords: ['docs', 'help', 'guide', 'how to', 'manual'], perform: () => { window.location.href = '/docs/introduction' } },
+  { id: 'nav-landing', title: 'Landing page', hint: 'Go to', group: 'Navigate', icon: Sparkles, keywords: ['marketing', 'home', 'pricing', 'public'], perform: go('/') },
 
   // ---- Action verbs (autofill → narrow to a target) ----
   {
@@ -88,6 +122,15 @@ export const STATIC_COMMANDS: Command[] = [
     icon: BookOpen,
     keywords: ['course', 'go to', 'class', 'grades'],
     perform: fill('Open '),
+  },
+  {
+    id: 'action-add-course',
+    title: 'Add a course',
+    hint: 'Action',
+    group: 'Actions',
+    icon: Plus,
+    keywords: ['new', 'class', 'create', 'register', 'enrol', 'enroll'],
+    perform: go('/app/courses'),
   },
   {
     id: 'action-import-blueprint',
