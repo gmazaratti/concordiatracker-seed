@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronDown, Loader2, Sprout } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
+import { termRank } from '@/lib/term'
 import { useAppData } from '@/app/providers/app-data'
 import { cn } from '@/lib/cn'
 import { BlueprintRow } from './BlueprintRow'
@@ -50,8 +51,13 @@ export function BlueprintList({ course }: { course: Course }) {
 
   const sectionBps =
     activeSection === ALL ? blueprints : blueprints.filter((b) => b.section === activeSection)
-  const current = sectionBps.filter((b) => b.term === term.name)
-  const past = sectionBps.filter((b) => b.term !== term.name).sort(byNet)
+  // PAST means older, not merely different. This compared strings, so an
+  // outline for a term that was not the exact current one — including next
+  // term's, and including this term's while `term.name` was stale — was filed
+  // under "past terms" and collapsed out of sight.
+  const currentRank = termRank(term.name)
+  const current = sectionBps.filter((b) => termRank(b.term) >= currentRank)
+  const past = sectionBps.filter((b) => termRank(b.term) < currentRank).sort(byNet)
   const teacher = current.find((b) => b.teacherVerified) ?? null
   const community = current.filter((b) => !b.teacherVerified).sort(byNet)
   // Only a real, known mismatch warns — never when viewing "All" or with no section.

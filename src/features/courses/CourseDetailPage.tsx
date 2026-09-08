@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CalendarClock, ChevronDown, Loader2, Pencil, Upload } from 'lucide-react'
+import { CalendarClock, ListChecks, Loader2, Pencil, Upload } from 'lucide-react'
 import type { Assessment } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { courseStanding } from '@/lib/gpa'
@@ -105,7 +105,12 @@ export function CourseDetailPage() {
 
       {holding ? (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+          {/* Sticks on desktop: the class details and the grade maths are what
+              you read the assessment list AGAINST, and scrolling them off the
+              top is what made the page feel like it moved instead of the
+              content. Its own scrollbar, since the aside can outgrow the
+              viewport on a course with a long breakdown. */}
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100svh-2rem)] lg:w-[300px] lg:shrink-0 lg:self-start lg:overflow-y-auto lg:pb-2">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -225,11 +230,18 @@ export function CourseDetailPage() {
   )
 }
 
-/** The main column for a manually-created course. Empty → the setup editor (add
- * your first assessments). Once it has assessments it becomes a normal, gradeable
- * course: the Grades/Notes table is the main view (mark complete, enter grades),
- * with structure editing (type/date/weight, add/remove) tucked behind an expander
- * so it never feels like a perpetual setup form. */
+/**
+ * The main column for a course you are grading.
+ *
+ * TWO VIEWS OF THE SAME ROWS, and only ever one at a time. It used to render
+ * BOTH — the structure editor above the grade table — so four assessments
+ * appeared as eight, and the control that swapped them said "Done editing",
+ * which reads as a save button on a form that has no save. Two lists of the
+ * same thing is the confusion; a labelled switch between them is the fix.
+ *
+ * Grades is the daily view (mark complete, enter marks). Setup is the
+ * occasional one (type, date, weight, add, remove).
+ */
 function ManualCourseAssessments({
   courseId,
   assessments,
@@ -240,40 +252,52 @@ function ManualCourseAssessments({
   focusId?: string
 }) {
   const empty = assessments.length === 0
-  // Start in edit mode while setting up; once there are assessments and the
-  // student clicks "Done editing", the clean grade table takes over.
-  const [editing, setEditing] = useState(empty)
+  // A course with nothing in it has no grades to show, so setup IS the view.
+  const [view, setView] = useState<'grades' | 'setup'>(empty ? 'setup' : 'grades')
 
   return (
     <div className="flex flex-col gap-3">
-      {!empty ? (
-        <button
-          type="button"
+      {!empty && (
+        <div
+          role="tablist"
+          aria-label="Assessment view"
           data-tour="assess-editor"
-          onClick={() => setEditing((o) => !o)}
-          aria-expanded={editing}
-          className={cn(
-            'flex w-full items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left transition-colors duration-150',
-            editing
-              ? 'border-accent/50 bg-accent-soft/40 text-fg'
-              : 'border-border bg-surface text-fg hover:border-border-strong hover:bg-surface-2/50',
-          )}
+          className="flex w-fit gap-0.5 rounded-lg border border-border bg-surface p-0.5"
         >
-          <Pencil size={15} className="shrink-0 text-accent" aria-hidden />
-          <span className="flex-1 truncate text-[13px] font-semibold">
-            {editing ? 'Done editing' : 'Add or edit assessments'}
-            <span className="ml-1.5 text-[12px] font-normal text-subtle">type · date · weight</span>
+          {([
+            { id: 'grades', label: 'Grades', icon: ListChecks },
+            { id: 'setup', label: 'Set up', icon: Pencil },
+          ] as const).map((tab) => {
+            const Icon = tab.icon
+            const on = view === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setView(tab.id)}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+                  on ? 'bg-accent-soft text-fg' : 'text-muted hover:text-fg',
+                )}
+              >
+                <Icon size={13} aria-hidden className={cn('shrink-0', on && 'text-accent')} />
+                {tab.label}
+              </button>
+            )
+          })}
+          <span className="self-center px-2 text-[11.5px] text-subtle">
+            {view === 'setup' ? 'type · date · weight' : 'mark complete · enter marks'}
           </span>
-          <ChevronDown
-            size={18}
-            className={cn('shrink-0 text-muted transition-transform duration-150', editing && 'rotate-180')}
-            aria-hidden
-          />
-        </button>
-      ) : null}
+        </div>
+      )}
 
-      {empty || editing ? <ManualAssessmentEditor courseId={courseId} /> : null}
-      {!empty ? <AssessmentTable assessments={assessments} focusId={focusId} /> : null}
+      {view === 'setup' ? (
+        <ManualAssessmentEditor courseId={courseId} />
+      ) : (
+        <AssessmentTable assessments={assessments} focusId={focusId} />
+      )}
     </div>
   )
 }

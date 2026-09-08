@@ -1,6 +1,8 @@
 import type { Assessment, CalendarTask, Course, User } from './types'
 import { daysFromNow } from '@/lib/date'
 import { percentGrade, rawGrade } from '@/lib/grade'
+import { ACADEMIC_CALENDAR } from './academic-calendar'
+import { currentTermName } from '@/features/planner/past-terms'
 
 /**
  * THE single mock-data module (in-memory only — no backend, no persistence).
@@ -19,21 +21,49 @@ export const currentUser: User = {
   program: 'Computer Science',
 }
 
-/** The active term. Bounds are runtime-relative (like the due dates) so the
- * "Week X of Y" progress reads correctly whenever the demo is opened — today
- * lands ~6 weeks into a 13-week term. */
-export const term = {
-  name: 'Summer 2026',
-  start: daysFromNow(-41, 0, 0),
-  end: daysFromNow(50, 0, 0),
+/**
+ * The active term — DERIVED, not written down.
+ *
+ * This was hardcoded to 'Summer 2026' from the seed era, and it aged into two
+ * real bugs the moment there were real users: the app announced the wrong
+ * season on every screen, and `BlueprintList` splits outlines into current and
+ * past by comparing against this string — so a Fall outline was filed under
+ * "past terms" and collapsed out of sight, in September.
+ *
+ * The name comes from the calendar. The BOUNDS come from the registrar's own
+ * dates in `academic-calendar.ts` rather than a runtime-relative guess, so
+ * "Week 1 of 13" is the university's week, not ours. Ids there follow a stable
+ * scheme — fa26-classes-begin / fa26-last — which is what makes this a lookup
+ * rather than another table to maintain.
+ */
+const SEASON_PREFIX: Record<string, string> = { Fall: 'fa', Winter: 'wi', Summer: 'su' }
+
+function activeTerm(): { name: string; start: string; end: string } {
+  const name = currentTermName()
+  const [season, yearText] = name.split(' ')
+  const prefix = `${SEASON_PREFIX[season] ?? 'fa'}${yearText.slice(2)}`
+
+  const begins = ACADEMIC_CALENDAR.find((e) => e.id === `${prefix}-classes-begin`)
+  const ends = ACADEMIC_CALENDAR.find((e) => e.id === `${prefix}-last`)
+
+  return {
+    name,
+    // A term the calendar does not cover still has to produce a usable range,
+    // so it falls back to a plausible thirteen weeks around today rather than
+    // rendering "Week NaN".
+    start: begins ? `${begins.start}T00:00:00` : daysFromNow(-41, 0, 0),
+    end: ends ? `${ends.start}T23:59:00` : daysFromNow(50, 0, 0),
+  }
 }
+
+export const term = activeTerm()
 
 export const courses: Course[] = [
   {
     id: 'comm217',
     code: 'COMM 217',
     title: 'Financial Accounting',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3,
     color: 'teal',
     section: 'AA',
@@ -48,7 +78,7 @@ export const courses: Course[] = [
     id: 'comp248',
     code: 'COMP 248',
     title: 'Object-Oriented Programming I',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3.5,
     color: 'blue',
     section: 'BB',
@@ -63,7 +93,7 @@ export const courses: Course[] = [
     id: 'math205',
     code: 'MATH 205',
     title: 'Differential & Integral Calculus II',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3,
     color: 'purple',
     section: 'C',
@@ -77,7 +107,7 @@ export const courses: Course[] = [
     id: 'engl233',
     code: 'ENGL 233',
     title: 'Introduction to Fiction',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3,
     color: 'rose',
     section: 'AA',
@@ -91,7 +121,7 @@ export const courses: Course[] = [
     id: 'poli202',
     code: 'POLI 202',
     title: 'Introduction to Political Science',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3,
     color: 'amber',
     section: 'D',
@@ -106,7 +136,7 @@ export const courses: Course[] = [
     id: 'hist203',
     code: 'HIST 203',
     title: 'Canada Since Confederation',
-    term: 'Summer 2026',
+    term: term.name,
     credits: 3,
     color: 'orange',
     section: 'AA',

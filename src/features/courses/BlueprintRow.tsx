@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ShieldCheck } from 'lucide-react'
 import { blueprintWeight, netVotes, uploadedOn, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
+import { termRank } from '@/lib/term'
 import { KIND_LABEL } from '@/lib/assessment'
 import { formatFull } from '@/lib/date'
 import { cn } from '@/lib/cn'
@@ -31,7 +32,8 @@ export function BlueprintRow({
 }) {
   const [open, setOpen] = useState(false)
   const net = netVotes(blueprint) + userVote
-  const isCurrentTerm = blueprint.term === term.name
+  // Not-past rather than exactly-equal: a next-term outline is not stale.
+  const isCurrentTerm = termRank(blueprint.term) >= termRank(term.name)
   // Only flag a section mismatch when we actually know the student's section.
   const wrongSection = yourSection !== '' && blueprint.section !== yourSection
   const total = blueprintWeight(blueprint)

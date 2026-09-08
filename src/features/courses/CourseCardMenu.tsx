@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Share2, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Share2, Trash2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
@@ -23,7 +23,7 @@ export function CourseCardMenu({
   className?: string
   triggerClassName?: string
 }) {
-  const { removeCourse, shareCourseAsBlueprint } = useAppData()
+  const { removeCourse, shareCourseAsBlueprint, archiveCourse, unarchiveCourse } = useAppData()
   const [confirm, setConfirm] = useState(false)
   const [share, setShare] = useState(false)
 
@@ -39,11 +39,22 @@ export function CourseCardMenu({
         ]
       : []),
     {
+      // Archive, not delete, is the right answer for a finished class: the
+      // grade is frozen onto the transcript and the course leaves the current
+      // term, but nothing is destroyed and it can come back. Deleting a course
+      // you actually took loses credits, prerequisites and GPA history.
+      id: 'archive',
+      label: course.archived ? 'Move back to this term' : 'Archive course',
+      icon: course.archived ? ArchiveRestore : Archive,
+      separated: assessmentCount > 0,
+      onSelect: () => (course.archived ? unarchiveCourse(course.id) : archiveCourse(course.id)),
+    },
+    {
       id: 'delete',
       label: 'Delete course',
       icon: Trash2,
       danger: true,
-      separated: assessmentCount > 0,
+      separated: true,
       onSelect: () => setConfirm(true),
     },
   ]
