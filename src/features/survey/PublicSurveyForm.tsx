@@ -1,9 +1,12 @@
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { FileText, Loader2, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import {
   CHOICE_QUESTIONS,
   EMPTY,
+  MAX_OUTLINES,
+  MAX_OUTLINE_MB,
+  OUTLINE_TYPES,
   RATING_QUESTIONS,
   TEXT_QUESTIONS,
   isComplete,
@@ -21,7 +24,7 @@ export function PublicSurveyForm({
   onDone,
   compact = false,
 }: {
-  onDone: (answers: PublicSurveyAnswers) => void
+  onDone: (answers: PublicSurveyAnswers, code: string | null) => void
   /** In-app: tighter type, no email capture (they already have an account). */
   compact?: boolean
 }) {
@@ -48,8 +51,8 @@ export function PublicSurveyForm({
     setBusy(true)
     setError('')
     try {
-      await submitPublicSurvey(a)
-      onDone(a)
+      const code = await submitPublicSurvey(a)
+      onDone(a, code)
     } catch {
       setError('Couldn’t send that: please try again.')
       setBusy(false)
@@ -140,6 +143,14 @@ export function PublicSurveyForm({
           </section>
         ))}
 
+        {/* The cold-start ask. Last, and unmistakably optional: it is the
+            biggest thing on the page, and putting it earlier would cost
+            answers from everyone who does not have their syllabi to hand. */}
+        <OutlineDrop
+          files={a.files}
+          onChange={(files) => setA((p) => ({ ...p, files }))}
+        />
+
         {/* Signed-out visitors only: an existing user already has an account. */}
         {!compact && (
           <section className="rounded-xl border border-accent/40 bg-accent-soft/40 p-4">
@@ -180,5 +191,99 @@ export function PublicSurveyForm({
         )}
       </div>
     </>
+  )
+}
+
+
+/**
+ * "Got your outlines on you?"
+ *
+ * The cold-start problem in one control. The app is about to meet its first
+ * real users with almost nothing in it, and a survey handed out in a library is
+ * the one moment a hundred students are already holding their syllabi.
+ *
+ * Deliberately quiet about what it is worth to us. It says what happens to the
+ * file and what the student gets, and it is skippable in the most obvious way
+ * possible — no default state, no red asterisk, no nag if it is left empty.
+ */
+function OutlineDrop({
+  files,
+  onChange,
+}: {
+  files: File[]
+  onChange: (files: File[]) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const add = (picked: FileList | null) => {
+    if (!picked) return
+    const next = [...files]
+    for (const f of Array.from(picked)) {
+      if (next.length >= MAX_OUTLINES) break
+      if (f.size > MAX_OUTLINE_MB * 1024 * 1024) continue
+      if (next.some((x) => x.name === f.name && x.size === f.size)) continue
+      next.push(f)
+    }
+    onChange(next)
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <p className="text-[14px] leading-snug font-medium text-fg">
+        Got a course outline on you? <span className="text-subtle">(optional)</span>
+      </p>
+      <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
+        Drop in any syllabus PDF and we&rsquo;ll turn it into a shared outline for everyone else in
+        your section — dates, weights, the lot. It&rsquo;s the fastest way to make this useful for
+        the people sitting next to you.
+      </p>
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border-strong px-3 py-3 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+      >
+        <Upload size={15} aria-hidden />
+        {files.length ? 'Add another' : 'Choose a file'}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={OUTLINE_TYPES}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          add(e.target.files)
+          e.target.value = ''
+        }}
+      />
+
+      {files.length > 0 && (
+        <ul className="mt-2.5 space-y-1.5">
+          {files.map((f) => (
+            <li
+              key={`${f.name}-${f.size}`}
+              className="flex items-center gap-2 rounded-lg bg-canvas px-2.5 py-1.5"
+            >
+              <FileText size={14} aria-hidden className="shrink-0 text-subtle" />
+              <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg">{f.name}</span>
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((x) => x !== f))}
+                aria-label={`Remove ${f.name}`}
+                className="shrink-0 text-subtle transition-colors duration-150 hover:text-danger"
+              >
+                <X size={14} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
+        PDF or Word, up to {MAX_OUTLINE_MB} MB each. We only publish the dates and weights &mdash;
+        never your name, and never the file itself.
+      </p>
+    </section>
   )
 }

@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { buildPitch, pitchHeadline, type PublicSurveyAnswers } from './public-survey'
 
@@ -14,9 +14,12 @@ import { buildPitch, pitchHeadline, type PublicSurveyAnswers } from './public-su
  */
 export function SurveyResult({
   answers,
+  code = null,
   showSignup = true,
 }: {
   answers: PublicSurveyAnswers
+  /** The one-week trial code, when the migration that issues them has run. */
+  code?: string | null
   /** Off when the reader already has an account (in-app). */
   showSignup?: boolean
 }) {
@@ -36,6 +39,11 @@ export function SurveyResult({
           I read every response myself.
         </p>
       </div>
+
+      {/* The thank-you IS the offer. Placed above the personalised cards
+          because a code shown after four paragraphs is a code nobody sees, and
+          this one is the reason they will actually open the app tonight. */}
+      {code && <TrialCode code={code} />}
 
       {pitches.length > 0 && (
         <>
@@ -84,6 +92,48 @@ export function SurveyResult({
           <p className="mt-2 text-[11.5px] text-subtle">No card needed. Nothing to cancel.</p>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * A week of Pro, for filling this in. No card.
+ *
+ * A code rather than an instant grant, because there is no account yet — this
+ * is a public page and the respondent may not sign up for hours. It is short,
+ * unambiguous to read off a phone in a library, and it is theirs alone.
+ *
+ * No card is the point: the thing worth learning is whether somebody puts a
+ * real term into this, and a payment wall at the door answers a different and
+ * much less interesting question.
+ */
+function TrialCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="mt-7 rounded-2xl border border-accent/50 bg-accent-soft/40 p-5 text-center">
+      <p className="text-[13px] font-semibold tracking-wide text-accent uppercase">
+        One week of Pro, on the house
+      </p>
+      <p className="mx-auto mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-muted">
+        Everything unlocked for seven days. No card, nothing to cancel.
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard?.writeText(code).then(
+            () => setCopied(true),
+            () => setCopied(false),
+          )
+        }}
+        className="mt-3.5 inline-flex items-center gap-2 rounded-xl border border-border-strong bg-canvas px-4 py-2.5 font-mono text-[17px] font-semibold tracking-wider text-fg transition-colors duration-150 hover:border-accent"
+      >
+        {code}
+        {copied ? <Check size={15} className="text-success" aria-hidden /> : <Copy size={15} className="text-subtle" aria-hidden />}
+      </button>
+      <p className="mt-2.5 text-[11.5px] text-subtle">
+        {copied ? 'Copied.' : 'Tap to copy.'} Redeem it in Settings &rarr; Billing after you sign
+        up. Screenshot this &mdash; it&rsquo;s the only time it&rsquo;s shown.
+      </p>
     </div>
   )
 }

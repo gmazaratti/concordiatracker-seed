@@ -16,6 +16,7 @@ import {
 import { EmbeddedCheckoutPanel } from '../EmbeddedCheckoutPanel'
 import { Group, Row } from '../controls'
 import { useT } from '@/i18n/i18n'
+import { redeemSurveyCode } from '@/features/survey/public-survey'
 import { cn } from '@/lib/cn'
 
 type Pane = null | 'semester' | 'monthly' | 'card'
@@ -78,6 +79,8 @@ export function BillingSection() {
 
   return (
     <div>
+      <RedeemCode />
+
       {/* Current plan */}
       <div className="mb-6 rounded-xl border border-border bg-surface-2/25 px-4 py-4">
         <div className="flex items-start justify-between gap-4">
@@ -346,5 +349,76 @@ function StatusChip({ status, isPro }: { status?: string; isPro: boolean }) {
     <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase', tone)}>
       {label}
     </span>
+  )
+}
+
+/**
+ * "Have a code?"
+ *
+ * The other end of the survey. Someone filled it in at a table in the library,
+ * screenshotted a code, and is now here — so this is at the TOP of billing,
+ * above the plan card, because for that person it is the only thing on the page
+ * that matters.
+ *
+ * It reloads on success rather than patching state: the granted window lives in
+ * user_profile.pro_until and is read alongside plan_status in half a dozen
+ * places, and a reload is a cheaper correctness guarantee than threading a new
+ * value through all of them.
+ */
+function RedeemCode() {
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+
+  async function redeem() {
+    const trimmed = code.trim()
+    if (!trimmed || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await redeemSurveyCode(trimmed)
+      setDone(true)
+      window.setTimeout(() => window.location.reload(), 1200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That code did not work.')
+      setBusy(false)
+    }
+  }
+
+  if (done) {
+    return (
+      <div className="mb-6 rounded-xl border border-success/40 bg-success/10 px-4 py-3.5 text-[13px] text-fg">
+        Redeemed — seven days of Pro are on your account. Reloading…
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-border bg-surface-2/25 px-4 py-3.5">
+      <p className="text-[13px] font-medium text-fg">Have a code?</p>
+      <p className="mt-0.5 text-[11.5px] text-subtle">
+        From the survey. Seven days of Pro, no card.
+      </p>
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === 'Enter' && void redeem()}
+          placeholder="CT-XXXX-XXXX"
+          aria-label="Redemption code"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-canvas px-3 py-2 font-mono text-[13px] tracking-wider text-fg placeholder:font-sans placeholder:tracking-normal placeholder:text-subtle focus:border-accent focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => void redeem()}
+          disabled={!code.trim() || busy}
+          className="shrink-0 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
+        >
+          Redeem
+        </button>
+      </div>
+      {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
+    </div>
   )
 }

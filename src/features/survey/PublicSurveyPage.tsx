@@ -16,11 +16,12 @@ import type { PublicSurveyAnswers } from './public-survey'
  */
 export function PublicSurveyPage() {
   const [sent, setSent] = useState<PublicSurveyAnswers | null>(null)
+  const [code, setCode] = useState<string | null>(null)
 
   return (
     <Shell>
       {sent ? (
-        <SurveyResult answers={sent} />
+        <SurveyResult answers={sent} code={code} />
       ) : (
         <>
           <header className="mb-7">
@@ -39,8 +40,9 @@ export function PublicSurveyPage() {
           </header>
 
           <PublicSurveyForm
-            onDone={(answers) => {
+            onDone={(answers, trialCode) => {
               setSent(answers)
+              setCode(trialCode)
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
           />

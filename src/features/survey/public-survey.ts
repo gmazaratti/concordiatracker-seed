@@ -92,6 +92,12 @@ export const CHOICE_QUESTIONS: ChoiceQ[] = [
     options: ['I’d only use it free', '$5', '$10', '$15', '$20+'],
   },
   {
+    id: 'concordia_support',
+    label:
+      'Would you support ConcordiaTracker seeking official recognition or funding from Concordia?',
+    options: ['Yes', 'No', 'Not sure'],
+  },
+  {
     id: 'year',
     label: 'What year are you in?',
     options: ['1st', '2nd', '3rd', '4th+', 'Graduate', 'Not a student'],
@@ -126,9 +132,17 @@ export interface PublicSurveyAnswers {
   ratings: Record<string, number>
   answers: Record<string, string>
   email: string
+  /** Course outlines the respondent chose to share. Optional, always. */
+  files: File[]
 }
 
-export const EMPTY: PublicSurveyAnswers = { ratings: {}, answers: {}, email: '' }
+export const EMPTY: PublicSurveyAnswers = { ratings: {}, answers: {}, email: '', files: [] }
+
+/** What a respondent can hand over. PDFs and Word files, because that is what a
+ *  syllabus actually is; nothing else is worth the attack surface. */
+export const OUTLINE_TYPES = '.pdf,.doc,.docx'
+export const MAX_OUTLINE_MB = 12
+export const MAX_OUTLINES = 6
 
 /** Enough to be worth storing: every scale answered. */
 export function isComplete(a: PublicSurveyAnswers): boolean {
@@ -260,17 +274,82 @@ export function pitchHeadline(pitches: Pitch[]): string {
   return 'What would change for you'
 }
 
-export async function submitPublicSurvey(a: PublicSurveyAnswers): Promise<void> {
+/**
+ * A short code the respondent can read off a phone screen and type later.
+ *
+ * No I, O, 0 or 1 — this gets written on a napkin in a library and typed into a
+ * different device an hour later, and those four are where that goes wrong.
+ */
+function makeCode(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  for (const b of bytes) out += alphabet[b % alphabet.length]
+  return `CT-${out.slice(0, 4)}-${out.slice(4)}`
+}
+
+/**
+ * Upload the outlines, if any.
+ *
+ * Returns what landed. NEVER THROWS: a failed upload must not cost us the
+ * answers, which are the thing we actually came for. A survey that refuses to
+ * submit because a PDF was too big is a survey that gets abandoned in a queue
+ * for donuts.
+ */
+async function uploadOutlines(files: File[]): Promise<{ path: string; name: string }[]> {
+  const out: { path: string; name: string }[] = []
+  for (const file of files.slice(0, MAX_OUTLINES)) {
+    if (file.size > MAX_OUTLINE_MB * 1024 * 1024) continue
+    // Random path, original name kept as metadata: two people uploading
+    // "outline.pdf" must not collide, and a filename is not a good key.
+    const ext = file.name.split('.').pop()?.toLowerCase().slice(0, 5) ?? 'pdf'
+    const path = `${crypto.randomUUID()}.${ext}`
+    try {
+      const { error } = await supabase.storage.from('survey-outlines').upload(path, file)
+      if (!error) out.push({ path, name: file.name.slice(0, 200) })
+    } catch {
+      /* bucket missing or offline — the answers still matter */
+    }
+  }
+  return out
+}
+
+/** Returns the trial code, or null if the column is not there yet. */
+export async function submitPublicSurvey(a: PublicSurveyAnswers): Promise<string | null> {
   const answers: Record<string, string> = {}
   for (const [k, v] of Object.entries(a.answers)) {
     const t = v.trim()
     if (t) answers[k] = t.slice(0, 2000)
   }
-  const { error } = await supabase.from('public_survey').insert({
+
+  const outlineFiles = a.files.length ? await uploadOutlines(a.files) : []
+  const code = makeCode()
+
+  const row = {
     ratings: a.ratings,
     answers,
     email: a.email.trim() ? a.email.trim().slice(0, 200) : null,
     source: sourceFromUrl(),
-  })
+  }
+
+  // Tries the full row first. If the migration has not been run the extra
+  // columns do not exist, so it retries with just the original shape rather
+  // than losing the response — the link may well be handed out before the SQL
+  // is.
+  const full = await supabase
+    .from('public_survey')
+    .insert({ ...row, reward_code: code, outline_files: outlineFiles })
+  if (!full.error) return code
+
+  const { error } = await supabase.from('public_survey').insert(row)
   if (error) throw error
+  return null
+}
+
+/** Trade a survey code for seven days of Pro. Signed-in only. */
+export async function redeemSurveyCode(code: string): Promise<string> {
+  const { data, error } = await supabase.rpc('redeem_survey_code', { p_code: code })
+  if (error) throw new Error(error.message)
+  return data as string
 }
