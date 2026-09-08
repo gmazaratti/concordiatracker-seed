@@ -1,14 +1,14 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Survey: outline uploads + a one-week trial code.
+-- Survey: outline uploads + a one-week trial, claimed by link.
 --
 -- Both exist to solve the same cold-start problem: the app is about to get its
 -- first real users and has almost no outlines in it, so the survey is the one
 -- moment a hundred students are already holding their syllabi.
 --
 -- Run this in the Supabase SQL editor (project qagtygymiivnyfwrtmzl).
--- The survey KEEPS WORKING WITHOUT IT — uploads and codes are both optional
--- paths that fail quietly, so handing the link out before running this costs
--- answers nothing.
+-- The survey KEEPS WORKING WITHOUT IT — the upload and the trial are both
+-- optional paths that fail quietly, so handing the link out before running this
+-- costs answers nothing.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── 1. Somewhere for the files ──────────────────────────────────────────────
@@ -42,9 +42,9 @@ create unique index if not exists public_survey_reward_code_idx
  * Redeem a survey token for seven days of Pro.
  *
  * SECURITY DEFINER because public_survey is insert-only to anon and must stay
- * that way — a client that could read the table could read every code. The
- * function takes a code, checks it exists and is unclaimed, and stamps it. One
- * account per code, one code per response.
+ * that way — a client that could read the table could read every token. It
+ * checks the token exists and is unclaimed, then stamps it. One account per
+ * token, one token per response.
  *
  * Seven days, no card, is deliberate: the point is to see whether someone puts
  * a real term into it, and a card wall at the door defeats that.
@@ -61,9 +61,11 @@ begin
     raise exception 'sign in first';
   end if;
 
+  -- Exact match, case intact. The token is lowercase base-36 and upper-casing
+  -- it here (a leftover from the readable-code version) would fail every claim.
   select id, redeemed_by into row_id, claimed
     from public.public_survey
-   where reward_code = upper(trim(p_code));
+   where reward_code = trim(p_code);
 
   if row_id is null then
     raise exception 'that link is not valid';
