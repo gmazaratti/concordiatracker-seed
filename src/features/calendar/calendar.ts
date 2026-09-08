@@ -58,6 +58,16 @@ export type CalendarItem =
   | { kind: 'assessment'; id: string; assessment: Assessment }
   | { kind: 'task'; id: string; task: CalendarTask }
   | { kind: 'academic'; id: string; event: AcademicEvent }
+  /**
+   * Work with no date, shown ONCE on the first day of the exam period.
+   *
+   * A final the registrar has not scheduled has no square of its own, but it is
+   * not nothing either — it lands somewhere in that fortnight, and a calendar
+   * that shows an empty exam period while a 45% final exists is lying by
+   * omission. Anchored to the START of the period rather than repeated across
+   * it, because repeating it fourteen times would read as fourteen exams.
+   */
+  | { kind: 'undated'; id: string; items: Assessment[]; period: AcademicEvent }
 
 export interface CalendarSource {
   assessments: Assessment[]
@@ -78,8 +88,8 @@ export function dayItems(day: Date, src: CalendarSource, prefs: CalendarPrefs): 
   const items: CalendarItem[] = []
   if (prefs.showMine) {
     src.assessments
-      // Undated work is deliberately absent from the grid: there is no square
-      // for "sometime". Today lists it, and Radar counts it.
+      // Dated work only. Undated work has no square of its own — it is
+      // collected onto the exam period below instead.
       .filter((a) => !!a.due && ymd(new Date(a.due)) === key)
       .sort((a, b) => new Date(a.due!).getTime() - new Date(b.due!).getTime())
       .forEach((a) => items.push({ kind: 'assessment', id: a.id, assessment: a }))
@@ -87,6 +97,17 @@ export function dayItems(day: Date, src: CalendarSource, prefs: CalendarPrefs): 
       .filter((t) => ymd(new Date(t.due)) === key)
       .forEach((t) => items.push({ kind: 'task', id: t.id, task: t }))
   }
+  // Undated work, anchored to the day the exam period opens. Needs BOTH layers
+  // on: it is your work (mine) placed against the university's calendar
+  // (concordia), so hiding either should hide it.
+  if (prefs.showMine && prefs.showConcordia) {
+    const undated = src.assessments.filter((a) => !a.due)
+    if (undated.length > 0) {
+      const period = src.academic.find((e) => e.kind === 'exam' && e.start === key)
+      if (period) items.push({ kind: 'undated', id: `undated-${key}`, items: undated, period })
+    }
+  }
+
   if (prefs.showConcordia) {
     src.academic
       .filter((e) => inRange(day, e))

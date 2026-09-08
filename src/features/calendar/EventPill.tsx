@@ -1,3 +1,4 @@
+import { CircleDashed } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { courseColor } from '@/lib/course-color'
 import { daysUntil } from '@/lib/date'
@@ -43,6 +44,11 @@ export function EventPill({
     done = item.task.done
     dot = <span className="size-1.5 shrink-0 rounded-full bg-subtle" aria-hidden />
     label = item.task.title
+  } else if (item.kind === 'undated') {
+    // Deliberately reads as a COUNT, not an exam: we do not know when these are,
+    // only that they land somewhere in this fortnight.
+    dot = <CircleDashed size={11} className="shrink-0 text-warning" aria-hidden />
+    label = `${item.items.length} with no date yet`
   } else {
     const Icon = ACADEMIC_META[item.event.kind].icon
     dot = <Icon size={11} className="shrink-0 text-info" aria-hidden />

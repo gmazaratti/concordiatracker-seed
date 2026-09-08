@@ -1,4 +1,4 @@
-import { Check, Trash2 } from 'lucide-react'
+import { Check, CircleDashed, Trash2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
@@ -118,6 +118,25 @@ export function ItemRow({
         >
           <Trash2 size={14} aria-hidden />
         </button>
+      </div>
+    )
+  }
+
+  if (item.kind === 'undated') {
+    return (
+      <div className="flex items-start gap-3 px-3 py-2.5">
+        <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-warning/15 text-warning">
+          <CircleDashed size={12} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-fg">
+            {item.items.length} {item.items.length === 1 ? 'item has' : 'items have'} no date yet
+          </p>
+          <p className="mt-0.5 text-[12px] leading-relaxed text-subtle">
+            {item.items.map((a) => a.title).join(' · ')} — somewhere in{' '}
+            {item.period.title.toLowerCase()}. Set the date once the registrar publishes it.
+          </p>
+        </div>
       </div>
     )
   }

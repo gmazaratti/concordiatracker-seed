@@ -477,18 +477,18 @@ function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p:
 
       {/* Labeled Due + Weight: the at-a-glance indicators */}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 pl-0.5">
+        {/* No date is a legitimate answer, not a problem to be cleared. This
+            used to be a warning-coloured "Set a date" button that INVENTED one
+            a week out — which is how a final the registrar has not scheduled
+            ends up with a confident wrong deadline the student plans around.
+            The picker now shows "Date not set" and can be put back to it. */}
         <Labeled label="Due">
-          {noDate ? (
-            <button
-              type="button"
-              onClick={() => onPatch({ due: new Date(Date.now() + 7 * 86_400_000).toISOString() })}
-              className="inline-flex items-center gap-1 rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-[12px] font-medium text-warning"
-            >
-              <AlertTriangle size={12} aria-hidden /> Set a date
-            </button>
-          ) : (
-            <DateTimePicker ariaLabel="Due date" value={item.due as string} onChange={(iso) => onPatch({ due: iso })} />
-          )}
+          <DateTimePicker
+            ariaLabel="Due date"
+            value={item.due}
+            clearable
+            onChange={(iso) => onPatch({ due: iso })}
+          />
         </Labeled>
 
         <Labeled label="Weight">

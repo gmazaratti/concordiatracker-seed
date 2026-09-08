@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { LayoutGrid, Plus, Rows3, Upload } from 'lucide-react'
+import { LayoutGrid, Plus, Rows3 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
@@ -62,7 +61,7 @@ export function CoursesPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
-      <header className="mb-3 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <p className="text-[12px] text-subtle">
             {tab === 'upcoming' ? 'Terms ahead' : term.name}
@@ -71,22 +70,29 @@ export function CoursesPage() {
             {t('courses.title')}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           {tab === 'upcoming' && <AddForTerm />}
           {!showPast && tab !== 'upcoming' && (
             <ViewToggle view={coursesView} onChange={setCoursesView} />
           )}
-          {/* Shortcut straight to the blueprint browser: the real import path
-              (find a classmate's/teacher's outline). */}
-          <Link
-            to="/app/courses/blueprints"
-            data-coach="add-course"
-            data-tour="import-course"
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
-          >
-            <Upload size={15} aria-hidden />
-            {t('courses.importSyllabus')}
-          </Link>
+          {/* Says what it DOES, and opens the chooser rather than committing to
+              one of the three ways in before asking which you want. It used to
+              read "Import syllabus" and jump straight to the blueprint browser,
+              which is a method name — nobody who simply wants to add a class
+              recognised it as the way to do that. Full width on a phone, where
+              it is the one thing on the screen you are most likely to want. */}
+          {tab !== 'upcoming' && (
+            <button
+              type="button"
+              onClick={() => setChooserOpen(true)}
+              data-coach="add-course"
+              data-tour="import-course"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2.5 text-[13.5px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover sm:flex-none sm:py-2 sm:text-[13px]"
+            >
+              <Plus size={16} aria-hidden />
+              {t('courses.addCourse')}
+            </button>
+          )}
         </div>
       </header>
 

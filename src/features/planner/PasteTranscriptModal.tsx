@@ -70,9 +70,37 @@ export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
       <div className="p-4 sm:p-5">
         <h2 className="font-display text-[18px] font-semibold text-fg">Paste your courses</h2>
         <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
-          Copy your transcript or the course list from the Student Centre and paste it below. You
-          will see exactly what was read before anything is saved.
+          Nothing is saved until you have seen exactly what was read.
         </p>
+
+        {/* The old copy assumed you already knew where the list lives. Most
+            people do not, and "paste your transcript" is not an instruction —
+            it is a description of the end state. */}
+        <ol className="mt-3 space-y-1.5 rounded-lg border border-border bg-surface-2/50 px-3.5 py-3 text-[12.5px] leading-relaxed text-muted">
+          <li className="flex gap-2.5">
+            <span className="font-semibold text-accent">1.</span>
+            <span>
+              Open the <span className="font-medium text-fg">Student Centre</span> &rarr; Academics
+              &rarr; <span className="font-medium text-fg">Unofficial Transcript</span> (or Grades,
+              for one term).
+            </span>
+          </li>
+          <li className="flex gap-2.5">
+            <span className="font-semibold text-accent">2.</span>
+            <span>
+              Select the course list and copy it &mdash;{' '}
+              <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">Ctrl</kbd>+
+              <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">A</kbd> then{' '}
+              <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">Ctrl</kbd>+
+              <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">C</kbd> is
+              fine. Extra text around it does not matter.
+            </span>
+          </li>
+          <li className="flex gap-2.5">
+            <span className="font-semibold text-accent">3.</span>
+            <span>Paste it in the box below. Codes, credits and grades are picked out for you.</span>
+          </li>
+        </ol>
 
         {rows === null ? (
           <>
