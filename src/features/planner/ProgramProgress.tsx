@@ -3,7 +3,7 @@ import { Check, ExternalLink, Info, Loader2 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { summarizeRecord } from '@/lib/academic-record'
-import { listPrograms, loadProgram } from '@/lib/programs'
+import { listPrograms, loadProgram, loadProgramChoice, saveProgramChoice } from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
 
@@ -29,12 +29,23 @@ export function ProgramProgress() {
   const [program, setProgram] = useState<ProgramWithGroups | null>(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [unsaved, setUnsaved] = useState(false)
 
   useEffect(() => {
     let alive = true
     void listPrograms()
       .then((rows) => alive && setPrograms(rows))
       .catch(() => alive && setPrograms([]))
+    // The choice was never written anywhere: it lived in this component's state
+    // and died with the page. That also meant the schedule generator, which
+    // reads the saved programme, always saw nothing and told everyone to "pick
+    // your programme in My programme first" — which they just had.
+    void loadProgramChoice().then((saved) => {
+      if (alive && saved) {
+        setId(saved)
+        setLoading(true)
+      }
+    })
     return () => {
       alive = false
     }
@@ -59,6 +70,10 @@ export function ProgramProgress() {
     setProgram(null)
     setFailed(false)
     setLoading(true)
+    setUnsaved(false)
+    // Fire and forget, but the answer is kept: a choice that silently failed to
+    // save is one the student re-makes every visit without knowing why.
+    void saveProgramChoice(next).then((ok) => setUnsaved(!ok))
   }
 
   /** Everything passed, with the credits the student's own record carries. */
@@ -107,6 +122,14 @@ export function ProgramProgress() {
       {!id && programs !== null && programs.length > 0 && (
         <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
           Pick your programme and this will show what you have cleared and what is left.
+        </p>
+      )}
+
+      {unsaved && (
+        <p className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-muted">
+          Showing this for now, but we could not save the choice — it will be gone when you
+          reload, and the schedule generator will not see it. That usually means a database
+          migration has not been run yet.
         </p>
       )}
 

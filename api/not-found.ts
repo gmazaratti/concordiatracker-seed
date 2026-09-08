@@ -30,6 +30,32 @@ students. It is independent and not affiliated with Concordia University.
 - [Contact](${SITE}/contact)
 `
 
+/**
+ * The mascot, hand-inlined.
+ *
+ * This page is served by a serverless function with no bundler and no React, so
+ * it cannot import `components/Mascot`. The geometry is copied deliberately —
+ * four bumps of descending size over a flat base, eyes cut in the page colour —
+ * and if the drawn one ever changes, this is the second place to change.
+ *
+ * `thinking` in spirit: looking for something it cannot find, which is the
+ * honest description of what just happened. It sways rather than bounces, and
+ * the whole animation is dropped under reduced motion.
+ */
+const MASCOT = `<svg class="mascot" width="104" height="104" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+  <g fill="currentColor">
+    <circle cx="27" cy="55" r="15" />
+    <circle cx="46" cy="45" r="20" />
+    <circle cx="66" cy="49" r="17" />
+    <circle cx="79" cy="57" r="12" />
+    <rect x="12" y="55" width="79" height="19" rx="9.5" />
+  </g>
+  <g fill="var(--bg)">
+    <ellipse cx="43" cy="54" rx="3.8" ry="4.6" />
+    <ellipse cx="59" cy="54" rx="3.8" ry="4.6" />
+  </g>
+</svg>`
+
 const HTML = `<!doctype html>
 <html lang="en">
 <head>
@@ -51,10 +77,15 @@ a{color:var(--accent);text-decoration:none}
 li a{display:block;padding:11px 2px}
 li a:hover{text-decoration:underline}
 small{color:#8b8898;display:block;margin-top:24px}
+.mascot{color:var(--accent);opacity:.72;display:block;margin:0 0 18px;
+transform-origin:50% 88%;animation:ct-sway 5.5s ease-in-out infinite}
+@keyframes ct-sway{0%,100%{transform:none}50%{transform:rotate(-3deg) translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.mascot{animation:none}}
 </style>
 </head>
 <body>
 <main>
+  ${MASCOT}
   <h1>404 — Not found</h1>
   <p>That path is not part of ConcordiaTracker. ConcordiaTracker is a deadline, grade, and GPA
   tracker for Concordia University students. It is independent and not affiliated with Concordia

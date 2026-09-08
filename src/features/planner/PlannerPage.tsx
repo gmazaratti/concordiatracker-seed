@@ -1,19 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import {
-  Bell,
-  BookOpen,
-  Bookmark,
-  GitBranch,
-  CalendarRange,
-  GraduationCap,
-  Radar as RadarIcon,
-  Target,
-  Wallet,
-} from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useI18n } from '@/i18n/i18n'
-import type { Key } from '@/i18n/en'
 import { CourseDirectory } from './CourseDirectory'
 import { SeatWatchPanel } from './SeatWatchPanel'
 import { MyRecordPanel } from './MyRecordPanel'
@@ -23,8 +11,8 @@ import { PrereqTree } from './PrereqTree'
 import { ProgramProgress } from './ProgramProgress'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
-import { PlannerNavBar, type NavItem, type Phase } from './PlannerNav'
 import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
+import { PLANNER_TABS, PLANNER_TAB_IDS, type NavItem, type PlannerTab } from './tabs'
 
 /**
  * Planner: the pre-term half of the product.
@@ -41,44 +29,6 @@ import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
  * widgets rather than neighbours of this.
  */
 
-type Tab =
-  | 'record'
-  | 'program'
-  | 'radar'
-  | 'seats'
-  | 'directory'
-  | 'saved'
-  | 'tree'
-  | 'schedule'
-  | 'money'
-
-/**
- * Ordered by the sequence someone actually does this in, and grouped into the
- * three phases of it, rather than by the order the sections were built.
- *
- * You start from what you have done, go looking at what exists, then commit to
- * a week and chase the seats.
- */
-const TABS: { id: Tab; labelKey: Key; icon: typeof Bell; phase: Phase }[] = [
-  { id: 'record', labelKey: 'planner.tab.record', icon: GraduationCap, phase: 'know' },
-  { id: 'program', labelKey: 'planner.tab.program', icon: Target, phase: 'know' },
-  // Radar is about the term you are RUNNING, not the one you are choosing,
-  // which argued for a tab of its own. But it is a sit-down-and-review surface
-  // used occasionally and deliberately, and that is Planner's mode rather than
-  // Today's. Folding it in also settles the mobile bar, full at six slots.
-  { id: 'radar', labelKey: 'planner.tab.radar', icon: RadarIcon, phase: 'know' },
-
-  { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, phase: 'explore' },
-  { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, phase: 'explore' },
-  { id: 'saved', labelKey: 'planner.tab.saved', icon: Bookmark, phase: 'explore' },
-
-  { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, phase: 'commit' },
-  { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, phase: 'commit' },
-  { id: 'money', labelKey: 'planner.tab.money', icon: Wallet, phase: 'commit' },
-]
-
-const TAB_IDS = new Set<string>(TABS.map((x) => x.id))
-
 export function PlannerPage() {
   const { t } = useI18n()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -93,13 +43,14 @@ export function PlannerPage() {
    */
   const [params, setParams] = useSearchParams()
   const fromUrl = params.get('tab')
-  const tab: Tab = fromUrl && TAB_IDS.has(fromUrl) ? (fromUrl as Tab) : 'record'
-  const setTab = (next: Tab) => setParams(next === 'record' ? {} : { tab: next })
+  const tab: PlannerTab =
+    fromUrl && PLANNER_TAB_IDS.has(fromUrl) ? (fromUrl as PlannerTab) : 'record'
+  const setTab = (next: PlannerTab) => setParams(next === 'record' ? {} : { tab: next })
 
   // The schedule builder and the prerequisite graph are the only sections that
   // want more than a reading column, so they are the only ones that get it.
   const wide = tab === 'schedule' || tab === 'tree'
-  const items: NavItem<Tab>[] = TABS.map((item) => ({
+  const items: NavItem<PlannerTab>[] = PLANNER_TABS.map((item) => ({
     id: item.id,
     label: t(item.labelKey),
     icon: item.icon,
@@ -149,19 +100,18 @@ export function PlannerPage() {
         onClose={() => setDrawerOpen(false)}
       />
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
-        <PlannerNavBar items={items} active={tab} onChange={setTab} />
-        {/* The column, not the page, is what narrows for a reading section —
-            and it eases rather than snapping, so the change reads as the
-            content settling instead of the layout jumping. */}
-        <div
-          className={cn(
-            'min-w-0 flex-1 transition-[max-width] duration-300 ease-out',
-            wide ? 'max-w-full' : 'max-w-5xl',
-          )}
-        >
-          {panel}
-        </div>
+      {/* No rail here any more — the sections nest under Planner in the app
+          sidebar, so the screen carries one navigation column instead of two
+          and the schedule builder gets the width back. The column, not the
+          page, is what narrows for a reading section, and it eases rather than
+          snapping so the change reads as content settling. */}
+      <div
+        className={cn(
+          'min-w-0 transition-[max-width] duration-300 ease-out',
+          wide ? 'max-w-full' : 'max-w-5xl',
+        )}
+      >
+        {panel}
       </div>
     </div>
   )

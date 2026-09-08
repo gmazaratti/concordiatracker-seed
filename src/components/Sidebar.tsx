@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Fragment, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
@@ -9,6 +9,7 @@ import { useUiState } from '@/app/providers/ui-state'
 import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
+import { PlannerSubNav } from './PlannerSubNav'
 import { AvatarMenu } from './AvatarMenu'
 import { cn } from '@/lib/cn'
 
@@ -26,6 +27,9 @@ export function Sidebar() {
   const { uiState } = useUiState()
   const badges = useNavBadges()
   const t = useT()
+  // The planner's sections nest under it while you are in there, so the page
+  // does not need a second rail of its own.
+  const onPlanner = useLocation().pathname.startsWith('/app/planner')
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -87,8 +91,8 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-1">
         {STUDENT_NAV.map(({ to, labelKey, icon: Icon, end }) => (
+          <Fragment key={to}>
           <NavLink
-            key={to}
             to={to}
             end={end}
             title={collapsed ? t(labelKey) : undefined}
@@ -135,6 +139,11 @@ export function Sidebar() {
               </>
             )}
           </NavLink>
+          {/* Only while you are in the planner, and only when there is room for
+              words: a nine-item subtree pinned open would make Planner read as
+              the centre of the app, and it is not — Today is. */}
+          {to === '/app/planner' && onPlanner && !collapsed && <PlannerSubNav />}
+          </Fragment>
         ))}
 
         {/* Opt-in pin (from the Feedback board's floating toast). Opens the

@@ -11,6 +11,44 @@ export type {
 /** Reading the curated requirement tables. The arithmetic over them is pure and
  *  lives in `program-progress.ts`, so it can be checked without a network. */
 
+/**
+ * Which programme the student picked, and remembering it.
+ *
+ * Stored in `user_profile.major_id`, NOT `program_id` — those are two different
+ * registries that happen to share a word. `program_id` holds the onboarding
+ * picker's canonical id (`computer-science-bcompsc`, from `data/programs.ts`),
+ * which is a display and category value; this one holds an id from the curated
+ * `programs` REQUIREMENTS table (`bcompsc`, `bcomm-finance`). Writing one over
+ * the other would silently destroy the other feature's answer, and `major_id`
+ * already exists for exactly this: a degree or the major on top of it.
+ *
+ * Both failures are swallowed on purpose. The picker has to keep working in the
+ * session even if the column is missing because a migration has not been run —
+ * losing the choice on reload is a nuisance, being unable to choose at all is a
+ * dead page.
+ */
+export async function loadProgramChoice(): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return null
+  const { data } = await supabase
+    .from('user_profile')
+    .select('major_id')
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+  return (data as { major_id?: string | null } | null)?.major_id ?? null
+}
+
+/** True when it actually persisted, so the UI can say so when it did not. */
+export async function saveProgramChoice(id: string): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return false
+  const { error } = await supabase
+    .from('user_profile')
+    .update({ major_id: id })
+    .eq('user_id', auth.user.id)
+  return !error
+}
+
 export async function listPrograms(): Promise<Program[]> {
   const { data, error } = await supabase.from('programs').select('*').order('name')
   if (error) throw error

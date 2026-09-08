@@ -60,6 +60,7 @@ import { seatSummary } from './seat-summary'
 import { UnscheduledStrip } from './UnscheduledStrip'
 import { ScheduleTips } from './ScheduleTips'
 import { currentTermName, laterTerms } from './past-terms'
+import { SavedCoursesButton } from './SavedCoursesPicker'
 
 /**
  * Build a week from real sections.
@@ -406,25 +407,36 @@ export function ScheduleBuilder() {
           used to be three controls in three shapes in three places; they do one
           job between them, so they are one button now. */}
       <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3 print:hidden">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          aria-label="Schedule name"
-          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-56"
-        />
+        {/* Labelled rather than left to be inferred. An unlabelled text box in
+            a toolbar reads as a search field, which is what it was being taken
+            for — and the schedule's name is the one thing on this page that is
+            purely yours. */}
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-none">
+          <span className="shrink-0 text-[11.5px] text-subtle">Title:</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-label="Schedule name"
+            className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:w-52"
+          />
+        </span>
 
         {/* Which term this whole page is about belongs beside its name, not
             buried in Filters with the things that hide rows. It is the first
             decision, and everything else — search, generate, the week itself —
-            is scoped by it. */}
-        <span className="w-40 shrink-0">
-          <Select
-            value={termCode}
-            onChange={setTermCode}
-            ariaLabel="Term"
-            size="sm"
-            options={termOptions.map((code) => ({ value: code, label: termLabel(code) }))}
-          />
+            is scoped by it. The chevron turns to point up while the list is
+            open, so the control says whether it is expecting an answer. */}
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className="text-[11.5px] text-subtle">Term:</span>
+          <span className="w-36">
+            <Select
+              value={termCode}
+              onChange={setTermCode}
+              ariaLabel="Term"
+              size="sm"
+              options={termOptions.map((code) => ({ value: code, label: termLabel(code) }))}
+            />
+          </span>
         </span>
 
         <span className="ml-auto flex items-center gap-1.5">
@@ -628,13 +640,16 @@ export function ScheduleBuilder() {
           title="Find a course"
           className="print:hidden"
           action={
-            <ScheduleFilters
-              eligibleOnly={eligibleOnly}
-              onEligibleChange={setEligibleOnly}
-              eligibleAvailable={trusted}
-              blocks={blocks}
-              onBlocksChange={setBlocks}
-            />
+            <span className="flex items-center gap-1.5">
+              <SavedCoursesButton onPick={setSeedQuery} />
+              <ScheduleFilters
+                eligibleOnly={eligibleOnly}
+                onEligibleChange={setEligibleOnly}
+                eligibleAvailable={trusted}
+                blocks={blocks}
+                onBlocksChange={setBlocks}
+              />
+            </span>
           }
         >
           <ScheduleSearch
@@ -700,30 +715,40 @@ export function ScheduleBuilder() {
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12.5px] font-medium text-fg">
-                      {p.code} {p.section.section}
-                      {p.section.component ? ` · ${p.section.component}` : ''}
-                    </span>
-                    <span className="block truncate text-[11px] text-subtle">
-                      {p.section.meetingTimes ?? 'No scheduled time'}
-                      {p.section.building ? ` · ${p.section.building}${p.section.room}` : ''}
-                    </span>
-                    {/* Seats, read when this section was added. The card behind
-                        "details" carries the caveat and the class number you
-                        actually register with. */}
-                    {seats && (
-                      <button
-                        type="button"
-                        onClick={() => setDetails(p)}
-                        className={cn(
-                          'mt-0.5 block truncate text-left text-[11px] underline-offset-2 hover:underline',
-                          seats.open > 0 ? 'text-success' : 'text-warning',
-                        )}
-                        title="Seat counts, room and class number"
-                      >
-                        {seats.headline}
-                      </button>
-                    )}
+                    {/* The whole block opens the full card. Everything Concordia
+                        publishes about a section does not fit in a 248px column,
+                        and the parts that do not fit — the class number you
+                        register with, the reserved-seat caveat — are the parts
+                        that matter most when you act on it. */}
+                    <button
+                      type="button"
+                      onClick={() => setDetails(p)}
+                      title="Room, campus, seats and class number"
+                      className="block w-full text-left"
+                    >
+                      <span className="block truncate text-[12.5px] font-medium text-fg">
+                        {p.code} {p.section.section}
+                        {p.section.component ? ` · ${p.section.component}` : ''}
+                      </span>
+                      <span className="block truncate text-[11px] text-subtle">
+                        {p.section.meetingTimes || 'No scheduled time'}
+                      </span>
+                      <span className="block truncate text-[11px] text-subtle">
+                        {whereLine(p.section)}
+                      </span>
+                      {/* Seats, read when this section was added. The card
+                          carries the caveat that goes with that. */}
+                      {seats && (
+                        <span
+                          className={cn(
+                            'mt-0.5 block truncate text-[11px]',
+                            seats.open > 0 ? 'text-success' : 'text-warning',
+                          )}
+                        >
+                          {seats.headline}
+                        </span>
+                      )}
+                    </button>
                     {isHidden && (
                       <span className="mt-0.5 block text-[11px] text-subtle">
                         Hidden from the week
@@ -999,4 +1024,25 @@ function Pane({
       {children}
     </section>
   )
+}
+
+/**
+ * Where a section actually is, in one line.
+ *
+ * Concordia fills these fields inconsistently and our own seeded rows from a
+ * student's registered courses fill them differently again — `building` is
+ * empty and the whole thing sits in `room`. The old line tested `building`
+ * alone, so every class you were actually enrolled in showed no location at
+ * all, which is the one place a location is certain to be known.
+ *
+ * Falls through what we have to the most specific thing available, and says
+ * "Room not published" rather than printing an empty line that reads as a
+ * loading state.
+ */
+function whereLine(s: SectionOption): string {
+  const campus = /LOY/i.test(s.location) ? 'Loyola' : /SGW/i.test(s.location) ? 'SGW' : ''
+  const mode = /online|en ligne|remote/i.test(`${s.instructionMode} ${s.location}`) ? 'Online' : ''
+  const room = s.building ? `${s.building} ${s.room}`.trim() : s.room.trim()
+  const parts = [room, campus || mode].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : 'Room not published'
 }

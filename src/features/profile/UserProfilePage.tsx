@@ -1,8 +1,10 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { BookOpen, Download, FileText, GraduationCap, Loader2, Lock, ShieldCheck } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
+import { HANDLE_RE } from '@/features/onboarding/handle'
+import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { programById } from '@/data/programs'
 import { cn } from '@/lib/cn'
@@ -19,10 +21,14 @@ import { SocialLinks } from '@/features/community/SocialLinks'
  */
 export function UserProfilePage() {
   const { handle: raw } = useParams()
-  // The route param includes the leading "@" (e.g. "@john"). Anything without it
-  // isn't a profile URL → render the 404 in place (a redirect would just
-  // re-match this dynamic route and bounce).
-  if (!raw || !raw.startsWith('@')) return <NotFoundPage />
+  if (!raw) return <NotFoundPage />
+  // `/@john` is the canonical form and the one every link uses. `/john` is what
+  // people type, so it is accepted and sent to the canonical URL rather than
+  // 404ing at someone who guessed a reasonable address. `replace` so Back does
+  // not land on the redirect and bounce forward again.
+  if (!raw.startsWith('@')) {
+    return HANDLE_RE.test(raw) ? <Navigate to={`/@${raw}`} replace /> : <NotFoundPage />
+  }
   const handle = raw.slice(1)
   // Key by handle so navigating between profiles remounts with fresh state.
   return <ProfileView key={handle} handle={handle} />
@@ -255,6 +261,9 @@ function Empty({ children }: { children: React.ReactNode }) {
 function NotFound({ handle }: { handle: string }) {
   return (
     <div className="grid place-items-center gap-3 py-24 text-center">
+      {/* A handle nobody has taken is a search that found nothing, which is
+          exactly what `sad` is for — never for actual bad news. */}
+      <Mascot mood="sad" size="md" soft className="text-accent" />
       <p className="text-[15px] font-medium text-fg">@{handle} isn’t here</p>
       <p className="max-w-xs text-[13px] text-subtle">No ConcordiaTracker user has that handle.</p>
       <Link

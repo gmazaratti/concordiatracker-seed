@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { PanelLeft, X } from 'lucide-react'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { cn } from '@/lib/cn'
-import type { NavItem, Phase } from './PlannerNav'
+import { PHASE_LABEL, type NavItem } from './tabs'
 
 /**
  * The planner's sidebar, on a phone.
@@ -17,12 +17,6 @@ import type { NavItem, Phase } from './PlannerNav'
  * A horizontal scrolling strip was worse again: most of it off-screen at any
  * moment, so you could see neither where you were nor what else existed.
  */
-const PHASE_LABEL: Record<Phase, string> = {
-  know: 'What you have done',
-  explore: 'What you could take',
-  commit: 'What you are taking',
-}
-
 export function PlannerDrawer<T extends string>({
   items,
   active,

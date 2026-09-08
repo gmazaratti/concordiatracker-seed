@@ -163,6 +163,22 @@ console.log('\nThe spec')
 check('/openapi.json → the spec handler', resolve('/openapi.json') === '/api/openapi')
 check('/.well-known/openapi.json → the spec handler', resolve('/.well-known/openapi.json') === '/api/openapi')
 
+console.log('\nPublic profiles')
+// The app route is `/@handle`, and the rewrite pattern was written from
+// HANDLE_RE — which is the BARE handle. So `/@alex` never reached the app at
+// all and answered a genuine 404 in production, while `/alex` reached the app
+// and rendered its own not-found. Neither form worked, and nothing here tested
+// it. Both must reach the SPA now; `/alex` redirects to the canonical form.
+for (const r of ['/@alex', '/@ginacody', '/alex', '/@a_b_c']) {
+  const dest = resolve(r)
+  check(`${r} → the app`, dest === '/index.html', dest ?? '(no match)')
+}
+// Still not a handle: too short, too long, or characters HANDLE_RE rejects.
+for (const r of ['/@ab', '/@' + 'a'.repeat(21), '/@Alex', '/@al-ex']) {
+  const dest = resolve(r)
+  check(`${r} → 404`, dest === '/api/not-found', dest ?? '(no match)')
+}
+
 console.log('\nPaths that must return a real 404')
 const notFound = [
   '/some-path-that-does-not-exist',
