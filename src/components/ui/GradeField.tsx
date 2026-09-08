@@ -33,6 +33,12 @@ export function GradeField({
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // The list is PORTALED to <body>, so it is not inside wrapRef and the
+  // outside-click handler counted a click on an option as a click outside:
+  // mousedown closed the menu, React unmounted the button, and the click event
+  // never landed. Typing worked, picking did nothing. Same bug the schedule
+  // Filters popover had — any portaled menu needs its own ref here.
+  const listRef = useRef<HTMLUListElement>(null)
   const id = useId()
 
   const percent = value.trim() === '' ? null : parseFinalGrade(value)
@@ -57,7 +63,9 @@ export function GradeField({
     }
     place()
     const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (wrapRef.current?.contains(t) || listRef.current?.contains(t)) return
+      setOpen(false)
     }
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
@@ -120,6 +128,7 @@ export function GradeField({
         pos &&
         createPortal(
           <ul
+            ref={listRef}
             id={id}
             role="listbox"
             style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.max(pos.width, 96) }}

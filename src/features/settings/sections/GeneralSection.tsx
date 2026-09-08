@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import { ThemePicker } from '@/components/ThemePicker'
 import { useUpdates } from '@/app/providers/updates'
+import { useIsAdmin } from '@/features/admin/admin-data'
+import { DEMO_GPA_TARGET, demoGpaEnabled, setDemoGpaEnabled } from '@/lib/demo-gpa'
 import { useCommandPalette } from '@/app/providers/command-palette'
 import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palette'
 import { cn } from '@/lib/cn'
@@ -20,6 +22,8 @@ export function GeneralSection() {
   const [deadlineReminders, setDeadlineReminders] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(false)
   const [productUpdates, setProductUpdates] = useState(false)
+  const { isAdmin } = useIsAdmin()
+  const [demoGpa, setDemoGpa] = useState(demoGpaEnabled)
   const { lang, setLang, t } = useI18n()
 
   return (
@@ -52,6 +56,28 @@ export function GeneralSection() {
           <Switch checked={productUpdates} onChange={setProductUpdates} label="Product updates" />
         </Row>
       </Group>
+
+      {/* Yours only. Deliberately visible rather than silent: a demo aid nobody
+          remembers enabling becomes a lie the next time you read your own
+          record. It changes the FIGURE on the way to the screen and writes
+          nothing, so turning it off restores the truth exactly. */}
+      {isAdmin && (
+        <Group label="Demo">
+          <Row
+            label="Flatter my GPA when showing the site"
+            description={`Displays at least ${DEMO_GPA_TARGET.toFixed(1)} on My record. Nothing is saved and no grade is changed — switch it off and your real GPA is back.`}
+          >
+            <Switch
+              checked={demoGpa}
+              onChange={(v) => {
+                setDemoGpa(v)
+                setDemoGpaEnabled(v)
+              }}
+              label="Flatter my GPA"
+            />
+          </Row>
+        </Group>
+      )}
 
       <Group label={t('settings.updates')}>
         <Row

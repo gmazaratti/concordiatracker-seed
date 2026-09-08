@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { usePromptSlot } from '@/app/first-run'
 import { Plus, Share, X } from 'lucide-react'
 import {
   canPromptInstall,
@@ -36,7 +37,12 @@ export function InstallPrompt() {
   const [gone, setGone] = useState(() => isStandalone() || dismissedRecently())
   const [shown, setShown] = useState(false)
 
-  const eligible = !gone && (canPrompt || ios)
+  const installable = !gone && (canPrompt || ios)
+  // Last, and two minutes in. "Add this to your home screen" is a request, and
+  // requests come after value. Passing `installable` as the eligibility means a
+  // device that can never install releases the slot instead of stalling it.
+  const slot = usePromptSlot('install', installable)
+  const eligible = installable && slot
 
   useEffect(() => {
     if (!eligible) return

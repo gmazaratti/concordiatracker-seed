@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
+import { completePrompt, usePromptSlot } from '@/app/first-run'
 import { X } from 'lucide-react'
 import { useUiState } from '@/app/providers/ui-state'
 import { useTour } from '@/features/tour/tour'
@@ -35,10 +36,15 @@ export function Coachmark({
   const { active: tourActive } = useTour()
   const location = useLocation()
   const [rect, setRect] = useState<Rect | null>(null)
+  // Second in the queue: pointing at where things are is useless before there
+  // is anything on screen worth pointing at.
+  const slot = usePromptSlot('highlights')
 
   // Suppressed while the guided tour runs, so its spotlight is never doubled up
   // with a coachmark on the same screen.
   const active = loaded && !isTipSeen(id) && !tourActive
+  // Seen or not applicable here, the queue moves on.
+  if (loaded && isTipSeen(id)) completePrompt('highlights')
 
   useEffect(() => {
     if (!active) return
@@ -69,7 +75,7 @@ export function Coachmark({
     }
   }, [active, selector, location.pathname])
 
-  if (!active || !rect) return null
+  if (!slot || !active || !rect) return null
 
   const W = 264
   const gap = 10

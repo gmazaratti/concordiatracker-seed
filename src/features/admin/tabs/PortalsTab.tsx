@@ -126,8 +126,11 @@ function TeacherRow({ t, onChanged }: { t: PortalTeacher; onChanged: () => void 
       setBusy(false)
     }
   }
+  // Stacks below sm. A name, two counters and a destructive button do not fit
+  // 375px on one line, and flex-wrap alone left the button orphaned against the
+  // right edge with the counters stranded above it.
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3">
+    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1.5">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-[13px] font-medium text-fg">{t.name}</span>
@@ -138,8 +141,13 @@ function TeacherRow({ t, onChanged }: { t: PortalTeacher; onChanged: () => void 
       <div className="flex items-center gap-4 text-[12px] text-subtle">
         <span title="Published blueprints" className="inline-flex items-center gap-1"><FileText size={13} aria-hidden />{t.blueprint_count}</span>
         <span title="Announcements" className="inline-flex items-center gap-1"><Megaphone size={13} aria-hidden />{t.announcement_count}</span>
+        <span className="ml-auto sm:hidden">
+          <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
+        </span>
       </div>
-      <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
+      <span className="hidden sm:inline-flex">
+        <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
+      </span>
     </li>
   )
 }
@@ -161,7 +169,7 @@ function OrgRow({ o, onChanged }: { o: PortalOrg; onChanged: () => void }) {
 
   return (
     <li>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-[13px] font-medium text-fg">{o.name}</span>
@@ -174,7 +182,9 @@ function OrgRow({ o, onChanged }: { o: PortalOrg; onChanged: () => void }) {
           <span title="Events" className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden />{o.event_count}</span>
           <span title="Followers" className="inline-flex items-center gap-1"><Users size={13} aria-hidden />{o.follower_count}</span>
         </div>
-        <div className="flex items-center gap-2">
+        {/* Wraps: Approve + Ban + Delete + the member toggle is four controls,
+            which overflow a phone on one line. */}
+        <div className="flex flex-wrap items-center gap-2">
           {/* Manual gate: a freshly-invited org stays pending until approved here. */}
           {o.status === 'pending' && (
             <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}

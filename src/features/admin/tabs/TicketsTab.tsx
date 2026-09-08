@@ -26,6 +26,7 @@ export function TicketsTab() {
   const [filter, setFilter] = useState<TicketStatus | 'all'>('open')
   const [q, setQ] = useState('')
   const [rows, setRows] = useState<AdminTicket[] | null>(null)
+  const [error, setError] = useState('')
   const [selected, setSelected] = useState<AdminTicket | null>(null)
 
   // `load` only bumps a counter; the fetch runs in the effect after an await,
@@ -36,7 +37,13 @@ export function TicketsTab() {
   useEffect(() => {
     let alive = true
     void (async () => {
-      const list = await adminTickets(filter === 'all' ? null : filter, q).catch(() => [])
+      // Was `.catch(() => [])`, which made a failed query and an empty queue
+      // look identical — the reason "tickets do not load" could not be told
+      // apart from "there are no tickets".
+      const list = await adminTickets(filter === 'all' ? null : filter, q).catch((e: unknown) => {
+        if (alive) setError(e instanceof Error ? e.message : 'Could not load tickets.')
+        return [] as AdminTicket[]
+      })
       if (!alive) return
       setRows(list)
       // Keep the open conversation in sync with the refreshed row, and drop the
@@ -80,6 +87,13 @@ export function TicketsTab() {
 
           {rows === null ? (
             <Loading />
+          ) : error ? (
+            <div className="px-4 py-6 text-[13px] leading-relaxed text-danger">
+              {error}
+              <span className="mt-1.5 block text-[12px] text-subtle">
+                If this mentions a missing function, run <code>db/tickets.sql</code>.
+              </span>
+            </div>
           ) : rows.length === 0 ? (
             <EmptyState>No tickets match.</EmptyState>
           ) : (

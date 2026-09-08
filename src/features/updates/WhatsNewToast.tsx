@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Megaphone, X } from 'lucide-react'
 import { useUpdates } from '@/app/providers/updates'
+import { completePrompt, usePromptSlot } from '@/app/first-run'
 
 const AUTO_DISMISS = 6000
 
@@ -12,11 +13,21 @@ const AUTO_DISMISS = 6000
  * the update — it only closes the toast. */
 export function WhatsNewToast() {
   const { currentVersion, openHistory, dismissToast } = useUpdates()
+  // Third in the queue. "Here is what changed" means nothing to someone who has
+  // never seen the previous version, so it waits behind the two prompts that
+  // are actually about getting started.
+  const slot = usePromptSlot('updates')
 
   useEffect(() => {
-    const id = window.setTimeout(dismissToast, AUTO_DISMISS)
+    if (!slot) return
+    const id = window.setTimeout(() => {
+      dismissToast()
+      completePrompt('updates')
+    }, AUTO_DISMISS)
     return () => window.clearTimeout(id)
-  }, [dismissToast])
+  }, [slot, dismissToast])
+
+  if (!slot) return null
 
   return (
     <div
@@ -40,7 +51,10 @@ export function WhatsNewToast() {
         </button>
         <button
           type="button"
-          onClick={dismissToast}
+          onClick={() => {
+            dismissToast()
+            completePrompt('updates')
+          }}
           aria-label="Dismiss update notification"
           className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface hover:text-fg"
         >

@@ -14,6 +14,8 @@ import { browseCourses, type CatalogCourse } from '@/lib/catalog'
 import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
 import { GpaBreakdown } from './GpaBreakdown'
+import { demoGpa, demoGpaEnabled } from '@/lib/demo-gpa'
+import { useIsAdmin } from '@/features/admin/admin-data'
 import { PastCourseRow } from './PastCourseRow'
 import { Step } from './Step'
 import { YEARS } from './past-terms'
@@ -60,6 +62,10 @@ export function MyRecordPanel() {
     () => summarizeRecord(pastCourses, assessments),
     [pastCourses, assessments],
   )
+
+  // Presentation only, admin only, and it never writes — see lib/demo-gpa.ts.
+  const { isAdmin } = useIsAdmin()
+  const shownGpa = isAdmin ? demoGpa(summary.gpa, demoGpaEnabled()) : summary.gpa
   const superseded = useMemo(
     () => supersededCourseIds(pastCourses, assessments),
     [pastCourses, assessments],
@@ -242,9 +248,9 @@ export function MyRecordPanel() {
           <Stat label="Courses" value={String(summary.courseCount)} />
           <Stat
             label="GPA"
-            value={summary.gpa === null ? '\u2014' : summary.gpa.toFixed(2)}
+            value={shownGpa === null ? '\u2014' : shownGpa.toFixed(2)}
             note={
-              summary.gpa === null
+              shownGpa === null
                 ? 'Add a grade to see it'
                 : `over ${summary.gradedCredits} graded credits`
             }

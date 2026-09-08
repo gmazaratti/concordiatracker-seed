@@ -15,12 +15,23 @@ interface Row {
   email: string | null
   source: string | null
   created_at: string
+  outline_files?: { path: string; name: string }[]
+  converted?: boolean
 }
 interface Data {
   responses: number
   emails: number
+  /** Responses that were ISSUED a trial link — the honest conversion
+   *  denominator, since rows from before that feature never had the chance. */
+  claimable: number
+  /** Of those, the ones where an account was actually created through it. */
+  converted: number
+  with_outline: number
+  outline_files: number
   sources: { source: string; n: number }[]
   averages: Record<string, number>
+  /** questionId -> { option -> count } */
+  choices: Record<string, Record<string, number>>
   rows: Row[]
 }
 
@@ -55,7 +66,11 @@ export function PublicSurveyResults() {
     return (
       <div className="rounded-xl border border-border bg-surface p-5 text-[13px] text-muted">
         Couldn&rsquo;t load{err ? `: ${err}` : ''}. If this persists, run{' '}
-        <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/public_survey.sql</code>.
+        <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/survey_fix.sql</code>.
+        <span className="mt-1.5 block text-[12px] text-subtle">
+          Responses are still being recorded either way &mdash; this page is the reader, not the
+          writer.
+        </span>
       </div>
     )
   }
@@ -77,10 +92,32 @@ export function PublicSurveyResults() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Responses" value={String(data.responses)} />
+        {/* The number the survey exists to produce. Denominator is `claimable`,
+            not `responses`, because a response issued no link could never have
+            converted through one — counting it as a failure would understate
+            the rate for no reason. */}
+        <Stat
+          label="Signed up"
+          value={
+            data.claimable > 0
+              ? `${Math.round((data.converted / data.claimable) * 100)}%`
+              : '—'
+          }
+          sub={data.claimable > 0 ? `${data.converted} of ${data.claimable}` : 'no links issued yet'}
+        />
         <Stat label="Left an email" value={String(data.emails)} sub="wants early access" />
-        <Stat label="Top source" value={data.sources[0]?.source ?? '—'} sub={data.sources[0] ? `${data.sources[0].n} responses` : undefined} />
+        <Stat
+          label="Shared an outline"
+          value={String(data.with_outline)}
+          sub={data.outline_files > 0 ? `${data.outline_files} files` : undefined}
+        />
+        <Stat
+          label="Top source"
+          value={data.sources[0]?.source ?? '—'}
+          sub={data.sources[0] ? `${data.sources[0].n} responses` : undefined}
+        />
       </div>
 
       <section>
@@ -100,6 +137,46 @@ export function PublicSurveyResults() {
                 <span className="w-8 shrink-0 text-right text-[12.5px] font-semibold tabular-nums text-fg">
                   {avg.toFixed(1)}
                 </span>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Choice questions as tallies. Reading "would you support us seeking
+          Concordia funding" by eye down 200 cards is not reading it. */}
+      <section>
+        <h3 className="mb-2.5 text-[13px] font-semibold text-fg">Answers</h3>
+        <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
+          {CHOICE_QUESTIONS.map((q) => {
+            const tally = data.choices?.[q.id]
+            if (!tally) return null
+            const total = Object.values(tally).reduce((a, b) => a + b, 0)
+            if (total === 0) return null
+            return (
+              <div key={q.id}>
+                <p className="text-[12.5px] font-medium text-fg">{q.label}</p>
+                <div className="mt-1.5 space-y-1">
+                  {q.options
+                    .map((opt) => [opt, tally[opt] ?? 0] as const)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([opt, n]) => (
+                      <div key={opt} className="flex items-center gap-2.5">
+                        <span className="w-40 shrink-0 truncate text-[12px] text-muted" title={opt}>
+                          {opt}
+                        </span>
+                        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                          <div
+                            className="h-full rounded-full bg-accent"
+                            style={{ width: `${total ? (n / total) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <span className="w-8 shrink-0 text-right text-[12px] tabular-nums text-fg">
+                          {n}
+                        </span>
+                      </div>
+                    ))}
+                </div>
               </div>
             )
           })}

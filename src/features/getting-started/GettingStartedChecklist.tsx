@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Check, ChevronDown, Play, Rocket, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
+import { completePrompt, usePromptSlot } from '@/app/first-run'
 import { useTour } from '@/features/tour/tour'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import { isOpen } from '@/lib/status'
@@ -26,6 +27,9 @@ interface Step {
 export function GettingStartedChecklist() {
   const { courses, assessments } = useAppData()
   const { uiState, loaded, patchUiState } = useUiState()
+  // First in the queue: it is the only one of the four about the product's
+  // actual job, so it earns the opening slot.
+  const slot = usePromptSlot('checklist')
   const { start } = useTour()
   const [open, setOpen] = useState(true)
   // Brief attention pulse when the user declines the tour ("maybe later"), so the
@@ -84,7 +88,11 @@ export function GettingStartedChecklist() {
 
   // Wait for the flags to load (so it doesn't flash), and bow out once finished
   // or dismissed.
-  if (!loaded || uiState.checklistDismissed || allDone) return null
+  // Dismissed or finished, the queue moves on. Reported from render-adjacent
+  // state rather than an effect, because completePrompt only writes storage and
+  // fires an event — it sets no React state of its own.
+  if (loaded && (uiState.checklistDismissed || allDone)) completePrompt('checklist')
+  if (!loaded || uiState.checklistDismissed || allDone || !slot) return null
 
   return (
     <section
