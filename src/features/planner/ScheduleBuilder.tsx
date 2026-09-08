@@ -10,6 +10,7 @@ import {
   Save,
   Trash2,
   X,
+  Sparkles,
 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
@@ -44,9 +45,11 @@ import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { SuggestedCourses } from './SuggestedCourses'
 import { ScheduleGenerator } from './ScheduleGenerator'
+import { ModalShell } from '@/command/ModalShell'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Pin, PinOff } from 'lucide-react'
 import { useProgramForUser } from './useProgramForUser'
-import { findSections } from '@/lib/seats'
+import { findSections, termLabel } from '@/lib/seats'
 import { ScheduleFilters } from './ScheduleFilters'
 
 /**
@@ -106,6 +109,7 @@ export function ScheduleBuilder() {
   // around real commitments rather than against an empty grid. Toggleable,
   // because "what if I dropped everything" is also a question worth asking.
   const [showCurrent, setShowCurrent] = useState(true)
+  const [generating, setGenerating] = useState(false)
 
   /**
    * The course being hovered in the suggestions list, drawn on the week as a
@@ -307,10 +311,39 @@ export function ScheduleBuilder() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           aria-label="Schedule name"
-          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-64"
+          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:max-w-56"
         />
 
+        {/* Which term this whole page is about belongs beside its name, not
+            buried in Filters with the things that hide rows. It is the first
+            decision, and everything else — search, generate, the week itself —
+            is scoped by it. */}
+        {terms.length > 0 && (
+          <span className="w-40 shrink-0">
+            <Select
+              value={termCode}
+              onChange={setTermCode}
+              ariaLabel="Term"
+              size="sm"
+              options={terms.map((code) => ({ value: code, label: termLabel(code) }))}
+            />
+          </span>
+        )}
+
         <span className="ml-auto flex items-center gap-1.5">
+          {/* The one action on this page that MAKES something, so it is the one
+              that is filled rather than outlined. It opens a dialog because its
+              inputs are a short form, and a form living permanently in the left
+              rail is a form you scroll past. */}
+          <button
+            type="button"
+            onClick={() => setGenerating(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+            title="Build a timetable around what you still need and the times you have blocked"
+          >
+            <Sparkles size={14} aria-hidden />
+            Generate
+          </button>
           <ToolbarButton
             onClick={() => void save()}
             icon={savedFlash ? Check : Save}
@@ -341,6 +374,36 @@ export function ScheduleBuilder() {
           />
         </span>
       </div>
+
+      {generating && (
+        <ModalShell
+          label="Generate a schedule"
+          onClose={() => setGenerating(false)}
+          widthClass="sm:max-w-md"
+        >
+          <div className="p-4 sm:p-5">
+            <h2 className="font-display text-[17px] font-medium text-fg">Generate a schedule</h2>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
+              Around what you have pinned and the times you have blocked out. Nothing is registered.
+            </p>
+            <div className="mt-4">
+              <ScheduleGenerator
+                program={program}
+                termCode={termCode}
+                blocks={blocks}
+                taken={taken}
+                pinned={pinnedForGenerator}
+                eligibleOnly={eligibleOnly}
+                record={record}
+                onApply={(picks) => {
+                  applyGenerated(picks)
+                  setGenerating(false)
+                }}
+              />
+            </div>
+          </div>
+        </ModalShell>
+      )}
 
       {shareUrl && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 print:hidden">
@@ -428,9 +491,6 @@ export function ScheduleBuilder() {
           className="print:hidden"
           action={
             <ScheduleFilters
-              termCode={termCode}
-              onTermChange={setTermCode}
-              terms={terms}
               eligibleOnly={eligibleOnly}
               onEligibleChange={setEligibleOnly}
               eligibleAvailable={trusted}
@@ -460,34 +520,22 @@ export function ScheduleBuilder() {
           />
         </Pane>
 
-        <Pane title="Build one for me" className="print:hidden">
-          <ScheduleGenerator
-            program={program}
-            termCode={termCode}
-            blocks={blocks}
-            taken={taken}
-            pinned={pinnedForGenerator}
-            eligibleOnly={eligibleOnly}
-            record={record}
-            onApply={applyGenerated}
-          />
-        </Pane>
-
         <Pane
           title="In this schedule"
           count={picked.length}
           className="print:hidden"
           action={
             picked.some((p) => p.state === 'enrolled') ? (
-              <label className="flex cursor-pointer items-center gap-1.5 text-[11.5px] text-subtle">
-                <input
-                  type="checkbox"
+              <span
+                title="The classes you are already registered in. Hiding them lets you try a different term on the grid without removing anything — nothing here changes your Courses tab either way."
+                className="flex items-center"
+              >
+                <Checkbox
                   checked={showCurrent}
-                  onChange={(e) => setShowCurrent(e.target.checked)}
-                  className="size-3.5 accent-[var(--ct-accent)]"
+                  onChange={setShowCurrent}
+                  label={<span className="text-[11.5px] text-subtle">Show current</span>}
                 />
-                My classes
-              </label>
+              </span>
             ) : undefined
           }
         >

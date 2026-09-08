@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Plus, SlidersHorizontal, X } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
-import { termLabel } from '@/lib/seats'
 import type { TimeBlock } from '@/lib/schedules'
 import { weekdayNames } from '@/lib/date'
 import { cn } from '@/lib/cn'
@@ -32,18 +31,12 @@ const TIMES = Array.from({ length: 34 }, (_, i) => {
 const EVERY_DAY = 'all'
 
 export function ScheduleFilters({
-  termCode,
-  onTermChange,
-  terms,
   eligibleOnly,
   onEligibleChange,
   eligibleAvailable,
   blocks,
   onBlocksChange,
 }: {
-  termCode: string
-  onTermChange: (t: string) => void
-  terms: string[]
   eligibleOnly: boolean
   onEligibleChange: (v: boolean) => void
   eligibleAvailable: boolean
@@ -56,7 +49,7 @@ export function ScheduleFilters({
   const popRef = useRef<HTMLDivElement>(null)
   const names = weekdayNames()
 
-  const active = (termCode ? 1 : 0) + (eligibleOnly ? 1 : 0) + (blocks.length > 0 ? 1 : 0)
+  const active = (eligibleOnly ? 1 : 0) + (blocks.length > 0 ? 1 : 0)
 
   useEffect(() => {
     if (!open) return
@@ -120,23 +113,10 @@ export function ScheduleFilters({
             style={{ position: 'fixed', top: pos.top, right: pos.right }}
             className="z-[60] max-h-[70vh] w-[310px] overflow-y-auto rounded-xl border border-border bg-surface p-3 shadow-lg"
           >
-            <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                Term
-              </span>
-              <Select
-                value={termCode}
-                onChange={onTermChange}
-                ariaLabel="Term"
-                placeholder="Any term"
-                size="sm"
-                options={[
-                  { value: '', label: 'Any term' },
-                  ...terms.map((c) => ({ value: c, label: termLabel(c) })),
-                ]}
-              />
-            </label>
-
+            {/* Term moved to the toolbar, beside the schedule's name. It is
+                the first decision on the page and everything else is scoped by
+                it — Filters is for what gets HIDDEN, which is a different job.
+                Having it in two places meant two controls disagreeing. */}
             <button
               type="button"
               role="switch"

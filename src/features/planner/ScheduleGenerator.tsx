@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Sparkles, TriangleAlert, X } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { findSections, termLabel, type SectionOption } from '@/lib/seats'
 import { parseCourseCode } from '@/lib/course-sections'
 import { browseCourses } from '@/lib/catalog'
@@ -192,26 +193,18 @@ export function ScheduleGenerator({
           <Select value={target} onChange={setTarget} ariaLabel="Credit load" options={LOADS} size="sm" />
         </label>
 
-        <label className="flex cursor-pointer items-start gap-2">
-          <input
-            type="checkbox"
-            checked={ecp}
-            onChange={(e) => {
-              setEcp(e.target.checked)
-              // ECP is a longer degree, not a lighter term — but a first ECP
-              // term is usually the 12-credit minimum, so it moves the default
-              // rather than inventing a separate rule.
-              if (e.target.checked && target === '15') setTarget('12')
-            }}
-            className="mt-0.5 size-3.5 shrink-0 accent-[var(--ct-accent)]"
-          />
-          <span className="text-[12px] leading-relaxed text-muted">
-            I&rsquo;m in the Extended Credit Programme
-            <span className="block text-[11px] text-subtle">
-              Same load per term, more terms overall.
-            </span>
-          </span>
-        </label>
+        <Checkbox
+          checked={ecp}
+          onChange={(next) => {
+            setEcp(next)
+            // ECP is a longer degree, not a lighter term — but a first ECP term
+            // is usually the 12-credit minimum, so it moves the default rather
+            // than inventing a separate rule.
+            if (next && target === '15') setTarget('12')
+          }}
+          label={<>I&rsquo;m in the Extended Credit Programme</>}
+          hint="Same load per term, more terms overall."
+        />
 
         <label className="block">
           <span className="mb-1 block text-[11.5px] text-subtle">

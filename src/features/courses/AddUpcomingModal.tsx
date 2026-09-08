@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Check, Loader2, PlusCircle, Search } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { CourseSkeleton } from '@/components/ui/Skeleton'
 import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
@@ -277,20 +278,13 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
         {/* Registration is not the same as being in the class. Asked here rather
             than left to be corrected later, because a waitlisted class is one
             whose credits may never count and this is the moment you know. */}
-        <label className="mt-3 flex cursor-pointer items-start gap-2.5">
-          <input
-            type="checkbox"
-            checked={waitlisted}
-            onChange={(e) => setWaitlisted(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
-          />
-          <span className="text-[12.5px] leading-relaxed text-muted">
-            I&rsquo;m on the waitlist for this one
-            <span className="block text-[11.5px] text-subtle">
-              Marked as a maybe, so its credits don&rsquo;t get counted as certain.
-            </span>
-          </span>
-        </label>
+        <Checkbox
+          className="mt-3"
+          checked={waitlisted}
+          onChange={setWaitlisted}
+          label={<>I&rsquo;m on the waitlist for this one</>}
+          hint="Marked as a maybe, so its credits don't get counted as certain."
+        />
 
         {/* The honest bit. A blueprint for a course you take next term carries
             LAST term's dates, which is worse than having none — you would plan
