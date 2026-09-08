@@ -5,6 +5,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { LoginScreen } from '@/features/auth/LoginScreen'
 import { Sidebar } from '@/components/Sidebar'
 import { MobileNav } from '@/components/MobileNav'
+import { SurveyClaimLayer } from '@/features/survey/SurveyClaimLayer'
 import { MobileSearchButton } from '@/components/MobileSearchButton'
 import { Logo } from '@/components/Logo'
 import { AvatarMenu } from '@/components/AvatarMenu'
@@ -75,6 +76,7 @@ export function StudentLayout() {
       <SupportLayer />
       <UpdatesLayer />
       <ThemePreviewBar />
+      <SurveyClaimLayer />
       <SeatAlertLayer />
       <InstallPrompt />
       <GettingStartedChecklist />

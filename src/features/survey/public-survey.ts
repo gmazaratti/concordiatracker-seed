@@ -275,18 +275,18 @@ export function pitchHeadline(pitches: Pitch[]): string {
 }
 
 /**
- * A short code the respondent can read off a phone screen and type later.
+ * A single-use token that rides in the "create your account" link.
  *
- * No I, O, 0 or 1 — this gets written on a napkin in a library and typed into a
- * different device an hour later, and those four are where that goes wrong.
+ * Not a short readable code, deliberately. A code on screen is a code that gets
+ * screenshotted and passed round a group chat, and then the free week is a
+ * coupon rather than a thank-you to the person who actually answered. This is
+ * long, never displayed, and consumed by the first account that follows the
+ * link — so it belongs to the respondent and to nobody they forward it to.
  */
-function makeCode(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let out = ''
-  const bytes = new Uint8Array(8)
+function makeToken(): string {
+  const bytes = new Uint8Array(18)
   crypto.getRandomValues(bytes)
-  for (const b of bytes) out += alphabet[b % alphabet.length]
-  return `CT-${out.slice(0, 4)}-${out.slice(4)}`
+  return [...bytes].map((b) => b.toString(36).padStart(2, '0')).join('')
 }
 
 /**
@@ -324,7 +324,7 @@ export async function submitPublicSurvey(a: PublicSurveyAnswers): Promise<string
   }
 
   const outlineFiles = a.files.length ? await uploadOutlines(a.files) : []
-  const code = makeCode()
+  const code = makeToken()
 
   const row = {
     ratings: a.ratings,
@@ -347,7 +347,40 @@ export async function submitPublicSurvey(a: PublicSurveyAnswers): Promise<string
   return null
 }
 
-/** Trade a survey code for seven days of Pro. Signed-in only. */
+/** Where the survey's "create your account" button goes. */
+export function claimUrl(token: string): string {
+  return `/app?claim=${encodeURIComponent(token)}`
+}
+
+const CLAIM_KEY = 'ct_survey_claim'
+
+/**
+ * Remember the token across the sign-up round trip.
+ *
+ * Signing up leaves the page — an email link, a Google redirect — and the
+ * query string does not survive that. Stashing it means the free week still
+ * lands when they come back, which is the whole point of tying it to the link
+ * rather than to a code they were asked to keep.
+ */
+export function stashClaim(token: string): void {
+  try {
+    localStorage.setItem(CLAIM_KEY, token)
+  } catch {
+    /* private mode — the claim just has to happen in this session */
+  }
+}
+
+export function takeClaim(): string | null {
+  try {
+    const v = localStorage.getItem(CLAIM_KEY)
+    if (v) localStorage.removeItem(CLAIM_KEY)
+    return v
+  } catch {
+    return null
+  }
+}
+
+/** Trade the survey token for seven days of Pro. Signed-in only. */
 export async function redeemSurveyCode(code: string): Promise<string> {
   const { data, error } = await supabase.rpc('redeem_survey_code', { p_code: code })
   if (error) throw new Error(error.message)

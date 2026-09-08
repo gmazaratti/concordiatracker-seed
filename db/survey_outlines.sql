@@ -25,7 +25,11 @@ create policy "survey_outlines_insert" on storage.objects
   for insert to anon, authenticated
   with check (bucket_id = 'survey-outlines');
 
--- ── 2. The trial code ───────────────────────────────────────────────────────
+-- ── 2. The trial token ──────────────────────────────────────────────────────
+-- Long and never displayed, because it rides in the "create your account" link
+-- rather than being read off a screen. A short code on screen gets
+-- screenshotted and passed round a group chat, and then the free week is a
+-- coupon instead of a thank-you to the person who answered.
 alter table public.public_survey add column if not exists reward_code  text;
 alter table public.public_survey add column if not exists redeemed_by  uuid references auth.users(id) on delete set null;
 alter table public.public_survey add column if not exists redeemed_at  timestamptz;
@@ -35,7 +39,7 @@ create unique index if not exists public_survey_reward_code_idx
   on public.public_survey (reward_code) where reward_code is not null;
 
 /**
- * Redeem a survey code for seven days of Pro.
+ * Redeem a survey token for seven days of Pro.
  *
  * SECURITY DEFINER because public_survey is insert-only to anon and must stay
  * that way — a client that could read the table could read every code. The
@@ -62,10 +66,10 @@ begin
    where reward_code = upper(trim(p_code));
 
   if row_id is null then
-    raise exception 'that code is not valid';
+    raise exception 'that link is not valid';
   end if;
   if claimed is not null and claimed <> auth.uid() then
-    raise exception 'that code has already been used';
+    raise exception 'that link has already been used';
   end if;
 
   -- Extends rather than overwrites, so redeeming does not shorten a window

@@ -1,8 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Copy } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { buildPitch, pitchHeadline, type PublicSurveyAnswers } from './public-survey'
+import {
+  buildPitch,
+  claimUrl,
+  pitchHeadline,
+  stashClaim,
+  type PublicSurveyAnswers,
+} from './public-survey'
 
 /**
  * What they see after sending the survey: their own answers reflected back,
@@ -43,7 +49,7 @@ export function SurveyResult({
       {/* The thank-you IS the offer. Placed above the personalised cards
           because a code shown after four paragraphs is a code nobody sees, and
           this one is the reason they will actually open the app tonight. */}
-      {code && <TrialCode code={code} />}
+      {code && <TrialOffer token={code} />}
 
       {pitches.length > 0 && (
         <>
@@ -99,40 +105,40 @@ export function SurveyResult({
 /**
  * A week of Pro, for filling this in. No card.
  *
- * A code rather than an instant grant, because there is no account yet — this
- * is a public page and the respondent may not sign up for hours. It is short,
- * unambiguous to read off a phone in a library, and it is theirs alone.
+ * The offer is attached to THIS BUTTON, not to a code on screen. A code gets
+ * screenshotted and passed round a group chat, and then the free week is a
+ * coupon rather than a thank-you to the person who actually answered. The token
+ * rides in the link, is never shown, and is consumed by the first account that
+ * follows it.
  *
- * No card is the point: the thing worth learning is whether somebody puts a
- * real term into this, and a payment wall at the door answers a different and
+ * No card is the point of the offer itself: what is worth learning is whether
+ * somebody puts a real term into this, and a payment wall at the door answers a
  * much less interesting question.
  */
-function TrialCode({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
+function TrialOffer({ token }: { token: string }) {
+  const navigate = useNavigate()
   return (
     <div className="mt-7 rounded-2xl border border-accent/50 bg-accent-soft/40 p-5 text-center">
       <p className="text-[13px] font-semibold tracking-wide text-accent uppercase">
         One week of Pro, on the house
       </p>
       <p className="mx-auto mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-muted">
-        Everything unlocked for seven days. No card, nothing to cancel.
+        Make an account from here and everything unlocks for seven days. No card, nothing to
+        cancel, and it&rsquo;s already attached to this link.
       </p>
-      <button
-        type="button"
+      <Button
+        size="lg"
+        className="mt-4 w-full sm:w-auto"
         onClick={() => {
-          void navigator.clipboard?.writeText(code).then(
-            () => setCopied(true),
-            () => setCopied(false),
-          )
+          stashClaim(token)
+          navigate(claimUrl(token))
         }}
-        className="mt-3.5 inline-flex items-center gap-2 rounded-xl border border-border-strong bg-canvas px-4 py-2.5 font-mono text-[17px] font-semibold tracking-wider text-fg transition-colors duration-150 hover:border-accent"
       >
-        {code}
-        {copied ? <Check size={15} className="text-success" aria-hidden /> : <Copy size={15} className="text-subtle" aria-hidden />}
-      </button>
+        Create my free account
+        <ArrowRight size={16} aria-hidden />
+      </Button>
       <p className="mt-2.5 text-[11.5px] text-subtle">
-        {copied ? 'Copied.' : 'Tap to copy.'} Redeem it in Settings &rarr; Billing after you sign
-        up. Screenshot this &mdash; it&rsquo;s the only time it&rsquo;s shown.
+        Nothing to write down. Sign up from this page and the week is yours.
       </p>
     </div>
   )
