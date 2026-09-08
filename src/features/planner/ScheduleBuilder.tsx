@@ -43,6 +43,8 @@ import { parseCourseCode } from '@/lib/course-sections'
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { SuggestedCourses } from './SuggestedCourses'
+import { ScheduleGenerator } from './ScheduleGenerator'
+import { Pin, PinOff } from 'lucide-react'
 import { useProgramForUser } from './useProgramForUser'
 import { findSections } from '@/lib/seats'
 import { ScheduleFilters } from './ScheduleFilters'
@@ -89,6 +91,21 @@ export function ScheduleBuilder() {
   // outright: which SECTION you want is still yours to pick, and we have no
   // business choosing a in-person 8am for someone.
   const [seedQuery, setSeedQuery] = useState('')
+
+  /**
+   * Courses whose slot must not move when regenerating.
+   *
+   * Keyed by course CODE rather than class number: pinning is a statement
+   * about the course ("I have this one settled"), and the section it names is
+   * the one currently on the grid. Local rather than saved, because a pin is
+   * scaffolding for building a draft, not a property of the finished thing.
+   */
+  const [pins, setPins] = useState<Set<string>>(new Set())
+
+  // The classes already on your record, drawn on the week so a draft is built
+  // around real commitments rather than against an empty grid. Toggleable,
+  // because "what if I dropped everything" is also a question worth asking.
+  const [showCurrent, setShowCurrent] = useState(true)
 
   /**
    * The course being hovered in the suggestions list, drawn on the week as a
@@ -140,6 +157,40 @@ export function ScheduleBuilder() {
     return { completed: new Set(summary.completedCodes.map(normalizeCode)), credits: summary.credits }
   }, [pastCourses, assessments])
 
+  /**
+   * What the generator must keep, in the shape it wants.
+   *
+   * Derived from the pins and what is currently on the grid rather than stored
+   * separately, so a pin can never point at a section that has since been
+   * removed.
+   */
+  const pinnedForGenerator = useMemo(
+    () =>
+      [...pins]
+        .map((code) => ({
+          code,
+          sections: picked.filter((p) => p.code === code).map((p) => p.section),
+        }))
+        .filter((p) => p.sections.length > 0),
+    [pins, picked],
+  )
+
+  /**
+   * Take a generated draft.
+   *
+   * Replaces everything EXCEPT the pins, which are already in the draft by
+   * construction — a "use this one" that quietly dropped a pinned class would
+   * make pinning meaningless.
+   */
+  const applyGenerated = useCallback(
+    (result: { code: string; sections: SectionOption[] }[]) => {
+      setPicked(
+        result.flatMap((r) => r.sections.map((section) => ({ code: r.code, section }))),
+      )
+    },
+    [],
+  )
+
   // Passed, plus already on this schedule. Suggesting either back is noise.
   const taken = useMemo(
     () => [...record.completed, ...picked.map((p) => p.code)],
@@ -183,11 +234,21 @@ export function ScheduleBuilder() {
           building: '',
           room: c.location,
         } satisfies SectionOption,
+        // The word is already true and it is what makes them separable from
+        // sections added while planning, which the "show my classes" toggle
+        // needs.
+        state: 'enrolled' as EnrollmentState,
       }))
     if (fromCurrentTerm.length > 0) setPicked(fromCurrentTerm)
   }
 
-  const placed = useMemo(() => placeSections(picked), [picked])
+  // Hiding your current classes answers "what would a clean term look like"
+  // without throwing them away — they come straight back.
+  const visiblePicked = useMemo(
+    () => (showCurrent ? picked : picked.filter((p) => p.state !== 'enrolled')),
+    [picked, showCurrent],
+  )
+  const placed = useMemo(() => placeSections(visiblePicked), [visiblePicked])
   const conflicts = useMemo(() => findConflicts(placed), [placed])
   const gaps = useMemo(() => findCampusGaps(placed), [placed])
   const colourOf = useMemo(() => {
@@ -399,10 +460,36 @@ export function ScheduleBuilder() {
           />
         </Pane>
 
+        <Pane title="Build one for me" className="print:hidden">
+          <ScheduleGenerator
+            program={program}
+            termCode={termCode}
+            blocks={blocks}
+            taken={taken}
+            pinned={pinnedForGenerator}
+            eligibleOnly={eligibleOnly}
+            record={record}
+            onApply={applyGenerated}
+          />
+        </Pane>
+
         <Pane
           title="In this schedule"
           count={picked.length}
           className="print:hidden"
+          action={
+            picked.some((p) => p.state === 'enrolled') ? (
+              <label className="flex cursor-pointer items-center gap-1.5 text-[11.5px] text-subtle">
+                <input
+                  type="checkbox"
+                  checked={showCurrent}
+                  onChange={(e) => setShowCurrent(e.target.checked)}
+                  className="size-3.5 accent-[var(--ct-accent)]"
+                />
+                My classes
+              </label>
+            ) : undefined
+          }
         >
           {picked.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[12px] text-subtle">
@@ -451,18 +538,49 @@ export function ScheduleBuilder() {
                       />
                     </span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPicked((prev) =>
-                        prev.filter((x) => x.section.classNumber !== p.section.classNumber),
-                      )
-                    }
-                    aria-label={`Remove ${p.code}`}
-                    className="grid size-6 shrink-0 place-items-center rounded text-subtle transition-colors duration-150 hover:text-danger"
-                  >
-                    <Trash2 size={11} aria-hidden />
-                  </button>
+                  <span className="flex shrink-0 flex-col gap-1">
+                    {/* Pinned courses survive every regeneration in the exact
+                        slot shown here — the point of a pin is that the one
+                        thing you have settled stops being reshuffled. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPins((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(p.code)) next.delete(p.code)
+                          else next.add(p.code)
+                          return next
+                        })
+                      }
+                      aria-pressed={pins.has(p.code)}
+                      aria-label={pins.has(p.code) ? `Unpin ${p.code}` : `Pin ${p.code}`}
+                      title={
+                        pins.has(p.code)
+                          ? 'Pinned — this one will not move'
+                          : 'Pin so it stays put when you regenerate'
+                      }
+                      className={cn(
+                        'grid size-6 place-items-center rounded transition-colors duration-150',
+                        pins.has(p.code)
+                          ? 'bg-accent-soft text-accent'
+                          : 'text-subtle hover:text-fg',
+                      )}
+                    >
+                      {pins.has(p.code) ? <Pin size={11} aria-hidden /> : <PinOff size={11} aria-hidden />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPicked((prev) =>
+                          prev.filter((x) => x.section.classNumber !== p.section.classNumber),
+                        )
+                      }
+                      aria-label={`Remove ${p.code}`}
+                      className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:text-danger"
+                    >
+                      <Trash2 size={11} aria-hidden />
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
