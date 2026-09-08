@@ -298,6 +298,26 @@ export function ScheduleSearch({
           })}
         </ul>
       )}
+
+      {/* The term picker scopes this list, so a course that runs in Winter
+          simply vanishes while Fall is selected. Saying nothing there is how a
+          working search reads as broken — so it names the terms it DID find,
+          which is also the answer to the question being asked. */}
+      {options !== null && options.length > 0 && visible.length === 0 && !hiddenByFilter && (
+        <p className="mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11.5px] leading-relaxed text-muted">
+          {code} has no sections in {termLabel(termCode)}.{' '}
+          {[...new Set(options.map((s) => s.termCode))].length > 0 && (
+            <>
+              Concordia lists it in{' '}
+              {[...new Set(options.map((s) => s.termCode))]
+                .sort()
+                .map(termLabel)
+                .join(', ')}
+              . Change the term at the top to see those.
+            </>
+          )}
+        </p>
+      )}
     </div>
   )
 }

@@ -20,7 +20,9 @@ execSync(
   `npx esbuild "${path.join(root, 'src/lib/schedule-generate.ts')}" --bundle --format=esm --alias:@=./src --outfile="${out}"`,
   { stdio: 'pipe', cwd: root },
 )
-const { generateSchedules, toCombos } = await import(pathToFileURL(out).href)
+const { generateSchedules, toCombos, campusOf, isUnscheduled } = await import(
+  pathToFileURL(out).href,
+)
 fs.rmSync(out, { force: true })
 
 let failed = 0
@@ -238,6 +240,94 @@ console.log('\ndeterminism')
     'the same seed gives the same answer',
     JSON.stringify(a.map((x) => x.id)) === JSON.stringify(b.map((x) => x.id)),
   )
+}
+
+console.log('\ncampus')
+{
+  const online = { ...sec('Mon 09:00-10:15'), instructionMode: 'Online', location: '' }
+  const loy = { ...sec('Mon 09:00-10:15'), location: 'LOY' }
+  const sgw = { ...sec('Mon 09:00-10:15'), location: 'SGW' }
+  const blank = { ...sec('Mon 09:00-10:15'), location: '', instructionMode: '' }
+  check('reads online from the delivery mode', campusOf(online) === 'online')
+  check('reads Loyola from the campus code', campusOf(loy) === 'loyola')
+  check('reads SGW from the campus code', campusOf(sgw) === 'sgw')
+  check('an unreadable campus is "unknown", not a guess', campusOf(blank) === 'unknown')
+}
+{
+  const at = (code, day, loc, mode = '') => ({
+    code, title: code, credits: 3,
+    combos: [[{ ...sec(`${day} 09:00-10:15`), location: loc, instructionMode: mode }]],
+  })
+  const r = generateSchedules({
+    candidates: [at('LOY 100', 'Mon', 'LOY'), at('SGW 100', 'Tue', 'SGW'), at('UNK 100', 'Wed', '')],
+    pinned: [], blocks: [], targetCredits: 9, campuses: ['sgw'],
+  })
+  const codes = r[0].picks.map((p) => p.code)
+  check('excludes an unticked campus', !codes.includes('LOY 100'), codes.join(','))
+  check('keeps the ticked one', codes.includes('SGW 100'))
+  // A gap in OUR parsing must not quietly delete someone's options.
+  check('keeps unknown-campus sections', codes.includes('UNK 100'))
+}
+
+console.log('\nunscheduled')
+{
+  check('a section with no time is unscheduled', isUnscheduled([{ ...sec('x'), meetingTimes: null }]))
+  check('one with a time is not', !isUnscheduled([sec('Mon 09:00-10:15')]))
+}
+
+console.log('\npreference')
+{
+  const candidates = [
+    course('AAA 100', 3, ['Mon 08:00-09:15', 'Mon 18:00-19:15']),
+    course('BBB 200', 3, ['Tue 08:00-09:15', 'Tue 18:00-19:15']),
+  ]
+  const base = { candidates, pinned: [], blocks: [], targetCredits: 6, count: 6, seed: 7 }
+  const startOf = (r) =>
+    Math.min(...r.picks.map((p) => Number(p.sections[0].meetingTimes.split(' ')[1].slice(0, 2))))
+  const am = generateSchedules({ ...base, prefer: 'mornings' })
+  const pm = generateSchedules({ ...base, prefer: 'evenings' })
+  check('mornings ranks an early start first', startOf(am[0]) <= 9, String(startOf(am[0])))
+  check('evenings ranks a late start first', startOf(pm[0]) >= 18, String(startOf(pm[0])))
+}
+{
+  const r = generateSchedules({
+    candidates: [course('AAA 100', 3, ['Mon 08:00-09:15']), course('BBB 200', 3, ['Tue 18:00-19:15'])],
+    pinned: [], blocks: [], targetCredits: 6, count: 6, prefer: 'mornings',
+  })
+  // A pretty 3-credit week is not an answer to "give me 6".
+  check('credits outrank the preference', r[0].credits === 6, String(r[0].credits))
+}
+
+console.log('\nbuilding on what you already have')
+{
+  // "Keep mine" is expressed as pinning a course that is NOT in the candidate
+  // pool, so its credit value has to travel with it. Assumed 3s are how a
+  // 15-credit target quietly lands on 14.
+  const kept = sec('Mon 08:00-09:15')
+  const r = generateSchedules({
+    candidates: [course('NEW 100', 3, ['Tue 09:00-10:15'])],
+    pinned: [{ code: 'OLD 200', sections: [kept], credits: 3.5 }],
+    blocks: [],
+    targetCredits: 6.5,
+  })
+  check('a kept class keeps its own credit value', r[0].credits === 6.5, String(r[0].credits))
+  check(
+    'and it is still there, in its own slot',
+    r[0].picks.some((p) => p.code === 'OLD 200' && p.sections[0].meetingTimes === 'Mon 08:00-09:15'),
+  )
+  check(
+    'the generator filled around it',
+    r[0].picks.some((p) => p.code === 'NEW 100'),
+  )
+}
+{
+  const r = generateSchedules({
+    candidates: [],
+    pinned: [{ code: 'OLD 200', sections: [sec('Mon 08:00-09:15')] }],
+    blocks: [],
+    targetCredits: 3,
+  })
+  check('with no credit given it still assumes 3', r[0].credits === 3, String(r[0].credits))
 }
 
 console.log(

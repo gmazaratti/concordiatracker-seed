@@ -26,6 +26,73 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.27.0',
+    name: 'Build your week',
+    date: '2026-09-08',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Generate a timetable. Say how many credits you want and what kind of week — most days off, mornings, mid‑day, evenings, shortest days, most or least time on campus — and cycle through real options built from real sections. Credits still come first: a pretty nine‑credit week is not an answer to “give me fifteen”.',
+      },
+      {
+        kind: 'new',
+        text: 'Choose where you are willing to be. Tick Loyola, Sir George Williams, online, or any mix, and only those sections are considered. Sections whose campus Concordia never published stay in — a gap in our reading should not delete an option that exists.',
+      },
+      {
+        kind: 'new',
+        text: 'Build on the week you already have instead of starting over. Your current classes are held in place and the rest of the load is filled around them.',
+      },
+      {
+        kind: 'new',
+        text: 'Right‑click any class on the week to pin it, hide it, see its room, seat counts and class number, or take it off — no hunting for the matching row in the list.',
+      },
+      {
+        kind: 'new',
+        text: 'An eye on every class takes it off the grid without removing it, so you can try the Thursday section in the same hour as the Tuesday one and put either back in a click.',
+      },
+      {
+        kind: 'new',
+        text: 'Online classes with no set meeting time now appear in a strip under the week rather than silently vanishing from a grid that has nowhere to draw them.',
+      },
+      {
+        kind: 'new',
+        text: 'A Tips button walks through the parts that do not announce themselves: dragging to block time, pinning, hiding, campuses, and what the generator is actually doing.',
+      },
+      {
+        kind: 'improved',
+        text: 'The term picker sits beside the schedule name and is always there, starting on the term you are in. It used to appear only after a search happened to return sections, which meant most people never saw it.',
+      },
+      {
+        kind: 'improved',
+        text: 'Find, In this schedule and the week now read left to right across the page, and the week is denser — a nine‑to‑six teaching day fits on a laptop without scrolling. Seat counts show on every class you have picked.',
+      },
+      {
+        kind: 'improved',
+        text: 'The Extended Credit Programme carries a 15‑credit minimum, so lighter loads are no longer offered while it is ticked. It was set to 12.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The app thought it was Summer. Every term is now read from the calendar, which is why Fall outlines were being filed as past semesters when other students imported them.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Searching for a course with no sections in the selected term now says so, and names the terms it does run in, instead of showing an empty list.',
+      },
+      {
+        kind: 'fixed',
+        text: 'An installed app now actually updates when we ship. It was checking a file that never changed, so installs stayed on whatever version they were first opened with.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Assessments can be left with no date. A final exam that the outline says is “TBA” stays TBA and shows against the exam period, instead of being given a date nobody promised.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Courses, Community and the admin portals read properly on a phone, the search is an icon rather than a bar, and the planner has a real drawer instead of a dropdown.',
+      },
+    ],
+  },
+  {
     version: '1.26.0',
     name: 'Try before you buy',
     date: '2026-08-22',

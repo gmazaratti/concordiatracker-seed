@@ -4,6 +4,7 @@ import {
   findCampusGaps,
   findConflicts,
   placeSections,
+  toMinutes,
   type Block,
 } from '@/features/planner/schedule'
 
@@ -35,16 +36,83 @@ export interface CourseOption {
   requested?: boolean
 }
 
+/**
+ * Where a section actually meets.
+ *
+ * Concordia publishes a campus code and a delivery mode, and nothing joins
+ * them, so this does. `unknown` is its own answer rather than a default: a
+ * section whose campus we cannot read must not be silently filtered out of
+ * someone's schedule because they unticked Loyola.
+ */
+export type Campus = 'sgw' | 'loyola' | 'online' | 'unknown'
+
+export function campusOf(section: SectionOption): Campus {
+  const mode = `${section.instructionMode ?? ''}`.toLowerCase()
+  if (mode.includes('online') || mode.includes('en ligne') || mode.includes('remote')) return 'online'
+  const loc = `${section.location ?? ''}`.toUpperCase()
+  if (/LOY/.test(loc)) return 'loyola'
+  if (/SGW|DOWNTOWN/.test(loc)) return 'sgw'
+  return 'unknown'
+}
+
+/** Does this course meet at a fixed time at all? Online-asynchronous sections
+ *  have no slot, so they belong under the grid rather than on it. */
+export function isUnscheduled(sections: SectionOption[]): boolean {
+  return sections.every((s) => !s.meetingTimes?.trim())
+}
+
+/**
+ * How to rank the drafts.
+ *
+ * Not "which is best" — there is no best timetable, only the one that suits the
+ * life around it. A student working mornings and a student who cannot face a
+ * 9am want opposite answers from the same set of sections.
+ */
+export type Preference =
+  | 'days-off'
+  | 'mornings'
+  | 'midday'
+  | 'evenings'
+  | 'compact'
+  | 'off-campus'
+  | 'on-campus'
+
+export const PREFERENCES: { value: Preference; label: string }[] = [
+  { value: 'days-off', label: 'Most days off' },
+  { value: 'compact', label: 'Shortest days' },
+  { value: 'mornings', label: 'Mornings' },
+  { value: 'midday', label: 'Mid-day classes' },
+  { value: 'evenings', label: 'Evenings' },
+  { value: 'off-campus', label: 'Most time off campus' },
+  { value: 'on-campus', label: 'Most on campus' },
+]
+
 export interface GenerateInput {
   candidates: CourseOption[]
-  /** Kept exactly as given, in every result. */
-  pinned: { code: string; sections: SectionOption[] }[]
+  /**
+   * Kept exactly as given, in every result.
+   *
+   * `credits` matters when the pinned course is not also a candidate — which is
+   * what "build on what I already have" does. Without it every kept class would
+   * be assumed to be worth 3, and the credit target the whole sort depends on
+   * would be counting a 3.5-credit lecture as 3.
+   */
+  pinned: { code: string; sections: SectionOption[]; credits?: number }[]
   blocks: Block[]
   /** Credits to reach. 15 is a normal full-time load; ECP students take fewer. */
   targetCredits: number
   /** How many distinct timetables to return. */
   count?: number
   seed?: number
+  /** Ranking. Defaults to closest-to-target, then most days off. */
+  prefer?: Preference
+  /**
+   * Campuses worth travelling to. Omitted means all of them.
+   *
+   * `unknown` always passes: a section whose campus we could not read must not
+   * vanish from someone's options because of a gap in our own parsing.
+   */
+  campuses?: Campus[]
 }
 
 export interface GeneratedPick {
@@ -142,14 +210,15 @@ function buildOne(
   for (const p of input.pinned) {
     for (const section of p.sections) chosen.push({ code: p.code, section })
     const meta = input.candidates.find((c) => c.code === p.code)
+    const cr = p.credits ?? meta?.credits ?? 3
     picks.push({
       code: p.code,
       title: meta?.title ?? p.code,
-      credits: meta?.credits ?? 3,
+      credits: cr,
       sections: p.sections,
       pinned: true,
     })
-    credits += meta?.credits ?? 3
+    credits += cr
   }
 
   const pinnedCodes = new Set(input.pinned.map((p) => p.code))
@@ -256,8 +325,27 @@ export function generateSchedules(input: GenerateInput): GeneratedSchedule[] {
   const seen = new Set<string>()
   const out: GeneratedSchedule[] = []
 
+  // Filtered here rather than inside the search, so a course left with no
+  // acceptable section is reported as unplaceable exactly like any other.
+  const wanted = input.campuses
+  const scoped: GenerateInput =
+    !wanted || wanted.length === 0
+      ? input
+      : {
+          ...input,
+          candidates: input.candidates.map((c) => ({
+            ...c,
+            combos: c.combos.filter((combo) =>
+              combo.every((sec) => {
+                const campus = campusOf(sec)
+                return campus === 'unknown' || wanted.includes(campus)
+              }),
+            ),
+          })),
+        }
+
   for (let i = 0; i < count * 12 && out.length < count; i++) {
-    const { picks, credits, unplaceable } = buildOne(input, baseSeed + i)
+    const { picks, credits, unplaceable } = buildOne(scoped, baseSeed + i)
     if (picks.length === 0) continue
     const sig = signature(picks)
     if (seen.has(sig)) continue
@@ -277,14 +365,63 @@ export function generateSchedules(input: GenerateInput): GeneratedSchedule[] {
     })
   }
 
-  // Closest to the requested load first, then the one with the most days off —
-  // which is the preference every student expresses when asked.
+  // Credits first, always: a beautifully-shaped 9-credit week is not an answer
+  // to "give me 15". Only within an equally-good load does the preference
+  // decide, which is what keeps the sort honest.
   return out.sort((a, b) => {
     const da = Math.abs(a.credits - input.targetCredits)
     const db = Math.abs(b.credits - input.targetCredits)
     if (da !== db) return da - db
-    return b.daysOff.length - a.daysOff.length
+    return scoreFor(b, input.prefer) - scoreFor(a, input.prefer)
   })
+}
+
+/** Higher is better. Every branch reads the SAME placement, so the ranking
+ *  cannot disagree with the grid the student is looking at. */
+function scoreFor(schedule: GeneratedSchedule, prefer: Preference = 'days-off'): number {
+  const placed = placeSections(
+    schedule.picks.flatMap((p) => p.sections.map((section) => ({ code: p.code, section }))),
+  )
+  const starts = placed.map((p) => toMinutes(p.slot.start))
+  if (starts.length === 0) return 0
+
+  switch (prefer) {
+    case 'days-off':
+      return schedule.daysOff.length * 100
+
+    case 'compact': {
+      // Total time between the first and last class each day, minus the class
+      // time itself: the hours spent waiting around, which is what "shortest
+      // days" actually means.
+      const byDay = new Map<number, { start: number; end: number; taught: number }>()
+      for (const p of placed) {
+        const a = toMinutes(p.slot.start)
+        const b = toMinutes(p.slot.end)
+        const cur = byDay.get(p.slot.day)
+        byDay.set(p.slot.day, {
+          start: Math.min(cur?.start ?? a, a),
+          end: Math.max(cur?.end ?? b, b),
+          taught: (cur?.taught ?? 0) + (b - a),
+        })
+      }
+      let idle = 0
+      for (const d of byDay.values()) idle += d.end - d.start - d.taught
+      return -idle
+    }
+
+    case 'mornings':
+      // Closeness to a 9am centre of gravity, negated so earlier scores higher.
+      return -Math.abs(starts.reduce((a, b) => a + b, 0) / starts.length - 9 * 60)
+    case 'midday':
+      return -Math.abs(starts.reduce((a, b) => a + b, 0) / starts.length - 12 * 60)
+    case 'evenings':
+      return starts.reduce((a, b) => a + b, 0) / starts.length
+
+    case 'off-campus':
+      return placed.filter((p) => campusOf(p.section) === 'online').length * 100
+    case 'on-campus':
+      return placed.filter((p) => campusOf(p.section) !== 'online').length * 100
+  }
 }
 
 /**

@@ -2,15 +2,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   Bus,
+  CalendarRange,
   Check,
   Copy,
+  Eye,
+  EyeOff,
+  Lightbulb,
   Link2,
   Plus,
   Printer,
   Save,
   Trash2,
   X,
-  Sparkles,
 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
@@ -40,7 +43,7 @@ import {
   weeklyHours,
   type Placed,
 } from './schedule'
-import { parseCourseCode } from '@/lib/course-sections'
+import { parseCourseCode, termCodeFor } from '@/lib/course-sections'
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { SuggestedCourses } from './SuggestedCourses'
@@ -51,6 +54,12 @@ import { Pin, PinOff } from 'lucide-react'
 import { useProgramForUser } from './useProgramForUser'
 import { findSections, termLabel } from '@/lib/seats'
 import { ScheduleFilters } from './ScheduleFilters'
+import { ScheduleBlockMenu, type BlockMenuTarget } from './ScheduleBlockMenu'
+import { SectionDetails } from './SectionDetails'
+import { seatSummary } from './seat-summary'
+import { UnscheduledStrip } from './UnscheduledStrip'
+import { ScheduleTips } from './ScheduleTips'
+import { currentTermName, laterTerms } from './past-terms'
 
 /**
  * Build a week from real sections.
@@ -68,7 +77,17 @@ export function ScheduleBuilder() {
   const { courses } = useAppData()
   const [picked, setPicked] = useState<PickedSection[]>([])
   const [blocks, setBlocks] = useState<TimeBlock[]>([])
-  const [termCode, setTermCode] = useState('')
+  /**
+   * The term being planned, seeded from the calendar.
+   *
+   * It used to start empty and only gain a value once a search happened to
+   * return sections — so the picker was gated on `terms.length > 0` and simply
+   * never appeared on a page nobody had searched on yet. The term you are in is
+   * knowable without asking Concordia anything, so it is the default, and the
+   * control is always there.
+   */
+  const [termCode, setTermCode] = useState(() => termCodeFor(currentTermName()) ?? '')
+  /** Terms Concordia actually returned sections for, merged into the list below. */
   const [terms, setTerms] = useState<string[]>([])
   const [saved, setSaved] = useState<SavedSchedule[]>([])
   const [currentId, setCurrentId] = useState<string | null>(null)
@@ -110,6 +129,20 @@ export function ScheduleBuilder() {
   // because "what if I dropped everything" is also a question worth asking.
   const [showCurrent, setShowCurrent] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [tips, setTips] = useState(false)
+
+  /**
+   * Classes kept in the schedule but taken off the grid.
+   *
+   * Keyed by class number, because this is about one SECTION rather than the
+   * course — the whole use is holding a Tuesday-morning option out of the way
+   * while you try the Thursday one in the same hour. Deleting and re-adding
+   * loses the seat counts and the pin, which is why it was worth its own idea.
+   */
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  /** The right-click menu on the week, and the card it can open. */
+  const [menu, setMenu] = useState<BlockMenuTarget | null>(null)
+  const [details, setDetails] = useState<PickedSection | null>(null)
 
   /**
    * The course being hovered in the suggestions list, drawn on the week as a
@@ -180,17 +213,45 @@ export function ScheduleBuilder() {
   )
 
   /**
+   * What the generator can build ON TOP of, with the credit value the calendar
+   * gave each course.
+   *
+   * Falls back to 3 only when the course is not one of yours — a searched
+   * section carries no credit value of its own, and 3 is the commonest.
+   */
+  const existingForGenerator = useMemo(() => {
+    const byCode = new Map<string, { code: string; sections: SectionOption[]; credits: number }>()
+    for (const p of picked) {
+      const cur = byCode.get(p.code)
+      if (cur) cur.sections.push(p.section)
+      else {
+        const mine = courses.find((c) => c.code === p.code)
+        byCode.set(p.code, { code: p.code, sections: [p.section], credits: mine?.credits ?? 3 })
+      }
+    }
+    return [...byCode.values()]
+  }, [picked, courses])
+
+  /**
    * Take a generated draft.
    *
    * Replaces everything EXCEPT the pins, which are already in the draft by
    * construction — a "use this one" that quietly dropped a pinned class would
-   * make pinning meaningless.
+   * make pinning meaningless. Enrolment state carries over by class number, so
+   * a class you are actually registered in does not come back as a plan.
    */
   const applyGenerated = useCallback(
     (result: { code: string; sections: SectionOption[] }[]) => {
-      setPicked(
-        result.flatMap((r) => r.sections.map((section) => ({ code: r.code, section }))),
-      )
+      setPicked((prev) => {
+        const was = new Map(prev.map((p) => [p.section.classNumber, p.state]))
+        return result.flatMap((r) =>
+          r.sections.map((section) => ({
+            code: r.code,
+            section,
+            state: was.get(section.classNumber),
+          })),
+        )
+      })
     },
     [],
   )
@@ -246,11 +307,31 @@ export function ScheduleBuilder() {
     if (fromCurrentTerm.length > 0) setPicked(fromCurrentTerm)
   }
 
+  /**
+   * The terms worth offering: this one and the ones ahead of it, plus anything
+   * Concordia actually published sections for.
+   *
+   * Derived rather than discovered, so the control exists before any network
+   * call does. The union matters both ways — a student planning next Fall needs
+   * a term the search has never mentioned, and a term the search DID return has
+   * real sections in it whether or not our calendar arithmetic listed it.
+   */
+  const termOptions = useMemo(() => {
+    const known = [currentTermName(), ...laterTerms(4)]
+      .map(termCodeFor)
+      .filter((c): c is string => !!c)
+    return [...new Set([...known, ...terms])].sort()
+  }, [terms])
+
   // Hiding your current classes answers "what would a clean term look like"
-  // without throwing them away — they come straight back.
+  // without throwing them away — they come straight back. The eye does the same
+  // for one section at a time.
   const visiblePicked = useMemo(
-    () => (showCurrent ? picked : picked.filter((p) => p.state !== 'enrolled')),
-    [picked, showCurrent],
+    () =>
+      picked
+        .filter((p) => showCurrent || p.state !== 'enrolled')
+        .filter((p) => !hidden.has(p.section.classNumber)),
+    [picked, showCurrent, hidden],
   )
   const placed = useMemo(() => placeSections(visiblePicked), [visiblePicked])
   const conflicts = useMemo(() => findConflicts(placed), [placed])
@@ -263,6 +344,24 @@ export function ScheduleBuilder() {
     }
     return map
   }, [picked])
+
+  const togglePin = useCallback((code: string) => {
+    setPins((prev) => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
+  }, [])
+
+  const toggleHidden = useCallback((classNumber: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(classNumber)) next.delete(classNumber)
+      else next.add(classNumber)
+      return next
+    })
+  }, [])
 
   const add = useCallback((code: string, section: SectionOption) => {
     setPicked((prev) =>
@@ -318,32 +417,40 @@ export function ScheduleBuilder() {
             buried in Filters with the things that hide rows. It is the first
             decision, and everything else — search, generate, the week itself —
             is scoped by it. */}
-        {terms.length > 0 && (
-          <span className="w-40 shrink-0">
-            <Select
-              value={termCode}
-              onChange={setTermCode}
-              ariaLabel="Term"
-              size="sm"
-              options={terms.map((code) => ({ value: code, label: termLabel(code) }))}
-            />
-          </span>
-        )}
+        <span className="w-40 shrink-0">
+          <Select
+            value={termCode}
+            onChange={setTermCode}
+            ariaLabel="Term"
+            size="sm"
+            options={termOptions.map((code) => ({ value: code, label: termLabel(code) }))}
+          />
+        </span>
 
         <span className="ml-auto flex items-center gap-1.5">
           {/* The one action on this page that MAKES something, so it is the one
               that is filled rather than outlined. It opens a dialog because its
               inputs are a short form, and a form living permanently in the left
-              rail is a form you scroll past. */}
+              rail is a form you scroll past.
+
+              A calendar rather than a star: the star said "AI did this", and
+              nothing here is a guess — it is a search over real sections with
+              a stated rule for ranking them. */}
           <button
             type="button"
             onClick={() => setGenerating(true)}
             className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
             title="Build a timetable around what you still need and the times you have blocked"
           >
-            <Sparkles size={14} aria-hidden />
+            <CalendarRange size={14} aria-hidden />
             Generate
           </button>
+          <ToolbarButton
+            onClick={() => setTips(true)}
+            icon={Lightbulb}
+            label="Tips"
+            hint="How blocking, pinning, hiding and generating work"
+          />
           <ToolbarButton
             onClick={() => void save()}
             icon={savedFlash ? Check : Save}
@@ -395,6 +502,7 @@ export function ScheduleBuilder() {
                 pinned={pinnedForGenerator}
                 eligibleOnly={eligibleOnly}
                 record={record}
+                existing={existingForGenerator}
                 onApply={(picks) => {
                   applyGenerated(picks)
                   setGenerating(false)
@@ -403,6 +511,34 @@ export function ScheduleBuilder() {
             </div>
           </div>
         </ModalShell>
+      )}
+
+      {tips && <ScheduleTips onClose={() => setTips(false)} />}
+
+      {details && (
+        <SectionDetails
+          code={details.code}
+          section={details.section}
+          onClose={() => setDetails(null)}
+        />
+      )}
+
+      {menu && (
+        <ScheduleBlockMenu
+          target={menu}
+          pinned={pins.has(menu.code)}
+          hidden={hidden.has(menu.classNumber)}
+          onPin={() => togglePin(menu.code)}
+          onHide={() => toggleHidden(menu.classNumber)}
+          onRemove={() =>
+            setPicked((prev) => prev.filter((x) => x.section.classNumber !== menu.classNumber))
+          }
+          onDetails={() => {
+            const found = picked.find((p) => p.section.classNumber === menu.classNumber)
+            if (found) setDetails(found)
+          }}
+          onClose={() => setMenu(null)}
+        />
       )}
 
       {shareUrl && (
@@ -482,10 +618,12 @@ export function ScheduleBuilder() {
       {/* Each one a card with its own heading. Previously they were three
           columns of loose content with nothing between them, so the eye could
           not tell where finding ended and choosing began. */}
-      {/* One rail, and every remaining pixel to the week. The week is the thing
-          you are actually reading; find and picked are how you feed it. */}
-      <div className="grid gap-3 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start">
-        <div className="space-y-3">
+      {/* Find · picked · week, left to right — the same three-column reading
+          order Concordia's own builder uses, and the order of the task: look
+          something up, see what you have chosen, see what it does to your week.
+          Picked used to sit UNDER find in a single rail, which meant the list
+          you check while adding was the thing scrolled off the bottom. */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[248px_248px_minmax(0,1fr)] lg:items-start">
         <Pane
           title="Find a course"
           className="print:hidden"
@@ -523,7 +661,7 @@ export function ScheduleBuilder() {
         <Pane
           title="In this schedule"
           count={picked.length}
-          className="print:hidden"
+          className="print:hidden lg:max-h-[74vh] lg:overflow-y-auto"
           action={
             picked.some((p) => p.state === 'enrolled') ? (
               <span
@@ -545,10 +683,16 @@ export function ScheduleBuilder() {
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {picked.map((p) => (
+              {picked.map((p) => {
+                const seats = seatSummary(p.section)
+                const isHidden = hidden.has(p.section.classNumber)
+                return (
                 <li
                   key={p.section.classNumber}
-                  className="flex items-start gap-2 rounded-lg border border-border bg-canvas px-2.5 py-2"
+                  className={cn(
+                    'flex items-start gap-2 rounded-lg border border-border bg-canvas px-2.5 py-2',
+                    isHidden && 'opacity-60',
+                  )}
                 >
                   <span
                     className="mt-1 size-2.5 shrink-0 rounded-full"
@@ -561,8 +705,30 @@ export function ScheduleBuilder() {
                       {p.section.component ? ` · ${p.section.component}` : ''}
                     </span>
                     <span className="block truncate text-[11px] text-subtle">
-                      {p.section.meetingTimes ?? 'Time TBA'}
+                      {p.section.meetingTimes ?? 'No scheduled time'}
+                      {p.section.building ? ` · ${p.section.building}${p.section.room}` : ''}
                     </span>
+                    {/* Seats, read when this section was added. The card behind
+                        "details" carries the caveat and the class number you
+                        actually register with. */}
+                    {seats && (
+                      <button
+                        type="button"
+                        onClick={() => setDetails(p)}
+                        className={cn(
+                          'mt-0.5 block truncate text-left text-[11px] underline-offset-2 hover:underline',
+                          seats.open > 0 ? 'text-success' : 'text-warning',
+                        )}
+                        title="Seat counts, room and class number"
+                      >
+                        {seats.headline}
+                      </button>
+                    )}
+                    {isHidden && (
+                      <span className="mt-0.5 block text-[11px] text-subtle">
+                        Hidden from the week
+                      </span>
+                    )}
                     <span className="mt-1 block">
                       <Select
                         value={p.state ?? 'planned'}
@@ -592,14 +758,7 @@ export function ScheduleBuilder() {
                         thing you have settled stops being reshuffled. */}
                     <button
                       type="button"
-                      onClick={() =>
-                        setPins((prev) => {
-                          const next = new Set(prev)
-                          if (next.has(p.code)) next.delete(p.code)
-                          else next.add(p.code)
-                          return next
-                        })
-                      }
+                      onClick={() => togglePin(p.code)}
                       aria-pressed={pins.has(p.code)}
                       aria-label={pins.has(p.code) ? `Unpin ${p.code}` : `Pin ${p.code}`}
                       title={
@@ -616,6 +775,28 @@ export function ScheduleBuilder() {
                     >
                       {pins.has(p.code) ? <Pin size={11} aria-hidden /> : <PinOff size={11} aria-hidden />}
                     </button>
+                    {/* Off the grid, still in the schedule. The way to try the
+                        Thursday section in the same hour as the Tuesday one
+                        without deleting either. */}
+                    <button
+                      type="button"
+                      onClick={() => toggleHidden(p.section.classNumber)}
+                      aria-pressed={isHidden}
+                      aria-label={
+                        isHidden ? `Show ${p.code} on the week` : `Hide ${p.code} from the week`
+                      }
+                      title={
+                        isHidden
+                          ? 'Hidden from the week — click to put it back'
+                          : 'Take it off the week without removing it'
+                      }
+                      className={cn(
+                        'grid size-6 place-items-center rounded transition-colors duration-150',
+                        isHidden ? 'bg-accent-soft text-accent' : 'text-subtle hover:text-fg',
+                      )}
+                    >
+                      {isHidden ? <EyeOff size={11} aria-hidden /> : <Eye size={11} aria-hidden />}
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -630,14 +811,13 @@ export function ScheduleBuilder() {
                     </button>
                   </span>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </Pane>
 
-        </div>
-
-        <div className="min-w-0">
+        <div className="min-w-0 md:col-span-2 lg:col-span-1">
           {/* Print header. Hidden on screen, because on screen the name is
               already in the toolbar; on paper there is no toolbar and a sheet
               on a fridge should say what it is and where it came from. */}
@@ -666,7 +846,15 @@ export function ScheduleBuilder() {
               ])
             }
             onRemoveBlock={(id) => setBlocks((prev) => prev.filter((b) => b.id !== id))}
+            onSectionContext={(p, at) =>
+              setMenu({ code: p.code, classNumber: p.section.classNumber, at })
+            }
           />
+
+          {/* A class with no slot is invisible on a week grid, and a student
+              counting rectangles concludes they are taking one fewer class than
+              they are. */}
+          <UnscheduledStrip picked={visiblePicked} colourOf={colourOf} />
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-subtle">
             <span>{weeklyHours(placed)} hours a week</span>

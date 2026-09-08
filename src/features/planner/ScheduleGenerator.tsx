@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, Sparkles, TriangleAlert, X } from 'lucide-react'
+import {
+  CalendarRange,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  TriangleAlert,
+  X,
+} from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { findSections, termLabel, type SectionOption } from '@/lib/seats'
@@ -11,9 +18,13 @@ import type { ProgramWithGroups } from '@/lib/program-progress'
 import {
   generateSchedules,
   toCombos,
+  PREFERENCES,
+  type Campus,
   type CourseOption,
   type GeneratedSchedule,
+  type Preference,
 } from '@/lib/schedule-generate'
+import { cn } from '@/lib/cn'
 import type { Block } from './schedule'
 
 /**
@@ -32,13 +43,23 @@ import type { Block } from './schedule'
  */
 
 /** Full-time at Concordia starts at 12 credits; 15 is the standard four-course
- *  term. ECP students carry the same per-term load, they just take longer, so
- *  the toggle changes the DEFAULT rather than inventing a different rule. */
+ *  term. */
 const LOADS = [
   { value: '9', label: '9 credits · part-time' },
   { value: '12', label: '12 credits · full-time minimum' },
   { value: '15', label: '15 credits · standard' },
   { value: '18', label: '18 credits · heavy' },
+]
+
+/** The Extended Credit Programme carries a 15-credit floor, not the ordinary
+ *  12 — so the loads below it are not offered while it is ticked rather than
+ *  quietly generating a term that does not meet the requirement. */
+const ECP_MINIMUM = 15
+
+const CAMPUSES: { value: Campus; label: string; hint: string }[] = [
+  { value: 'sgw', label: 'SGW', hint: 'Sir George Williams — downtown' },
+  { value: 'loyola', label: 'Loyola', hint: 'Loyola — NDG' },
+  { value: 'online', label: 'Online', hint: 'No campus at all' },
 ]
 
 export function ScheduleGenerator({
@@ -49,6 +70,7 @@ export function ScheduleGenerator({
   pinned,
   eligibleOnly,
   record,
+  existing,
   onApply,
 }: {
   program: ProgramWithGroups | null
@@ -61,11 +83,24 @@ export function ScheduleGenerator({
   record: { completed: Set<string>; credits: number }
   /** Kept exactly as they are in every draft. */
   pinned: { code: string; sections: SectionOption[] }[]
+  /**
+   * Everything currently on the week, for "build on what I have".
+   *
+   * Carries its own credit value, because these courses are not in the
+   * candidate pool and a kept 3.5-credit lecture counted as 3 would quietly
+   * miss the load the student asked for.
+   */
+  existing: { code: string; sections: SectionOption[]; credits: number }[]
   onApply: (picks: { code: string; sections: SectionOption[] }[]) => void
 }) {
   const [target, setTarget] = useState('15')
   const [ecp, setEcp] = useState(false)
   const [wanted, setWanted] = useState('')
+  const [prefer, setPrefer] = useState<Preference>('days-off')
+  // Empty means "anywhere". Stated as a list rather than three booleans so it
+  // maps straight onto the generator's own input.
+  const [campuses, setCampuses] = useState<Campus[]>([])
+  const [mode, setMode] = useState<'fresh' | 'keep'>('fresh')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<GeneratedSchedule[] | null>(null)
@@ -73,6 +108,8 @@ export function ScheduleGenerator({
   const [seed, setSeed] = useState(1)
 
   const current = results?.[index] ?? null
+  const loads = ecp ? LOADS.filter((l) => Number(l.value) >= ECP_MINIMUM) : LOADS
+  const keepable = existing.filter((e) => !pinned.some((p) => p.code === e.code))
 
   async function generate(nextSeed = seed) {
     if (busy) return
@@ -159,13 +196,24 @@ export function ScheduleGenerator({
         })
       }
 
+      // "Keep what I have" is expressed as pinning, not as a second code path:
+      // the classes already on the week become fixed, the generator fills the
+      // rest of the load around them, and everything downstream — conflicts,
+      // warnings, ranking — behaves exactly as it always did.
+      const held =
+        mode === 'keep'
+          ? [...pinned, ...keepable.filter((e) => e.sections.some((s) => s.meetingTimes))]
+          : pinned
+
       const generated = generateSchedules({
         candidates,
-        pinned,
+        pinned: held,
         blocks,
         targetCredits: Number(target),
         count: 6,
         seed: nextSeed,
+        prefer,
+        campuses,
       })
 
       setResults(generated)
@@ -176,7 +224,11 @@ export function ScheduleGenerator({
         )
       }
       if (generated.length === 0) {
-        setError('Nothing fits around what you have pinned and blocked out. Try freeing some time.')
+        setError(
+          campuses.length > 0
+            ? 'Nothing fits around what you have pinned, blocked out, and the campuses you ticked. Try adding a campus or freeing some time.'
+            : 'Nothing fits around what you have pinned and blocked out. Try freeing some time.',
+        )
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not reach Concordia.')
@@ -188,23 +240,107 @@ export function ScheduleGenerator({
   return (
     <div className="space-y-3">
       <div className="space-y-2.5">
+        {/* Start over, or work around what is already there. The second is the
+            more common real task — one class is settled and the rest of the
+            term has to fit around it — and it was not possible before. */}
+        {keepable.length > 0 && (
+          <div className="flex gap-1 rounded-lg border border-border bg-canvas p-1">
+            {(
+              [
+                ['fresh', 'Start fresh', 'Replaces everything on the week'],
+                ['keep', 'Build on mine', `Keeps the ${keepable.length} you have and fills around them`],
+              ] as const
+            ).map(([v, label, hint]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setMode(v)}
+                aria-pressed={mode === v}
+                title={hint}
+                className={cn(
+                  'flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors duration-150',
+                  mode === v
+                    ? 'bg-accent text-accent-contrast'
+                    : 'text-muted hover:text-fg',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <label className="block">
           <span className="mb-1 block text-[11.5px] text-subtle">How much do you want to take?</span>
-          <Select value={target} onChange={setTarget} ariaLabel="Credit load" options={LOADS} size="sm" />
+          <Select value={target} onChange={setTarget} ariaLabel="Credit load" options={loads} size="sm" />
         </label>
 
         <Checkbox
           checked={ecp}
           onChange={(next) => {
             setEcp(next)
-            // ECP is a longer degree, not a lighter term — but a first ECP term
-            // is usually the 12-credit minimum, so it moves the default rather
-            // than inventing a separate rule.
-            if (next && target === '15') setTarget('12')
+            // ECP carries a 15-credit floor. Ticking it while a lighter load is
+            // selected has to move the load, not just hide the option — leaving
+            // 12 selected under a 15-credit rule is the wrong number arrived at
+            // silently, which is the failure this whole app is built against.
+            if (next && Number(target) < ECP_MINIMUM) setTarget(String(ECP_MINIMUM))
           }}
           label={<>I&rsquo;m in the Extended Credit Programme</>}
-          hint="Same load per term, more terms overall."
+          hint="15 credits a term is the minimum, so lighter loads are not offered."
         />
+
+        {/* The shape of the week, not the amount of it. Credits still decide
+            first — this only breaks ties between equally-full timetables. */}
+        <label className="block">
+          <span className="mb-1 block text-[11.5px] text-subtle">What kind of week?</span>
+          <Select
+            value={prefer}
+            onChange={(v) => setPrefer(v as Preference)}
+            ariaLabel="Preferred shape of week"
+            options={PREFERENCES.map((p) => ({ value: p.value, label: p.label }))}
+            size="sm"
+          />
+        </label>
+
+        <div>
+          <span className="mb-1 block text-[11.5px] text-subtle">
+            Where will you go? <span className="text-subtle">(any, if none ticked)</span>
+          </span>
+          <div className="flex gap-1.5">
+            {CAMPUSES.map((c) => {
+              const on = campuses.includes(c.value)
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() =>
+                    setCampuses((prev) =>
+                      prev.includes(c.value)
+                        ? prev.filter((x) => x !== c.value)
+                        : [...prev, c.value],
+                    )
+                  }
+                  aria-pressed={on}
+                  title={c.hint}
+                  className={cn(
+                    'flex-1 rounded-lg border px-2 py-1.5 text-[12px] transition-colors duration-150',
+                    on
+                      ? 'border-accent bg-accent-soft font-medium text-accent'
+                      : 'border-border text-muted hover:border-accent hover:text-fg',
+                  )}
+                >
+                  {c.label}
+                </button>
+              )
+            })}
+          </div>
+          {campuses.length > 0 && (
+            <span className="mt-1 block text-[11px] leading-relaxed text-subtle">
+              Sections whose campus Concordia did not publish are still included — a gap in our
+              reading should not delete an option that exists.
+            </span>
+          )}
+        </div>
 
         <label className="block">
           <span className="mb-1 block text-[11.5px] text-subtle">
@@ -228,7 +364,11 @@ export function ScheduleGenerator({
           disabled={busy || !termCode}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Sparkles size={15} aria-hidden />}
+          {busy ? (
+            <Loader2 size={15} className="animate-spin" aria-hidden />
+          ) : (
+            <CalendarRange size={15} aria-hidden />
+          )}
           {busy ? 'Working it out…' : 'Generate a schedule'}
         </button>
         {!termCode && (

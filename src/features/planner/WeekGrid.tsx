@@ -19,7 +19,13 @@ import { gridBounds, toMinutes, type Block, type Conflict, type Placed } from '.
  * every time someone swiped down the page. Phones get the typed form in Filters
  * instead, which is a better fit for a thumb anyway.
  */
-const PX_PER_MIN = 0.9
+/**
+ * Denser than it was. The week now shares its row with the picked-classes
+ * column, the way Concordia's own builder does, so an hour is worth fewer
+ * pixels — a 9-to-6 teaching day still fits on a laptop without scrolling,
+ * which is the only measurement that matters here.
+ */
+const PX_PER_MIN = 0.72
 /** Blocks snap to half hours. Nobody is busy from 09:07. */
 const SNAP = 30
 /** Movement, in pixels, before a press counts as a drag rather than a click. */
@@ -33,6 +39,7 @@ export function WeekGrid({
   conflicts,
   onBlock,
   onRemoveBlock,
+  onSectionContext,
 }: {
   placed: Placed[]
   /**
@@ -50,6 +57,12 @@ export function WeekGrid({
   onBlock?: (day: number, start: string, end: string) => void
   /** Right-click a block to take it off. Same read-only rule. */
   onRemoveBlock?: (id: string) => void
+  /**
+   * Right-click a CLASS. The grid only reports where and what — the menu that
+   * opens belongs to the builder, because pinning and removing are its words,
+   * not the grid's.
+   */
+  onSectionContext?: (placed: Placed, at: { x: number; y: number }) => void
 }) {
   const [drag, setDrag] = useState<{
     day: number
@@ -238,7 +251,7 @@ export function WeekGrid({
                     const top = (toMinutes(p.slot.start) - start) * PX_PER_MIN + 9
                     const height = Math.max(
                       (toMinutes(p.slot.end) - toMinutes(p.slot.start)) * PX_PER_MIN,
-                      20,
+                      18,
                     )
                     const hex = colourOf.get(p.code) ?? '#888'
                     const clash = clashing.has(p.section.classNumber + p.slot.day + p.slot.start)
@@ -249,6 +262,7 @@ export function WeekGrid({
                         className={cn(
                           'absolute inset-x-0.5 overflow-hidden rounded px-1.5 py-1 text-[10.5px] leading-tight',
                           clash && 'ring-2 ring-danger',
+                          onSectionContext && 'cursor-context-menu',
                         )}
                         style={{
                           top,
@@ -256,13 +270,25 @@ export function WeekGrid({
                           backgroundColor: `${hex}33`,
                           borderLeft: `3px solid ${hex}`,
                         }}
-                        title={`${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end}`}
+                        title={
+                          onSectionContext
+                            ? `${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end} — right-click for options`
+                            : `${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end}`
+                        }
+                        onContextMenu={
+                          onSectionContext
+                            ? (e) => {
+                                e.preventDefault()
+                                onSectionContext(p, { x: e.clientX, y: e.clientY })
+                              }
+                            : undefined
+                        }
                       >
                         <span className="block truncate font-medium text-fg">{p.code}</span>
                         <span className="block truncate text-subtle">
                           {p.slot.start}–{p.slot.end}
                         </span>
-                        {height > 44 && p.section.building && (
+                        {height > 40 && p.section.building && (
                           <span className="block truncate text-subtle">
                             {p.section.building}
                             {p.section.room}
@@ -280,7 +306,7 @@ export function WeekGrid({
       {onBlock && (
         <p className="hidden border-t border-border px-3 py-1.5 text-[11px] text-subtle md:block print:hidden">
           Drag on an empty column to block time you are not available; right-click a block to
-          remove it. You can also type one in Filters.
+          remove it, or a class for its options. You can also type one in Filters.
         </p>
       )}
     </div>
