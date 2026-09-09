@@ -1,5 +1,17 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { BookOpen, Download, FileText, GraduationCap, Loader2, Lock, ShieldCheck } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarRange,
+  Download,
+  FileText,
+  GraduationCap,
+  Loader2,
+  Lock,
+  Pencil,
+  ShieldCheck,
+  Users,
+} from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
@@ -8,10 +20,22 @@ import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { programById } from '@/data/programs'
 import { cn } from '@/lib/cn'
+import { termRank } from '@/lib/term'
+import { supabase } from '@/lib/supabase'
+import {
+  canSeeSchedule,
+  friendSchedule,
+  linkHref,
+  type Friend,
+  type FriendCourse,
+  type ProfileLinks,
+} from '@/lib/social'
+import { FriendButton } from './FriendButton'
+import { MessagesModal } from './Messages'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
 import { founderFor, type FounderProfile } from './founders'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
-import { SocialLinks } from '@/features/community/SocialLinks'
+import { SocialLinks, SocialFieldIcon } from '@/features/community/SocialLinks'
 
 /**
  * Public user profile at `/@handle` — viewable by ANYONE (anon included). The
@@ -36,6 +60,9 @@ export function UserProfilePage() {
 
 function ProfileView({ handle }: { handle: string }) {
   const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
+  const viewer = useViewer(handle)
+  const [messaging, setMessaging] = useState<Friend | null>(null)
+  const [showMessages, setShowMessages] = useState(false)
   const prog = profile?.programId ? programById(profile.programId) : undefined
   // Only applies to a real, closed set of handles — cosmetic, never a permission.
   const founder = profile?.isPublic ? founderFor(handle) : undefined
@@ -106,6 +133,41 @@ function ProfileView({ handle }: { handle: string }) {
                   </div>
                 )}
                 <p className="text-[14px] text-subtle">@{profile.handle}</p>
+
+                {/* The controls belong HERE, on the thing they act on. Editing
+                    your own profile only from Settings meant looking at it,
+                    wanting to change it, and having to go somewhere else and
+                    find the right section. */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {viewer === 'self' ? (
+                    <>
+                      <Link
+                        to="/app?settings=account"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                      >
+                        <Pencil size={13} aria-hidden />
+                        Edit profile
+                      </Link>
+                      <Link
+                        to="/app?settings=privacy"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
+                      >
+                        <Lock size={13} aria-hidden />
+                        Privacy
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setShowMessages(true)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
+                      >
+                        <Users size={13} aria-hidden />
+                        Friends
+                      </button>
+                    </>
+                  ) : viewer === 'other' ? (
+                    <FriendButton handle={profile.handle} onMessage={(f) => setMessaging(f)} />
+                  ) : null}
+                </div>
                 {founder?.tagline && (
                   <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-fg/90">{founder.tagline}</p>
                 )}
@@ -133,15 +195,17 @@ function ProfileView({ handle }: { handle: string }) {
             {profile.isPublic && (
               <>
                 {founder?.links && <LinksDivider links={founder.links} />}
+                <ProfileLinkRow links={profile.links} />
+                <FriendSchedule handle={profile.handle} />
                 <Section icon={BookOpen} title="Courses" count={courses.length}>
                   {courses.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {courses.map((c, i) => (
-                        <CourseRow key={`${c.code}-${i}`} course={c} />
-                      ))}
-                    </div>
+                    <CoursesByTerm courses={courses} />
                   ) : (
-                    <Empty>No courses shared yet.</Empty>
+                    <Empty>
+                      {profile.coursesPublic
+                        ? 'No courses shared yet.'
+                        : 'This person keeps their class list private.'}
+                    </Empty>
                   )}
                 </Section>
 
@@ -161,7 +225,132 @@ function ProfileView({ handle }: { handle: string }) {
           </>
         )}
       </main>
+
+      {(showMessages || messaging) && (
+        <MessagesModal
+          startWith={messaging ?? undefined}
+          onClose={() => {
+            setShowMessages(false)
+            setMessaging(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+/**
+ * Is this your own profile, someone else's, or are you signed out?
+ *
+ * Three answers, not two: a signed-out visitor must see neither an Edit button
+ * nor an Add-friend button that cannot work, and "still deciding" has to be
+ * distinguishable from "not you" so the page never flashes the wrong control.
+ */
+function useViewer(handle: string): 'self' | 'other' | 'anon' | 'loading' {
+  const [state, setState] = useState<'self' | 'other' | 'anon' | 'loading'>('loading')
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const { data } = await supabase.auth.getUser()
+      if (!alive) return
+      if (!data.user) return setState('anon')
+      const { data: row } = await supabase
+        .from('user_profile')
+        .select('handle')
+        .eq('user_id', data.user.id)
+        .maybeSingle()
+      if (!alive) return
+      const mine = (row as { handle?: string } | null)?.handle ?? ''
+      setState(mine.toLowerCase() === handle.toLowerCase() ? 'self' : 'other')
+    })()
+    return () => {
+      alive = false
+    }
+  }, [handle])
+  return state
+}
+
+/** Whatever they linked, and nothing else. Every href is rebuilt from the
+ *  platform's own base unless it is plainly http(s), so a pasted
+ *  `javascript:` string can never become a link someone else clicks. */
+function ProfileLinkRow({ links }: { links: ProfileLinks }) {
+  const entries = (Object.keys(links) as (keyof ProfileLinks)[])
+    .map((k) => ({ kind: k, value: links[k] as string, href: linkHref(k, links[k] as string) }))
+    .filter((e) => e.href)
+  if (entries.length === 0) return null
+  return (
+    <div className="mt-4 flex flex-wrap gap-1.5">
+      {entries.map((e) => {
+        return (
+          <a
+            key={e.kind}
+            href={e.href as string}
+            target="_blank"
+            rel="noopener noreferrer nofollow ugc"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+          >
+            {/* The same hand-rolled brand glyphs the org profiles use — lucide
+                dropped its brand icons over trademarks, and a second set here
+                would drift from that one. */}
+            <SocialFieldIcon field={e.kind} size={13} />
+            {stripScheme(e.value)}
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
+function stripScheme(v: string): string {
+  return v.replace(/^https?:/, '').replace(/^\/\//, '').slice(0, 28)
+}
+
+/**
+ * Their timetable, if they are your friend and they turned it on.
+ *
+ * The whole point of the feature: "when are your classes" gets asked constantly
+ * and answered with a screenshot that goes stale. Renders nothing at all unless
+ * the server says you may see it - and the server gives the same empty answer
+ * whether you are not their friend or they switched it off, so this cannot be
+ * used to probe someone's settings.
+ *
+ * Times and rooms only. Never a grade, not even for a friend.
+ */
+function FriendSchedule({ handle }: { handle: string }) {
+  const [rows, setRows] = useState<FriendCourse[] | null>(null)
+  useEffect(() => {
+    let alive = true
+    void canSeeSchedule(handle).then((ok) => {
+      if (!alive || !ok) return
+      void friendSchedule(handle).then((r) => alive && setRows(r))
+    })
+    return () => {
+      alive = false
+    }
+  }, [handle])
+
+  if (!rows || rows.length === 0) return null
+  return (
+    <Section icon={CalendarRange} title="Their schedule" count={rows.length}>
+      <p className="mb-2 text-[11.5px] text-subtle">
+        Shared with friends. Times and rooms only &mdash; never grades.
+      </p>
+      <ul className="space-y-1.5">
+        {rows.map((c, i) => (
+          <li
+            key={`${c.code}-${i}`}
+            className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-lg border border-border bg-surface px-3 py-2"
+          >
+            <span className="text-[12.5px] font-semibold text-fg">{c.code}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-muted">{c.title}</span>
+            <span className="text-[11.5px] text-subtle">
+              {c.meeting_times || 'No set time'}
+              {c.location ? ` · ${c.location}` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Section>
   )
 }
 
@@ -190,12 +379,49 @@ function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?
   )
 }
 
-function CourseRow({ course }: { course: PublicCourse }) {
+/**
+ * Courses grouped by term, newest first.
+ *
+ * A flat two-column grid of every class anyone ever took reads as a wall: by
+ * third year it is thirty identical rows with the term repeated on each one.
+ * Grouping puts the term where it belongs — once, as a heading — and makes the
+ * shape of someone's degree legible at a glance, which is the only reason to
+ * look at this list at all.
+ */
+function CoursesByTerm({ courses }: { courses: PublicCourse[] }) {
+  const groups = new Map<string, PublicCourse[]>()
+  for (const c of courses) {
+    const key = c.term || 'Other'
+    const list = groups.get(key)
+    if (list) list.push(c)
+    else groups.set(key, [c])
+  }
+  const terms = [...groups.keys()].sort((a, b) => termRank(b) - termRank(a))
+
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-border bg-surface px-3 py-2.5">
-      <CourseChip code={course.code} color={course.color} />
-      <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{course.title}</span>
-      <span className="shrink-0 text-[11px] text-subtle">{course.term}</span>
+    <div className="space-y-4">
+      {terms.map((term) => (
+        <div key={term}>
+          <p className="mb-1.5 flex items-baseline gap-2 text-[11.5px] font-semibold tracking-wide text-subtle uppercase">
+            {term}
+            <span className="font-normal normal-case">
+              {groups.get(term)!.length} class{groups.get(term)!.length === 1 ? '' : 'es'}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {groups.get(term)!.map((c, i) => (
+              <span
+                key={`${c.code}-${i}`}
+                title={c.title}
+                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
+              >
+                <CourseChip code={c.code} color={c.color} />
+                <span className="min-w-0 truncate text-[12.5px] text-muted">{c.title}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

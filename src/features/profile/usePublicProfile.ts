@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { cleanLinks, type ProfileLinks } from '@/lib/social'
 
 export interface PublicProfile {
   handle: string
@@ -9,6 +10,12 @@ export interface PublicProfile {
   program?: string
   programId?: string
   bio?: string
+  /** Only what they typed, and only on a public profile. */
+  links: ProfileLinks
+  /** Whether the class list is shared at all — its own switch now, since
+   *  "my profile exists" and "here is exactly what I am taking" are not the
+   *  same disclosure. */
+  coursesPublic: boolean
 }
 
 export interface PublicCourse {
@@ -38,6 +45,8 @@ interface ProfileRpcRow {
   program: string | null
   program_id: string | null
   bio: string | null
+  links: unknown
+  courses_public: boolean | null
 }
 interface CourseRpcRow { code: string; title: string; color: string; term: string }
 interface BlueprintRpcRow {
@@ -94,6 +103,8 @@ export function usePublicProfile(handle: string): PublicProfileState {
         program: row.program ?? undefined,
         programId: row.program_id ?? undefined,
         bio: row.bio ?? undefined,
+        links: cleanLinks(row.links),
+        coursesPublic: row.courses_public === true,
       }
       if (!row.is_public) {
         setState({ loading: false, notFound: false, profile, courses: [], blueprints: [] })
