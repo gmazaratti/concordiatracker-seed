@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Check, Copy, Share2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, Copy, MessageSquare, Share2 } from 'lucide-react'
 import type { CampusEvent } from '@/data/community'
 import { ModalShell } from '@/command/ModalShell'
 
@@ -50,6 +51,23 @@ export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClos
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
+
+        {/* The link is for people outside the app; this is for people in it.
+            Handing the event over in the URL means it arrives already attached
+            to the message rather than making you find it again in the +. */}
+        <Link
+          to={`/app/community?tab=people&attach=event:${event.id}`}
+          onClick={onClose}
+          className="mt-3 flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 transition-colors duration-150 hover:border-accent"
+        >
+          <MessageSquare size={15} className="shrink-0 text-accent" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium text-fg">Send to a friend</span>
+            <span className="block text-[11.5px] text-subtle">
+              Goes into a message as the live event, not a screenshot.
+            </span>
+          </span>
+        </Link>
 
         <div className="mt-4 flex justify-end">
           <button

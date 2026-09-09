@@ -10,6 +10,7 @@ import {
   Megaphone,
   MessagesSquare,
   Settings,
+  UserRound,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
@@ -135,6 +136,18 @@ export function AvatarMenu({
             align === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2',
           )}
         >
+          {/* Your own profile, first. It is the page every other social
+              action starts from, and until now the only way to reach it was to
+              already know your own handle and type the URL. */}
+          {user.handle && (
+            <MenuLink
+              to={`/@${user.handle}`}
+              icon={UserRound}
+              onSelect={() => setOpen(false)}
+            >
+              My profile
+            </MenuLink>
+          )}
           <MenuButton
             icon={Settings}
             onSelect={() => {

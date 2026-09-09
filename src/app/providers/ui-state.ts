@@ -44,6 +44,15 @@ export interface UiState {
    *  arrangement you BUILT, so it follows you between devices — unlike the
    *  grid/list toggle, which is a property of the screen you are on. */
   courseOrder?: string[]
+  /**
+   * Per-conversation chat colours, keyed by the other person's user id.
+   *
+   * In `ui_state` rather than its own table because it is a preference about
+   * how a screen LOOKS to you: the other person sees their own choice, the same
+   * way iMessage backgrounds are yours alone. No migration, and it follows you
+   * between devices like the widget layout does.
+   */
+  chatThemes?: Record<string, string>
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

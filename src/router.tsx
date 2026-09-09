@@ -38,7 +38,6 @@ import { OrgMemberInvitePage } from '@/features/organizer/OrgMemberInvitePage'
 import { LegalPage } from '@/features/legal/LegalPage'
 import { DemoReel } from '@/features/demo/DemoReel'
 import { UserProfilePage } from '@/features/profile/UserProfilePage'
-import { InboxPage } from '@/features/profile/InboxPage'
 import { NotFoundPage } from '@/features/NotFoundPage'
 
 /** Route tree for the three contexts: public, student app, teacher portal. */
@@ -69,7 +68,9 @@ export function AppRoutes() {
         <Route path="community/following" element={<FollowingPage />} />
         <Route path="community/notifications" element={<NotificationsPage />} />
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
-        <Route path="people" element={<InboxPage />} />
+        {/* People moved into Community. Kept so older links and the sidebar
+            entry that used to point here still land somewhere sensible. */}
+        <Route path="people" element={<Navigate to="/app/community?tab=people" replace />} />
         <Route path="requests" element={<AppRequestsPage />} />
       </Route>
 

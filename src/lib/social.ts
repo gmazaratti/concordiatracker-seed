@@ -27,6 +27,7 @@ export type Attachment =
   | { kind: 'schedule'; id: string; name: string }
   | { kind: 'course'; code: string; title?: string }
   | { kind: 'blueprint'; id: string; code: string }
+  | { kind: 'event'; id: string; title: string }
 
 export interface Message {
   id: string

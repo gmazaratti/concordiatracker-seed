@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   BookOpen,
+  ChevronLeft,
   ChevronRight,
   CalendarRange,
   Download,
@@ -28,12 +29,10 @@ import {
   canSeeSchedule,
   friendSchedule,
   linkHref,
-  type Friend,
   type FriendCourse,
   type ProfileLinks,
 } from '@/lib/social'
 import { FriendButton } from './FriendButton'
-import { MessagesModal } from './Messages'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
 import { founderFor, type FounderProfile } from './founders'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
@@ -122,8 +121,7 @@ function ProfileView({
   viewer: 'self' | 'other' | 'anon'
 }) {
   const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
-  const [messaging, setMessaging] = useState<Friend | null>(null)
-  const [showMessages, setShowMessages] = useState(false)
+  const navigate = useNavigate()
   const prog = profile?.programId ? programById(profile.programId) : undefined
   // Only applies to a real, closed set of handles — cosmetic, never a permission.
   const founder = profile?.isPublic ? founderFor(handle) : undefined
@@ -145,6 +143,18 @@ function ProfileView({
   return (
     <>
       <main className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+        {/* Community, not Today. You arrive here from a search or a mention in
+            Community, and the app's default landing page is not where you were
+            a second ago. */}
+        {viewer !== 'anon' && (
+          <Link
+            to="/app/community?tab=people"
+            className="mb-3 inline-flex items-center gap-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
+          >
+            <ChevronLeft size={14} aria-hidden />
+            Community
+          </Link>
+        )}
         {loading ? (
           <div className="grid place-items-center py-24">
             <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
@@ -211,7 +221,10 @@ function ProfileView({
                       </Link>
                     </>
                   ) : viewer === 'other' ? (
-                    <FriendButton handle={profile.handle} onMessage={(f) => setMessaging(f)} />
+                    <FriendButton
+                      handle={profile.handle}
+                      onMessage={(f) => navigate(`/app/community?tab=people&chat=${f.handle}`)}
+                    />
                   ) : null}
                 </div>
                 {founder?.tagline && (
@@ -285,15 +298,6 @@ function ProfileView({
         )}
       </main>
 
-      {(showMessages || messaging) && (
-        <MessagesModal
-          startWith={messaging ?? undefined}
-          onClose={() => {
-            setShowMessages(false)
-            setMessaging(null)
-          }}
-        />
-      )}
     </>
   )
 }
