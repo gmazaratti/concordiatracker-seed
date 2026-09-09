@@ -18,6 +18,8 @@ const BASE = 'https://opendata.concordia.ca/API/v1'
 
 /** Older than this and it is history, not "right now". */
 const STALE_MINUTES = 90
+/** Tolerated clock skew before a future timestamp is treated as unreadable. */
+const FUTURE_SLACK = 60
 
 export interface LibraryOccupancy {
   id: string
@@ -37,19 +39,49 @@ const NAMES: Record<string, string> = {
   GreyNuns: 'Grey Nuns (SGW)',
 }
 
+const ZONE = 'America/Toronto'
+
+/** How far `ZONE` is from UTC at a given instant, in minutes (negative west). */
+function offsetMinutes(at: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: ZONE,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(at)
+  const p: Record<string, number> = {}
+  for (const part of parts) if (part.type !== 'literal') p[part.type] = Number(part.value)
+  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute, p.second)
+  return (asUtc - at.getTime()) / 60000
+}
+
 /**
- * "2026-09-08 22:10:00.000" — no zone, and it is Montreal local time.
+ * "2026-09-08 22:10:00.000" — no zone, and it is MONTREAL wall-clock time.
  *
- * Parsed as local rather than UTC on purpose: `new Date(s)` on that shape is
- * implementation-defined, and reading it as UTC would report every fresh count
- * as four hours old and mark all of them stale.
+ * The first version of this used `new Date(y, m, d, …)`, whose "local" is
+ * whatever the machine thinks it is — and a serverless function runs in UTC. So
+ * a reading taken four minutes ago was reported as four HOURS old and every
+ * library came back stale: the exact failure this field exists to prevent,
+ * arriving from the other direction.
+ *
+ * The offset is measured at the instant rather than hard-coded, so it is right
+ * on both sides of the November DST change without a calendar of its own. Two
+ * passes, because the offset at the guessed instant can differ from the offset
+ * at the real one during the hour the clocks move.
  */
 function parseStamp(raw: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(raw.trim())
   if (!m) return null
-  const [, y, mo, d, h, mi, s] = m
-  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s))
-  return Number.isNaN(date.getTime()) ? null : date
+  const [, y, mo, d, h, mi, s] = m.map(Number) as unknown as number[]
+  const naive = Date.UTC(y, mo - 1, d, h, mi, s)
+  if (Number.isNaN(naive)) return null
+  let utc = naive - offsetMinutes(new Date(naive)) * 60000
+  utc = naive - offsetMinutes(new Date(utc)) * 60000
+  return new Date(utc)
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -85,7 +117,10 @@ export default async function handler(_req: any, res: any) {
       const ageMinutes = at ? Math.round((now - at.getTime()) / 60000) : null
       // A reading with no usable timestamp is not a reading. `.0000` from a
       // sensor last heard from in 1900 must never render as "0 people here".
-      const stale = ageMinutes === null || ageMinutes > STALE_MINUTES || ageMinutes < -5
+      // A little clock skew between Concordia's sensor and this server is
+      // normal and must not throw away a fresh reading; an hour ahead is not
+      // skew, it is a timestamp we have misread.
+      const stale = ageMinutes === null || ageMinutes > STALE_MINUTES || ageMinutes < -FUTURE_SLACK
       const count = Number(v?.Occupancy)
       return {
         id,
