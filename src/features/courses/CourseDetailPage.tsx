@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CalendarClock, ListChecks, Loader2, Pencil, Upload } from 'lucide-react'
-import type { Assessment } from '@/data/types'
+import type { Assessment, Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { courseStanding } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
@@ -30,6 +30,8 @@ export function CourseDetailPage() {
   const state = location.state as {
     focus?: string
     importItems?: Assessment[]
+    /** Instructor, office hours and room from the outline. Blanks only. */
+    importDetails?: Partial<Course>
     /** Set by "add a class": land with the section picker already open, so the
      *  schedule Concordia publishes fills itself instead of waiting for someone
      *  to notice a small link and type it out by hand. */
@@ -37,8 +39,17 @@ export function CourseDetailPage() {
   } | null
   const focusId = state?.focus
   const importItems = state?.importItems
-  const { plan, courses, assessments, dataLoading, courseById, addAssessments, peerCorrections } =
-    useAppData()
+  const importDetails = state?.importDetails
+  const {
+    plan,
+    courses,
+    assessments,
+    dataLoading,
+    courseById,
+    addAssessments,
+    updateCourse,
+    peerCorrections,
+  } = useAppData()
   const navigate = useNavigate()
   const course = courseId ? courseById(courseId) : undefined
   /** Opt-in for the rare student who has next term's syllabus already. Hoisted
@@ -94,6 +105,12 @@ export function CourseDetailPage() {
     // Stamp THIS course's id on every item — the blueprint/sample items carry the
     // source's id (or a code), so without this they'd attach to the wrong course.
     addAssessments(items.map((i) => ({ ...i, courseId: courseId2 })))
+    // The outline's own page-one details, if it carried any and the fields are
+    // still blank. Written after the assessments so a failure here cannot cost
+    // the import that actually matters.
+    if (importDetails && Object.keys(importDetails).length > 0) {
+      updateCourse(courseId2, importDetails)
+    }
     // Clear the import state so the reveal doesn't replay on the next render.
     if (importItems) {
       navigate(location.pathname, {

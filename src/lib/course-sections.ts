@@ -119,3 +119,29 @@ function deliveryOf(sections: SectionOption[]): SectionPatch['delivery'] {
   if (modes.some((m) => /person|campus|présentiel|classroom/.test(m))) return 'in-person'
   return undefined
 }
+
+/**
+ * The bare section letter, without the component code.
+ *
+ * A student's `section` is written the way the autofill builds it — "B LEC",
+ * or "BB LEC · BI TUT" for a class with a tutorial — while an outline names
+ * only the section it belongs to, "B". Comparing those as plain strings told a
+ * student in section B that section B's own outline was "not yours", which is
+ * the app contradicting the timetable it filled in itself two rows above.
+ *
+ * Takes the FIRST token, because the lecture is what people mean by "my
+ * section" and it is what an outline is published against.
+ */
+export function sectionKey(section: string): string {
+  const first = section.trim().split(/[·,;]/)[0]?.trim() ?? ''
+  const token = first.split(/\s+/)[0] ?? ''
+  return token.toUpperCase()
+}
+
+/** Do these two refer to the same section? Empty on either side is "unknown",
+ *  which is never a mismatch — we do not warn on something we do not know. */
+export function sameSection(a: string, b: string): boolean {
+  const ka = sectionKey(a)
+  const kb = sectionKey(b)
+  return ka !== '' && kb !== '' && ka === kb
+}

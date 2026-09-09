@@ -289,6 +289,10 @@ export interface BlueprintRow {
   course_code: string | null
   course_name: string | null
   professor: string | null
+  professor_email: string | null
+  office_hours: string | null
+  office_location: string | null
+  classroom: string | null
   author: string | null
   section: string | null
   term: string | null
@@ -321,6 +325,13 @@ export function blueprintFromRow(r: BlueprintRow): Blueprint {
     courseId: normalizeCode(r.course_code ?? ''),
     section: r.section ?? '',
     instructor: r.professor ?? '',
+    // `?? undefined` rather than `?? ''`: an absent field has to stay absent so
+    // the import can tell "the outline said nothing" from "the outline said
+    // nothing useful", and never blank out something the student typed.
+    instructorEmail: r.professor_email ?? undefined,
+    officeHours: r.office_hours ?? undefined,
+    officeLocation: r.office_location ?? undefined,
+    classroom: r.classroom ?? undefined,
     term: r.term ?? '',
     teacherVerified: verified,
     author: r.author || r.professor || 'Anonymous',

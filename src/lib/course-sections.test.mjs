@@ -29,7 +29,8 @@ execSync(
   { stdio: 'pipe', cwd: root },
 )
 
-const { termCodeFor, sectionPatch, sortSections } = await import(pathToFileURL(tmp).href)
+const { termCodeFor, sectionPatch, sortSections, sectionKey, sameSection } =
+  await import(pathToFileURL(tmp).href)
 const { laterTerms, currentTermName } = await import(pathToFileURL(tmpTerms).href)
 fs.rmSync(tmp, { force: true })
 fs.rmSync(tmpTerms, { force: true })
@@ -164,6 +165,25 @@ check('sortSections puts LEC before TUT before LAB', (() => {
   ]).map((s) => s.component)
   return order.join(',') === 'LEC,TUT,LAB'
 })())
+
+console.log('\nsection keys')
+{
+  // "B LEC" is how the autofill records a section; "B" is how an outline names
+  // itself. Treating those as different told a student in B that B's own
+  // outline was not theirs.
+  check('a component code is not part of the section', sectionKey('B LEC') === 'B')
+  check('a lone letter is itself', sectionKey('B') === 'B')
+  check('multi-component takes the lecture', sectionKey('BB LEC · BI TUT') === 'BB')
+  check('case does not matter', sectionKey('ec lec') === 'EC')
+  check('empty stays empty', sectionKey('   ') === '')
+  check('B LEC matches B', sameSection('B LEC', 'B'))
+  check('and the other way round', sameSection('B', 'B LEC'))
+  check('BB does not match B', !sameSection('BB LEC', 'B'))
+  check('EC does not match B', !sameSection('EC LEC', 'B'))
+  // Unknown is never a mismatch: we do not warn about what we do not know.
+  check('an unknown section never mismatches', !sameSection('', 'B'))
+  check('nor the other way', !sameSection('B', ''))
+}
 
 console.log(failed === 0 ? '\ncourse-sections: all checks passed' : `\ncourse-sections: ${failed} FAILED`)
 process.exit(failed === 0 ? 0 : 1)

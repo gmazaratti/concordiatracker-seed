@@ -20,7 +20,7 @@ import type { Assessment, Course } from '@/data/types'
  */
 
 const COLS =
-  'id, user_id, course_code, course_name, professor, author, section, term, items, verified, upvotes, downvotes, imports, created_at'
+  'id, user_id, course_code, course_name, professor, professor_email, office_hours, office_location, classroom, author, section, term, items, verified, upvotes, downvotes, imports, created_at'
 
 type Dir = 1 | -1 | 0
 

@@ -244,6 +244,9 @@ revoke execute on function public.user_id_for_handle(text) from anon;
 -- all published the class list with it. They are separate disclosures now, and
 -- the new one defaults to off — nobody's timetable becomes public because they
 -- turned a profile on.
+-- Same shape as before, so a replace would work — dropped anyway so the two
+-- redefinitions in this file behave identically and neither is a special case.
+drop function if exists public.get_public_courses(text);
 create or replace function public.get_public_courses(p_handle text)
 returns table (code text, title text, color text, term text)
 language sql security definer set search_path = public stable as $$
@@ -259,6 +262,11 @@ $$;
 
 -- Links join the public profile. Only ever what the owner typed, and only on a
 -- public profile.
+--
+-- DROPPED first, not just replaced: `create or replace` cannot change a
+-- function's OUT columns, and this one gains two. Safe because it is recreated
+-- immediately below and nothing but the app calls it.
+drop function if exists public.get_public_profile(text);
 create or replace function public.get_public_profile(p_handle text)
 returns table (
   handle text,
@@ -286,6 +294,10 @@ language sql security definer set search_path = public stable as $$
   where lower(p.handle) = lower(trim(p_handle))
   limit 1;
 $$;
+
+-- Recreating a function drops its grants with it.
+grant execute on function public.get_public_profile(text) to anon, authenticated;
+grant execute on function public.get_public_courses(text) to anon, authenticated;
 
 -- Check:
 --   select count(*) from public.friendships;

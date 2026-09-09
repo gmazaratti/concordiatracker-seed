@@ -3,6 +3,7 @@ import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ShieldCheck } from 'lu
 import { blueprintWeight, netVotes, uploadedOn, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
+import { sameSection } from '@/lib/course-sections'
 import { KIND_LABEL } from '@/lib/assessment'
 import { formatFull } from '@/lib/date'
 import { cn } from '@/lib/cn'
@@ -34,8 +35,13 @@ export function BlueprintRow({
   const net = netVotes(blueprint) + userVote
   // Not-past rather than exactly-equal: a next-term outline is not stale.
   const isCurrentTerm = termRank(blueprint.term) >= termRank(term.name)
-  // Only flag a section mismatch when we actually know the student's section.
-  const wrongSection = yourSection !== '' && blueprint.section !== yourSection
+  // Only flag a mismatch when we know the student's section AND it genuinely
+  // differs. "B LEC" and "B" are the same section written two ways — the first
+  // is how the autofill records it, the second is how an outline names itself.
+  const wrongSection =
+    yourSection.trim() !== '' &&
+    blueprint.section.trim() !== '' &&
+    !sameSection(yourSection, blueprint.section)
   const total = blueprintWeight(blueprint)
 
   return (

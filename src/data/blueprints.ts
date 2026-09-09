@@ -34,6 +34,21 @@ export interface Blueprint {
   section: string
   /** The professor who taught this section (context for "is this my prof?"). */
   instructor: string
+  /**
+   * The rest of what page one of an outline says.
+   *
+   * Kept because it was being thrown away: a student imported six dated
+   * assessments and then typed the instructor's email in by hand, off the same
+   * PDF we had just read. All optional — a community upload usually has none of
+   * it, and an absent field must stay absent rather than become an empty string
+   * that overwrites something real.
+   */
+  instructorEmail?: string
+  officeHours?: string
+  officeLocation?: string
+  /** Where the class meets. Worth having because Concordia's section feed
+   *  frequently publishes no room at all. */
+  classroom?: string
   /** Which term it was uploaded for, e.g. "Summer 2026". */
   term: string
   teacherVerified: boolean

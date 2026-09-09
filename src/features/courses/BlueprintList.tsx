@@ -5,6 +5,8 @@ import type { Course } from '@/data/types'
 import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
+import { sameSection } from '@/lib/course-sections'
+import { outlineDetails } from './outline-details'
 import { useAppData } from '@/app/providers/app-data'
 import { cn } from '@/lib/cn'
 import { BlueprintRow } from './BlueprintRow'
@@ -37,8 +39,8 @@ export function BlueprintList({ course }: { course: Course }) {
   const yourSection = course.section
   // Section tabs put the enrolled section first IF it's known + has blueprints.
   const orderedSections = useMemo(() => {
-    if (yourSection && sections.includes(yourSection))
-      return [yourSection, ...sections.filter((s) => s !== yourSection)]
+    const mine = sections.find((s) => sameSection(s, yourSection))
+    if (mine) return [mine, ...sections.filter((s) => s !== mine)]
     return sections
   }, [sections, yourSection])
 
@@ -65,8 +67,15 @@ export function BlueprintList({ course }: { course: Course }) {
 
   function importBlueprint(b: Blueprint) {
     recordImport(b.id)
-    // CourseDetailPage's import handler stamps the real course id on each item.
-    navigate(`/app/courses/${course.id}`, { state: { importItems: blueprintToAssessments(b) } })
+    // The outline states the instructor, their email, their office hours and
+    // the room on page one. Sending those along means a student stops retyping
+    // them off the PDF we just read — `outlineDetails` fills blanks only.
+    navigate(`/app/courses/${course.id}`, {
+      state: {
+        importItems: blueprintToAssessments(b),
+        importDetails: outlineDetails(b, course),
+      },
+    })
   }
   const rowProps = (b: Blueprint) => ({
     blueprint: b,
@@ -108,7 +117,7 @@ export function BlueprintList({ course }: { course: Course }) {
             <SectionTab
               key={s}
               label={`Section ${s}`}
-              yours={!!yourSection && s === yourSection}
+              yours={sameSection(s, yourSection)}
               active={activeSection === s}
               onClick={() => setActiveSection(s)}
             />
