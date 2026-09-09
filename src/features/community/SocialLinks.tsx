@@ -40,6 +40,15 @@ function LinkedinIcon({ size = 16 }: { size?: number }) {
   )
 }
 
+/** TikTok's note-and-shadow mark, same treatment as the others. */
+function TiktokIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+      <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 0 1 0-5.18c.27 0 .53.04.77.12v-3.2a5.86 5.86 0 0 0-.77-.05 5.75 5.75 0 1 0 5.75 5.75V9.01a7.35 7.35 0 0 0 4.29 1.38V7.3a4.29 4.29 0 0 1-3.3-1.48Z" />
+    </svg>
+  )
+}
+
 /** Render the right brand glyph for a link field. */
 export function SocialFieldIcon({ field, size = 16 }: { field: keyof OrgLinks; size?: number }) {
   switch (field) {
@@ -49,6 +58,8 @@ export function SocialFieldIcon({ field, size = 16 }: { field: keyof OrgLinks; s
       return <XIcon size={size} />
     case 'linkedin':
       return <LinkedinIcon size={size} />
+    case 'tiktok':
+      return <TiktokIcon size={size} />
     default:
       return <Globe size={size} aria-hidden />
   }

@@ -21,6 +21,10 @@ export interface OrgLinks {
   instagram?: string
   x?: string
   linkedin?: string
+  /** Added because student clubs live there — JMMA's TikTok is more active
+   *  than their LinkedIn, and dropping it into "website" would have hidden it
+   *  behind a globe icon nobody recognises. */
+  tiktok?: string
 }
 
 export interface EventOrg {
@@ -87,10 +91,44 @@ const ORG = {
   jmsb: { name: 'John Molson School of Business', handle: '@jmsb', verified: true, glyph: 'JM', color: '#912338', logo: 'https://i.ibb.co/HLVRHtf9/JMSB-Profile-Picture.png', bio: 'The John Molson School of Business: networking nights, case competitions, and career events for business students.' },
   casajmsb: { name: 'CASA JMSB', handle: '@casajmsb', verified: true, glyph: 'CJ', color: '#9b2335', logo: 'https://i.ibb.co/jkRyPXL8/CASA-JMSB-Profile-Picture.png', banner: 'https://i.ibb.co/mC78DnR1/CASA-JMSB-Banner.webp', bio: "The Commerce and Administration Students' Association: the official undergraduate association of JMSB." },
   jmis: { name: 'John Molson Investment Society', handle: '@jmis', verified: true, glyph: 'JI', color: '#1f4e8c', logo: 'https://i.ibb.co/4qqLLxq/JMIS-Profile-Picture.png', bio: 'A student-run investment society at John Molson: speaker series, stock pitches, and portfolio workshops.', links: { linkedin: 'https://www.linkedin.com/company/jmis-ca/', instagram: 'https://www.instagram.com/jmis.ca/', website: 'https://linktr.ee/jmis.ca' } },
+  // Pink from the wordmark's dominant letterform, so the branded fallback tile
+  // and the event banners read as theirs even before the logo loads.
+  jmma: {
+    name: 'John Molson Marketing Association',
+    handle: '@jmmaonline',
+    verified: true,
+    glyph: 'JM',
+    color: '#f4258c',
+    logo: 'https://scontent-ord5-2.cdninstagram.com/v/t51.2885-19/41798752_2207893339222708_1837196669163143168_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=scontent-ord5-2.cdninstagram.com&_nc_cat=104&_nc_oc=Q6cZ2gERAxqcpC0e_FuKyet4sslUPnoOWyosIR4-bJWPAvAT1vs4PS1EwUPuskzmd6TcmzA&_nc_ohc=3gh5kWUSeZEQ7kNvwEWwo5p&_nc_gid=5oyG_WCOVvbPP3_xim-ZOA&edm=APoiHPcBAAAA&ccb=7-5&oh=00_AQIYGo2CnhiDi_iQsFSJTeh4z7N1Iafo6q-hynXE6mWvvw&oe=6AA6A66B&_nc_sid=22de04',
+    bio: 'The marketing association at John Molson: socials, speaker nights, case competitions and the people behind them.',
+    links: {
+      instagram: 'https://instagram.com/jmmaonline',
+      tiktok: 'https://www.tiktok.com/@jmmaonline',
+      linkedin: 'https://www.linkedin.com/company/393004/',
+    },
+  },
   mathhelp: { name: 'Math & Stats Help Centre', handle: '@conu.mathhelp', verified: false, glyph: 'MS', color: '#e0853c', bio: 'Free peer tutoring and exam-prep sessions in mathematics and statistics.' },
 } satisfies Record<string, EventOrg>
 
 export const CAMPUS_EVENTS: CampusEvent[] = [
+  {
+    // An ABSOLUTE date, unlike the seeded demo events around it: this is a real
+    // night with a real door time, and a runtime-relative date would quietly
+    // move it every time the page loads.
+    id: 'ev-jmma-eternal-summer',
+    title: 'Meet the Team: Eternal Summer',
+    start: '2026-09-18T17:00:00-04:00',
+    mode: 'in-person',
+    location: 'Espace Rodier, Montr\u00e9al',
+    org: ORG.jmma,
+    category: 'clubs',
+    relevantTo: ['Marketing', 'Commerce', 'John Molson', 'Business'],
+    postedDaysAgo: 0,
+    description:
+      'JMMA\u2019s first event of the year: one last summer night before the term takes over. ' +
+      'Come meet the team, meet new people, and start the year properly. 5\u20139 PM at Espace Rodier. ' +
+      'Tickets through the link in their Instagram bio.',
+  },
   {
     id: 'ev-gamedev', title: 'Game Dev Club: Unity intro workshop',
     start: daysFromNow(1, 17, 30), mode: 'in-person', location: 'H 920', org: ORG.gamedev,

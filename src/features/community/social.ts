@@ -14,4 +14,5 @@ export const SOCIAL_FIELDS: SocialField[] = [
   { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourorg' },
   { key: 'x', label: 'X (Twitter)', placeholder: 'https://x.com/yourorg' },
   { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/yourorg' },
+  { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@yourorg' },
 ]
