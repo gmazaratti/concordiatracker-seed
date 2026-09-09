@@ -141,8 +141,12 @@ export function Sidebar() {
           </NavLink>
           {/* Only while you are in the planner, and only when there is room for
               words: a nine-item subtree pinned open would make Planner read as
-              the centre of the app, and it is not — Today is. */}
-          {to === '/app/planner' && onPlanner && !collapsed && <PlannerSubNav />}
+              the centre of the app, and it is not — Today is.
+
+              It stays MOUNTED and animates its height, so it slides out from
+              under Planner and folds back when you leave, instead of nine rows
+              appearing and vanishing between one frame and the next. */}
+          {to === '/app/planner' && !collapsed && <PlannerSubNav open={onPlanner} />}
           </Fragment>
         ))}
 

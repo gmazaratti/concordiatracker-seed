@@ -16,6 +16,8 @@ import { GradeNeeded } from './GradeNeeded'
 import { GpaWhatIf } from './GpaWhatIf'
 import { PaywallLock } from './Paywall'
 import { SyllabusParseReveal } from './SyllabusParseReveal'
+import { SyllabusUploadPage } from './SyllabusUpload'
+import { ModalShell } from '@/command/ModalShell'
 import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
 
 /** Course detail — the grade workspace. An empty course leads with the syllabus
@@ -42,6 +44,10 @@ export function CourseDetailPage() {
   /** Opt-in for the rare student who has next term's syllabus already. Hoisted
    *  above the early returns below, because hooks cannot follow them. */
   const [outlineEarly, setOutlineEarly] = useState(false)
+  // Above the `dataLoading` / `!course` early returns, like its neighbour —
+  // rules-of-hooks, and the same trap that caught `outlineEarly`.
+  /** Adding a second outline to a course that already has one. */
+  const [importing, setImporting] = useState(false)
   // Read once, on mount. Kept in state rather than off `location.state` on every
   // render so closing the picker sticks — the router entry is not rewritten.
   const [autoFill] = useState(() => !!state?.autofill)
@@ -112,6 +118,16 @@ export function CourseDetailPage() {
       </div>
 
       <CourseAnnouncements courseCode={course.code} />
+
+      {importing && (
+        <ModalShell
+          label={`Import an outline into ${course.code}`}
+          onClose={() => setImporting(false)}
+          widthClass="sm:max-w-2xl"
+        >
+          <SyllabusUploadPage intoCourseId={course.id} onDone={() => setImporting(false)} />
+        </ModalShell>
+      )}
 
       {holding ? (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -225,6 +241,20 @@ export function CourseDetailPage() {
           </aside>
 
           <main className="flex min-w-0 flex-1 flex-col gap-3">
+            {/* A course with an outline could not receive another one, so a
+                corrected syllabus meant retyping it. Anything that looks like an
+                assessment already here is flagged and skipped, so importing
+                twice cannot double your grade breakdown. */}
+            <div className="flex justify-end print:hidden">
+              <button
+                type="button"
+                onClick={() => setImporting(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+              >
+                <Upload size={12} aria-hidden />
+                Import an outline
+              </button>
+            </div>
             {coursePeerCorrections.length > 0 && (
               <div className="flex flex-col gap-2">
                 {coursePeerCorrections.map((c) => (

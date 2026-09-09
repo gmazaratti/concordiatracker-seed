@@ -4,6 +4,8 @@ import {
   Bus,
   CalendarRange,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Eye,
   EyeOff,
@@ -13,6 +15,7 @@ import {
   Printer,
   Save,
   Trash2,
+  TriangleAlert,
   X,
 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
@@ -48,6 +51,7 @@ import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { SuggestedCourses } from './SuggestedCourses'
 import { ScheduleGenerator } from './ScheduleGenerator'
+import type { GeneratedSchedule } from '@/lib/schedule-generate'
 import { ModalShell } from '@/command/ModalShell'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Pin, PinOff } from 'lucide-react'
@@ -146,6 +150,20 @@ export function ScheduleBuilder() {
   const [details, setDetails] = useState<PickedSection | null>(null)
 
   /**
+   * Generated drafts, drawn on the real week.
+   *
+   * Cycling used to happen inside the Generate dialog against a list of codes
+   * and times — the one view in which you cannot see what a timetable is like.
+   * The question being asked is "what does my week become", so the answer is
+   * shown on the week, and the arrows sit above it.
+   */
+  const [drafts, setDrafts] = useState<{
+    results: GeneratedSchedule[]
+    index: number
+    again: () => void
+  } | null>(null)
+
+  /**
    * The course being hovered in the suggestions list, drawn on the week as a
    * dashed outline.
    *
@@ -192,8 +210,15 @@ export function ScheduleBuilder() {
 
   const record = useMemo(() => {
     const summary = summarizeRecord(pastCourses, assessments)
-    return { completed: new Set(summary.completedCodes.map(normalizeCode)), credits: summary.credits }
-  }, [pastCourses, assessments])
+    return {
+      completed: new Set(summary.completedCodes.map(normalizeCode)),
+      credits: summary.credits,
+      // The classes you are IN. Without these, a student taking COMM 215 right
+      // now was told they do not meet COMM 225 — which the university plainly
+      // disagrees with, since it let them register for both.
+      inProgress: new Set(courses.filter((c) => c.code.trim()).map((c) => normalizeCode(c.code))),
+    }
+  }, [pastCourses, assessments, courses])
 
   /**
    * What the generator must keep, in the shape it wants.
@@ -278,8 +303,12 @@ export function ScheduleBuilder() {
   const [seeded, setSeeded] = useState(false)
   if (!seeded && currentId === null && picked.length === 0 && courses.length > 0) {
     setSeeded(true)
+    // A class with no meeting time is still a class you are taking. Filtering
+    // them out here is why an online course vanished from the builder
+    // altogether; it belongs on the schedule, under the grid, in the strip that
+    // exists precisely for classes the week has nowhere to draw.
     const fromCurrentTerm: PickedSection[] = courses
-      .filter((c) => c.code.trim() && c.meetingTimes.trim())
+      .filter((c) => c.code.trim())
       .map((c) => ({
         code: c.code,
         section: {
@@ -296,7 +325,7 @@ export function ScheduleBuilder() {
           waitlistCap: null,
           hasReserved: false,
           location: c.location.split(' ')[0] ?? '',
-          instructionMode: '',
+          instructionMode: c.delivery === 'online' ? 'Online' : (c.delivery ?? ''),
           building: '',
           room: c.location,
         } satisfies SectionOption,
@@ -334,17 +363,29 @@ export function ScheduleBuilder() {
         .filter((p) => !hidden.has(p.section.classNumber)),
     [picked, showCurrent, hidden],
   )
-  const placed = useMemo(() => placeSections(visiblePicked), [visiblePicked])
+  /** What the week is actually showing: your schedule, or the draft on top. */
+  const draft = drafts?.results[drafts.index] ?? null
+  const draftPicked = useMemo<PickedSection[]>(
+    () =>
+      draft
+        ? draft.picks.flatMap((p) => p.sections.map((section) => ({ code: p.code, section })))
+        : [],
+    [draft],
+  )
+  const placed = useMemo(
+    () => placeSections(draft ? draftPicked : visiblePicked),
+    [draft, draftPicked, visiblePicked],
+  )
   const conflicts = useMemo(() => findConflicts(placed), [placed])
   const gaps = useMemo(() => findCampusGaps(placed), [placed])
   const colourOf = useMemo(() => {
     const map = new Map<string, string>()
     let i = 0
-    for (const p of picked) {
+    for (const p of [...picked, ...draftPicked]) {
       if (!map.has(p.code)) map.set(p.code, COURSE_COLORS[i++ % COURSE_COLORS.length].hex)
     }
     return map
-  }, [picked])
+  }, [picked, draftPicked])
 
   const togglePin = useCallback((code: string) => {
     setPins((prev) => {
@@ -515,8 +556,10 @@ export function ScheduleBuilder() {
                 eligibleOnly={eligibleOnly}
                 record={record}
                 existing={existingForGenerator}
-                onApply={(picks) => {
-                  applyGenerated(picks)
+                onResults={(results, again) => {
+                  setDrafts({ results, index: 0, again })
+                  // Out of the way immediately: a full-screen dialog is the one
+                  // thing you cannot read a timetable through.
                   setGenerating(false)
                 }}
               />
@@ -864,6 +907,97 @@ export function ScheduleBuilder() {
               week
             </p>
           </div>
+          {/* ── The draft bar ─────────────────────────────────────────
+              Directly above the week it is describing, because the week IS the
+              thing being cycled. Nothing has changed in your schedule until
+              "Use this one" — the grid is showing a proposal. */}
+          {drafts && draft && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-accent/40 bg-accent-soft px-2.5 py-2 print:hidden">
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDrafts((d) =>
+                      d ? { ...d, index: (d.index - 1 + d.results.length) % d.results.length } : d,
+                    )
+                  }
+                  disabled={drafts.results.length < 2}
+                  aria-label="Previous option"
+                  className="grid size-7 place-items-center rounded-lg border border-accent/40 text-accent transition-colors duration-150 hover:bg-accent/10 disabled:opacity-40"
+                >
+                  <ChevronLeft size={15} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDrafts((d) => (d ? { ...d, index: (d.index + 1) % d.results.length } : d))
+                  }
+                  disabled={drafts.results.length < 2}
+                  aria-label="Next option"
+                  className="grid size-7 place-items-center rounded-lg border border-accent/40 text-accent transition-colors duration-150 hover:bg-accent/10 disabled:opacity-40"
+                >
+                  <ChevronRight size={15} aria-hidden />
+                </button>
+              </span>
+
+              <span className="min-w-0 flex-1 text-[12.5px] text-fg">
+                <span className="font-medium">
+                  Option {drafts.index + 1} of {drafts.results.length}
+                </span>
+                <span className="ml-1.5 text-subtle">
+                  {draft.credits} cr
+                  {draft.daysOff.length > 0 &&
+                    ` · ${draft.daysOff.length} day${draft.daysOff.length === 1 ? '' : 's'} off`}
+                  {' · preview only'}
+                </span>
+              </span>
+
+              <span className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyGenerated(
+                      draft.picks.map((p) => ({ code: p.code, sections: p.sections })),
+                    )
+                    setDrafts(null)
+                  }}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                >
+                  Use this one
+                </button>
+                <button
+                  type="button"
+                  onClick={() => drafts.again()}
+                  className="rounded-lg border border-accent/40 px-2.5 py-1.5 text-[12.5px] text-accent transition-colors duration-150 hover:bg-accent/10"
+                >
+                  More
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrafts(null)}
+                  aria-label="Discard these drafts"
+                  className="grid size-7 place-items-center rounded-lg border border-accent/40 text-accent transition-colors duration-150 hover:bg-accent/10"
+                >
+                  <X size={14} aria-hidden />
+                </button>
+              </span>
+
+              {draft.warnings.length > 0 && (
+                <ul className="w-full space-y-0.5 border-t border-accent/25 pt-1.5">
+                  {draft.warnings.map((w, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-warning"
+                    >
+                      <TriangleAlert size={12} className="mt-0.5 shrink-0" aria-hidden />
+                      {w.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <WeekGrid
             placed={placed}
             ghost={ghost}
@@ -885,7 +1019,7 @@ export function ScheduleBuilder() {
           {/* A class with no slot is invisible on a week grid, and a student
               counting rectangles concludes they are taking one fewer class than
               they are. */}
-          <UnscheduledStrip picked={visiblePicked} colourOf={colourOf} />
+          <UnscheduledStrip picked={draft ? draftPicked : visiblePicked} colourOf={colourOf} />
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-subtle">
             <span>{weeklyHours(placed)} hours a week</span>

@@ -35,7 +35,7 @@
 // prerequisites, which is why "Prerequisite:MBA 642" read as unparseable.
 const CODE = /\b([A-Z]{3,4})\s?(\d{3,4}[A-Z]?)\b/
 
-export type Verdict = 'met' | 'not-met' | 'unknown' | 'blocked'
+export type Verdict = 'met' | 'not-met' | 'unknown' | 'blocked' | 'in-progress'
 
 export interface Alternative {
   /** A course code, normalised as "COMP248". Null for non-course wording. */
@@ -298,6 +298,17 @@ export interface Record {
   completed: Set<string>
   /** Credits earned, for a credit-floor clause. */
   credits: number
+  /**
+   * Normalised codes you are SITTING IN right now.
+   *
+   * Counted as satisfying a prerequisite, because that is how registration
+   * actually works: Concordia lets you take the sequel while you finish the
+   * prerequisite, and telling a student in COMM 215 that they cannot look at
+   * COMM 225 is telling them something the university disagrees with. The
+   * verdict says `in-progress` so the UI can add the condition — it only holds
+   * if you pass — instead of claiming outright that you have met it.
+   */
+  inProgress?: Set<string>
 }
 
 /**
@@ -325,10 +336,19 @@ export function evaluate(p: Prereq, rec: Record): Evaluation {
 
   const missing: Term[] = []
   let unsure = false
+  /** Terms only satisfied by something you have not finished yet. */
+  const pending: Term[] = []
+  const taking = rec.inProgress ?? new Set<string>()
 
   for (const term of p.terms) {
     const satisfied = term.alternatives.some((a) => a.code !== null && rec.completed.has(a.code))
     if (satisfied) continue
+    // Registration allows a prerequisite to be taken alongside, so a course you
+    // are sitting in this term counts — conditionally, and the verdict says so.
+    if (term.alternatives.some((a) => a.code !== null && taking.has(a.code))) {
+      pending.push(term)
+      continue
+    }
     // An alternative we cannot check ("or equivalent", a Cegep course) means we
     // cannot say this term is unmet — only that we cannot confirm it.
     const escapable = term.alternatives.some((a) => a.code === null)
@@ -357,6 +377,19 @@ export function evaluate(p: Prereq, rec: Record): Evaluation {
 
   if (missing.length > 0) return { verdict: 'not-met', missing, notes, unreadable }
   if (unsure) return { verdict: 'unknown', missing: [], notes, unreadable }
+  if (pending.length > 0) {
+    return {
+      verdict: 'in-progress',
+      missing: [],
+      notes: [
+        ...notes,
+        `You are taking ${pending
+          .map((t) => t.alternatives.map((a) => a.text).join(' or '))
+          .join(', ')} now — this holds as long as you pass.`,
+      ],
+      unreadable,
+    }
+  }
   return { verdict: 'met', missing: [], notes, unreadable }
 }
 

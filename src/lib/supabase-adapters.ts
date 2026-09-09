@@ -28,6 +28,8 @@ export interface CourseRow {
   name: string | null
   location: string | null
   time: string | null
+  /** 'in-person' | 'online' | 'hybrid'. Null means nobody has said. */
+  delivery: string | null
   professor: string | null
   prof_email: string | null
   ta_name: string | null
@@ -59,6 +61,10 @@ export function courseFromRow(r: CourseRow): Course {
     ta: r.ta_name || r.ta_email ? { name: r.ta_name ?? '', email: r.ta_email ?? '' } : null,
     location: r.location ?? '',
     meetingTimes: r.time ?? '',
+    delivery:
+      r.delivery === 'online' || r.delivery === 'hybrid' || r.delivery === 'in-person'
+        ? r.delivery
+        : undefined,
     officeHours: r.office_hours ?? undefined,
     syllabusUrl: r.syllabus_url ?? '',
     gradingScale: r.grading_scale ?? undefined,
@@ -96,6 +102,7 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   }
   if ('location' in patch) row.location = patch.location
   if ('meetingTimes' in patch) row.time = patch.meetingTimes
+  if ('delivery' in patch) row.delivery = patch.delivery ?? null
   if ('officeHours' in patch) row.office_hours = patch.officeHours ?? null
   if ('syllabusUrl' in patch) row.syllabus_url = patch.syllabusUrl
   if ('gradingScale' in patch) row.grading_scale = patch.gradingScale ?? null

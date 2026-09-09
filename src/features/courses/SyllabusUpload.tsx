@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { getParseUsage, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
 import { KIND_LABEL } from '@/lib/assessment'
 import { MascotLoading } from '@/components/Mascot'
+import { ScanTips } from './ScanTips'
+import { matchAll } from './duplicate-assessments'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
@@ -79,9 +81,23 @@ function usageState(u: ParseUsage): { remaining: number; blocked: boolean; messa
 /** The real AI syllabus parser: drag-drop a PDF → Gemini extraction (server-side)
  * → review what was found → commit into a new course. Parsed dates are tagged
  * `unverified`; nothing is saved until you confirm. */
-export function SyllabusUploadPage() {
+export function SyllabusUploadPage({
+  intoCourseId,
+  onDone,
+}: {
+  /**
+   * Import into a course that already exists instead of making a new one.
+   *
+   * The same flow either way — a reposted syllabus and a first import are the
+   * same parse. What changes is the ending: no course is created, the course's
+   * own details are left alone (you already filled those in), and anything that
+   * looks like an assessment you already have is flagged before it is added.
+   */
+  intoCourseId?: string
+  onDone?: () => void
+} = {}) {
   const navigate = useNavigate()
-  const { createCourse, addAssessments, updateCourse } = useAppData()
+  const { createCourse, addAssessments, updateCourse, assessments: allAssessments } = useAppData()
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState('')
   const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
@@ -138,9 +154,59 @@ export function SyllabusUploadPage() {
   const total = items.reduce((s, i) => s + i.weight, 0)
   const canCommit = items.length > 0 && !saving
 
+  /** What this course already has, for the duplicate check. Empty for a new one. */
+  const existing = useMemo(
+    () =>
+      intoCourseId
+        ? allAssessments
+            .filter((a) => a.courseId === intoCourseId)
+            .map((a) => ({ id: a.id, title: a.title, kind: a.kind, weight: a.weight, due: a.due }))
+        : [],
+    [allAssessments, intoCourseId],
+  )
+
+  const duplicates = useMemo(
+    () =>
+      existing.length === 0
+        ? []
+        : matchAll(
+            items.map((i) => ({ title: i.title, kind: i.kind, weight: i.weight, due: i.due })),
+            existing,
+          ),
+    [items, existing],
+  )
+  const confidentDupes = duplicates.filter((d) => d?.confident).length
+
   async function commit() {
     if (!canCommit) return
     setSaving(true)
+
+    // ── Into a course that already exists ──────────────────────────────────
+    if (intoCourseId) {
+      const add: Assessment[] = items
+        .filter((_, i) => !duplicates[i]?.confident)
+        .map((it) => ({
+          id: crypto.randomUUID(),
+          courseId: intoCourseId,
+          title: it.title.trim() || 'Untitled',
+          kind: it.kind,
+          due: it.due as string,
+          weight: it.weight,
+          provenance: { status: 'unverified' },
+          status: 'not-started',
+          grade: null,
+          notes: '',
+          description: it.description.trim() || undefined,
+        }))
+      if (course.gradingScale.trim()) {
+        updateCourse(intoCourseId, { gradingScale: course.gradingScale.trim() })
+      }
+      if (add.length > 0) await addAssessments(add)
+      setSaving(false)
+      onDone?.()
+      return
+    }
+
     const id = await createCourse({
       code: course.code.trim(),
       title: course.title.trim(),
@@ -271,9 +337,37 @@ export function SyllabusUploadPage() {
                 </p>
               )}
 
+              {/* Said before the button, not after the damage. Re-importing a
+                  corrected syllabus is normal; silently doubling every item is
+                  how a grade breakdown ends up adding to 200%. */}
+              {confidentDupes > 0 && (
+                <p className="mb-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] leading-relaxed text-muted">
+                  <span className="font-medium text-fg">
+                    {confidentDupes} {confidentDupes === 1 ? 'item is' : 'items are'} already on this
+                    course
+                  </span>{' '}
+                  and will be skipped, so nothing is duplicated. Remove the ones you want replaced
+                  from the course first, or leave them — the rest still import.
+                </p>
+              )}
+
               <ul className="space-y-1.5">
-                {items.map((it) => (
-                  <ReviewRow key={it.id} item={it} onPatch={(p) => patch(it.id, p)} onRemove={() => remove(it.id)} />
+                {items.map((it, i) => (
+                  <li key={it.id}>
+                    <ReviewRow item={it} onPatch={(p) => patch(it.id, p)} onRemove={() => remove(it.id)} />
+                    {duplicates[i] && (
+                      <p
+                        className={cn(
+                          'mt-0.5 pl-1 text-[11px]',
+                          duplicates[i]!.confident ? 'text-warning' : 'text-subtle',
+                        )}
+                      >
+                        {duplicates[i]!.confident ? 'Skipping — ' : 'Possibly '}
+                        matches &ldquo;{duplicates[i]!.title}&rdquo; you already have (
+                        {duplicates[i]!.reason}).
+                      </p>
+                    )}
+                  </li>
                 ))}
               </ul>
             </>
@@ -287,7 +381,9 @@ export function SyllabusUploadPage() {
               className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {saving && <Loader2 size={14} className="animate-spin" aria-hidden />}
-              Add {items.length} to a new course
+              {intoCourseId
+                ? `Add ${items.length - confidentDupes} to this course`
+                : `Add ${items.length} to a new course`}
             </button>
             <button
               type="button"
@@ -373,9 +469,9 @@ function Scanning() {
           aria-hidden
         />
       </div>
-      <p className="mt-2.5 text-[12px] text-subtle">
-        Extracting course details, assessments, weights, and deadlines… this usually takes about 10–15 seconds.
-      </p>
+      {/* The wait is long enough to be noticed, so it gets something to read
+          rather than a second sentence restating the first one. */}
+      <ScanTips className="mt-3 border-t border-border pt-3" />
     </div>
   )
 }

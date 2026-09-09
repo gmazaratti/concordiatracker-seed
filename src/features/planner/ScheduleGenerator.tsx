@@ -1,19 +1,12 @@
 import { useState } from 'react'
-import {
-  CalendarRange,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  TriangleAlert,
-  X,
-} from 'lucide-react'
+import { CalendarRange, Loader2 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { findSections, termLabel, type SectionOption } from '@/lib/seats'
 import { parseCourseCode } from '@/lib/course-sections'
 import { browseCourses } from '@/lib/catalog'
 import { outstandingRequired } from '@/lib/recommend'
-import { checkPrereq, normalizeCode } from '@/lib/prereq'
+import { checkPrereq, normalizeCode, type Record as PrereqRecord } from '@/lib/prereq'
 import type { ProgramWithGroups } from '@/lib/program-progress'
 import {
   generateSchedules,
@@ -71,7 +64,7 @@ export function ScheduleGenerator({
   eligibleOnly,
   record,
   existing,
-  onApply,
+  onResults,
 }: {
   program: ProgramWithGroups | null
   termCode: string
@@ -80,7 +73,7 @@ export function ScheduleGenerator({
   taken: string[]
   /** The Filters toggle: drop anything whose prerequisites you have not met. */
   eligibleOnly: boolean
-  record: { completed: Set<string>; credits: number }
+  record: PrereqRecord
   /** Kept exactly as they are in every draft. */
   pinned: { code: string; sections: SectionOption[] }[]
   /**
@@ -91,7 +84,17 @@ export function ScheduleGenerator({
    * miss the load the student asked for.
    */
   existing: { code: string; sections: SectionOption[]; credits: number }[]
-  onApply: (picks: { code: string; sections: SectionOption[] }[]) => void
+  /**
+   * Hand the drafts to the page.
+   *
+   * Cycling used to happen inside this dialog, against a list of course codes
+   * and times — which is the one place you cannot see what a timetable actually
+   * looks like. The whole question is "what does my week become", so the drafts
+   * go onto the real week grid and the arrows sit above it. `again` re-runs with
+   * a fresh seed, so More keeps working from out there without lifting this
+   * component's form state anywhere.
+   */
+  onResults: (results: GeneratedSchedule[], again: () => void) => void
 }) {
   const [target, setTarget] = useState('15')
   const [ecp, setEcp] = useState(false)
@@ -103,11 +106,7 @@ export function ScheduleGenerator({
   const [mode, setMode] = useState<'fresh' | 'keep'>('fresh')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [results, setResults] = useState<GeneratedSchedule[] | null>(null)
-  const [index, setIndex] = useState(0)
   const [seed, setSeed] = useState(1)
-
-  const current = results?.[index] ?? null
   const loads = ecp ? LOADS.filter((l) => Number(l.value) >= ECP_MINIMUM) : LOADS
   const keepable = existing.filter((e) => !pinned.some((p) => p.code === e.code))
 
@@ -140,7 +139,6 @@ export function ScheduleGenerator({
             ? 'Nothing outstanding to schedule. Add a course above, or name one below.'
             : 'Pick your programme in My programme first, or name the courses you want below.',
         )
-        setResults(null)
         return
       }
 
@@ -216,8 +214,13 @@ export function ScheduleGenerator({
         campuses,
       })
 
-      setResults(generated)
-      setIndex(0)
+      if (generated.length > 0) {
+        const next = nextSeed + 100
+        onResults(generated, () => {
+          setSeed(next)
+          void generate(next)
+        })
+      }
       if (skippedForPrereq.length > 0) {
         setError(
           `Left out for now: ${skippedForPrereq.join(', ')} — prerequisites not met yet. Turn off "only what I can take" in Filters to include them anyway.`,
@@ -380,97 +383,6 @@ export function ScheduleGenerator({
         <p className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-muted">
           {error}
         </p>
-      )}
-
-      {current && results && (
-        <div className="rounded-xl border border-border bg-surface-2/50 p-3">
-          {/* Cycling is the whole interaction: there is no single best
-              timetable, so the job is to show several and let them choose. */}
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setIndex((i) => (i - 1 + results.length) % results.length)}
-              disabled={results.length < 2}
-              aria-label="Previous option"
-              className="grid size-7 shrink-0 place-items-center rounded-lg border border-border text-muted transition-colors duration-150 hover:text-fg disabled:opacity-40"
-            >
-              <ChevronLeft size={15} aria-hidden />
-            </button>
-            <span className="text-[12px] font-medium text-fg">
-              Option {index + 1} of {results.length}
-              <span className="ml-1.5 font-normal text-subtle">
-                {current.credits} cr
-                {current.daysOff.length > 0 &&
-                  ` · ${current.daysOff.length} day${current.daysOff.length === 1 ? '' : 's'} off`}
-              </span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setIndex((i) => (i + 1) % results.length)}
-              disabled={results.length < 2}
-              aria-label="Next option"
-              className="grid size-7 shrink-0 place-items-center rounded-lg border border-border text-muted transition-colors duration-150 hover:text-fg disabled:opacity-40"
-            >
-              <ChevronRight size={15} aria-hidden />
-            </button>
-          </div>
-
-          <ul className="mt-2.5 space-y-1">
-            {current.picks.map((p) => (
-              <li key={p.code} className="flex items-baseline gap-2 text-[12px]">
-                <span className="font-semibold text-fg">{p.code}</span>
-                {p.pinned && <span className="text-[10.5px] text-accent">pinned</span>}
-                <span className="min-w-0 flex-1 truncate text-subtle">
-                  {p.sections.map((s) => s.meetingTimes).filter(Boolean).join(' · ')}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          {current.warnings.length > 0 && (
-            <ul className="mt-2.5 space-y-1 border-t border-border pt-2.5">
-              {current.warnings.map((w, i) => (
-                <li key={i} className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-warning">
-                  <TriangleAlert size={12} className="mt-0.5 shrink-0" aria-hidden />
-                  {w.text}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => onApply(current.picks.map((p) => ({ code: p.code, sections: p.sections })))}
-              className="flex-1 rounded-lg bg-accent px-3 py-2 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-            >
-              Use this one
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                // A fresh seed rather than more of the same pool: the previous
-                // batch has already been seen, and "more options" that repeats
-                // them is what makes a generator feel broken.
-                const next = seed + 100
-                setSeed(next)
-                void generate(next)
-              }}
-              disabled={busy}
-              className="rounded-lg border border-border px-3 py-2 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
-            >
-              More
-            </button>
-            <button
-              type="button"
-              onClick={() => setResults(null)}
-              aria-label="Discard these options"
-              className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-subtle transition-colors duration-150 hover:text-fg"
-            >
-              <X size={15} aria-hidden />
-            </button>
-          </div>
-        </div>
       )}
 
       {termCode && (

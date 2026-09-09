@@ -23,7 +23,7 @@ import { cn } from '@/lib/cn'
  * subtree would make Planner look like the centre of the app, which it is not —
  * Today is.
  */
-export function PlannerSubNav() {
+export function PlannerSubNav({ open }: { open: boolean }) {
   const { t } = useI18n()
   const [params] = useSearchParams()
   const fromUrl = params.get('tab')
@@ -31,43 +31,58 @@ export function PlannerSubNav() {
     fromUrl && PLANNER_TAB_IDS.has(fromUrl) ? (fromUrl as PlannerTab) : 'record'
 
   return (
-    <div className="mt-0.5 mb-1 ml-[26px] border-l border-border pl-2">
-      {PLANNER_TABS.map((item, i) => {
-        const Icon = item.icon
-        const on = active === item.id
-        const startsPhase = i === 0 || PLANNER_TABS[i - 1].phase !== item.phase
-        return (
-          <Fragment key={item.id}>
-            {startsPhase && (
-              <p
-                className={cn(
-                  'px-2 text-[10px] font-semibold tracking-wide text-subtle uppercase',
-                  i === 0 ? 'pb-1' : 'pt-2.5 pb-1',
+    // A grid whose single row animates 0fr -> 1fr: the CSS-only way to
+    // transition to a height nobody has measured. `inert` while closed so the
+    // nine links are not tabbable behind a collapsed section, and the global
+    // reduced-motion rule zeroes the duration into an instant swap.
+    <div
+      className={cn(
+        'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+        open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+      )}
+      inert={!open}
+      aria-hidden={!open}
+    >
+      <div className="overflow-hidden">
+        <div className="mt-0.5 mb-1 ml-[26px] border-l border-border pl-2">
+          {PLANNER_TABS.map((item, i) => {
+            const Icon = item.icon
+            const on = active === item.id
+            const startsPhase = i === 0 || PLANNER_TABS[i - 1].phase !== item.phase
+            return (
+              <Fragment key={item.id}>
+                {startsPhase && (
+                  <p
+                    className={cn(
+                      'px-2 text-[10px] font-semibold tracking-wide text-subtle uppercase',
+                      i === 0 ? 'pb-1' : 'pt-2.5 pb-1',
+                    )}
+                  >
+                    {PHASE_LABEL[item.phase]}
+                  </p>
                 )}
-              >
-                {PHASE_LABEL[item.phase]}
-              </p>
-            )}
-            <Link
-              to={plannerHref(item.id)}
-              aria-current={on ? 'page' : undefined}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] transition-colors duration-150',
-                on
-                  ? 'bg-accent-soft font-medium text-fg'
-                  : 'text-muted hover:bg-surface-2 hover:text-fg',
-              )}
-            >
-              <Icon
-                size={13}
-                aria-hidden
-                className={cn('shrink-0', on ? 'text-accent' : 'text-subtle')}
-              />
-              <span className="min-w-0 truncate">{t(item.labelKey)}</span>
-            </Link>
-          </Fragment>
-        )
-      })}
+                <Link
+                  to={plannerHref(item.id)}
+                  aria-current={on ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] transition-colors duration-150',
+                    on
+                      ? 'bg-accent-soft font-medium text-fg'
+                      : 'text-muted hover:bg-surface-2 hover:text-fg',
+                  )}
+                >
+                  <Icon
+                    size={13}
+                    aria-hidden
+                    className={cn('shrink-0', on ? 'text-accent' : 'text-subtle')}
+                  />
+                  <span className="min-w-0 truncate">{t(item.labelKey)}</span>
+                </Link>
+              </Fragment>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, Loader2, Search } from 'lucide-react'
 import { findSections, termLabel, type SectionOption } from '@/lib/seats'
 import { parseCourseCode, sortSections } from '@/lib/course-sections'
-import { checkPrereq } from '@/lib/prereq'
+import { checkPrereq, normalizeCode, type Record as PrereqRecord } from '@/lib/prereq'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { cn } from '@/lib/cn'
 import { SectionSkeleton } from '@/components/ui/Skeleton'
@@ -42,7 +42,7 @@ export function ScheduleSearch({
   onAdd: (code: string, section: SectionOption) => void
   taken: Set<string>
   eligibleOnly: boolean
-  record: { completed: Set<string>; credits: number }
+  record: PrereqRecord
 }) {
   const [query, setQuery] = useState(initialQuery)
   const [matches, setMatches] = useState<CatalogCourse[] | null>(null)
@@ -98,11 +98,16 @@ export function ScheduleSearch({
         onTermFound([...new Set(rows.map((s) => s.termCode))])
         if (rows.length === 0) setError('Concordia lists no sections for this course right now.')
 
-        if (course.prerequisites) {
+        // A course you are ALREADY IN needs no prerequisite verdict. Concordia
+        // registered you; a warning here is the app arguing with the registrar
+        // and losing.
+        const enrolled = record.inProgress?.has(normalizeCode(label)) ?? false
+        if (course.prerequisites && !enrolled) {
           const result = checkPrereq(course.prerequisites, record)
           setBlockedByPrereq(result.verdict === 'not-met' || result.verdict === 'blocked')
           if (result.verdict === 'not-met') setPrereqNote('You do not meet the prerequisites yet.')
           else if (result.verdict === 'blocked') setPrereqNote(result.notes[0] ?? 'Cannot be taken.')
+          else if (result.verdict === 'in-progress') setPrereqNote(result.notes.at(-1) ?? null)
           else if (result.verdict === 'unknown')
             setPrereqNote('Prerequisites depend on something we cannot check.')
         }

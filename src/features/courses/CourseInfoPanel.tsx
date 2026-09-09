@@ -155,6 +155,28 @@ export function CourseInfoPanel({
             />
           </Row>
 
+          <Row label="Delivery">
+            {/* There was no way to say "this one is online", so an online class
+                with no fixed meeting had a blank room AND a blank schedule and
+                read as half-filled-in. Unstated is its own option, because a
+                blank we have never asked about is not an answer. */}
+            <Select
+              value={course.delivery ?? ''}
+              onChange={(v) =>
+                patch({ delivery: (v || undefined) as Course['delivery'] })
+              }
+              ariaLabel="How this class is delivered"
+              size="sm"
+              placeholder="Not set"
+              options={[
+                { value: '', label: 'Not set' },
+                { value: 'in-person', label: 'In person' },
+                { value: 'online', label: 'Online' },
+                { value: 'hybrid', label: 'Hybrid' },
+              ]}
+            />
+          </Row>
+
           <Row label="Section">
             <EditableField
               value={course.section}

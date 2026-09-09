@@ -69,6 +69,9 @@ export interface SectionPatch {
   /** The calendar's own title for the course. Filled because we have it, and a
    *  student should never retype something the university already published. */
   title: string
+  /** Read from Concordia's instruction mode. Undefined when it says nothing
+   *  useful — a guess here would put "in person" on an online class. */
+  delivery?: 'in-person' | 'online' | 'hybrid'
 }
 
 /**
@@ -101,5 +104,18 @@ export function sectionPatch(chosen: SectionOption[]): SectionPatch {
       .join('; '),
     location: [...new Set(ordered.map(place))].filter(Boolean).join(' · '),
     title: ordered.find((s) => s.courseTitle)?.courseTitle ?? '',
+    delivery: deliveryOf(ordered),
   }
+}
+
+/** Concordia's instruction mode, narrowed to the three answers we store.
+ *  Anything it does not clearly say stays undefined rather than defaulting. */
+function deliveryOf(sections: SectionOption[]): SectionPatch['delivery'] {
+  const modes = sections.map((s) => `${s.instructionMode ?? ''}`.toLowerCase()).filter(Boolean)
+  if (modes.length === 0) return undefined
+  const online = modes.filter((m) => /online|en ligne|remote|distance/.test(m)).length
+  if (online === modes.length) return 'online'
+  if (online > 0) return 'hybrid'
+  if (modes.some((m) => /person|campus|présentiel|classroom/.test(m))) return 'in-person'
+  return undefined
 }

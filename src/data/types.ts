@@ -139,6 +139,15 @@ export interface Course {
   location: string
   /** Meeting schedule, e.g. "Mon · Wed 10:15–11:30". */
   meetingTimes: string
+  /**
+   * How the class is delivered.
+   *
+   * Undefined means nobody has said, NOT in-person — a blank we never asked
+   * about must not be reported as an answer. It matters because an online class
+   * with no fixed meeting has no room and no schedule, and without this that is
+   * indistinguishable from a course somebody half-filled in.
+   */
+  delivery?: 'in-person' | 'online' | 'hybrid'
   /** Instructor office hours, e.g. "Tue 14:00–16:00 · MB 12.225". Optional —
    * teachers set this from the portal; students see it in the course panel. */
   officeHours?: string
