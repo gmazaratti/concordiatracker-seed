@@ -325,7 +325,7 @@ export function ScheduleBuilder() {
           waitlistCap: null,
           hasReserved: false,
           location: c.location.split(' ')[0] ?? '',
-          instructionMode: c.delivery === 'online' ? 'Online' : (c.delivery ?? ''),
+          instructionMode: c.delivery ?? '',
           building: '',
           room: c.location,
         } satisfies SectionOption,

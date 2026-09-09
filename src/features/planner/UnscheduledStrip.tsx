@@ -50,7 +50,7 @@ export function UnscheduledStrip({
                   ? 'is an online class with no scheduled meeting times.'
                   : p.section.meetingTimes
                     ? `meets at “${p.section.meetingTimes}”, which we could not read as a weekly time.`
-                    : 'has no meeting time published yet.'}
+                    : 'has no meeting time published. If it is online with no set time, say so under Delivery in Class details.'}
               </span>
             </li>
           )
@@ -62,5 +62,11 @@ export function UnscheduledStrip({
 
 function isOnline(mode: string, location: string): boolean {
   const m = `${mode} ${location}`.toLowerCase()
-  return m.includes('online') || m.includes('en ligne') || m.includes('remote')
+  return (
+    m.includes('online') ||
+    m.includes('en ligne') ||
+    m.includes('remote') ||
+    // What the student set in Class details, carried onto the seeded section.
+    m.includes('online-async')
+  )
 }

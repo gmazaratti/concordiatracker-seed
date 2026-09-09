@@ -308,7 +308,11 @@ export function WidgetZoneView({
             ref={(el) => registerItem(zone.id, id, el)}
             onPointerDown={(e) => editing && begin(zone.id, id, e)}
             className={cn(
-              'relative',
+              // h-full so two widgets sharing a row end level. Without it each
+              // card was its own height and the shorter one left a gap under
+              // it, which reads as a broken layout rather than as two things
+              // that happen to have different amounts to say.
+              'relative h-full',
               editing && 'cursor-grab touch-none select-none active:cursor-grabbing',
               editing && !held && 'ct-wiggle',
             )}
@@ -336,7 +340,7 @@ export function WidgetZoneView({
               </button>
             )}
 
-            <div className={cn(held && 'invisible')}>{renderItem(id)}</div>
+            <div className={cn('h-full', held && 'invisible')}>{renderItem(id)}</div>
           </div>
         )
       })}

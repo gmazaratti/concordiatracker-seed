@@ -171,7 +171,12 @@ export function CourseInfoPanel({
               options={[
                 { value: '', label: 'Not set' },
                 { value: 'in-person', label: 'In person' },
-                { value: 'online', label: 'Online' },
+                { value: 'online', label: 'Online — set times' },
+                // The distinction matters: without it the schedule builder tells
+                // you an asynchronous class "has no meeting time published yet",
+                // as though our data were incomplete rather than the class
+                // genuinely having no time.
+                { value: 'online-async', label: 'Online — no set times' },
                 { value: 'hybrid', label: 'Hybrid' },
               ]}
             />

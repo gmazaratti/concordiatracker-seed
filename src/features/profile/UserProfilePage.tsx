@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
+  ArrowLeft,
   BookOpen,
   CalendarRange,
   Download,
@@ -88,12 +89,27 @@ function ProfileView({ handle }: { handle: string }) {
           <Link to="/" aria-label="ConcordiaTracker home">
             <Logo />
           </Link>
-          <Link
-            to="/app"
-            className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-          >
-            Sign up free
-          </Link>
+          {/* A signed-in student landing here from a link was being told to
+              "Sign up free" for an account they already have, with no way back
+              into the app but the browser's back button. The page stays outside
+              the app shell on purpose — it has to work for visitors with no
+              account — so the header adapts instead. */}
+          {viewer === 'anon' ? (
+            <Link
+              to="/app"
+              className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+            >
+              Sign up free
+            </Link>
+          ) : viewer !== 'loading' ? (
+            <Link
+              to="/app"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
+            >
+              <ArrowLeft size={14} aria-hidden />
+              Back to ConcordiaTracker
+            </Link>
+          ) : null}
         </div>
       </header>
 

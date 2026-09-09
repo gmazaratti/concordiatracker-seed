@@ -155,7 +155,7 @@ export function TodayPage() {
               zone={zoneById('top')}
               emptyHint="Drop a widget here: above your deadlines"
               className={cn(
-                'grid gap-3',
+                'grid items-stretch gap-3',
                 topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
               )}
               renderItem={(id) =>
@@ -184,7 +184,7 @@ export function TodayPage() {
               zone={zoneById('below')}
               emptyHint="Drop a widget here: under your deadlines"
               className={cn(
-                'grid gap-3',
+                'grid items-stretch gap-3',
                 belowWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
               )}
               renderItem={(id) =>

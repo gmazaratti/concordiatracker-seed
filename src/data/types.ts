@@ -153,7 +153,7 @@ export interface Course {
    * with no fixed meeting has no room and no schedule, and without this that is
    * indistinguishable from a course somebody half-filled in.
    */
-  delivery?: 'in-person' | 'online' | 'hybrid'
+  delivery?: 'in-person' | 'online' | 'online-async' | 'hybrid'
   /** Instructor office hours, e.g. "Tue 14:00–16:00 · MB 12.225". Optional —
    * teachers set this from the portal; students see it in the course panel. */
   officeHours?: string

@@ -212,3 +212,60 @@ export function linkHref(kind: keyof ProfileLinks, value: string): string | null
       return safeUrl ?? `https://${handle.replace(/^\/+/, '')}`
   }
 }
+
+/**
+ * Following, which is not the same as connecting.
+ *
+ * A follow is one-way, needs nobody's permission, and grants nothing — you see
+ * what they publish publicly and that is all. A connection is two-way, has to
+ * be accepted, and is the only thing that unlocks anything.
+ *
+ * Both exist so that "add friend" does not become the button people press on
+ * strangers to get at a timetable. Following is the low-stakes action, which is
+ * what lets the high-stakes one stay meaningful.
+ */
+export async function isFollowing(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('am_following', { p_handle: handle })
+  return !error && data === true
+}
+
+export async function followUser(handle: string): Promise<boolean> {
+  const { data: me } = await supabase.auth.getUser()
+  if (!me.user) return false
+  const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
+  if (!theirId || theirId === me.user.id) return false
+  const { error } = await supabase
+    .from('user_follows')
+    .insert({ follower: me.user.id, following: theirId })
+  // Already following is a success from where the caller stands: the button
+  // should end up saying "Following" either way.
+  return !error || error.code === '23505'
+}
+
+export async function unfollowUser(handle: string): Promise<boolean> {
+  const { data: me } = await supabase.auth.getUser()
+  if (!me.user) return false
+  const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
+  if (!theirId) return false
+  const { error } = await supabase
+    .from('user_follows')
+    .delete()
+    .eq('follower', me.user.id)
+    .eq('following', theirId)
+  return !error
+}
+
+export interface FollowedUser {
+  user_id: string
+  handle: string
+  name: string | null
+  avatar_url: string | null
+  program: string | null
+  created_at: string
+}
+
+export async function listFollowing(): Promise<FollowedUser[]> {
+  const { data, error } = await supabase.rpc('my_following')
+  if (error) return []
+  return (data ?? []) as FollowedUser[]
+}

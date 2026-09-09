@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Library } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { InfoHint } from '@/components/ui/InfoHint'
+import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import type { WidgetZone } from './registry'
 
 /**
@@ -11,10 +13,12 @@ import type { WidgetZone } from './registry'
  * November. Its own widget rather than a page, because the whole question is
  * answered by one number and you want it in passing.
  *
- * The honesty rule this needs: Grey Nuns' sensor reports zero with a timestamp
- * from 1900, which is a sensor that has never spoken rather than an empty
- * library. The route marks those stale and this shows a dash — a confident "0
- * people" about a building someone might walk to is exactly the wrong answer.
+ * In the RAIL it shows one branch at a time and rotates, so a 272px column
+ * spends its height on the number rather than on a list. Everywhere else there
+ * is room for all of them at once and rotating would be hiding data for no
+ * reason. The caveat about what the number means lives behind an (i) rather
+ * than in three lines of footer: it matters when you question the figure, and
+ * never before.
  */
 interface Row {
   id: string
@@ -29,14 +33,22 @@ interface Row {
  *
  * Concordia does not publish a capacity, so these are order-of-magnitude
  * anchors from the published counts, not facts — which is why the number of
- * PEOPLE is what is shown and the busy-ness is only ever a bar and a word.
- * Nothing here claims a percentage.
+ * PEOPLE is what is shown and the busy-ness is only ever a bar. Nothing here
+ * claims a percentage.
  */
 const ROUGH_CAPACITY: Record<string, number> = { Webster: 900, Vanier: 350, GreyNuns: 300 }
+
+/** Long enough to read a number and look away. */
+const ROTATE_MS = 10_000
+
+const CAVEAT =
+  'People counted through the gates, from Concordia’s own sensors, updated every few minutes. The bar is a rough sense of how busy it is, not a count of free seats.'
 
 export function LibraryWidget({ zone }: { zone: WidgetZone }) {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [index, setIndex] = useState(0)
+  const reduced = usePrefersReducedMotion()
 
   useEffect(() => {
     let alive = true
@@ -73,12 +85,31 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
    * up, it appears on its own with no change here.
    */
   const shown = (rows ?? []).filter((r) => r.ageMinutes !== null && r.ageMinutes < 60 * 24)
+  const rotates = zone === 'rail' && shown.length > 1
+
+  useEffect(() => {
+    // Rotation is motion, so reduced-motion gets the full list instead — the
+    // information is the point, and hiding half of it to avoid movement would
+    // be the wrong trade.
+    if (!rotates || reduced) return
+    const timer = setInterval(() => setIndex((i) => i + 1), ROTATE_MS)
+    return () => clearInterval(timer)
+  }, [rotates, reduced])
+
+  const visible = rotates && !reduced ? [shown[index % shown.length]] : shown
 
   return (
-    <div className={cn('rounded-xl border border-border bg-surface p-3', zone === 'rail' && 'p-2.5')}>
+    <div
+      className={cn(
+        'flex h-full flex-col rounded-xl border border-border bg-surface p-3',
+        zone === 'rail' && 'p-2.5',
+      )}
+    >
       <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         <Library size={12} aria-hidden />
-        In the library now
+        <span className="min-w-0 flex-1 truncate">In the library now</span>
+        {/* One glyph instead of three lines of footer. */}
+        <InfoHint label="What this number is">{CAVEAT}</InfoHint>
       </p>
 
       {failed && (
@@ -102,16 +133,17 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
       <ul
         className={cn(
           'mt-2 space-y-2',
-          // Two reporting branches is the whole set, so they sit side by side
-          // wherever there is room rather than stacking and wasting a row.
-          zone !== 'rail' && 'sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2 sm:space-y-0',
+          // Side by side wherever there is room; one at a time only in the rail.
+          !rotates && zone !== 'rail' && 'sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2 sm:space-y-0',
         )}
       >
-        {shown.map((r) => {
+        {visible.map((r) => {
           const cap = ROUGH_CAPACITY[r.id] ?? 500
           const pct = r.people === null ? 0 : Math.min(100, Math.round((r.people / cap) * 100))
           return (
-            <li key={r.id}>
+            // Keyed by the branch so a rotation swaps the whole row and the
+            // fade plays, rather than the numbers changing in place.
+            <li key={r.id} className={cn(rotates && !reduced && 'ct-animate-pop')}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="min-w-0 truncate text-[12px] text-fg">{r.name}</span>
                 <span
@@ -139,20 +171,32 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
                 />
               </div>
               <p className="mt-0.5 text-[10.5px] text-subtle">
-                {r.people === null
-                  ? 'No recent count from this branch'
-                  : describeAge(r.ageMinutes)}
+                {r.people === null ? 'No recent count from this branch' : describeAge(r.ageMinutes)}
               </p>
             </li>
           )
         })}
       </ul>
 
-      {shown.some((r) => r.people !== null) && (
-        <p className="mt-2 border-t border-border pt-1.5 text-[10.5px] leading-relaxed text-subtle">
-          People counted through the gates, from Concordia&rsquo;s own sensors. The bar is a rough
-          sense of busy, not a seat count.
-        </p>
+      {/* Which of them you are looking at, and a way to skip ahead — a widget
+          that changes on its own without saying how many there are reads as a
+          glitch the first time you catch it. */}
+      {rotates && !reduced && (
+        <div className="mt-auto flex items-center justify-center gap-1 pt-2">
+          {shown.map((r, i) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Show ${r.name}`}
+              aria-current={i === index % shown.length}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-200',
+                i === index % shown.length ? 'w-4 bg-accent' : 'w-1.5 bg-border-strong',
+              )}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

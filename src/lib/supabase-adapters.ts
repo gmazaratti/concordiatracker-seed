@@ -66,7 +66,10 @@ export function courseFromRow(r: CourseRow): Course {
     location: r.location ?? '',
     meetingTimes: r.time ?? '',
     delivery:
-      r.delivery === 'online' || r.delivery === 'hybrid' || r.delivery === 'in-person'
+      r.delivery === 'online' ||
+      r.delivery === 'online-async' ||
+      r.delivery === 'hybrid' ||
+      r.delivery === 'in-person'
         ? r.delivery
         : undefined,
     officeHours: r.office_hours ?? undefined,

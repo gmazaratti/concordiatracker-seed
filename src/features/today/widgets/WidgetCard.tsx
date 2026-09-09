@@ -24,7 +24,10 @@ export function WidgetCard({
 }) {
   return (
     <section
-      className={cn('overflow-hidden rounded-xl border border-border/60 bg-surface/50', className)}
+      className={cn(
+        'flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-surface/50',
+        className,
+      )}
     >
       <div className="flex items-center gap-2 border-b border-border/60 px-3.5 py-2.5">
         {Icon && <Icon size={13} className="shrink-0 text-subtle" aria-hidden />}
