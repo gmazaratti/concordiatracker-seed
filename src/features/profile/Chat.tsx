@@ -5,8 +5,6 @@ import {
   CalendarRange,
   Check,
   CheckCheck,
-  ExternalLink,
-  FileText,
   Palette,
   PartyPopper,
   Plus,
@@ -28,7 +26,11 @@ import {
   type Attachment,
   type Friend,
   type Message,
+  type SharedClass,
 } from '@/lib/social'
+import type { SectionOption } from '@/lib/seats'
+import { placeSections, weeklyHours } from '@/features/planner/schedule'
+import { AttachmentEmbed } from './AttachmentEmbed'
 import { cn } from '@/lib/cn'
 
 /**
@@ -178,6 +180,20 @@ export function Chat({
    * an event out of the list mid-scroll.
    */
   const [now] = useState(() => Date.now())
+
+  /** This term, in the shape a sent schedule carries. */
+  const currentClasses = useMemo(
+    () =>
+      courses
+        .filter((c) => c.code.trim())
+        .map((c) => ({
+          code: c.code,
+          meets: c.meetingTimes,
+          room: c.location || undefined,
+          section: c.section || undefined,
+        })),
+    [courses],
+  )
   const attachables = useMemo(() => {
     const term = courses.filter((c) => c.code.trim())
     const upcoming = events.filter((e) => new Date(e.start).getTime() > now).slice(0, 6)
@@ -304,7 +320,7 @@ export function Chat({
                   {m.body.trim() && (
                     <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">{m.body}</p>
                   )}
-                  {m.attachment && <AttachmentCard attachment={m.attachment} mine={mine} />}
+                  {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
                 </div>
                 {/* Receipts on YOUR last message only. A tick under every line
                     is clutter, and under theirs it is meaningless. */}
@@ -387,7 +403,7 @@ export function Chat({
                     label="This semester"
                     hint={`${attachables.term.length} classes`}
                     onPick={() => {
-                      setPending({ kind: 'schedule', id: 'current', name: 'My current schedule' })
+                      setPending(snapshotOf('current', 'My current schedule', currentClasses))
                       setAttachOpen(false)
                     }}
                   />
@@ -398,7 +414,20 @@ export function Chat({
                       label={s.name}
                       hint={`${(s.sections ?? []).length} classes`}
                       onPick={() => {
-                        setPending({ kind: 'schedule', id: s.id, name: s.name })
+                        setPending(
+                          snapshotOf(
+                            s.id,
+                            s.name,
+                            (s.sections ?? []).map((p) => ({
+                              code: p.code,
+                              meets: p.section.meetingTimes ?? '',
+                              room: p.section.building
+                                ? `${p.section.building} ${p.section.room}`.trim()
+                                : p.section.room || undefined,
+                              section: p.section.section,
+                            })),
+                          ),
+                        )
                         setAttachOpen(false)
                       }}
                     />
@@ -414,7 +443,13 @@ export function Chat({
                         label={c.code || 'Course'}
                         hint={c.title}
                         onPick={() => {
-                          setPending({ kind: 'course', code: c.code, title: c.title })
+                          setPending({
+                            kind: 'course',
+                            code: c.code,
+                            title: c.title,
+                            color: c.color,
+                            credits: c.credits,
+                          })
                           setAttachOpen(false)
                         }}
                       />
@@ -538,43 +573,35 @@ function AttachRow({
   )
 }
 
+/**
+ * A schedule, frozen at the moment it was sent.
+ *
+ * Unlike a course or an event, a schedule row is private — a reference to one
+ * is unreadable to the person you sent it to and would render as an empty box.
+ * It is also not what sending a timetable is FOR: people screenshot these so a
+ * friend can glance at them later, and a snapshot is the honest version of that
+ * screenshot. Stamped with the date so it can never pass for live.
+ */
+function snapshotOf(id: string, name: string, classes: SharedClass[]): Attachment {
+  const placed = placeSections(
+    classes.map((c) => ({
+      code: c.code,
+      section: { meetingTimes: c.meets } as SectionOption,
+    })),
+  )
+  return {
+    kind: 'schedule',
+    id,
+    name,
+    classes,
+    sentAt: new Date().toISOString(),
+    hours: weeklyHours(placed),
+  }
+}
+
 function describe(a: Attachment): string {
   if (a.kind === 'schedule') return `Schedule · ${a.name}`
   if (a.kind === 'course') return `Class · ${a.code}`
   if (a.kind === 'event') return `Event · ${a.title}`
   return `Outline · ${a.code}`
-}
-
-/** A link to the live thing, never a copy — so a shared schedule shows what it
- *  says today rather than what it said in March. */
-function AttachmentCard({ attachment, mine }: { attachment: Attachment; mine: boolean }) {
-  const Icon =
-    attachment.kind === 'schedule'
-      ? CalendarRange
-      : attachment.kind === 'course'
-        ? BookOpen
-        : attachment.kind === 'event'
-          ? PartyPopper
-          : FileText
-  const to =
-    attachment.kind === 'schedule'
-      ? '/app/planner?tab=schedule'
-      : attachment.kind === 'course'
-        ? '/app/courses'
-        : attachment.kind === 'event'
-          ? `/app/community?event=${attachment.id}`
-          : '/app/courses/blueprints'
-  return (
-    <Link
-      to={to}
-      className={cn(
-        'mt-1.5 flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11.5px] transition-opacity hover:opacity-85',
-        mine ? 'bg-black/20' : 'border border-border bg-canvas',
-      )}
-    >
-      <Icon size={14} className="shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1 truncate">{describe(attachment)}</span>
-      <ExternalLink size={11} className="shrink-0 opacity-70" aria-hidden />
-    </Link>
-  )
 }

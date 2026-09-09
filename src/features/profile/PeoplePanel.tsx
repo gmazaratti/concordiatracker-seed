@@ -14,6 +14,7 @@ import {
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { Avatar, Chat } from './Chat'
+import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
 import { founderFor } from './founders'
 
 /**
@@ -35,6 +36,7 @@ export function PeoplePanel() {
   const [following, setFollowing] = useState<FollowedUser[] | null>(null)
   const [active, setActive] = useState<Friend | null>(null)
   const [tick, setTick] = useState(0)
+  const [menu, setMenu] = useState<PersonTarget | null>(null)
   const refresh = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
@@ -158,15 +160,23 @@ export function PeoplePanel() {
             ) : (
               <ul>
                 {accepted.map((f) => (
-                  <li key={f.friendship_id}>
+                  <li
+                    key={f.friendship_id}
+                    className={cn(
+                      'group flex items-center pr-1 transition-colors duration-150',
+                      active?.user_id === f.user_id ? 'bg-accent-soft' : 'hover:bg-surface-2',
+                    )}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      setMenu(targetFor(f, { x: e.clientX, y: e.clientY }))
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => openChat(f)}
                       className={cn(
-                        'flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors duration-150',
-                        active?.user_id === f.user_id
-                          ? 'bg-accent-soft text-fg'
-                          : 'text-muted hover:bg-surface-2 hover:text-fg',
+                        'flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left',
+                        active?.user_id === f.user_id ? 'text-fg' : 'text-muted',
                       )}
                     >
                       <Avatar friend={f} size={34} />
@@ -178,6 +188,7 @@ export function PeoplePanel() {
                         <span className="block truncate text-[11px] text-subtle">@{f.handle}</span>
                       </span>
                     </button>
+                    <PersonMenuButton onOpen={(at) => setMenu(targetFor(f, at))} />
                   </li>
                 ))}
               </ul>
@@ -237,7 +248,7 @@ export function PeoplePanel() {
             <Section title="Waiting on you" count={incoming.length}>
               <ul className="space-y-2">
                 {incoming.map((f) => (
-                  <PersonRow key={f.friendship_id} friend={f}>
+                  <PersonRow key={f.friendship_id} friend={f} onMenu={(at) => setMenu(targetFor(f, at))}>
                     <button
                       type="button"
                       onClick={() => void acceptFriend(f.friendship_id).then(refresh)}
@@ -263,7 +274,11 @@ export function PeoplePanel() {
             <Section title="You asked" count={outgoing.length}>
               <ul className="space-y-2">
                 {outgoing.map((f) => (
-                  <PersonRow key={f.friendship_id} friend={f}>
+                  <PersonRow
+                    key={f.friendship_id}
+                    friend={f}
+                    onMenu={(at) => setMenu(targetFor(f, at))}
+                  >
                     <span className="inline-flex items-center gap-1.5 text-[12px] text-subtle">
                       <Clock size={13} aria-hidden />
                       Waiting
@@ -285,7 +300,11 @@ export function PeoplePanel() {
             <Section title="Connected" count={accepted.length}>
               <ul className="space-y-2">
                 {accepted.map((f) => (
-                  <PersonRow key={f.friendship_id} friend={f}>
+                  <PersonRow
+                    key={f.friendship_id}
+                    friend={f}
+                    onMenu={(at) => setMenu(targetFor(f, at))}
+                  >
                     <button
                       type="button"
                       onClick={() => openChat(f)}
@@ -320,7 +339,16 @@ export function PeoplePanel() {
             {following.map((p) => (
               <li
                 key={p.user_id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5"
+                className="group flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5"
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setMenu({
+                    handle: p.handle,
+                    name: p.name,
+                    following: true,
+                    at: { x: e.clientX, y: e.clientY },
+                  })
+                }}
               >
                 <Avatar
                   friend={{ ...p, friendship_id: '', status: 'accepted', direction: 'outgoing' }}
@@ -342,10 +370,27 @@ export function PeoplePanel() {
                 >
                   Unfollow
                 </button>
+                <PersonMenuButton
+                  onOpen={(at) =>
+                    setMenu({ handle: p.handle, name: p.name, following: true, at })
+                  }
+                />
               </li>
             ))}
           </ul>
         ))}
+
+      {menu && (
+        <PersonMenu
+          target={menu}
+          onMessage={() => {
+            const f = accepted.find((x) => x.handle === menu.handle)
+            if (f) openChat(f)
+          }}
+          onChanged={refresh}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   )
 }
@@ -370,9 +415,27 @@ function Section({
   )
 }
 
-function PersonRow({ friend, children }: { friend: Friend; children: React.ReactNode }) {
+function PersonRow({
+  friend,
+  onMenu,
+  children,
+}: {
+  friend: Friend
+  onMenu?: (at: { x: number; y: number }) => void
+  children: React.ReactNode
+}) {
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5">
+    <li
+      className="group flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5"
+      onContextMenu={
+        onMenu
+          ? (e) => {
+              e.preventDefault()
+              onMenu({ x: e.clientX, y: e.clientY })
+            }
+          : undefined
+      }
+    >
       <Avatar friend={friend} size={34} />
       <Link to={`/@${friend.handle}`} className="group min-w-0 flex-1">
         <span className="flex items-center gap-1 text-[13px] font-medium text-fg group-hover:underline">
@@ -384,9 +447,22 @@ function PersonRow({ friend, children }: { friend: Friend; children: React.React
           {friend.program ? ` · ${friend.program}` : ''}
         </span>
       </Link>
-      <span className="flex shrink-0 items-center gap-1.5">{children}</span>
+      <span className="flex shrink-0 items-center gap-1.5">
+        {children}
+        {onMenu && <PersonMenuButton onOpen={onMenu} />}
+      </span>
     </li>
   )
+}
+
+/** One shape for the menu, whichever row opened it. */
+function targetFor(f: Friend, at: { x: number; y: number }): PersonTarget {
+  return {
+    handle: f.handle,
+    name: f.name,
+    friendshipId: f.status === 'accepted' ? f.friendship_id : undefined,
+    at,
+  }
 }
 
 /** Nothing is wrong here — an empty list is a normal state, so it gets the

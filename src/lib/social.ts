@@ -21,11 +21,40 @@ export interface Friend {
   created_at: string
 }
 
-/** What a message can carry besides words. A REFERENCE, never a copy — see the
- *  note in db/social.sql: a shared schedule shows what it says today. */
+/** One class in a sent schedule. Enough to draw a week, and nothing more. */
+export interface SharedClass {
+  code: string
+  /** "Mon · Wed 10:15–11:30", exactly as the app stores it. */
+  meets: string
+  room?: string
+  section?: string
+}
+
+/**
+ * What a message can carry besides words.
+ *
+ * A COURSE and an EVENT stay references: both are readable by the recipient in
+ * their own right, so pointing at them means they always open the current
+ * thing.
+ *
+ * A SCHEDULE carries a snapshot, and that is a deliberate reversal. Two reasons:
+ * schedules are private rows, so a reference is unreadable to the person you
+ * sent it to and would render as an empty box; and the point of sending one is
+ * "here is my week" — a picture of a moment, which is what somebody screenshots
+ * today. It is stamped with when it was sent so it can never pass for live.
+ */
 export type Attachment =
-  | { kind: 'schedule'; id: string; name: string }
-  | { kind: 'course'; code: string; title?: string }
+  | {
+      kind: 'schedule'
+      id: string
+      name: string
+      classes?: SharedClass[]
+      /** ISO. Shown on the card, because a snapshot must say when it was true. */
+      sentAt?: string
+      /** Hours a week, precomputed so the card needs no parser. */
+      hours?: number
+    }
+  | { kind: 'course'; code: string; title?: string; color?: string; credits?: number }
   | { kind: 'blueprint'; id: string; code: string }
   | { kind: 'event'; id: string; title: string }
 
