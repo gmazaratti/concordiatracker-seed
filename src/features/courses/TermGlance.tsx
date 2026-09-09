@@ -10,6 +10,17 @@ export interface TermGlanceData {
   coursesTotal: number
   openItems: number
   overdue: number
+  /**
+   * Every graded course on record, this term included.
+   *
+   * The term figure alone answers "how is this semester going" and nothing
+   * else — and the number a student is actually asked for, on an application or
+   * by a parent, is the cumulative one. Showing only the term GPA in a panel
+   * headed "Term standing" was defensible; leaving the overall one with
+   * nowhere to live was not.
+   */
+  overallGpa: number | null
+  overallCredits: number
 }
 
 /** Right-rail summary for the course list — the term seen from above. Mirrors
@@ -21,17 +32,18 @@ export function TermGlance(data: TermGlanceData) {
       <p className="border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {t('courses.termStanding')}
       </p>
-      <div className="border-b border-border px-3.5 py-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[12px] text-subtle">
-            {data.termName} {t('courses.gpaSuffix')}
-          </span>
-          <span className="text-[12px] text-subtle">{t('today.creditsCount', { count: data.credits })}</span>
-        </div>
-        <div className="mt-0.5 font-display text-[28px] leading-none font-semibold text-fg">
-          {data.gpa === null ? '—' : data.gpa.toFixed(2)}
-          <span className="ml-1.5 text-[13px] font-normal text-subtle">/ 4.30</span>
-        </div>
+      <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+        <Gpa
+          label={`${data.termName} ${t('courses.gpaSuffix')}`}
+          credits={t('today.creditsCount', { count: data.credits })}
+          gpa={data.gpa}
+        />
+        <Gpa
+          label="Overall"
+          credits={t('today.creditsCount', { count: data.overallCredits })}
+          gpa={data.overallGpa}
+          quiet
+        />
       </div>
       <div className="divide-y divide-border">
         <Row
@@ -42,6 +54,36 @@ export function TermGlance(data: TermGlanceData) {
         <Row label={t('today.overdue')} value={String(data.overdue)} danger={data.overdue > 0} />
       </div>
     </Card>
+  )
+}
+
+/** One GPA, with the credits it is computed over — because a 4.0 across six
+ *  credits and a 4.0 across ninety are not the same claim. */
+function Gpa({
+  label,
+  credits,
+  gpa,
+  quiet = false,
+}: {
+  label: string
+  credits: string
+  gpa: number | null
+  quiet?: boolean
+}) {
+  return (
+    <div className="px-3.5 py-3">
+      <p className="truncate text-[12px] text-subtle">{label}</p>
+      <p
+        className={cn(
+          'mt-0.5 font-display leading-none font-semibold text-fg',
+          quiet ? 'text-[22px]' : 'text-[26px]',
+        )}
+      >
+        {gpa === null ? '—' : gpa.toFixed(2)}
+        <span className="ml-1 text-[12px] font-normal text-subtle">/ 4.30</span>
+      </p>
+      <p className="mt-1 text-[11px] text-subtle">{credits}</p>
+    </div>
   )
 }
 

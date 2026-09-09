@@ -61,6 +61,20 @@ export function CoursesPage() {
   }, [courses, assessments])
 
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
+  /**
+   * Everything graded, this term and every term before it.
+   *
+   * Credit-weighted by the same function the term figure uses, so the two
+   * cannot disagree about how a 3.5-credit class counts.
+   */
+  const overallGpa = useMemo(
+    () => currentGpa([...pastCourses, ...courses], assessments),
+    [pastCourses, courses, assessments],
+  )
+  const overallCredits = useMemo(
+    () => [...pastCourses, ...courses].reduce((sum, c) => sum + c.credits, 0),
+    [pastCourses, courses],
+  )
   const open = assessments.filter((a) => isOpen(a.status))
   const coursesGraded = courses.filter(
     (c) => coursePercent(byCourse.get(c.id) ?? []) !== null,
@@ -157,7 +171,7 @@ export function CoursesPage() {
       >
         <main className="order-2 min-w-0 flex-1 lg:order-1">
           {coursesView === 'grid' ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
               {shown.map((c) => (
                 <Draggable
                   key={c.id}
@@ -211,6 +225,8 @@ export function CoursesPage() {
             coursesGraded={coursesGraded}
             coursesTotal={courses.length}
             openItems={open.length}
+            overallGpa={overallGpa}
+            overallCredits={overallCredits}
             overdue={open.filter((a) => !!a.due && daysUntil(a.due) < 0).length}
           />
           {plan === 'free' && <PaywallCallout />}
@@ -364,7 +380,9 @@ function Draggable({
         if (from) onDrop(from)
       }}
       className={cn(
-        'rounded-xl transition-[opacity,box-shadow] duration-150',
+        // h-full because THIS is the grid item now — without it the card
+        // stretches to nothing and the row goes ragged again.
+        'h-full rounded-xl transition-[opacity,box-shadow] duration-150',
         dragging && 'opacity-40',
         target && 'ring-2 ring-accent ring-offset-2 ring-offset-canvas',
       )}

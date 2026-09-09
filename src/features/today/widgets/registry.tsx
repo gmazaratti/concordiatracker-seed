@@ -1,5 +1,6 @@
-import { BarChart3, Bus, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
+import { LibraryWidget } from './LibraryWidget'
 import { ShuttleWidget } from './ShuttleWidget'
 import { WeatherWidget } from './WeatherWidget'
 import { CountdownWidget } from './CountdownWidget'
@@ -93,6 +94,14 @@ export const WIDGETS: WidgetDef[] = [
     icon: Bus,
     zones: ['rail', 'half', 'wide'],
     render: () => <ShuttleWidget />,
+  },
+  {
+    id: 'library',
+    name: 'Library',
+    description: 'How many people are in Webster and Vanier right now.',
+    icon: Library,
+    zones: ['rail', 'half', 'wide'],
+    render: (zone) => <LibraryWidget zone={zone} />,
   },
   {
     id: 'weather',

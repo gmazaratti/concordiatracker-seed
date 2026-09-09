@@ -41,7 +41,7 @@ export function CourseGridCard({
   return (
     <Link
       to={to}
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow duration-150 hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow duration-150 hover:shadow-lg"
     >
       <div
         className="relative px-4 pt-3.5 pb-4"
@@ -73,7 +73,7 @@ export function CourseGridCard({
             </span>
           )}
         </div>
-        <h3 className="mt-1.5 truncate font-display text-[17px] font-medium text-white">
+        <h3 className="mt-1.5 min-h-[1.6rem] truncate font-display text-[17px] font-medium text-white">
           {course.title || t('courses.untitledCourse')}
         </h3>
       </div>
@@ -94,21 +94,32 @@ export function CourseGridCard({
           )}
         </div>
 
-        {standing.totalWeight > 0 && (
-          <div className="mt-2.5">
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full transition-[width] duration-200"
-                style={{ width: `${gradedPct}%`, backgroundColor: hex }}
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-subtle">
-              {Math.round(gradedPct)}% of the grade in
+        {/* Always rendered, even with nothing to show. Cards in a grid have to
+            be one height: a class with no assessments was drawing a shorter
+            card than its neighbours, and a row of mismatched boxes reads as a
+            layout bug rather than as a difference in the data. The row is
+            reserved; only its contents are conditional. */}
+        <div className="mt-2.5 min-h-[30px]">
+          {standing.totalWeight > 0 ? (
+            <>
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full transition-[width] duration-200"
+                  style={{ width: `${gradedPct}%`, backgroundColor: hex }}
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-subtle">
+                {Math.round(gradedPct)}% of the grade in
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-subtle">
+              {empty ? 'Nothing scheduled yet' : 'No weights set yet'}
             </p>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/70 pt-2.5 text-[12px]">
+        <div className="mt-auto flex min-h-[1.6rem] items-center justify-between gap-2 border-t border-border/70 pt-2.5 text-[12px]">
           {stats.openCount > 0 ? (
             <span className="text-muted">
               {stats.openCount} open
