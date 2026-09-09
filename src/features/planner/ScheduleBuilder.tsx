@@ -618,7 +618,7 @@ export function ScheduleBuilder() {
               and it sends the week as a card they can look at and save rather
               than a URL they have to open. */}
           <Link
-            to="/app/community?tab=people"
+            to="/app/community?c=messages"
             className="inline-flex items-center gap-1.5 rounded border border-accent/40 px-2 py-1 text-[11.5px] text-accent transition-colors duration-150 hover:bg-accent/10"
           >
             <MessageSquare size={11} aria-hidden />

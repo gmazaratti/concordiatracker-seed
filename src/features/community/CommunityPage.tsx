@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
 import { usePeopleBadge } from '@/app/usePeopleBadge'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
+import { ProfileView } from '@/features/profile/UserProfilePage'
+import { Mascot } from '@/components/Mascot'
 import { cn } from '@/lib/cn'
 import { EventsFeed } from './EventsFeed'
 import { CommunityRail } from './CommunityRail'
 import { ActivityButton, ActivityPanel } from './ActivityPanel'
-import { CommunitySearch } from './CommunitySearch'
+import { CommunitySearchBar } from './SearchOverlay'
 import {
   COMMUNITY_SECTIONS,
-  communityHref,
+  DEFAULT_SECTION,
   isCommunitySection,
   type CommunitySection,
 } from './sections'
@@ -20,18 +21,22 @@ import {
 /**
  * Community — the part of the app that is about everyone else.
  *
- * It is four places, not one, and it is laid out the way every app a student
- * already uses lays this out: a mixed home, somewhere to find things, messages,
- * and you — with notifications behind a bell in the top right rather than
- * spending a permanent slot.
+ * THREE SECTIONS, ONE SET OF CONTROLS. The rule this page is built on, after a
+ * first version that broke it badly: a control appears in the section it acts
+ * on and nowhere else. Search belongs to the sections where you are looking for
+ * something. The bell belongs to Events, the landing section, because that is
+ * where you go to catch up. Your own avatar belongs nowhere here at all — the app's own top bar
+ * already carries it, and putting a second one under it made the same face
+ * appear twice on one screen.
  *
- * That familiarity is the design. Nobody should have to learn this tab; they
- * have used its shape every day for a decade, and the friction of an
- * unfamiliar arrangement costs more than any cleverness would buy.
+ * THERE IS NO PAGE TITLE. A word saying "Community" above a bottom bar whose
+ * Community tab is lit costs a fifth of a phone screen to repeat something the
+ * screen already says. The sections lead instead.
  *
  * On a PHONE the sections live in the bottom bar, which morphs when you enter
- * (see MobileNav). On DESKTOP the sidebar is already there, so they are a strip
- * under the title — the same content reached the way each screen expects.
+ * (see MobileNav). On DESKTOP the sidebar is already spent on the app's own
+ * destinations, so they are a strip under the search — the same content reached
+ * the way each screen expects.
  */
 export function CommunityPage() {
   const { loaded, uiState, patchUiState } = useUiState()
@@ -46,49 +51,38 @@ export function CommunityPage() {
   }, [loaded, uiState.communityVisited, patchUiState])
 
   const raw = params.get('c')
-  const section: CommunitySection = isCommunitySection(raw) ? raw : 'home'
+  const section: CommunitySection = isCommunitySection(raw) ? raw : DEFAULT_SECTION
 
   const go = (next: CommunitySection) => {
     const p = new URLSearchParams(params)
-    if (next === 'home') {
+    if (next === DEFAULT_SECTION) {
       p.delete('c')
       p.delete('chat')
     } else p.set('c', next)
     setParams(p)
   }
 
-  const badgeFor = useMemo(
-    () => (id: CommunitySection) => (id === 'messages' ? waiting : 0),
-    [waiting],
-  )
+  // You is a profile, and a profile is its own header — banner, avatar, name.
+  // Stacking a search bar on top of one is how the old version ended up with
+  // two faces and two headers on a 375px screen.
+  const showSearch = section !== 'profile'
 
   return (
-    <div className="mx-auto w-full max-w-[76rem] px-5 py-5 sm:px-6">
-      {/* ── Header ─────────────────────────────────────────────────────────
-          Title, a way to search orgs, the bell, and your own avatar — the four
-          things every social header carries, in the order they carry them. */}
-      <header className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] text-subtle">Around campus</p>
-          <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-            Community
-          </h1>
-        </div>
+    <div className="mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5">
+      <h1 className="sr-only">Community</h1>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <ActivityButton count={waiting} onOpen={() => setActivity(true)} />
-          {user.handle && (
-            <Link
-              to={`/@${user.handle}`}
-              aria-label="My profile"
-              title="My profile"
-              className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold text-muted ring-1 ring-border transition-all duration-150 hover:ring-accent active:scale-95"
-            >
-              {(user.name || user.handle).slice(0, 2).toUpperCase()}
-            </Link>
+      {showSearch && (
+        <div className="mb-3 flex items-center gap-2">
+          <CommunitySearchBar className="md:max-w-md" />
+          {/* Landing section only. Notifications are a thing you open, clear
+              and leave —
+              carrying the bell into every section made it read as part of the
+              furniture rather than as something with news in it. */}
+          {section === DEFAULT_SECTION && (
+            <ActivityButton count={waiting} onOpen={() => setActivity(true)} />
           )}
         </div>
-      </header>
+      )}
 
       {/* Desktop only: the phone reaches these from the bottom bar, and two
           navigations for one set of destinations is the clutter this whole
@@ -96,7 +90,7 @@ export function CommunityPage() {
       <nav className="mb-4 hidden gap-1 border-b border-border md:flex" role="tablist">
         {COMMUNITY_SECTIONS.map((s) => {
           const on = section === s.id
-          const badge = badgeFor(s.id)
+          const badge = s.id === 'messages' ? waiting : 0
           return (
             <button
               key={s.id}
@@ -121,17 +115,21 @@ export function CommunityPage() {
         })}
       </nav>
 
-      {section === 'home' && <HomeSection />}
-      {section === 'events' && (
-        <div className="flex gap-6">
-          <div className="min-w-0 flex-1">
-            <EventsFeed />
+      {/* Keyed on the section so the animation replays on every switch, and so
+          React tears the old section down rather than reconciling two
+          different screens into each other. */}
+      <div key={section} className="ct-section-in">
+        {section === 'events' && (
+          <div className="flex gap-6">
+            <div className="min-w-0 flex-1">
+              <EventsFeed />
+            </div>
+            <CommunityRail />
           </div>
-          <CommunityRail />
-        </div>
-      )}
-      {section === 'messages' && <PeoplePanel />}
-      {section === 'profile' && <YouSection handle={user.handle} />}
+        )}
+        {section === 'messages' && <PeoplePanel />}
+        {section === 'profile' && <YouSection handle={user.handle} />}
+      </div>
 
       {activity && <ActivityPanel onClose={() => setActivity(false)} />}
     </div>
@@ -139,67 +137,26 @@ export function CommunityPage() {
 }
 
 /**
- * Home: the mixed view.
+ * You: your own profile, exactly as anyone else sees it — with the edit
+ * controls on top of it.
  *
- * Deliberately the same feed as Events for now rather than a second, subtly
- * different one — two feeds that look alike and rank differently is how people
- * stop trusting either. What Home adds is the way IN: a search that finds
- * ORGANISATIONS, which the tab has never had. Until today the only way to find
- * a club was to wait for it to post.
+ * The previous version was three links to other screens, which is a menu, not a
+ * profile. You cannot tell whether your bio reads well from a list of links to
+ * places where your bio might be. This is the same component `/@handle` renders
+ * for a visitor, so what you see here is what they get, and Edit is right on it.
  */
-function HomeSection() {
-  return (
-    <div className="flex gap-6">
-      <div className="min-w-0 flex-1 space-y-4">
-        <div className="rounded-xl border border-border bg-surface p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-            <Search size={12} aria-hidden />
-            Find a club or society
-          </p>
-          <CommunitySearch />
-        </div>
-        <EventsFeed />
-      </div>
-      <CommunityRail />
-    </div>
-  )
-}
-
-/** Your own corner: a way to your profile without knowing your own handle. */
 function YouSection({ handle }: { handle?: string }) {
   if (!handle) {
     return (
-      <p className="rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
-        Pick a handle in Settings and your profile appears here.
-      </p>
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border px-5 py-14 text-center">
+        <Mascot mood="resting" size="sm" soft className="text-accent" />
+        <p className="text-[13.5px] font-medium text-fg">No handle yet</p>
+        <p className="max-w-xs text-[12.5px] leading-relaxed text-subtle">
+          Pick one in Settings and your profile appears here — the same page classmates see when
+          they find you.
+        </p>
+      </div>
     )
   }
-  return (
-    <div className="space-y-2">
-      {[
-        { to: `/@${handle}`, title: 'My profile', body: 'What other students see when they find you.' },
-        {
-          to: communityHref('messages'),
-          title: 'Messages and connections',
-          body: 'Conversations, requests waiting on you, and who you follow.',
-        },
-        {
-          to: '/app/community?c=events',
-          title: 'Events I saved',
-          body: 'Anything you added to your calendar shows up there too.',
-        },
-      ].map((row) => (
-        <Link
-          key={row.to}
-          to={row.to}
-          className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 transition-colors duration-150 hover:border-accent active:scale-[0.99]"
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-medium text-fg">{row.title}</span>
-            <span className="block text-[12px] leading-relaxed text-subtle">{row.body}</span>
-          </span>
-        </Link>
-      ))}
-    </div>
-  )
+  return <ProfileView key={handle} handle={handle} viewer="self" embedded />
 }

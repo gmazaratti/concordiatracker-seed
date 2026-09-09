@@ -1,32 +1,29 @@
-import {
-  CalendarDays,
-  Compass,
-  MessageSquare,
-  UserRound,
-  type LucideIcon,
-} from 'lucide-react'
+import { CalendarDays, MessageSquare, UserRound, type LucideIcon } from 'lucide-react'
 
 /**
- * Community's own destinations.
+ * Community's own destinations. Three.
  *
- * Four, matching the shape every social app has settled on — a mixed home, a
- * place to find things, messages, and you — because familiarity is the whole
- * point here. A student arriving at this tab has used Instagram for a decade
- * and should not have to learn anything.
+ * It was four, and one of them was a lie: "Home" and "Events" rendered the same
+ * feed, differing only in that Home also carried a search box. Two tabs showing
+ * the same list is the fastest way to teach somebody that tabs here mean
+ * nothing. The search moved up into the header, where it serves every section,
+ * and the duplicate went.
+ *
+ * What is left is what this tab actually is: what is happening around you, the
+ * people you talk to, and you.
  *
  * Notifications is deliberately NOT one of them: it is a full-screen overlay
- * opened from the top right, exactly where Instagram, X and TikTok put it. A
- * fifth tab for something you visit, clear, and leave would spend a permanent
- * slot on a temporary job.
+ * opened from the bell on Events, exactly where Instagram, X and TikTok put it.
+ * A tab for something you open, clear and leave would spend a permanent slot on
+ * a temporary job.
  */
-export type CommunitySection = 'home' | 'events' | 'messages' | 'profile'
+export type CommunitySection = 'events' | 'messages' | 'profile'
 
 export const COMMUNITY_SECTIONS: {
   id: CommunitySection
   label: string
   icon: LucideIcon
 }[] = [
-  { id: 'home', label: 'Home', icon: Compass },
   { id: 'events', label: 'Events', icon: CalendarDays },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'profile', label: 'You', icon: UserRound },
@@ -38,8 +35,9 @@ export function isCommunitySection(v: string | null): v is CommunitySection {
   return !!v && IDS.has(v)
 }
 
-/** The URL for a section. `home` carries no param, so the landing state has one
- *  address rather than two. */
+/** The landing section, which carries no param so it has ONE address. */
+export const DEFAULT_SECTION: CommunitySection = 'events'
+
 export function communityHref(section: CommunitySection): string {
-  return section === 'home' ? '/app/community' : `/app/community?c=${section}`
+  return section === DEFAULT_SECTION ? '/app/community' : `/app/community?c=${section}`
 }

@@ -14,9 +14,6 @@ import { CATEGORY_META, CATEGORY_ORDER } from './category'
 import { EventTile } from './EventTile'
 import { AnimatedEventList } from './AnimatedEventList'
 import { EventDetail } from './EventDetail'
-import { CommunitySearch } from './CommunitySearch'
-import { NotificationsBell } from './NotificationsBell'
-import { FollowingMenu } from './FollowingMenu'
 import { useEventActions } from './useEventActions'
 import { useCommunity } from './useCommunity'
 
@@ -57,30 +54,11 @@ export function EventsFeed() {
 
   return (
     <div>
-      {/* Search gets its own row below sm. Sharing one with two buttons left
-          it about 180px wide, which is where the placeholder was being cut
-          off — the fix is the layout, not a shorter string. */}
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <CommunitySearch />
-        <div className="flex items-center gap-2">
-          {/* The rail owns Following on xl+; this stays for narrower screens
-              rather than being deleted, or they'd lose access to the list. */}
-          <span className="xl:hidden">
-            <FollowingMenu />
-          </span>
-          <NotificationsBell />
-          <span className="ml-auto sm:hidden">
-            <ViewToggle view={communityView} onChange={setCommunityView} />
-          </span>
-        </div>
-      </div>
-
-      {/* Below sm the chips are behind a disclosure. Six of them plus two
-          controls wrapped to three rows and pushed the first event most of a
-          screen down — on the one tab whose entire job is showing events. */}
-      <FilterBar
-        activeCount={(filter === 'all' ? 0 : 1) + (forYou ? 1 : 0)}
-      >
+      {/* No search, no bell, no following list here. Every one of those used to
+          sit in this component AND again in the page header above it, which is
+          how one screen ended up with two search fields and two bells. They
+          belong to the section, not to the feed; the feed owns filtering. */}
+      <FilterBar>
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
           All
         </Chip>
@@ -112,9 +90,7 @@ export function EventsFeed() {
               For my program
             </button>
           )}
-          <span className="hidden sm:inline-flex">
-            <ViewToggle view={communityView} onChange={setCommunityView} />
-          </span>
+          <ViewToggle view={communityView} onChange={setCommunityView} />
         </div>
       </FilterBar>
 
@@ -247,15 +223,9 @@ function EmptyState({ forYou }: { forYou: boolean }) {
 }
 
 /**
- * The filter row, collapsible below sm.
- *
- * Six category chips plus two controls wrapped to three rows on a phone and
- * pushed the first event most of a screen down — on the tab whose entire job is
- * showing events. Above sm there is room, so nothing is hidden and the button
- * does not exist. The count on the button is the point: a filter you have
- * forgotten is a filter that makes the app look broken.
+ * The filter row: one line that scrolls sideways on a phone, wrapping above sm.
  */
-function FilterBar({ children }: { activeCount: number; children: React.ReactNode }) {
+function FilterBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-4">
       {/*
@@ -270,10 +240,10 @@ function FilterBar({ children }: { activeCount: number; children: React.ReactNod
         categories in the place every app a student uses puts them. The edges
         fade rather than being cut, so it is obvious there is more sideways.
       */}
-      <div className="relative -mx-5 sm:mx-0">
+      <div className="relative -mx-4 sm:mx-0">
         <div
           className={cn(
-            'flex items-center gap-1.5 overflow-x-auto px-5 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0',
+            'flex items-center gap-1.5 overflow-x-auto px-4 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0',
             // Chrome only; the scrollbar itself would be a second horizontal
             // line under a row that is already one line tall.
             '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',

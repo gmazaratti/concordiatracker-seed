@@ -9,7 +9,7 @@ import { VerifiedBadge } from './VerifiedBadge'
 import { FollowButton } from './FollowButton'
 import { orgSlug, type CampusEvent, type EventOrg } from '@/data/community'
 import { useFollowedPeople, type PublicPerson } from './profile-follows'
-import { PersonAvatar } from './CommunitySearch'
+import { PersonAvatar } from './PersonAvatar'
 import { cn } from '@/lib/cn'
 
 const DAY = 86_400_000

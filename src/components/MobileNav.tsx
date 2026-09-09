@@ -7,6 +7,7 @@ import { useT } from '@/i18n/i18n'
 import {
   COMMUNITY_SECTIONS,
   communityHref,
+  DEFAULT_SECTION,
   isCommunitySection,
   type CommunitySection,
 } from '@/features/community/sections'
@@ -18,13 +19,13 @@ import { cn } from '@/lib/cn'
  *
  * NORMALLY it is the five destinations and nothing else. Inside COMMUNITY it
  * becomes Community's own bar: a back arrow where the platform back button
- * lives, then Home, Events, Messages and You.
+ * lives, then Events, Messages and You.
  *
- * WHY A SECOND STATE AT ALL. Community is four places, not one, and there is no
- * room for them: the bar is full at five, a rail costs the width a phone does
- * not have, and two bars stacked is the thing every guideline warns about. The
- * only other option is burying three of the four behind a menu, which is how
- * you build a section nobody uses.
+ * WHY A SECOND STATE AT ALL. Community is three places, not one, and there is
+ * no room for them: the bar is full at five, a rail costs the width a phone
+ * does not have, and two bars stacked is the thing every guideline warns
+ * about. The only other option is burying two of the three behind a menu,
+ * which is how you build a section nobody uses.
  *
  * WHY IT IS SAFE. Nested navigation's real failure is not knowing which layer
  * you are in or how to leave — so the back arrow sits in the leftmost slot
@@ -47,22 +48,35 @@ export function MobileNav() {
 
   const inCommunity = pathname.startsWith('/app/community')
   const raw = params.get('c')
-  const section: CommunitySection = isCommunitySection(raw) ? raw : 'home'
+  const section: CommunitySection = isCommunitySection(raw) ? raw : DEFAULT_SECTION
 
   return (
     <nav
       className={cn(
-        'relative shrink-0 overflow-hidden border-t bg-surface/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden',
+        'relative shrink-0 overflow-hidden border-t pb-[env(safe-area-inset-bottom)] md:hidden',
         // The layer you are in, stated in one pixel of colour rather than a
         // label that would cost a row of height.
         inCommunity ? 'border-accent/50' : 'border-border',
       )}
     >
+      {/*
+        THE FROSTED BAR IS ITS OWN LAYER, and this is a performance fix, not a
+        style one. `backdrop-filter` used to sit on the <nav>, which made it an
+        ANCESTOR of the moving rows — so every frame of the morph had to be
+        re-composited through the blur instead of being a plain GPU transform.
+        That is why the animation played but stuttered on a real phone.
+
+        As a SIBLING, its backdrop is the page behind the bar, which does not
+        change while the rows slide. The blur is computed once; the rows move
+        above it for free.
+      */}
+      <div className="absolute inset-0 bg-surface/85 backdrop-blur-xl" aria-hidden />
+
       {/* Both rows are always mounted, both absolutely positioned inside a
           track of fixed height. Only transform and opacity ever change, so the
           bar cannot resize mid-transition and the browser never has to redo
           layout while it is animating. */}
-      <div className="ct-navtrack">
+      <div className="ct-navtrack relative">
         <Row shown={!inCommunity} from="left">
           {STUDENT_NAV.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink

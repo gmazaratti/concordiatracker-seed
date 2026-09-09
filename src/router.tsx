@@ -70,7 +70,7 @@ export function AppRoutes() {
         <Route path="community/org/:handle" element={<OrgProfilePage />} />
         {/* People moved into Community. Kept so older links and the sidebar
             entry that used to point here still land somewhere sensible. */}
-        <Route path="people" element={<Navigate to="/app/community?tab=people" replace />} />
+        <Route path="people" element={<Navigate to="/app/community?c=messages" replace />} />
         <Route path="requests" element={<AppRequestsPage />} />
       </Route>
 

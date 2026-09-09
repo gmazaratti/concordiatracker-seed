@@ -56,7 +56,7 @@ export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClos
             Handing the event over in the URL means it arrives already attached
             to the message rather than making you find it again in the +. */}
         <Link
-          to={`/app/community?tab=people&attach=event:${event.id}`}
+          to={`/app/community?c=messages&attach=event:${event.id}`}
           onClick={onClose}
           className="mt-3 flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 transition-colors duration-150 hover:border-accent"
         >

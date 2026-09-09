@@ -10,11 +10,8 @@ import {
   GraduationCap,
   Loader2,
   Lock,
-  MessageSquare,
-  Rss,
   Pencil,
   ShieldCheck,
-  Users,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
@@ -22,6 +19,7 @@ import { useSettings, type SettingsSection } from '@/app/providers/settings'
 import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
+import { communityHref } from '@/features/community/sections'
 import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { programById } from '@/data/programs'
@@ -104,7 +102,11 @@ function ProfileShell({ handle }: { handle: string }) {
             </Link>
           </div>
         </header>
-        <ProfileView handle={handle} viewer={viewer} />
+        {/* The signed-in case gets its <main> from StudentLayout; a signed-out
+            visitor has no shell, so the landmark lives here. */}
+        <main>
+          <ProfileView handle={handle} viewer={viewer} />
+        </main>
       </div>
     )
   }
@@ -116,12 +118,24 @@ function ProfileShell({ handle }: { handle: string }) {
   )
 }
 
-function ProfileView({
+export function ProfileView({
   handle,
   viewer,
+  embedded = false,
 }: {
   handle: string
   viewer: 'self' | 'other' | 'anon'
+  /**
+   * Rendered inside Community's "You" section rather than at `/@handle`.
+   *
+   * Same page, same components, same data — so what you see in the app is
+   * literally what a visitor gets. What embedding drops is the chrome that
+   * would be duplicated: the page's own gutter (the section already has one),
+   * the "back to Community" link (you are IN Community), and the document
+   * title/canonical, which must keep pointing at `/@handle` and not be
+   * rewritten by a tab.
+   */
+  embedded?: boolean
 }) {
   const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
   const navigate = useNavigate()
@@ -129,29 +143,16 @@ function ProfileView({
   // Only applies to a real, closed set of handles — cosmetic, never a permission.
   const founder = profile?.isPublic ? founderFor(handle) : undefined
 
-  usePageMeta({
-    title:
-      profile?.isPublic && profile.name
-        ? `${profile.name} (@${profile.handle}) · ConcordiaTracker`
-        : `@${handle} · ConcordiaTracker`,
-    description:
-      profile?.isPublic && profile.name
-        ? `${profile.name}${profile.program ? ` · ${profile.program}` : ''} on ConcordiaTracker.`
-        : undefined,
-    path: `/@${handle}`,
-    // Public profiles are indexable; private ones are not.
-    robots: profile && !profile.isPublic ? 'noindex,follow' : 'index,follow',
-  })
-
   return (
     <>
-      <main className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+      {!embedded && <ProfileMeta handle={handle} profile={profile} />}
+      <div className={cn(!embedded && 'mx-auto w-full max-w-3xl px-5 py-5 sm:px-6')}>
         {/* Community, not Today. You arrive here from a search or a mention in
             Community, and the app's default landing page is not where you were
             a second ago. */}
-        {viewer !== 'anon' && (
+        {viewer !== 'anon' && !embedded && (
           <Link
-            to="/app/community?tab=people"
+            to={communityHref('messages')}
             className="mb-3 inline-flex items-center gap-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
           >
             <ChevronLeft size={14} aria-hidden />
@@ -215,18 +216,11 @@ function ProfileView({
                         <Lock size={13} aria-hidden />
                         Privacy
                       </Link>
-                      <Link
-                        to="/app/people"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
-                      >
-                        <Users size={13} aria-hidden />
-                        People
-                      </Link>
                     </>
                   ) : viewer === 'other' ? (
                     <FriendButton
                       handle={profile.handle}
-                      onMessage={(f) => navigate(`/app/community?tab=people&chat=${f.handle}`)}
+                      onMessage={(f) => navigate(`/app/community?c=messages&chat=${f.handle}`)}
                     />
                   ) : null}
                 </div>
@@ -280,35 +274,6 @@ function ProfileView({
                   </Section>
                 )}
 
-                {/* Your own following list belongs on your own profile: it is
-                    where you go to look yourself up, and hunting for it in a
-                    Community subtab is a step nobody guesses. */}
-                {viewer === 'self' && (
-                  <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-5">
-                    <Link
-                      to="/app/community?tab=people&people=following"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-                    >
-                      <Rss size={13} aria-hidden />
-                      Who I follow
-                    </Link>
-                    <Link
-                      to="/app/community?tab=people&people=requests"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-                    >
-                      <Users size={13} aria-hidden />
-                      Connections
-                    </Link>
-                    <Link
-                      to="/app/community?tab=people"
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-                    >
-                      <MessageSquare size={13} aria-hidden />
-                      Messages
-                    </Link>
-                  </div>
-                )}
-
                 {viewer === 'self' && (courses.length === 0 || blueprints.length === 0) && (
                   <OwnerPrompts
                     coursesPublic={profile.coursesPublic}
@@ -328,10 +293,34 @@ function ProfileView({
             )}
           </>
         )}
-      </main>
-
+      </div>
     </>
   )
+}
+
+/**
+ * Title, description and canonical for the standalone `/@handle` page.
+ *
+ * Its own component so it can be left out when the profile is embedded in a
+ * tab: `usePageMeta` is a hook and cannot be called conditionally, and a tab
+ * quietly rewriting the canonical URL of the page you are on is a real SEO bug,
+ * not a cosmetic one.
+ */
+function ProfileMeta({ handle, profile }: { handle: string; profile: PublicProfile | null }) {
+  usePageMeta({
+    title:
+      profile?.isPublic && profile.name
+        ? `${profile.name} (@${profile.handle}) · ConcordiaTracker`
+        : `@${handle} · ConcordiaTracker`,
+    description:
+      profile?.isPublic && profile.name
+        ? `${profile.name}${profile.program ? ` · ${profile.program}` : ''} on ConcordiaTracker.`
+        : undefined,
+    path: `/@${handle}`,
+    // Public profiles are indexable; private ones are not.
+    robots: profile && !profile.isPublic ? 'noindex,follow' : 'index,follow',
+  })
+  return null
 }
 
 /**

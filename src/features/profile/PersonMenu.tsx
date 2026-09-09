@@ -179,7 +179,11 @@ export function PersonMenuButton({ onOpen }: { onOpen: (at: { x: number; y: numb
         const r = e.currentTarget.getBoundingClientRect()
         onOpen({ x: r.right - 190, y: r.bottom + 4 })
       }}
-      className="grid size-7 shrink-0 place-items-center rounded-lg text-subtle opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-surface-2 hover:text-fg"
+      /* Visible by default, hidden until hover ONLY on devices that hover.
+         It was `opacity-0` with a group-hover reveal, which on a phone means it
+         is never shown and never reachable — and long-press on iOS opens the
+         system callout, not our menu. So on touch it is simply always there. */
+      className="grid size-7 shrink-0 place-items-center rounded-lg text-subtle transition-opacity duration-150 focus-visible:opacity-100 hover:bg-surface-2 hover:text-fg [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
     >
       <MoreVertical size={14} aria-hidden />
     </button>
