@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
+import { Inbox, PanelLeftClose, Settings, Users } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
@@ -10,6 +10,7 @@ import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
 import { PlannerSubNav } from './PlannerSubNav'
+import { usePeopleBadge } from '@/app/usePeopleBadge'
 import { AvatarMenu } from './AvatarMenu'
 import { cn } from '@/lib/cn'
 
@@ -30,6 +31,7 @@ export function Sidebar() {
   // The planner's sections nest under it while you are in there, so the page
   // does not need a second rail of its own.
   const onPlanner = useLocation().pathname.startsWith('/app/planner')
+  const waiting = usePeopleBadge()
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -149,6 +151,54 @@ export function Sidebar() {
           {to === '/app/planner' && !collapsed && <PlannerSubNav open={onPlanner} />}
           </Fragment>
         ))}
+
+        {/* Messages and connection requests. NOT one of the five destinations —
+            it is a place things arrive rather than a place you go, which is why
+            it sits below them with a count instead of among them. */}
+        <NavLink
+          to="/app/people"
+          title={collapsed ? 'People' : undefined}
+          className={({ isActive }) =>
+            cn(
+              'group relative flex items-center gap-3 rounded-lg py-2 text-sm transition-colors duration-150',
+              collapsed ? 'justify-center px-0' : 'px-3',
+              isActive
+                ? 'bg-accent-soft font-medium text-fg'
+                : 'text-muted hover:bg-surface-2 hover:text-fg',
+            )
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Users
+                size={18}
+                className={cn(
+                  'shrink-0 transition-colors duration-150',
+                  isActive ? 'text-accent' : 'text-subtle group-hover:text-muted',
+                )}
+                aria-hidden
+              />
+              {collapsed ? (
+                <>
+                  <span className="sr-only">People</span>
+                  {waiting > 0 && (
+                    <span
+                      className="absolute top-1 right-1 size-2 rounded-full bg-accent"
+                      aria-hidden
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="flex-1">People</span>
+                  {waiting > 0 && (
+                    <NavBadge badge={{ count: waiting, tone: 'accent', label: `${waiting} waiting` }} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </NavLink>
 
         {/* Opt-in pin (from the Feedback board's floating toast). Opens the
             in-app feedback page so the sidebar stays; unpin from the toast. */}

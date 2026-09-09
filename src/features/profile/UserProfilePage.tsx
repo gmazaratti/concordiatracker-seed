@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   BookOpen,
+  ChevronRight,
   CalendarRange,
   Download,
   FileText,
@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
+import { StudentLayout } from '@/layouts/StudentLayout'
 import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
@@ -56,12 +57,71 @@ export function UserProfilePage() {
   }
   const handle = raw.slice(1)
   // Key by handle so navigating between profiles remounts with fresh state.
-  return <ProfileView key={handle} handle={handle} />
+  return <ProfileShell key={handle} handle={handle} />
 }
 
-function ProfileView({ handle }: { handle: string }) {
-  const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
+/**
+ * The same page, with or without the app around it.
+ *
+ * `/@handle` is one URL that has to serve two people: a signed-out visitor who
+ * followed a shared link and has no account, and a student who is already
+ * inside the app. Rendering it bare for both meant the second one lost their
+ * sidebar and got told to sign up for the account they were signed into.
+ *
+ * The URL does not change either way. Redirecting a signed-in viewer to some
+ * in-app copy would break the one thing this address is for, which is being
+ * shareable.
+ */
+function ProfileShell({ handle }: { handle: string }) {
   const viewer = useViewer(handle)
+
+  // Nothing is rendered until we know, because the two versions differ in
+  // their whole chrome and flashing one then the other is worse than a beat of
+  // nothing.
+  if (viewer === 'loading') {
+    return (
+      <div className="grid min-h-svh place-items-center bg-canvas">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
+
+  if (viewer === 'anon') {
+    return (
+      <div className="min-h-svh bg-canvas">
+        <header className="sticky top-0 z-10 border-b border-border bg-canvas/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
+            <Link to="/" aria-label="ConcordiaTracker home">
+              <Logo />
+            </Link>
+            <Link
+              to="/app"
+              className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+            >
+              Sign up free
+            </Link>
+          </div>
+        </header>
+        <ProfileView handle={handle} viewer={viewer} />
+      </div>
+    )
+  }
+
+  return (
+    <StudentLayout>
+      <ProfileView handle={handle} viewer={viewer} />
+    </StudentLayout>
+  )
+}
+
+function ProfileView({
+  handle,
+  viewer,
+}: {
+  handle: string
+  viewer: 'self' | 'other' | 'anon'
+}) {
+  const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
   const [messaging, setMessaging] = useState<Friend | null>(null)
   const [showMessages, setShowMessages] = useState(false)
   const prog = profile?.programId ? programById(profile.programId) : undefined
@@ -83,36 +143,7 @@ function ProfileView({ handle }: { handle: string }) {
   })
 
   return (
-    <div className="min-h-svh bg-canvas">
-      <header className="sticky top-0 z-10 border-b border-border bg-canvas/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-5 py-3">
-          <Link to="/" aria-label="ConcordiaTracker home">
-            <Logo />
-          </Link>
-          {/* A signed-in student landing here from a link was being told to
-              "Sign up free" for an account they already have, with no way back
-              into the app but the browser's back button. The page stays outside
-              the app shell on purpose — it has to work for visitors with no
-              account — so the header adapts instead. */}
-          {viewer === 'anon' ? (
-            <Link
-              to="/app"
-              className="rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-            >
-              Sign up free
-            </Link>
-          ) : viewer !== 'loading' ? (
-            <Link
-              to="/app"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-            >
-              <ArrowLeft size={14} aria-hidden />
-              Back to ConcordiaTracker
-            </Link>
-          ) : null}
-        </div>
-      </header>
-
+    <>
       <main className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
         {loading ? (
           <div className="grid place-items-center py-24">
@@ -171,14 +202,13 @@ function ProfileView({ handle }: { handle: string }) {
                         <Lock size={13} aria-hidden />
                         Privacy
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => setShowMessages(true)}
+                      <Link
+                        to="/app/people"
                         className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
                       >
                         <Users size={13} aria-hidden />
-                        Friends
-                      </button>
+                        People
+                      </Link>
                     </>
                   ) : viewer === 'other' ? (
                     <FriendButton handle={profile.handle} onMessage={(f) => setMessaging(f)} />
@@ -213,29 +243,42 @@ function ProfileView({ handle }: { handle: string }) {
                 {founder?.links && <LinksDivider links={founder.links} />}
                 <ProfileLinkRow links={profile.links} />
                 <FriendSchedule handle={profile.handle} />
-                <Section icon={BookOpen} title="Courses" count={courses.length}>
-                  {courses.length > 0 ? (
+                {/* An empty section on SOMEONE ELSE'S profile is noise: it
+                    tells you nothing and makes a page of two grey boxes, which
+                    is why every profile looked dead. Visitors see only what is
+                    actually there; the owner sees the gap AND what to do about
+                    it, because for them it is a prompt rather than an absence. */}
+                {courses.length > 0 && (
+                  <Section icon={BookOpen} title="Courses" count={courses.length}>
                     <CoursesByTerm courses={courses} />
-                  ) : (
-                    <Empty>
-                      {profile.coursesPublic
-                        ? 'No courses shared yet.'
-                        : 'This person keeps their class list private.'}
-                    </Empty>
-                  )}
-                </Section>
+                  </Section>
+                )}
 
-                <Section icon={FileText} title="Uploaded blueprints" count={blueprints.length}>
-                  {blueprints.length > 0 ? (
+                {blueprints.length > 0 && (
+                  <Section icon={FileText} title="Uploaded outlines" count={blueprints.length}>
                     <ul className="space-y-2">
                       {blueprints.map((b) => (
                         <BlueprintRow key={b.id} bp={b} />
                       ))}
                     </ul>
-                  ) : (
-                    <Empty>No blueprints uploaded yet.</Empty>
-                  )}
-                </Section>
+                  </Section>
+                )}
+
+                {viewer === 'self' && (courses.length === 0 || blueprints.length === 0) && (
+                  <OwnerPrompts
+                    coursesPublic={profile.coursesPublic}
+                    hasCourses={courses.length > 0}
+                    hasBlueprints={blueprints.length > 0}
+                  />
+                )}
+
+                {viewer !== 'self' && courses.length === 0 && blueprints.length === 0 && (
+                  <p className="mt-6 rounded-xl border border-dashed border-border px-5 py-8 text-center text-[12.5px] text-subtle">
+                    {profile.coursesPublic
+                      ? `${profile.name ?? '@' + profile.handle} has not shared anything yet.`
+                      : 'This profile keeps its class list private.'}
+                  </p>
+                )}
               </>
             )}
           </>
@@ -251,7 +294,7 @@ function ProfileView({ handle }: { handle: string }) {
           }}
         />
       )}
-    </div>
+    </>
   )
 }
 
@@ -492,11 +535,66 @@ function Section({
   )
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
+/**
+ * What the owner can do about an empty profile.
+ *
+ * Only ever shown to the person who can act on it. A visitor reading "turn on
+ * your class list" would be reading someone else's to-do list.
+ */
+function OwnerPrompts({
+  coursesPublic,
+  hasCourses,
+  hasBlueprints,
+}: {
+  coursesPublic: boolean
+  hasCourses: boolean
+  hasBlueprints: boolean
+}) {
   return (
-    <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-6 text-center text-[13px] text-subtle">
-      {children}
-    </p>
+    <div className="mt-6 space-y-2 border-t border-border pt-5">
+      <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">Fill this out</p>
+      {!coursesPublic && (
+        <PromptRow
+          to="/app?settings=privacy"
+          title="Show your classes"
+          body="Code, title and term only — never a grade. It is off until you turn it on."
+        />
+      )}
+      {coursesPublic && !hasCourses && (
+        <PromptRow
+          to="/app/courses"
+          title="Add a class"
+          body="Your class list is public but empty. Anything you add shows up here."
+        />
+      )}
+      {!hasBlueprints && (
+        <PromptRow
+          to="/app/courses/blueprints"
+          title="Upload an outline"
+          body="Share a syllabus and the next student in your section imports it in one click."
+        />
+      )}
+      <PromptRow
+        to="/app?settings=privacy"
+        title="Add your links"
+        body="Instagram, LinkedIn, TikTok or a site — they show under your bio."
+      />
+    </div>
+  )
+}
+
+function PromptRow({ to, title, body }: { to: string; title: string; body: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-accent"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium text-fg">{title}</span>
+        <span className="block text-[11.5px] leading-relaxed text-subtle">{body}</span>
+      </span>
+      <ChevronRight size={15} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+    </Link>
   )
 }
 
@@ -560,10 +658,28 @@ function LinksDivider({ links }: { links: FounderProfile['links'] }) {
   )
 }
 
+/**
+ * A banner derived from the handle, with texture rather than a flat wash.
+ *
+ * The old version was two stops of one hue, which on a profile with no courses
+ * and no uploads left the whole page reading as a placeholder. Two soft radial
+ * highlights and a faint grid give it something to look at without pretending
+ * to be a photograph — and it is still deterministic, so a person's banner is
+ * always theirs.
+ */
 function bannerStyle(handle: string): React.CSSProperties {
   let h = 0
   for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) % 360
-  return { background: `linear-gradient(135deg, hsl(${h} 45% 42%), hsl(${(h + 42) % 360} 50% 28%))` }
+  const a = `hsl(${h} 48% 44%)`
+  const b = `hsl(${(h + 42) % 360} 52% 26%)`
+  const glow = `hsl(${(h + 18) % 360} 70% 62%)`
+  return {
+    backgroundImage: [
+      `radial-gradient(120% 140% at 12% 18%, ${glow}55, transparent 55%)`,
+      `radial-gradient(90% 120% at 88% 84%, ${glow}33, transparent 60%)`,
+      `linear-gradient(135deg, ${a}, ${b})`,
+    ].join(', '),
+  }
 }
 
 function initialsOf(name?: string): string {

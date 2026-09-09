@@ -122,7 +122,7 @@ export function MessagesModal({
   )
 }
 
-function Conversation({ friend, onBack }: { friend: Friend; onBack: () => void }) {
+export function Conversation({ friend, onBack }: { friend: Friend; onBack: () => void }) {
   const { courses } = useAppData()
   const [rows, setRows] = useState<Message[] | null>(null)
   const [body, setBody] = useState('')

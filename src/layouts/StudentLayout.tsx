@@ -30,7 +30,7 @@ import { TourOverlay } from '@/features/tour/TourOverlay'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
-export function StudentLayout() {
+export function StudentLayout({ children }: { children?: React.ReactNode } = {}) {
   const { user, loading } = useAuth()
   const { onboardingCompleted } = useAppData()
 
@@ -62,7 +62,11 @@ export function StudentLayout() {
         </header>
 
         <main className="relative flex-1 overflow-y-auto">
-          <Outlet />
+          {/* `children` for the one page that lives at a top-level URL but
+              still belongs inside the app: a public profile at /@handle, which
+              a signed-in student should see with their sidebar rather than as
+              a stranger's page. */}
+          {children ?? <Outlet />}
         </main>
 
         {/* In-flow at the bottom of the column (not fixed) so content fills exactly
