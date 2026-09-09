@@ -635,9 +635,10 @@ export function ScheduleBuilder() {
           something up, see what you have chosen, see what it does to your week.
           Picked used to sit UNDER find in a single rail, which meant the list
           you check while adding was the thing scrolled off the bottom. */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[248px_248px_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[248px_248px_minmax(0,1fr)] lg:items-stretch">
         <Pane
           title="Find a course"
+          scroll
           className="print:hidden"
           action={
             <span className="flex items-center gap-1.5">
@@ -676,7 +677,8 @@ export function ScheduleBuilder() {
         <Pane
           title="In this schedule"
           count={picked.length}
-          className="print:hidden lg:max-h-[74vh] lg:overflow-y-auto"
+          scroll
+          className="print:hidden"
           action={
             picked.some((p) => p.state === 'enrolled') ? (
               <span
@@ -686,7 +688,11 @@ export function ScheduleBuilder() {
                 <Checkbox
                   checked={showCurrent}
                   onChange={setShowCurrent}
-                  label={<span className="text-[11.5px] text-subtle">Show current</span>}
+                  label={
+                    <span className="text-[11.5px] whitespace-nowrap text-subtle">
+                      Show current
+                    </span>
+                  }
                 />
               </span>
             ) : undefined
@@ -999,6 +1005,7 @@ function Pane({
   count,
   className,
   action,
+  scroll,
   children,
 }: {
   title: string
@@ -1006,11 +1013,26 @@ function Pane({
   className?: string
   /** A control that belongs to THIS pane, not to the schedule as a whole. */
   action?: React.ReactNode
+  /**
+   * Fill the row and scroll inside.
+   *
+   * The three columns used to be their own natural heights, so they ended at
+   * three different places down the page and the row read as ragged. Filling
+   * the row makes them level; the body scrolls so a long list of sections
+   * cannot make the page taller than the week beside it.
+   */
+  scroll?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section className={cn('min-w-0 rounded-xl border border-border bg-surface p-3', className)}>
-      <div className="mb-2 flex items-center gap-1.5">
+    <section
+      className={cn(
+        'min-w-0 rounded-xl border border-border bg-surface p-3',
+        scroll && 'flex flex-col lg:max-h-[calc(100svh-11rem)]',
+        className,
+      )}
+    >
+      <div className="mb-2 flex shrink-0 items-center gap-1.5">
         <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
           {title}
           {count !== undefined && count > 0 && (
@@ -1021,7 +1043,7 @@ function Pane({
         </h2>
         {action && <span className="ml-auto">{action}</span>}
       </div>
-      {children}
+      {scroll ? <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">{children}</div> : children}
     </section>
   )
 }

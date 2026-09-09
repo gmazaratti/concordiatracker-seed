@@ -134,7 +134,7 @@ export function CourseGridCard({
               >
                 {relativeDueLabel(stats.nextDue.due)}
               </span>
-              <ProvenanceBadge provenance={stats.nextDue.provenance} />
+              <ProvenanceBadge provenance={stats.nextDue.provenance} onlyOfficial />
             </span>
           )}
         </div>

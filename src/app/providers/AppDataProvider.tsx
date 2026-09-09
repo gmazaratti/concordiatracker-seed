@@ -13,6 +13,7 @@ import { coursePercent, percentToGrade } from '@/lib/gpa'
 import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
 import { supabase, fireWrite } from '@/lib/supabase'
+import { usePersisted } from '@/lib/persisted'
 import {
   assessmentFromRow,
   assessmentPatchToRow,
@@ -151,10 +152,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUser])
 
-  const [coursesView, setCoursesView] = useState<CoursesView>('grid')
-  const [communityView, setCommunityView] = useState<CommunityView>('card')
-  const [todayPrefs, setTodayPrefs] = useState<TodayPrefs>(DEFAULT_TODAY_PREFS)
-  const [calendarPrefs, setCalendarPrefs] = useState<CalendarPrefs>(DEFAULT_CALENDAR_PREFS)
+  // These four survive a reload now. "Sticky across SPA nav, resets on reload"
+  // was a mock-era choice; with real accounts, a view toggle that forgets on
+  // refresh reads as a button that does not work.
+  const [coursesView, setCoursesView] = usePersisted<CoursesView>('ct_courses_view', 'grid')
+  const [communityView, setCommunityView] = usePersisted<CommunityView>('ct_community_view', 'card')
+  const [todayPrefs, setTodayPrefs] = usePersisted<TodayPrefs>('ct_today_prefs', DEFAULT_TODAY_PREFS)
+  const [calendarPrefs, setCalendarPrefs] = usePersisted<CalendarPrefs>(
+    'ct_calendar_prefs',
+    DEFAULT_CALENDAR_PREFS,
+  )
   const colorSeq = useRef(0)
   // In-memory until later phases.
   const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>([])
@@ -210,11 +217,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   const updateTodayPrefs = useCallback(
     (patch: Partial<TodayPrefs>) => setTodayPrefs((p) => ({ ...p, ...patch })),
-    [],
+    [setTodayPrefs],
   )
   const updateCalendarPrefs = useCallback(
     (patch: Partial<CalendarPrefs>) => setCalendarPrefs((p) => ({ ...p, ...patch })),
-    [],
+    [setCalendarPrefs],
   )
 
   // Personal calendar tasks → the `todos` table (insert DB-generated id, adopt it).
@@ -638,7 +645,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       addBlankAssessment,
       courseById,
       coursesView,
+      setCoursesView,
       communityView,
+      setCommunityView,
       todayPrefs,
       updateTodayPrefs,
       personalTasks,

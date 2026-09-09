@@ -36,14 +36,26 @@ export function ProvenanceBadge({
   provenance,
   className,
   tone = 'color',
+  onlyOfficial = false,
 }: {
   provenance: Provenance
   className?: string
   /** 'color' tints the label its status color; 'quiet' keeps the colored ICON
    * but neutralizes the label so dense rows don't turn into a rainbow. */
   tone?: 'color' | 'quiet'
+  /**
+   * Render nothing unless the date came from the professor.
+   *
+   * On a date a student typed in themselves, "Unverified" is not information —
+   * they are the source, and the badge reads as the app doubting them about
+   * their own deadline. It earns its place where a date arrived from somewhere
+   * ELSE and its origin is genuinely in question (the blueprint browser, the
+   * import reveal), and nowhere else.
+   */
+  onlyOfficial?: boolean
 }) {
   const t = useT()
+  if (onlyOfficial && provenance.status !== 'official') return null
   const meta = META[provenance.status]
   const Icon = meta.icon
   const count =

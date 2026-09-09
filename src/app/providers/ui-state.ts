@@ -40,6 +40,10 @@ export interface UiState {
   termWrapDismissed?: string
   /** Today's Debrief panel is rolled up (kept per user, so Today can stay lean). */
   debriefCollapsed?: boolean
+  /** Course ids in the order they were dragged into on the Courses page. An
+   *  arrangement you BUILT, so it follows you between devices — unlike the
+   *  grid/list toggle, which is a property of the screen you are on. */
+  courseOrder?: string[]
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

@@ -98,26 +98,29 @@ export function CourseDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6 lg:h-full lg:overflow-hidden lg:pb-0">
-      {/* Never scrolls away on desktop: it is what tells you which course you
-          are looking at, and losing it is how you end up entering a mark on the
-          wrong one. */}
-      <div className="lg:shrink-0">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6">
+      {/* Pinned, not parked in a box of its own.
+          The previous attempt made this page a fixed-height container with each
+          column scrolling inside it, which meant the panels each had their own
+          scrollbar and the assessment column had none at all — it was simply
+          clipped. `sticky` gets the same thing the right way: ONE scroll region
+          (the page), every panel at its full height, and the banner staying put
+          while they all move together. Losing the banner is how you end up
+          entering a mark on the wrong course. */}
+      <div className="lg:sticky lg:top-0 lg:z-20 lg:-mx-5 lg:-mt-5 lg:bg-canvas lg:px-5 lg:pt-5 lg:pb-3 lg:sm:-mx-6 lg:sm:px-6">
         <CourseHeader course={course} currentPercent={standing.currentPercent} />
       </div>
 
-      <div className="lg:shrink-0">
-        <CourseAnnouncements courseCode={course.code} />
-      </div>
+      <CourseAnnouncements courseCode={course.code} />
 
       {holding ? (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           {/* Sticks on desktop: the class details and the grade maths are what
               you read the assessment list AGAINST, and scrolling them off the
               top is what made the page feel like it moved instead of the
               content. Its own scrollbar, since the aside can outgrow the
               viewport on a course with a long breakdown. */}
-          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0 lg:overflow-y-auto lg:pr-1 lg:pb-5">
+          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -158,7 +161,7 @@ export function CourseDetailPage() {
           autoStart={!!importItems}
         />
       ) : manual ? (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
@@ -195,7 +198,7 @@ export function CourseDetailPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
             <div data-tour="course-info">
               <CourseInfoPanel
@@ -221,7 +224,7 @@ export function CourseDetailPage() {
             </div>
           </aside>
 
-          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:overflow-y-auto lg:pb-5">
+          <main className="flex min-w-0 flex-1 flex-col gap-3">
             {coursePeerCorrections.length > 0 && (
               <div className="flex flex-col gap-2">
                 {coursePeerCorrections.map((c) => (

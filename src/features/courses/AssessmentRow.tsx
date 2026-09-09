@@ -99,7 +99,12 @@ export function AssessmentRow({
           >
             <Check size={12} strokeWidth={3} aria-hidden />
           </button>
-          <span className="w-[58px] shrink-0 truncate rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-muted">
+          {/* Wide enough for the longest label in either language rather than
+              58px and an ellipsis: "Assignment" read as "Assign…" and
+              "Examen final" as "Exame…", which is a worse trade than a few
+              pixels of alignment. It still has a floor, so the titles beside it
+              stay in a column. */}
+          <span className="min-w-[74px] shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium whitespace-nowrap text-muted">
             {KIND_LABEL[assessment.kind]}
           </span>
           <div className="min-w-0 flex-1">
@@ -109,7 +114,7 @@ export function AssessmentRow({
             </div>
             <div className="mt-0.5 flex items-center gap-x-2 text-[11px]">
               <span className={cn('font-medium', due.tone)}>{due.label}</span>
-              <ProvenanceBadge provenance={assessment.provenance} tone="quiet" />
+              <ProvenanceBadge provenance={assessment.provenance} tone="quiet" onlyOfficial />
             </div>
           </div>
         </div>

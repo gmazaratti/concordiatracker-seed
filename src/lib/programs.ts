@@ -32,10 +32,37 @@ export async function loadProgramChoice(): Promise<string | null> {
   if (!auth.user) return null
   const { data } = await supabase
     .from('user_profile')
-    .select('major_id')
+    .select('major_id, program_id')
     .eq('user_id', auth.user.id)
     .maybeSingle()
-  return (data as { major_id?: string | null } | null)?.major_id ?? null
+  const row = data as { major_id?: string | null; program_id?: string | null } | null
+  if (row?.major_id) return row.major_id
+  // Nothing chosen here yet, so fall back to what onboarding already asked:
+  // someone who said "Finance (BComm)" on their second screen should not be
+  // asked again on a page whose whole job is to know that.
+  return row?.program_id ? (FROM_ONBOARDING[row.program_id] ?? null) : null
+}
+
+/**
+ * Onboarding's registry id -> the curated requirements id.
+ *
+ * Two lists, made at different times for different jobs: onboarding covers all
+ * 162 programmes for display and filtering, this one covers the handful whose
+ * requirements have been transcribed. The map is only as long as the overlap,
+ * and an id with no entry simply means "we have no requirements for that yet",
+ * which is the honest answer rather than a wrong programme.
+ */
+const FROM_ONBOARDING: Record<string, string> = {
+  'computer-science-bcompsc': 'bcompsc',
+  'accountancy-bcomm': 'bcomm-accountancy',
+  'business-technology-management-bcomm': 'bcomm-btm',
+  'economics-bcomm': 'bcomm-economics',
+  'finance-bcomm': 'bcomm-finance',
+  'human-resource-management-bcomm': 'bcomm-hrm',
+  'international-business-bcomm': 'bcomm-international-business',
+  'management-bcomm': 'bcomm-management',
+  'marketing-bcomm': 'bcomm-marketing',
+  'supply-chain-operations-management-bcomm': 'bcomm-scom',
 }
 
 /** True when it actually persisted, so the UI can say so when it did not. */

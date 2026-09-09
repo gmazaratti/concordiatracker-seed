@@ -9,6 +9,7 @@ import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
+import { useCourseOrder } from './useCourseOrder'
 import { CourseCard } from './CourseCard'
 import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
@@ -26,6 +27,10 @@ export function CoursesPage() {
   const [chooserOpen, setChooserOpen] = useState(false)
   const [tab, setTab] = useState<'current' | 'upcoming' | 'past'>('current')
   const showPast = tab === 'past'
+  const { sort: sortByOrder, move: moveCourse } = useCourseOrder()
+  /** The card being dragged, and the one it is currently over. */
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
 
   /**
    * Courses split into the term you are running and terms you are about to.
@@ -43,7 +48,10 @@ export function CoursesPage() {
     () => courses.filter((c) => !upcoming.includes(c)),
     [courses, upcoming],
   )
-  const shown = tab === 'upcoming' ? upcoming : thisTerm
+  const shown = useMemo(
+    () => sortByOrder(tab === 'upcoming' ? upcoming : thisTerm),
+    [sortByOrder, tab, upcoming, thisTerm],
+  )
 
   const byCourse = useMemo(() => {
     const map = new Map<string, typeof assessments>()
@@ -151,11 +159,21 @@ export function CoursesPage() {
           {coursesView === 'grid' ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {shown.map((c) => (
-                <CourseGridCard
+                <Draggable
                   key={c.id}
-                  course={c}
-                  assessments={byCourse.get(c.id) ?? []}
-                />
+                  id={c.id}
+                  dragId={dragId}
+                  overId={overId}
+                  onStart={setDragId}
+                  onOver={setOverId}
+                  onDrop={(from) => {
+                    moveCourse(shown, from, c.id)
+                    setDragId(null)
+                    setOverId(null)
+                  }}
+                >
+                  <CourseGridCard course={c} assessments={byCourse.get(c.id) ?? []} />
+                </Draggable>
               ))}
               <AddCourseCard onClick={() => setChooserOpen(true)} />
             </div>
@@ -164,11 +182,21 @@ export function CoursesPage() {
               {/* `shown`, not `courses` — the list view was ignoring the tab
                   and showing next term's classes alongside this term's. */}
               {shown.map((c) => (
-                <CourseCard
+                <Draggable
                   key={c.id}
-                  course={c}
-                  assessments={byCourse.get(c.id) ?? []}
-                />
+                  id={c.id}
+                  dragId={dragId}
+                  overId={overId}
+                  onStart={setDragId}
+                  onOver={setOverId}
+                  onDrop={(from) => {
+                    moveCourse(shown, from, c.id)
+                    setDragId(null)
+                    setOverId(null)
+                  }}
+                >
+                  <CourseCard course={c} assessments={byCourse.get(c.id) ?? []} />
+                </Draggable>
               ))}
               <AddCourseRow onClick={() => setChooserOpen(true)} />
             </div>
@@ -274,6 +302,74 @@ function ViewToggle({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * One draggable class card.
+ *
+ * HTML5 drag rather than pointer maths: the browser gives the drag image, the
+ * cursor and the drop semantics for free, and a class card is a big target that
+ * does not need pixel precision. Mouse and pen only in practice — touch does
+ * not fire these events, and hijacking a touch-drag would break scrolling the
+ * list, which is the far more common gesture on a phone.
+ *
+ * The order is saved the moment you let go. There is no "save arrangement"
+ * button, because an arrangement you have to confirm is one you will lose.
+ */
+function Draggable({
+  id,
+  dragId,
+  overId,
+  onStart,
+  onOver,
+  onDrop,
+  children,
+}: {
+  id: string
+  dragId: string | null
+  overId: string | null
+  onStart: (id: string | null) => void
+  onOver: (id: string | null) => void
+  onDrop: (from: string) => void
+  children: React.ReactNode
+}) {
+  const dragging = dragId === id
+  const target = overId === id && dragId !== null && dragId !== id
+  return (
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', id)
+        onStart(id)
+      }}
+      onDragEnd={() => {
+        onStart(null)
+        onOver(null)
+      }}
+      onDragOver={(e) => {
+        if (!dragId) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        if (overId !== id) onOver(id)
+      }}
+      onDragLeave={() => {
+        if (overId === id) onOver(null)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        const from = e.dataTransfer.getData('text/plain') || dragId
+        if (from) onDrop(from)
+      }}
+      className={cn(
+        'rounded-xl transition-[opacity,box-shadow] duration-150',
+        dragging && 'opacity-40',
+        target && 'ring-2 ring-accent ring-offset-2 ring-offset-canvas',
+      )}
+    >
+      {children}
     </div>
   )
 }

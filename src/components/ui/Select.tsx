@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export interface SelectOption {
@@ -28,6 +28,7 @@ export function Select({
   placeholder = 'Select…',
   size = 'md',
   tone = 'field',
+  searchable = false,
   className,
 }: {
   value: string
@@ -37,9 +38,24 @@ export function Select({
   placeholder?: string
   size?: 'sm' | 'md'
   tone?: 'field' | 'control'
+  /**
+   * Put a filter box at the top of the list.
+   *
+   * For lists long enough that scrolling them is the wrong interaction — the
+   * programme picker is fifty-odd entries, and a student who knows they are in
+   * Finance should type four letters rather than hunt. Off by default: on a
+   * six-item status list a search box is furniture.
+   */
+  searchable?: boolean
   className?: string
 }) {
-  const opts: Norm[] = options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
+  const [query, setQuery] = useState('')
+  const all: Norm[] = options.map((o) => (typeof o === 'string' ? { value: o, label: o } : o))
+  const needle = query.trim().toLowerCase()
+  const opts: Norm[] =
+    searchable && needle
+      ? all.filter((o) => o.label.toLowerCase().includes(needle))
+      : all
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [pos, setPos] = useState<Placement | null>(null)
@@ -60,6 +76,8 @@ export function Select({
   }, [])
 
   const openMenu = () => {
+    // Never reopens pre-narrowed by the last thing you typed.
+    setQuery('')
     setActive(selectedIndex >= 0 ? selectedIndex : 0)
     place()
     setOpen(true)
@@ -121,12 +139,23 @@ export function Select({
     } else if (e.key === 'End') {
       e.preventDefault()
       setActive(opts.length - 1)
-    } else if (e.key === 'Enter' || e.key === ' ') {
+    } else if (e.key === 'Enter' || (e.key === ' ' && !searchable)) {
       e.preventDefault()
       e.stopPropagation()
       choose(opts[active]?.value ?? value)
     } else if (e.key === 'Tab') {
       setOpen(false)
+    } else if (searchable && e.key === 'Backspace') {
+      e.preventDefault()
+      setQuery((q) => q.slice(0, -1))
+      setActive(0)
+    } else if (searchable && e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // Typing filters. The trigger is a <button>, not an <input>, so the
+      // keystrokes arrive here — which is exactly what keeps focus on the
+      // combobox and the arrow keys working while you narrow the list.
+      e.preventDefault()
+      setQuery((q) => q + e.key)
+      setActive(0)
     }
   }
 
@@ -182,8 +211,32 @@ export function Select({
                 ? { bottom: window.innerHeight - pos.top }
                 : { top: pos.top }),
             }}
-            className="ct-animate-pop z-[60] max-h-60 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl"
+            className="ct-animate-pop z-[60] max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl"
           >
+            {searchable && (
+              // Typing goes through the TRIGGER, which keeps focus (the
+              // aria-activedescendant pattern this control is built on), so
+              // this box is display-only and never steals it. That is also what
+              // lets the arrow keys keep working while you filter.
+              <li className="sticky top-0 z-10 -m-1 mb-1 border-b border-border bg-surface p-2">
+                <span className="flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1">
+                  <Search size={12} className="shrink-0 text-subtle" aria-hidden />
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 truncate text-[12px]',
+                      query ? 'text-fg' : 'text-subtle',
+                    )}
+                  >
+                    {query || 'Type to filter…'}
+                  </span>
+                </span>
+              </li>
+            )}
+            {opts.length === 0 && (
+              <li className="px-2.5 py-3 text-center text-[12px] text-subtle">
+                Nothing matches &ldquo;{query}&rdquo;
+              </li>
+            )}
             {opts.map((o, i) => (
               <li
                 key={o.value}

@@ -3,6 +3,7 @@ import { Check, ExternalLink, Info, Loader2 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { summarizeRecord } from '@/lib/academic-record'
+import { normalizeCode } from '@/lib/prereq'
 import { listPrograms, loadProgram, loadProgramChoice, saveProgramChoice } from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
@@ -76,6 +77,22 @@ export function ProgramProgress() {
     void saveProgramChoice(next).then((ok) => setUnsaved(!ok))
   }
 
+  /**
+   * Grouped by faculty, then by name.
+   *
+   * Alphabetical across all of them interleaves Aerospace Engineering with
+   * Anthropology and Accountancy, which is three faculties in the first three
+   * rows. Sorting by faculty first means scrolling lands you among things that
+   * are actually near what you want.
+   */
+  const sortedPrograms = useMemo(
+    () =>
+      [...(programs ?? [])].sort(
+        (a, b) => a.faculty.localeCompare(b.faculty) || a.name.localeCompare(b.name),
+      ),
+    [programs],
+  )
+
   /** Everything passed, with the credits the student's own record carries. */
   const completed = useMemo(() => {
     const summary = summarizeRecord(pastCourses, assessments)
@@ -86,6 +103,19 @@ export function ProgramProgress() {
     }
     return [...seen].map(([code, credits]) => ({ code, credits }))
   }, [pastCourses, courses, assessments])
+
+  /**
+   * The classes on your schedule right now.
+   *
+   * Passed but not finished is a THIRD state, and it was being drawn as "not
+   * done" — so a student halfway through a term looked at a requirement they
+   * were sitting in that week and saw a grey empty circle. Green is done, grey
+   * is not started, and this is the amber in between.
+   */
+  const inProgress = useMemo(
+    () => new Set(courses.filter((c) => c.code.trim()).map((c) => normalizeCode(c.code))),
+    [courses],
+  )
 
   const progress = useMemo(
     () => (program ? computeProgress(program, completed) : null),
@@ -102,13 +132,22 @@ export function ProgramProgress() {
           </p>
         </div>
         {programs !== null && programs.length > 0 && (
-          <Select
-            value={id}
-            onChange={choose}
-            ariaLabel="Programme"
-            placeholder="Pick your programme"
-            options={programs.map((p) => ({ value: p.id, label: `${p.name} (${p.degree})` }))}
-          />
+          <div className="w-full sm:w-72">
+            <Select
+              value={id}
+              onChange={choose}
+              ariaLabel="Programme"
+              placeholder="Pick your programme"
+              // Fifty-odd entries is past the point where scrolling is the
+              // right interaction. Someone who knows they are in Finance
+              // should type four letters.
+              searchable
+              options={sortedPrograms.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.degree})`,
+              }))}
+            />
+          </div>
         )}
       </div>
 
@@ -186,6 +225,33 @@ export function ProgramProgress() {
           </section>
 
           {/* ── Groups ───────────────────────────────────────────────── */}
+          {/* A programme we know the shape of but not the contents.
+              Saying so is the whole point: the alternative is an empty page
+              that reads as broken, or — far worse — a plausible list of
+              requirements nobody transcribed. Choosing it still does the job
+              that was actually blocked, since everything keyed off your
+              programme (the generator, the recommendations) now has an answer. */}
+          {program.groups.length === 0 && (
+            <section className="rounded-xl border border-dashed border-border bg-surface/50 p-4">
+              <p className="flex items-start gap-2 text-[13px] font-medium text-fg">
+                <Info size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                Requirements for {program.name} are not transcribed yet
+              </p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+                We have the degree and its {program.total_credits} credits, but not its course
+                lists. Those are copied from the calendar by hand, one programme at a time, because
+                a degree audit that guesses is worse than no degree audit — people plan a year
+                around it. Yours is on the list.
+              </p>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-subtle">
+                In the meantime this choice is saved, so the schedule builder and the course
+                recommendations know what you are in. Your{' '}
+                <span className="text-fg">{progress.totalCompletedCredits} credits passed</span> are
+                counted below.
+              </p>
+            </section>
+          )}
+
           {progress.groups.map(({ group, done, remaining, earnedCredits, counted }) => (
             <section key={group.id} className="rounded-xl border border-border bg-surface p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -212,24 +278,39 @@ export function ProgramProgress() {
                   <ul className="mt-3 grid gap-1 sm:grid-cols-2">
                     {[...done, ...remaining].map((course) => {
                       const isDone = done.includes(course)
+                      const taking = !isDone && inProgress.has(normalizeCode(course.code))
                       return (
                         <li
                           key={course.code}
+                          title={
+                            isDone
+                              ? 'Passed'
+                              : taking
+                                ? 'On your schedule this term'
+                                : 'Not taken yet'
+                          }
                           className={cn(
                             'flex items-start gap-2 rounded-lg border px-2.5 py-1.5',
                             isDone
                               ? 'border-success/40 bg-success/10'
-                              : 'border-border bg-canvas',
+                              : taking
+                                ? 'border-warning/40 bg-warning/10'
+                                : 'border-border bg-canvas',
                           )}
                         >
                           <span
                             className={cn(
                               'mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border',
-                              isDone ? 'border-success bg-success' : 'border-border-strong',
+                              isDone
+                                ? 'border-success bg-success'
+                                : taking
+                                  ? 'border-warning bg-warning'
+                                  : 'border-border-strong',
                             )}
                             aria-hidden
                           >
                             {isDone && <Check size={10} className="text-canvas" />}
+                            {taking && <Loader2 size={9} className="animate-spin text-canvas" />}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[12.5px] font-medium text-fg">
