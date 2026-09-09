@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   AlertTriangle,
   Bus,
@@ -11,6 +12,7 @@ import {
   EyeOff,
   Lightbulb,
   Link2,
+  MessageSquare,
   Plus,
   Printer,
   Save,
@@ -612,9 +614,20 @@ export function ScheduleBuilder() {
             {copied ? <Check size={11} aria-hidden /> : <Copy size={11} aria-hidden />}
             {copied ? 'Copied' : 'Copy'}
           </button>
+          {/* The link is for people outside the app. This is for people in it,
+              and it sends the week as a card they can look at and save rather
+              than a URL they have to open. */}
+          <Link
+            to="/app/community?tab=people"
+            className="inline-flex items-center gap-1.5 rounded border border-accent/40 px-2 py-1 text-[11.5px] text-accent transition-colors duration-150 hover:bg-accent/10"
+          >
+            <MessageSquare size={11} aria-hidden />
+            Send to a friend
+          </Link>
           <span className="w-full text-[11px] text-subtle">
             Anyone with this link can view the timetable. It does not show who it belongs to, and
-            they can save a copy as their own.
+            they can save a copy as their own. Sending it to a friend attaches the week itself —
+            they can save it as an image.
           </span>
         </div>
       )}

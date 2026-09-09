@@ -4,14 +4,18 @@ import {
   BookOpen,
   CalendarPlus,
   CalendarRange,
+  ChevronLeft,
   Clock,
   Download,
   ExternalLink,
   FileText,
   MapPin,
   PartyPopper,
+  X,
 } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { ModalShell } from '@/command/ModalShell'
+import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { useCommunity } from '@/features/community/useCommunity'
 import { useAppData } from '@/app/providers/app-data'
 import { EventMedia } from '@/features/community/EventMedia'
@@ -21,7 +25,7 @@ import { formatDueDateTime } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
 import type { Attachment, SharedClass } from '@/lib/social'
 import { cn } from '@/lib/cn'
-import { colorForCodes, drawSchedule, imageSize } from './schedule-image'
+import { colorForCodes, drawSchedule } from './schedule-image'
 
 /**
  * What a sent thing looks like in a conversation.
@@ -35,9 +39,14 @@ import { colorForCodes, drawSchedule, imageSize } from './schedule-image'
 export function AttachmentEmbed({
   attachment,
   mine,
+  bare = false,
 }: {
   attachment: Attachment
   mine: boolean
+  /** Sent on its own, so the card IS the message: no top margin separating it
+   *  from text that is not there, and a fixed width so a bare card does not
+   *  stretch to the full bubble column. */
+  bare?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const { events } = useCommunity()
@@ -49,7 +58,11 @@ export function AttachmentEmbed({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-1.5 block w-full overflow-hidden rounded-xl border border-border bg-canvas text-left transition-transform duration-150 hover:scale-[1.01]"
+          className={cn(
+            'block w-full overflow-hidden rounded-xl border border-border bg-canvas text-left transition-transform duration-150 hover:scale-[1.01]',
+            !bare && 'mt-1.5',
+            bare && 'w-[264px] max-w-full',
+          )}
         >
           {event ? (
             <>
@@ -106,7 +119,11 @@ export function AttachmentEmbed({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-1.5 block w-full overflow-hidden rounded-xl border border-border bg-canvas p-2.5 text-left transition-transform duration-150 hover:scale-[1.01]"
+          className={cn(
+            'block w-full overflow-hidden rounded-xl border border-border bg-canvas p-2.5 text-left transition-transform duration-150 hover:scale-[1.01]',
+            !bare && 'mt-1.5',
+            bare && 'w-[264px] max-w-full',
+          )}
         >
           <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-fg">
             <CalendarRange size={13} className="shrink-0 text-accent" aria-hidden />
@@ -132,7 +149,11 @@ export function AttachmentEmbed({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-1.5 flex w-full overflow-hidden rounded-xl border border-border bg-canvas text-left transition-transform duration-150 hover:scale-[1.01]"
+          className={cn(
+            'flex w-full overflow-hidden rounded-xl border border-border bg-canvas text-left transition-transform duration-150 hover:scale-[1.01]',
+            !bare && 'mt-1.5',
+            bare && 'w-[264px] max-w-full',
+          )}
         >
           <span className="w-1 shrink-0" style={{ backgroundColor: hex }} aria-hidden />
           <span className="min-w-0 flex-1 p-2.5">
@@ -236,13 +257,15 @@ function SchedulePreview({
   onClose: () => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // Memoised so the draw effect does not re-run on every render — a canvas
-  // redraw per keystroke elsewhere on the page is a lot of work for nothing.
+  // Memoised so the draw effect does not re-run on every render.
   const classes = useMemo(() => attachment.classes ?? [], [attachment.classes])
   const sent = useMemo(
     () => (attachment.sentAt ? new Date(attachment.sentAt) : null),
     [attachment.sentAt],
   )
+  // Full-screen, so Esc / focus trap / scroll lock come from the same helper
+  // every other overlay uses rather than being reinvented here.
+  const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -265,60 +288,97 @@ function SchedulePreview({
     link.click()
   }
 
-  const { width } = imageSize(classes)
-
-  return (
-    <ModalShell label={attachment.name} onClose={onClose} widthClass="sm:max-w-3xl">
-      <div className="p-4 sm:p-5">
-        <h2 className="font-display text-[17px] font-medium text-fg">{attachment.name}</h2>
-        <p className="mt-0.5 text-[12px] text-subtle">
-          {classes.length} class{classes.length === 1 ? '' : 'es'}
-          {attachment.hours ? ` · ${attachment.hours} hours a week` : ''}
-          {sent
-            ? ` · as it was on ${sent.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
-            : ''}
-        </p>
-
-        <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white p-1">
-          <canvas ref={canvasRef} style={{ maxWidth: '100%', width }} />
+  return createPortal(
+    <div
+      ref={ref}
+      onKeyDown={onKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label={attachment.name}
+      tabIndex={-1}
+      className="fixed inset-0 z-[80] flex flex-col bg-canvas"
+    >
+      {/* A sticky bar with the way out in it. The previous version was a
+          centred dialog wider than its own box, so the close control ended up
+          off-screen and there was no way back except the browser. */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <ChevronLeft size={16} aria-hidden />
+          Back
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-medium text-fg">{attachment.name}</p>
+          <p className="truncate text-[11.5px] text-subtle">
+            {classes.length} class{classes.length === 1 ? '' : 'es'}
+            {attachment.hours ? ` · ${attachment.hours} hours a week` : ''}
+            {sent
+              ? ` · as it was on ${sent.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+              : ''}
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <X size={18} aria-hidden />
+        </button>
+      </header>
 
-        <ul className="mt-3 grid gap-1 sm:grid-cols-2">
-          {classes.map((c, i) => (
-            <li key={`${c.code}-${i}`} className="flex items-baseline gap-2 text-[12px]">
-              <span className="font-medium text-fg">{c.code}</span>
-              <span className="min-w-0 flex-1 truncate text-subtle">
-                {c.meets || 'No set time'}
-                {c.room ? ` · ${c.room}` : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-4 py-5">
+          {/* The canvas is drawn at a fixed 900px and scaled DOWN to fit, so a
+              phone gets the whole week rather than a horizontal scrollbar. */}
+          <div className="overflow-hidden rounded-xl border border-border bg-white p-2">
+            <canvas ref={canvasRef} className="block h-auto w-full" />
+          </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={save}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-          >
-            <Download size={14} aria-hidden />
-            Save as image
-          </button>
-          {/* Only offered on your OWN schedule: "open in the builder" cannot
-              open a row you are not allowed to read. */}
-          {mine && (
-            <Link
-              to="/app/planner?tab=schedule"
-              onClick={onClose}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-            >
-              <CalendarRange size={14} aria-hidden />
-              Open in schedule builder
-            </Link>
-          )}
+          <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
+            {classes.map((c, i) => (
+              <li
+                key={`${c.code}-${i}`}
+                className="flex items-baseline gap-2 rounded-lg border border-border bg-surface px-3 py-2"
+              >
+                <span className="text-[12.5px] font-semibold text-fg">{c.code}</span>
+                <span className="min-w-0 flex-1 truncate text-[11.5px] text-subtle">
+                  {c.meets || 'No set time'}
+                  {c.room ? ` · ${c.room}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
-    </ModalShell>
+
+      <footer className="flex shrink-0 flex-wrap gap-2 border-t border-border px-4 py-3">
+        <button
+          type="button"
+          onClick={save}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+        >
+          <Download size={14} aria-hidden />
+          Save as image
+        </button>
+        {/* Only on your OWN: "open in the builder" cannot open a row you are
+            not allowed to read. */}
+        {mine && (
+          <Link
+            to="/app/planner?tab=schedule"
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+          >
+            <CalendarRange size={14} aria-hidden />
+            Open in schedule builder
+          </Link>
+        )}
+      </footer>
+    </div>,
+    document.body,
   )
 }
 

@@ -304,24 +304,30 @@ export function Chat({
                 </span>
               )}
               <div className="max-w-[78%]">
-                <div
-                  className={cn(
-                    'rounded-2xl px-3 py-2',
-                    mine
-                      ? 'rounded-br-md bg-accent text-accent-contrast'
-                      : 'rounded-bl-md border border-border bg-surface-2 text-fg',
-                  )}
-                  style={
-                    mine && theme.bubble
-                      ? { backgroundColor: theme.bubble, color: theme.bubbleText }
-                      : undefined
-                  }
-                >
-                  {m.body.trim() && (
+                {/* A card sent on its own carries no bubble. An attachment
+                    inside a coloured pill draws a ring around the card and
+                    reads as a mistake — iMessage does the same with a link
+                    preview, for the same reason. */}
+                {m.body.trim() ? (
+                  <div
+                    className={cn(
+                      'rounded-2xl px-3 py-2',
+                      mine
+                        ? 'rounded-br-md bg-accent text-accent-contrast'
+                        : 'rounded-bl-md border border-border bg-surface-2 text-fg',
+                    )}
+                    style={
+                      mine && theme.bubble
+                        ? { backgroundColor: theme.bubble, color: theme.bubbleText }
+                        : undefined
+                    }
+                  >
                     <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">{m.body}</p>
-                  )}
-                  {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
-                </div>
+                    {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
+                  </div>
+                ) : (
+                  m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} bare />
+                )}
                 {/* Receipts on YOUR last message only. A tick under every line
                     is clutter, and under theirs it is meaningless. */}
                 {mine && last && (

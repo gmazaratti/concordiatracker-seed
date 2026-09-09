@@ -10,12 +10,15 @@ import {
   GraduationCap,
   Loader2,
   Lock,
+  MessageSquare,
+  Rss,
   Pencil,
   ShieldCheck,
   Users,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
+import { useSettings, type SettingsSection } from '@/app/providers/settings'
 import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
@@ -275,6 +278,35 @@ function ProfileView({
                       ))}
                     </ul>
                   </Section>
+                )}
+
+                {/* Your own following list belongs on your own profile: it is
+                    where you go to look yourself up, and hunting for it in a
+                    Community subtab is a step nobody guesses. */}
+                {viewer === 'self' && (
+                  <div className="mt-6 flex flex-wrap gap-2 border-t border-border pt-5">
+                    <Link
+                      to="/app/community?tab=people&people=following"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                    >
+                      <Rss size={13} aria-hidden />
+                      Who I follow
+                    </Link>
+                    <Link
+                      to="/app/community?tab=people&people=requests"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                    >
+                      <Users size={13} aria-hidden />
+                      Connections
+                    </Link>
+                    <Link
+                      to="/app/community?tab=people"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                    >
+                      <MessageSquare size={13} aria-hidden />
+                      Messages
+                    </Link>
+                  </div>
                 )}
 
                 {viewer === 'self' && (courses.length === 0 || blueprints.length === 0) && (
@@ -559,7 +591,7 @@ function OwnerPrompts({
       <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">Fill this out</p>
       {!coursesPublic && (
         <PromptRow
-          to="/app?settings=privacy"
+          settings="privacy"
           title="Show your classes"
           body="Code, title and term only — never a grade. It is off until you turn it on."
         />
@@ -579,7 +611,7 @@ function OwnerPrompts({
         />
       )}
       <PromptRow
-        to="/app?settings=privacy"
+        settings="privacy"
         title="Add your links"
         body="Instagram, LinkedIn, TikTok or a site — they show under your bio."
       />
@@ -587,17 +619,48 @@ function OwnerPrompts({
   )
 }
 
-function PromptRow({ to, title, body }: { to: string; title: string; body: string }) {
-  return (
-    <Link
-      to={to}
-      className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-accent"
-    >
+/**
+ * One suggestion, which either navigates or opens the settings panel.
+ *
+ * Both used to be a `Link` to `/app?settings=privacy`. SettingsProvider reads
+ * that param ONCE on mount and sits above the router, so a client-side
+ * navigation never re-reads it — every settings prompt quietly dropped you on
+ * Today instead of doing the thing it named. Calling the opener is the only
+ * version that works from inside the app.
+ */
+function PromptRow({
+  to,
+  settings,
+  title,
+  body,
+}: {
+  to?: string
+  settings?: SettingsSection
+  title: string
+  body: string
+}) {
+  const { openSettings } = useSettings()
+  const style =
+    'flex w-full items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-accent'
+  const inner = (
+    <>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-medium text-fg">{title}</span>
         <span className="block text-[11.5px] leading-relaxed text-subtle">{body}</span>
       </span>
       <ChevronRight size={15} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+    </>
+  )
+  if (settings) {
+    return (
+      <button type="button" onClick={() => openSettings(settings)} className={style}>
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <Link to={to as string} className={style}>
+      {inner}
     </Link>
   )
 }

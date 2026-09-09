@@ -13,6 +13,7 @@ import {
   type Friend,
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { useCommunity } from '@/features/community/useCommunity'
 import { Avatar, Chat } from './Chat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
 import { founderFor } from './founders'
@@ -31,7 +32,13 @@ type Tab = 'messages' | 'requests' | 'following'
 
 export function PeoplePanel() {
   const [params, setParams] = useSearchParams()
-  const [tab, setTab] = useState<Tab>('messages')
+  // `?people=following` so a link can land on the right subtab. Read once as
+  // an initial value: after that the tabs are yours to click and the URL
+  // should not drag you back.
+  const [tab, setTab] = useState<Tab>(() => {
+    const want = params.get('people')
+    return want === 'requests' || want === 'following' ? want : 'messages'
+  })
   const [friends, setFriends] = useState<Friend[] | null>(null)
   const [following, setFollowing] = useState<FollowedUser[] | null>(null)
   const [active, setActive] = useState<Friend | null>(null)
@@ -80,16 +87,21 @@ export function PeoplePanel() {
    * else is ignored rather than trusted.
    */
   const attachParam = params.get('attach')
+  const { events } = useCommunity()
   const initialAttachment = useMemo(() => {
     if (!attachParam) return undefined
     const [kind, ...rest] = attachParam.split(':')
     const id = rest.join(':')
     if (!id) return undefined
-    if (kind === 'event') return { kind: 'event' as const, id, title: 'Event' }
-    if (kind === 'schedule') return { kind: 'schedule' as const, id, name: 'Schedule' }
+    if (kind === 'event') {
+      // Resolved from the feed rather than left as the literal word "Event",
+      // which is what the composer chip was showing.
+      const e = events.find((x) => x.id === id)
+      return { kind: 'event' as const, id, title: e?.title ?? 'Event' }
+    }
     if (kind === 'course') return { kind: 'course' as const, code: id }
     return undefined
-  }, [attachParam])
+  }, [attachParam, events])
 
   const openChat = (f: Friend) => {
     setActive(f)
@@ -140,8 +152,18 @@ export function PeoplePanel() {
         </p>
       )}
 
+      {/* On a phone an open conversation takes the whole screen: a chat in a
+          420px box inside a scrolling page is a chat you cannot type in with a
+          keyboard up. Everything else keeps the panel. */}
       {friends !== null && tab === 'messages' && (
-        <div className="flex h-[min(70vh,640px)] overflow-hidden rounded-xl border border-border bg-surface">
+        <div
+          className={cn(
+            'flex overflow-hidden border-border bg-surface',
+            active
+              ? 'fixed inset-0 z-50 lg:static lg:z-auto lg:h-[min(70vh,640px)] lg:rounded-xl lg:border'
+              : 'h-[min(70vh,640px)] rounded-xl border',
+          )}
+        >
           {/* Thread list. Gives way entirely on a phone: two panels in 375px is
               two unusable panels. */}
           <aside
