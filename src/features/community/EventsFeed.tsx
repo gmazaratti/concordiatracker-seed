@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   CalendarRange,
-  ChevronDown,
   LayoutGrid,
   Rows3,
-  SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
@@ -257,37 +255,36 @@ function EmptyState({ forYou }: { forYou: boolean }) {
  * does not exist. The count on the button is the point: a filter you have
  * forgotten is a filter that makes the app look broken.
  */
-function FilterBar({ activeCount, children }: { activeCount: number; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
+function FilterBar({ children }: { activeCount: number; children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 active:bg-surface-2 sm:hidden"
-      >
-        <SlidersHorizontal size={14} aria-hidden />
-        Filters
-        {activeCount > 0 && (
-          <span className="rounded bg-accent-soft px-1.5 text-[11px] font-semibold text-accent tabular-nums">
-            {activeCount}
-          </span>
-        )}
-        <ChevronDown
-          size={14}
-          aria-hidden
-          className={cn('transition-transform duration-150', open && 'rotate-180')}
-        />
-      </button>
+      {/*
+        Always visible, and it scrolls sideways on a phone.
+        These used to hide behind a "Filters" disclosure below sm, because six
+        chips plus two controls wrapped to three rows and pushed the first event
+        most of a screen down. Hiding them was the wrong half of that trade:
+        "what is on this weekend" is the question this tab exists to answer, and
+        a filter nobody can see is a filter nobody uses.
 
-      <div
-        className={cn(
-          'flex-wrap items-center gap-1.5 sm:flex',
-          open ? 'mt-2 flex' : 'hidden',
-        )}
-      >
-        {children}
+        One scrolling row solves both — full height back for the events, and the
+        categories in the place every app a student uses puts them. The edges
+        fade rather than being cut, so it is obvious there is more sideways.
+      */}
+      <div className="relative -mx-5 sm:mx-0">
+        <div
+          className={cn(
+            'flex items-center gap-1.5 overflow-x-auto px-5 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0',
+            // Chrome only; the scrollbar itself would be a second horizontal
+            // line under a row that is already one line tall.
+            '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          )}
+        >
+          {children}
+        </div>
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-canvas to-transparent sm:hidden"
+          aria-hidden
+        />
       </div>
     </div>
   )

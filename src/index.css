@@ -1108,3 +1108,51 @@ html {
   30%           { opacity: 1;    transform: translateY(-3px); }
 }
 .ct-typing-dot { animation: ct-typing-dot 1.2s ease-in-out infinite; }
+
+/* ── The morphing bottom bar ───────────────────────────────────────────────
+   BOTH rows are absolutely positioned, always. The first version put the
+   visible row in flow and the hidden one out of it, which meant every
+   transition also changed `position` — a layout change mid-animation, and the
+   browser resolved it by keeping the old transform and never running the new
+   one. The rows simply swapped without moving.
+
+   With a fixed track height only `transform` and `opacity` ever change, which
+   is the pair that composites and the pair Apple's guidance says to animate.
+
+   One curve for both directions, so what leaves to the left returns from the
+   left: the way out retraces the way in. */
+.ct-navtrack {
+  position: relative;
+  height: 3.5rem;
+}
+.ct-navrow {
+  position: absolute;
+  inset: 0;
+  transition:
+    transform 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 180ms ease;
+  will-change: transform, opacity;
+}
+.ct-navrow-in {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+.ct-navrow-left {
+  transform: translate3d(-28%, 0, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+.ct-navrow-right {
+  transform: translate3d(28%, 0, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Sliding panes are the specific thing that disorients people who asked not to
+   be moved, so reduced motion gets the cross-fade and none of the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .ct-navrow-left,
+  .ct-navrow-right {
+    transform: translate3d(0, 0, 0);
+  }
+}

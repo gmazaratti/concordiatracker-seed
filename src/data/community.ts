@@ -12,7 +12,15 @@ import { daysFromNow } from '@/lib/date'
  * event falls back to the SAME branded banner (the host org's brand colour +
  * its initials), so the grid stays visually consistent.
  */
-export type EventCategory = 'clubs' | 'career' | 'academic' | 'official'
+/**
+ * What kind of thing this is.
+ *
+ * `nightlife` is its own category rather than a flavour of `clubs` because it
+ * is the filter students actually reach for — "what is on this weekend" is a
+ * different question from "what is my club doing", and a party filed under
+ * Clubs is invisible to the person asking the first one.
+ */
+export type EventCategory = 'clubs' | 'career' | 'academic' | 'official' | 'nightlife'
 
 /** Optional outbound links shown on the org profile (only the ones that are set
  * render). `website` is a generic custom link (homepage, Linktree, etc.). */
@@ -121,7 +129,7 @@ export const CAMPUS_EVENTS: CampusEvent[] = [
     mode: 'in-person',
     location: 'Espace Rodier, Montr\u00e9al',
     org: ORG.jmma,
-    category: 'clubs',
+    category: 'nightlife',
     relevantTo: ['Marketing', 'Commerce', 'John Molson', 'Business'],
     postedDaysAgo: 0,
     description:
