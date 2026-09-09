@@ -4,7 +4,8 @@ import type { Assessment, Course } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { courseStanding, percentToGrade } from '@/lib/gpa'
 import { relativeDueLabel } from '@/lib/date'
-import { courseColor, withAlpha } from '@/lib/course-color'
+import { courseColor } from '@/lib/course-color'
+import { courseBanner, courseIcon } from '@/lib/course-style'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import { courseStats } from './course-stats'
@@ -30,6 +31,8 @@ export function CourseGridCard({
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
+  const banner = courseBanner(hex, course.gradient)
+  const iconDef = courseIcon(course.icon)
   const empty = assessments.length === 0
   const manual = course.origin === 'manual'
   // Empty seeded courses send you to the blueprint browser to import; a manual
@@ -45,9 +48,7 @@ export function CourseGridCard({
     >
       <div
         className="relative px-4 pt-3.5 pb-4"
-        style={{
-          backgroundImage: `linear-gradient(125deg, ${hex}, ${withAlpha(hex, 0.8)})`,
-        }}
+        style={{ backgroundImage: banner.backgroundImage }}
       >
         <CourseCardMenu
           course={course}
@@ -56,6 +57,11 @@ export function CourseGridCard({
           triggerClassName="grid size-7 place-items-center rounded-md text-white/80 transition-colors duration-150 hover:bg-white/20 hover:text-white data-[state=open]:bg-white/20"
         />
         <div className="flex items-center gap-2 pr-8">
+          {iconDef && (
+            <span className="grid size-5 shrink-0 place-items-center rounded bg-white/20 text-white">
+              <iconDef.icon size={12} aria-hidden />
+            </span>
+          )}
           <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
             {course.code || t('courses.newCourse')}
           </span>
@@ -105,7 +111,7 @@ export function CourseGridCard({
               <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
                 <div
                   className="h-full rounded-full transition-[width] duration-200"
-                  style={{ width: `${gradedPct}%`, backgroundColor: hex }}
+                  style={{ width: `${gradedPct}%`, backgroundColor: banner.hex }}
                 />
               </div>
               <p className="mt-1 text-[11px] text-subtle">

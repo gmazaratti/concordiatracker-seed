@@ -130,6 +130,12 @@ export interface Course {
   /** Class accent color — an id into `COURSE_COLORS` (lib/course-color). Editable
    * in-session, the Google-Classroom-style per-class color. */
   color: string
+  /** An id into `COURSE_ICONS` (lib/course-style). Semester-pass. Undefined is
+   *  the ordinary no-icon class, which is what every course starts as. */
+  icon?: string
+  /** An id into `COURSE_GRADIENTS`. Semester-pass. When set it replaces the flat
+   *  `color` on the banner; `color` is kept so a lapse falls back cleanly. */
+  gradient?: string
   /** Logistics shown (and inline-editable) in the course-detail side panel. */
   section: string
   instructor: Contact

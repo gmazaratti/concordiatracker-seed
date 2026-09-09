@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { percentToGrade } from '@/lib/gpa'
-import { courseColor, withAlpha } from '@/lib/course-color'
-import { CourseColorPicker } from './CourseColorPicker'
+import { courseColor } from '@/lib/course-color'
+import { courseBanner, courseIcon } from '@/lib/course-style'
+import { CourseStylePicker } from './CourseStylePicker'
 import { useT } from '@/i18n/i18n'
 
 /** Course-detail hero — a Google-Classroom-style colored banner. The class's
@@ -19,6 +20,10 @@ export function CourseHeader({
   const t = useT()
   const graded = currentPercent === null ? null : percentToGrade(currentPercent)
   const { hex } = courseColor(course.color)
+  // One helper decides what a class looks like, so the banner, the cards, the
+  // due-row dot and the week grid can never disagree about it.
+  const banner = courseBanner(hex, course.gradient)
+  const iconDef = courseIcon(course.icon)
 
   return (
     <header className="mb-4">
@@ -33,12 +38,20 @@ export function CourseHeader({
       <div
         className="mt-1.5 rounded-2xl border border-border"
         style={{
-          backgroundImage: `linear-gradient(120deg, ${hex}, ${withAlpha(hex, 0.82)})`,
+          backgroundImage: banner.backgroundImage,
         }}
       >
         <div className="flex items-start justify-between gap-4 px-5 py-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {/* Decoration, so it is aria-hidden: the code beside it is the
+                  actual identity and a screen reader gains nothing from
+                  "briefcase". */}
+              {iconDef && (
+                <span className="grid size-6 place-items-center rounded bg-white/20 text-white">
+                  <iconDef.icon size={14} aria-hidden />
+                </span>
+              )}
               <span className="rounded bg-white/20 px-1.5 py-0.5 text-[12px] font-semibold tracking-wide text-white">
                 {course.code || t('courses.newCourse')}
               </span>
@@ -52,7 +65,7 @@ export function CourseHeader({
               )}
             </h1>
             <div className="mt-3">
-              <CourseColorPicker courseId={course.id} color={course.color} />
+              <CourseStylePicker course={course} />
             </div>
           </div>
 

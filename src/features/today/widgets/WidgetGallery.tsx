@@ -145,9 +145,9 @@ export function WidgetGallery({
           <p className="mb-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
             Available
           </p>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
             {available.map((w) => (
-              <li key={w.id}>
+              <li key={w.id} className="h-full">
                 <WidgetPreviewCard
                   def={w}
                   disabled={full}
@@ -302,15 +302,28 @@ function WidgetPreviewCard({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-xl border border-border bg-canvas transition-colors duration-150',
+        'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-canvas transition-colors duration-150',
         disabled ? 'opacity-50' : 'hover:border-border-strong',
       )}
     >
-      <div className="pointer-events-none max-h-[132px] overflow-hidden p-2.5" inert>
-        {def.render('rail')}
+      {/* A FIXED height, not a maximum.
+          `max-h` let every preview be its own size, so the gallery was a grid of
+          mismatched boxes with the taller one in each row leaving a gap beside
+          it — and whatever did not fit was sliced mid-line, which is why the
+          radar preview ended on half of "Open radar". Now every tile is the
+          same, the content is top-aligned, and anything longer fades out at the
+          bottom edge rather than being cut through the middle of a word. */}
+      <div className="relative h-[136px] shrink-0 overflow-hidden">
+        <div className="pointer-events-none p-2.5" inert>
+          {def.render('rail')}
+        </div>
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-7 bg-gradient-to-b from-transparent to-canvas"
+          aria-hidden
+        />
       </div>
 
-      <div className="flex items-start gap-2 border-t border-border bg-surface px-2.5 py-2">
+      <div className="mt-auto flex items-start gap-2 border-t border-border bg-surface px-2.5 py-2">
         <Icon size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-[12.5px] font-medium text-fg">{def.name}</span>

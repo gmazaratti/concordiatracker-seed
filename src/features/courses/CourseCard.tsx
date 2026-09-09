@@ -5,6 +5,7 @@ import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { courseStanding, percentToGrade } from '@/lib/gpa'
 import { relativeDueLabel } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
+import { courseBanner, courseIcon } from '@/lib/course-style'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import { courseStats } from './course-stats'
@@ -29,6 +30,10 @@ export function CourseCard({
       ? 0
       : (standing.gradedWeight / standing.totalWeight) * 100
   const { hex } = courseColor(course.color)
+  // The list stripe is 4px wide, where a gradient is just a muddier flat
+  // colour — so it takes the gradient's single representative hex instead.
+  const { hex: shade } = courseBanner(hex, course.gradient)
+  const iconDef = courseIcon(course.icon)
   // Empty seeded courses send you to the blueprint browser (pre-filtered) to
   // import; a manual course always opens its own fill-by-hand detail.
   const empty = assessments.length === 0
@@ -44,12 +49,15 @@ export function CourseCard({
     >
       <span
         className="absolute inset-y-0 left-0 w-1.5"
-        style={{ backgroundColor: hex }}
+        style={{ backgroundColor: shade }}
         aria-hidden
       />
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {iconDef && (
+              <iconDef.icon size={13} className="shrink-0" style={{ color: shade }} aria-hidden />
+            )}
             <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-muted group-hover:bg-surface">
               {course.code || t('courses.newCourse')}
             </span>
@@ -88,7 +96,7 @@ export function CourseCard({
           <div className="h-1.5 overflow-hidden rounded-full bg-surface-2 group-hover:bg-surface">
             <div
               className="h-full rounded-full transition-[width] duration-200"
-              style={{ width: `${gradedPct}%`, backgroundColor: hex }}
+              style={{ width: `${gradedPct}%`, backgroundColor: shade }}
             />
           </div>
           <p className="mt-1 text-[11px] text-subtle">

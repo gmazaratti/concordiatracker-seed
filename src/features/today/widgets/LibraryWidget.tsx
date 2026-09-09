@@ -63,9 +63,16 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
     }
   }, [])
 
-  // Never show a library whose sensor has nothing to say AND no history — it
-  // would be three rows of dashes pretending to be data.
-  const shown = (rows ?? []).filter((r) => r.people !== null || r.ageMinutes !== null)
+  /**
+   * Only branches that actually report.
+   *
+   * The feed lists Grey Nuns, but its LastRecordTime is 1900-01-01 — there is no
+   * gate counter there and there never has been. A permanent dash is not data,
+   * it is a row that makes the widget look broken, so a branch with no reading
+   * in the last day is not listed at all. If Concordia ever wires that sensor
+   * up, it appears on its own with no change here.
+   */
+  const shown = (rows ?? []).filter((r) => r.ageMinutes !== null && r.ageMinutes < 60 * 24)
 
   return (
     <div className={cn('rounded-xl border border-border bg-surface p-3', zone === 'rail' && 'p-2.5')}>
@@ -92,7 +99,14 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
         <p className="mt-2 text-[12px] text-subtle">No counts published right now.</p>
       )}
 
-      <ul className={cn('mt-2 space-y-2', zone === 'half' && 'sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0')}>
+      <ul
+        className={cn(
+          'mt-2 space-y-2',
+          // Two reporting branches is the whole set, so they sit side by side
+          // wherever there is room rather than stacking and wasting a row.
+          zone !== 'rail' && 'sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2 sm:space-y-0',
+        )}
+      >
         {shown.map((r) => {
           const cap = ROUGH_CAPACITY[r.id] ?? 500
           const pct = r.people === null ? 0 : Math.min(100, Math.round((r.people / cap) * 100))

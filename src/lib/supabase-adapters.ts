@@ -28,6 +28,8 @@ export interface CourseRow {
   name: string | null
   location: string | null
   time: string | null
+  icon: string | null
+  gradient: string | null
   /** 'in-person' | 'online' | 'hybrid'. Null means nobody has said. */
   delivery: string | null
   professor: string | null
@@ -56,6 +58,8 @@ export function courseFromRow(r: CourseRow): Course {
     term: r.term ?? '',
     credits: r.credits ?? 3,
     color: r.color ?? 'blue',
+    icon: r.icon ?? undefined,
+    gradient: r.gradient ?? undefined,
     section: r.section ?? '',
     instructor: { name: r.professor ?? '', email: r.prof_email ?? '' },
     ta: r.ta_name || r.ta_email ? { name: r.ta_name ?? '', email: r.ta_email ?? '' } : null,
@@ -91,6 +95,8 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   if ('finalLetter' in patch) row.final_letter = patch.finalLetter ?? null
   if ('credits' in patch) row.credits = patch.credits
   if ('color' in patch) row.color = patch.color
+  if ('icon' in patch) row.icon = patch.icon ?? null
+  if ('gradient' in patch) row.gradient = patch.gradient ?? null
   if ('section' in patch) row.section = patch.section
   if (patch.instructor) {
     row.professor = patch.instructor.name
