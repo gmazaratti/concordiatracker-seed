@@ -58,7 +58,7 @@ export type Attachment =
   | { kind: 'course'; code: string; title?: string; color?: string; credits?: number }
   /**
    * An academic record, SNAPSHOT not reference — for the same reason a
-   * schedule is. Your `past_courses` rows are select-own, so a reference to
+   * schedule is. Your archived `courses` rows are select-own, so a reference to
    * them is unreadable to whoever you sent it to. It is also the honest shape:
    * "here is what I had finished as of today" is what you mean when you send
    * this, and it should not silently change behind them.

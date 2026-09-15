@@ -403,6 +403,37 @@ check('empty stays empty', await norm(''), '')
 check('null is safe', await norm(null), null)
 check('running it twice changes nothing', await norm(await norm('AUTOMNE 2026')), 'Fall 2026')
 
+// The BACKFILL, not just the function. It discovers its targets from the
+// catalogue because the first version named `past_courses`, which does not
+// exist on this project — and one missing table aborts the whole migration.
+// So the thing worth testing is that it runs against whatever IS there, and
+// skips a view rather than failing on it.
+await db.exec(`
+  create table if not exists public.term_a (id int, term text);
+  create table if not exists public.term_b (id int, term text);
+  create table if not exists public.no_term (id int, name text);
+  insert into public.term_a values (1, 'FALL 2026'), (2, 'Fall 2026'), (3, 'Intersession 2026');
+  insert into public.term_b values (1, 'Automne 2026'), (2, null);
+  create or replace view public.term_v as select id, term from public.term_a;
+`)
+await db.exec(
+  termSql.slice(
+    termSql.indexOf('-- The backfill DISCOVERS its targets'),
+    termSql.indexOf('-- ── 2. Why a parse failed'),
+  ),
+)
+const terms = async (t) =>
+  (await db.query(`select term from public.${t} order by id`)).rows.map((r) => r.term)
+
+check('the backfill found a table nobody named', await terms('term_a'),
+  ['Fall 2026', 'Fall 2026', 'Intersession 2026'])
+check('and a second one', await terms('term_b'), ['Fall 2026', null])
+check('a view was skipped, not written through', await terms('term_v'),
+  ['Fall 2026', 'Fall 2026', 'Intersession 2026'])
+check('a table with no term column is untouched',
+  (await db.query('select count(*)::int c from public.no_term')).rows[0].c, 0)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

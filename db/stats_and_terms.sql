@@ -56,17 +56,37 @@ $$;
 --     from public.courses where term is distinct from ct_normalize_term(term)
 --    group by 1, 2;
 
-update public.courses
-   set term = public.ct_normalize_term(term)
- where term is distinct from public.ct_normalize_term(term);
-
-update public.past_courses
-   set term = public.ct_normalize_term(term)
- where term is distinct from public.ct_normalize_term(term);
-
-update public.shared_blueprints
-   set term = public.ct_normalize_term(term)
- where term is distinct from public.ct_normalize_term(term);
+-- The backfill DISCOVERS its targets instead of naming them. The first version
+-- of this file hard-coded `public.past_courses`, which does not exist — past
+-- courses are just `courses` with `archived = true` — and one missing table
+-- aborts the whole migration on its very first statement. Asking the catalogue
+-- which base tables actually have a text `term` column cannot be wrong about
+-- that, and it picks up any table added later for free.
+do $$
+declare
+  t record;
+  n bigint;
+begin
+  for t in
+    select c.table_schema, c.table_name
+      from information_schema.columns c
+      join information_schema.tables tb
+        on tb.table_schema = c.table_schema
+       and tb.table_name  = c.table_name
+     where c.table_schema = 'public'
+       and c.column_name  = 'term'
+       and c.data_type in ('text', 'character varying')
+       and tb.table_type  = 'BASE TABLE'      -- never a view
+     order by c.table_name
+  loop
+    execute format(
+      'update %I.%I set term = public.ct_normalize_term(term)
+        where term is distinct from public.ct_normalize_term(term)',
+      t.table_schema, t.table_name);
+    get diagnostics n = row_count;
+    raise notice 'ct_normalize_term: %.% -> % row(s) rewritten', t.table_schema, t.table_name, n;
+  end loop;
+end $$;
 
 -- ── 2. Why a parse failed ───────────────────────────────────────────────────
 -- `parse_events` recorded success as a boolean and nothing else, so a 32%
