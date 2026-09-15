@@ -4,7 +4,6 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  CalendarRange,
   Download,
   FileText,
   GraduationCap,
@@ -15,8 +14,8 @@ import {
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
-import { useSettings, type SettingsSection } from '@/app/providers/settings'
 import { CourseChip } from '@/components/CourseChip'
+import { Switch } from '@/features/settings/controls'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
 import { communityHref } from '@/features/community/sections'
@@ -27,13 +26,12 @@ import { cn } from '@/lib/cn'
 import { termRank } from '@/lib/term'
 import { supabase } from '@/lib/supabase'
 import {
-  canSeeSchedule,
-  friendSchedule,
   linkHref,
-  type FriendCourse,
   type ProfileLinks,
 } from '@/lib/social'
 import { FriendButton } from './FriendButton'
+import { EditProfileModal } from './EditProfileModal'
+import { ScheduleAccess } from './ScheduleAccess'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
 import { founderFor, type FounderProfile } from './founders'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
@@ -137,8 +135,9 @@ export function ProfileView({
    */
   embedded?: boolean
 }) {
-  const { loading, notFound, profile, courses, blueprints } = usePublicProfile(handle)
+  const { loading, notFound, profile, courses, blueprints, reload } = usePublicProfile(handle)
   const navigate = useNavigate()
+  const [editing, setEditing] = useState(false)
   const prog = profile?.programId ? programById(profile.programId) : undefined
   // Only applies to a real, closed set of handles — cosmetic, never a permission.
   const founder = profile?.isPublic ? founderFor(handle) : undefined
@@ -202,20 +201,19 @@ export function ProfileView({
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {viewer === 'self' ? (
                     <>
-                      <Link
-                        to="/app?settings=account"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                      {/* A dialog on the page, not a link to Settings. The
+                          link could not work — SettingsProvider reads
+                          `?settings=` once on mount, above the router — and
+                          even fixed it would be the wrong answer: you edit a
+                          bio while looking at it. */}
+                      <button
+                        type="button"
+                        onClick={() => setEditing(true)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover active:scale-95"
                       >
                         <Pencil size={13} aria-hidden />
                         Edit profile
-                      </Link>
-                      <Link
-                        to="/app?settings=privacy"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
-                      >
-                        <Lock size={13} aria-hidden />
-                        Privacy
-                      </Link>
+                      </button>
                     </>
                   ) : viewer === 'other' ? (
                     <FriendButton
@@ -252,7 +250,12 @@ export function ProfileView({
               <>
                 {founder?.links && <LinksDivider links={founder.links} />}
                 <ProfileLinkRow links={profile.links} />
-                <FriendSchedule handle={profile.handle} />
+                {/* Only on someone else's: your own schedule is the
+                    planner, one tab away, and "request" makes no sense
+                    pointed at yourself. */}
+                {viewer === 'other' && (
+                  <ScheduleAccess handle={profile.handle} name={profile.name} />
+                )}
                 {/* An empty section on SOMEONE ELSE'S profile is noise: it
                     tells you nothing and makes a page of two grey boxes, which
                     is why every profile looked dead. Visitors see only what is
@@ -274,11 +277,13 @@ export function ProfileView({
                   </Section>
                 )}
 
-                {viewer === 'self' && (courses.length === 0 || blueprints.length === 0) && (
+                {viewer === 'self' && (
                   <OwnerPrompts
                     coursesPublic={profile.coursesPublic}
                     hasCourses={courses.length > 0}
                     hasBlueprints={blueprints.length > 0}
+                    onEdit={() => setEditing(true)}
+                    onChanged={reload}
                   />
                 )}
 
@@ -294,6 +299,8 @@ export function ProfileView({
           </>
         )}
       </div>
+
+      {editing && <EditProfileModal onClose={() => setEditing(false)} onSaved={reload} />}
     </>
   )
 }
@@ -387,55 +394,6 @@ function ProfileLinkRow({ links }: { links: ProfileLinks }) {
 
 function stripScheme(v: string): string {
   return v.replace(/^https?:/, '').replace(/^\/\//, '').slice(0, 28)
-}
-
-/**
- * Their timetable, if they are your friend and they turned it on.
- *
- * The whole point of the feature: "when are your classes" gets asked constantly
- * and answered with a screenshot that goes stale. Renders nothing at all unless
- * the server says you may see it - and the server gives the same empty answer
- * whether you are not their friend or they switched it off, so this cannot be
- * used to probe someone's settings.
- *
- * Times and rooms only. Never a grade, not even for a friend.
- */
-function FriendSchedule({ handle }: { handle: string }) {
-  const [rows, setRows] = useState<FriendCourse[] | null>(null)
-  useEffect(() => {
-    let alive = true
-    void canSeeSchedule(handle).then((ok) => {
-      if (!alive || !ok) return
-      void friendSchedule(handle).then((r) => alive && setRows(r))
-    })
-    return () => {
-      alive = false
-    }
-  }, [handle])
-
-  if (!rows || rows.length === 0) return null
-  return (
-    <Section icon={CalendarRange} title="Their schedule" count={rows.length}>
-      <p className="mb-2 text-[11.5px] text-subtle">
-        Shared with friends. Times and rooms only &mdash; never grades.
-      </p>
-      <ul className="space-y-1.5">
-        {rows.map((c, i) => (
-          <li
-            key={`${c.code}-${i}`}
-            className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-lg border border-border bg-surface px-3 py-2"
-          >
-            <span className="text-[12.5px] font-semibold text-fg">{c.code}</span>
-            <span className="min-w-0 flex-1 truncate text-[12px] text-muted">{c.title}</span>
-            <span className="text-[11.5px] text-subtle">
-              {c.meeting_times || 'No set time'}
-              {c.location ? ` · ${c.location}` : ''}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </Section>
-  )
 }
 
 function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?: boolean }) {
@@ -570,21 +528,30 @@ function OwnerPrompts({
   coursesPublic,
   hasCourses,
   hasBlueprints,
+  onEdit,
+  onChanged,
 }: {
   coursesPublic: boolean
   hasCourses: boolean
   hasBlueprints: boolean
+  onEdit: () => void
+  onChanged: () => void
 }) {
   return (
     <div className="mt-6 space-y-2 border-t border-border pt-5">
       <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">Fill this out</p>
-      {!coursesPublic && (
-        <PromptRow
-          settings="privacy"
-          title="Show your classes"
-          body="Code, title and term only — never a grade. It is off until you turn it on."
-        />
-      )}
+
+      {/* A switch, not a link. "Show your classes" is a yes/no you own, and
+          sending someone to a settings panel to flip one boolean — then back
+          here to see what it did — is three screens for one decision. The
+          rows that genuinely need a form still navigate. */}
+      <SwitchRow
+        checked={coursesPublic}
+        title="Show your classes"
+        body="Code, title and term only — never a grade."
+        onChange={(v) => void writeProfile({ courses_public: v }).then(onChanged)}
+      />
+
       {coursesPublic && !hasCourses && (
         <PromptRow
           to="/app/courses"
@@ -600,35 +567,68 @@ function OwnerPrompts({
         />
       )}
       <PromptRow
-        settings="privacy"
+        onClick={onEdit}
         title="Add your links"
-        body="Instagram, LinkedIn, TikTok or a site — they show under your bio."
+        body="Instagram, LinkedIn, X or a site — they show under your bio."
       />
     </div>
   )
 }
 
-/**
- * One suggestion, which either navigates or opens the settings panel.
- *
- * Both used to be a `Link` to `/app?settings=privacy`. SettingsProvider reads
- * that param ONCE on mount and sits above the router, so a client-side
- * navigation never re-reads it — every settings prompt quietly dropped you on
- * Today instead of doing the thing it named. Calling the opener is the only
- * version that works from inside the app.
- */
+/** One profile column, written straight. Swallows failures for the same reason
+ *  the settings panel does: an unrun migration should cost a toggle, not the
+ *  page. */
+async function writeProfile(patch: Record<string, unknown>): Promise<void> {
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) return
+  await supabase.from('user_profile').update(patch).eq('user_id', data.user.id)
+}
+
+/** A "Fill this out" row that IS the setting. Optimistic: the switch moves on
+ *  the tap and the page re-reads after the write, so it never sits dead while
+ *  a round trip happens. */
+function SwitchRow({
+  checked,
+  title,
+  body,
+  onChange,
+}: {
+  checked: boolean
+  title: string
+  body: string
+  onChange: (next: boolean) => void
+}) {
+  const [on, setOn] = useState(checked)
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium text-fg">{title}</span>
+        <span className="block text-[11.5px] leading-relaxed text-subtle">{body}</span>
+      </span>
+      <Switch
+        checked={on}
+        label={title}
+        onChange={(v) => {
+          setOn(v)
+          onChange(v)
+        }}
+      />
+    </div>
+  )
+}
+
+/** One suggestion: a link, or a button that opens the profile editor. */
 function PromptRow({
   to,
-  settings,
+  onClick,
   title,
   body,
 }: {
   to?: string
-  settings?: SettingsSection
+  onClick?: () => void
   title: string
   body: string
 }) {
-  const { openSettings } = useSettings()
   const style =
     'flex w-full items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-accent'
   const inner = (
@@ -640,9 +640,9 @@ function PromptRow({
       <ChevronRight size={15} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
     </>
   )
-  if (settings) {
+  if (onClick) {
     return (
-      <button type="button" onClick={() => openSettings(settings)} className={style}>
+      <button type="button" onClick={onClick} className={style}>
         {inner}
       </button>
     )

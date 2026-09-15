@@ -1,0 +1,243 @@
+import { useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { ModalShell } from '@/command/ModalShell'
+import { useAppData } from '@/app/providers/app-data'
+import { useAuth } from '@/app/providers/auth'
+import { Switch } from '@/features/settings/controls'
+import { supabase } from '@/lib/supabase'
+import { cleanLinks, type ProfileLinks } from '@/lib/social'
+
+/**
+ * Edit your profile, on your profile.
+ *
+ * The button used to be a `Link` to `/app?settings=account`, which did not
+ * work AT ALL from inside the app: `SettingsProvider` reads that param once on
+ * mount and sits above the router, so a client-side navigation dropped you on
+ * Today instead. The same trap the Today prompts fell into.
+ *
+ * Opening the settings panel would have fixed the bug, but it is still the
+ * wrong answer: Settings is a different context that covers the thing you are
+ * editing. You want to change your bio while LOOKING at your bio, so the
+ * editor is a dialog on the page and the page updates underneath when you
+ * save. What is here is exactly the profile: the fields a visitor sees, plus
+ * the three switches that decide how much of it they see. Nothing about
+ * billing, themes or notifications — those stay in Settings, where they
+ * belong.
+ */
+const LINK_FIELDS: { key: keyof ProfileLinks; label: string; placeholder: string }[] = [
+  { key: 'instagram', label: 'Instagram', placeholder: '@yourhandle' },
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'your-name' },
+  { key: 'x', label: 'X', placeholder: '@yourhandle' },
+  { key: 'website', label: 'Website', placeholder: 'yoursite.com' },
+]
+
+export function EditProfileModal({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void
+  /** Re-read the profile so the page behind shows the change immediately. */
+  onSaved: () => void
+}) {
+  const { user, updateProfile, updatePrivacy } = useAppData()
+  const { user: authUser } = useAuth()
+
+  const [name, setName] = useState(user.name ?? '')
+  const [bio, setBio] = useState('')
+  const [links, setLinks] = useState<ProfileLinks>({})
+  const [pub, setPub] = useState(false)
+  const [coursesPub, setCoursesPub] = useState(false)
+  const [scheduleFriends, setScheduleFriends] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!authUser) return
+    let alive = true
+    void supabase
+      .from('user_profile')
+      .select('profile_public, bio, courses_public, schedule_visibility, links')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!alive) return
+        const r = data as {
+          profile_public?: boolean
+          bio?: string
+          courses_public?: boolean
+          schedule_visibility?: string
+          links?: unknown
+        } | null
+        setPub(!!r?.profile_public)
+        setBio(r?.bio ?? '')
+        setCoursesPub(!!r?.courses_public)
+        setScheduleFriends(r?.schedule_visibility === 'friends')
+        setLinks(cleanLinks(r?.links))
+        setLoaded(true)
+      })
+    return () => {
+      alive = false
+    }
+  }, [authUser])
+
+  async function save() {
+    if (!authUser || saving) return
+    setSaving(true)
+    const trimmed = name.trim()
+    if (trimmed && trimmed !== user.name) updateProfile({ name: trimmed })
+    updatePrivacy({ bio: bio.trim(), profilePublic: pub })
+    // The three columns `updatePrivacy` predates. Failures are swallowed for
+    // the same reason the settings panel swallows them: an unrun migration
+    // should cost a field, not the dialog.
+    await supabase
+      .from('user_profile')
+      .update({
+        courses_public: coursesPub,
+        schedule_visibility: scheduleFriends ? 'friends' : 'private',
+        links: cleanLinks(links),
+      })
+      .eq('user_id', authUser.id)
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <ModalShell label="Edit profile" onClose={onClose} widthClass="sm:max-w-lg">
+      <div className="p-4 sm:p-5">
+        <h2 className="font-display text-[18px] font-medium text-fg">Edit profile</h2>
+        <p className="mt-0.5 text-[12px] text-subtle">
+          This is what a classmate sees at concordiatracker.com/@{user.handle}
+        </p>
+
+        {!loaded ? (
+          <p className="flex items-center gap-2 py-10 text-[13px] text-subtle">
+            <Loader2 size={15} className="animate-spin" aria-hidden />
+            Loading your profile
+          </p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <Field label="Display name">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={60}
+                placeholder="Your name"
+                className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors placeholder:text-subtle focus:border-accent"
+              />
+            </Field>
+
+            <Field label="Bio" hint="A line or two. 280 characters.">
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={280}
+                rows={3}
+                placeholder="A line or two about you…"
+                className="w-full resize-none rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors placeholder:text-subtle focus:border-accent"
+              />
+            </Field>
+
+            <Field label="Links" hint="A handle or a full URL both work.">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {LINK_FIELDS.map((f) => (
+                  <label key={f.key} className="block">
+                    <span className="mb-1 block text-[11px] text-subtle">{f.label}</span>
+                    <input
+                      value={links[f.key] ?? ''}
+                      onChange={(e) => setLinks((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      maxLength={200}
+                      className="w-full rounded-lg border border-border bg-canvas px-2.5 py-1.5 text-[12.5px] text-fg outline-none transition-colors placeholder:text-subtle focus:border-accent"
+                    />
+                  </label>
+                ))}
+              </div>
+            </Field>
+
+            <div className="space-y-1 rounded-xl border border-border bg-surface-2/40 p-1">
+              <Toggle
+                checked={pub}
+                onChange={setPub}
+                label="Public profile"
+                body="Off means the page exists only for you."
+              />
+              <Toggle
+                checked={coursesPub}
+                onChange={setCoursesPub}
+                label="Show my classes"
+                body="Code, title and term. Never a grade."
+              />
+              <Toggle
+                checked={scheduleFriends}
+                onChange={setScheduleFriends}
+                label="Let friends see my schedule"
+                body="Times and rooms, and only people whose request you accepted."
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border px-3 py-2 text-[13px] text-muted transition-colors duration-150 hover:text-fg"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={!loaded || saving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
+          >
+            {saving && <Loader2 size={13} className="animate-spin" aria-hidden />}
+            Save
+          </button>
+        </div>
+      </div>
+    </ModalShell>
+  )
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 flex items-baseline gap-2">
+        <span className="text-[12.5px] font-medium text-fg">{label}</span>
+        {hint && <span className="text-[11px] text-subtle">{hint}</span>}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+  body,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label: string
+  body: string
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] font-medium text-fg">{label}</span>
+        <span className="block text-[11px] leading-relaxed text-subtle">{body}</span>
+      </span>
+      <Switch checked={checked} onChange={onChange} label={label} />
+    </div>
+  )
+}

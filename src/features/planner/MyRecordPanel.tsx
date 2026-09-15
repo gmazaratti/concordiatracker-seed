@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, ClipboardPaste, ListChecks, Loader2, ShieldCheck } from 'lucide-react'
+import { CalendarPlus, ClipboardPaste, ListChecks, Loader2, Share2, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -22,6 +22,8 @@ import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
 import { ImportSemesterModal } from './ImportSemesterModal'
 import { PasteTranscriptModal } from './PasteTranscriptModal'
+import { RecordSheet } from './RecordSheet'
+import { useRecordSnapshot } from './useRecordSnapshot'
 
 /**
  * Your record, and what it opens up.
@@ -43,6 +45,8 @@ export function MyRecordPanel() {
   const [importTerm, setImportTerm] = useState<string | null>(null)
   const [recordComplete, setRecordComplete] = useState(false)
   const [pasting, setPasting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const snapshot = useRecordSnapshot()
 
   useEffect(() => {
     let alive = true
@@ -78,6 +82,30 @@ export function MyRecordPanel() {
 
   return (
     <div>
+      {/* Export sits at the TOP, not buried under step four. A record you can
+          only read inside the app is a record that has to be retyped into
+          every advising form and every scholarship application — and the
+          moment you want it is the moment you are looking at it. Hidden until
+          there is something to export, because a button that produces an empty
+          sheet is worse than no button. */}
+      {hasHistory && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5">
+          <p className="min-w-0 text-[12.5px] text-subtle">
+            {summary.credits} credits · {summary.courseCount} courses
+            {shownGpa === null ? '' : ` · GPA ${shownGpa.toFixed(2)}`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setExporting(true)}
+            disabled={!snapshot}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg disabled:opacity-60"
+          >
+            <Share2 size={13} aria-hidden />
+            Export or share
+          </button>
+        </div>
+      )}
+
       <Step
         n={1}
         title="Where you are"
@@ -277,6 +305,10 @@ export function MyRecordPanel() {
           credits={summary.credits}
         />
       </Step>
+
+      {exporting && snapshot && (
+        <RecordSheet snapshot={snapshot} own onClose={() => setExporting(false)} />
+      )}
 
       {pasting && <PasteTranscriptModal onClose={() => setPasting(false)} />}
 

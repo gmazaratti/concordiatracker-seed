@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 
@@ -68,6 +68,9 @@ export interface PublicProfileState {
   profile: PublicProfile | null
   courses: PublicCourse[]
   blueprints: PublicBlueprint[]
+  /** Re-read from the server — used after you edit your own profile, so the
+   *  page you are looking at shows the change without a reload. */
+  reload: () => void
 }
 
 /**
@@ -77,7 +80,9 @@ export interface PublicProfileState {
  * (the server returns nothing else). Works for signed-out visitors (anon).
  */
 export function usePublicProfile(handle: string): PublicProfileState {
-  const [state, setState] = useState<PublicProfileState>({
+  const [tick, setTick] = useState(0)
+  const reload = useCallback(() => setTick((n) => n + 1), [])
+  const [state, setState] = useState<Omit<PublicProfileState, 'reload'>>({
     loading: true,
     notFound: false,
     profile: null,
@@ -137,7 +142,7 @@ export function usePublicProfile(handle: string): PublicProfileState {
     return () => {
       active = false
     }
-  }, [handle])
+  }, [handle, tick])
 
-  return state
+  return { ...state, reload }
 }

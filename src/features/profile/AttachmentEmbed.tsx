@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   BookOpen,
   CalendarPlus,
+  GraduationCap,
   CalendarRange,
   ChevronLeft,
   Clock,
@@ -25,7 +26,9 @@ import { formatDueDateTime } from '@/lib/date'
 import { courseColor } from '@/lib/course-color'
 import type { Attachment, SharedClass } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { RecordSheet } from '@/features/planner/RecordSheet'
 import { colorForCodes, drawSchedule } from './schedule-image'
+import { themeSheet } from './sheet-palette'
 
 /**
  * What a sent thing looks like in a conversation.
@@ -66,9 +69,11 @@ export function AttachmentEmbed({
         >
           {event ? (
             <>
-              <div className="h-24 w-full">
-                <EventMedia event={event} variant="thumb" />
-              </div>
+              {/* `banner`, not `thumb`. A thumb is a FIXED 64px square, so
+                  inside a full-width box it drew a small tile in the corner
+                  with dead space beside it — which is what made these cards
+                  look broken. */}
+              <EventMedia event={event} variant="banner" className="h-24" />
               <div className="p-2.5">
                 <div className="flex items-center gap-1.5">
                   <OrgLogo org={event.org} className="size-4 shrink-0 rounded" />
@@ -138,6 +143,47 @@ export function AttachmentEmbed({
         {open && (
           <SchedulePreview attachment={attachment} mine={mine} onClose={() => setOpen(false)} />
         )}
+      </>
+    )
+  }
+
+  if (attachment.kind === 'record') {
+    const r = attachment.snapshot
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            'block w-full overflow-hidden rounded-xl border border-border bg-canvas p-2.5 text-left transition-transform duration-150 hover:scale-[1.01]',
+            !bare && 'mt-1.5',
+            bare && 'w-[264px] max-w-full',
+          )}
+        >
+          <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-fg">
+            <GraduationCap size={13} className="shrink-0 text-accent" aria-hidden />
+            <span className="min-w-0 truncate">{r.name}</span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-subtle">
+            {r.program ? `${r.program} · ` : ''}
+            {r.credits} credits · {r.courseCount} course{r.courseCount === 1 ? '' : 's'}
+          </p>
+          {/* The GPA is on the card because it is the number the person you
+              sent this to is looking for, and burying it behind a tap would
+              only make them open it to find out. */}
+          <p className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="font-display text-[17px] leading-none font-semibold text-fg">
+              {r.gpa === null ? '—' : r.gpa.toFixed(2)}
+            </span>
+            <span className="text-[10.5px] text-subtle">
+              {r.gpa === null ? 'no graded courses' : `GPA · ${r.gradedCredits} graded credits`}
+            </span>
+          </p>
+        </button>
+        {/* `own={false}` even on one you sent: this card is a snapshot from
+            the day it was sent, and a Send button on it would quietly attach
+            TODAY's record instead. Sending starts from the record itself. */}
+        {open && <RecordSheet snapshot={r} own={false} onClose={() => setOpen(false)} />}
       </>
     )
   }
@@ -247,12 +293,14 @@ function MiniWeek({ classes }: { classes: SharedClass[] }) {
  * yours to adopt wholesale, and the reason people screenshot these is to glance
  * at them later.
  */
-function SchedulePreview({
+export function SchedulePreview({
   attachment,
   mine,
   onClose,
 }: {
   attachment: Extract<Attachment, { kind: 'schedule' }>
+  /** Your own schedule — enables "open in the builder", which cannot open a
+   *  row you are not allowed to read. */
   mine: boolean
   onClose: () => void
 }) {
@@ -276,6 +324,10 @@ function SchedulePreview({
         ? `As of ${sent.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`
         : 'Shared on ConcordiaTracker',
       colorOf: colorForCodes(classes.map((c) => c.code)),
+      // Your theme, not a white sheet. What you save is then exactly what you
+      // were shown — a Save button that quietly produces a different picture
+      // is a worse surprise than a dark PNG.
+      palette: themeSheet(),
     })
   }, [attachment.name, classes, sent])
 
@@ -334,7 +386,7 @@ function SchedulePreview({
         <div className="mx-auto w-full max-w-4xl px-4 py-5">
           {/* The canvas is drawn at a fixed 900px and scaled DOWN to fit, so a
               phone gets the whole week rather than a horizontal scrollbar. */}
-          <div className="overflow-hidden rounded-xl border border-border bg-white p-2">
+          <div className="overflow-hidden rounded-xl border border-border bg-surface p-2">
             <canvas ref={canvasRef} className="block h-auto w-full" />
           </div>
 

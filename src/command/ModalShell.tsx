@@ -66,7 +66,12 @@ export function ModalShell({
 
   return (
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-center sm:p-4 sm:pb-4"
+      /* A plain dim, no backdrop-blur. Over a dense surface — a chat with an
+         event banner in it — a 4px blur reads as a rendering fault rather than
+         a material, and it forces the whole page behind the dialog to
+         re-composite for nothing. Dimming further does the same job and is
+         unambiguous. */
+      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-4 sm:pb-4"
       onMouseDown={onClose}
     >
       <div
@@ -82,15 +87,16 @@ export function ModalShell({
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        {/* A visible way out on touch. Desktop has Escape and a backdrop click;
-            on a phone neither is discoverable, and every modal was leaving
-            people to guess. It lives here so no individual modal has to
-            remember it. */}
+        {/* A visible way out, on EVERY size. It used to be `sm:hidden` on the
+            theory that desktop has Escape and a backdrop click — but neither is
+            visible, and "there is no close button" is the first thing people
+            say about these. A dialog that can be dismissed should look like it
+            can. It lives here so no individual modal has to remember it. */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg bg-surface-2/80 text-subtle backdrop-blur transition-colors duration-150 hover:text-fg sm:hidden"
+          className="absolute top-3 right-3 z-10 grid size-8 place-items-center rounded-lg bg-surface-2/90 text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
         >
           <X size={17} aria-hidden />
         </button>

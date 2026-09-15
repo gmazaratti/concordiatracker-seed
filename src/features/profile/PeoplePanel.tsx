@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Check, Clock, GraduationCap, Loader2 } from 'lucide-react'
+import { Check, Clock, GraduationCap, Loader2, Search, X } from 'lucide-react'
 import { Mascot } from '@/components/Mascot'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { OrgLogo } from '@/features/community/OrgLogo'
@@ -20,6 +20,8 @@ import {
 import { cn } from '@/lib/cn'
 import { Avatar, Chat } from './Chat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
+import { ScheduleAccess } from './ScheduleAccess'
+import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { founderFor } from './founders'
 
 /**
@@ -59,6 +61,10 @@ export function PeoplePanel() {
   const [active, setActive] = useState<Friend | null>(null)
   const [tick, setTick] = useState(0)
   const [menu, setMenu] = useState<PersonTarget | null>(null)
+  // Filters the thread list only. This is not the Community search — that one
+  // finds strangers; this one finds a conversation you already have, which is
+  // a different question and belongs on the list it narrows.
+  const [threadQuery, setThreadQuery] = useState('')
   const refresh = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
@@ -90,6 +96,13 @@ export function PeoplePanel() {
   }
 
   const accepted = (friends ?? []).filter((f) => f.status === 'accepted')
+  const q = threadQuery.trim().toLowerCase()
+  const shownThreads = q
+    ? accepted.filter(
+        (f) =>
+          f.handle.toLowerCase().includes(q) || (f.name ?? '').toLowerCase().includes(q),
+      )
+    : accepted
   const incoming = (friends ?? []).filter(
     (f) => f.status === 'pending' && f.direction === 'incoming',
   )
@@ -107,8 +120,14 @@ export function PeoplePanel() {
    */
   const attachParam = params.get('attach')
   const { events } = useCommunity()
+  const record = useRecordSnapshot()
   const initialAttachment = useMemo(() => {
     if (!attachParam) return undefined
+    // `record` carries no id: it is a snapshot built here, not a pointer to a
+    // row the recipient could never read.
+    if (attachParam === 'record') {
+      return record ? { kind: 'record' as const, snapshot: record } : undefined
+    }
     const [kind, ...rest] = attachParam.split(':')
     const id = rest.join(':')
     if (!id) return undefined
@@ -118,7 +137,7 @@ export function PeoplePanel() {
     }
     if (kind === 'course') return { kind: 'course' as const, code: id }
     return undefined
-  }, [attachParam, events])
+  }, [attachParam, events, record])
 
   const openChat = (f: Friend) => {
     setActive(f)
@@ -195,10 +214,44 @@ export function PeoplePanel() {
         >
           <aside
             className={cn(
-              'min-h-0 w-full shrink-0 border-border lg:w-72 lg:overflow-y-auto lg:border-r',
+              'relative min-h-0 w-full shrink-0 border-border lg:w-72 lg:overflow-y-auto lg:border-r',
               active && 'hidden lg:block',
             )}
           >
+            {/* Above the first name, inside the panel — where every messaging
+                app puts it, and where it is obviously scoped to the list under
+                it rather than to the whole page. Sticky, so it survives a long
+                thread list on desktop. */}
+            {accepted.length > 0 && (
+              <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-2 backdrop-blur-sm">
+                <div className="relative">
+                  <Search
+                    size={14}
+                    aria-hidden
+                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-subtle"
+                  />
+                  <input
+                    type="text"
+                    value={threadQuery}
+                    onChange={(e) => setThreadQuery(e.target.value)}
+                    placeholder="Search messages"
+                    aria-label="Search your conversations"
+                    className="w-full rounded-lg border border-transparent bg-surface-2 py-1.5 pr-7 pl-8 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+                  />
+                  {threadQuery && (
+                    <button
+                      type="button"
+                      aria-label="Clear"
+                      onClick={() => setThreadQuery('')}
+                      className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded text-subtle transition-colors duration-150 hover:text-fg"
+                    >
+                      <X size={12} aria-hidden />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {accepted.length === 0 ? (
               <div className="lg:p-4">
                 <Empty
@@ -206,9 +259,13 @@ export function PeoplePanel() {
                   body="Connections are two-way. Open a classmate's profile, send a request, and once they accept you can message them."
                 />
               </div>
+            ) : shownThreads.length === 0 ? (
+              <p className="px-3 py-8 text-center text-[12.5px] text-subtle">
+                No conversation matching “{threadQuery.trim()}”.
+              </p>
             ) : (
               <ul className="divide-y divide-border lg:divide-y-0">
-                {accepted.map((f) => (
+                {shownThreads.map((f) => (
                   <li
                     key={f.friendship_id}
                     className={cn(
@@ -270,6 +327,10 @@ export function PeoplePanel() {
                 >
                   View profile
                 </Link>
+                {/* "When are you free" is the single most asked question in
+                    these threads, so the answer to it belongs beside the
+                    conversation rather than one page away. */}
+                <ScheduleAccess handle={active.handle} name={active.name} compact />
               </aside>
             </>
           ) : (

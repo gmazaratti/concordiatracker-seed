@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { RecordSnapshot } from './record-export'
 
 /**
  * Friends and direct messages.
@@ -55,6 +56,14 @@ export type Attachment =
       hours?: number
     }
   | { kind: 'course'; code: string; title?: string; color?: string; credits?: number }
+  /**
+   * An academic record, SNAPSHOT not reference — for the same reason a
+   * schedule is. Your `past_courses` rows are select-own, so a reference to
+   * them is unreadable to whoever you sent it to. It is also the honest shape:
+   * "here is what I had finished as of today" is what you mean when you send
+   * this, and it should not silently change behind them.
+   */
+  | { kind: 'record'; snapshot: RecordSnapshot }
   | { kind: 'blueprint'; id: string; code: string }
   | { kind: 'event'; id: string; title: string }
 
@@ -191,6 +200,28 @@ export async function friendSchedule(handle: string): Promise<FriendCourse[]> {
   const { data, error } = await supabase.rpc('get_friend_schedule', { p_handle: handle })
   if (error) return []
   return (data ?? []) as FriendCourse[]
+}
+
+/**
+ * Ask someone to share their timetable.
+ *
+ * A plain message rather than a new "schedule request" table with its own
+ * state machine and its own notification: the answer to "can I see your
+ * schedule" is a conversation, and one already exists. The switch they need
+ * is named in the text so they are not left hunting for it.
+ *
+ * Messaging requires an accepted friendship (enforced by RLS, not here), so
+ * this returns the same honest failure `sendMessage` does when you are not
+ * connected — the button is not hidden on a guess about what the server will
+ * allow.
+ */
+export async function requestSchedule(handle: string): Promise<string | null> {
+  const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
+  if (!theirId) return `No one here has the handle @${handle}.`
+  return sendMessage(
+    theirId as string,
+    'Could you share your schedule? Settings → Privacy → "Let friends see my schedule" turns it on. Times and rooms only — never grades.',
+  )
 }
 
 export async function canSeeSchedule(handle: string): Promise<boolean> {

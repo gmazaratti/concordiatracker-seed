@@ -5,6 +5,7 @@ import {
   CalendarRange,
   Check,
   CheckCheck,
+  GraduationCap,
   Palette,
   PartyPopper,
   Plus,
@@ -31,6 +32,7 @@ import {
 import type { SectionOption } from '@/lib/seats'
 import { placeSections, weeklyHours } from '@/features/planner/schedule'
 import { AttachmentEmbed } from './AttachmentEmbed'
+import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { cn } from '@/lib/cn'
 
 /**
@@ -180,6 +182,10 @@ export function Chat({
    * an event out of the list mid-scroll.
    */
   const [now] = useState(() => Date.now())
+
+  // Built by the same hook the export sheet uses, so what you send and what
+  // you print cannot drift apart.
+  const record = useRecordSnapshot()
 
   /** This term, in the shape a sent schedule carries. */
   const currentClasses = useMemo(
@@ -440,6 +446,20 @@ export function Chat({
                   ))}
                 </AttachGroup>
 
+                {record && record.courseCount > 0 && (
+                  <AttachGroup label="Your record">
+                    <AttachRow
+                      icon={GraduationCap}
+                      label="My record"
+                      hint={`${record.credits} credits${record.gpa === null ? '' : ` · GPA ${record.gpa.toFixed(2)}`}`}
+                      onPick={() => {
+                        setPending({ kind: 'record', snapshot: record })
+                        setAttachOpen(false)
+                      }}
+                    />
+                  </AttachGroup>
+                )}
+
                 {attachables.term.length > 0 && (
                   <AttachGroup label="A class">
                     {attachables.term.map((c) => (
@@ -609,5 +629,6 @@ function describe(a: Attachment): string {
   if (a.kind === 'schedule') return `Schedule · ${a.name}`
   if (a.kind === 'course') return `Class · ${a.code}`
   if (a.kind === 'event') return `Event · ${a.title}`
+  if (a.kind === 'record') return `Record · ${a.snapshot.credits} credits`
   return `Outline · ${a.code}`
 }

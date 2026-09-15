@@ -888,6 +888,37 @@ html {
     --ct-accent-contrast: #ffffff;
     --ct-shadow: none;
   }
+
+  /* Printing a document that lives in a full-screen overlay.
+     `body.ct-printing` is set for the duration of the print call, and
+     everything that is not the overlay is removed from the page — otherwise a
+     printer gets the app behind it as page one. The overlay itself drops out
+     of `position: fixed` so it can paginate instead of printing exactly one
+     screenful. */
+  body.ct-printing > *:not(.ct-print-root) {
+    display: none !important;
+  }
+  .ct-print-root,
+  .ct-print-root * {
+    /* The overlay is a flex column with an inner `overflow-y-auto`, which in
+       print clips the document to exactly one screenful. Every scroll
+       container inside it has to open up, not just the root. */
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  .ct-print-root {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+  }
+  .ct-print-root .ct-print-hide {
+    display: none !important;
+  }
+  .ct-print-root .ct-print-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
 }
 
 /* ---- Mascot ----------------------------------------------------------------

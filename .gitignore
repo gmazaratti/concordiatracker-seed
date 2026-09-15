@@ -49,3 +49,4 @@ email-preview.html
 # Capacitor: the native project is generated, not authored (see .github/workflows/ios.yml)
 ios/
 android/
+.record-export.test.tmp.mjs

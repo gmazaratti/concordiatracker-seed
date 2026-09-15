@@ -48,11 +48,45 @@ function toMinutes(hhmm: string): number {
   return h * 60 + m
 }
 
+/**
+ * The six colours the sheet is drawn from.
+ *
+ * Passed IN rather than read from the document, so this module stays pure and
+ * the layout maths can still be checked without a browser. The caller decides
+ * whether that is the app's live theme or the light default below.
+ */
+export interface SchedulePalette {
+  /** The sheet itself. */
+  paper: string
+  /** Titles, class codes. */
+  ink: string
+  /** Times, rooms, the day row. */
+  inkSoft: string
+  /** Hour labels, the footer. */
+  inkFaint: string
+  /** Hour rules. */
+  rule: string
+  /** The vertical day separators — one step quieter than the hour rules. */
+  ruleSoft: string
+}
+
+/** The light sheet, used when no palette is given. */
+export const LIGHT_SHEET: SchedulePalette = {
+  paper: '#ffffff',
+  ink: '#111318',
+  inkSoft: '#4b5563',
+  inkFaint: '#9ca3af',
+  rule: '#e5e7eb',
+  ruleSoft: '#eceef1',
+}
+
 export interface DrawOptions {
   title: string
   subtitle: string
   /** Fixed hex per course code, so the image matches what is on screen. */
   colorOf: (code: string) => string
+  /** Defaults to the light sheet. */
+  palette?: SchedulePalette
 }
 
 /** Pixel size of the image this data would produce. */
@@ -82,16 +116,22 @@ export function drawSchedule(
   if (!ctx) return
   ctx.scale(dpr, dpr)
 
-  // A LIGHT sheet regardless of the app's theme. The image leaves the app and
-  // lands in a chat, a camera roll or a printout, and a dark PNG in a light
-  // thread reads as a mistake.
-  ctx.fillStyle = '#ffffff'
+  // The sheet used to be light REGARDLESS of the theme, on the reasoning that
+  // the PNG leaves the app. That was the wrong half of the trade: what you are
+  // looking at nine times out of ten is the preview, inside the app, and a
+  // white rectangle dropped into a dark screen reads as a page that failed to
+  // load. The palette is the caller's choice now, and the preview hands it the
+  // live theme — so the picture you save is the picture you were shown.
+  const pal = opts.palette ?? LIGHT_SHEET
+  const darkPaper = isDark(pal.paper)
+
+  ctx.fillStyle = pal.paper
   ctx.fillRect(0, 0, width, height)
 
-  ctx.fillStyle = '#111318'
+  ctx.fillStyle = pal.ink
   ctx.font = '600 22px Inter, system-ui, sans-serif'
   ctx.fillText(opts.title, PAD, PAD + 22)
-  ctx.fillStyle = '#6b7280'
+  ctx.fillStyle = pal.inkSoft
   ctx.font = '400 13px Inter, system-ui, sans-serif'
   ctx.fillText(opts.subtitle, PAD, PAD + 44)
 
@@ -101,7 +141,7 @@ export function drawSchedule(
   const colW = gridW / DAYS.length
 
   ctx.font = '600 12px Inter, system-ui, sans-serif'
-  ctx.fillStyle = '#374151'
+  ctx.fillStyle = pal.inkSoft
   DAYS.forEach((d, i) => {
     ctx.textAlign = 'center'
     ctx.fillText(d, gridLeft + colW * i + colW / 2, gridTop - 8)
@@ -109,10 +149,10 @@ export function drawSchedule(
   ctx.textAlign = 'left'
 
   // Hour rules and labels.
-  ctx.strokeStyle = '#e5e7eb'
+  ctx.strokeStyle = pal.rule
   ctx.lineWidth = 1
   ctx.font = '400 11px Inter, system-ui, sans-serif'
-  ctx.fillStyle = '#9ca3af'
+  ctx.fillStyle = pal.inkFaint
   for (let h = 0; h <= hours; h++) {
     const y = gridTop + h * ROW_H
     ctx.beginPath()
@@ -122,7 +162,7 @@ export function drawSchedule(
     const label = `${String(Math.floor((start + h * 60) / 60)).padStart(2, '0')}:00`
     ctx.fillText(label, PAD, y + 4)
   }
-  ctx.strokeStyle = '#eceef1'
+  ctx.strokeStyle = pal.ruleSoft
   for (let i = 1; i < DAYS.length; i++) {
     const x = gridLeft + colW * i
     ctx.beginPath()
@@ -142,17 +182,19 @@ export function drawSchedule(
       const w = colW - 6
       const hex = opts.colorOf(c.code)
 
-      ctx.fillStyle = `${hex}22`
+      // A 13% wash on a light sheet disappears on a dark one, so the block
+      // fill is stronger when the paper is dark.
+      ctx.fillStyle = `${hex}${darkPaper ? '3a' : '22'}`
       roundRect(ctx, x, top, w, h, 6)
       ctx.fill()
       ctx.fillStyle = hex
       roundRect(ctx, x, top, 3, h, 1.5)
       ctx.fill()
 
-      ctx.fillStyle = '#111318'
+      ctx.fillStyle = pal.ink
       ctx.font = '600 11.5px Inter, system-ui, sans-serif'
       ctx.fillText(clip(ctx, c.code, w - 14), x + 9, top + 15)
-      ctx.fillStyle = '#4b5563'
+      ctx.fillStyle = pal.inkSoft
       ctx.font = '400 10.5px Inter, system-ui, sans-serif'
       ctx.fillText(clip(ctx, `${slot.start}–${slot.end}`, w - 14), x + 9, top + 28)
       if (h > 42 && c.room) {
@@ -161,7 +203,7 @@ export function drawSchedule(
     }
   }
 
-  ctx.fillStyle = '#9ca3af'
+  ctx.fillStyle = pal.inkFaint
   ctx.font = '400 10.5px Inter, system-ui, sans-serif'
   ctx.fillText('concordiatracker.com', PAD, height - PAD + 8)
 }
@@ -202,4 +244,14 @@ export function colorForCodes(codes: string[]): (code: string) => string {
     if (!map.has(c)) map.set(c, COURSE_COLORS[i++ % COURSE_COLORS.length].hex)
   }
   return (code) => map.get(code) ?? '#647084'
+}
+
+/** Is this sheet dark? Relative luminance, same rule the theme derivation uses. */
+function isDark(hex: string): boolean {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  const n = Number.parseInt(full.slice(0, 6), 16)
+  if (!Number.isFinite(n)) return false
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128
 }
