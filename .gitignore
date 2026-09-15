@@ -57,5 +57,6 @@ android/
 .moodle-match.test.tmp.mjs
 .oauth-identity.test.tmp.mjs
 .signup-throttle.test.tmp.mjs
+.record-summary.test.tmp.mjs
 .email-templates/
 .ec.mjs

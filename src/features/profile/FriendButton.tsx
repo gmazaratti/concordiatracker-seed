@@ -167,19 +167,47 @@ export function FriendButton({
   }
 
   if (friend?.status === 'pending') {
+    /**
+     * A SENT REQUEST IS EXACTLY WHEN YOU WANT TO EXPLAIN YOURSELF.
+     *
+     * "Say why" used to live only in the not-yet-requested branch, so pressing
+     * Connect made the one thing that gets a request ACCEPTED disappear. The
+     * order people actually do this in is Connect, then realise a bare request
+     * from a stranger is easy to ignore — and by then the door was shut.
+     *
+     * The database already allows it (`send_message_request` refuses only on
+     * friendship, not on a pending request) and already enforces one per
+     * person, so this is the UI catching up with what the server permits.
+     */
     return (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void run(() => removeFriend(friend.friendship_id))}
-          title="Cancel this request"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
-        >
-          <Clock size={13} aria-hidden />
-          Requested
-        </button>
-        {follow}
+      <span className="flex flex-col gap-1">
+        <span className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(() => removeFriend(friend.friendship_id))}
+            title="Cancel this request"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg disabled:opacity-50"
+          >
+            <Clock size={13} aria-hidden />
+            Requested
+          </button>
+          <button
+            type="button"
+            onClick={() => setAsking((v) => !v)}
+            aria-expanded={asking}
+            title="Send one short message while they decide"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+          >
+            <MessageSquare size={13} aria-hidden />
+            Say why
+          </button>
+          {follow}
+        </span>
+        {asking && (
+          <RequestComposer handle={handle} onDone={(m) => { setAsking(!!m); setError(m) }} />
+        )}
+        {error && <span className="text-[11px] text-warning">{error}</span>}
       </span>
     )
   }
