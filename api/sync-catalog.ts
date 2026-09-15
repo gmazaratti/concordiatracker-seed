@@ -9,6 +9,7 @@
  * without anyone remembering to press a button.
  */
 import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
+import { syncOutlines } from './_sync-outlines.js'
 import { fail } from './_respond.js'
 
 /**
@@ -49,7 +50,25 @@ function toRow(c: CatalogRow, description: string | null) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
+  /**
+   * TWO JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline sync
+   * (api/_sync-outlines.ts) instead of the catalogue mirror.
+   *
+   * Not a design preference: Hobby allows 12 Serverless Functions per
+   * deployment and we were at the ceiling, so a thirteenth file failed the
+   * WHOLE deploy — production quietly served a stale build for days. Merging
+   * the two cron jobs costs nothing (they never run together) and keeps the
+   * existing `/api/sync-catalog` URL working, so the pg_cron job already in
+   * the database does not need editing. If this ever moves to Pro, the tidy
+   * version is one `/api/cron?job=` endpoint.
+   */
+  if (req.query?.job === 'outlines') {
+    await syncOutlines(req, res)
+    return
+  }
+
+  // GET as well as POST: Vercel Cron issues GET and signs it with CRON_SECRET.
+  if (req.method !== 'POST' && req.method !== 'GET') {
     fail(res, 405, 'Method not allowed')
     return
   }

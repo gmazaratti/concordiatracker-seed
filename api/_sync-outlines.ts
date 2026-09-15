@@ -1,5 +1,13 @@
 /**
- * POST /api/sync-outlines — seed verified blueprints from eConcordia.
+ * Seed verified blueprints from eConcordia.
+ *
+ * NOT its own route. Vercel's Hobby plan allows 12 Serverless Functions per
+ * deployment and this repo was already at the ceiling — adding a thirteenth
+ * made every deploy fail with `deploy_failed`, which is why production sat on
+ * an old build for days without anything looking wrong. So this is a MODULE
+ * (the leading underscore keeps Vercel from routing it) and `sync-catalog`
+ * dispatches to it: two cron jobs that both keep a mirror fresh, behind one
+ * function. Reached at `/api/sync-catalog?job=outlines`.
  *
  * Gated by CRON_SECRET like the other jobs. Two phases, both in one call:
  *
@@ -47,8 +55,6 @@ import {
 } from './_outline-extract.js'
 import { fail } from './_respond.js'
 
-export const config = { maxDuration: 60 }
-
 /** PDFs per run. Each is a GET plus, when it changed, one model call. */
 const BATCH = 6
 
@@ -68,7 +74,7 @@ interface SourceRow {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function handler(req: any, res: any) {
+export async function syncOutlines(req: any, res: any) {
   /**
    * GET as well as POST, because **Vercel Cron sends GET** — and that is how
    * this job is scheduled now. Vercel attaches `Authorization: Bearer

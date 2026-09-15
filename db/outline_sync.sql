@@ -82,7 +82,7 @@ grant execute on function public.outline_coverage() to authenticated;
 do $outer$
 declare
   v_secret text;
-  v_url    text := 'https://concordiatracker.com/api/sync-outlines';
+  v_url    text := 'https://concordiatracker.com/api/sync-catalog?job=outlines';
   v_has_cron boolean;
 begin
   -- pg_cron may not be installed on this project at all.
@@ -151,7 +151,7 @@ $outer$;
 --     '20 */6 * * *',
 --     $job$
 --     select net.http_post(
---       url     := 'https://concordiatracker.com/api/sync-outlines',
+--       url     := 'https://concordiatracker.com/api/sync-catalog?job=outlines',
 --       headers := jsonb_build_object('Content-Type', 'application/json',
 --                                     'Authorization', 'Bearer PASTE_SECRET_HERE'),
 --       body    := '{}'::jsonb

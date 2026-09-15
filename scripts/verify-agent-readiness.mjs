@@ -25,7 +25,7 @@
  * excludes hyphens and dots, so a probe like /some-path-that-does-not-exist
  * cannot be mistaken for a profile.
  */
-import { readFile, access } from 'node:fs/promises'
+import { readdir, readFile, access } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -233,16 +233,34 @@ section('JSON error responses')
   for (const field of ['code', 'message', 'hint', 'status', 'docs']) {
     check(`error body includes ${field}`, new RegExp(`${field}[?]?:`).test(respond))
   }
-  const catchAll = path.join(ROOT, 'api', '[...path].ts')
-  check('there is an /api catch-all', existsSync(catchAll))
-  if (existsSync(catchAll)) {
-    // Checked at source level: this module imports './_respond.js', which only
-    // resolves under a TypeScript-aware build, so it cannot simply be imported
-    // here. `tsc -p api` covers the compile; this covers the behaviour.
-    const src = await readFile(catchAll, 'utf8')
-    check('the catch-all answers 404', /fail\(res,\s*404/.test(src))
-    check('the catch-all points at the spec', /openapi\.json/.test(src))
-  }
+  /**
+   * The /api catch-all is a REWRITE, not a file.
+   *
+   * `api/[...path].ts` used to do this, and it was redundant: vercel.json
+   * already sends `/api/:path*` to `/api/not-found?json=1`, and Vercel matches
+   * concrete function files before it applies a rewrite, so a real endpoint
+   * always wins. It was deleted to get under the Hobby plan's 12-function
+   * ceiling, which every deploy had been silently failing against.
+   *
+   * What matters is the BEHAVIOUR, so that is what is asserted — and
+   * verify-routing.mjs proves the rewrite actually matches.
+   */
+  const vercel = JSON.parse(await readFile(path.join(ROOT, 'vercel.json'), 'utf8'))
+  const apiCatchAll = vercel.rewrites.find((r) => r.source === '/api/:path*')
+  check('unknown /api paths are rewritten, not left to Vercel', !!apiCatchAll)
+  check(
+    'and they go somewhere that answers JSON',
+    !!apiCatchAll && /not-found\?json=1/.test(apiCatchAll.destination),
+  )
+  const nf = await readFile(path.join(ROOT, 'api', 'not-found.ts'), 'utf8')
+  check('the not-found handler answers 404', /404/.test(nf))
+  check('and points at the spec', /openapi\.json|sitemap/.test(nf))
+
+  // The function ceiling itself, so this cannot creep back silently.
+  const fns = (await readdir(path.join(ROOT, 'api'))).filter(
+    (f) => f.endsWith('.ts') && !f.startsWith('_') && f !== 'tsconfig.json',
+  )
+  check(`api has ${fns.length} serverless functions (Hobby allows 12)`, fns.length <= 12, fns.join(' '))
 }
 
 /* ── 5. Markdown content negotiation ──────────────────────────────────────── */

@@ -132,7 +132,7 @@
   ],
   "crons": [
     {
-      "path": "/api/sync-outlines",
+      "path": "/api/sync-catalog?job=outlines",
       "schedule": "20 4 * * *"
     }
   ]
