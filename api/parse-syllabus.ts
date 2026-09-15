@@ -10,6 +10,8 @@
  * VITE_-prefixed), so it never reaches the browser bundle. Runs on the Edge
  * runtime — fetch / Request / Response / btoa are all standard, no Node deps.
  */
+import { pdfText } from './_econcordia'
+
 export const config = { runtime: 'edge' }
 
 const GEMINI_MODEL = 'gemini-2.5-flash'
@@ -227,6 +229,35 @@ export default async function handler(req: Request): Promise<Response> {
     await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
   }
 
+  /**
+   * 3b. Read the PDF OURSELVES first.
+   *
+   * THIS is why a 478KB outline timed out: handing Gemini the raw PDF makes it
+   * do the document parsing as well as the extraction, and on a long syllabus
+   * that alone outruns the platform's ceiling. We already own a text extractor
+   * (`pdfText`, the one behind the eConcordia sync — 44 of 45 real outlines
+   * come out clean), it is pure string work, and it costs no model time.
+   *
+   * The PDF is still the fallback, because a scanned document has no text
+   * layer at all and only the model can read it. So: text when we have it,
+   * pixels when we do not — never a failure just because the fast path missed.
+   */
+  let extracted = ''
+  try {
+    extracted = (await pdfText(new Uint8Array(buf))).trim()
+  } catch {
+    extracted = '' // an unreadable structure is not an error, it is the fallback
+  }
+  // Under ~400 chars means we got headers and no body — a scan, or a font we
+  // cannot map. The same threshold the outline sync uses for the same reason.
+  const useText = extracted.length >= 400
+  const parts = useText
+    ? [{ text: `${PROMPT}
+
+--- SYLLABUS TEXT ---
+${extracted.slice(0, 120_000)}` }]
+    : [{ inlineData: { mimeType, data: toBase64(buf) } }, { text: PROMPT }]
+
   // 4. Ask Gemini to extract, constrained to the schema.
   //
   // BOUNDED ON OUR SIDE. The platform kills an Edge function that runs past its
@@ -244,14 +275,7 @@ export default async function handler(req: Request): Promise<Response> {
         signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { inlineData: { mimeType, data: toBase64(buf) } },
-                { text: PROMPT },
-              ],
-            },
-          ],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0,
             responseMimeType: 'application/json',
@@ -262,7 +286,8 @@ export default async function handler(req: Request): Promise<Response> {
     )
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError'
-    await release(timedOut ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${buf.byteLength} bytes)` : `fetch failed: ${(err as Error)?.message ?? 'unknown'}`)
+    const how = useText ? `text:${extracted.length}ch` : `pdf:${buf.byteLength}b`
+    await release(timedOut ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${how})` : `fetch failed (${how}): ${(err as Error)?.message ?? 'unknown'}`)
     return json(
       {
         error: timedOut
@@ -278,7 +303,7 @@ export default async function handler(req: Request): Promise<Response> {
     // Logged server-side too: the message a student sees has to be short, and
     // the one we need to debug with does not.
     console.error('[parse-syllabus] gemini', gemini.status, body.slice(0, 400))
-    await release(`gemini ${gemini.status}: ${body.slice(0, 200)}`)
+    await release(`gemini ${gemini.status} (${useText ? 'text' : 'pdf'}): ${body.slice(0, 200)}`)
     return json({ error: geminiReason(gemini.status, body) }, gemini.status === 429 ? 429 : 502)
   }
 

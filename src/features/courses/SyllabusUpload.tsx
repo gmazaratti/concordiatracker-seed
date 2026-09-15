@@ -104,6 +104,9 @@ export function SyllabusUploadPage({
   const [items, setItems] = useState<ReviewItem[]>([])
   const [saving, setSaving] = useState(false)
   const [usage, setUsage] = useState<ParseUsage | null>(null)
+  // The scanning card used to say "syllabus.pdf" whatever you dropped on it,
+  // which reads as a mock-up rather than your file being read.
+  const [fileName, setFileName] = useState('')
   const u = usage ? usageState(usage) : null
 
   useEffect(() => {
@@ -121,6 +124,7 @@ export function SyllabusUploadPage({
       setPhase('error')
       return
     }
+    setFileName(file.name)
     setPhase('parsing')
     setError('')
     try {
@@ -285,7 +289,7 @@ export function SyllabusUploadPage({
           </p>
         </>
       )}
-      {phase === 'parsing' && <Scanning />}
+      {phase === 'parsing' && <Scanning fileName={fileName} />}
       {phase === 'error' && (
         <div className="mt-6 rounded-2xl border border-danger/40 bg-danger/5 p-6 text-center">
           <AlertTriangle size={24} className="mx-auto text-danger" aria-hidden />
@@ -351,7 +355,19 @@ export function SyllabusUploadPage({
                 </p>
               )}
 
-              <ul className="space-y-1.5">
+              {/* A 20-item outline used to run the page metres long, pushing the
+                  Add button off-screen and making the weight total — the number
+                  you are checking — scroll away. The list gets its own scroll
+                  region above ~8 items; under that it sits in flow, because a
+                  scrollbar around four rows is noise. `overscroll-contain` stops
+                  the page lurching when you reach the end of it. */}
+              <ul
+                className={cn(
+                  'space-y-1.5',
+                  items.length > 8 &&
+                    'max-h-[min(58vh,520px)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface/30 p-2',
+                )}
+              >
                 {items.map((it, i) => (
                   <li key={it.id}>
                     <ReviewRow item={it} onPatch={(p) => patch(it.id, p)} onRemove={() => remove(it.id)} />
@@ -447,7 +463,7 @@ function DropZone({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
   )
 }
 
-function Scanning() {
+function Scanning({ fileName }: { fileName: string }) {
   return (
     <div className="mt-6 rounded-2xl border border-border bg-surface p-5">
       <MascotLoading
@@ -457,7 +473,10 @@ function Scanning() {
       />
       <div className="relative mt-3 overflow-hidden rounded-lg border border-border bg-canvas/50 p-4 font-mono text-[11px] leading-relaxed text-subtle">
         <div className="flex items-center gap-1.5 text-muted">
-          <FileText size={13} aria-hidden /> syllabus.pdf
+          <FileText size={13} className="shrink-0" aria-hidden />
+          <span className="truncate" title={fileName}>
+            {fileName || 'your syllabus'}
+          </span>
         </div>
         <div className="mt-2 space-y-1.5">
           {[88, 72, 94, 60, 80, 68].map((w, i) => (

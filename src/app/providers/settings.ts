@@ -1,7 +1,13 @@
 import { createContext, useContext } from 'react'
 
 /** The five settings panes (Claude-desktop-style left nav). */
-export type SettingsSection = 'general' | 'account' | 'privacy' | 'billing' | 'usage'
+export type SettingsSection =
+  | 'general'
+  | 'account'
+  | 'moodle'
+  | 'privacy'
+  | 'billing'
+  | 'usage'
 
 export interface SettingsContextValue {
   open: boolean

@@ -10,6 +10,7 @@
  */
 import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
 import { syncOutlines } from './_sync-outlines.js'
+import { syncMoodle } from './_sync-moodle.js'
 import { fail } from './_respond.js'
 
 /**
@@ -51,8 +52,9 @@ function toRow(c: CatalogRow, description: string | null) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   /**
-   * TWO JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline sync
-   * (api/_sync-outlines.ts) instead of the catalogue mirror.
+   * THREE JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline
+   * sync (api/_sync-outlines.ts) and `?job=moodle` refreshes every connected
+   * Moodle calendar (api/_sync-moodle.ts), instead of the catalogue mirror.
    *
    * Not a design preference: Hobby allows 12 Serverless Functions per
    * deployment and we were at the ceiling, so a thirteenth file failed the
@@ -64,6 +66,10 @@ export default async function handler(req: any, res: any) {
    */
   if (req.query?.job === 'outlines') {
     await syncOutlines(req, res)
+    return
+  }
+  if (req.query?.job === 'moodle') {
+    await syncMoodle(req, res)
     return
   }
 

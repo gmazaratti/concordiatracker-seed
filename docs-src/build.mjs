@@ -199,11 +199,22 @@ for (const page of pages) {
 }
 const bodyText = { length: thinnest }
 
+// The OpenAPI document is a CONSTANT — no env, no request, nothing derived at
+// call time — so serving it from a serverless function bought nothing and cost
+// one of the twelve slots the Hobby plan allows. Written to disk instead: it
+// caches at the edge, has no cold start, and the slot went to Moodle sync.
+const { OPENAPI } = await import('../api/_openapi.ts')
+const specJson = JSON.stringify(OPENAPI, null, 2)
+await mkdir(path.join(DIST, '.well-known'), { recursive: true })
+await writeFile(path.join(DIST, 'openapi.json'), specJson)
+await writeFile(path.join(DIST, '.well-known', 'openapi.json'), specJson)
+
 const agent = await buildAgentPages({ dist: DIST, pages })
 
 console.log(
   `[docs] ${written} pages → dist/docs/  ·  sitemap ${staticUrls.length + docUrls.length} urls  ·  llms.txt  ·  thinnest page ${bodyText.length} chars of body text`,
 )
+console.log(`[spec] openapi.json + .well-known/openapi.json (${specJson.length} bytes)`)
 console.log(
   `[agents] ${agent.written.length} files -> about, contact, developers, index.md, ${pages.length} doc markdown pages, ${agent.legalOk}/${agent.legalTotal} legal pages prerendered`,
 )

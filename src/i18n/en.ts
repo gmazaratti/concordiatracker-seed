@@ -118,6 +118,7 @@ export const en = {
   // ── Settings ──────────────────────────────────────────────────────────────
   'settings.general': 'General',
   'settings.account': 'Account',
+  'settings.moodle': 'Moodle',
   'settings.privacy': 'Privacy',
   'settings.billing': 'Billing',
   'settings.usage': 'Usage',

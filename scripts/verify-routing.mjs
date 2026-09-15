@@ -160,8 +160,21 @@ for (const [r, expected] of [
 }
 
 console.log('\nThe spec')
-check('/openapi.json → the spec handler', resolve('/openapi.json') === '/api/openapi')
-check('/.well-known/openapi.json → the spec handler', resolve('/.well-known/openapi.json') === '/api/openapi')
+// The spec used to be served by a serverless function. It is a CONSTANT, so
+// the docs build writes it to disk instead - which freed one of the twelve
+// Hobby function slots for Moodle sync. Vercel consults the filesystem BEFORE
+// rewrites, so what matters now is that nothing rewrites these paths away from
+// the real files, and that the build actually produced them.
+// Both DO match the `/:path*` catch-all, exactly as llms.txt and sitemap.xml
+// do, and are served anyway because Vercel consults the filesystem before it
+// applies a rewrite. So the thing to assert is that the build produced them.
+check(
+  'they are in the same position as the other static files',
+  resolve('/openapi.json') === resolve('/llms.txt'),
+  `openapi ${resolve('/openapi.json')} vs llms ${resolve('/llms.txt')}`,
+)
+check('the build emits openapi.json', isStatic('/openapi.json'))
+check('and .well-known/openapi.json', isStatic('/.well-known/openapi.json'))
 
 console.log('\nPublic profiles')
 // The app route is `/@handle`, and the rewrite pattern was written from

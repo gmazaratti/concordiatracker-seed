@@ -2,14 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/openapi.json",
-      "destination": "/api/openapi"
-    },
-    {
-      "source": "/.well-known/openapi.json",
-      "destination": "/api/openapi"
-    },
-    {
       "source": "/docs",
       "destination": "/docs/index.html"
     },
@@ -112,7 +104,7 @@
       ]
     },
     {
-      "source": "/(llms.txt|sitemap.xml|openapi.json)",
+      "source": "/(llms.txt|sitemap.xml|openapi.json|.well-known/openapi.json)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -134,6 +126,10 @@
     {
       "path": "/api/sync-catalog?job=outlines",
       "schedule": "20 4 * * *"
+    },
+    {
+      "path": "/api/sync-catalog?job=moodle",
+      "schedule": "10 5 * * *"
     }
   ]
 }

@@ -124,6 +124,7 @@ export const fr: Partial<Record<Key, string>> = {
   // ── Settings ──────────────────────────────────────────────────────────────
   'settings.general': 'Général',
   'settings.account': 'Compte',
+  'settings.moodle': 'Moodle',
   'settings.privacy': 'Confidentialité',
   'settings.billing': 'Facturation',
   'settings.usage': 'Utilisation',
