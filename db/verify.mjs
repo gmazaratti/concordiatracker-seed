@@ -308,6 +308,28 @@ check('and the four-digit course is found under its own code',
 check('a course never unlocks itself',
   opened.some((r) => `${r.subject}${r.catalog}` === 'COMP248'), false)
 
+console.log(String.fromCharCode(10) + 'db/outline_sync.sql')
+/**
+ * This one is here because it FAILED IN PRODUCTION on a fresh project: the
+ * scheduling block raised when it could not find an existing cron job to read
+ * CRON_SECRET from, which aborted the migration and left the tables uncreated.
+ * A schema must not be blocked by a scheduling convenience. PGlite has no
+ * pg_cron, so running it here is exactly that scenario.
+ */
+await db.exec('create table if not exists public.shared_blueprints (id uuid primary key default gen_random_uuid(), course_code text);')
+await db.exec(migration('outline_sync.sql'))
+check(
+  'the tables exist even with no pg_cron',
+  (await db.query("select count(*)::int n from information_schema.tables where table_name = 'outline_sources'")).rows[0].n,
+  1,
+)
+check(
+  'source_url is added to shared_blueprints',
+  (await db.query("select count(*)::int n from information_schema.columns where table_name = 'shared_blueprints' and column_name = 'source_url'")).rows[0].n,
+  1,
+)
+check('outline_coverage() runs on an empty ledger', (await db.query('select * from public.outline_coverage()')).rows.length, 0)
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

@@ -66,38 +66,65 @@ language sql security definer set search_path = public stable as $$
 $$;
 grant execute on function public.outline_coverage() to authenticated;
 
--- ── Schedule ────────────────────────────────────────────────────────────────
--- Same pattern as db/sync_catalog_cron.sql: the secret is lifted out of the
--- reminders job rather than pasted through a terminal.
+-- ── Schedule (OPTIONAL — this file is useful without it) ────────────────────
 --
--- Cadence: every 6 hours. Each run discovers the catalogue and then parses a
--- SMALL BATCH, because 45 PDFs through a model does not fit in one function
--- invocation. At the start of a term that converges over a day; for the rest
--- of it the same schedule is the weekly-ish re-check the brief asks for, since
--- an unchanged PDF costs one GET and stops.
-create extension if not exists pg_cron;
-create extension if not exists pg_net;
+-- The schema above is the part that matters: it is what /api/sync-outlines and
+-- db/outlines_econcordia_fall2026.sql need. Scheduling is a convenience on top.
+--
+-- An earlier version of this file RAISED when it could not find CRON_SECRET,
+-- which aborted the whole migration — so a missing cron job stopped the tables
+-- from being created at all. That was backwards. It now reports and skips, and
+-- everything above is already committed by the time it runs.
+--
+-- The secret is lifted out of an existing job rather than pasted through a
+-- terminal. If no job carries one, see "SCHEDULE BY HAND" at the bottom.
 
 do $outer$
 declare
   v_secret text;
   v_url    text := 'https://concordiatracker.com/api/sync-outlines';
+  v_has_cron boolean;
 begin
+  -- pg_cron may not be installed on this project at all.
+  select exists (select 1 from pg_extension where extname = 'pg_cron') into v_has_cron;
+  if not v_has_cron then
+    begin
+      create extension if not exists pg_cron;
+      create extension if not exists pg_net;
+      v_has_cron := true;
+    exception when others then
+      raise notice 'SKIPPED scheduling: pg_cron is not available here (%). The tables above are created; run the sync from Vercel Cron or by hand.', sqlerrm;
+      return;
+    end;
+  end if;
+
+  -- Any of our jobs will do — whichever one exists carries the same secret.
   select substring(j.command from 'Bearer ([^'']+)')
     into v_secret
   from cron.job j
-  where j.jobname = 'ct-run-reminders'
+  where j.command like '%Bearer %'
+  order by (j.jobname = 'ct-run-reminders') desc
   limit 1;
 
   if v_secret is null then
-    raise exception
-      'Could not read CRON_SECRET from the ct-run-reminders job. Run db/reminders.sql first, or schedule this by hand with the secret from Vercel.';
+    raise notice '────────────────────────────────────────────────────────────';
+    raise notice 'TABLES CREATED. Scheduling SKIPPED: no existing cron job to read CRON_SECRET from.';
+    raise notice 'Nothing is broken — /api/sync-outlines just will not fire on its own yet.';
+    raise notice 'To schedule it, copy the SCHEDULE BY HAND block at the bottom of this';
+    raise notice 'file and paste your CRON_SECRET from Vercel into it.';
+    raise notice 'Existing jobs right now: %', coalesce((select string_agg(jobname, ', ') from cron.job), '(none)');
+    raise notice '────────────────────────────────────────────────────────────';
+    return;
   end if;
 
   if exists (select 1 from cron.job where jobname = 'ct-sync-outlines') then
     perform cron.unschedule('ct-sync-outlines');
   end if;
 
+  -- Every 6 hours. Each run discovers the catalogue and parses a SMALL BATCH,
+  -- because 45 PDFs through a model does not fit in one function invocation.
+  -- At the start of a term that converges over a day; for the rest of it the
+  -- same schedule is the re-check, since an unchanged PDF costs one GET.
   perform cron.schedule(
     'ct-sync-outlines',
     '20 */6 * * *',
@@ -111,9 +138,28 @@ begin
       );
       $job$, v_url, v_secret)
   );
+  raise notice 'Scheduled ct-sync-outlines (every 6 hours).';
 end
 $outer$;
+
+-- ── SCHEDULE BY HAND ────────────────────────────────────────────────────────
+-- Only needed if the block above said it skipped. Replace PASTE_SECRET_HERE
+-- with CRON_SECRET from your Vercel environment variables, uncomment, run.
+--
+--   select cron.schedule(
+--     'ct-sync-outlines',
+--     '20 */6 * * *',
+--     $job$
+--     select net.http_post(
+--       url     := 'https://concordiatracker.com/api/sync-outlines',
+--       headers := jsonb_build_object('Content-Type', 'application/json',
+--                                     'Authorization', 'Bearer PASTE_SECRET_HERE'),
+--       body    := '{}'::jsonb
+--     );
+--     $job$
+--   );
 
 -- Check:
 --   select * from public.outline_coverage();
 --   select status, count(*) from public.outline_sources group by 1;
+--   select jobname, schedule from cron.job;            -- is it scheduled?
