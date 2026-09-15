@@ -280,7 +280,7 @@ export const fr: Partial<Record<Key, string>> = {
   'pricing.paid1': 'Tout ce qui est inclus dans Gratuit',
   'pricing.paid2': 'Simulateur et projections de moyenne',
   'pricing.paid3': 'Votre position pour toute la session, tous cours confondus',
-  'pricing.paid4': 'Gagnez des crédits de thème en partageant vos plans',
+  'pricing.paid4': 'Tous les thèmes, couleurs personnalisées comprises',
 
   'onboarding.welcomeHead': 'Ne devinez plus vos',
   'onboarding.welcomeHeadAccent': 'échéances',

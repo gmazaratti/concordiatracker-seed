@@ -370,6 +370,39 @@ check(
   1,
 )
 
+/**
+ * stats_and_terms.sql - the term normaliser.
+ *
+ * This one has a TWIN in TypeScript (`src/lib/term.ts`). Writes go through the
+ * TS one and the backfill through the SQL one, so if they ever disagree the
+ * database ends up with exactly the split spellings the migration exists to
+ * remove. The expectations below are the same ones `src/lib/term.test.mjs`
+ * asserts of the TS side, on purpose: that is what keeps the two in step.
+ */
+console.log('\ndb/stats_and_terms.sql')
+const termSql = fs.readFileSync(path.join(DB_DIR, 'stats_and_terms.sql'), 'utf8')
+await db.exec(
+  termSql.slice(
+    termSql.indexOf('create or replace function public.ct_normalize_term'),
+    termSql.indexOf('-- Preview before it changes anything:'),
+  ),
+)
+const norm = async (t) =>
+  (await db.query('select public.ct_normalize_term($1) as t', [t])).rows[0].t
+
+check('SHOUTING is fixed', await norm('FALL 2026'), 'Fall 2026')
+check('and lower case', await norm('fall 2026'), 'Fall 2026')
+check('French seasons map to English', await norm('Automne 2026'), 'Fall 2026')
+check('Hiver too', await norm('Hiver 2027'), 'Winter 2027')
+check('accented ete', await norm('été 2026'), 'Summer 2026')
+check('a slash separator still parses', await norm('Fall/2026'), 'Fall 2026')
+check('extra whitespace collapses', await norm('  Fall   2026  '), 'Fall 2026')
+check('unparseable text survives, trimmed', await norm('  Intersession 2026 '), 'Intersession 2026')
+check('a trailing qualifier is left alone', await norm('Fall 2026 (evening)'), 'Fall 2026 (evening)')
+check('empty stays empty', await norm(''), '')
+check('null is safe', await norm(null), null)
+check('running it twice changes nothing', await norm(await norm('AUTOMNE 2026')), 'Fall 2026')
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

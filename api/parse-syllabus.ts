@@ -14,6 +14,8 @@ export const config = { runtime: 'edge' }
 
 const GEMINI_MODEL = 'gemini-2.5-flash'
 const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny; bounds Edge body + quota
+/** Abort the model before the platform aborts us, so the error is ours to word. */
+const MODEL_TIMEOUT_MS = 20_000
 
 const PROMPT = `You are an expert at reading university course syllabi and extracting the graded assessment schedule. You will receive a course syllabus as a PDF. Extract the course identity and EVERY graded assessment into the exact JSON schema provided.
 
@@ -215,19 +217,31 @@ export default async function handler(req: Request): Promise<Response> {
    * sense of still keeps the attempt — it burned a real call — but the DB now
    * charges 20s for that rather than 180.)
    */
-  const release = async () => {
-    if (slot?.event_id) {
-      await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
-    }
+  const release = async (reason: string) => {
+    if (!slot?.event_id) return
+    // Record the reason FIRST. `cancel_parse` used to delete the row, which
+    // threw away the only evidence of what went wrong — a 32% failure rate
+    // that was impossible to diagnose. It now marks the row refunded instead,
+    // so the cooldown is excused and the reason survives.
+    await callRpc('fail_parse', { p_event: slot.event_id, p_error: reason }, supabaseUrl, supabaseAnon, token)
+    await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
   }
 
   // 4. Ask Gemini to extract, constrained to the schema.
+  //
+  // BOUNDED ON OUR SIDE. The platform kills an Edge function that runs past its
+  // limit, and when it does it answers with an HTML gateway page: no JSON, so
+  // the browser shows a generic message, and no code of ours runs, so the
+  // attempt is never handed back and the student is left with a cooldown for a
+  // failure they did not cause. That is exactly the "it failed and didn't say
+  // why" report. Aborting first means the failure is ours to describe.
   let gemini: Response
   try {
     gemini = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
+        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [
@@ -246,9 +260,17 @@ export default async function handler(req: Request): Promise<Response> {
         }),
       },
     )
-  } catch {
-    await release()
-    return json({ error: 'Could not reach the parser. Try again — this one is on us.' }, 502)
+  } catch (err) {
+    const timedOut = (err as Error)?.name === 'TimeoutError'
+    await release(timedOut ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${buf.byteLength} bytes)` : `fetch failed: ${(err as Error)?.message ?? 'unknown'}`)
+    return json(
+      {
+        error: timedOut
+          ? 'That file took too long to read. A shorter PDF — just the outline pages — usually goes through. This attempt didn’t count against you.'
+          : 'Could not reach the parser. Try again — this one is on us.',
+      },
+      timedOut ? 504 : 502,
+    )
   }
 
   if (!gemini.ok) {
@@ -256,7 +278,7 @@ export default async function handler(req: Request): Promise<Response> {
     // Logged server-side too: the message a student sees has to be short, and
     // the one we need to debug with does not.
     console.error('[parse-syllabus] gemini', gemini.status, body.slice(0, 400))
-    await release()
+    await release(`gemini ${gemini.status}: ${body.slice(0, 200)}`)
     return json({ error: geminiReason(gemini.status, body) }, gemini.status === 429 ? 429 : 502)
   }
 
@@ -266,7 +288,7 @@ export default async function handler(req: Request): Promise<Response> {
   const text = result.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) {
     // The model answered with nothing at all — that is us, not the document.
-    await release()
+    await release('model returned no text (empty candidates)')
     return json(
       { error: 'The parser came back empty. Try again; if it keeps happening, send us the file.' },
       502,
@@ -277,7 +299,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     parsed = JSON.parse(text)
   } catch {
-    await release()
+    await release(`model returned non-JSON: ${text.slice(0, 200)}`)
     return json({ error: 'The parser returned something we could not read. Try again.' }, 502)
   }
   // Count this as a successful parse (toward the monthly cap) — only if a slot

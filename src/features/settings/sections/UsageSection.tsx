@@ -33,7 +33,7 @@ function buildMeters(plan: Plan, courseCount: number, parse: { used: number; lim
     {
       key: 'blueprints',
       label: 'Blueprint imports',
-      description: 'Contribute an outline to earn theme credits.',
+      description: 'Import a classmate’s outline instead of typing one out.',
       used: 0,
       limit: semester ? 'unlimited' : 1,
     },

@@ -241,6 +241,39 @@ export async function adminSetPlan(uid: string, plan: string, expires: string | 
   const { error } = await supabase.rpc('admin_set_plan', { p_uid: uid, p_plan: plan, p_expires: expires })
   if (error) throw error
 }
+/**
+ * Where each Pro account came from.
+ *
+ * `admin_dashboard_stats.pro_users` is one number, and a single number next to
+ * a crown reads as revenue. It is not: most Pro accounts here were granted by
+ * an admin or came in on a trial. Those are different facts and the dashboard
+ * has to keep them apart, or every future decision is made against a figure
+ * that is mostly comps.
+ */
+export interface ProBreakdown {
+  paying: number
+  trialing: number
+  lapsed: number
+  granted: number
+  /** Pro with no payment AND no grant record — something set the flag unaccounted for. */
+  unexplained: number
+  pro_total: number
+}
+export async function adminProBreakdown(): Promise<ProBreakdown | null> {
+  const { data, error } = await supabase.rpc('admin_pro_breakdown')
+  if (error || !data) return null
+  const d = data as Partial<ProBreakdown>
+  if (d.pro_total === undefined) return null // not an admin, or migration pending
+  return {
+    paying: num(d.paying),
+    trialing: num(d.trialing),
+    lapsed: num(d.lapsed),
+    granted: num(d.granted),
+    unexplained: num(d.unexplained),
+    pro_total: num(d.pro_total),
+  }
+}
+
 export interface RevenueStats {
   paying: number
   trialing: number

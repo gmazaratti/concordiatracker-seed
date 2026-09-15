@@ -148,12 +148,25 @@ export function useCourseBlueprints(course: Course) {
   }, [])
 
   /** Share this course's outline as a new community blueprint, then reload. */
+  // Throws on failure — see the note on `shareCourseAsBlueprint`. An insert
+  // rejected by RLS used to arrive at the "thanks for sharing" screen.
   const contribute = useCallback(
     async (assessments: Assessment[], author: string) => {
-      if (!uid) return
-      await supabase
+      if (!uid) throw new Error('Sign in again to share an outline.')
+      if (assessments.length === 0) throw new Error('Add at least one assessment before sharing.')
+      const { data, error } = await supabase
         .from('shared_blueprints')
         .insert(blueprintToInsert({ userId: uid, course, author, assessments }))
+        .select('id')
+        .maybeSingle()
+      if (error) {
+        throw new Error(
+          error.code === '42501'
+            ? 'We could not publish that outline — your account is not allowed to share right now. Tell us and we will sort it out.'
+            : error.message || 'Sharing failed. Try again in a moment.',
+        )
+      }
+      if (!data) throw new Error('Sharing failed — nothing was saved. Try again.')
       load()
     },
     [uid, course, load],

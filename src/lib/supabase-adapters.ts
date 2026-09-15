@@ -7,6 +7,7 @@ import type {
   Grade,
   ProvenanceStatus,
 } from '@/data/types'
+import { normalizeTerm } from '@/lib/term'
 import type { Blueprint } from '@/data/blueprints'
 import type { CampusEvent, EventCategory, EventOrg, OrgLinks } from '@/data/community'
 import type { Announcement } from '@/data/announcements'
@@ -92,7 +93,11 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   const row: Record<string, unknown> = {}
   if ('code' in patch) row.code = patch.code
   if ('title' in patch) row.name = patch.title
-  if ('term' in patch) row.term = patch.term
+  // NORMALISED ON THE WAY IN. Term is matched by string equality all over the
+  // app — the Courses tabs, sortTermsDesc, the GPA buckets — so one row saved
+  // as "FALL 2026" quietly forms its own term. The syllabus parser writes
+  // whatever the PDF says, which is where "Automne 2026" came from.
+  if ('term' in patch) row.term = normalizeTerm(patch.term)
   if ('archived' in patch) row.archived = patch.archived ?? false
   if ('finalPercent' in patch) row.final_percent = patch.finalPercent ?? null
   if ('finalLetter' in patch) row.final_letter = patch.finalLetter ?? null

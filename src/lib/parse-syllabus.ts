@@ -35,6 +35,16 @@ export function normalizeKind(kind: string): AssessmentKind {
   return (KINDS as string[]).includes(k) ? (k as AssessmentKind) : 'assignment'
 }
 
+/** What a failure means when the server gave us nothing but a status code. */
+function statusMessage(status: number): string {
+  if (status === 404) return 'The parser only runs on the deployed site, not local dev.'
+  if (status === 413) return 'That file is too large — the limit is 4 MB.'
+  if (status === 504 || status === 502)
+    return 'That file took too long to read. A shorter PDF — just the outline pages — usually goes through.'
+  if (status >= 500) return `The parser errored (${status}). Try again in a moment.`
+  return `That upload was rejected (${status}).`
+}
+
 /**
  * Upload a syllabus PDF to the server function and get back structured data.
  * The Supabase access token is attached so the function can confirm the caller
@@ -60,14 +70,19 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
   }
 
   if (!res.ok) {
-    let msg = 'Something went wrong reading that file.'
+    // A JSON body means the function itself answered and knows what went wrong.
+    // No JSON means something ABOVE the function answered — a gateway timeout,
+    // a platform error page — and the old code showed "Something went wrong"
+    // for all of it. That is the "it failed and didn't say why" report: the
+    // status is the only fact available, so say what it means.
+    let msg = ''
     try {
       const body = (await res.json()) as { error?: string }
       if (body.error) msg = body.error
     } catch {
-      if (res.status === 404) msg = 'The parser only runs on the deployed site, not local dev.'
+      msg = ''
     }
-    throw new Error(msg)
+    throw new Error(msg || statusMessage(res.status))
   }
 
   return (await res.json()) as ParsedSyllabus

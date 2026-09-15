@@ -499,15 +499,36 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   // OPT-IN share: publish this course's current outline to the shared blueprint
   // pool (the only path that writes there — courses are private by default).
+  //
+  // THIS THROWS ON FAILURE, and that is the whole point of the rewrite. It used
+  // to fire the insert and ignore the result, so a share rejected by RLS still
+  // showed the student "Thanks for sharing". Measured against production: an
+  // account with no `user_profile` row gets a 403 from the insert policy, and
+  // the old code reported that as a success. Nobody could report the bug,
+  // because nobody was ever told there was one.
   const shareCourseAsBlueprint = useCallback(
     async (courseId: string) => {
-      if (!authUser) return
+      if (!authUser) throw new Error('Sign in again to share an outline.')
       const course = courses.find((c) => c.id === courseId)
-      if (!course) return
+      if (!course) throw new Error('That course is no longer here.')
       const items = assessments.filter((a) => a.courseId === courseId)
-      await supabase
+      if (items.length === 0) throw new Error('Add at least one assessment before sharing.')
+      const { data, error } = await supabase
         .from('shared_blueprints')
         .insert(blueprintToInsert({ userId: authUser.id, course, author: user.name, assessments: items }))
+        .select('id')
+        .maybeSingle()
+      if (error) {
+        // 42501 is the row-level-security rejection. It is not the student's
+        // fault and not something they can fix, so say what it is rather than
+        // printing a Postgres code at them.
+        throw new Error(
+          error.code === '42501'
+            ? 'We could not publish that outline — your account is not allowed to share right now. Tell us and we will sort it out.'
+            : error.message || 'Sharing failed. Try again in a moment.',
+        )
+      }
+      if (!data) throw new Error('Sharing failed — nothing was saved. Try again.')
     },
     [authUser, courses, assessments, user.name],
   )

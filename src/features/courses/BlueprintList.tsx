@@ -200,7 +200,7 @@ export function BlueprintList({ course }: { course: Course }) {
         className="mt-5 inline-flex items-center gap-2 text-[12px] text-subtle transition-colors duration-150 hover:text-accent"
       >
         <Sprout size={14} aria-hidden />
-        Contribute your outline: earn theme credits
+        Share your outline for this class
       </button>
 
       {contributeOpen && (
@@ -299,8 +299,8 @@ function BlueprintEmptyState({
         No blueprint yet for {course.code}
       </h3>
       <p className="max-w-sm text-sm text-muted">
-        Be the first to share this course's outline. Contribute one and earn
-        <span className="text-accent"> theme credits</span>.
+        Be the first to share this course's outline, so the next student adding
+        {' '}{course.code} doesn't start from a blank page.
       </p>
       <button
         type="button"

@@ -20,9 +20,11 @@ import {
 import {
   adminActivityFeed,
   adminDashboardStats,
+  adminProBreakdown,
   adminRevenue,
   type ActivityItem,
   type DashboardStats,
+  type ProBreakdown,
   type RevenueStats,
 } from '../admin-data'
 import { cn } from '@/lib/cn'
@@ -32,6 +34,7 @@ export function AdminDashboardTab() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [revenue, setRevenue] = useState<RevenueStats | null>(null)
+  const [pro, setPro] = useState<ProBreakdown | null>(null)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -40,15 +43,17 @@ export function AdminDashboardTab() {
     void (async () => {
       try {
         // Revenue is optional — a missing migration must not blank the page.
-        const [s, a, rev] = await Promise.all([
+        const [s, a, rev, pb] = await Promise.all([
           adminDashboardStats(),
           adminActivityFeed(),
           adminRevenue().catch(() => null),
+          adminProBreakdown().catch(() => null),
         ])
         if (!active) return
         setStats(s)
         setActivity(a.items.slice(0, 12))
         setRevenue(rev)
+        setPro(pb)
       } catch (e) {
         if (active) setErr(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -87,13 +92,19 @@ export function AdminDashboardTab() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat icon={Users} label="Total users" value={stats.total_users} accent
           sub={`+${stats.new_users_7d} this week · +${stats.new_users_30d} this month`} />
-        <Stat icon={Crown} label="Pro users" value={stats.pro_users} />
+        <Stat
+          icon={Crown}
+          label={pro ? 'Pro accounts' : 'Pro users'}
+          value={pro ? pro.pro_total : stats.pro_users}
+          sub={pro ? proSummary(pro) : undefined}
+        />
         <Stat icon={Activity} label="Activity (7d)" value={stats.activity_7d} sub="posts, events, edits" />
         <Stat icon={Inbox} label="Pending applications" value={stats.pending_applications}
           highlight={stats.pending_applications > 0} />
       </div>
 
       {revenue && <RevenuePanel r={revenue} />}
+      {pro && pro.pro_total > 0 && <ProPanel p={pro} />}
 
       {/* Quick actions */}
       <div>
@@ -147,6 +158,82 @@ export function AdminDashboardTab() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** One line for the stat card: paying first, because it is the only one that is revenue. */
+function proSummary(p: ProBreakdown): string {
+  const parts = [`${p.paying} paying`]
+  if (p.trialing) parts.push(`${p.trialing} on trial`)
+  if (p.granted) parts.push(`${p.granted} granted`)
+  if (p.unexplained) parts.push(`${p.unexplained} unexplained`)
+  return parts.join(' · ')
+}
+
+/**
+ * How each Pro account got there.
+ *
+ * Granted accounts are real users and real usage — they are just not money,
+ * and the two have to be legible apart at a glance.
+ */
+function ProPanel({ p }: { p: ProBreakdown }) {
+  return (
+    <div>
+      <h2 className="mb-2.5 flex items-center gap-1.5 text-[13px] font-semibold text-fg">
+        <Crown size={14} className="text-subtle" aria-hidden />
+        Where Pro came from
+      </h2>
+      <div className="rounded-xl border border-border bg-surface p-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <ProCell label="Paying" value={p.paying} sub="active Stripe subscription" tone="accent" />
+          <ProCell label="On trial" value={p.trialing} sub="card on file, not charged yet" />
+          <ProCell label="Granted" value={p.granted} sub="comped by an admin" />
+          <ProCell
+            label="Unexplained"
+            value={p.unexplained}
+            sub="Pro with no payment or grant"
+            tone={p.unexplained > 0 ? 'warning' : undefined}
+          />
+        </div>
+        {p.lapsed > 0 && (
+          <p className="mt-3.5 border-t border-border pt-3 text-[12px] text-subtle">
+            {p.lapsed} subscription{p.lapsed === 1 ? '' : 's'} on file but no longer active.
+          </p>
+        )}
+        <p className="mt-3 text-[11px] leading-relaxed text-subtle">
+          Only <strong className="font-medium text-fg">Paying</strong> is revenue. Granted and
+          trialing accounts are real users and real usage, but counting them as customers would
+          overstate the business by {p.paying > 0 ? Math.round(p.pro_total / p.paying) : p.pro_total}×.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function ProCell({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string
+  value: number
+  sub: string
+  tone?: 'accent' | 'warning'
+}) {
+  return (
+    <div>
+      <p className="text-[11.5px] font-medium text-subtle">{label}</p>
+      <p
+        className={cn(
+          'mt-1 text-[26px] leading-none font-semibold tabular-nums',
+          tone === 'accent' ? 'text-accent' : tone === 'warning' ? 'text-warning' : 'text-fg',
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1 text-[11px] text-subtle">{sub}</p>
     </div>
   )
 }

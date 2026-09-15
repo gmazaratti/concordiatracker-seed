@@ -273,7 +273,7 @@ export const en = {
   'pricing.paid1': 'Everything in Free',
   'pricing.paid2': 'GPA what-if predictor & projections',
   'pricing.paid3': 'Full-term standing across all courses',
-  'pricing.paid4': 'Earn theme credits for contributing outlines',
+  'pricing.paid4': 'Every theme, including custom colours',
 
   'onboarding.welcomeHead': 'Stop guessing',
   'onboarding.welcomeHeadAccent': 'what’s due',

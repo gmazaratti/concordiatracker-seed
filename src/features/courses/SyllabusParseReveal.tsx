@@ -125,9 +125,9 @@ export function SyllabusParseReveal({
                 Upload &amp; parse
               </button>
               <p className="text-[12px] text-subtle">
-                Contribute your outline →{' '}
-                <span className="text-accent">earn theme credits</span>. Parsed
-                dates land as <span className="text-prov-official">official</span>.
+                Parsed dates land as{' '}
+                <span className="text-prov-official">official</span>. You can share the
+                finished outline with classmates afterwards.
               </p>
             </div>
           ) : (
