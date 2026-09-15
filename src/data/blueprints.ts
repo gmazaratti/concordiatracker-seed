@@ -52,6 +52,14 @@ export interface Blueprint {
   /** Which term it was uploaded for, e.g. "Summer 2026". */
   term: string
   teacherVerified: boolean
+  /**
+   * The university's own published PDF, when there is one.
+   *
+   * Only ever set on outlines we read from eConcordia. It is what turns the
+   * verified badge from a claim into something you can check for yourself —
+   * and a community upload has no such URL and must not pretend to.
+   */
+  sourceUrl?: string
   /** Teacher name, or a student handle like "@maya.codes". */
   author: string
   upvotes: number

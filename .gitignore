@@ -36,6 +36,7 @@ backend_infrastructure_audit.md
 scripts/*
 !scripts/verify-agent-readiness.mjs
 !scripts/verify-routing.mjs
+!scripts/scrape-outlines.mjs
 !scripts/send-test-email.mjs
 !scripts/stamp-sw.mjs
 
@@ -50,3 +51,7 @@ email-preview.html
 ios/
 android/
 .record-export.test.tmp.mjs
+.outlines/
+.econcordia.bundle.mjs
+.econcordia.test.tmp.mjs
+.ec.mjs

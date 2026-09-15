@@ -151,6 +151,77 @@ The front end is feature-complete on mock data. The next phase wires the backend
 
 Built with the assistance of Claude Code for refactoring and feature implementation.
 
+## 🗂 Where outlines come from
+
+Most blueprints are uploaded by students. A slice of them are read automatically
+from **eConcordia**, Concordia's online-course platform, which publishes the
+current term's outline for every online course as a public PDF.
+
+**Why this source.** Concordia's Open Data has no outline endpoint at all, and
+its schedule feed currently stops at Winter 2026 — it cannot even tell us which
+sections are running this term. eConcordia can.
+
+### The slug trick
+
+The outline URL is **not** derived from the course code. Each card on
+`courses.aspx` carries a thumbnail whose filename is the key:
+
+```
+COMM 305 → /home/src/assets/images/courses/managerial_accounting.jpg
+         → https://www.econcordia.com/outlines/managerial_accounting.pdf
+```
+
+So discovery has to go through the catalogue page; you cannot construct an
+outline URL from a code.
+
+### The postback gotcha — and why we do not need a browser
+
+The semester filter is an ASP.NET postback (`__doPostBack` on
+`ctl00$main_content$CourseList$ddlSemester`), so plain `curl` on the bare page
+only ever returns the default term. The usual advice is to drive it with
+Playwright.
+
+**Measured on 15 Sep 2026: that is not necessary.** The page also accepts the
+semester as an ordinary query parameter — `courses.aspx?semester=123` returns
+all 58 Winter cards with no cookies, no `VIEWSTATE` and no postback. That
+matters beyond tidiness: Playwright cannot run in the serverless function this
+job lives in, and the repo keeps exactly one runtime dependency on purpose.
+
+One thing that does *not* work: `?semester=All Courses` silently returns the
+default set, so the semesters are walked one at a time — which is what we want
+anyway, since the semester is how the term gets attributed. The **year** is read
+off the option label (`Fall/Winter (September 8, 2026 - April 12, 2027)`), never
+from our own clock.
+
+### Pieces
+
+| Path | What it does |
+| --- | --- |
+| `api/_econcordia.ts` | Catalogue parsing, slug → URL, polite fetch, dependency-free PDF text extraction |
+| `api/_outline-extract.ts` | Outline text → assessment scheme (same model as `/api/parse-syllabus`) |
+| `api/sync-outlines.ts` | The job: discover, then parse a bounded batch |
+| `db/outline_sync.sql` | `outline_sources` ledger, `source_url` column, the 6-hourly cron |
+| `scripts/scrape-outlines.mjs` | Local runner — coverage report + PDFs + text, no keys needed |
+
+```bash
+npm run scrape:outlines -- --semester 121   # Fall, into .outlines/
+npm run test:econcordia                     # the pure parsing, against captured markup
+```
+
+### Rules it will not break
+
+- **Coverage is logged per course** (`ok` / `missing` / `no_text` / `parse_failed`)
+  so a silent regression is visible. `select * from outline_coverage();`
+- **~1 request/second**, one catalogue fetch per semester per run, and an
+  unchanged PDF (matched by SHA-256) costs one GET and no model call.
+- **A scheme whose weights do not total ~100 is dropped, not published.** It
+  would go out under a verified badge, and wrong numbers a student trusts are
+  worse than no numbers.
+- **Dates are never inferred.** "Week 4" and "TBA" import as no date.
+- **It only ever writes rows it owns** (`user_id is null`, `author = 'Course
+  outline'`). Student uploads and the whole upload flow are untouched, and a
+  course with no eConcordia outline behaves exactly as it does today.
+
 ## 📄 License & usage
 
 **© 2026 Alex Degryse — All rights reserved.**

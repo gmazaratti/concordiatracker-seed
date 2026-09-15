@@ -293,6 +293,7 @@ export interface BlueprintRow {
   course_name: string | null
   professor: string | null
   professor_email: string | null
+  source_url?: string | null
   office_hours: string | null
   office_location: string | null
   classroom: string | null
@@ -337,6 +338,7 @@ export function blueprintFromRow(r: BlueprintRow): Blueprint {
     classroom: r.classroom ?? undefined,
     term: r.term ?? '',
     teacherVerified: verified,
+    sourceUrl: r.source_url ?? undefined,
     author: r.author || r.professor || 'Anonymous',
     upvotes: r.upvotes ?? 0,
     downvotes: r.downvotes ?? 0,

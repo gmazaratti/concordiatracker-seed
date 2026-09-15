@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ShieldCheck } from 'lucide-react'
+import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ExternalLink, ShieldCheck } from 'lucide-react'
 import { blueprintWeight, netVotes, uploadedOn, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
@@ -82,7 +82,7 @@ export function BlueprintRow({
             {blueprint.teacherVerified && (
               <Badge className="bg-accent/15 text-accent">
                 <ShieldCheck size={12} aria-hidden />
-                Teacher-verified
+                {blueprint.sourceUrl ? 'From the course outline' : 'Teacher-verified'}
               </Badge>
             )}
             <Badge className={wrongSection ? 'bg-warning/15 text-warning' : 'bg-surface-2 text-muted'}>
@@ -142,6 +142,22 @@ export function BlueprintRow({
               </span>
             </span>
           </div>
+
+          {/* The whole point of a verified badge on a scraped outline: you can
+              open the document it was read from and check it yourself. It sits
+              HERE rather than on the badge because the badge lives inside the
+              expand button, and a link inside a button is not a link. */}
+          {blueprint.sourceUrl && (
+            <a
+              href={blueprint.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mb-2 ml-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-accent transition-opacity duration-150 hover:opacity-80"
+            >
+              <ExternalLink size={11} aria-hidden />
+              Read the outline this came from
+            </a>
+          )}
           <ul className="overflow-hidden rounded-lg border border-border bg-surface">
             {blueprint.dates.map((d, i) => (
               <li
