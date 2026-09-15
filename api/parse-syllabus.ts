@@ -132,6 +132,44 @@ function rateLimitMessage(slot: Slot | null): string {
   return `Please wait ${mins} minute${mins === 1 ? '' : 's'} before uploading another syllabus.`
 }
 
+/**
+ * Turn the model's failure into something a student can act on.
+ *
+ * Every non-ok response used to collapse into "The parser had trouble reading
+ * that file." — which names no cause, suggests no fix, and is wrong about half
+ * the time (an exhausted API key is not a problem with your file). Google's
+ * error body carries a status and a message; these are the cases worth
+ * distinguishing, and anything unrecognised carries the HTTP status through so
+ * it can at least be reported rather than guessed at.
+ */
+function geminiReason(status: number, body: string): string {
+  let detail = ''
+  try {
+    const e = JSON.parse(body) as { error?: { message?: string; status?: string } }
+    detail = e.error?.message ?? ''
+    const code = e.error?.status ?? ''
+    if (code === 'RESOURCE_EXHAUSTED' || status === 429) {
+      return 'The parser is out of capacity for the moment. Try again shortly — this one is on us, not your file.'
+    }
+    if (code === 'PERMISSION_DENIED' || code === 'UNAUTHENTICATED' || status === 403) {
+      return 'The parser is misconfigured on our side (the key was rejected). Nothing is wrong with your file.'
+    }
+    if (/safety|blocked/i.test(detail)) {
+      return 'The model refused to read that document. If it is a normal course outline, send it to support and we will look.'
+    }
+    if (/exceeds the maximum|too large|payload/i.test(detail)) {
+      return 'That PDF is too big for the parser. Export just the outline pages and try again.'
+    }
+    if (/mime|unsupported|invalid.*type/i.test(detail)) {
+      return 'The parser could not open that file type. It needs a real PDF — a scan saved as a PDF works, a .doc does not.'
+    }
+  } catch {
+    /* not JSON — fall through to the generic form with the status attached */
+  }
+  const trimmed = detail.slice(0, 140)
+  return `The parser failed on that file (error ${status}${trimmed ? `: ${trimmed}` : ''}).`
+}
+
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
@@ -166,6 +204,23 @@ export default async function handler(req: Request): Promise<Response> {
   if (slot?.reason === 'auth') return json({ error: 'Your session expired — sign in again.' }, 401)
   if (slot && slot.allowed === false) return json({ error: rateLimitMessage(slot) }, 429)
 
+  /**
+   * Hand the slot back when the failure was on our side of the line.
+   *
+   * The attempt is recorded BEFORE the model runs — it has to be, or two
+   * requests race past the limiter. The bug was that it was never given back:
+   * a parse that died because our dependency was down still cost a full
+   * cooldown, so the student was locked out over a failure they did not cause
+   * and were told nothing about. (A file the model read and could not make
+   * sense of still keeps the attempt — it burned a real call — but the DB now
+   * charges 20s for that rather than 180.)
+   */
+  const release = async () => {
+    if (slot?.event_id) {
+      await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
+    }
+  }
+
   // 4. Ask Gemini to extract, constrained to the schema.
   let gemini: Response
   try {
@@ -192,23 +247,38 @@ export default async function handler(req: Request): Promise<Response> {
       },
     )
   } catch {
-    return json({ error: 'Could not reach the parser. Try again.' }, 502)
+    await release()
+    return json({ error: 'Could not reach the parser. Try again — this one is on us.' }, 502)
   }
 
-  if (gemini.status === 429) return json({ error: 'Busy right now — try again in a moment.' }, 429)
-  if (!gemini.ok) return json({ error: 'The parser had trouble reading that file.' }, 502)
+  if (!gemini.ok) {
+    const body = await gemini.text().catch(() => '')
+    // Logged server-side too: the message a student sees has to be short, and
+    // the one we need to debug with does not.
+    console.error('[parse-syllabus] gemini', gemini.status, body.slice(0, 400))
+    await release()
+    return json({ error: geminiReason(gemini.status, body) }, gemini.status === 429 ? 429 : 502)
+  }
 
   const result = (await gemini.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[]
   }
   const text = result.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) return json({ error: 'Couldn’t extract anything from that file.' }, 422)
+  if (!text) {
+    // The model answered with nothing at all — that is us, not the document.
+    await release()
+    return json(
+      { error: 'The parser came back empty. Try again; if it keeps happening, send us the file.' },
+      502,
+    )
+  }
 
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
   } catch {
-    return json({ error: 'The parser returned an unexpected format. Try again.' }, 502)
+    await release()
+    return json({ error: 'The parser returned something we could not read. Try again.' }, 502)
   }
   // Count this as a successful parse (toward the monthly cap) — only if a slot
   // was actually claimed (skipped when the limiter is unmigrated / failed open).

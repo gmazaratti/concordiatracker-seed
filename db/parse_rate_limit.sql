@@ -2,8 +2,11 @@
 -- Syllabus-parse rate limiting — enforced in the DATABASE so it can't be
 -- bypassed by calling the function directly.
 --
---   • Cooldown: 180s between uploads (any attempt, success or not).
+--   • Cooldown: 180s after a SUCCESSFUL parse, 20s after a failed one.
 --   • Monthly cap: 5 SUCCESSFUL parses per calendar month.
+--   • cancel_parse() releases the slot entirely when the failure was OURS
+--     (parser unreachable, model 5xx, malformed response) — you should not be
+--     locked out for three minutes because our dependency fell over.
 --
 -- `parse_events` has RLS on with NO policies → users cannot read, insert,
 -- update, or delete it directly. The only way in is the SECURITY DEFINER
@@ -29,10 +32,11 @@ returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   uid uuid := auth.uid();
-  cooldown int := 180;       -- seconds between uploads
+  cooldown int;              -- seconds between uploads, set from the last attempt
   monthly_limit int := 5;    -- successful parses / calendar month
   month_start timestamptz := date_trunc('month', now());
   last_at timestamptz;
+  last_ok boolean;
   used int;
   new_id uuid;
 begin
@@ -43,7 +47,15 @@ begin
   -- Serialize concurrent requests from the same user (kills the check→insert race).
   perform pg_advisory_xact_lock(hashtextextended(uid::text, 0));
 
-  select max(created_at) into last_at from public.parse_events where user_id = uid;
+  -- The cooldown exists to stop someone hammering the shared model quota, and
+  -- it still does: what it must NOT do is punish a student whose upload failed.
+  -- A failed attempt costs 20s, enough to keep a script slow, short enough that
+  -- a person who just got an error can fix the file and try again.
+  select created_at, success into last_at, last_ok
+    from public.parse_events where user_id = uid
+    order by created_at desc limit 1;
+  cooldown := case when coalesce(last_ok, false) then 180 else 20 end;
+
   if last_at is not null and last_at > now() - make_interval(secs => cooldown) then
     return jsonb_build_object(
       'allowed', false,
@@ -76,6 +88,22 @@ begin
 end;
 $$;
 
+-- Release a claimed attempt outright. Called when the failure was on our side
+-- of the line — the model was unreachable, returned 5xx, or answered with
+-- something we could not read. Deleting the row means no cooldown at all,
+-- because the student did nothing wrong and got nothing back.
+--
+-- Scoped to the caller and to UNSUCCESSFUL rows, so it can never be used to
+-- erase a success and dodge the monthly cap.
+create or replace function public.cancel_parse(p_event uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.parse_events
+    where id = p_event and user_id = auth.uid() and success = false;
+end;
+$$;
+
 -- Read-only usage for the UI (the user's own).
 create or replace function public.get_parse_usage()
 returns jsonb
@@ -84,7 +112,7 @@ language sql security definer set search_path = public stable as $$
     'used', (select count(*) from public.parse_events
              where user_id = auth.uid() and success and created_at >= date_trunc('month', now())),
     'limit', 5,
-    'cooldown', 180,
+    'cooldown', 180,  -- after a success; a failed attempt is 20s
     'resets_at', date_trunc('month', now()) + interval '1 month',
     'last_at', (select max(created_at) from public.parse_events where user_id = auth.uid())
   );
@@ -92,4 +120,5 @@ $$;
 
 grant execute on function public.start_parse() to authenticated;
 grant execute on function public.finish_parse(uuid) to authenticated;
+grant execute on function public.cancel_parse(uuid) to authenticated;
 grant execute on function public.get_parse_usage() to authenticated;
