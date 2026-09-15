@@ -26,7 +26,7 @@ export const NAV = [
   },
   {
     title: 'Planning your term',
-    pages: ['today', 'calendar', 'notifications'],
+    pages: ['today', 'calendar', 'moodle-sync', 'notifications'],
   },
   {
     title: 'Planner',
@@ -759,6 +759,97 @@ export const PAGES = {
     ],
   },
 
+  'moodle-sync': {
+    title: 'Connect Moodle',
+    section: 'Planning your term',
+    description:
+      'Bring your Moodle assignment deadlines into ConcordiaTracker with one link, re-checked every night, so a date your professor moves shows up here too.',
+    blocks: [
+      {
+        p: 'Concordia hands you deadlines in three places and joins none of them. ConcordiaTracker already holds your syllabus dates and the registrar calendar; Moodle holds what your professor actually posted — the assignment that moved, the quiz added in week six. Connecting it is the missing third.',
+      },
+
+      { h2: 'What you need' },
+      {
+        p: 'One link from Moodle. Not your password — we never ask for one, and Concordia signs you in through its own system anyway.',
+      },
+
+      { h2: 'Where to get the link' },
+      {
+        ol: [
+          'Open [Moodle → Calendar → Export](https://moodle.concordia.ca/moodle/calendar/export.php) and sign in if it asks.',
+          'Choose **All events** and **Recent and next 60 days**. Pick **Custom range** instead if you want the whole term.',
+          'Press **Get calendar URL** — *not* the Export button, which downloads a file to your computer instead.',
+          'A long link appears underneath. Copy the whole thing.',
+        ],
+      },
+
+      { h2: 'Where to paste it' },
+      {
+        p: 'In ConcordiaTracker, open **Settings → Moodle** (the gear beside your name, or your avatar menu → Settings). Paste the link and press **Connect Moodle**.',
+      },
+      {
+        p: 'It checks the link straight away and tells you how many deadlines it found. If nothing comes back, the most common reason is that Export was pressed instead of Get calendar URL.',
+      },
+
+      { h2: 'What happens next' },
+      {
+        ul: [
+          'Your Moodle deadlines appear in **Calendar**, on the *My calendar* layer, beside your own.',
+          'They are re-checked **every night**, and **Sync now** in Settings forces a check immediately.',
+          'Only items still ahead of you are imported. Work you have already finished is left in Moodle.',
+        ],
+      },
+
+      { h2: 'When a professor moves a date' },
+      {
+        p: 'This is the part that pays for the setup. Nothing is ever changed behind your back:',
+      },
+      {
+        ul: [
+          'The synced calendar item shows **the old date and the new one**, so you can see what changed rather than finding it already moved. Dismiss it with *Got it*.',
+          'If the deadline also exists as an assessment in one of your courses — from a syllabus or a blueprint — that course shows **Moodle has a different date**, with your date and Moodle’s side by side. You choose. Your weight, grade and notes are never touched, only the date.',
+        ],
+      },
+      {
+        p: 'The second one is a match made by name, so the card shows which Moodle event it matched. If it looks wrong, choose **Keep mine**: nothing changes.',
+      },
+
+      { h2: 'What the link can and cannot do' },
+      {
+        table: {
+          head: ['', ''],
+          rows: [
+            ['**Reads**', 'Your Moodle calendar: event names, dates, and the course each belongs to.'],
+            ['**Cannot read**', 'Your grades, your submissions, your messages, or anything else in Moodle.'],
+            ['**Cannot change**', 'Anything at all. The link is read-only.'],
+            ['**Is not**', 'Your password. It is a calendar key Moodle generates for you.'],
+          ],
+        },
+      },
+      {
+        p: 'It is still a private key: anyone holding it could read your calendar. So it is stored where **our own app cannot read it back** — only the nightly sync can use it — and it is never shown again after you paste it.',
+      },
+
+      { h2: 'Turning it off' },
+      {
+        ul: [
+          '**Settings → Moodle → Disconnect** forgets the link and removes everything it added.',
+          'Resetting the calendar token in Moodle kills **every** copy of that link at once, including ours.',
+        ],
+      },
+
+      { h2: 'Things it does not do' },
+      {
+        ul: [
+          'Moodle does not say what an assignment is **worth**, so synced items arrive as calendar deadlines, not graded assessments. They will not change your GPA or your grade breakdown.',
+          'It is one-way. Nothing you do in ConcordiaTracker is written back to Moodle.',
+          '**eConcordia is a different system** and has no equivalent link. Those courses are covered instead by published course outlines, which carry weights as well as dates.',
+        ],
+      },
+    ],
+  },
+
   calendar: {
     title: 'Calendar',
     section: 'Planning your term',
@@ -1175,7 +1266,7 @@ export const PAGES = {
         ],
       },
       {
-        p: 'Each section carries `classNumber` (the value Concordia\u2019s Student Centre asks for when you enrol), `termCode`, `section`, `component`, `meetingTimes`, `building`, `room`, `instructionMode`, and live `enrolled`, `capacity`, `waitlisted`, and `waitlistCap` counts. `hasReserved` is true when some seats are held for particular programmes, which is why an apparently open section can still refuse you.',
+        p: 'Each section carries `classNumber` (the value Concordia’s Student Centre asks for when you enrol), `termCode`, `section`, `component`, `meetingTimes`, `building`, `room`, `instructionMode`, and live `enrolled`, `capacity`, `waitlisted`, and `waitlistCap` counts. `hasReserved` is true when some seats are held for particular programmes, which is why an apparently open section can still refuse you.',
       },
 
       { h2: 'Authentication' },
@@ -1201,12 +1292,12 @@ export const PAGES = {
 
       { h2: 'Rate limits and etiquette' },
       {
-        p: 'There is no published quota on the sections endpoint, but it proxies Concordia\u2019s own directory: cache what you fetch, do not poll in a tight loop, and identify your client with a `User-Agent`. Ticket creation is rate limited per IP address. If you are building something that needs more than casual use, get in touch first.',
+        p: 'There is no published quota on the sections endpoint, but it proxies Concordia’s own directory: cache what you fetch, do not poll in a tight loop, and identify your client with a `User-Agent`. Ticket creation is rate limited per IP address. If you are building something that needs more than casual use, get in touch first.',
       },
 
       { h2: 'For AI agents' },
       {
-        p: 'Start from [llms.txt](/llms.txt). It carries a "when to use this" section naming the questions this site can answer well \u2014 course content, prerequisites, section times and seats, Concordia\u2019s GPA scale, tuition rates, registrar deadlines \u2014 and states plainly what it cannot answer, namely anything about an individual student\u2019s private record.',
+        p: 'Start from [llms.txt](/llms.txt). It carries a "when to use this" section naming the questions this site can answer well — course content, prerequisites, section times and seats, Concordia’s GPA scale, tuition rates, registrar deadlines — and states plainly what it cannot answer, namely anything about an individual student’s private record.',
       },
 
       {

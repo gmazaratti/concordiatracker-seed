@@ -6,6 +6,8 @@ import { useAppData } from '@/app/providers/app-data'
 import { courseStanding } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
+import { MoodleMismatchCard } from './MoodleMismatch'
+import { findMoodleMismatches } from '@/lib/moodle-match'
 import { CourseHeader } from './CourseHeader'
 import { CourseInfoPanel } from './CourseInfoPanel'
 import { GradeBreakdown } from './GradeBreakdown'
@@ -49,6 +51,7 @@ export function CourseDetailPage() {
     addAssessments,
     updateCourse,
     peerCorrections,
+    personalTasks,
   } = useAppData()
   const navigate = useNavigate()
   const course = courseId ? courseById(courseId) : undefined
@@ -78,6 +81,12 @@ export function CourseDetailPage() {
   const courseAssessmentIds = new Set(courseAssessments.map((a) => a.id))
   const coursePeerCorrections = peerCorrections.filter((c) =>
     courseAssessmentIds.has(c.assessmentId),
+  )
+  // Derived live from what is already loaded rather than stored: the
+  // disagreement stops existing the moment either side is corrected, so a
+  // saved copy of it could only go stale.
+  const moodleMismatches = findMoodleMismatches(personalTasks, assessments, courses).filter((m) =>
+    courseAssessmentIds.has(m.assessmentId),
   )
   const standing = courseStanding(courseAssessments)
   const empty = courseAssessments.length === 0
@@ -272,8 +281,11 @@ export function CourseDetailPage() {
                 Import an outline
               </button>
             </div>
-            {coursePeerCorrections.length > 0 && (
+            {(coursePeerCorrections.length > 0 || moodleMismatches.length > 0) && (
               <div className="flex flex-col gap-2">
+                {moodleMismatches.map((m) => (
+                  <MoodleMismatchCard key={m.assessmentId} mismatch={m} />
+                ))}
                 {coursePeerCorrections.map((c) => (
                   <PeerSuggestion key={c.assessmentId} correction={c} />
                 ))}

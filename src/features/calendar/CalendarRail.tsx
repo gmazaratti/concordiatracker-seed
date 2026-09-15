@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Check, RefreshCw, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, GraduationCap, RefreshCw, Sparkles } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useSettings } from '@/app/providers/settings'
+import { supabase } from '@/lib/supabase'
 import { UpgradeChip } from '@/components/UpgradeChip'
 import { Switch } from '@/features/settings/controls'
 import { ACADEMIC_META } from './calendar'
@@ -44,8 +45,56 @@ export function CalendarRail() {
         </ul>
       </Panel>
 
+      <MoodleRow />
+
       <SyncButton pro={plan === 'semester'} />
     </div>
+  )
+}
+
+/**
+ * The door to Moodle sync, in the rail of the layer its items land on.
+ *
+ * Settings is where the connection is MANAGED, but nobody opens Settings
+ * looking for a feature they do not know exists. This is the screen where the
+ * absence is felt — your Moodle deadlines are the thing visibly not on this
+ * calendar — so this is where the offer belongs.
+ *
+ * It states what it is before asking for anything, and disappears once
+ * connected: a permanent advert for something you already did is clutter.
+ */
+function MoodleRow() {
+  const { openSettings } = useSettings()
+  const [connected, setConnected] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void supabase.rpc('my_moodle_status').then(({ data }) => {
+      if (!alive) return
+      // A missing migration reads as "not connected", never as a broken rail.
+      setConnected((data as { connected?: boolean } | null)?.connected === true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  if (connected !== false) return null
+
+  return (
+    <button
+      type="button"
+      onClick={() => openSettings('moodle')}
+      className="flex w-full items-start gap-2.5 rounded-xl border border-border/60 bg-surface/50 px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50 hover:bg-accent-soft/30"
+    >
+      <GraduationCap size={15} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+      <span className="min-w-0">
+        <span className="block text-[12.5px] font-medium text-fg">Add your Moodle deadlines</span>
+        <span className="mt-0.5 block text-[11.5px] leading-relaxed text-subtle">
+          One link from Moodle puts them on this calendar, re-checked nightly.
+        </span>
+      </span>
+    </button>
   )
 }
 
