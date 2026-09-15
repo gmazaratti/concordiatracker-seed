@@ -10,6 +10,7 @@ import {
   Unplug,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { formatDueDateTime } from '@/lib/date'
 import { cn } from '@/lib/cn'
 
 /**
@@ -22,6 +23,15 @@ import { cn } from '@/lib/cn'
  * reassurance ("we take security seriously") is worse than nothing, because
  * the specific claims are the checkable ones.
  */
+
+/** One synced deadline, as the panel shows it. */
+interface SyncedItem {
+  id: string
+  title: string
+  due: string
+  note: string | null
+  moved_from: string | null
+}
 
 interface MoodleStatus {
   connected: boolean
@@ -40,6 +50,8 @@ export function MoodleSection() {
   const [busy, setBusy] = useState<'' | 'connect' | 'sync' | 'disconnect'>('')
   const [error, setError] = useState('')
   const [done, setDone] = useState('')
+  const [items, setItems] = useState<SyncedItem[]>([])
+  const [showAll, setShowAll] = useState(false)
 
   // `reload` only bumps a counter; the fetch and the setState both happen
   // inside the effect, after an await. Calling a loader that setStates
@@ -55,6 +67,21 @@ export function MoodleSection() {
       if (!alive) return
       // A missing migration must read as "not connected", not a broken screen.
       setStatus(e || !data ? { connected: false } : (data as MoodleStatus))
+
+      /**
+       * The rows themselves, read straight from the student's own todos.
+       *
+       * Not taken from the API response: this way the list is what is actually
+       * IN the database right now, including whatever last night's cron wrote
+       * while nobody was looking. A count the panel computed from its own last
+       * reply would agree with itself forever and prove nothing.
+       */
+      const { data: rows } = await supabase
+        .from('todos')
+        .select('id,title,due,note,moved_from')
+        .eq('source', 'moodle')
+        .order('due', { ascending: true })
+      if (alive) setItems((rows as SyncedItem[] | null) ?? [])
     })()
     return () => {
       alive = false
@@ -88,13 +115,9 @@ export function MoodleSection() {
 
       if (action === 'connect') {
         setUrl('')
-        setDone(
-          json.imported
-            ? `Connected. ${json.imported} upcoming ${json.imported === 1 ? 'deadline' : 'deadlines'} added to your calendar.`
-            : 'Connected — but Moodle had no upcoming deadlines to import yet.',
-        )
+        setDone(summarise('Connected.', json))
       } else if (action === 'sync') {
-        setDone(`Up to date. ${json.imported ?? 0} ${json.imported === 1 ? 'deadline' : 'deadlines'} checked.`)
+        setDone(summarise('Up to date.', json))
       } else {
         setDone(`Disconnected. ${json.removed ?? 0} synced ${json.removed === 1 ? 'item' : 'items'} removed.`)
       }
@@ -152,14 +175,7 @@ export function MoodleSection() {
               </p>
             )}
 
-            <StatRow
-              label="Deadlines imported"
-              hint="Only items still ahead of you are added — finished work is left behind."
-            >
-              <span className="text-[13px] tabular-nums text-fg">
-                {status?.upcoming ?? 0} upcoming
-              </span>
-            </StatRow>
+            <SyncedList items={items} showAll={showAll} onShowAll={() => setShowAll(true)} />
 
             <div className="flex flex-wrap gap-2 pt-1">
               <button
@@ -237,6 +253,27 @@ export function MoodleSection() {
   )
 }
 
+/**
+ * "Connected. 5 of 23 imported — the other 18 have already passed."
+ *
+ * The gap between what the feed HELD and what we KEPT is the interesting
+ * number, and the one a bare "5 deadlines checked" hides. Without it, a
+ * student with a full year in Moodle sees 5 and reasonably wonders what
+ * happened to the rest.
+ */
+function summarise(lead: string, json: { imported?: number; found?: number }): string {
+  const kept = json.imported ?? 0
+  const found = json.found ?? kept
+  if (found === 0) return `${lead} Moodle's calendar is empty — nothing to import yet.`
+  if (kept === 0) return `${lead} All ${found} events in your Moodle calendar have already passed.`
+  const noun = kept === 1 ? 'deadline' : 'deadlines'
+  if (found > kept) {
+    const past = found - kept
+    return `${lead} ${kept} upcoming ${noun} imported. The other ${past} ${past === 1 ? 'has' : 'have'} already passed.`
+  }
+  return `${lead} ${kept} ${noun} imported.`
+}
+
 /** One "label / value" line, with the explanation under the label. */
 function StatRow({
   label,
@@ -254,6 +291,100 @@ function StatRow({
         <p className="mt-0.5 text-[12px] leading-relaxed text-subtle">{hint}</p>
       </div>
       <div className="shrink-0">{children}</div>
+    </div>
+  )
+}
+
+/** Ahead of you vs behind you. Module-level so reading the clock is allowed
+ *  (`react-hooks/purity` forbids it inside a component body). */
+function splitByTime(items: SyncedItem[]): { upcoming: SyncedItem[]; past: number } {
+  const now = Date.now()
+  const upcoming = items.filter((i) => new Date(i.due).getTime() >= now)
+  return { upcoming, past: items.length - upcoming.length }
+}
+
+/**
+ * What it actually found.
+ *
+ * The panel used to say "5 upcoming" and stop, which is a claim the student
+ * has no way to check — and this feature already asks them to trust a link
+ * they cannot read. Showing the rows is the cheapest honesty available: if
+ * something is missing or wrong, they can see it here rather than discovering
+ * it in week ten.
+ *
+ * Past items are counted but not listed. They are real (the sync keeps what it
+ * already imported, because you may have ticked it off) and they are not what
+ * anyone opens this panel to check.
+ */
+function SyncedList({
+  items,
+  showAll,
+  onShowAll,
+}: {
+  items: SyncedItem[]
+  showAll: boolean
+  onShowAll: () => void
+}) {
+  const { upcoming, past } = splitByTime(items)
+  const shown = showAll ? upcoming : upcoming.slice(0, 6)
+
+  if (items.length === 0) {
+    return (
+      <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[12.5px] text-subtle">
+        Nothing imported yet. If Moodle has deadlines you expect to see here, press Sync now.
+      </p>
+    )
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <p className="flex items-center justify-between gap-2 border-b border-border bg-surface-2/40 px-3 py-2 text-[11px] font-medium tracking-wide text-subtle uppercase">
+        <span>From your Moodle calendar</span>
+        <span className="tabular-nums normal-case">
+          {upcoming.length} upcoming{past > 0 && ` · ${past} past`}
+        </span>
+      </p>
+
+      {upcoming.length === 0 ? (
+        <p className="px-3 py-4 text-center text-[12.5px] text-subtle">
+          Everything Moodle knows about has already passed.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {shown.map((i) => (
+            <li key={i.id} className="flex items-start justify-between gap-3 px-3 py-2">
+              <span className="min-w-0">
+                <span className="block truncate text-[12.5px] text-fg" title={i.title}>
+                  {i.title}
+                </span>
+                {/* The course short name is the single most useful thing Moodle
+                    sends, because it is what tells you which class this is. */}
+                {i.note && (
+                  <span className="block truncate text-[11px] text-subtle" title={i.note}>
+                    {i.note}
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-right text-[11.5px] text-muted tabular-nums">
+                {formatDueDateTime(i.due)}
+                {i.moved_from && (
+                  <span className="block text-[10.5px] text-warning">moved by Moodle</span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!showAll && upcoming.length > shown.length && (
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="w-full border-t border-border px-3 py-2 text-[12px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+        >
+          Show all {upcoming.length}
+        </button>
+      )}
     </div>
   )
 }

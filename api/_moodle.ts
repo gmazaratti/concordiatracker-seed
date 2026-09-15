@@ -192,13 +192,23 @@ async function existingDues(
 /**
  * One student, end to end. Used by both the "Sync now" button and the cron.
  */
+export interface SyncOutcome {
+  ok: boolean
+  count: number
+  error?: string
+  /** Everything the feed held, so "we imported 5" can say 5 OF WHAT. */
+  found?: number
+  /** The rows written, for the screen that has to show its working. */
+  rows?: MoodleTodoRow[]
+}
+
 export async function syncOneConnection(
   userId: string,
   icsUrl: string,
   supabaseUrl: string,
   serviceKey: string,
   now: Date,
-): Promise<{ ok: boolean; count: number; error?: string }> {
+): Promise<SyncOutcome> {
   const fetched = await fetchMoodleCalendar(icsUrl)
   if (!fetched.ok) {
     const out = { ok: false, count: 0, error: fetched.error }
@@ -210,9 +220,9 @@ export async function syncOneConnection(
   const previous = await existingDues(userId, supabaseUrl, serviceKey)
   const rows = markMoves(eventsToTodos(fetched.events, userId, now), previous)
   const written = await writeMoodleTodos(rows, supabaseUrl, serviceKey)
-  const out = written.error
+  const out: SyncOutcome = written.error
     ? { ok: false, count: 0, error: written.error }
-    : { ok: true, count: written.written }
+    : { ok: true, count: written.written, found: fetched.events.length, rows }
   await recordMoodleSync(userId, out, supabaseUrl, serviceKey)
   return out
 }

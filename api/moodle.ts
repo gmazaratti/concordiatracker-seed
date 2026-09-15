@@ -116,10 +116,20 @@ export default async function handler(req: any, res: any) {
       return
     }
 
+    /**
+     * Return the ITEMS, not just a tally.
+     *
+     * "5 deadlines checked" is a claim the student has no way to check, and
+     * this whole feature asks them to trust a link they cannot read. Handing
+     * back what was actually found — and how many of the feed's events were
+     * left behind as already finished — is the difference between a number and
+     * evidence.
+     */
     res.status(200).json({
       connected: true,
       found: probe.events.length,
       imported: written.written,
+      items: preview(rows),
     })
     return
   }
@@ -142,7 +152,12 @@ export default async function handler(req: any, res: any) {
       fail(res, 502, out.error ?? 'Sync failed.', { code: 'upstream_error' })
       return
     }
-    res.status(200).json({ synced: true, imported: out.count })
+    res.status(200).json({
+      synced: true,
+      imported: out.count,
+      found: out.found ?? out.count,
+      items: preview(out.rows ?? []),
+    })
     return
   }
 
@@ -166,6 +181,20 @@ export default async function handler(req: any, res: any) {
   fail(res, 400, 'Unknown action.', {
     hint: 'Use "connect", "sync" or "disconnect".',
   })
+}
+
+/**
+ * The rows, trimmed for the wire and sorted the way a person reads them.
+ *
+ * Capped at 50 because a year-long calendar can hold hundreds and nobody
+ * scrolls a settings panel that far; the count beside the list is the honest
+ * total, so a cap never looks like a loss.
+ */
+function preview(rows: { title: string; due: string; note: string | null; moved_from?: string | null }[]) {
+  return [...rows]
+    .sort((a, b) => a.due.localeCompare(b.due))
+    .slice(0, 50)
+    .map((r) => ({ title: r.title, due: r.due, note: r.note, movedFrom: r.moved_from ?? null }))
 }
 
 function safeJson(s: string): unknown {
