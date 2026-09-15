@@ -7,10 +7,12 @@
 -- rather than invented. Montreal wall-clock converted with the zone's real
 -- offset (UTC-4 before 1 November, UTC-5 after).
 --
--- WHERE AN OUTLINE COVERS SEVERAL SECTIONS (COMM 216 is EC1/EC2/EC3, COMM 219
--- is EC1/EC2, COMM 316 is EC1/EC2) the section is left NULL. Writing one of
--- them would make the app warn every other section's students that these dates
--- are "not yours", which is the opposite of true.
+-- WHERE AN OUTLINE COVERS SEVERAL SECTIONS it names all of them, separated by
+-- "·" — COMM 216 is "EC1 · EC2 · EC3". `sameSection` matches any one of them,
+-- so all three sections see it as theirs and none is told it is "not yours".
+-- (This started as NULL, which worked but printed a blank section; naming them
+-- is both truthful and useful.) Requires the sectionKeys change in
+-- src/lib/course-sections.ts.
 --
 -- NOT INCLUDED, deliberately: PSYC 205's evaluation table does not survive text
 -- extraction cleanly enough to tell whether its two tests are 20% each or 20%
@@ -53,7 +55,7 @@ values
 -- ── COMM 216 — Ethics, Business Sustainability and Social Responsibility ───
 -- Raymond Paquin. One outline for EC1, EC2 and EC3.
 (null, 'COMM 216', 'Ethics, Business Sustainability and Social Responsibility',
- 'Raymond Paquin', 'comm216.paquin@concordia.ca', 'Course outline', null, 'Fall 2026',
+ 'Raymond Paquin', 'comm216.paquin@concordia.ca', 'Course outline', 'EC1 · EC2 · EC3', 'Fall 2026',
  '[
    {"title": "SmartBook interactive chapter readings (5 x 4%)", "kind": "reading", "weight": 20, "due": null},
    {"title": "Chapter quizzes (5 x 4%)", "kind": "quiz", "weight": 20, "due": null},
@@ -65,7 +67,7 @@ values
 
 -- ── COMM 219 — Innovation Management — Sumin Song (EC1, EC2) ───────────────
 (null, 'COMM 219', 'Innovation Management', 'Sumin Song', 'sumin.song@concordia.ca',
- 'Course outline', null, 'Fall 2026',
+ 'Course outline', 'EC1 · EC2', 'Fall 2026',
  '[
    {"title": "Knowledge checks", "kind": "quiz", "weight": 10, "due": null},
    {"title": "Lesson activities", "kind": "assignment", "weight": 10, "due": null},
@@ -77,7 +79,7 @@ values
 -- ── COMM 316 — Business Law and Ethics (EC1, EC2) ──────────────────────────
 -- Two items only. An 80% final is worth seeing before you plan the term.
 (null, 'COMM 316', 'Business Law and Ethics', null, 'comm316ec@concordia.ca',
- 'Course outline', null, 'Fall 2026',
+ 'Course outline', 'EC1 · EC2', 'Fall 2026',
  '[
    {"title": "Online class test (lessons 1-2, 30 MCQ, 45 minutes)", "kind": "quiz", "weight": 20, "due": null},
    {"title": "Final exam (in person)", "kind": "final", "weight": 80, "due": null}

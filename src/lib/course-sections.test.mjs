@@ -37,6 +37,7 @@ const {
   sectionPatch,
   sortSections,
   sectionKey,
+  sectionKeys,
   sameSection,
 } = await import(pathToFileURL(tmp).href)
 const { laterTerms, currentTermName } = await import(pathToFileURL(tmpTerms).href)
@@ -191,6 +192,17 @@ console.log('\nsection keys')
   // Unknown is never a mismatch: we do not warn about what we do not know.
   check('an unknown section never mismatches', !sameSection('', 'B'))
   check('nor the other way', !sameSection('B', ''))
+
+  // One outline, several sections — COMM 216 is EC1/EC2/EC3 on its title page.
+  check('a multi-section outline matches each of them', sameSection('EC1', 'EC1 · EC2 · EC3'))
+  check('and the middle one', sameSection('EC2', 'EC1 · EC2 · EC3'))
+  check('and the last', sameSection('EC3 LEC', 'EC1 · EC2 · EC3'))
+  check('but not a section it does not name', !sameSection('EC4', 'EC1 · EC2 · EC3'))
+  check('symmetric', sameSection('EC1 · EC2 · EC3', 'EC2'))
+  // A student's own string uses the same separator for a TUTORIAL, which is
+  // not a second lecture section and must not match one.
+  check('a tutorial is not a second section', !sameSection('BB LEC · BI TUT', 'BI'))
+  check('but the lecture still matches', sameSection('BB LEC · BI TUT', 'BB'))
 }
 
 {

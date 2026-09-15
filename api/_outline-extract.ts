@@ -100,17 +100,59 @@ export async function extractOutline(
   code: string,
   term: string,
 ): Promise<Extracted> {
+  return run([{ text: prompt(code, term, text.slice(0, MAX_CHARS)) }])
+}
+
+/**
+ * The same job, from the PDF itself.
+ *
+ * Needed because our dependency-free text extractor cannot read every PDF:
+ * an outline typeset with CID/Type0 fonts yields glyph ids rather than
+ * letters, and a scanned one yields nothing at all. Four Fall courses came out
+ * that way — PHIL 235 and PSYC 333 gave 650 characters of link table and
+ * nothing else — and the sync was marking them `no_text` and walking away.
+ *
+ * It is also the better reader for a TABLE. PSYC 205's evaluation grid
+ * survives extraction with its columns interleaved, so the weights and the
+ * rows they belong to come apart; the model looking at the page keeps them
+ * together.
+ *
+ * Not the default, because it is several hundred kilobytes per call against a
+ * few kilobytes of text, and the text path handles forty of the forty-five.
+ */
+export async function extractOutlineFromPdf(
+  bytes: Uint8Array,
+  code: string,
+  term: string,
+): Promise<Extracted> {
+  return run([
+    { inlineData: { mimeType: 'application/pdf', data: toBase64(bytes) } },
+    { text: prompt(code, term, '(the document is attached above)') },
+  ])
+}
+
+/** ArrayBuffer → base64, chunked so a large buffer does not overflow the call
+ *  stack. Same helper parse-syllabus uses. */
+function toBase64(bytes: Uint8Array): string {
+  let bin = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  }
+  return btoa(bin)
+}
+
+async function run(parts: unknown[]): Promise<Extracted> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY is not set')
 
-  const body = prompt(code, term, text.slice(0, MAX_CHARS))
   const r = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: body }] }],
+        contents: [{ parts }],
         generationConfig: {
           temperature: 0,
           responseMimeType: 'application/json',

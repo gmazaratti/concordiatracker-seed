@@ -40,7 +40,11 @@ import {
   sleep,
   termNameFrom,
 } from './_econcordia.js'
-import { extractOutline, type ExtractedItem } from './_outline-extract.js'
+import {
+  extractOutline,
+  extractOutlineFromPdf,
+  type ExtractedItem,
+} from './_outline-extract.js'
 import { fail } from './_respond.js'
 
 export const config = { maxDuration: 60 }
@@ -209,24 +213,31 @@ async function parseOne(db: Db, row: SourceRow): Promise<string> {
     return 'unchanged'
   }
 
+  /**
+   * Text first, the PDF itself as the fallback.
+   *
+   * Our extractor reads forty of the forty-five Fall outlines and costs
+   * nothing. The rest are typeset with CID fonts or are scans, and used to be
+   * written off as `no_text` — which meant four courses could never be
+   * covered by anything, by hand or otherwise. Sending the document instead is
+   * slower and bigger, so it is the exception rather than the rule.
+   */
   const text = await pdfText(got.bytes)
-  if (text.trim().length < 400) {
-    // A scanned outline. Saying so beats writing an empty blueprint.
-    await mark({ status: 'no_text', content_hash: hash, last_error: 'No extractable text' })
-    return 'no_text'
-  }
+  const thin = text.trim().length < 400
 
   let items: ExtractedItem[]
   let meta: { professor?: string; professorEmail?: string; term?: string }
   try {
-    const got2 = await extractOutline(text, row.course_codes[0] ?? '', row.term ?? '')
+    const got2 = thin
+      ? await extractOutlineFromPdf(got.bytes, row.course_codes[0] ?? '', row.term ?? '')
+      : await extractOutline(text, row.course_codes[0] ?? '', row.term ?? '')
     items = got2.items
     meta = got2
   } catch (e) {
     await mark({
       status: 'parse_failed',
       content_hash: hash,
-      last_error: e instanceof Error ? e.message.slice(0, 300) : 'extract failed',
+      last_error: `${thin ? 'pdf' : 'text'}: ${e instanceof Error ? e.message.slice(0, 280) : 'extract failed'}`,
     })
     return 'parse_failed'
   }

@@ -213,10 +213,48 @@ export function sectionKey(section: string): string {
   return token.toUpperCase()
 }
 
-/** Do these two refer to the same section? Empty on either side is "unknown",
- *  which is never a mismatch — we do not warn on something we do not know. */
+/** Component codes that are NOT a second section — a tutorial or a lab is part
+ *  of the same registration, not another lecture section. */
+const NON_LECTURE = new Set(['TUT', 'LAB', 'TUTORIAL', 'LABORATORY'])
+
+/**
+ * EVERY lecture section a string names, not just the first.
+ *
+ * One eConcordia outline routinely covers several — COMM 216's title page says
+ * "Sections EC1, EC2, EC3" and there is exactly one document. Recording only
+ * "EC1" would make the app tell two thirds of that class their own outline is
+ * "not yours"; recording nothing loses the fact that it IS theirs.
+ *
+ * A STUDENT's section uses the same separator for something different:
+ * "BB LEC · BI TUT" is one registration with a tutorial attached. A part whose
+ * component is TUT or LAB is dropped rather than read as a second section,
+ * which is the whole reason this is not a plain split.
+ */
+export function sectionKeys(section: string): string[] {
+  const out: string[] = []
+  for (const part of section.split(/[·,;/]/)) {
+    const tokens = part.trim().split(/\s+/)
+    const label = tokens[0]
+    if (!label) continue
+    if (NON_LECTURE.has((tokens[1] ?? '').toUpperCase())) continue
+    const up = label.toUpperCase()
+    if (!out.includes(up)) out.push(up)
+  }
+  return out
+}
+
+/**
+ * Do these two refer to the same section?
+ *
+ * Empty on either side returns FALSE, unchanged: the callers each decide what
+ * an unknown means — the blueprint row treats it as "do not warn", the section
+ * tab as "not yours" — and flipping it here would silently change both.
+ *
+ * Either side may name several sections; matching any one of them is a match.
+ */
 export function sameSection(a: string, b: string): boolean {
   const ka = sectionKey(a)
   const kb = sectionKey(b)
-  return ka !== '' && kb !== '' && ka === kb
+  if (ka === '' || kb === '') return false
+  return sectionKeys(a).includes(kb) || sectionKeys(b).includes(ka)
 }
