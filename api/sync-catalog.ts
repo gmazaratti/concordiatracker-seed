@@ -74,8 +74,11 @@ export default async function handler(req: any, res: any) {
   }
   const cronSecret = process.env.CRON_SECRET
   const header: string = req.headers['authorization'] || ''
-  const token = header.startsWith('Bearer ') ? header.slice(7) : ''
-  if (!cronSecret || token !== cronSecret) {
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  // Trimmed both sides: a secret pasted into a dashboard picks up a trailing
+  // newline more often than anyone admits, and an exact compare turns that
+  // into a 401 that reads as a wrong secret rather than a stray character.
+  if (!cronSecret || token !== cronSecret.trim()) {
     fail(res, 401, 'Unauthorized')
     return
   }

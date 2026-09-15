@@ -87,8 +87,15 @@ export async function syncOutlines(req: any, res: any) {
     return
   }
   const cronSecret = process.env.CRON_SECRET
+  /**
+   * Trimmed on BOTH sides. An env var pasted into a dashboard picks up a
+   * trailing space or newline more often than anyone admits, and an exact
+   * compare turns that into a 401 that looks like a wrong secret rather than
+   * a stray character. Vercel Cron signs its own calls with the same value, so
+   * it was never affected — but every hand-run curl was.
+   */
   const header: string = req.headers['authorization'] || ''
-  if (!cronSecret || header.slice(7) !== cronSecret) {
+  if (!cronSecret || header.slice(7).trim() !== cronSecret.trim()) {
     fail(res, 401, 'Unauthorized')
     return
   }

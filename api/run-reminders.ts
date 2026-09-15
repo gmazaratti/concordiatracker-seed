@@ -106,7 +106,8 @@ export default async function handler(req: any, res: any) {
   const cronSecret = process.env.CRON_SECRET
   const authHeader: string = req.headers['authorization'] || ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
-  if (!cronSecret || token !== cronSecret) {
+  // Trimmed both sides — see the note in sync-catalog.
+  if (!cronSecret || token.trim() !== cronSecret.trim()) {
     fail(res, 401, 'Unauthorized')
     return
   }
