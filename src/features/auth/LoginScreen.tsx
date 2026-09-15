@@ -10,18 +10,41 @@ const field =
 
 /** Shared by both OAuth buttons, so they cannot drift apart visually. */
 const oauthBtn =
-  'flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 py-2.5 text-[14px] font-medium text-fg transition-colors duration-150 hover:bg-surface'
+  'flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 py-2.5 text-[14px] font-medium text-fg transition-colors duration-150 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-surface-2'
 
-/** The full-screen sign-in gate for the student app. Google and Apple are the
- * real paths — both OAuth, both returning through the same callback; the
- * email+password form below is the dev/test sign-in for the sandbox accounts. */
+/**
+ * The full-screen auth gate: sign in, or create an account.
+ *
+ * Google and Apple are the real paths — both OAuth, both returning through the
+ * same callback — and email+password is the third, for anyone who wants an
+ * account not tied to either.
+ *
+ * THE AGREEMENT IS REQUIRED TO CREATE AN ACCOUNT, NOT TO SIGN IN. Someone
+ * signing in agreed when they joined; asking again every time is a tick-box
+ * that teaches people to tick boxes. In create mode it gates EVERY route in,
+ * OAuth included — clicking "Google" makes an account just as much as the form
+ * does, so the agreement cannot only guard the half that happens to have a
+ * submit button.
+ */
 export function LoginScreen() {
-  const { signInWithGoogle, signInWithApple, signInWithPassword } = useAuth()
+  const { signInWithGoogle, signInWithApple, signInWithPassword, signUpWithPassword } = useAuth()
   const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [agreed, setAgreed] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const creating = mode === 'signup'
+  // One gate, checked by the OAuth buttons and the form alike.
+  const blocked = creating && !agreed
+
+  function switchMode(next: 'signin' | 'signup') {
+    setMode(next)
+    setError(null)
+    setSentTo(null)
+  }
 
   /**
    * One handler for both buttons.
@@ -31,6 +54,10 @@ export function LoginScreen() {
    * places for the error handling to drift apart.
    */
   async function handleOAuth(provider: 'Google' | 'Apple') {
+    if (blocked) {
+      setError(t('auth.mustAgree'))
+      return
+    }
     setError(null)
     const { error } = await (provider === 'Google' ? signInWithGoogle() : signInWithApple())
     if (error) {
@@ -47,8 +74,31 @@ export function LoginScreen() {
   async function handlePassword(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !password) return
+    if (blocked) {
+      setError(t('auth.mustAgree'))
+      return
+    }
+    if (creating && password.length < 8) {
+      setError(t('auth.passwordHint'))
+      return
+    }
     setBusy(true)
     setError(null)
+
+    if (creating) {
+      const { error, needsConfirmation } = await signUpWithPassword(email.trim(), password)
+      setBusy(false)
+      if (error) {
+        setError(error)
+        return
+      }
+      // Whether a session comes back is a project setting, so the screen reads
+      // the answer instead of assuming: confirmed accounts fall through to the
+      // app on their own, unconfirmed ones need to be told to go to their mail.
+      if (needsConfirmation) setSentTo(email.trim())
+      return
+    }
+
     const { error } = await signInWithPassword(email.trim(), password)
     if (error) {
       setError(error)
@@ -65,17 +115,67 @@ export function LoginScreen() {
         </div>
 
         <div className="rounded-2xl border border-border bg-surface p-6">
-          <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">{t('auth.signIn')}</h1>
-          <p className="mt-1 text-[13px] text-subtle">{t('auth.welcomeBack')}</p>
+          <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">
+            {creating ? t('auth.createAccount') : t('auth.signIn')}
+          </h1>
+          <p className="mt-1 text-[13px] text-subtle">
+            {creating ? t('auth.startTracking') : t('auth.welcomeBack')}
+          </p>
 
-          <div className="mt-5 flex flex-col gap-2">
-            <button type="button" onClick={() => void handleOAuth('Google')} className={oauthBtn}>
+          {/* The agreement sits ABOVE everything it gates, because a checkbox
+              under the buttons it governs is one people meet after they have
+              already tried to press one. */}
+          {creating && (
+            <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface-2/40 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => {
+                  setAgreed(e.target.checked)
+                  if (e.target.checked) setError(null)
+                }}
+                className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
+              />
+              <span className="text-[12.5px] leading-relaxed text-muted">
+                {t('auth.agreePre')}{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
+                  {t('auth.terms')}
+                </a>{' '}
+                {t('auth.and')}{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
+                  {t('auth.privacy')}
+                </a>
+                .
+              </span>
+            </label>
+          )}
+
+          {/* SIDE BY SIDE, WITH THE PROVIDER NAME ALONE. Two buttons in a
+              384px card leave ~160px each, and "Continue with Google" does not
+              fit that without wrapping or an ellipsis. The full sentence moves
+              to aria-label so a screen reader still hears the whole thing —
+              the visible word is unambiguous under a heading that says "Sign
+              in", and a truncated label would be worse than a short one. */}
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => void handleOAuth('Google')}
+              aria-label={t('auth.signInGoogle')}
+              disabled={blocked}
+              className={oauthBtn}
+            >
               <GoogleGlyph />
-              {t('auth.signInGoogle')}
+              {t('auth.google')}
             </button>
-            <button type="button" onClick={() => void handleOAuth('Apple')} className={oauthBtn}>
+            <button
+              type="button"
+              onClick={() => void handleOAuth('Apple')}
+              aria-label={t('auth.signInApple')}
+              disabled={blocked}
+              className={oauthBtn}
+            >
               <AppleGlyph />
-              {t('auth.signInApple')}
+              {t('auth.apple')}
             </button>
           </div>
 
@@ -101,12 +201,15 @@ export function LoginScreen() {
               <span className="mb-1 block text-[12px] font-medium text-muted">{t('auth.password')}</span>
               <input
                 type="password"
-                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete={creating ? 'new-password' : 'current-password'}
                 className={field}
               />
+              {creating && (
+                <span className="mt-1 block text-[11.5px] text-subtle">{t('auth.passwordHint')}</span>
+              )}
             </label>
 
             {error && (
@@ -114,14 +217,32 @@ export function LoginScreen() {
                 {error}
               </p>
             )}
+            {sentTo && (
+              <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-fg">
+                {t('auth.checkEmail')}
+              </p>
+            )}
 
-            <Button type="submit" disabled={busy} className="mt-1 w-full">
-              {busy ? t('auth.signingIn') : t('auth.signIn')}
+            <Button type="submit" disabled={busy || blocked} className="mt-1 w-full">
+              {busy
+                ? creating
+                  ? t('auth.creating')
+                  : t('auth.signingIn')
+                : creating
+                  ? t('auth.createAccount')
+                  : t('auth.signIn')}
             </Button>
           </form>
 
-          <p className="mt-3 text-center text-[11px] text-subtle">
-            {t('auth.devNote')}
+          <p className="mt-4 text-center text-[12.5px] text-subtle">
+            {creating ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
+            <button
+              type="button"
+              onClick={() => switchMode(creating ? 'signin' : 'signup')}
+              className="font-medium text-accent hover:underline"
+            >
+              {creating ? t('auth.signInInstead') : t('auth.createOne')}
+            </button>
           </p>
         </div>
       </div>

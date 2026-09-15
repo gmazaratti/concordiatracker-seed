@@ -26,6 +26,53 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.28.0',
+    name: 'Moodle, and no second copy of anything',
+    date: '2026-09-15',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Connect your Moodle calendar. Settings → Moodle walks you through the four clicks (Calendar → Export → Get calendar URL — not the Export button, which downloads a file), and draws the page so you can see which options to pick. Paste the link once and your Moodle deadlines land in your calendar, re-checked every night. No password: the link is read-only, covers your calendar and nothing else, and is stored where the app itself cannot read it back — only the sync job can. Disconnect removes it and everything it added.',
+      },
+      {
+        kind: 'new',
+        text: 'It shows you what it found. The panel lists every synced deadline by name with its course and date, read from your data rather than echoed back from the last sync, and says how many events it left behind as already finished. A count you cannot check is not worth much.',
+      },
+      {
+        kind: 'new',
+        text: 'If a professor moves a date, you are told rather than finding out. A synced item shows the old date and the new one side by side. And when the same work is also an assessment on one of your courses — the record that carries the weight and your grade — that course asks whether to use Moodle’s date or keep yours. Your weight, grade and notes are never touched, only the date.',
+      },
+      {
+        kind: 'improved',
+        text: 'No duplicates. A Moodle “Assignment 2 is due” and the Assignment 2 on your course are the same piece of work, so only one appears — the assessment, since it is the one with a weight. What shows up on its own is what no syllabus lists, like “Join a Group”. Matching is deliberately cautious: it needs the course and the numbers to agree, so “Quiz 1” can never be mistaken for “Quiz 4”.',
+      },
+      {
+        kind: 'new',
+        text: 'Sign in with Apple, beside Google, on the app and both portals. If you use Hide My Email that is treated as an ordinary address everywhere. Apple only sends your name on the very first sign-in, so if it never arrives you start as “Student” and can set it in Edit profile — better than a made-up name built out of a random email address.',
+      },
+      {
+        kind: 'improved',
+        text: 'Asking to see someone’s schedule is now a question they answer. Instead of a message telling them which setting to go and find, they get Allow or Deny in the chat, with what it shares written on it: times and rooms, never grades, and it applies to everyone you have accepted rather than just the person asking.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Sharing an outline could fail silently. The app showed “thanks for sharing” whether or not it saved, so nothing ever reached the pool and nobody could tell. It now succeeds or says why. The success screen also stops promising a review queue and theme credits that do not exist.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Long syllabus uploads no longer time out. We read the text out of the PDF before sending it, which is the difference between a 478 KB document and 33 KB of words. When something does go wrong you get the actual reason instead of “something went wrong”, and a failure that was our fault no longer costs you a cooldown.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The upload screen shows your real file name while it reads, and a long list of extracted assessments scrolls instead of pushing the weight total and the Add button off the page.',
+      },
+      {
+        kind: 'fixed',
+        text: '“FALL 2026”, “Summer 2026” and “Automne 2026” were each becoming their own term — their own tab, their own GPA row, sorted wrong. Terms are now written one way however they arrive.',
+      },
+    ],
+  },
+  {
     version: '1.27.0',
     name: 'Build your week',
     date: '2026-09-08',

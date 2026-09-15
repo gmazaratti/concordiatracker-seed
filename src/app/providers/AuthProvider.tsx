@@ -49,6 +49,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null }
   }, [])
 
+  /**
+   * Create an account with an email and a password.
+   *
+   * `needsConfirmation` exists because the answer depends on a dashboard
+   * setting, not on this code: with auto-confirm on, Supabase returns a
+   * session and the app is simply open; with it off, it returns a user and NO
+   * session, and the screen has to say "check your email" instead of appearing
+   * to do nothing. Reading the result rather than assuming means flipping that
+   * setting later does not silently break the sign-up screen.
+   */
+  const signUpWithPassword = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/app` },
+    })
+    if (error) return { error: error.message, needsConfirmation: false }
+    return { error: null, needsConfirmation: !data.session }
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
   }, [])
@@ -61,9 +81,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       signInWithApple,
       signInWithPassword,
+      signUpWithPassword,
       signOut,
     }),
-    [session, loading, signInWithGoogle, signInWithApple, signInWithPassword, signOut],
+    [
+      session,
+      loading,
+      signInWithGoogle,
+      signInWithApple,
+      signInWithPassword,
+      signUpWithPassword,
+      signOut,
+    ],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>

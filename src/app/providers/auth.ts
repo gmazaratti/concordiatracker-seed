@@ -18,6 +18,15 @@ export interface AuthContextValue {
   /** Same contract, same callback, same routing — only the provider differs. */
   signInWithApple: () => Promise<{ error: string | null }>
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
+  /**
+   * Create an account. `needsConfirmation` is true when the project requires
+   * the address to be verified first — in that case no session is returned and
+   * the screen must say so rather than looking like nothing happened.
+   */
+  signUpWithPassword: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signOut: () => Promise<void>
 }
 
