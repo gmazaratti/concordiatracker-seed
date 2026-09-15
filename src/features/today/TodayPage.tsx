@@ -5,7 +5,9 @@ import { term } from '@/data/mock'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
+import { daysUntil } from '@/lib/date'
 import { groupDue, PAIN_THRESHOLD } from './due'
+import { coveredTaskIds, pairMoodleToAssessments } from '@/lib/moodle-match'
 import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
@@ -40,6 +42,19 @@ function greetingKey(): 'today.goodMorning' | 'today.goodAfternoon' | 'today.goo
 
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
+/** Overdue and near-term totals for Moodle rows. Module-level so reading the
+ *  clock is allowed (`react-hooks/purity` bars it inside a component). */
+function countNear(tasks: { due: string }[]): { overdue: number; near: number } {
+  let overdue = 0
+  let near = 0
+  for (const tk of tasks) {
+    const d = daysUntil(tk.due)
+    if (d < 0) overdue++
+    if (d < 7) near++
+  }
+  return { overdue, near }
+}
+
 export function TodayPage() {
   const t = useT()
   const { lang } = useI18n()
@@ -49,6 +64,8 @@ export function TodayPage() {
     courses,
     pastCourses,
     assessments,
+    personalTasks,
+    toggleTask,
     setStatus,
     removeAssessment,
     addAssessments,
@@ -84,6 +101,32 @@ export function TodayPage() {
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
   const groups = useMemo(() => groupDue(assessments), [assessments])
+
+  /**
+   * Moodle deadlines that are NOT a second copy of something already here.
+   *
+   * THIS IS THE DUPLICATE ANSWER. A synced "Assignment 2 is due" and the
+   * Assignment 2 on your course are the same piece of work, and showing both
+   * would double the list for anyone whose syllabus is also in Moodle. The
+   * assessment wins — it carries the weight and your grade — and the synced
+   * copy is dropped. What survives is the deadlines no syllabus lists, which
+   * is exactly what connecting Moodle was for.
+   *
+   * Anything still open, and undone.
+   */
+  const moodleDue = useMemo(() => {
+    const covered = coveredTaskIds(pairMoodleToAssessments(personalTasks, assessments, courses))
+    return personalTasks.filter((tk) => tk.source === 'moodle' && !tk.done && !covered.has(tk.id))
+  }, [personalTasks, assessments, courses])
+  /**
+   * The same two numbers the rail shows, for the Moodle half.
+   *
+   * Counted here rather than left out, because a rail reading "3 left" beside
+   * a list of five rows is the kind of small inconsistency that makes someone
+   * distrust both numbers.
+   */
+  const moodleCounts = useMemo(() => countNear(moodleDue), [moodleDue])
+
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
   // Cumulative across FINISHED terms — the sub-line under this term's GPA.
   const cumulativeGpa = useMemo(
@@ -165,12 +208,14 @@ export function TodayPage() {
           )}
           <DueList
             groups={groups}
+            moodle={moodleDue}
             completed={completed}
             prefs={todayPrefs}
             courseById={courseById}
             onResolve={resolve}
             onDelete={deleteItem}
             onUndo={undo}
+            onToggleMoodle={toggleTask}
             onPrefsChange={updateTodayPrefs}
           />
           <AnnouncementsDigest />
@@ -207,8 +252,8 @@ export function TodayPage() {
                 <GlanceStrip
                 term={term}
                 gpa={gpa}
-                overdue={groups.overdue.length}
-                itemsLeft={groups.count}
+                overdue={groups.overdue.length + moodleCounts.overdue}
+                itemsLeft={groups.count + moodleCounts.near}
                 nextUp={groups.nextUp}
                 nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
                 doneToday={completed.length}

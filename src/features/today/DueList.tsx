@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { byDue } from '@/lib/date'
+import { byDue, daysUntil } from '@/lib/date'
 import { CheckCircle2, ChevronDown, SlidersHorizontal } from 'lucide-react'
-import type { Assessment, AssessmentStatus, Course } from '@/data/types'
+import type { Assessment, AssessmentStatus, CalendarTask, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -10,14 +10,67 @@ import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
+import { MoodleDueRow } from './MoodleDueRow'
 import { CustomizeToday } from './CustomizeToday'
 import type { DueGroups } from './due'
+
+/**
+ * A row on Today is one of two things.
+ *
+ * An ASSESSMENT is coursework: it has a weight, it can be graded, ticking it
+ * sets a status. A MOODLE item is a deadline your professor posted that no
+ * syllabus lists — "Join a Group (Due date)" — with no weight and nothing to
+ * grade, where ticking it just crosses it off.
+ *
+ * They are kept as distinct kinds rather than dressing the second up as the
+ * first, because a fake Assessment would be handed to `setStatus` and
+ * `removeAssessment` with an id those tables have never heard of: a tick that
+ * silently does nothing is worse than a row that is honest about what it is.
+ *
+ * A Moodle item that DUPLICATES an assessment never reaches here — TodayPage
+ * drops it, so one piece of coursework is one row.
+ */
+export type DueEntry =
+  | { kind: 'assessment'; id: string; due: string | null; item: Assessment }
+  | { kind: 'moodle'; id: string; due: string; item: CalendarTask }
 
 interface RowSection {
   key: string
   label: React.ReactNode
   tone: 'danger' | 'muted'
-  items: Assessment[]
+  items: DueEntry[]
+}
+
+/** Assessments and Moodle deadlines in one date order. */
+function merge(assessments: Assessment[], moodle: CalendarTask[]): DueEntry[] {
+  const rows: DueEntry[] = [
+    ...assessments.map((a) => ({ kind: 'assessment' as const, id: a.id, due: a.due, item: a })),
+    ...moodle.map((m) => ({ kind: 'moodle' as const, id: m.id, due: m.due, item: m })),
+  ]
+  return rows.sort((x, y) => {
+    if (!x.due) return 1
+    if (!y.due) return -1
+    return x.due.localeCompare(y.due)
+  })
+}
+
+/** Which time bucket a Moodle deadline belongs in — the same horizons `due.ts`
+ *  uses for assessments, so the two kinds cannot disagree about "this week". */
+function bucketMoodle(tasks: CalendarTask[]): {
+  overdue: CalendarTask[]
+  thisWeek: CalendarTask[]
+  later: CalendarTask[]
+} {
+  const overdue: CalendarTask[] = []
+  const thisWeek: CalendarTask[] = []
+  const later: CalendarTask[] = []
+  for (const m of tasks) {
+    const d = daysUntil(m.due)
+    if (d < 0) overdue.push(m)
+    else if (d < 7) thisWeek.push(m)
+    else later.push(m)
+  }
+  return { overdue, thisWeek, later }
 }
 
 /** Sections for the active list, per the "Group by" preference: time buckets
@@ -25,18 +78,19 @@ interface RowSection {
 function buildSections(
   t: T,
   groups: DueGroups,
+  moodle: CalendarTask[],
   groupBy: TodayPrefs['groupBy'],
   courseById: (id: string) => Course | undefined,
 ): RowSection[] {
   if (groupBy === 'course') {
-    const map = new Map<string, Assessment[]>()
+    const map = new Map<string, DueEntry[]>()
     for (const a of [...groups.active, ...groups.later, ...groups.undated].sort(byDue)) {
       const arr = map.get(a.courseId) ?? []
-      arr.push(a)
+      arr.push({ kind: 'assessment', id: a.id, due: a.due, item: a })
       map.set(a.courseId, arr)
     }
-    return [...map.entries()]
-      .sort((x, y) => byDue(x[1][0], y[1][0]))
+    const sections = [...map.entries()]
+      .sort((x, y) => (x[1][0].due ?? '').localeCompare(y[1][0].due ?? ''))
       .map(([courseId, items]) => {
         const course = courseById(courseId)
         const hex = course ? courseColor(course.color).hex : undefined
@@ -52,41 +106,59 @@ function buildSections(
           ),
         }
       })
+    // Grouping by COURSE cannot place a Moodle deadline: these are the ones
+    // that matched no assessment, so we do not know which class they belong
+    // to with enough confidence to file them under one. Their own group is
+    // honest; guessing a course would not be.
+    if (moodle.length) {
+      sections.push({
+        key: 'moodle',
+        tone: 'muted' as const,
+        items: merge([], moodle),
+        label: <span className="inline-flex items-center gap-1.5">From Moodle</span>,
+      })
+    }
+    return sections
   }
 
+  const m = bucketMoodle(moodle)
   const out: RowSection[] = []
-  if (groups.overdue.length)
-    out.push({ key: 'overdue', label: t('today.overdue'), tone: 'danger', items: groups.overdue })
-  if (groups.thisWeek.length)
-    out.push({ key: 'thisweek', label: t('today.thisWeek'), tone: 'muted', items: groups.thisWeek })
-  if (groups.later.length)
-    out.push({ key: 'later', label: t('today.comingUp'), tone: 'muted', items: groups.later })
+  const add = (key: string, label: React.ReactNode, tone: 'danger' | 'muted', items: DueEntry[]) => {
+    if (items.length) out.push({ key, label, tone, items })
+  }
+  add('overdue', t('today.overdue'), 'danger', merge(groups.overdue, m.overdue))
+  add('thisweek', t('today.thisWeek'), 'muted', merge(groups.thisWeek, m.thisWeek))
+  add('later', t('today.comingUp'), 'muted', merge(groups.later, m.later))
   // Last, always, and in its own section rather than the bottom of "Coming up".
   // These are not late and they are not soon — they are unscheduled, which is a
   // different problem with a different fix, and burying them in a time bucket
   // would imply a date we do not have.
-  if (groups.undated.length)
-    out.push({ key: 'undated', label: t('today.noDateYet'), tone: 'muted', items: groups.undated })
+  add('undated', t('today.noDateYet'), 'muted', merge(groups.undated, []))
   return out
 }
 
 export function DueList({
   groups,
+  moodle,
   completed,
   prefs,
   courseById,
   onResolve,
   onDelete,
   onUndo,
+  onToggleMoodle,
   onPrefsChange,
 }: {
   groups: DueGroups
+  /** Moodle deadlines that are NOT already on screen as an assessment. */
+  moodle: CalendarTask[]
   completed: Assessment[]
   prefs: TodayPrefs
   courseById: (id: string) => Course | undefined
   onResolve: (id: string, status: AssessmentStatus) => void
   onDelete: (id: string) => void
   onUndo: (id: string) => void
+  onToggleMoodle: (id: string) => void
   onPrefsChange: (patch: Partial<TodayPrefs>) => void
 }) {
   const t = useT()
@@ -102,7 +174,7 @@ export function DueList({
       else next.add(key)
       return next
     })
-  const sections = buildSections(t, groups, prefs.groupBy, courseById)
+  const sections = buildSections(t, groups, moodle, prefs.groupBy, courseById)
 
   return (
     <Card className="overflow-hidden">
@@ -143,16 +215,25 @@ export function DueList({
           const hiddenCount = section.items.length - visible.length
           return (
             <Section key={section.key} label={section.label} tone={section.tone} divider={i > 0}>
-              {visible.map((a) => (
-                <DueRow
-                  key={a.id}
-                  assessment={a}
-                  course={courseById(a.courseId)}
-                  prefs={prefs}
-                  onResolve={(status) => onResolve(a.id, status)}
-                  onDelete={() => onDelete(a.id)}
-                />
-              ))}
+              {visible.map((row) =>
+                row.kind === 'assessment' ? (
+                  <DueRow
+                    key={row.id}
+                    assessment={row.item}
+                    course={courseById(row.item.courseId)}
+                    prefs={prefs}
+                    onResolve={(status) => onResolve(row.id, status)}
+                    onDelete={() => onDelete(row.id)}
+                  />
+                ) : (
+                  <MoodleDueRow
+                    key={row.id}
+                    task={row.item}
+                    prefs={prefs}
+                    onToggle={() => onToggleMoodle(row.id)}
+                  />
+                ),
+              )}
               {(hiddenCount > 0 || (isOpen && section.items.length > CAP)) && (
                 <button
                   type="button"

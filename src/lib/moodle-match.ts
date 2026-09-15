@@ -62,11 +62,24 @@ export function titlesMatch(a: string, b: string): boolean {
   const y = normalizeTitle(b)
   if (!x || !y) return false
   if (x === y) return true
+
   const [short, long] = x.length <= y.length ? [x, y] : [y, x]
-  // Under 8 characters a containment match is mostly luck, and a title with no
-  // digit ("quiz", "exam", "lab") names a category rather than an item.
-  if (short.length < 8 || !/\d/.test(short)) return false
+  // Under 8 characters a containment match is mostly luck: "quiz", "lab" and
+  // "exam" name a category, not an item.
+  if (short.length < 8) return false
+  // THE NUMBERS MUST AGREE EXACTLY. This is what keeps containment safe —
+  // "assignment" would otherwise swallow "assignment 2", and "midterm exam"
+  // would swallow "midterm exam 2". Comparing the digit runs rather than
+  // demanding one lets "group project" match "group project report", which is
+  // the same piece of work written two ways, while still refusing every pair
+  // that disagrees about WHICH one it is.
+  if (numbersIn(short) !== numbersIn(long)) return false
   return long.includes(short)
+}
+
+/** The digit runs in order: "quiz 1 part 2" -> "1,2". */
+function numbersIn(s: string): string {
+  return (s.match(/\d+/g) ?? []).join(',')
 }
 
 export interface MoodleTask {
@@ -115,23 +128,41 @@ function sameLocalDay(a: string, b: string): boolean {
   )
 }
 
+/** One synced item paired with the assessment it duplicates. */
+export interface MoodlePair {
+  taskId: string
+  assessmentId: string
+  courseId: string
+  /** The assessment's title — what the student recognises. */
+  title: string
+  /** What the assessment says, or null if it never had a date. */
+  yourDue: string | null
+  /** What Moodle says. */
+  moodleDue: string
+  /** The Moodle event's own name, so a match can be checked not trusted. */
+  viaTitle: string
+  /** True when the two disagree about the DAY. */
+  differs: boolean
+}
+
 /**
- * Every assessment Moodle disagrees with.
+ * Pair every synced Moodle item with the assessment it is a second copy of.
  *
- * Only DAY-level differences are reported. Moodle stores 23:59 and a syllabus
- * often says "end of day", so reporting a difference of minutes would fire on
- * almost every pair and mean nothing.
+ * This is the answer to "will I see everything twice?". Moodle and your
+ * syllabus describe the same coursework, so without pairing, a class with five
+ * assignments in both places shows ten rows. A pair lets the app render the
+ * ASSESSMENT — the record that carries the weight and your grade — and drop
+ * the synced duplicate, while `differs` still surfaces a professor's change.
  *
- * An assessment with no date is skipped rather than matched: "Moodle moved
- * this" is the wrong sentence for an item that never had a date, and filling
- * one in from a fuzzy match is exactly the confident-wrong-answer this app
- * avoids. (Those are already handled as "date not set" on Today.)
+ * Unpaired Moodle items are NOT noise: "Join a Group (Due date)" is a real
+ * deadline that no syllabus lists. Those are the ones worth showing on their
+ * own.
  */
-export function findMoodleMismatches(
+export function pairMoodleToAssessments(
   tasks: MoodleTask[],
   assessments: MatchableAssessment[],
   courses: MatchableCourse[],
-): MoodleMismatch[] {
+): MoodlePair[] {
   const moodle = tasks.filter((t) => t.source === 'moodle' && t.due)
   if (moodle.length === 0) return []
 
@@ -140,8 +171,8 @@ export function findMoodleMismatches(
     for (const code of codesIn(c.code)) byCode.set(code, c.id)
   }
 
-  const out: MoodleMismatch[] = []
-  const claimed = new Set<string>() // one suggestion per assessment
+  const pairs: MoodlePair[] = []
+  const claimed = new Set<string>() // one assessment cannot be two things
 
   for (const task of moodle) {
     // The course comes from the Moodle event's own text — its CATEGORIES line
@@ -157,20 +188,54 @@ export function findMoodleMismatches(
     if (!core) continue
 
     for (const a of assessments) {
-      if (a.courseId !== courseId || !a.due || claimed.has(a.id)) continue
+      if (a.courseId !== courseId || claimed.has(a.id)) continue
       if (!titlesMatch(core, a.title)) continue
-      if (sameLocalDay(a.due, task.due)) continue
       claimed.add(a.id)
-      out.push({
+      pairs.push({
+        taskId: task.id,
         assessmentId: a.id,
         courseId,
         title: a.title,
         yourDue: a.due,
         moodleDue: task.due,
         viaTitle: task.title,
+        // An assessment with no date cannot have been "moved" — it never had
+        // a date to move from. Pairing it still hides the duplicate; it just
+        // does not claim a change.
+        differs: a.due !== null && !sameLocalDay(a.due, task.due),
       })
       break
     }
   }
-  return out
+  return pairs
+}
+
+/** The ids of synced items that are already on screen as an assessment. */
+export function coveredTaskIds(pairs: MoodlePair[]): Set<string> {
+  return new Set(pairs.map((p) => p.taskId))
+}
+
+/**
+ * Every assessment Moodle disagrees with — the subset of pairs where the day
+ * is different, which is the only kind worth interrupting anyone about.
+ *
+ * Only DAY-level differences count. Moodle stores 23:59 and a syllabus often
+ * says "end of day", so a difference of minutes would fire on nearly every
+ * pair and mean nothing.
+ */
+export function findMoodleMismatches(
+  tasks: MoodleTask[],
+  assessments: MatchableAssessment[],
+  courses: MatchableCourse[],
+): MoodleMismatch[] {
+  return pairMoodleToAssessments(tasks, assessments, courses)
+    .filter((p) => p.differs && p.yourDue)
+    .map((p) => ({
+      assessmentId: p.assessmentId,
+      courseId: p.courseId,
+      title: p.title,
+      yourDue: p.yourDue as string,
+      moodleDue: p.moodleDue,
+      viaTitle: p.viaTitle,
+    }))
 }

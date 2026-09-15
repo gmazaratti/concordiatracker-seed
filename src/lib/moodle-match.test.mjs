@@ -18,7 +18,7 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'moodle-match.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: path.join(here, '..', '..') },
 )
-const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches } = await import(
+const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches, pairMoodleToAssessments, coveredTaskIds } = await import(
   pathToFileURL(out).href
 )
 
@@ -56,6 +56,12 @@ check('DIFFERENT NUMBERS NEVER MATCH', !titlesMatch('Quiz 1', 'Quiz 4'))
 check('a bare category never matches an item', !titlesMatch('Quiz', 'Quiz 4'))
 check('a short containment is refused', !titlesMatch('Lab', 'Lab 4'))
 check('unrelated titles', !titlesMatch('Midterm Exam', 'Final Exam'))
+// The numbers-agree rule, which is what makes containment safe at all.
+check('a longer name for the same work matches', titlesMatch('Group project', 'Group Project Report'))
+check('but a bare noun never swallows a numbered one', !titlesMatch('Assignment', 'Assignment 2'))
+check('nor does an unnumbered exam', !titlesMatch('Midterm exam', 'Midterm exam 2'))
+check('same number, longer name, still matches', titlesMatch('Assignment 2', 'Assignment 2 group hand-in'))
+check('different numbers never match however long', !titlesMatch('Assignment 12', 'Assignment 12 and 13'))
 check('empty is not a match', !titlesMatch('', 'Assignment 2'))
 
 console.log('\nfindMoodleMismatches')
@@ -136,6 +142,58 @@ eq(
 )
 eq('no tasks is no work', findMoodleMismatches([], ASSESSMENTS, COURSES).length, 0)
 eq('no courses means nothing can be placed', findMoodleMismatches([task({})], ASSESSMENTS, []).length, 0)
+
+console.log('\npairMoodleToAssessments — the duplicate question, on real data')
+// Verbatim from a live FINA 210 sync: five events, category "FINA-210-2262-B".
+const FINA_COURSES = [{ id: 'f1', code: 'FINA 210' }]
+const FINA_TASKS = [
+  ['Join a Group (Due date)', '2026-09-22T23:59:00.000Z'],
+  ['Assignment 1 is due', '2026-09-29T23:59:00.000Z'],
+  ['Assignment 2 is due', '2026-11-03T23:59:00.000Z'],
+  ['Assignment 3 is due', '2026-11-10T23:59:00.000Z'],
+  ['Group project is due', '2026-11-17T23:59:00.000Z'],
+].map(([title, due], i) => ({
+  id: `m${i}`, title, due, note: 'FINA-210-2262-B · The instructions are included in the Excel file.', source: 'moodle',
+}))
+// The same course already on the app, from a syllabus.
+const FINA_ASSESSMENTS = [
+  { id: 'fa1', courseId: 'f1', title: 'Assignment 1', due: '2026-09-29T23:59:00.000Z' },
+  { id: 'fa2', courseId: 'f1', title: 'Assignment 2', due: '2026-11-03T23:59:00.000Z' },
+  { id: 'fa3', courseId: 'f1', title: 'Assignment 3', due: '2026-11-10T23:59:00.000Z' },
+  { id: 'fa4', courseId: 'f1', title: 'Group Project Report', due: '2026-11-17T23:59:00.000Z' },
+]
+const fpairs = pairMoodleToAssessments(FINA_TASKS, FINA_ASSESSMENTS, FINA_COURSES)
+eq('four of the five are recognised as duplicates', fpairs.length, 4)
+const covered = coveredTaskIds(fpairs)
+const survivors = FINA_TASKS.filter((t) => !covered.has(t.id)).map((t) => t.title)
+eq('only the one no syllabus lists survives', survivors, ['Join a Group (Due date)'])
+check('and none of them is reported as a date change', fpairs.every((p) => !p.differs))
+eq('so nothing nags the student', findMoodleMismatches(FINA_TASKS, FINA_ASSESSMENTS, FINA_COURSES).length, 0)
+
+// Same set, but the professor moved Assignment 2 a week.
+const moved = FINA_TASKS.map((t) =>
+  t.title === 'Assignment 2 is due' ? { ...t, due: '2026-11-10T23:59:00.000Z' } : t,
+)
+const movedPairs = pairMoodleToAssessments(moved, FINA_ASSESSMENTS, FINA_COURSES)
+eq('it is still a duplicate, so still only one row', coveredTaskIds(movedPairs).size, 4)
+const nags = findMoodleMismatches(moved, FINA_ASSESSMENTS, FINA_COURSES)
+eq('but now exactly one change is surfaced', nags.length, 1)
+eq('and it is the right one', nags[0].title, 'Assignment 2')
+
+// Without the syllabus, nothing is hidden — all five are the only record.
+eq(
+  'a course with no assessments hides nothing',
+  coveredTaskIds(pairMoodleToAssessments(FINA_TASKS, [], FINA_COURSES)).size,
+  0,
+)
+// An undated assessment still absorbs its duplicate, but claims no change.
+const undatedPair = pairMoodleToAssessments(
+  [FINA_TASKS[1]],
+  [{ id: 'x', courseId: 'f1', title: 'Assignment 1', due: null }],
+  FINA_COURSES,
+)
+eq('an undated assessment still hides the duplicate', undatedPair.length, 1)
+check('and never claims it moved', !undatedPair[0].differs)
 
 console.log(failures === 0 ? '\nmoodle-match: all checks passed' : `\nmoodle-match: ${failures} FAILED`)
 process.exit(failures === 0 ? 0 : 1)

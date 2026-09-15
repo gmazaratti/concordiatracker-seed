@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
+import { coveredTaskIds, pairMoodleToAssessments } from '@/lib/moodle-match'
 import { ACADEMIC_CALENDAR } from '@/data/academic-calendar'
 import { term } from '@/data/mock'
 import { Segmented } from '@/features/settings/controls'
@@ -34,7 +35,8 @@ function weekLabel(cursor: Date): string {
  * two toggleable layers, across Month / Week / Agenda views. */
 export function CalendarPage() {
   const t = useT()
-  const { assessments, personalTasks, courseById, calendarPrefs, updateCalendarPrefs } = useAppData()
+  const { assessments, personalTasks, courses, courseById, calendarPrefs, updateCalendarPrefs } =
+    useAppData()
   const { openAssessment } = useQuickActions()
   const [cursor, setCursor] = useState(() => new Date())
   const [openDay, setOpenDay] = useState<Date | null>(null)
@@ -49,9 +51,21 @@ export function CalendarPage() {
     }
   }, [calendarPrefs.view, updateCalendarPrefs])
 
+  /**
+   * A Moodle deadline that is ALREADY on the calendar as an assessment is
+   * dropped, so one piece of coursework is one entry. The assessment is the
+   * one kept: it carries the weight, the grade and the provenance badge, and
+   * the synced copy carries none of those. `MoodleMismatchCard` still speaks
+   * up on the course when the two disagree about the date.
+   */
+  const visibleTasks = useMemo(() => {
+    const covered = coveredTaskIds(pairMoodleToAssessments(personalTasks, assessments, courses))
+    return personalTasks.filter((tk) => !covered.has(tk.id))
+  }, [personalTasks, assessments, courses])
+
   const source: CalendarSource = useMemo(
-    () => ({ assessments, tasks: personalTasks, academic: ACADEMIC_CALENDAR }),
-    [assessments, personalTasks],
+    () => ({ assessments, tasks: visibleTasks, academic: ACADEMIC_CALENDAR }),
+    [assessments, visibleTasks],
   )
 
   function step(delta: number) {
