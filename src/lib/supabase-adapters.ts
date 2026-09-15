@@ -284,6 +284,8 @@ interface BlueprintItem {
   /** Null when the outline itself gave no date — an exam the registrar has not
    *  scheduled yet. Carried through the import rather than invented. */
   due?: string | null
+  /** A condition the weight cannot express: a pass floor, a flexible option. */
+  note?: string
 }
 
 export interface BlueprintRow {
@@ -361,6 +363,7 @@ export function blueprintFromRow(r: BlueprintRow): Blueprint {
        * exactly this — so the fallback was not protecting anything.
        */
       due: it.due ?? null,
+      note: typeof it.note === 'string' && it.note.trim() ? it.note.trim() : undefined,
       // No ground truth for community uploads → unverified; teacher rows → official.
       provenance: { status: (verified ? 'official' : 'unverified') as ProvenanceStatus },
     })),

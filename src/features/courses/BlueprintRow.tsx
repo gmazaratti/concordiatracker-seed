@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ExternalLink, ShieldCheck } from 'lucide-react'
+import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ExternalLink, Info, ShieldCheck } from 'lucide-react'
 import { blueprintWeight, netVotes, uploadedOn, type Blueprint } from '@/data/blueprints'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
@@ -160,16 +160,27 @@ export function BlueprintRow({
           )}
           <ul className="overflow-hidden rounded-lg border border-border bg-surface">
             {blueprint.dates.map((d, i) => (
-              <li
-                key={i}
-                className="flex items-center gap-2.5 border-b border-border/60 px-3 py-2 text-[12px] last:border-b-0"
-              >
-                <span className="w-16 shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-muted">
-                  {KIND_LABEL[d.kind]}
+              <li key={i} className="border-b border-border/60 px-3 py-2 text-[12px] last:border-b-0">
+                <span className="flex items-center gap-2.5">
+                  <span className="w-16 shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-muted">
+                    {KIND_LABEL[d.kind]}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-fg">{d.title}</span>
+                  <span className="shrink-0 text-subtle">{formatFull(d.due)}</span>
+                  <span className="w-9 shrink-0 text-right font-medium text-muted tabular-nums">
+                    {d.weight}%
+                  </span>
                 </span>
-                <span className="min-w-0 flex-1 truncate text-fg">{d.title}</span>
-                <span className="shrink-0 text-subtle">{formatFull(d.due)}</span>
-                <span className="w-9 shrink-0 text-right font-medium text-muted tabular-nums">{d.weight}%</span>
+                {/* A condition the weight cannot express — a pass floor, or a
+                    flexible option. On its own line because it is about the
+                    item, not another column of it, and it follows the item
+                    onto your list when you import. */}
+                {d.note && (
+                  <span className="mt-1 flex items-start gap-1.5 pl-[4.75rem] text-[11px] leading-relaxed text-warning">
+                    <Info size={11} className="mt-0.5 shrink-0" aria-hidden />
+                    {d.note}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

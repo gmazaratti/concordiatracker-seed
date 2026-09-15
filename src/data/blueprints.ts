@@ -23,6 +23,19 @@ export interface BlueprintDate {
   weight: number
   /** ISO due timestamp (runtime-relative, like the rest of the seed). */
   due: string | null
+  /**
+   * A rule the weight cannot express.
+   *
+   * Flexible grading ("skip the midterm and the final is worth 70 instead of
+   * 50"), a pass floor ("you must score 50% on this exam to pass the course"),
+   * a best-N-of-M band. These used to be crammed into the TITLE, which made
+   * the title long and still left it looking like a claim about the item
+   * rather than a condition on it.
+   *
+   * Carried through on import into the assessment's own notes, so it survives
+   * where the student will actually meet it.
+   */
+  note?: string
   /** `official` only on teacher-verified blueprints; community = `unverified`. */
   provenance: Provenance
 }
@@ -270,7 +283,8 @@ export function blueprintToAssessments(b: Blueprint): Assessment[] {
     provenance: d.provenance,
     status: 'not-started',
     grade: null,
-    notes: '',
+    // The outline's condition follows the item onto the student's own list.
+    notes: d.note ?? '',
   }))
 }
 
