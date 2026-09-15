@@ -38,6 +38,19 @@ export function outlineDetails(bp: Blueprint, course: Course): Partial<Course> {
   const room = bp.classroom?.trim()
   if (room && !course.location.trim()) patch.location = room
 
+  /**
+   * The section, which was the obvious one we were not carrying.
+   *
+   * You picked "COMM 305 · EC" off a list and the course still said no
+   * section, so the class panel offered "Fill from Concordia" for something
+   * you had already told us. The outline names it on page one.
+   *
+   * Blank-only, like everything else here: a student who typed their own
+   * section knows their registration better than a PDF does.
+   */
+  const section = bp.section?.trim()
+  if (section && !course.section?.trim()) patch.section = section
+
   return patch
 }
 
@@ -48,6 +61,7 @@ export function describeDetails(patch: Partial<Course>): string | null {
   if (patch.instructor) parts.push('instructor')
   if (patch.officeHours) parts.push('office hours')
   if (patch.location) parts.push('room')
+  if (patch.section) parts.push('section')
   if (parts.length === 0) return null
   const last = parts.pop() as string
   return parts.length ? `${parts.join(', ')} and ${last}` : last

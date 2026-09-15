@@ -99,6 +99,19 @@ console.log('\nsaying what happened')
   check('nothing says nothing', describeDetails({}) === null)
 }
 
+{
+  console.log(String.fromCharCode(10) + 'section')
+  // You picked the section off a list; the course should not then ask which
+  // section you are in.
+  const bp = { ...outline, section: 'EC' }
+  check('an outline section fills a blank one', outlineDetails(bp, blank).section === 'EC')
+  check(
+    'but never overwrites one you typed',
+    outlineDetails(bp, { ...blank, section: 'BB' }).section === undefined,
+  )
+  check('no section on the outline changes nothing', outlineDetails(outline, blank).section === undefined)
+}
+
 console.log(
   failed === 0 ? '\noutline-details: all checks passed' : `\noutline-details: ${failed} FAILED`,
 )

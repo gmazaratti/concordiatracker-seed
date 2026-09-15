@@ -348,7 +348,19 @@ export function blueprintFromRow(r: BlueprintRow): Blueprint {
       title: it.title ?? it.name ?? '',
       kind: kindFromType(it.kind ?? null),
       weight: it.weight ?? 0,
-      due: it.due ?? new Date().toISOString(),
+      /**
+       * NULL STAYS NULL. This used to be `?? new Date().toISOString()`, so an
+       * item the outline deliberately leaves undated — "the Examinations Office
+       * sets it", "TBA" — imported as due RIGHT NOW. COMM 305's final exam
+       * landed on the afternoon the student imported it.
+       *
+       * That is the worst shape of wrong this product can produce: a date
+       * nobody wrote, on a final exam, wearing an Official badge. Everything
+       * downstream already handles null — `formatFull` prints TBD,
+       * `Assessment.due` is nullable, and db/undated_assessments.sql exists for
+       * exactly this — so the fallback was not protecting anything.
+       */
+      due: it.due ?? null,
       // No ground truth for community uploads → unverified; teacher rows → official.
       provenance: { status: (verified ? 'official' : 'unverified') as ProvenanceStatus },
     })),
