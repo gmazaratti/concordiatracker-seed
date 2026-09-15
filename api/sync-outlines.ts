@@ -65,7 +65,14 @@ interface SourceRow {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
+  /**
+   * GET as well as POST, because **Vercel Cron sends GET** — and that is how
+   * this job is scheduled now. Vercel attaches `Authorization: Bearer
+   * $CRON_SECRET` to its own cron invocations automatically, which is exactly
+   * the check below, so nobody ever has to hold the secret to keep this
+   * running. pg_cron stays supported for anyone who prefers it.
+   */
+  if (req.method !== 'POST' && req.method !== 'GET') {
     fail(res, 405, 'Method not allowed')
     return
   }

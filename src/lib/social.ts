@@ -224,6 +224,47 @@ export async function requestSchedule(handle: string): Promise<string | null> {
   )
 }
 
+/**
+ * One message to somebody you are not connected to.
+ *
+ * Every rule is enforced in the DATABASE (db/message_requests.sql), not here:
+ * one per person, ten a day, five hundred characters, and **no links**. This
+ * function only translates the reason back into a sentence, because a client
+ * check is a suggestion and the limits are the entire reason this is allowed
+ * to exist at all.
+ *
+ * Returns null on success, or the reason it did not send.
+ */
+export async function sendMessageRequest(handle: string, body: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('send_message_request', {
+    p_handle: handle,
+    p_body: body,
+  })
+  if (error) return 'Could not send that right now.'
+  const r = (data ?? {}) as { ok?: boolean; reason?: string; detail?: number }
+  if (r.ok) return null
+  switch (r.reason) {
+    case 'link':
+      return 'A first message cannot contain a link. Say who you are and they can ask for it.'
+    case 'already_sent':
+      return 'You have already sent them a request. They will see it when they look.'
+    case 'already_friends':
+      return 'You are already connected — just message them.'
+    case 'rate':
+      return `That is ${r.detail ?? 10} requests today, which is the limit. Try again tomorrow.`
+    case 'too_long':
+      return 'Keep a first message under 500 characters.'
+    case 'empty':
+      return 'Write something first.'
+    case 'no_user':
+      return `No one here has the handle @${handle.replace(/^@/, '')}.`
+    case 'self':
+      return 'That is you.'
+    default:
+      return 'Could not send that.'
+  }
+}
+
 export async function canSeeSchedule(handle: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('can_see_schedule', { p_handle: handle })
   return !error && data === true

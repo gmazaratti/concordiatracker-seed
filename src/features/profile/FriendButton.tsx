@@ -7,6 +7,7 @@ import {
   listFriends,
   removeFriend,
   requestFriend,
+  sendMessageRequest,
   unfollowUser,
   type Friend,
 } from '@/lib/social'
@@ -46,6 +47,7 @@ export function FriendButton({
   const [friend, setFriend] = useState<Friend | null | undefined>(undefined)
   const [following, setFollowing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [asking, setAsking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
 
@@ -206,9 +208,85 @@ export function FriendButton({
           <UserPlus size={13} aria-hidden />
           Connect
         </button>
+        {/* A bare connection request gives them nothing to go on, so most get
+            ignored. One message, before they accept, is the thing that makes
+            the request answerable. */}
+        <button
+          type="button"
+          onClick={() => setAsking((v) => !v)}
+          aria-expanded={asking}
+          title="Send one short message before they accept"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+        >
+          <MessageSquare size={13} aria-hidden />
+          Say why
+        </button>
         {follow}
       </span>
+
+      {asking && <RequestComposer handle={handle} onDone={(m) => { setAsking(!!m); setError(m) }} />}
       {error && <span className="text-[11px] text-warning">{error}</span>}
+    </span>
+  )
+}
+
+/**
+ * One short message to a stranger.
+ *
+ * The limits are stated ON the box rather than discovered by hitting them: no
+ * links, one per person, 500 characters. A rule you only meet as an error
+ * message reads as the product being broken.
+ */
+function RequestComposer({
+  handle,
+  onDone,
+}: {
+  handle: string
+  onDone: (error: string | null) => void
+}) {
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  if (sent) {
+    return (
+      <span className="text-[11.5px] text-accent">
+        Sent. They will see it whether or not they accept the connection.
+      </span>
+    )
+  }
+
+  return (
+    <span className="mt-1 block w-full max-w-sm rounded-xl border border-border bg-surface p-2.5">
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={3}
+        maxLength={500}
+        placeholder={`Hi — are you in COMM 305 EC too?`}
+        className="w-full resize-none rounded-lg border border-border bg-canvas px-2.5 py-2 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+      />
+      <span className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="text-[10.5px] leading-tight text-subtle">
+          One message per person. No links.
+        </span>
+        <button
+          type="button"
+          disabled={sending || body.trim().length < 2}
+          onClick={() =>
+            void (async () => {
+              setSending(true)
+              const err = await sendMessageRequest(handle, body)
+              setSending(false)
+              if (!err) setSent(true)
+              onDone(err)
+            })()
+          }
+          className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
+        >
+          Send
+        </button>
+      </span>
     </span>
   )
 }

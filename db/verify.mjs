@@ -330,6 +330,46 @@ check(
 )
 check('outline_coverage() runs on an empty ledger', (await db.query('select * from public.outline_coverage()')).rows.length, 0)
 
+console.log(String.fromCharCode(10) + 'db/message_requests.sql')
+/**
+ * The limits on messaging a stranger are the entire reason the feature is
+ * allowed to exist, so they are checked here rather than trusted. A
+ * client-side link check is a suggestion; this is the one that counts.
+ */
+await db.exec(`
+  create table if not exists public.messages(
+    id uuid primary key default gen_random_uuid(), sender uuid, recipient uuid,
+    body text, attachment jsonb, read_at timestamptz,
+    created_at timestamptz not null default now());
+  create or replace function public.are_friends(a uuid, b uuid)
+    returns boolean language sql stable as $fn$ select false $fn$;
+`)
+await db.exec(migration('message_requests.sql'))
+const mreq = async (h, b) =>
+  (await db.query('select public.send_message_request($1,$2) r', [h, b])).rows[0].r
+const hasLink = async (t) => (await db.query('select public.ct_has_link($1) r', [t])).rows[0].r
+
+check('a plain question is not a link', await hasLink('are you in section EC?'), false)
+check('http is', await hasLink('see https://x.com/a'), true)
+check('a bare shortener is', await hasLink('bit.ly/free'), true)
+check('a decimal grade is not', await hasLink('I got 87.5 on the midterm'), false)
+
+await db.exec(`
+  create table if not exists public.user_profile (user_id uuid primary key, handle text);
+  insert into public.user_profile (user_id, handle) values ('${OTHER}', 'other')
+    on conflict (user_id) do update set handle = 'other';
+`)
+check('a first message sends', (await mreq('other', 'hi, are you in COMM 305?')).ok, true)
+check('a second one does not', (await mreq('other', 'again?')).reason, 'already_sent')
+check('a link is refused by the database', (await mreq('other', 'try bit.ly/x')).reason, 'link')
+check('an unknown handle', (await mreq('ghost', 'hello')).reason, 'no_user')
+check('too long', (await mreq('other', 'x'.repeat(501))).reason, 'too_long')
+check(
+  'exactly one request row exists',
+  (await db.query('select count(*)::int c from public.messages where is_request')).rows[0].c,
+  1,
+)
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

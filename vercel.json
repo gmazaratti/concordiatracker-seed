@@ -129,5 +129,11 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/sync-outlines",
+      "schedule": "20 4 * * *"
+    }
   ]
 }
