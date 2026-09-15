@@ -79,9 +79,19 @@ alter table public.todos
 -- One row per (person, Moodle event). This index is what makes the sync
 -- idempotent: the nightly run upserts on it, so re-reading the same calendar
 -- updates in place instead of adding a duplicate every night.
+--
+-- IT MUST NOT BE PARTIAL. The first version carried `where external_id is not
+-- null`, which reads as the careful choice and breaks the only thing the index
+-- exists for: Postgres refuses `ON CONFLICT (user_id, external_id)` against a
+-- partial index unless the statement repeats the index predicate, and
+-- PostgREST has no way to add one. The sync failed with
+--   42P10: there is no unique or exclusion constraint matching the ON CONFLICT
+-- A FULL unique index is correct AND safe here, because unique indexes treat
+-- NULLs as distinct: a student can still have any number of hand-typed todos,
+-- all with external_id null. (Verified in Postgres both ways before changing.)
+drop index if exists public.todos_external_uid_idx;
 create unique index if not exists todos_external_uid_idx
-  on public.todos (user_id, external_id)
-  where external_id is not null;
+  on public.todos (user_id, external_id);
 
 -- When a synced deadline MOVES, we keep the date it moved from.
 --
