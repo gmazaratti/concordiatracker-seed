@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
+import { displayNameFrom } from '@/lib/oauth-identity'
 import { OTHER_PROGRAM_ID } from '@/data/programs'
 import type { Plan, User } from '@/data/types'
 
@@ -26,7 +27,9 @@ interface ProfileRow {
 const COLS =
   'user_id, name, email, school, program, plan_status, pro_until, avatar_url, handle, onboarding_completed'
 
-/** Google supplies the picture under either key, depending on the provider. */
+/** Google supplies the picture under either key. Apple sends none at all, so
+ *  this is null for Apple users and the initials avatar is used — which is the
+ *  right answer, not a gap to fill with something invented. */
 const metaAvatar = (meta: Record<string, unknown> | undefined): string | null =>
   (meta?.avatar_url as string) || (meta?.picture as string) || null
 
@@ -87,8 +90,7 @@ export function useSupabaseProfile() {
       // 2. First sign-in → create it. Upsert is idempotent on user_id, so it's
       //    safe even if this runs twice (StrictMode / a racing tab).
       if (!data) {
-        const name =
-          (meta?.full_name as string) || (meta?.name as string) || au.email?.split('@')[0] || 'Student'
+        const name = displayNameFrom(meta, au.email)
         // Carry a captured vanity referral code onto the new profile (signup
         // attribution) — only on creation, so it never overwrites an existing one.
         let ref: string | null
@@ -168,8 +170,7 @@ export function useSupabaseProfile() {
   const user = useMemo<User>(() => {
     const profile = row && row.user_id === authUser?.id ? row : null
     const meta = authUser?.user_metadata as Record<string, unknown> | undefined
-    const name =
-      profile?.name || (meta?.full_name as string) || authUser?.email?.split('@')[0] || 'Student'
+    const name = profile?.name || displayNameFrom(meta, authUser?.email)
     return {
       name,
       email: profile?.email || authUser?.email || '',

@@ -55,4 +55,5 @@ android/
 .econcordia.bundle.mjs
 .econcordia.test.tmp.mjs
 .moodle-match.test.tmp.mjs
+.oauth-identity.test.tmp.mjs
 .ec.mjs

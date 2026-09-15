@@ -494,6 +494,7 @@ export const fr: Partial<Record<Key, string>> = {
   // ── Auth ──────────────────────────────────────────────────────────────────
   'auth.signIn': 'Se connecter',
   'auth.signInGoogle': 'Continuer avec Google',
+  'auth.signInApple': 'Continuer avec Apple',
   'auth.signUpFree': 'S’inscrire gratuitement',
   'auth.welcomeBack': 'Bon retour sur ConcordiaTracker.',
   'auth.email': 'Courriel',

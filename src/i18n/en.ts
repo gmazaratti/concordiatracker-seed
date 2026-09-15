@@ -487,6 +487,7 @@ export const en = {
   // ── Auth ──────────────────────────────────────────────────────────────────
   'auth.signIn': 'Sign in',
   'auth.signInGoogle': 'Continue with Google',
+  'auth.signInApple': 'Continue with Apple',
   'auth.signUpFree': 'Sign up free',
   'auth.welcomeBack': 'Welcome back to ConcordiaTracker.',
   'auth.email': 'Email',

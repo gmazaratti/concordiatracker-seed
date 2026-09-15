@@ -25,13 +25,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const signInWithGoogle = useCallback(async () => {
+  /**
+   * The two OAuth providers share one implementation on purpose.
+   *
+   * Same `redirectTo`, so both come back through the callback the app already
+   * handles; the session then arrives via `onAuthStateChange` above exactly as
+   * it does for Google, and nothing downstream needs to know which button was
+   * pressed. A second flow would be a second thing to keep in step.
+   */
+  const startOAuth = useCallback(async (provider: 'google' | 'apple') => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: { redirectTo: `${window.location.origin}/app` },
     })
     return { error: error?.message ?? null }
   }, [])
+
+  const signInWithGoogle = useCallback(() => startOAuth('google'), [startOAuth])
+  const signInWithApple = useCallback(() => startOAuth('apple'), [startOAuth])
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -48,10 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       loading,
       signInWithGoogle,
+      signInWithApple,
       signInWithPassword,
       signOut,
     }),
-    [session, loading, signInWithGoogle, signInWithPassword, signOut],
+    [session, loading, signInWithGoogle, signInWithApple, signInWithPassword, signOut],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>
