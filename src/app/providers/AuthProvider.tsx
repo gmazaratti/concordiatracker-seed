@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { AuthContext } from './auth'
+import { authReturn } from '@/lib/auth-return'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
@@ -18,7 +19,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
+    } = supabase.auth.onAuthStateChange((_event, next) => {
+      setSession(next)
+      /**
+       * Land a confirmed user in the APP, not on the marketing page.
+       *
+       * Supabase replaces a `redirect_to` that is not on its allow-list with
+       * the Site URL, which is `/` — so confirming an email drops you on the
+       * landing page, signed in, looking at something indistinguishable from
+       * being signed out. Measured with a real link before writing this.
+       *
+       * Only when the URL actually carried a token, so a normal visit to the
+       * landing page by someone already signed in is left alone — they may
+       * have gone there on purpose.
+       */
+      if (next && authReturn.hasToken && !window.location.pathname.startsWith('/app')) {
+        window.location.replace('/app')
+      }
+    })
     return () => {
       active = false
       subscription.unsubscribe()

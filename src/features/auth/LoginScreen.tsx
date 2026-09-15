@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useT } from '@/i18n/i18n'
 import { useAuth } from '@/app/providers/auth'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
+import { checkSignup, readAttempts, recordAttempt, waitLabel } from '@/lib/signup-throttle'
+import { authReturn, explainAuthError } from '@/lib/auth-return'
 import { AppleGlyph } from '@/components/AppleGlyph'
 
 const field =
@@ -10,7 +12,7 @@ const field =
 
 /** Shared by both OAuth buttons, so they cannot drift apart visually. */
 const oauthBtn =
-  'flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 py-2.5 text-[14px] font-medium text-fg transition-colors duration-150 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-surface-2'
+  'flex w-full items-center justify-center gap-2.5 rounded-lg border border-border-strong bg-surface-2 px-4 py-2.5 text-[14px] font-medium text-fg transition-colors duration-150 hover:bg-surface'
 
 /**
  * The full-screen auth gate: sign in, or create an account.
@@ -31,11 +33,14 @@ export function LoginScreen() {
   const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    authReturn.error ? explainAuthError(authReturn.error) : null,
+  )
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [agreed, setAgreed] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const agreeRef = useRef<HTMLInputElement>(null)
   const creating = mode === 'signup'
   // One gate, checked by the OAuth buttons and the form alike.
   const blocked = creating && !agreed
@@ -55,7 +60,11 @@ export function LoginScreen() {
    */
   async function handleOAuth(provider: 'Google' | 'Apple') {
     if (blocked) {
+      // The box is BELOW these buttons now, so a disabled button would be a
+      // dead end with its own explanation off-screen. Say why, and move the
+      // cursor to the thing that needs doing.
       setError(t('auth.mustAgree'))
+      agreeRef.current?.focus()
       return
     }
     setError(null)
@@ -76,6 +85,7 @@ export function LoginScreen() {
     if (!email.trim() || !password) return
     if (blocked) {
       setError(t('auth.mustAgree'))
+      agreeRef.current?.focus()
       return
     }
     if (creating && password.length < 8) {
@@ -86,6 +96,19 @@ export function LoginScreen() {
     setError(null)
 
     if (creating) {
+      // Before the request, not after: the point is to not SEND the mail.
+      const now = Date.now()
+      const verdict = checkSignup(readAttempts(), email, now)
+      if (!verdict.ok) {
+        setBusy(false)
+        setError(
+          verdict.reason === 'email'
+            ? `We already sent a link to that address. Check your inbox and spam, or try again in ${waitLabel(verdict.retryAfterMs)}.`
+            : `That's a few sign-ups from this browser. Try again in ${waitLabel(verdict.retryAfterMs)}.`,
+        )
+        return
+      }
+      recordAttempt(email, now)
       const { error, needsConfirmation } = await signUpWithPassword(email.trim(), password)
       setBusy(false)
       if (error) {
@@ -122,34 +145,6 @@ export function LoginScreen() {
             {creating ? t('auth.startTracking') : t('auth.welcomeBack')}
           </p>
 
-          {/* The agreement sits ABOVE everything it gates, because a checkbox
-              under the buttons it governs is one people meet after they have
-              already tried to press one. */}
-          {creating && (
-            <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface-2/40 px-3 py-2.5">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => {
-                  setAgreed(e.target.checked)
-                  if (e.target.checked) setError(null)
-                }}
-                className="mt-0.5 size-4 shrink-0 accent-[var(--ct-accent)]"
-              />
-              <span className="text-[12.5px] leading-relaxed text-muted">
-                {t('auth.agreePre')}{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
-                  {t('auth.terms')}
-                </a>{' '}
-                {t('auth.and')}{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
-                  {t('auth.privacy')}
-                </a>
-                .
-              </span>
-            </label>
-          )}
-
           {/* SIDE BY SIDE, WITH THE PROVIDER NAME ALONE. Two buttons in a
               384px card leave ~160px each, and "Continue with Google" does not
               fit that without wrapping or an ellipsis. The full sentence moves
@@ -161,7 +156,6 @@ export function LoginScreen() {
               type="button"
               onClick={() => void handleOAuth('Google')}
               aria-label={t('auth.signInGoogle')}
-              disabled={blocked}
               className={oauthBtn}
             >
               <GoogleGlyph />
@@ -171,7 +165,6 @@ export function LoginScreen() {
               type="button"
               onClick={() => void handleOAuth('Apple')}
               aria-label={t('auth.signInApple')}
-              disabled={blocked}
               className={oauthBtn}
             >
               <AppleGlyph />
@@ -221,6 +214,39 @@ export function LoginScreen() {
               <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-fg">
                 {t('auth.checkEmail')}
               </p>
+            )}
+
+            {/* ONE LINE, DIRECTLY ABOVE THE BUTTON IT GATES. The last thing
+                read before the last thing pressed, which is where an
+                agreement belongs — and short enough to actually be read,
+                unlike a paragraph in a tinted box. */}
+            {creating && (
+              <label className="flex cursor-pointer items-center gap-2 text-[12.5px] leading-snug text-muted">
+                <input
+                  ref={agreeRef}
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => {
+                    setAgreed(e.target.checked)
+                    if (e.target.checked) setError(null)
+                  }}
+                  className="size-4 shrink-0 accent-[var(--ct-accent)]"
+                />
+                {/* Short enough to stay on ONE line down to a 375px phone —
+                    measured. "Terms of Service" spelled out pushes it to two,
+                    and a wrapped agreement was the thing being fixed. The
+                    linked page is still titled Terms of Service. */}
+                <span>
+                  {t('auth.agreePre')}{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                    {t('auth.termsShort')}
+                  </a>{' '}
+                  {t('auth.and')}{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                    {t('auth.privacy')}
+                  </a>
+                </span>
+              </label>
             )}
 
             <Button type="submit" disabled={busy || blocked} className="mt-1 w-full">

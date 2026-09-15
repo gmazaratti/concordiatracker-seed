@@ -504,6 +504,7 @@ export const en = {
   'auth.checkEmail': 'Almost there — open the link we just emailed you to finish.',
   'auth.agreePre': 'I agree to the',
   'auth.terms': 'Terms of Service',
+  'auth.termsShort': 'Terms',
   'auth.and': 'and',
   'auth.privacy': 'Privacy Policy',
   'auth.mustAgree': 'Tick the box to agree before creating an account.',

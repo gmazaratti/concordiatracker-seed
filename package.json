@@ -12,7 +12,7 @@
     "postbuild": "node docs-src/build.mjs && node scripts/stamp-sw.mjs",
     "db:verify": "node db/verify.mjs",
     "test:prereq": "node src/lib/prereq.test.mjs",
-    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run test:terms && npm run test:term && npm run test:undated && npm run test:recommend && npm run test:schedgen && npm run test:dupes && npm run test:outline && npm run test:schedimg && npm run test:record && npm run test:econcordia && npm run test:ics && npm run test:moodle && npm run test:oauth && npm run db:verify && npm run verify:agents && npm run verify:routing",
+    "test": "npm run typecheck:api && npm run test:prereq && npm run test:tree && npm run test:paste && npm run test:gpa && npm run test:schedule && npm run test:terms && npm run test:term && npm run test:undated && npm run test:recommend && npm run test:schedgen && npm run test:dupes && npm run test:outline && npm run test:schedimg && npm run test:record && npm run test:econcordia && npm run test:ics && npm run test:moodle && npm run test:oauth && npm run test:signup && npm run db:verify && npm run verify:agents && npm run verify:routing",
     "test:gpa": "node src/lib/gpa.test.mjs",
     "typecheck:api": "tsc -p api --noEmit",
     "test:schedule": "node src/features/planner/schedule.test.mjs",
@@ -37,7 +37,9 @@
     "test:term": "node src/lib/term.test.mjs",
     "test:ics": "node api/_ics.test.mjs",
     "test:moodle": "node src/lib/moodle-match.test.mjs",
-    "test:oauth": "node src/lib/oauth-identity.test.mjs"
+    "test:oauth": "node src/lib/oauth-identity.test.mjs",
+    "test:signup": "node src/lib/signup-throttle.test.mjs",
+    "email:templates": "node scripts/auth-email-templates.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

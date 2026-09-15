@@ -1,0 +1,77 @@
+/**
+ * Catching the return from a confirmation email.
+ *
+ * WHAT WENT WRONG, measured with a real generated link. We ask Supabase to
+ * send people back to `/app`, and Supabase sends them to the SITE URL instead
+ * — `https://concordiatracker.com/` — because a `redirect_to` that is not on
+ * the project's allow-list is silently replaced rather than refused. So:
+ *
+ *   success → the landing page, with `#access_token=…` in the URL
+ *   failure → the landing page, with `#error=access_denied…` in the URL
+ *
+ * In the success case they ARE signed in; they are just looking at the
+ * marketing page, which looks identical either way, so it reads as "the link
+ * didn't work". In the failure case nothing reads the error at all and the
+ * page is silent.
+ *
+ * Fixing the allow-list is the right fix and it belongs in the dashboard. This
+ * makes the app correct WITHOUT it — a redirect setting is exactly the kind of
+ * thing that gets changed later by someone who does not know the app depends
+ * on it, and landing a confirmed user on the marketing page should not be one
+ * configuration edit away, ever.
+ *
+ * THE HASH IS READ AT MODULE LOAD. `detectSessionInUrl` strips it as soon as
+ * supabase-js initialises, so by the time a component effect runs it is gone.
+ */
+
+export interface AuthReturn {
+  /** A session came back in the URL — this was a confirmation or OAuth return. */
+  hasToken: boolean
+  /** Supabase's own error, already decoded. */
+  error: string | null
+  /** `signup`, `recovery`, `magiclink`… when the URL says. */
+  type: string | null
+}
+
+function read(): AuthReturn {
+  if (typeof window === 'undefined') return { hasToken: false, error: null, type: null }
+  // Both shapes appear: the hash for the implicit flow, the query for PKCE and
+  // for some error returns. Checking one and not the other is how half of
+  // these go unnoticed.
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const query = new URLSearchParams(window.location.search)
+  const pick = (k: string) => hash.get(k) ?? query.get(k)
+
+  const rawError = pick('error_description') ?? pick('error')
+  return {
+    hasToken: !!pick('access_token') || !!pick('code'),
+    // Supabase sends these plus-encoded; a raw one would read "link+expired".
+    error: rawError ? rawError.replace(/\+/g, ' ') : null,
+    type: pick('type'),
+  }
+}
+
+/**
+ * Snapshotted once, at import, for the reason in the header comment.
+ * Everything downstream reads this rather than the live URL.
+ */
+export const authReturn: AuthReturn = read()
+
+/**
+ * Say what went wrong in words the person can act on.
+ *
+ * Supabase's own strings are accurate and unhelpful ("Email link is invalid or
+ * has expired"), and the two causes behind that one need different actions:
+ * a link already used means they are probably fine, a stale one means start
+ * again.
+ */
+export function explainAuthError(raw: string): string {
+  const e = raw.toLowerCase()
+  if (e.includes('expired') || e.includes('invalid')) {
+    return 'That confirmation link has expired or was already used. Sign in below — and if that does not work, create the account again to get a fresh link.'
+  }
+  if (e.includes('access_denied') || e.includes('denied')) {
+    return 'That confirmation link could not be used. Try signing in below, or create the account again for a new link.'
+  }
+  return raw
+}

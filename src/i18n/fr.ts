@@ -511,6 +511,7 @@ export const fr: Partial<Record<Key, string>> = {
   'auth.checkEmail': 'Presque fini — ouvrez le lien que nous venons de vous envoyer par courriel.',
   'auth.agreePre': 'J’accepte les',
   'auth.terms': 'Conditions d’utilisation',
+  'auth.termsShort': 'Conditions',
   'auth.and': 'et la',
   'auth.privacy': 'Politique de confidentialité',
   'auth.mustAgree': 'Cochez la case pour accepter avant de créer un compte.',
