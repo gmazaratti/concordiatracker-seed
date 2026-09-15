@@ -4,13 +4,14 @@ import { useTeacher } from '@/app/providers/teacher'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
+import { AppleGlyph } from '@/components/AppleGlyph'
 
 /** Teacher portal entry. Signed in → your own persistent account; signed out →
  * Google sign-in for a real account. Either way, a public demo button lets anyone
  * look around the seeded portal (a sandbox that writes nothing). */
 export function TeacherSignIn() {
   const { signInSelf, signInDemo } = useTeacher()
-  const { user: authUser, signInWithGoogle } = useAuth()
+  const { user: authUser, signInWithGoogle, signInWithApple } = useAuth()
   const { user } = useAppData()
 
   return (
@@ -39,6 +40,14 @@ export function TeacherSignIn() {
           <>
             <Button className="mt-5 w-full" onClick={() => void signInWithGoogle()}>
               Sign in with Google
+            </Button>
+            <Button
+              variant="outline"
+              className="mt-2 w-full"
+              onClick={() => void signInWithApple()}
+            >
+              <AppleGlyph />
+              Sign in with Apple
             </Button>
             <p className="mt-1.5 text-center text-[12px] text-subtle">
               Sign in to manage your real course outlines.

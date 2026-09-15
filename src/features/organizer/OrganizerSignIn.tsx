@@ -4,6 +4,7 @@ import { CalendarDays } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
+import { AppleGlyph } from '@/components/AppleGlyph'
 
 const initials = (name: string) =>
   name
@@ -22,7 +23,7 @@ const suggestHandle = (name: string) =>
  * to it if you have one, or create one. The email + demo paths are for the seeds. */
 export function OrganizerSignIn() {
   const { myOrg, createOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
-  const { user: authUser, signInWithGoogle } = useAuth()
+  const { user: authUser, signInWithGoogle, signInWithApple } = useAuth()
   const [name, setName] = useState('')
   const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
@@ -56,6 +57,14 @@ export function OrganizerSignIn() {
           <>
             <Button className="mt-5 w-full" onClick={() => void signInWithGoogle()}>
               Sign in with Google
+            </Button>
+            <Button
+              variant="outline"
+              className="mt-2 w-full"
+              onClick={() => void signInWithApple()}
+            >
+              <AppleGlyph />
+              Sign in with Apple
             </Button>
             <p className="mt-1.5 text-center text-[12px] text-subtle">
               Sign in to create and manage your real org.
