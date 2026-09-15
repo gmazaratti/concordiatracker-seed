@@ -54,4 +54,5 @@ android/
 .outlines/
 .econcordia.bundle.mjs
 .econcordia.test.tmp.mjs
+.moodle-match.test.tmp.mjs
 .ec.mjs
