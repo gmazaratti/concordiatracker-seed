@@ -8,6 +8,7 @@ import { KIND_LABEL } from '@/lib/assessment'
 import { daysUntil, tbdLabel } from '@/lib/date'
 import { isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
+import { MovedNote } from './MovedNote'
 import { ACADEMIC_META, type CalendarItem } from './calendar'
 import { formatTime } from '@/lib/date'
 import { useT } from '@/i18n/i18n'
@@ -107,7 +108,10 @@ export function ItemRow({
             {t.title}
           </p>
           {t.note && <p className="mt-0.5 text-[12px] text-subtle">{t.note}</p>}
-          <p className="mt-0.5 text-[11px] text-subtle">Task · {TIME.format(new Date(t.due))}</p>
+          <p className="mt-0.5 text-[11px] text-subtle">
+            {t.source === 'moodle' ? 'Moodle' : 'Task'} · {TIME.format(new Date(t.due))}
+          </p>
+          {t.movedFrom && <MovedNote id={t.id} from={t.movedFrom} to={t.due} />}
         </div>
 
         <button

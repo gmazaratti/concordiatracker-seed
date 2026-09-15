@@ -17,12 +17,12 @@
  * control: the content is the student's own, fetched with their own token, at
  * their explicit request.
  */
-import { parseIcs, eventsToTodos, type IcsEvent, type MoodleTodoRow } from './_ics.js'
+import { parseIcs, eventsToTodos, markMoves, type IcsEvent, type MoodleTodoRow } from './_ics.js'
 
 // Re-exported so callers have one import for the feature; the definitions
 // live in _ics.ts because they are pure and that is what makes them testable
 // without Node resolving this module's network imports.
-export { eventsToTodos, type MoodleTodoRow }
+export { eventsToTodos, markMoves, type MoodleTodoRow }
 
 /** A real browser UA. Concordia's edge returns an empty 202 without one. */
 const UA =
@@ -161,6 +161,35 @@ export async function recordMoodleSync(
 }
 
 /**
+ * What we currently hold for this person, as UID → due.
+ *
+ * A failure here returns an EMPTY map, which makes every row look new and
+ * therefore unmoved. That is the right way to fail: the sync still runs and
+ * the dates are still correct, and the only thing lost is a "moved from" note.
+ * Losing the whole night's sync over it would be the worse trade.
+ */
+async function existingDues(
+  userId: string,
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  try {
+    const r = await fetch(
+      `${supabaseUrl}/rest/v1/todos?select=external_id,due&user_id=eq.${userId}&source=eq.moodle`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    )
+    if (!r.ok) return out
+    for (const row of (await r.json()) as { external_id: string | null; due: string | null }[]) {
+      if (row.external_id && row.due) out.set(row.external_id, row.due)
+    }
+  } catch {
+    /* an empty map means "nothing moved", which is the safe answer */
+  }
+  return out
+}
+
+/**
  * One student, end to end. Used by both the "Sync now" button and the cron.
  */
 export async function syncOneConnection(
@@ -176,7 +205,10 @@ export async function syncOneConnection(
     await recordMoodleSync(userId, out, supabaseUrl, serviceKey)
     return out
   }
-  const rows = eventsToTodos(fetched.events, userId, now)
+  // Read what we already hold BEFORE upserting, so a changed deadline can be
+  // reported as a change rather than silently rewritten.
+  const previous = await existingDues(userId, supabaseUrl, serviceKey)
+  const rows = markMoves(eventsToTodos(fetched.events, userId, now), previous)
   const written = await writeMoodleTodos(rows, supabaseUrl, serviceKey)
   const out = written.error
     ? { ok: false, count: 0, error: written.error }

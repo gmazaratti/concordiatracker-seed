@@ -259,6 +259,8 @@ export interface TodoRow {
   due: string | null
   note: string | null
   done: boolean | null
+  source?: string | null
+  moved_from?: string | null
 }
 
 export function taskFromRow(r: TodoRow): CalendarTask {
@@ -268,6 +270,8 @@ export function taskFromRow(r: TodoRow): CalendarTask {
     due: r.due ?? '',
     done: !!r.done,
     note: r.note ?? undefined,
+    source: r.source ?? undefined,
+    movedFrom: r.moved_from ?? undefined,
   }
 }
 

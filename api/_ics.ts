@@ -243,6 +243,38 @@ export interface MoodleTodoRow {
   note: string | null
   source: string
   external_id: string
+  /**
+   * The date this moved FROM, when a sync finds Moodle has changed it.
+   * Undefined on a first import and on an unchanged item; null clears a note
+   * the student has already seen.
+   */
+  moved_from?: string | null
+}
+
+/**
+ * Mark the rows whose deadline Moodle has changed since we last looked.
+ *
+ * Without this the upsert quietly rewrites the date and the student sees a
+ * different day than they remember, with no way to tell whether the professor
+ * moved it or they misread it. With it, the item can say what it moved from.
+ *
+ * `previous` is what we already hold, keyed by iCalendar UID. An item we have
+ * not seen before is NOT a move — it is an arrival — so it gets nothing.
+ * Comparison is on the INSTANT, not the string, because the two can differ in
+ * formatting while meaning the same moment.
+ */
+export function markMoves(
+  rows: MoodleTodoRow[],
+  previous: Map<string, string>,
+): MoodleTodoRow[] {
+  return rows.map((r) => {
+    const before = previous.get(r.external_id)
+    if (!before) return r
+    const a = new Date(before).getTime()
+    const b = new Date(r.due).getTime()
+    if (Number.isNaN(a) || Number.isNaN(b) || a === b) return r
+    return { ...r, moved_from: new Date(a).toISOString() }
+  })
 }
 
 /**

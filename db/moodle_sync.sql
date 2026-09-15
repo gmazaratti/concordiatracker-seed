@@ -83,6 +83,25 @@ create unique index if not exists todos_external_uid_idx
   on public.todos (user_id, external_id)
   where external_id is not null;
 
+-- When a synced deadline MOVES, we keep the date it moved from.
+--
+-- Silently rewriting the date would be the worst version of this feature: the
+-- student looks at their calendar, sees a different day than they remember,
+-- and cannot tell whether the professor moved it or they misread it. Keeping
+-- the old value lets the item say "moved from Oct 12" and lets them clear the
+-- note once they have seen it. Null means it has never moved.
+alter table public.todos
+  add column if not exists moved_from timestamptz;
+
+-- Clear the note once it has been read. Scoped to the caller's own rows.
+create or replace function public.ack_todo_move(p_id uuid)
+returns void
+language sql security definer set search_path = public as $$
+  update public.todos set moved_from = null
+   where id = p_id and user_id = auth.uid();
+$$;
+grant execute on function public.ack_todo_move(uuid) to authenticated;
+
 create index if not exists todos_source_idx on public.todos (user_id, source)
   where source is not null;
 

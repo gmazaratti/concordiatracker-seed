@@ -7,7 +7,13 @@
  * no zone, whole-day events that slide across midnight, and a malformed entry
  * that must cost itself and not the sync.
  */
-import { parseIcs, parseIcsDate, validateMoodleIcsUrl, eventsToTodos } from './_ics.ts'
+import {
+  parseIcs,
+  parseIcsDate,
+  validateMoodleIcsUrl,
+  eventsToTodos,
+  markMoves,
+} from './_ics.ts'
 
 let failures = 0
 function check(label, ok, detail) {
@@ -118,6 +124,27 @@ const dupes = eventsToTodos(
   NOW,
 )
 eq('a repeated UID yields one row, not a conflict on insert', dupes.length, 1)
+
+console.log('\nmarkMoves')
+const base = eventsToTodos(parsed, 'u1', NOW)
+const unchanged = markMoves(base, new Map([[base[0].external_id, base[0].due]]))
+check('an unchanged deadline is not flagged', unchanged[0].moved_from === undefined)
+const moved = markMoves(base, new Map([[base[0].external_id, '2026-10-05T23:59:00.000Z']]))
+eq('a changed deadline records where it moved FROM', moved[0].moved_from, '2026-10-05T23:59:00.000Z')
+eq('and keeps the new date as the due', moved[0].due, '2026-10-12T23:59:00.000Z')
+check(
+  'an item we have never seen is an arrival, not a move',
+  markMoves(base, new Map())[0].moved_from === undefined,
+)
+check(
+  'the same instant written differently is not a move',
+  markMoves(base, new Map([[base[0].external_id, '2026-10-12T19:59:00.000-04:00']]))[0].moved_from ===
+    undefined,
+)
+check(
+  'an unreadable stored date is ignored rather than reported as a move',
+  markMoves(base, new Map([[base[0].external_id, 'whenever']]))[0].moved_from === undefined,
+)
 
 console.log('\nvalidateMoodleIcsUrl')
 const GOOD =

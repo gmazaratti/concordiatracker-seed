@@ -325,11 +325,14 @@ function WhatWeDoWithIt() {
           <ul className="mt-1.5 space-y-1.5 text-[12.5px] leading-relaxed text-muted">
             <li className="flex gap-2">
               <CalendarClock size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-              Every Moodle deadline appears on Today and in your calendar, beside everything else.
+              Every Moodle deadline lands in your <strong className="font-medium text-fg">Calendar</strong>,
+              on the &ldquo;My calendar&rdquo; layer, beside your own deadlines.
             </li>
             <li className="flex gap-2">
               <RefreshCw size={13} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-              Re-checked nightly, so a professor moving a date moves it here too.
+              Re-checked nightly. If a professor moves a date,{' '}
+              <strong className="font-medium text-fg">the item says so</strong> — old date and new,
+              so you can see what changed rather than finding it moved.
             </li>
           </ul>
         </div>

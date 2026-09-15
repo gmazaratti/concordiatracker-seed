@@ -66,6 +66,20 @@ export type Attachment =
   | { kind: 'record'; snapshot: RecordSnapshot }
   | { kind: 'blueprint'; id: string; code: string }
   | { kind: 'event'; id: string; title: string }
+  /**
+   * "Can I see your schedule?" — a PROMPT, not a sentence.
+   *
+   * It used to send instructions ("Settings → Privacy → …"), which asks the
+   * other person to go and find a switch on the strength of a message from
+   * someone who wants something. Now they get the decision itself, with the
+   * limits of it stated on the card: Allow or Deny, in the conversation.
+   *
+   * There is deliberately NO request row and no pending/approved state. The
+   * answer IS the existing `schedule_visibility` setting, so the card always
+   * shows the truth rather than a second copy of it that can drift, and
+   * changing your mind later is the same switch it always was.
+   */
+  | { kind: 'schedule_request' }
 
 export interface Message {
   id: string
@@ -218,10 +232,10 @@ export async function friendSchedule(handle: string): Promise<FriendCourse[]> {
 export async function requestSchedule(handle: string): Promise<string | null> {
   const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
   if (!theirId) return `No one here has the handle @${handle}.`
-  return sendMessage(
-    theirId as string,
-    'Could you share your schedule? Settings → Privacy → "Let friends see my schedule" turns it on. Times and rooms only — never grades.',
-  )
+  // The body is still a readable sentence on purpose: it is what a
+  // notification preview shows, and what an older client that does not know
+  // this attachment kind would fall back to rendering.
+  return sendMessage(theirId as string, 'Asked to see your schedule.', { kind: 'schedule_request' })
 }
 
 /**

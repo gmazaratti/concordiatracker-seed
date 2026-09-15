@@ -630,5 +630,6 @@ function describe(a: Attachment): string {
   if (a.kind === 'course') return `Class · ${a.code}`
   if (a.kind === 'event') return `Event · ${a.title}`
   if (a.kind === 'record') return `Record · ${a.snapshot.credits} credits`
+  if (a.kind === 'schedule_request') return 'Schedule request'
   return `Outline · ${a.code}`
 }

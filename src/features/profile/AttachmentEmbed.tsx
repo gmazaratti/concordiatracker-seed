@@ -29,6 +29,7 @@ import { cn } from '@/lib/cn'
 import { RecordSheet } from '@/features/planner/RecordSheet'
 import { colorForCodes, drawSchedule } from './schedule-image'
 import { themeSheet } from './sheet-palette'
+import { ScheduleRequestCard } from './ScheduleRequestCard'
 
 /**
  * What a sent thing looks like in a conversation.
@@ -53,6 +54,11 @@ export function AttachmentEmbed({
 }) {
   const [open, setOpen] = useState(false)
   const { events } = useCommunity()
+
+  // Answered in place, so it never opens anything.
+  if (attachment.kind === 'schedule_request') {
+    return <ScheduleRequestCard mine={mine} bare={bare} />
+  }
 
   if (attachment.kind === 'event') {
     const event = events.find((e) => e.id === attachment.id)

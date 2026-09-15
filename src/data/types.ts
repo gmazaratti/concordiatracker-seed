@@ -113,6 +113,14 @@ export interface CalendarTask {
   due: string
   done: boolean
   note?: string
+  /** 'moodle' for a synced deadline; undefined when the student typed it. */
+  source?: string
+  /**
+   * Set when a sync found Moodle had MOVED this deadline — the date it moved
+   * from. The row shows old → new so a changed date reads as a change rather
+   * than as a day you misremembered. Cleared once acknowledged.
+   */
+  movedFrom?: string
 }
 
 /** A teaching contact — instructor or TA. Editable inline on the course detail. */
