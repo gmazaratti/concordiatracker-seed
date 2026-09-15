@@ -178,7 +178,7 @@ const privacy: LegalDoc = {
             { label: 'Google (Authentication)', href: 'https://policies.google.com/privacy' },
             { label: 'Supabase (Database & Auth)', href: 'https://supabase.com/privacy' },
             { label: 'Stripe (Payments)', href: 'https://stripe.com/privacy' },
-            { label: 'Vercel (Hosting)', href: 'https://vercel.com/legal/privacy-policy' },
+            { label: 'Vercel (Hosting, analytics)', href: 'https://vercel.com/legal/privacy-policy' },
             { label: 'Resend (Transactional email)', href: 'https://resend.com/legal/privacy-policy' },
           ],
         },
