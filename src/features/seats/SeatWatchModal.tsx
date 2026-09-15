@@ -4,12 +4,8 @@ import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
 import { sectionInstructors, type SectionInstructor } from '@/lib/academic-record'
-import {
-  addWatch,
-  findSections,
-  termLabel,
-  type SectionOption,
-} from '@/lib/seats'
+import { addWatch, findSections, type SectionOption } from '@/lib/seats'
+import { termLabel } from '@/lib/course-sections'
 
 /**
  * Find a section and watch it.

@@ -38,6 +38,51 @@ export function newestTerm(sections: SectionOption[]): string | null {
  * Winter belongs to the academic year that began the previous autumn, so its
  * code year is one behind its name.
  */
+/**
+ * "2252" -> "Fall 2025". The inverse of `termCodeFor`, and it lives beside it
+ * on purpose: the two drifted apart while they were in different files.
+ *
+ * Verified against the feed's own `classStartDate`, not from memory —
+ * 2244 runs 13 Jan–12 Apr 2025, 2251 runs 12 May–12 Aug 2025, 2252 runs
+ * 2 Sep–1 Dec 2025, 2254 runs 12 Jan–13 Apr 2026.
+ *
+ * **Digit 3 is a TWO-TERM course** (session "26W"): 2253 runs 2 Sep 2025 to
+ * 13 Apr 2026, straight through Fall and Winter. It used to fall off the end
+ * of the lookup and render as the raw string "2253" in the middle of a
+ * sentence naming terms.
+ *
+ * An unrecognised shape still returns the raw code rather than a confidently
+ * wrong term name.
+ */
+export function termLabel(code: string): string {
+  if (!/^\d{4}$/.test(code)) return code
+  const year = 2000 + Number(code.slice(1, 3))
+  if (code[3] === '3') return `Fall–Winter ${year}–${String(year + 1).slice(2)}`
+  const season = { '1': 'Summer', '2': 'Fall', '4': 'Winter' }[code[3]]
+  if (!season) return code
+  // A Winter term belongs to the academic year that started the previous autumn.
+  return `${season} ${season === 'Winter' ? year + 1 : year}`
+}
+
+/**
+ * Does a section's term belong to the term you are looking at?
+ *
+ * Exact match, PLUS the two-term case: a `YY3` course meets across both the
+ * Fall (`YY2`) and the Winter (`YY4`) of the same academic year, so filtering
+ * on equality dropped year-long courses out of BOTH terms' section lists. A
+ * class you are registered in vanishing from the builder is the worst kind of
+ * wrong, because it looks like the course does not exist.
+ */
+export function termMatches(sectionTerm: string, selected: string): boolean {
+  if (!selected || sectionTerm === selected) return true
+  if (sectionTerm.length !== 4 || selected.length !== 4) return false
+  if (sectionTerm[3] !== '3') return false
+  return (
+    sectionTerm.slice(0, 3) === selected.slice(0, 3) &&
+    (selected[3] === '2' || selected[3] === '4')
+  )
+}
+
 export function termCodeFor(termName: string): string | null {
   const m = termName.trim().match(/^(Winter|Summer|Fall)\s+(\d{4})$/i)
   if (!m) return null
@@ -48,6 +93,32 @@ export function termCodeFor(termName: string): string | null {
   const year = Number(m[2]) - (season === 'Winter' ? 1 : 0)
   if (year < 2000 || year > 2099) return null
   return `2${String(year).slice(2)}${d}`
+}
+
+/**
+ * Why a course shows no sections for the term you picked.
+ *
+ * There are two very different answers and the UI was giving the wrong one.
+ * "Concordia lists it in Winter 2025, Summer 2025, Fall 2025, Winter 2026 —
+ * change the term" reads as *we checked, and it is not running this term*. It
+ * is not what we know. Concordia's Open Data schedule feed only carries terms
+ * that have been published: as of writing, nothing past Winter 2026 exists in
+ * it for ANY course, so a student registered in a Fall 2026 section was being
+ * told their class does not exist.
+ *
+ * `unpublished` = the term you asked for is newer than anything the feed has
+ * for this course, so the honest statement is about our data, not their
+ * timetable. `not-offered` = the feed does have later terms, so this course
+ * genuinely skips the one you picked.
+ */
+export function missingTermReason(
+  sectionTerms: string[],
+  selected: string,
+): { kind: 'unpublished' | 'not-offered'; newest: string | null } {
+  const codes = sectionTerms.filter((t) => /^\d{4}$/.test(t)).sort()
+  const newest = codes.length ? codes[codes.length - 1] : null
+  if (!newest || !/^\d{4}$/.test(selected)) return { kind: 'unpublished', newest }
+  return { kind: selected > newest ? 'unpublished' : 'not-offered', newest }
 }
 
 /** Component order for display: the lecture is what people mean by "my class". */

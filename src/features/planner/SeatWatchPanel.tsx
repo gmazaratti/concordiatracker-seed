@@ -5,14 +5,8 @@ import { useI18n } from '@/i18n/i18n'
 import { browseCourses, mySubjects, type CatalogCourse } from '@/lib/catalog'
 import { useAppData } from '@/app/providers/app-data'
 import { SeatWatchModal } from '@/features/seats/SeatWatchModal'
-import {
-  myWatches,
-  removeWatch,
-  seatsOpen,
-  termLabel,
-  watchLimit,
-  type SeatWatch,
-} from '@/lib/seats'
+import { myWatches, removeWatch, seatsOpen, watchLimit, type SeatWatch } from '@/lib/seats'
+import { termLabel } from '@/lib/course-sections'
 
 const PAGE = 10
 

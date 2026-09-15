@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, Loader2, Search } from 'lucide-react'
-import { findSections, termLabel, type SectionOption } from '@/lib/seats'
-import { parseCourseCode, sortSections } from '@/lib/course-sections'
+import { findSections, type SectionOption } from '@/lib/seats'
+import { ManualSection } from './ManualSection'
+import {
+  missingTermReason,
+  parseCourseCode,
+  sortSections,
+  termLabel,
+  termMatches,
+} from '@/lib/course-sections'
 import { checkPrereq, normalizeCode, type Record as PrereqRecord } from '@/lib/prereq'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { cn } from '@/lib/cn'
@@ -150,7 +157,7 @@ export function ScheduleSearch({
   }
 
   const visible = options
-    ? sortSections(options.filter((s) => !termCode || s.termCode === termCode))
+    ? sortSections(options.filter((s) => termMatches(s.termCode, termCode)))
     : []
   const hiddenByFilter = eligibleOnly && blockedByPrereq
 
@@ -304,25 +311,67 @@ export function ScheduleSearch({
         </ul>
       )}
 
-      {/* The term picker scopes this list, so a course that runs in Winter
-          simply vanishes while Fall is selected. Saying nothing there is how a
-          working search reads as broken — so it names the terms it DID find,
-          which is also the answer to the question being asked. */}
+      {/* Two very different reasons a list comes back empty, and the old copy
+          gave the wrong one for both. See `missingTermReason`. */}
       {options !== null && options.length > 0 && visible.length === 0 && !hiddenByFilter && (
-        <p className="mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11.5px] leading-relaxed text-muted">
-          {code} has no sections in {termLabel(termCode)}.{' '}
-          {[...new Set(options.map((s) => s.termCode))].length > 0 && (
-            <>
-              Concordia lists it in{' '}
-              {[...new Set(options.map((s) => s.termCode))]
-                .sort()
-                .map(termLabel)
-                .join(', ')}
-              . Change the term at the top to see those.
-            </>
-          )}
+        <EmptyTerm code={code} termCode={termCode} options={options} onAdd={onAdd} />
+      )}
+    </div>
+  )
+}
+
+/**
+ * What to say when the term you picked has nothing in it.
+ *
+ * NOT-OFFERED is the easy case: the feed has later terms, so this course
+ * really does skip the one you chose, and naming the terms it DOES run in is
+ * the answer to the question being asked.
+ *
+ * UNPUBLISHED is the case that was being reported as the first one. Concordia
+ * publishes a term to Open Data some weeks before registration; until then the
+ * feed has nothing past the previous Winter — for every course, not just this
+ * one. Telling a student "COMM 305 has no sections in Fall 2026, Concordia
+ * lists it in …" when they are LOOKING at their registration for exactly that
+ * section is the app calling the university wrong. The honest sentence is
+ * about our data, and it comes with a way through.
+ */
+function EmptyTerm({
+  code,
+  termCode,
+  options,
+  onAdd,
+}: {
+  code: string
+  termCode: string
+  options: SectionOption[]
+  onAdd: (code: string, section: SectionOption) => void
+}) {
+  const terms = [...new Set(options.map((s) => s.termCode))].sort()
+  const { kind, newest } = missingTermReason(terms, termCode)
+  const title = options.find((s) => s.courseTitle)?.courseTitle
+
+  return (
+    <div className="mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+      {kind === 'unpublished' ? (
+        <p className="text-[11.5px] leading-relaxed text-muted">
+          Concordia has not published {termLabel(termCode)} sections for {code} to its open
+          schedule feed yet
+          {newest ? ` — the newest it has is ${termLabel(newest)}` : ''}. That usually means the
+          term is not out rather than that the class is not running, so if you are already
+          registered, put your section in by hand.
+        </p>
+      ) : (
+        <p className="text-[11.5px] leading-relaxed text-muted">
+          {code} has no sections in {termLabel(termCode)}. Concordia lists it in{' '}
+          {terms.map(termLabel).join(', ')}. Change the term at the top to see those.
         </p>
       )}
+      <ManualSection
+        code={code}
+        title={title}
+        termCode={termCode}
+        onAdd={(s) => onAdd(code, s)}
+      />
     </div>
   )
 }

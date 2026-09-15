@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Bell, Loader2, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { SeatWatchModal } from '@/features/seats/SeatWatchModal'
-import { myWatches, removeWatch, seatsOpen, termLabel, type SeatWatch } from '@/lib/seats'
+import { myWatches, removeWatch, seatsOpen, type SeatWatch } from '@/lib/seats'
+import { termLabel } from '@/lib/course-sections'
 import { WidgetCard, WidgetEmpty } from './WidgetCard'
 
 /**

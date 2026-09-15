@@ -29,8 +29,16 @@ execSync(
   { stdio: 'pipe', cwd: root },
 )
 
-const { termCodeFor, sectionPatch, sortSections, sectionKey, sameSection } =
-  await import(pathToFileURL(tmp).href)
+const {
+  termCodeFor,
+  termLabel,
+  termMatches,
+  missingTermReason,
+  sectionPatch,
+  sortSections,
+  sectionKey,
+  sameSection,
+} = await import(pathToFileURL(tmp).href)
 const { laterTerms, currentTermName } = await import(pathToFileURL(tmpTerms).href)
 fs.rmSync(tmp, { force: true })
 fs.rmSync(tmpTerms, { force: true })
@@ -183,6 +191,64 @@ console.log('\nsection keys')
   // Unknown is never a mismatch: we do not warn about what we do not know.
   check('an unknown section never mismatches', !sameSection('', 'B'))
   check('nor the other way', !sameSection('B', ''))
+}
+
+{
+  /**
+   * Decoding, checked against the feed's OWN dates rather than from memory.
+   * Measured on 2026-09-15 against opendata.concordia.ca:
+   *   2244 -> 13/01/2025-12/04/2025   2251 -> 12/05/2025-12/08/2025
+   *   2252 -> 02/09/2025-01/12/2025   2254 -> 12/01/2026-13/04/2026
+   *   2253 -> 02/09/2025-13/04/2026, session "26W" - one course, both terms
+   */
+  console.log('')
+  console.log('termLabel')
+  check('2244 is Winter 2025', termLabel('2244') === 'Winter 2025', termLabel('2244'))
+  check('2251 is Summer 2025', termLabel('2251') === 'Summer 2025', termLabel('2251'))
+  check('2252 is Fall 2025', termLabel('2252') === 'Fall 2025', termLabel('2252'))
+  check('2254 is Winter 2026', termLabel('2254') === 'Winter 2026', termLabel('2254'))
+  // Used to fall through and render the raw code mid-sentence.
+  check(
+    'digit 3 is the two-term course',
+    termLabel('2253') === 'Fall–Winter 2025–26',
+    termLabel('2253'),
+  )
+  check('it round-trips with termCodeFor', termCodeFor(termLabel('2262')) === '2262')
+  check('garbage stays garbage', termLabel('nope') === 'nope')
+  check('an unknown digit stays raw', termLabel('2259') === '2259')
+
+  console.log('')
+  console.log('termMatches')
+  check('exact', termMatches('2252', '2252'))
+  check('different term', !termMatches('2254', '2252'))
+  // The bug: a year-long course was dropped from BOTH of its terms.
+  check('a two-term course shows in its Fall', termMatches('2253', '2252'))
+  check('and in its Winter', termMatches('2253', '2254'))
+  check('but not in the Summer beside it', !termMatches('2253', '2251'))
+  check('nor in another year', !termMatches('2253', '2262'))
+  check('no term selected means everything', termMatches('2252', ''))
+
+  console.log('')
+  console.log('missingTermReason')
+  // The exact case reported: COMM 305's feed stops at Winter 2026.
+  const comm305 = ['2244', '2251', '2252', '2254']
+  check(
+    'a term newer than the feed is unpublished, not unoffered',
+    missingTermReason(comm305, '2262').kind === 'unpublished',
+  )
+  check('and it names the newest it has', missingTermReason(comm305, '2262').newest === '2254')
+  check(
+    'a gap inside what is published is not-offered',
+    missingTermReason(comm305, '2253').kind === 'not-offered',
+  )
+  check(
+    'so is a term the feed covers but the course skips',
+    missingTermReason(['2244', '2254'], '2252').kind === 'not-offered',
+  )
+  check(
+    'no sections at all cannot claim the course is unoffered',
+    missingTermReason([], '2262').kind === 'unpublished',
+  )
 }
 
 console.log(failed === 0 ? '\ncourse-sections: all checks passed' : `\ncourse-sections: ${failed} FAILED`)

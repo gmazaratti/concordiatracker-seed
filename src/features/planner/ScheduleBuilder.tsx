@@ -48,7 +48,12 @@ import {
   weeklyHours,
   type Placed,
 } from './schedule'
-import { parseCourseCode, termCodeFor } from '@/lib/course-sections'
+import {
+  parseCourseCode,
+  termCodeFor,
+  termLabel,
+  termMatches,
+} from '@/lib/course-sections'
 import { WeekGrid } from './WeekGrid'
 import { ScheduleSearch } from './ScheduleSearch'
 import { SuggestedCourses } from './SuggestedCourses'
@@ -58,7 +63,7 @@ import { ModalShell } from '@/command/ModalShell'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Pin, PinOff } from 'lucide-react'
 import { useProgramForUser } from './useProgramForUser'
-import { findSections, termLabel } from '@/lib/seats'
+import { findSections } from '@/lib/seats'
 import { ScheduleFilters } from './ScheduleFilters'
 import { ScheduleBlockMenu, type BlockMenuTarget } from './ScheduleBlockMenu'
 import { SectionDetails } from './SectionDetails'
@@ -192,7 +197,7 @@ export function ScheduleBuilder() {
         if (!alive) return
         // One section per component, from the term being planned. A preview
         // drawing all fourteen lectures of a course is not a preview.
-        const inTerm = rows.filter((r) => r.termCode === termCode && r.meetingTimes)
+        const inTerm = rows.filter((r) => termMatches(r.termCode, termCode) && r.meetingTimes)
         const firstPer = new Map<string, (typeof rows)[number]>()
         for (const r of inTerm) if (!firstPer.has(r.component)) firstPer.set(r.component, r)
         const drawn = placeSections(

@@ -2,8 +2,12 @@ import { useState } from 'react'
 import { CalendarRange, Loader2 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
-import { findSections, termLabel, type SectionOption } from '@/lib/seats'
-import { parseCourseCode } from '@/lib/course-sections'
+import { findSections, type SectionOption } from '@/lib/seats'
+import {
+  parseCourseCode,
+  termLabel,
+  termMatches,
+} from '@/lib/course-sections'
 import { browseCourses } from '@/lib/catalog'
 import { outstandingRequired } from '@/lib/recommend'
 import { checkPrereq, normalizeCode, type Record as PrereqRecord } from '@/lib/prereq'
@@ -183,7 +187,7 @@ export function ScheduleGenerator({
         const sections = await findSections(parsed.subject, parsed.catalog).catch(
           () => [] as SectionOption[],
         )
-        const inTerm = sections.filter((s) => s.termCode === termCode && s.meetingTimes)
+        const inTerm = sections.filter((s) => termMatches(s.termCode, termCode) && s.meetingTimes)
         const info = meta.get(normalizeCode(code))
         candidates.push({
           code,

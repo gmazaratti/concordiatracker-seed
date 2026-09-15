@@ -1,6 +1,6 @@
 import { ModalShell } from '@/command/ModalShell'
 import type { SectionOption } from '@/lib/seats'
-import { termLabel } from '@/lib/seats'
+import { termLabel } from '@/lib/course-sections'
 import { cn } from '@/lib/cn'
 import { seatSummary } from './seat-summary'
 
@@ -51,7 +51,12 @@ export function SectionDetails({
           {section.location && <Row label="Campus" value={campusName(section.location)} />}
           {/* The number the Student Centre actually asks for. Nothing else on
               this card gets you registered. */}
-          {!section.classNumber.startsWith('current-') && (
+          {/* Synthetic sections have no class number to show: `current-` comes
+              from a course you already added, `manual-` from one you typed
+              because the feed had not published the term. Printing an invented
+              one would be worse than printing none. */}
+          {!section.classNumber.startsWith('current-') &&
+            !section.classNumber.startsWith('manual-') && (
             <Row label="Class number" value={section.classNumber} mono />
           )}
         </dl>

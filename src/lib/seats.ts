@@ -123,16 +123,5 @@ export function seatsOpen(w: SeatWatch): number | null {
   return Math.max(0, w.last_capacity - w.last_enrollment)
 }
 
-/**
- * Concordia's term codes are 4 digits: century-ish prefix, year, then a term
- * digit — 2244 is Winter 2025. Decoded loosely on purpose; an unrecognised
- * shape returns the raw code rather than a confidently wrong term name.
- */
-export function termLabel(code: string): string {
-  if (!/^\d{4}$/.test(code)) return code
-  const year = 2000 + Number(code.slice(1, 3))
-  const season = { '1': 'Summer', '2': 'Fall', '4': 'Winter' }[code[3]]
-  if (!season) return code
-  // A Winter term belongs to the academic year that started the previous autumn.
-  return `${season} ${season === 'Winter' ? year + 1 : year}`
-}
+/* `termLabel` moved to lib/course-sections.ts, beside `termCodeFor`. Two
+   inverse functions in two files is how they came to disagree. */

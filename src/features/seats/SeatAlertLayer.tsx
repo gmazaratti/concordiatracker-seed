@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BellRing, Check, Copy, ExternalLink } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
-import { ackSeatAlert, mySeatAlerts, termLabel, type SeatAlert } from '@/lib/seats'
+import { ackSeatAlert, mySeatAlerts, type SeatAlert } from '@/lib/seats'
+import { termLabel } from '@/lib/course-sections'
 
 /**
  * A seat opened. Say so, loudly.

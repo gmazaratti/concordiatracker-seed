@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { Bell, Loader2, MapPin } from 'lucide-react'
-import { findSections, termLabel, type SectionOption } from '@/lib/seats'
-import { sortSections, newestTerm } from '@/lib/course-sections'
+import { findSections, type SectionOption } from '@/lib/seats'
+import {
+  newestTerm,
+  sortSections,
+  termLabel,
+  termMatches,
+} from '@/lib/course-sections'
 import { cn } from '@/lib/cn'
 
 /**
@@ -49,7 +54,7 @@ export function CourseSections({ subject, catalog }: { subject: string; catalog:
   }
 
   const terms = [...new Set(sections.map((s) => s.termCode))].sort((a, b) => b.localeCompare(a))
-  const visible = sortSections(sections.filter((s) => s.termCode === term))
+  const visible = sortSections(sections.filter((s) => termMatches(s.termCode, term)))
 
   if (sections.length === 0) {
     return (

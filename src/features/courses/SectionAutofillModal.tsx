@@ -3,13 +3,15 @@ import { Check, Loader2, MapPin } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
-import { findSections, termLabel, type SectionOption } from '@/lib/seats'
+import { findSections, type SectionOption } from '@/lib/seats'
 import {
   newestTerm,
   parseCourseCode,
   sectionPatch,
   sortSections,
   termCodeFor,
+  termLabel,
+  termMatches,
 } from '@/lib/course-sections'
 import type { Course } from '@/data/types'
 
@@ -55,7 +57,7 @@ export function SectionAutofillModal({
         // sections for it. Otherwise the furthest-ahead one, which is the best
         // guess available for a course with no term set.
         const want = termCodeFor(course.term)
-        const has = want && rows.some((r) => r.termCode === want)
+        const has = want && rows.some((r) => termMatches(r.termCode, want))
         setTerm(has ? want : (newestTerm(rows) ?? ''))
       })
       .catch((e: unknown) => {
@@ -74,7 +76,7 @@ export function SectionAutofillModal({
   }, [sections])
 
   const visible = useMemo(
-    () => sortSections((sections ?? []).filter((s) => s.termCode === term)),
+    () => sortSections((sections ?? []).filter((s) => termMatches(s.termCode, term))),
     [sections, term],
   )
 
