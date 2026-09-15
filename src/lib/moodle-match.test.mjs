@@ -18,7 +18,7 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'moodle-match.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: path.join(here, '..', '..') },
 )
-const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches, pairMoodleToAssessments, coveredTaskIds } = await import(
+const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches, pairMoodleToAssessments, coveredTaskIds, coursesFromMoodle } = await import(
   pathToFileURL(out).href
 )
 
@@ -194,6 +194,34 @@ const undatedPair = pairMoodleToAssessments(
 )
 eq('an undated assessment still hides the duplicate', undatedPair.length, 1)
 check('and never claims it moved', !undatedPair[0].differs)
+
+console.log('\ncoursesFromMoodle - the feed names the classes you are in')
+const hints = coursesFromMoodle(FINA_TASKS)
+eq('one course, not five', hints.length, 1)
+eq('code normalised from FINA-210-2262-B', hints[0].code, 'FINA 210')
+eq('term decoded from the same string', hints[0].termCode, '2262')
+eq('and the section', hints[0].section, 'B')
+eq('with a count of what named it', hints[0].events, 5)
+
+const mixed = [
+  { id: '1', title: 'x', due: '2026-10-01T00:00:00Z', note: 'COMP-248-2262-BB', source: 'moodle' },
+  { id: '2', title: 'y', due: '2026-10-02T00:00:00Z', note: 'FINA-210-2262-B', source: 'moodle' },
+  { id: '3', title: 'z', due: '2026-10-03T00:00:00Z', note: 'Chemistry Help Centre', source: 'moodle' },
+  { id: '4', title: 'w', due: '2026-10-04T00:00:00Z', note: '', source: undefined },
+]
+eq('two real courses out of four events', coursesFromMoodle(mixed).length, 2)
+eq('sorted by code', coursesFromMoodle(mixed).map((c) => c.code), ['COMP 248', 'FINA 210'])
+check(
+  'a Moodle space that is not a course yields nothing',
+  !coursesFromMoodle(mixed).some((c) => /CHEM|HELP/.test(c.code)),
+)
+check('a hand-typed todo is never read as a course', coursesFromMoodle([mixed[3]]).length === 0)
+eq('an empty feed is empty', coursesFromMoodle([]).length, 0)
+eq(
+  'a name with no term or section still gives the code',
+  coursesFromMoodle([{ id: 'a', title: 't', due: '2026-10-01T00:00:00Z', note: 'ENGL-251', source: 'moodle' }])[0],
+  { code: 'ENGL 251', termCode: undefined, section: undefined, events: 1 },
+)
 
 console.log(failures === 0 ? '\nmoodle-match: all checks passed' : `\nmoodle-match: ${failures} FAILED`)
 process.exit(failures === 0 ? 0 : 1)

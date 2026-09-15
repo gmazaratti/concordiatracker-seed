@@ -239,3 +239,59 @@ export function findMoodleMismatches(
       viaTitle: p.viaTitle,
     }))
 }
+
+/**
+ * Concordia's Moodle names a course `SUBJ-CAT-TERM-SECTION`, e.g.
+ * `FINA-210-2262-B`, and puts that in every event's CATEGORIES line.
+ *
+ * Which means the feed does not only carry deadlines — it carries the list of
+ * classes the student is IN, with the term and the section. That is the whole
+ * "import my courses" feature, already in the payload.
+ *
+ * The code is taken confidently (it is the part every format agrees on); the
+ * term and section are best-effort and simply absent when the name does not
+ * match the pattern. A Moodle course called "Chemistry Help Centre" yields
+ * nothing at all, which is correct.
+ */
+const MOODLE_COURSE = /\b([A-Za-z]{3,4})-(\d{3}[A-Za-z]?)(?:-(\d{4}))?(?:-([A-Za-z0-9]{1,4}))?\b/
+
+export interface MoodleCourseHint {
+  /** "FINA 210" — normalised, ready to match the catalogue. */
+  code: string
+  /** Concordia's 4-digit term, when the name carried one. */
+  termCode?: string
+  /** The section letter(s), when the name carried them. */
+  section?: string
+  /** How many events named it — a course with one event is still a course. */
+  events: number
+}
+
+/**
+ * The distinct courses a Moodle feed mentions.
+ *
+ * ONLY COURSES WITH EVENTS APPEAR, and the UI has to say so: a class whose
+ * professor has posted no deadlines is invisible here, and presenting this as
+ * "your courses" when it is "your courses that have posted something" would
+ * be the kind of confident-but-wrong claim this app tries not to make.
+ */
+export function coursesFromMoodle(tasks: MoodleTask[]): MoodleCourseHint[] {
+  const found = new Map<string, MoodleCourseHint>()
+  for (const t of tasks) {
+    if (t.source !== 'moodle') continue
+    // The category is what Moodle puts in `note` ahead of any description.
+    const category = (t.note ?? '').split('·')[0]?.trim() ?? ''
+    const m = MOODLE_COURSE.exec(category) ?? MOODLE_COURSE.exec(t.title)
+    if (!m) continue
+    const code = `${m[1].toUpperCase()} ${m[2].toUpperCase()}`
+    const prev = found.get(code)
+    found.set(code, {
+      code,
+      // Keep the first term/section seen; later events should agree, and if
+      // they do not, the earlier one is no worse a guess than the later.
+      termCode: prev?.termCode ?? m[3],
+      section: prev?.section ?? m[4]?.toUpperCase(),
+      events: (prev?.events ?? 0) + 1,
+    })
+  }
+  return [...found.values()].sort((a, b) => a.code.localeCompare(b.code))
+}

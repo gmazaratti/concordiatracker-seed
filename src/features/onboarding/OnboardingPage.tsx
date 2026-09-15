@@ -7,6 +7,7 @@ import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
 import { HeardAboutSlide } from './HeardAboutSlide'
 import { HowItWorksSlide } from './HowItWorksSlide'
 import { AddCourses } from './AddCourses'
+import { MoodleStep } from './MoodleStep'
 import { CommunityStep } from './CommunityStep'
 import { SetupStep, ThemeStep } from './OnboardingSetup'
 import { HANDLE_RE, useHandleCheck } from './handle'
@@ -25,11 +26,16 @@ const FIRST_TOUR = SETUP_COUNT // first intro step = Welcome
 // people actually come back to change, so a returning user starts on the
 // theme/language step rather than past it.
 const STEP_HEARD = 5
-const STEP_COURSE = 6
-const STEP_HOW = 7
-const STEP_COMMUNITY = 8
-const STEP_DONE = 9
-const TOTAL = 10
+// Moodle sits BEFORE "add a course" deliberately: one pasted link brings the
+// deadlines AND names the classes, so doing it first can make the manual step
+// unnecessary. Recommended, never required — an onboarding step nobody can
+// get past is a wall.
+const STEP_MOODLE = 6
+const STEP_COURSE = 7
+const STEP_HOW = 8
+const STEP_COMMUNITY = 9
+const STEP_DONE = 10
+const TOTAL = 11
 
 export function OnboardingPage() {
   const t = useT()
@@ -44,6 +50,7 @@ export function OnboardingPage() {
   const [profilePublic, setProfilePublic] = useState(false)
   const [program, setProgram] = useState<ProgramSelection | null>(null)
   const [addedCourse, setAddedCourse] = useState(false)
+  const [moodleDone, setMoodleDone] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const handleStatus = useHandleCheck(handle)
@@ -157,7 +164,7 @@ export function OnboardingPage() {
 
   const label = isLast
     ? t('onboarding.enterApp')
-    : isSetup || step === STEP_COURSE
+    : isSetup || step === STEP_COURSE || step === STEP_MOODLE
       ? t('common.continue')
       : t('common.next')
 
@@ -217,6 +224,8 @@ export function OnboardingPage() {
               <WelcomeSlide />
             ) : step === STEP_HEARD ? (
               <HeardAboutSlide />
+            ) : step === STEP_MOODLE ? (
+              <MoodleStep onConnected={() => setMoodleDone(true)} />
             ) : step === STEP_COURSE ? (
               <AddCourses onAdded={() => setAddedCourse(true)} />
             ) : step === STEP_HOW ? (
@@ -236,6 +245,15 @@ export function OnboardingPage() {
           {label}
           {!isLast && <ArrowRight size={16} aria-hidden />}
         </Button>
+        {step === STEP_MOODLE && !moodleDone && (
+          <button
+            type="button"
+            onClick={() => setStep((s) => s + 1)}
+            className="text-[12px] text-subtle transition-colors duration-150 hover:text-fg"
+          >
+            Skip for now
+          </button>
+        )}
         {step === STEP_COURSE && !addedCourse && (
           <button
             type="button"
