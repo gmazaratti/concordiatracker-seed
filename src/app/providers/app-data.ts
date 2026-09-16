@@ -46,12 +46,22 @@ export interface CalendarPrefs {
   showConcordia: boolean
   /** Personal layer — assignment deadlines + tasks. */
   showMine: boolean
+  /**
+   * Deadlines synced from Moodle.
+   *
+   * Its OWN layer rather than part of "My calendar": it comes from somewhere
+   * else and can be wrong in its own way (a professor's stale event, a course
+   * you dropped), so being able to take it off the page without losing your
+   * own work is the point of a layer at all.
+   */
+  showMoodle: boolean
 }
 
 export const DEFAULT_CALENDAR_PREFS: CalendarPrefs = {
   view: 'month',
   showConcordia: true,
   showMine: true,
+  showMoodle: true,
 }
 
 export interface AppDataContextValue {

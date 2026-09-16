@@ -1,8 +1,18 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Check, ChevronLeft, Copy, Download, Printer, Send, X } from 'lucide-react'
+import {
+  Check,
+  ChevronLeft,
+  Copy,
+  Download,
+  Image as ImageIcon,
+  Printer,
+  Send,
+  X,
+} from 'lucide-react'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
+import { drawRecord, recordImageHeight, RECORD_IMAGE_WIDTH } from './record-image'
 import {
   recordFilename,
   recordToCsv,
@@ -61,6 +71,34 @@ export function RecordSheet({
     a.download = recordFilename(snapshot, 'csv')
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  /**
+   * The record as a PNG.
+   *
+   * Drawn at 2x and scaled down, because the reason to want an image is to put
+   * it somewhere else — a message, a story — and a 1x canvas of 13px text
+   * turns to mush the moment anything resamples it.
+   */
+  function savePng() {
+    const canvas = document.createElement('canvas')
+    const height = recordImageHeight(snapshot)
+    const scale = 2
+    canvas.width = RECORD_IMAGE_WIDTH * scale
+    canvas.height = height * scale
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.scale(scale, scale)
+    drawRecord(ctx, snapshot, RECORD_IMAGE_WIDTH)
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = recordFilename(snapshot, 'png')
+      a.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
   }
 
   async function copy() {
@@ -212,6 +250,14 @@ export function RecordSheet({
         >
           <Download size={14} aria-hidden />
           Download CSV
+        </button>
+        <button
+          type="button"
+          onClick={savePng}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+        >
+          <ImageIcon size={14} aria-hidden />
+          Save as PNG
         </button>
         <button
           type="button"

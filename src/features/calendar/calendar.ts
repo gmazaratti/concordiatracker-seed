@@ -95,6 +95,10 @@ export function dayItems(day: Date, src: CalendarSource, prefs: CalendarPrefs): 
       .forEach((a) => items.push({ kind: 'assessment', id: a.id, assessment: a }))
     src.tasks
       .filter((t) => ymd(new Date(t.due)) === key)
+      // A synced deadline answers to the Moodle switch; a todo you typed
+      // answers to "My calendar". Same row type, two different sources, and
+      // only one of them is yours to have got wrong.
+      .filter((t) => t.source !== 'moodle' || prefs.showMoodle)
       .forEach((t) => items.push({ kind: 'task', id: t.id, task: t }))
   }
   // Undated work, anchored to the day the exam period opens. Needs BOTH layers

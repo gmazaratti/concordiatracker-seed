@@ -14,6 +14,7 @@ import { CourseCard } from './CourseCard'
 import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
+import { MoodleClassNudge, MoodleConnectCard } from './MoodleClassNudge'
 import { AddCourseChooser } from './AddCourseChooser'
 import { TranscriptView } from './TranscriptView'
 import { AddForTerm, UpcomingCourses } from './UpcomingTerms'
@@ -170,6 +171,11 @@ export function CoursesPage() {
         )}
       >
         <main className="order-2 min-w-0 flex-1 lg:order-1">
+          {/* Above the grid, because both are statements ABOUT the list below
+              it. Only one can ever show: a gap report when Moodle is
+              connected, an offer when it is not. */}
+          <MoodleClassNudge />
+          <MoodleConnectCard />
           {coursesView === 'grid' ? (
             <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
               {shown.map((c) => (

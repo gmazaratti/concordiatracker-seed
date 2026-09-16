@@ -13,7 +13,10 @@ import { cn } from '@/lib/cn'
  * Pro-gated calendar-sync stub. Mirrors Today's recessed glance-panel language. */
 export function CalendarRail() {
   const t = useT()
-  const { plan, calendarPrefs, updateCalendarPrefs } = useAppData()
+  const { plan, calendarPrefs, updateCalendarPrefs, personalTasks } = useAppData()
+  // Derived from the data, not from a connection flag: what matters for a
+  // layer switch is whether anything is ON the layer.
+  const hasMoodle = personalTasks.some((t) => t.source === 'moodle')
 
   return (
     <div data-tour="calendar-rail" className="flex flex-col gap-3">
@@ -25,6 +28,18 @@ export function CalendarRail() {
           checked={calendarPrefs.showMine}
           onChange={(v) => updateCalendarPrefs({ showMine: v })}
         />
+        {/* Shown only when there is something to toggle: a switch for a
+            feature you have not connected is a dead control that makes the
+            panel look broken. The offer to connect is the MoodleRow below. */}
+        {hasMoodle && (
+          <LayerRow
+            label="Moodle"
+            hint="Deadlines synced from your Moodle calendar."
+            dot={<GraduationCap size={11} className="text-accent" aria-hidden />}
+            checked={calendarPrefs.showMoodle}
+            onChange={(v) => updateCalendarPrefs({ showMoodle: v })}
+          />
+        )}
         <LayerRow
           label={t('calendar.concordia')}
           hint={t('calendar.concordiaHint')}
