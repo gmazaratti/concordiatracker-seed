@@ -99,6 +99,8 @@ export function PrereqGraph({
   const [searching, setSearching] = useState(false)
   const [pulling, setPulling] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [panning, setPanning] = useState<{ x: number; y: number; left: number; top: number } | null>(null)
+
   const [view, setView] = useState({ x: 0, y: 0, w: 0, h: 0 })
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -116,7 +118,7 @@ export function PrereqGraph({
       }))
       if (alive) setLibrary(page.rows)
     })()
-    return () => {
+      return () => {
       alive = false
     }
   }, [])
@@ -223,6 +225,67 @@ export function PrereqGraph({
   const mapScale = MINIMAP_W / board.w
   const mapH = Math.max(60, Math.round(board.h * mapScale))
 
+  /**
+   * Ctrl/⌘ + wheel zooms, a plain wheel scrolls.
+   *
+   * Hijacking a bare wheel is the thing every map gets complained about: the
+   * board lives inside a scrolling page, and a student flicking down the page
+   * with the pointer over the canvas means to scroll the page, not to zoom.
+   * Ctrl+wheel is the pinch gesture a trackpad already sends, so pinching on a
+   * Mac just works without any of this being discoverable.
+   *
+   * ZOOM IS ANCHORED TO THE POINTER. Scaling around the top-left slides the
+   * thing you were looking at off-screen, which reads as the board jumping.
+   */
+  function onWheel(e: React.WheelEvent) {
+    if (!e.ctrlKey && !e.metaKey) return
+    e.preventDefault()
+    const el = scrollRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    // Where the pointer is in BOARD coordinates, before the scale changes.
+    const bx = (el.scrollLeft + e.clientX - rect.left) / zoom
+    const by = (el.scrollTop + e.clientY - rect.top) / zoom
+    const next = Math.min(1.4, Math.max(0.4, zoom * (e.deltaY > 0 ? 0.92 : 1.08)))
+    setZoom(next)
+    // Put that same board point back under the pointer.
+    requestAnimationFrame(() => {
+      el.scrollLeft = bx * next - (e.clientX - rect.left)
+      el.scrollTop = by * next - (e.clientY - rect.top)
+    })
+  }
+
+  /**
+   * Drag the canvas to pan.
+   *
+   * Only from empty canvas: `data-node` marks the cards, and a drag starting
+   * on one is a card being moved, which already works. Mouse and pen only —
+   * on a touch screen that gesture IS scrolling, and it cannot be both (the
+   * same call the week grid's drag-to-block had to make).
+   */
+  function startPan(e: React.PointerEvent) {
+    if (e.pointerType === 'touch' || e.button !== 0) return
+    if ((e.target as HTMLElement).closest('[data-node]')) return
+    const el = scrollRef.current
+    if (!el) return
+    setPanning({ x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop })
+    el.setPointerCapture(e.pointerId)
+  }
+
+  function movePan(e: React.PointerEvent) {
+    if (!panning) return
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollLeft = panning.left - (e.clientX - panning.x)
+    el.scrollTop = panning.top - (e.clientY - panning.y)
+  }
+
+  function endPan(e: React.PointerEvent) {
+    if (!panning) return
+    setPanning(null)
+    scrollRef.current?.releasePointerCapture(e.pointerId)
+  }
+
   return (
     <div className="flex flex-col gap-3 lg:h-[calc(100svh-220px)] lg:min-h-[560px] lg:flex-row">
       {/* ── Library ─────────────────────────────────────────────────────── */}
@@ -328,13 +391,21 @@ export function PrereqGraph({
         <div
           ref={scrollRef}
           onScroll={trackView}
+          onWheel={onWheel}
+          onPointerDown={startPan}
+          onPointerMove={movePan}
+          onPointerUp={endPan}
+          onPointerCancel={endPan}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault()
             const raw = e.dataTransfer.getData('text/ct-course')
             if (raw) void add(JSON.parse(raw) as CatalogCourse)
           }}
-          className="relative h-[60svh] flex-1 overflow-auto rounded-xl border border-border bg-canvas lg:h-auto"
+          className={cn(
+            'relative h-[60svh] flex-1 overflow-auto rounded-xl border border-border bg-canvas lg:h-auto',
+            panning ? 'cursor-grabbing' : 'cursor-grab',
+          )}
         >
           {/* Its own layer, sized to the board. Putting the grid on the
               scrolling container meant its mask faded out the cards too. */}
@@ -395,6 +466,9 @@ export function PrereqGraph({
                 return (
                   <div
                     key={n.code}
+                    // Read by `startPan`: a drag that begins on a card is that
+                    // card being moved, not the canvas being panned.
+                    data-node=""
                     style={{ left: n.x, top: n.y, width: CARD_W, height: CARD_H }}
                     onPointerDown={(e) => {
                       if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
@@ -521,6 +595,12 @@ export function PrereqGraph({
             />
             <span className="w-9 tabular-nums">{Math.round(zoom * 100)}%</span>
           </label>
+
+          {/* Neither gesture is guessable, and a board you can only move with a
+              scrollbar feels broken next to every other canvas people use. */}
+          <span className="hidden text-subtle sm:inline">
+            Drag the canvas to move · Ctrl + scroll to zoom
+          </span>
 
           <span>
             {nodes.length} on the board · {edges.length} link{edges.length === 1 ? '' : 's'}

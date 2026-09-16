@@ -252,6 +252,12 @@ export function ProgramProgress() {
             </section>
           )}
 
+          {/* Three colours carrying three meanings, explained once. A tooltip
+              on each pill is the version nobody reads and nobody can read on
+              a phone, and the states are not guessable: amber for "on your
+              schedule" in particular looks like a warning until it is named. */}
+          <Legend />
+
           {progress.groups.map(({ group, done, remaining, earnedCredits, counted }) => (
             <section key={group.id} className="rounded-xl border border-border bg-surface p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -365,6 +371,44 @@ export function ProgramProgress() {
           </p>
         </div>
       )}
+    </div>
+  )
+}
+
+/** What the three states mean, said once at the top rather than per pill. */
+function Legend() {
+  const items: { cls: string; dot: string; label: string; hint: string }[] = [
+    {
+      cls: 'border-success/40 bg-success/10',
+      dot: 'border-success bg-success',
+      label: 'Passed',
+      hint: 'on your record',
+    },
+    {
+      cls: 'border-warning/40 bg-warning/10',
+      dot: 'border-warning bg-warning',
+      label: 'In progress',
+      hint: 'on your schedule now',
+    },
+    {
+      cls: 'border-border bg-canvas',
+      dot: 'border-border-strong',
+      label: 'Not taken',
+      hint: 'still outstanding',
+    },
+  ]
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border bg-surface/60 px-3.5 py-2.5">
+      {items.map((i) => (
+        <span key={i.label} className="flex items-center gap-1.5 text-[12px]">
+          <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border', i.dot)} aria-hidden />
+          <span className="font-medium text-fg">{i.label}</span>
+          <span className="text-subtle">{i.hint}</span>
+        </span>
+      ))}
+      <span className="ml-auto text-[11.5px] text-subtle">
+        A group with no tick boxes is a rule we will not guess at — see its wording.
+      </span>
     </div>
   )
 }
