@@ -16,13 +16,92 @@ import {
   unfollowUser,
   type FollowedUser,
   type Friend,
+  listThreads,
+  markThreadRead,
+  threadPreview,
+  shortAgo,
+  type Thread,
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { useAuth } from '@/app/providers/auth'
 import { Avatar, Chat } from './Chat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
 import { ScheduleAccess } from './ScheduleAccess'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { founderFor } from './founders'
+
+/** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
+ *  inside a component body) — the same shape as `usageState` and `splitByTime`. */
+const ago = (iso: string) => shortAgo(iso, Date.now())
+
+/**
+ * One line of the conversation list.
+ *
+ * The old row was a name over a handle, which is a CONTACTS list: it answers
+ * "who do I know", and the reason anyone opens this screen is "who said
+ * something". So: the last thing said, when, and a dot if it is waiting on
+ * you.
+ *
+ * FOUR OR MORE UNREAD STOPS SHOWING THE TEXT. Past a few messages the preview
+ * is a fragment of a conversation you are about to read anyway, and the count
+ * is the more useful fact. It is also what every messenger does, which matters
+ * here: a list like this is read by pattern, not by reading.
+ *
+ * An attachment names its KIND ("Sent a schedule") rather than the useless
+ * "sent an attachment" — the point of the line is to say whether the thread
+ * needs you, and "an attachment" cannot.
+ */
+function ThreadLine({
+  friend,
+  thread,
+  me,
+  verified,
+}: {
+  friend: Friend
+  thread: Thread | undefined
+  me: string
+  verified: boolean
+}) {
+  const unread = thread?.unread ?? 0
+  const mine = !!thread?.last_sender && thread.last_sender === me
+  const preview = thread
+    ? unread >= 4
+      ? `${unread}+ new messages`
+      : threadPreview(thread, mine)
+    : null
+
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1 text-[14px] text-fg">
+          <span className={cn('truncate', unread > 0 && 'font-semibold')}>
+            {friend.name ?? friend.handle}
+          </span>
+          {verified && <VerifiedBadge size={12} />}
+        </span>
+        <span
+          className={cn(
+            'block truncate text-[12.5px]',
+            unread > 0 ? 'font-medium text-fg' : 'text-subtle',
+          )}
+        >
+          {/* No conversation yet is not the same as an empty one, and the
+              handle is the only useful thing to say in that case. */}
+          {preview ?? `@${friend.handle}`}
+          {thread?.last_at && (
+            <span className="font-normal text-subtle"> · {ago(thread.last_at)}</span>
+          )}
+        </span>
+      </span>
+      {unread > 0 && (
+        <span
+          className="size-2.5 shrink-0 rounded-full bg-accent"
+          aria-label={`${unread} unread`}
+        />
+      )}
+    </span>
+  )
+}
 
 /**
  * Messages — conversations, requests, and who you follow.
@@ -57,6 +136,9 @@ export function PeoplePanel() {
     return 'inbox'
   })
   const [friends, setFriends] = useState<Friend[] | null>(null)
+  const [threads, setThreads] = useState<Thread[]>([])
+  const { user: authUser } = useAuth()
+  const meId = authUser?.id ?? ''
   const [following, setFollowing] = useState<FollowedUser[] | null>(null)
   const [active, setActive] = useState<Friend | null>(null)
   const [tick, setTick] = useState(0)
@@ -71,6 +153,7 @@ export function PeoplePanel() {
     let alive = true
     void listFriends().then((r) => alive && setFriends(r))
     void listFollowing().then((r) => alive && setFollowing(r))
+    void listThreads().then((r) => alive && setThreads(r))
     return () => {
       alive = false
     }
@@ -95,7 +178,23 @@ export function PeoplePanel() {
     if (found) setActive(found)
   }
 
-  const accepted = (friends ?? []).filter((f) => f.status === 'accepted')
+  const byOther = new Map(threads.map((t) => [t.other, t]))
+  /**
+   * NEWEST FIRST. A message list ordered by when you became friends is a
+   * contacts list; the whole reason to open this screen is "who said
+   * something". Conversations that have never been used sort last, in their
+   * existing order, rather than being hidden.
+   */
+  const accepted = [...(friends ?? [])]
+    .filter((f) => f.status === 'accepted')
+    .sort((a, b) => {
+      const ta = byOther.get(a.user_id)?.last_at ?? ''
+      const tb = byOther.get(b.user_id)?.last_at ?? ''
+      if (!ta && !tb) return 0
+      if (!ta) return 1
+      if (!tb) return -1
+      return tb.localeCompare(ta)
+    })
   const q = threadQuery.trim().toLowerCase()
   const shownThreads = q
     ? accepted.filter(
@@ -141,6 +240,12 @@ export function PeoplePanel() {
 
   const openChat = (f: Friend) => {
     setActive(f)
+    // Clear the badge optimistically, then tell the server. Waiting for the
+    // round trip leaves a dot on the conversation you are looking at.
+    if ((byOther.get(f.user_id)?.unread ?? 0) > 0) {
+      setThreads((prev) => prev.map((t) => (t.other === f.user_id ? { ...t, unread: 0 } : t)))
+      void markThreadRead(f.user_id)
+    }
     setPill('inbox')
     const next = new URLSearchParams(params)
     next.set('chat', f.handle)
@@ -283,15 +388,12 @@ export function PeoplePanel() {
                       className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-1 pl-0.5 text-left lg:px-3"
                     >
                       <Avatar friend={f} size={44} />
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-1 text-[14px] text-fg">
-                          <span className="truncate">{f.name ?? f.handle}</span>
-                          {founderFor(f.handle) && <VerifiedBadge size={12} />}
-                        </span>
-                        <span className="block truncate text-[12.5px] text-subtle">
-                          @{f.handle}
-                        </span>
-                      </span>
+                      <ThreadLine
+                        friend={f}
+                        thread={byOther.get(f.user_id)}
+                        me={meId}
+                        verified={!!founderFor(f.handle)}
+                      />
                     </button>
                     <PersonMenuButton onOpen={(at) => setMenu(targetFor(f, at))} />
                   </li>

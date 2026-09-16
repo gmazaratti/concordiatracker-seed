@@ -385,3 +385,82 @@ export async function listFollowing(): Promise<FollowedUser[]> {
   if (error) return []
   return (data ?? []) as FollowedUser[]
 }
+
+/** The outside view of one conversation: who, what last, when, how many unread. */
+export interface Thread {
+  other: string
+  last_body: string | null
+  last_attachment: Attachment | null
+  last_sender: string | null
+  last_at: string | null
+  unread: number
+}
+
+/**
+ * Every conversation's last line and unread count, in one call.
+ *
+ * Returns an empty list rather than throwing when the RPC is missing, so a
+ * pending migration costs the previews and never the message list itself —
+ * the same rule `searchCoursesEnriched` follows.
+ */
+export async function listThreads(): Promise<Thread[]> {
+  const { data, error } = await supabase.rpc('my_threads')
+  if (error || !data) return []
+  return data as Thread[]
+}
+
+/** Mark everything they sent as read. Returns how many changed. */
+export async function markThreadRead(other: string): Promise<number> {
+  const { data } = await supabase.rpc('mark_thread_read', { p_other: other })
+  return typeof data === 'number' ? data : 0
+}
+
+/**
+ * What a conversation's last line should say.
+ *
+ * An attachment has no body worth showing — "You sent an attachment" is what
+ * every other messenger falls back to, and it is uninformative. Naming the
+ * KIND ("Sent a schedule") is the same length and actually tells you whether
+ * the thread needs you.
+ */
+export function threadPreview(t: Thread, mine: boolean): string {
+  const who = mine ? 'You' : ''
+  const verb = (v: string) => (mine ? `You ${v}` : v.charAt(0).toUpperCase() + v.slice(1))
+  const a = t.last_attachment
+  if (a) {
+    switch (a.kind) {
+      case 'schedule':
+        return verb('sent a schedule')
+      case 'record':
+        return verb('sent a record')
+      case 'event':
+        return verb('sent an event')
+      case 'course':
+        return verb('sent a class')
+      case 'blueprint':
+        return verb('sent an outline')
+      case 'schedule_request':
+        return mine ? 'You asked to see their schedule' : 'Asked to see your schedule'
+    }
+  }
+  const body = (t.last_body ?? '').trim()
+  if (!body) return who ? 'You sent a message' : 'Sent a message'
+  return mine ? `You: ${body}` : body
+}
+
+/** "3h", "2d", "now" — a width that does not move as the list updates. */
+export function shortAgo(iso: string | null, now: number): string {
+  if (!iso) return ''
+  const ms = now - new Date(iso).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return 'now'
+  const min = Math.floor(ms / 60000)
+  if (min < 1) return 'now'
+  if (min < 60) return `${min}m`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h`
+  const d = Math.floor(hr / 24)
+  if (d < 7) return `${d}d`
+  const w = Math.floor(d / 7)
+  if (w < 5) return `${w}w`
+  return `${Math.floor(d / 365) >= 1 ? Math.floor(d / 365) + 'y' : Math.floor(d / 30) + 'mo'}`
+}

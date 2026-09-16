@@ -291,9 +291,20 @@ export function Chat({
         {(rows ?? []).map((m, i) => {
           const mine = m.sender === me
           const prev = (rows ?? [])[i - 1]
+          const next = (rows ?? [])[i + 1]
           // Only the last of a run gets a tail and a timestamp, so a burst of
           // three reads as one thought rather than three notifications.
           const grouped = prev?.sender === m.sender
+          /**
+           * THE AVATAR BELONGS ON THE LAST MESSAGE OF A RUN, not the first.
+           *
+           * The row is `items-end`, so the face sits level with the bottom
+           * bubble — which is where the eye already is after reading three
+           * messages downward, and where every messenger puts it. On the first
+           * message it floats level with the top of a block it is not the end
+           * of, and the run reads as starting from nowhere.
+           */
+          const endsRun = next?.sender !== m.sender
           const last = i === (rows ?? []).length - 1
           return (
             <div
@@ -305,7 +316,7 @@ export function Chat({
               )}
             >
               {!mine && (
-                <span className={cn('shrink-0', grouped && 'invisible')}>
+                <span className={cn('shrink-0', !endsRun && 'invisible')}>
                   <Avatar friend={friend} size={24} />
                 </span>
               )}
