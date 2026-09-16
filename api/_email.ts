@@ -161,7 +161,9 @@ function renderText(o: EmailOptions): string {
   }
   if (o.button) lines.push('', `${o.button.label}: ${o.button.href}`)
   if (o.footnote) lines.push('', o.footnote)
-  lines.push('', '—', 'ConcordiaTracker is not affiliated with Concordia University.', SITE)
+  // Plain hyphens, not an em dash: em dashes in email copy read as machine-
+  // written to a lot of people, and the separator is the one that ships.
+  lines.push('', '--', 'ConcordiaTracker is not affiliated with Concordia University.', SITE)
   return lines.join('\n')
 }
 
