@@ -377,8 +377,28 @@ html {
     transform: none;
   }
 }
+/* `backwards`, NOT `both`, and the difference is not cosmetic.
+ *
+ * A `both`-filled animation stays in effect forever after it ends, so an
+ * animated `transform` keeps applying even once it has reached `transform:
+ * none` -- the computed value settles at the identity matrix rather than
+ * `none`. An element with any transform is a CONTAINING BLOCK for every
+ * `position: fixed` descendant, so this 240ms decoration permanently
+ * re-anchored anything fixed inside a Community section to the section's own
+ * box. The full-screen mobile chat resolved `inset: 0` against a 44px-tall
+ * wrapper and rendered as a 343x44 sliver under the header.
+ *
+ * `backwards` fills only BEFORE the animation starts, which is all this needed
+ * it for (no flash of the end state on the first frame). Once it finishes
+ * nothing is applied, the transform is genuinely `none`, and fixed children
+ * anchor to the viewport again. Safe under reduced motion too: the global
+ * duration-zero block ends it immediately, and the element's own styles
+ * already ARE the end state (opacity 1, no transform).
+ *
+ * THE RULE: never `both`-fill an animation that touches `transform` on an
+ * element that wraps content, only on leaves. */
 .ct-section-in {
-  animation: ct-section-in 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: ct-section-in 240ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
 
 /* A full-screen surface arriving: it grows the last 2% into place as it fades,

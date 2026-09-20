@@ -312,8 +312,22 @@ export function PeoplePanel() {
             // page, with no card around it. A full-screen chat is the exception
             // and needs the surface behind it.
             active ? 'bg-surface' : 'lg:bg-surface',
+            /**
+             * `h-[100dvh]`, not `inset-0`, and safe-area padding at the foot.
+             *
+             * `inset-0` sizes a fixed element to the LAYOUT viewport, which on
+             * a phone does not move with the browser's own chrome — the
+             * composer ends up behind the URL bar. `dvh` tracks the viewport
+             * that is actually visible. The bottom padding keeps the text box
+             * clear of the home indicator, which `viewport-fit=cover` puts us
+             * underneath on purpose.
+             *
+             * This overlay is `position: fixed`, so ANY transformed ancestor
+             * becomes its containing block. One did — see the note on
+             * `.ct-section-in` in index.css — and it rendered as a 44px sliver.
+             */
             active
-              ? 'fixed inset-0 z-50 lg:static lg:z-auto lg:h-[min(70vh,640px)] lg:rounded-2xl lg:border'
+              ? 'fixed inset-x-0 top-0 z-50 h-[100dvh] pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:h-[min(70vh,640px)] lg:pb-0 lg:rounded-2xl lg:border'
               : 'lg:h-[min(70vh,640px)] lg:rounded-2xl lg:border',
           )}
         >
