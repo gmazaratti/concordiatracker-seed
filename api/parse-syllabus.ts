@@ -16,8 +16,17 @@ export const config = { runtime: 'edge' }
 
 const GEMINI_MODEL = 'gemini-2.5-flash'
 const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny; bounds Edge body + quota
-/** Abort the model before the platform aborts us, so the error is ours to word. */
-const MODEL_TIMEOUT_MS = 20_000
+/**
+ * Abort the model before the platform aborts us, so the error is ours to word.
+ *
+ * 23s, under the Edge runtime's 25s ceiling. It was 20s, and that was the
+ * whole of one paying student's "it says my outline is too long": three
+ * timeouts in his log, one of them on 5,969 characters -- while a 17,466
+ * character outline measured at 8.1s and came back fine. Length was never the
+ * variable. Thinking tokens were, which is what `thinkingBudget: 0` below
+ * removes.
+ */
+const MODEL_TIMEOUT_MS = 23_000
 
 const PROMPT = `You are an expert at reading university course syllabi and extracting the graded assessment schedule. You will receive a course syllabus as a PDF. Extract the course identity and EVERY graded assessment into the exact JSON schema provided.
 
@@ -99,9 +108,11 @@ interface Slot {
   reason?: string
   retry_after?: number
   used?: number
-  limit?: number
+  /** null on a paid plan: there is no monthly cap to report. */
+  limit?: number | null
   resets_at?: string
   event_id?: string
+  pro?: boolean
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -128,7 +139,18 @@ function rateLimitMessage(slot: Slot | null): string {
       const d = new Date(slot.resets_at)
       reset = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
     }
-    return `You've reached this month's limit of ${slot.limit ?? 5} syllabus uploads. Resets ${reset}.`
+    return `You've reached this month's limit of ${slot.limit ?? 5} syllabus uploads on the free plan. Resets ${reset}, or the Semester pass removes the limit.`
+  }
+  /**
+   * The paid ceiling is an ABUSE STOP, and the wording has to admit that.
+   *
+   * Forty in a day is a script, not a term's worth of syllabi. Telling a
+   * paying student they "reached their limit" would be repeating the exact
+   * false claim this whole change exists to undo -- they were sold unlimited
+   * and there is no allowance for them to have used up.
+   */
+  if (slot?.reason === 'daily') {
+    return `That is ${slot.used ?? 40} syllabus uploads in a day, which is far past normal use, so we have paused parsing on this account for a few hours. If that was really you, reply to a support ticket and we will lift it.`
   }
   const secs = Number(slot?.retry_after ?? 180)
   if (secs < 60) return `Please wait ${secs}s before uploading another syllabus.`
@@ -280,6 +302,17 @@ ${extracted.slice(0, 120_000)}` }]
             temperature: 0,
             responseMimeType: 'application/json',
             responseSchema: SCHEMA,
+            /**
+             * NO THINKING. 2.5-flash reasons before it answers unless told not
+             * to, and that reasoning is most of the wall clock here -- enough
+             * of it to push a two-page outline past the timeout while a
+             * six-page one squeaked under.
+             *
+             * Nothing is lost. The output is pinned to a JSON schema and the
+             * task is transcription, not deduction: find the graded rows, copy
+             * the dates and weights. There is no chain of reasoning to have.
+             */
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       },
@@ -290,8 +323,11 @@ ${extracted.slice(0, 120_000)}` }]
     await release(timedOut ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${how})` : `fetch failed (${how}): ${(err as Error)?.message ?? 'unknown'}`)
     return json(
       {
+        // NOT "try a shorter PDF". That was our timeout, described as the
+        // student's fault, and it sent someone off trimming a two-page file
+        // that was never the problem. Length is not the variable; say so.
         error: timedOut
-          ? 'That file took too long to read. A shorter PDF — just the outline pages — usually goes through. This attempt didn’t count against you.'
+          ? 'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and if it keeps happening send it to support. This attempt didn’t count against you.'
           : 'Could not reach the parser. Try again — this one is on us.',
       },
       timedOut ? 504 : 502,

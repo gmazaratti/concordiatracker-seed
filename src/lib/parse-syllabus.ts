@@ -40,7 +40,7 @@ function statusMessage(status: number): string {
   if (status === 404) return 'The parser only runs on the deployed site, not local dev.'
   if (status === 413) return 'That file is too large — the limit is 4 MB.'
   if (status === 504 || status === 502)
-    return 'That file took too long to read. A shorter PDF — just the outline pages — usually goes through.'
+    return 'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and tell support if it keeps happening.'
   if (status >= 500) return `The parser errored (${status}). Try again in a moment.`
   return `That upload was rejected (${status}).`
 }
@@ -94,6 +94,8 @@ export interface ParseUsage {
   limit: number
   /** ISO start of next month (when `used` resets). */
   resetsAt: string
+  /** True on a paid plan, where there is no monthly cap at all. */
+  unlimited: boolean
   /** ISO instant the per-upload cooldown ends, or null if not cooling down. */
   cooldownUntil: string | null
 }
@@ -103,11 +105,27 @@ export interface ParseUsage {
 export async function getParseUsage(): Promise<ParseUsage | null> {
   const { data, error } = await supabase.rpc('get_parse_usage')
   if (error || !data) return null
-  const d = data as { used: number; limit: number; cooldown: number; resets_at: string; last_at: string | null }
+  const d = data as {
+    used: number
+    // null on a paid plan: no cap. `?? 5` would turn that into the free
+    // allowance, which is the bug this pair of fields exists to stop.
+    limit: number | null
+    pro?: boolean
+    cooldown: number
+    resets_at: string
+    last_at: string | null
+  }
+  const unlimited = d.limit === null || d.pro === true
   let cooldownUntil: string | null = null
   if (d.last_at) {
     const until = new Date(new Date(d.last_at).getTime() + (d.cooldown ?? 180) * 1000)
     if (until.getTime() > Date.now()) cooldownUntil = until.toISOString()
   }
-  return { used: d.used ?? 0, limit: d.limit ?? 5, resetsAt: d.resets_at, cooldownUntil }
+  return {
+    used: d.used ?? 0,
+    limit: unlimited ? Infinity : (d.limit ?? 5),
+    unlimited,
+    resetsAt: d.resets_at,
+    cooldownUntil,
+  }
 }

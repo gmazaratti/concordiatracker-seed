@@ -20,15 +20,24 @@ type Meter = {
 
 /** The meter list is intentionally data-driven so new plan-limited features slot
  * in by adding a row here — nothing else changes. */
-function buildMeters(plan: Plan, courseCount: number, parse: { used: number; limit: number }): Meter[] {
+function buildMeters(
+  plan: Plan,
+  courseCount: number,
+  parse: { used: number; limit: number; unlimited: boolean },
+): Meter[] {
   const semester = plan === 'semester'
   return [
     {
       key: 'scans',
       label: 'Syllabus uploads',
-      description: 'AI parses, rate-limited. Resets on the 1st of each month.',
+      // The number and the sentence both come from the server's answer now.
+      // They used to be independent, which is how the meter could read
+      // "Unlimited" while the limiter stopped a paying student at five.
+      description: parse.unlimited
+        ? 'AI parses. No monthly cap on the Semester pass.'
+        : 'AI parses, rate-limited. Resets on the 1st of each month.',
       used: parse.used,
-      limit: parse.limit,
+      limit: parse.unlimited ? 'unlimited' : parse.limit,
     },
     {
       key: 'blueprints',
@@ -58,9 +67,18 @@ function buildMeters(plan: Plan, courseCount: number, parse: { used: number; lim
 export function UsageSection() {
   const t = useT()
   const { plan, courses } = useAppData()
-  const [parse, setParse] = useState({ used: 0, limit: 5 })
+  // Seeded from the PLAN rather than the free allowance: a paying user must
+  // never see "0 of 5" for the instant before the RPC answers.
+  const [parse, setParse] = useState(() => ({
+    used: 0,
+    limit: 5,
+    unlimited: plan === 'semester',
+  }))
   useEffect(() => {
-    void getParseUsage().then((usage) => usage && setParse({ used: usage.used, limit: usage.limit }))
+    void getParseUsage().then(
+      (usage) =>
+        usage && setParse({ used: usage.used, limit: usage.limit, unlimited: usage.unlimited }),
+    )
   }, [])
   const meters = buildMeters(plan, courses.length, parse)
   const semester = plan === 'semester'

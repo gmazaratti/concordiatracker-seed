@@ -2,8 +2,12 @@
 -- Syllabus-parse rate limiting — enforced in the DATABASE so it can't be
 -- bypassed by calling the function directly.
 --
---   • Cooldown: 180s after a SUCCESSFUL parse, 20s after a failed one.
---   • Monthly cap: 5 SUCCESSFUL parses per calendar month.
+--   • FREE: 5 successful parses a month; 180s after a success, 20s after a
+--     failed one.
+--   • PRO: no monthly cap (we sell "unlimited scans", so there is not one),
+--     a 5s cooldown that only stops double-clicks, and a 40/day abuse stop.
+--   • The plan is read from user_profile, the same two conditions the client
+--     uses, so the limiter and the "Unlimited" meter cannot disagree.
 --   • cancel_parse() releases the slot entirely when the failure was OURS
 --     (parser unreachable, model 5xx, malformed response) — you should not be
 --     locked out for three minutes because our dependency fell over.
@@ -25,6 +29,23 @@ create table if not exists public.parse_events (
 alter table public.parse_events enable row level security; -- no policies = deny-all to clients
 create index if not exists parse_events_user_time_idx on public.parse_events (user_id, created_at desc);
 
+
+-- ── Who is paying ────────────────────────────────────────────────────────────
+-- The SAME two conditions the client reads (`plan_status = 'pro'`, or a live
+-- `pro_until`), so the limiter and the screen showing "Unlimited" cannot
+-- disagree about who is entitled to what. They did: the limiter never looked
+-- at the plan at all, so a student who had just paid for "unlimited scans"
+-- was stopped at five and told to wait three minutes.
+create or replace function public.ct_parse_is_pro(p_user uuid)
+returns boolean
+language sql security definer set search_path = public stable as $$
+  select exists (
+    select 1 from public.user_profile p
+     where p.user_id = p_user
+       and (p.plan_status = 'pro' or (p.pro_until is not null and p.pro_until > now()))
+  );
+$$;
+
 -- Claim a parse slot: enforce cooldown + monthly cap, then record the attempt.
 -- Returns { allowed, reason?, retry_after?, used, limit, resets_at?, event_id? }.
 create or replace function public.start_parse()
@@ -32,12 +53,15 @@ returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   uid uuid := auth.uid();
+  pro boolean;
   cooldown int;              -- seconds between uploads, set from the last attempt
-  monthly_limit int := 5;    -- successful parses / calendar month
+  monthly_limit int;         -- successful parses / calendar month; null = no cap
+  daily_ceiling int := 40;   -- Pro only: an abuse stop, not a product limit
   month_start timestamptz := date_trunc('month', now());
   last_at timestamptz;
   last_ok boolean;
   used int;
+  today_used int;
   new_id uuid;
 begin
   if uid is null then
@@ -54,7 +78,26 @@ begin
   select created_at, success into last_at, last_ok
     from public.parse_events where user_id = uid
     order by created_at desc limit 1;
-  cooldown := case when coalesce(last_ok, false) then 180 else 20 end;
+  /**
+   * Pro pays for this; free is rationed.
+   *
+   * Free keeps the old numbers: 180s after a success is a real brake on the
+   * shared model quota, and 20s after a failure so a person who just got an
+   * error can fix the file and retry.
+   *
+   * Pro gets 5s, which is not a rationing device -- it stops a double-click
+   * and a runaway loop and nothing else. The ceiling that protects the quota
+   * for a paying account is the DAILY one below, because a per-upload wait
+   * punishes the one genuine burst that happens (adding six classes on the
+   * first day of term) while doing nothing about a script.
+   */
+  pro := public.ct_parse_is_pro(uid);
+  cooldown := case
+                when pro then 5
+                when coalesce(last_ok, false) then 180
+                else 20
+              end;
+  monthly_limit := case when pro then null else 5 end;
 
   if last_at is not null and last_at > now() - make_interval(secs => cooldown) then
     return jsonb_build_object(
@@ -66,15 +109,34 @@ begin
 
   select count(*) into used from public.parse_events
     where user_id = uid and success and created_at >= month_start;
-  if used >= monthly_limit then
+
+  if monthly_limit is not null and used >= monthly_limit then
     return jsonb_build_object(
       'allowed', false, 'reason', 'monthly',
       'used', used, 'limit', monthly_limit, 'resets_at', month_start + interval '1 month'
     );
   end if;
 
+  -- Pro's only ceiling, and it is set where no real student will ever meet it:
+  -- forty successful parses in a day is not a term's worth of syllabi, it is a
+  -- script. The refusal says so rather than claiming they used up an allowance
+  -- they were told they did not have.
+  if pro then
+    select count(*) into today_used from public.parse_events
+      where user_id = uid and success and created_at >= now() - interval '24 hours';
+    if today_used >= daily_ceiling then
+      return jsonb_build_object(
+        'allowed', false, 'reason', 'daily',
+        'used', today_used, 'limit', daily_ceiling
+      );
+    end if;
+  end if;
+
   insert into public.parse_events (user_id) values (uid) returning id into new_id;
-  return jsonb_build_object('allowed', true, 'event_id', new_id, 'used', used, 'limit', monthly_limit);
+  return jsonb_build_object(
+    'allowed', true, 'event_id', new_id, 'used', used,
+    'limit', monthly_limit, 'pro', pro
+  );
 end;
 $$;
 
@@ -105,19 +167,28 @@ end;
 $$;
 
 -- Read-only usage for the UI (the user's own).
+--
+-- It used to return a hard-coded 5 and 180 for everyone, so the meter in
+-- Settings was wrong twice over: wrong for a Pro account, which has neither,
+-- and wrong about the cooldown even for a free one, since a FAILED attempt
+-- costs 20s and this claimed 180. Both now come from the same branch
+-- start_parse takes.
 create or replace function public.get_parse_usage()
 returns jsonb
 language sql security definer set search_path = public stable as $$
   select jsonb_build_object(
     'used', (select count(*) from public.parse_events
              where user_id = auth.uid() and success and created_at >= date_trunc('month', now())),
-    'limit', 5,
-    'cooldown', 180,  -- after a success; a failed attempt is 20s
+    -- null means no cap, which is what "unlimited" has to resolve to.
+    'limit', case when public.ct_parse_is_pro(auth.uid()) then null else 5 end,
+    'pro', public.ct_parse_is_pro(auth.uid()),
+    'cooldown', case when public.ct_parse_is_pro(auth.uid()) then 5 else 180 end,
     'resets_at', date_trunc('month', now()) + interval '1 month',
     'last_at', (select max(created_at) from public.parse_events where user_id = auth.uid())
   );
 $$;
 
+grant execute on function public.ct_parse_is_pro(uuid) to authenticated;
 grant execute on function public.start_parse() to authenticated;
 grant execute on function public.finish_parse(uuid) to authenticated;
 grant execute on function public.cancel_parse(uuid) to authenticated;
