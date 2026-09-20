@@ -103,7 +103,8 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
   // One event, on today, that says what happened and links to Billing.
   if (!pro) {
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
-    res.setHeader('Cache-Control', 'public, max-age=3600')
+    // Same reason as below: a renewed pass must not wait out a cache.
+    res.setHeader('Cache-Control', 'no-store')
     res.status(200).send(
       buildIcs({
         name: 'ConcordiaTracker (paused)',
@@ -183,9 +184,20 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
   res.setHeader('Content-Disposition', 'inline; filename="concordiatracker.ics"')
-  // Short, because the whole point is that a moved deadline reaches the phone.
-  // Google ignores this and uses its own schedule; Apple honours it.
-  res.setHeader('Cache-Control', 'public, max-age=900, s-maxage=900')
+  /**
+   * NOT CACHED, and this was measured rather than reasoned about.
+   *
+   * With `s-maxage=900` the edge served the OLD link for fifteen minutes
+   * after a rotate — so the one control the UI calls a revoke button did not
+   * revoke, which is the worst possible thing to be wrong about here. The
+   * same cache also swallowed the fetch, leaving the panel reporting "nothing
+   * has read this yet" when Google just had.
+   *
+   * There is nothing to protect: this is one student's calendar, read a
+   * handful of times a day by their own devices. Two queries per fetch is a
+   * fair price for a revoke that is instant and a counter that is true.
+   */
+  res.setHeader('Cache-Control', 'no-store')
   res.status(200).send(
     buildIcs({
       name: 'ConcordiaTracker',
