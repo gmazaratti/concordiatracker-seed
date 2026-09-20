@@ -61,6 +61,22 @@ async function call<T>(
   if (reason === 'empty' || reason === 'bad_status') {
     return { ok: false, status: 400, reason, message: err.message ?? 'Bad request.' }
   }
+
+  // A MISSING FUNCTION IS A DEPLOYMENT FACT, NOT A SERVER ERROR, and saying
+  // so is the difference between five minutes and an afternoon. PostgREST
+  // answers PGRST202 both for a function that does not exist and for one
+  // called with the wrong argument names, so the message names both.
+  if (err.code === 'PGRST202') {
+    return {
+      ok: false,
+      status: 503,
+      reason: 'migration_missing',
+      message:
+        `The database does not have ${fn} in the shape this endpoint calls it. ` +
+        'Run db/support_api.sql and db/support_api_v2.sql, newest last.',
+    }
+  }
+
   return {
     ok: false,
     status: 500,

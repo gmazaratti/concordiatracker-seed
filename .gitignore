@@ -59,3 +59,4 @@ android/
 .signup-throttle.test.tmp.mjs
 .record-summary.test.tmp.mjs
 .ec.mjs
+.alfred-token

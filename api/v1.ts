@@ -127,7 +127,14 @@ export default async function handler(req: any, res: any) {
   try {
     if (area === 'owner') {
       if (caller.scope !== 'owner') {
-        fail(res, 403, 'This token is scoped to your own data, not to business statistics.')
+        // Name the scope the caller actually holds. "Scoped to your own data"
+        // was written when there were two scopes and reads as nonsense to a
+        // support key, which is scoped to other people's conversations.
+        fail(
+          res,
+          403,
+          `This is a ${caller.scope} token. Business statistics need an owner token.`,
+        )
         return
       }
       if (req.method !== 'GET') {
@@ -151,7 +158,7 @@ export default async function handler(req: any, res: any) {
 
     if (area === 'me') {
       if (caller.scope !== 'me') {
-        fail(res, 403, 'An owner token reads statistics, not an individual account.')
+        fail(res, 403, 'This is a ' + caller.scope + ' token. Personal data needs a me token.')
         return
       }
       res.setHeader('Cache-Control', 'private, no-store')
@@ -180,7 +187,7 @@ export default async function handler(req: any, res: any) {
 
     if (area === 'support') {
       if (caller.scope !== 'support') {
-        fail(res, 403, 'This token is not scoped to the support desk.')
+        fail(res, 403, 'This is a ' + caller.scope + ' token. The support desk needs a support token.')
         return
       }
       // A conversation is never cached. The whole job is noticing that
