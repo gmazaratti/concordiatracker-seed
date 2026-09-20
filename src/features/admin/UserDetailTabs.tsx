@@ -179,11 +179,29 @@ export function SubscriptionTab({ user }: { user: AdminUser }) {
             <KV k={sub.renewing ? 'Renews' : 'Ends'} v={day(sub.currentPeriodEnd)} />
             {sub.trialEndsAt && <KV k="Trial ends" v={day(sub.trialEndsAt)} />}
           </dl>
-          {sub.status === 'trialing' && (
+          {/* THE STATE THAT LOOKS FINE AND IS NOT: a trial flagged to cancel.
+              It reads as "Pro" on every other screen right up until the day it
+              silently lapses, and nobody finds out until the student does. */}
+          {sub.status === 'trialing' && sub.cancelAtPeriodEnd && (
+            <p className="mt-2 rounded-md bg-danger/10 px-2.5 py-1.5 text-[11.5px] leading-relaxed text-fg">
+              <strong>This trial will not convert.</strong> It is set to cancel on{' '}
+              {day(sub.trialEndsAt)}
+              {!sub.hasPaymentMethod && ' and there is no card attached'}, so nothing will be
+              charged and they drop to free that day.
+              {sub.canceledAt && ` Flagged to cancel ${when(sub.canceledAt)}.`}
+            </p>
+          )}
+          {sub.status === 'trialing' && !sub.cancelAtPeriodEnd && (
             // The distinction that made the paying count look wrong.
             <p className="mt-2 rounded-md bg-info/10 px-2.5 py-1.5 text-[11.5px] leading-relaxed text-fg">
               A card is on file but nothing has been charged yet. They convert on{' '}
               {day(sub.trialEndsAt)} and are not a paying customer until then.
+            </p>
+          )}
+          {sub.status === 'active' && sub.cancelAtPeriodEnd && (
+            <p className="mt-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-[11.5px] leading-relaxed text-fg">
+              Cancelling. They keep Pro until {day(sub.cancelAt ?? sub.currentPeriodEnd)} and will
+              not be billed again.
             </p>
           )}
         </div>

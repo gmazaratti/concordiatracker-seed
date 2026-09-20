@@ -111,12 +111,22 @@ language sql security definer set search_path = public stable as $$
            coalesce(t.name, t.email, 'Anonymous'), t.created_at
       from public.tickets t
 
+    -- NOT courses: `public.courses` has no timestamp column at all, so there
+    -- is no honest way to place one on a timeline. A parse is the closest
+    -- real signal of the same thing -- somebody setting a class up -- and it
+    -- is stamped.
     union all
-    select 'course', 'Course added', c.code,
-           coalesce(p.name, p.email, 'Unnamed'), c.created_at
-      from public.courses c
-      join public.user_profile p on p.user_id = c.user_id
-     where coalesce(p.is_internal, false) = false and c.created_at is not null
+    select 'parse', 'Syllabus parsed',
+           case when pe.success then 'Imported' else coalesce(pe.error, 'Failed') end,
+           coalesce(p.name, p.email, 'Unnamed'), pe.created_at
+      from public.parse_events pe
+      join public.user_profile p on p.user_id = pe.user_id
+     where coalesce(p.is_internal, false) = false
+
+    union all
+    select 'bug', 'Bug report', left(coalesce(b.title, b.description, ''), 80),
+           coalesce(b.user_email, 'Anonymous'), b.created_at
+      from public.bug_reports b
 
     union all
     select 'admin', 'Admin action: ' || l.action, l.reason,

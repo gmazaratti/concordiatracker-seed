@@ -59,6 +59,9 @@ export interface StripeSubscription {
   amount: number | null
   currency: string | null
   interval: string | null
+  canceledAt: string | null
+  cancelAt: string | null
+  hasPaymentMethod: boolean
 }
 
 export interface StripeInvoice {

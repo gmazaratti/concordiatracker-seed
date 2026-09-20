@@ -49,6 +49,7 @@ export function CalendarSyncSection() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
   const [confirmRotate, setConfirmRotate] = useState(false)
+  const [showHow, setShowHow] = useState(false)
 
   const [reloads, setReloads] = useState(0)
   const reload = useCallback(() => setReloads((n) => n + 1), [])
@@ -179,10 +180,21 @@ export function CalendarSyncSection() {
                   {copied === 'link' ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-subtle">
-                Treat it like a password. Anyone with this link can read these dates without
-                signing in — that is exactly how Google reads it, and why Rotate is below.
-              </p>
+              <div className="mt-1.5 flex flex-wrap items-start gap-x-3 gap-y-1">
+                <p className="min-w-0 flex-1 text-[11.5px] leading-relaxed text-subtle">
+                  Treat it like a password. Anyone with this link can read these dates without
+                  signing in — that is exactly how Google reads it, and why Rotate is below.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowHow((v) => !v)}
+                  aria-expanded={showHow}
+                  className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11.5px] font-medium text-muted transition-colors hover:border-accent hover:text-fg"
+                >
+                  How?
+                </button>
+              </div>
+              {showHow && <WhereToPasteIt />}
             </div>
 
             <div className="space-y-0.5 border-t border-border pt-3">
@@ -342,6 +354,69 @@ function Freshness({ feed }: { feed: CalendarFeed }) {
       {who} last read this {relative(feed.last_fetched_at)} · {feed.fetch_count}{' '}
       {feed.fetch_count === 1 ? 'fetch' : 'fetches'} so far.
     </p>
+  )
+}
+
+/**
+ * Where the link actually goes, per app.
+ *
+ * The one-tap buttons are the fast path, and Google's add-by-URL has refused
+ * a perfectly good feed before now ("Unable to add calendar. Check the URL.")
+ * while the identical link subscribed first time on an iPhone. The manual
+ * route has never failed, so it is written out rather than left as something
+ * you are expected to already know.
+ *
+ * Menu labels are quoted exactly as those apps print them — a paraphrase is
+ * useless when you are scanning a settings screen for it.
+ */
+function WhereToPasteIt() {
+  return (
+    <div className="mt-2 space-y-3 rounded-lg border border-border bg-canvas/60 px-3 py-2.5">
+      <Where
+        title="Google Calendar"
+        note="Has to be done on a computer — the Google Calendar phone app cannot add a calendar by URL."
+        steps={[
+          'Open calendar.google.com.',
+          'In the left column, next to "Other calendars", click +.',
+          'Choose "From URL".',
+          'Paste the link and press "Add calendar".',
+        ]}
+      />
+      <Where
+        title="Apple Calendar (iPhone or Mac)"
+        note="Tapping the Apple button above does all of this for you."
+        steps={[
+          'iPhone: Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar.',
+          'Mac: Calendar → File → New Calendar Subscription.',
+          'Paste the link, then set "Auto-refresh" to Every 15 minutes or so.',
+        ]}
+      />
+      <Where
+        title="Outlook"
+        steps={[
+          'Open outlook.com and go to Calendar.',
+          'Click "Add calendar" → "Subscribe from web".',
+          'Paste the link, give it a name, and press Import.',
+        ]}
+      />
+    </div>
+  )
+}
+
+function Where({ title, steps, note }: { title: string; steps: string[]; note?: string }) {
+  return (
+    <div>
+      <p className="text-[12px] font-medium text-fg">{title}</p>
+      <ol className="mt-1 space-y-0.5">
+        {steps.map((st, i) => (
+          <li key={st} className="flex gap-1.5 text-[11.5px] leading-relaxed text-muted">
+            <span className="shrink-0 tabular-nums text-subtle">{i + 1}.</span>
+            <span className="min-w-0">{st}</span>
+          </li>
+        ))}
+      </ol>
+      {note && <p className="mt-1 text-[11px] leading-relaxed text-subtle">{note}</p>}
+    </div>
   )
 }
 

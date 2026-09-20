@@ -67,7 +67,19 @@ export function feedUrls(token: string, origin = window.location.origin) {
   return {
     https,
     webcal,
-    google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(https)}`,
+    /**
+     * `cid` takes the WEBCAL url, not the https one.
+     *
+     * Google answered "Unable to add calendar. Check the URL." for the https
+     * form while the very same link subscribed first time in Apple Calendar
+     * -- which rules the feed itself out, because Apple fetched it happily.
+     * Google's add-by-URL wants the webcal scheme for an external calendar;
+     * https is reserved for its own hosted ids.
+     *
+     * If it still refuses, the manual route in the panel always works, which
+     * is why that route is written out rather than left implied.
+     */
+    google: `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(webcal)}`,
     outlook: `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(
       https,
     )}&name=${encodeURIComponent('ConcordiaTracker')}`,

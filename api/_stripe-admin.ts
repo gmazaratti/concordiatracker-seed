@@ -35,6 +35,13 @@ export interface StripeSubscriptionView {
   currency: string | null
   /** "every 4 months", "monthly" — what they actually signed up to. */
   interval: string | null
+  /** When it was actually cancelled, and when it is scheduled to stop.
+   *  "Set to cancel" with no date is a fact you cannot act on. */
+  canceledAt: string | null
+  cancelAt: string | null
+  /** Is a card attached at all? A trial with none is going to lapse, and that
+   *  is invisible from every other screen. */
+  hasPaymentMethod: boolean
 }
 
 export interface StripeInvoiceView {
@@ -170,6 +177,9 @@ function subView(s: any): StripeSubscriptionView {
     amount: price?.unit_amount ?? null,
     currency: price?.currency ?? null,
     interval: every,
+    canceledAt: iso(s.canceled_at),
+    cancelAt: iso(s.cancel_at),
+    hasPaymentMethod: !!(s.default_payment_method || s.default_source),
   }
 }
 
