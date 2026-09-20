@@ -34,6 +34,8 @@ const {
   termLabel,
   termMatches,
   missingTermReason,
+  termIsPast,
+  currentTermStatus,
   sectionPatch,
   sortSections,
   sectionKey,
@@ -261,6 +263,36 @@ console.log('\nsection keys')
     'no sections at all cannot claim the course is unoffered',
     missingTermReason([], '2262').kind === 'unpublished',
   )
+}
+
+{
+  console.log('')
+  console.log('termIsPast')
+  // The four terms COMM 229 really returned on 2026-09-20, measured against
+  // the live feed, plus the current term that is missing from it.
+  check('last Winter is over once we are in Fall', termIsPast('2254', '2262'))
+  check('so is the Fall before it', termIsPast('2252', '2262'))
+  check('and the Summer before that', termIsPast('2251', '2262'))
+  check('the term you are sitting in is NOT past', !termIsPast('2262', '2262'))
+  check('nor is one still to come', !termIsPast('2271', '2262'))
+  // A Fall-Winter course runs until its Winter, and its code sorts just
+  // before that Winter - so it must still count as live during the Fall.
+  check('a two-term course is live in its own Fall', !termIsPast('2253', '2252'))
+  check('and over once the next Winter has passed', termIsPast('2253', '2262'))
+  check('an unknown current term never declares anything past', !termIsPast('2244', null))
+  check('and a malformed code is not judged either', !termIsPast('spring', '2262'))
+
+  console.log('')
+  console.log('currentTermStatus')
+  const feed = ['2244', '2251', '2252', '2254'] // exactly what COMM 229 returns
+  const now = currentTermStatus(feed, '2262')
+  check('it knows the current term is absent from the feed', now.published === false)
+  check('and names the newest term the feed does carry', now.newest === '2254')
+  const ok = currentTermStatus([...feed, '2262'], '2262')
+  check('published once the term appears', ok.published === true)
+  check('newest follows it up', ok.newest === '2262')
+  check('an empty feed publishes nothing', currentTermStatus([], '2262').published === false)
+  check('and has no newest to offer', currentTermStatus([], '2262').newest === null)
 }
 
 console.log(failed === 0 ? '\ncourse-sections: all checks passed' : `\ncourse-sections: ${failed} FAILED`)

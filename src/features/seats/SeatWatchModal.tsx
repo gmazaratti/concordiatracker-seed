@@ -5,7 +5,13 @@ import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
 import { sectionInstructors, type SectionInstructor } from '@/lib/academic-record'
 import { addWatch, findSections, type SectionOption } from '@/lib/seats'
-import { termLabel } from '@/lib/course-sections'
+import {
+  currentTermStatus,
+  termCodeFor,
+  termIsPast,
+  termLabel,
+} from '@/lib/course-sections'
+import { currentTermName } from '@/features/planner/past-terms'
 
 /**
  * Find a section and watch it.
@@ -43,11 +49,30 @@ export function SeatWatchModal({
 
   // Filters. Applied to the fetched list rather than re-queried, since one
   // course is a small result set and Concordia should be asked once.
+  //
+  // THE DEFAULT IS THE NEWEST TERM, NOT "ANY". Concordia's feed still carries
+  // terms from two years ago, so "any" led with sections that finished long
+  // ago — and the first thing on screen was an offer to watch a seat in a
+  // class that is already over.
   const [term, setTerm] = useState('all')
   const [campus, setCampus] = useState('all')
   const [day, setDay] = useState('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [sort, setSort] = useState<'default' | 'fewest' | 'most'>('default')
+
+  // The term the student is sitting in, as a code. Read once per render
+  // rather than per row, and never from inside the loop.
+  const currentCode = termCodeFor(currentTermName())
+  const status = currentTermStatus(
+    sections?.map((s) => s.termCode) ?? [],
+    currentCode,
+  )
+  // DERIVED, NOT ASSERTED. "Everything here has already ended" is true today,
+  // when the feed stops two terms back — and false in July, when the current
+  // term is unpublished but the following Fall is already listed. A banner
+  // that states it either way is wrong half the year.
+  const allOver =
+    !!sections?.length && sections.every((s) => termIsPast(s.termCode, currentCode))
 
   const filtered = useMemo(() => {
     if (!sections) return null
@@ -92,7 +117,17 @@ export function SeatWatchModal({
     setSections(null)
     setTeachers([])
     try {
-      setSections(await findSections(subject, catalog))
+      const rows = await findSections(subject, catalog)
+      setSections(rows)
+      // Land on the term the student is in; failing that, the newest one the
+      // feed has. Set HERE rather than in an effect — this is the moment the
+      // options came into existence, and an effect would be a second source
+      // of truth for the same choice (react-hooks/set-state-in-effect).
+      const codes = [...new Set(rows.map((r) => r.termCode))].sort()
+      const current = termCodeFor(currentTermName())
+      setTerm(
+        current && codes.includes(current) ? current : (codes[codes.length - 1] ?? 'all'),
+      )
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not look that up.')
     } finally {
@@ -167,7 +202,16 @@ export function SeatWatchModal({
                 onChange={setTerm}
                 options={[
                   { value: 'all', label: 'Any term' },
-                  ...terms.map((t) => ({ value: t, label: termLabel(t) })),
+                  // Newest first, and an ended term says so in the list
+                  // rather than only once you have picked it.
+                  ...[...terms]
+                    .sort((a, b) => b.localeCompare(a))
+                    .map((t) => ({
+                      value: t,
+                      label: termIsPast(t, currentCode)
+                        ? `${termLabel(t)} · ended`
+                        : termLabel(t),
+                    })),
                 ]}
               />
               {campuses.length > 1 && (
@@ -218,6 +262,27 @@ export function SeatWatchModal({
           )}
         </div>
 
+        {/*
+          THE QUESTION A STUDENT IS ACTUALLY ASKING is "can I get into this
+          class, now". When the feed has nothing for the term they are in,
+          every answer on screen is about some other semester, and saying so
+          is the difference between a data gap and the app looking broken.
+        */}
+        {sections && sections.length > 0 && !status.published && (
+          <p className="border-b border-border bg-warning/10 px-4 py-2.5 text-[11.5px] leading-snug text-muted">
+            <span className="font-medium text-fg">
+              Concordia hasn&rsquo;t published {currentTermName()} yet
+            </span>{' '}
+            — not to the course data we read, anyway.{' '}
+            {status.newest
+              ? `The newest it carries for this course is ${termLabel(status.newest)}.`
+              : ''}{' '}
+            {allOver
+              ? 'Every section below is from a term that has already ended, so a seat opening in one would not be a seat you could take.'
+              : 'You can still watch a term that has not started yet, but not the one you are in.'}
+          </p>
+        )}
+
         <div className="min-h-0 flex-1 overflow-y-auto">
           {sections === null ? (
             <p className="px-4 py-10 text-center text-[13px] text-subtle">
@@ -238,6 +303,7 @@ export function SeatWatchModal({
                 const teacher = teachers.find(
                   (x) => x.section.toUpperCase() === s.section.toUpperCase(),
                 )
+                const over = termIsPast(s.termCode, currentCode)
                 return (
                   <li key={`${s.termCode}-${s.classNumber}`} className="flex items-center gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
@@ -245,7 +311,15 @@ export function SeatWatchModal({
                         <span className="font-medium text-fg">
                           {s.section} · {s.component}
                         </span>
-                        <span className="text-[11.5px] text-subtle">{termLabel(s.termCode)}</span>
+                        <span
+                          className={cn(
+                            'text-[11.5px]',
+                            over ? 'text-warning' : 'text-subtle',
+                          )}
+                        >
+                          {termLabel(s.termCode)}
+                          {over ? ' · ended' : ''}
+                        </span>
                         {s.location && (
                           <span className="inline-flex items-center gap-1 text-[11.5px] text-subtle">
                             <MapPin size={10} aria-hidden />
@@ -288,19 +362,33 @@ export function SeatWatchModal({
                       )}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => void watch(s)}
-                      disabled={added === s.classNumber}
-                      className={cn(
-                        'shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150',
-                        added === s.classNumber
-                          ? 'text-success'
-                          : 'bg-accent-soft text-accent hover:bg-accent hover:text-accent-contrast',
-                      )}
-                    >
-                      {added === s.classNumber ? 'Watching' : isOpen ? 'Watch anyway' : 'Watch'}
-                    </button>
+                    {/*
+                      NO WATCH BUTTON ON A TERM THAT HAS ENDED. It is not a
+                      styling choice: a watch is a standing job that re-checks
+                      this class number until a seat frees, and on a finished
+                      term it would poll a dead section forever and never fire.
+                      An offer the product cannot honour does not belong on the
+                      row at all.
+                    */}
+                    {over ? (
+                      <span className="shrink-0 px-2.5 py-1.5 text-[12px] text-subtle">
+                        Term over
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void watch(s)}
+                        disabled={added === s.classNumber}
+                        className={cn(
+                          'shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150',
+                          added === s.classNumber
+                            ? 'text-success'
+                            : 'bg-accent-soft text-accent hover:bg-accent hover:text-accent-contrast',
+                        )}
+                      >
+                        {added === s.classNumber ? 'Watching' : isOpen ? 'Watch anyway' : 'Watch'}
+                      </button>
+                    )}
                   </li>
                 )
               })}

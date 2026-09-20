@@ -121,6 +121,48 @@ export function missingTermReason(
   return { kind: selected > newest ? 'unpublished' : 'not-offered', newest }
 }
 
+/**
+ * Is this term already over?
+ *
+ * TERM CODES SORT CHRONOLOGICALLY AS PLAIN STRINGS, which is what makes this
+ * two lines instead of a date table: the first three characters step with the
+ * academic year and the last digit orders within it (1 Summer, 2 Fall,
+ * 3 Fall-Winter, 4 Winter). So 2244 < 2251 < 2252 < 2253 < 2254 < 2261 is
+ * exactly Winter 2025 → Summer → Fall → Fall-Winter → Winter 2026 → Summer 2026.
+ * A Fall-Winter course ends in its Winter, and its code sorts just before that
+ * Winter, so it stops counting as current at the right moment too.
+ *
+ * `current` is passed in rather than read from the clock, so this stays pure
+ * and a test can ask what was true in any month.
+ */
+export function termIsPast(code: string, current: string | null): boolean {
+  if (!current || !/^\d{4}$/.test(code) || !/^\d{4}$/.test(current)) return false
+  return code < current
+}
+
+/**
+ * What the feed can say about the term the student is actually sitting in.
+ *
+ * Concordia publishes its schedule to Open Data a long way behind the calendar
+ * — in September 2026 the newest term in the feed was still Winter 2026 — so a
+ * course search legitimately returns nothing but terms that have ENDED. That
+ * is not a bug in the lookup and the screen must not let it read as one: the
+ * difference between "we cannot see this term" and "this course is not running"
+ * is the whole answer to the question the student is asking.
+ */
+export function currentTermStatus(
+  sectionTerms: string[],
+  currentCode: string | null,
+): { current: string | null; newest: string | null; published: boolean } {
+  const codes = sectionTerms.filter((t) => /^\d{4}$/.test(t)).sort()
+  const newest = codes.length ? codes[codes.length - 1] : null
+  return {
+    current: currentCode,
+    newest,
+    published: !!currentCode && codes.includes(currentCode),
+  }
+}
+
 /** Component order for display: the lecture is what people mean by "my class". */
 const COMPONENT_RANK: Record<string, number> = { LEC: 0, TUT: 1, LAB: 2 }
 
