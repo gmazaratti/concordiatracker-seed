@@ -68,17 +68,36 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
   const [err, setErr] = useState<string | null>(null)
   const dirty = status !== b.status || notes !== (b.admin_notes ?? '') || isPublic !== b.public
 
-  const save = async () => {
+  /**
+   * Write the row.
+   *
+   * STATUS SAVES THE MOMENT YOU CHANGE IT. It used to stage like the notes do
+   * and wait for a Save button that sits at the BOTTOM of the row next to the
+   * textarea — so picking a status appeared to do nothing, and the pill beside
+   * the title went on showing the old value because that reads the server. A
+   * one-of-four choice has nothing to compose with; the notes still batch.
+   */
+  const save = async (next: { status?: string; notes?: string; isPublic?: boolean } = {}) => {
     setBusy(true)
     setErr(null)
     try {
-      await adminUpdateBugReport(b.id, status, notes, isPublic)
+      await adminUpdateBugReport(
+        b.id,
+        next.status ?? status,
+        next.notes ?? notes,
+        next.isPublic ?? isPublic,
+      )
       onChanged()
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed')
     } finally {
       setBusy(false)
     }
+  }
+
+  const pickStatus = (s: string) => {
+    setStatus(s)
+    void save({ status: s })
   }
 
   return (
@@ -96,7 +115,7 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
             <span>{fmtDateTime(b.created_at)}</span>
           </div>
         </div>
-        <Select value={status} onChange={setStatus} options={STATUSES} ariaLabel="Status" size="sm" tone="control" />
+        <Select value={status} onChange={pickStatus} options={STATUSES} ariaLabel="Status" size="sm" tone="control" />
       </div>
 
       <div className="mt-2.5 flex items-end gap-2">
@@ -110,7 +129,9 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
             className="mt-1 w-full resize-y rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-[12px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
           />
         </div>
-        <Button size="sm" disabled={busy || !dirty} onClick={save}>Save</Button>
+        <Button size="sm" disabled={busy || !dirty} onClick={() => void save()}>
+          Save
+        </Button>
       </div>
 
       {/* Curate the public "Recently fixed / Known issues" list on /feedback. */}
@@ -119,7 +140,11 @@ function BugRow({ b, onChanged }: { b: BugReport; onChanged: () => void }) {
           type="button"
           role="switch"
           aria-checked={isPublic}
-          onClick={() => setIsPublic((p) => !p)}
+          onClick={() => {
+            const next = !isPublic
+            setIsPublic(next)
+            void save({ isPublic: next })
+          }}
           className={cn(
             'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[12px] font-medium transition-colors duration-150',
             isPublic ? 'border-success/50 bg-success/10 text-success' : 'border-border text-muted hover:bg-surface-2 hover:text-fg',

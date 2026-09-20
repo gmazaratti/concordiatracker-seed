@@ -153,14 +153,10 @@ export function OverviewTab() {
         <RefreshButton onClick={reload} busy={busy} />
       </div>
 
-      {demo && (
-        /* Small, but never absent. The one person this protects is the one
-           who took the screenshot and comes back to the tab an hour later. */
-        <p className="rounded-md bg-warning/10 px-2.5 py-1.5 text-[11.5px] text-fg">
-          <strong>Demo figures.</strong> Inflated from the real shape for a screenshot. Nothing is
-          saved; reload and it is gone.
-        </p>
-      )}
+      {/* The banner that used to sit here is gone by request: it appeared in
+          the screenshots the mode exists to take. The lit toggle above is now
+          the only cue you are in it — deliberate, but worth knowing, because
+          the queues below are inflated too and a reload is what clears it. */}
 
       {/* ── The money ───────────────────────────────────────────────────── */}
       <div className="grid gap-3 sm:grid-cols-3">

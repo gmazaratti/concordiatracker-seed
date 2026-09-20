@@ -29,7 +29,16 @@ export function UsersTab() {
   const { items, loading, error, reload } = useAdminList<AdminUser>(loader)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  const [openId, setOpenId] = useState<string | null>(null)
+  // Opened from elsewhere — Traffic's "online now" list links here rather
+  // than rebuilding a user panel of its own, so the message box, the plan
+  // controls and the audit trail are all the ones that already exist.
+  const [openId, setOpenId] = useState<string | null>(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('user')
+    } catch {
+      return null
+    }
+  })
 
   const needle = q.trim().toLowerCase()
   const matches = (u: AdminUser) =>

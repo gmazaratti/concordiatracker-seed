@@ -16,6 +16,7 @@
  */
 import { iso, rpcRaw } from './_v1-auth.js'
 import { articles, search } from './_v1-kb.js'
+import { notifyTicketReply } from './_ticket-email.js'
 
 interface Json {
   [k: string]: unknown
@@ -135,6 +136,14 @@ export async function replyToThread(
   }
 
   const out = await call<Json>('support_reply', { p_thread: id, p_text: text })
+  if (out.ok) {
+    // Awaited, not fired and forgotten: a floating promise after the response
+    // is written never runs — the serverless instance can be frozen the
+    // instant the handler returns. That exact mistake cost the calendar feed
+    // its fetch counter.
+    const ref = id.startsWith('t:') ? id.slice(2) : ''
+    if (ref) await notifyTicketReply(ref)
+  }
   if (!out.ok) {
     return {
       status: out.status,

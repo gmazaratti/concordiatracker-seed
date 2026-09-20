@@ -192,6 +192,71 @@ export const compact = (n: number) =>
  * Nothing here is written anywhere. It is a pure transform applied at render
  * and forgotten on reload — there is no state for it to leak into.
  */
+/**
+ * A busy-looking feed.
+ *
+ * INVENTED NAMES, NOT REAL ONES SHUFFLED. The obvious cheap version — take
+ * the real rows and multiply them — would put an actual customer's email into
+ * a screenshot next to a number that is not theirs. These are made up, and
+ * the emails are on example.com, which IANA reserves and nobody can own.
+ *
+ * The shape is kept honest: subscriptions are rarer than signups, which are
+ * rarer than parses, and the timestamps march backwards at plausible gaps, so
+ * the list reads like a product rather than a wall of one event type.
+ */
+function fakeActivity(real: ActivityRow[]): ActivityRow[] {
+  const who = [
+    'Maya Chen', 'Devon Okafor', 'Sofia Ricci', 'Liam Tremblay', 'Priya Nair',
+    'Noah Bergeron', 'Amara Diallo', 'Ethan Wu', 'Léa Gagnon', 'Omar Haddad',
+    'Jonas Meyer', 'Ines Ferreira', 'Kai Yamamoto', 'Nadia Petrov', 'Theo Lambert',
+  ]
+  const programs = [
+    'Computer Science', 'Finance', 'Psychology', 'Software Engineering',
+    'Marketing', 'Political Science', 'Biology', 'No program yet',
+  ]
+  const rows: ActivityRow[] = []
+  let t = Date.now()
+  for (let i = 0; i < 24; i++) {
+    // Gaps grow as you go back, the way a real feed thins out.
+    t -= (6 + i * 11) * 60_000
+    const name = who[i % who.length]
+    const at = new Date(t).toISOString()
+    const roll = i % 6
+    if (roll === 0) {
+      rows.push({
+        kind: 'subscription',
+        label: i % 12 === 0 ? 'Started a trial' : 'Payment received',
+        detail: i % 12 === 0 ? '3 days left' : '$15.00 — Paid',
+        who: `${name.split(' ')[0].toLowerCase()}@example.com`,
+        at,
+      })
+    } else if (roll === 1 || roll === 4) {
+      rows.push({
+        kind: 'signup',
+        label: 'New account',
+        detail: programs[i % programs.length],
+        who: name,
+        at,
+      })
+    } else if (roll === 2) {
+      rows.push({ kind: 'parse', label: 'Syllabus parsed', detail: 'Imported', who: name, at })
+    } else if (roll === 3) {
+      rows.push({
+        kind: 'ticket',
+        label: 'Support ticket',
+        detail: 'Calendar sync',
+        who: `${name.split(' ')[0].toLowerCase()}@example.com`,
+        at,
+      })
+    } else {
+      rows.push({ kind: 'parse', label: 'Syllabus parsed', detail: 'Imported', who: name, at })
+    }
+  }
+  // Keep whatever the real feed had at the bottom, so the panel still proves
+  // it is reading something when the toggle goes off.
+  return [...rows, ...real].slice(0, 40)
+}
+
 export function inflate(o: Overview): Overview {
   const scale = 46
   const curve = (i: number, n: number) => 0.45 + 1.25 * (i / Math.max(1, n - 1)) ** 1.6
@@ -215,8 +280,7 @@ export function inflate(o: Overview): Overview {
   return {
     ...o,
     series,
-    // Ops counts are work-to-do, not growth. Inflating them would put fake
-    // support tickets in front of someone who then goes looking for them.
+    activity: fakeActivity(o.activity),
     counts: {
       ...o.counts,
       users_total: users,
@@ -225,9 +289,20 @@ export function inflate(o: Overview): Overview {
       visitors_24h: series[series.length - 1]?.visitors ?? 0,
       active_7d: Math.round(users * 0.42),
       courses: users * 4,
-      // open_tickets is deliberately NOT inflated — see the note above. A fake
-      // number in Needs Attention sends someone looking for tickets that do
-      // not exist.
+      // The work queues are inflated too, by request: a screenshot of a busy
+      // product with an empty inbox reads as a product nobody writes to.
+      //
+      // THE TRADE, WRITTEN DOWN: these are the numbers someone acts on, and
+      // with the demo banner gone the lit toggle is the only thing saying they
+      // are not real. Reloading clears it; nothing here is ever saved.
+      open_tickets: 14,
+    },
+    ops: {
+      pending_applications: 6,
+      pending_orgs: 3,
+      open_bugs: 9,
+      feature_requests: o.ops.feature_requests,
+      survey_responses: o.ops.survey_responses,
     },
     stripe: {
       ...o.stripe,

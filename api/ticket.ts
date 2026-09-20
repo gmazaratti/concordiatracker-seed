@@ -16,6 +16,7 @@
  */
 
 import { fail } from './_respond.js'
+import { notifyTicketReply } from './_ticket-email.js'
 
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const MAX_PER_WINDOW = 3
@@ -59,7 +60,7 @@ async function rpc(name: string, body: unknown): Promise<Response> {
 }
 
 interface Body {
-  action?: 'submit' | 'check' | 'reply'
+  action?: 'submit' | 'check' | 'reply' | 'notify'
   subject?: string
   message?: string
   category?: string
@@ -68,6 +69,8 @@ interface Body {
   page?: string
   caseId?: string
   token?: string
+  /** For 'notify': which ticket to email about. Admin-only. */
+  ticketId?: string
   /** Honeypot — a real person never fills a hidden field. */
   website?: string
 }
@@ -89,6 +92,42 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    /**
+     * 'notify' — email the customer that they have a reply.
+     *
+     * It lives on THIS function rather than its own because Vercel's Hobby
+     * plan allows twelve and the project is at the ceiling; it belongs here
+     * anyway, since this is already the ticket endpoint.
+     *
+     * The caller is checked against the DATABASE with their own token, the
+     * same way api/admin.ts does it, so an admin list kept in one place
+     * cannot disagree with a copy kept in another.
+     */
+    if (body.action === 'notify') {
+      const auth: string = req.headers?.authorization ?? ''
+      const jwt = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+      const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL
+      const anon = process.env.VITE_SUPABASE_ANON_KEY
+      if (!jwt || !url || !anon) {
+        fail(res, 401, 'Sign in as an admin.')
+        return
+      }
+      const check = await fetch(`${url}/rest/v1/rpc/is_admin`, {
+        method: 'POST',
+        headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!check.ok || (await check.text()).trim() !== 'true') {
+        fail(res, 403, 'Admins only.')
+        return
+      }
+      const sent = await notifyTicketReply(String(body.ticketId ?? ''))
+      // 200 either way: the reply is already saved, and a mail provider having
+      // a bad minute is not a failed request. `sent` says what happened.
+      res.status(200).json({ sent })
+      return
+    }
+
     if (body.action === 'check' || body.action === 'reply') {
       const caseId = (body.caseId ?? '').trim()
       const token = (body.token ?? '').trim()

@@ -79,6 +79,34 @@ export async function submitTicket(input: {
 export async function replyToTicket(ticketId: string, body: string): Promise<void> {
   const { error } = await supabase.rpc('reply_ticket', { p_ticket_id: ticketId, p_body: body })
   if (error) throw error
+
+  // Tell them. Until this existed, a reply sat in a thread the customer had
+  // to already be looking at — answering someone and hearing nothing back
+  // looks, from their side, exactly like being ignored.
+  //
+  // Deliberately AFTER the reply is stored and deliberately not awaited for
+  // success: the answer is saved either way, and a mail provider having a bad
+  // minute must not surface as "your reply failed" and tempt a second send.
+  // Staff-only, because the RPC is what decides the author role and a student
+  // replying to their own ticket should not email themselves.
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    const { data: admin } = await supabase.rpc('is_admin')
+    if (session && admin === true) {
+      await fetch('/api/ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'notify', ticketId }),
+      })
+    }
+  } catch {
+    /* the reply landed; the notification is best-effort */
+  }
 }
 
 /* ── Admin ─────────────────────────────────────────────────────────────────── */
