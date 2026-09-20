@@ -100,9 +100,14 @@ returns table (
 )
 language sql security definer set search_path = public stable as $$
   select * from (
-    select 'signup'::text, 'New account'::text,
-           coalesce(p.program, 'No program yet')::text,
-           coalesce(p.name, p.email, 'Unnamed')::text, p.created_at
+    -- The FIRST branch names the columns for the whole union; without these
+    -- aliases the literals come out as `?column?` and `order by at` has
+    -- nothing to resolve against (42703).
+    select 'signup'::text                                   as kind,
+           'New account'::text                              as label,
+           coalesce(p.program, 'No program yet')::text      as detail,
+           coalesce(p.name, p.email, 'Unnamed')::text       as who,
+           p.created_at                                     as happened_at
       from public.user_profile p
      where coalesce(p.is_internal, false) = false
 
@@ -134,7 +139,7 @@ language sql security definer set search_path = public stable as $$
       from public.admin_audit_log l
   ) rows
   where public.is_admin()
-  order by at desc
+  order by rows.happened_at desc
   limit greatest(1, least(coalesce(p_limit, 20), 100));
 $$;
 grant execute on function public.admin_recent_activity(int) to authenticated;
