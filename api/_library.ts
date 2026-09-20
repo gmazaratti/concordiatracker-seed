@@ -1,6 +1,13 @@
 /**
  * GET /api/library — how busy the libraries are right now.
  *
+ * NOT A ROUTE OF ITS OWN. The leading underscore keeps this out of Vercel's
+ * function count, which the Hobby plan caps at twelve and which we sit exactly
+ * on; `api/sections.ts` dispatches here on `?feed=library` and a rewrite keeps
+ * the public `/api/library` URL working, so nothing that calls it had to
+ * change. The pairing is not arbitrary: both endpoints exist for the same
+ * single reason, which is that the Concordia key must never reach a browser.
+ *
  * Concordia publishes a live sensor count per library. It goes through a server
  * route for the same reason the section lookup does: the Open Data key never
  * reaches a browser. It also gets to do the one thing the raw feed does not,
@@ -85,7 +92,7 @@ function parseStamp(raw: string): Date | null {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export default async function handler(_req: any, res: any) {
+export async function libraryHandler(_req: any, res: any) {
   const user = process.env.CONCORDIA_API_USER
   const key = process.env.CONCORDIA_API_KEY
   if (!user || !key) {

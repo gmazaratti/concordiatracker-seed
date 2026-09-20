@@ -26,6 +26,45 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.29.0',
+    name: 'Calendar sync, for real this time',
+    date: '2026-09-19',
+    changes: [
+      {
+        kind: 'new',
+        text: 'Your deadlines, in Google Calendar or Apple Calendar. Settings → Calendar sync gives you one link: press Add to Google Calendar or Add to Apple Calendar, or paste it into Outlook or anything else that keeps a calendar. It stays up to date on its own — move a date here and it moves there. It goes one way only: we never read your calendar and never ask for access to your Google or Apple account.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The old Sync button did nothing. It set a flag, said “Sync set up · Two-way sync coming soon”, and that was the whole feature. That was wrong, and worse on a paid plan. It now opens the panel that actually does it.',
+      },
+      {
+        kind: 'new',
+        text: 'The panel says whether anything has read your link, and when. “Google last read this 2 hours ago” and “nothing has read this yet” send you to two different fixes, and neither is guessable from your end. It also says plainly that Google refreshes subscribed calendars on its own schedule — hours, sometimes a day — because that is not something any publisher can speed up, and a moved deadline arriving late should not read as the sync being broken.',
+      },
+      {
+        kind: 'new',
+        text: 'Choose what rides along, and take it back. Course deadlines and tasks are separate switches. Rotate link mints a new one and breaks every copy of the old one immediately, because anyone holding the link can read those dates without signing in — which is exactly how Google reads it.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Support conversations could never load. Opening any ticket showed a spinner forever and no messages, on both sides — a query in the database was refusing every single call, and the screen showed a spinner instead of the reason. Fixed at the source, and a failed load now says what went wrong with a Try again rather than spinning.',
+      },
+      {
+        kind: 'improved',
+        text: 'The support inbox counts what each filter is hiding. Four tickets showing as two, with the other two simply absent, reads exactly like tickets going missing. Every filter now carries its own number.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Messages were unusable on a phone. Opening a conversation drew it as a small strip near the top of the screen instead of filling it. A decorative fade on the page behind was quietly re-anchoring the full-screen chat to a 44-pixel box. The conversation now fills the screen, clears the home indicator, and keeps the message box above the browser bar.',
+      },
+      {
+        kind: 'fixed',
+        text: 'The sample dashboard on the home page showed a real person’s name. It is a sample student now.',
+      },
+    ],
+  },
+  {
     version: '1.28.0',
     name: 'Moodle, and no second copy of anything',
     date: '2026-09-15',

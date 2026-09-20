@@ -180,7 +180,13 @@ section('OpenAPI specification')
     )
     check(
       'every operation documents a 200 response with a schema',
-      ops.every((o) => !!o.op.responses?.['200']?.content?.['application/json']?.schema),
+      // ANY media type, not application/json specifically: the calendar feed
+      // genuinely serves text/calendar, and an assertion that reads 'must be
+      // JSON' would be asserting a house style rather than the thing that
+      // matters, which is that a 200 says what shape it comes back in.
+      ops.every((o) =>
+        Object.values(o.op.responses?.['200']?.content ?? {}).some((c) => !!c.schema),
+      ),
     )
     check(
       'every parameter is typed and described',

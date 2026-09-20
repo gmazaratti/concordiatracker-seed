@@ -1,12 +1,17 @@
 /**
  * GET/POST /api/sections?subject=COMP&catalog=248
  *
+ * Also the front door for `/api/library` (`?feed=library`, via a rewrite) --
+ * see the note in `_library.ts`. Two Concordia Open Data proxies behind one
+ * function, because the platform allows twelve and we needed one back.
+ *
  * Section lookup for the seat-watch picker. This exists as a server route
  * purely so the Concordia key never reaches a browser — the client asks us, we
  * ask Concordia. It also lets us collapse the per-meeting-pattern rows and
  * return only the fields the picker needs, rather than shipping the raw payload.
  */
 import { bySection, fetchSchedule, meetingTimeString, num } from './_concordia.js'
+import { libraryHandler } from './_library.js'
 import { fail } from './_respond.js'
 
 export interface SectionOption {
@@ -34,6 +39,8 @@ export interface SectionOption {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   const q = req.query ?? {}
+  if (String(q.feed ?? '') === 'library') return libraryHandler(req, res)
+
   const subject = String(q.subject ?? '').trim().toUpperCase()
   const catalog = String(q.catalog ?? '').trim()
 

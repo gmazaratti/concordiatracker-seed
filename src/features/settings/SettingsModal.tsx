@@ -1,4 +1,5 @@
 import {
+  CalendarSync,
   CreditCard,
   Gauge,
   GraduationCap,
@@ -15,6 +16,7 @@ import type { Key } from '@/i18n/en'
 import { cn } from '@/lib/cn'
 import { GeneralSection } from './sections/GeneralSection'
 import { AccountSection } from './sections/AccountSection'
+import { CalendarSyncSection } from './sections/CalendarSyncSection'
 import { MoodleSection } from './sections/MoodleSection'
 import { PrivacySection } from './sections/PrivacySection'
 import { BillingSection } from './sections/BillingSection'
@@ -23,6 +25,7 @@ import { UsageSection } from './sections/UsageSection'
 const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
   { id: 'general', labelKey: 'settings.general', icon: SlidersHorizontal },
   { id: 'account', labelKey: 'settings.account', icon: UserRound },
+  { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync },
   { id: 'moodle', labelKey: 'settings.moodle', icon: GraduationCap },
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
   { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
@@ -32,6 +35,7 @@ const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
 const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
   general: GeneralSection,
   account: AccountSection,
+  calendarSync: CalendarSyncSection,
   moodle: MoodleSection,
   privacy: PrivacySection,
   billing: BillingSection,

@@ -327,3 +327,122 @@ export function eventsToTodos(
   }
   return rows
 }
+
+/* ── Writing ────────────────────────────────────────────────────────────────
+ *
+ * The other direction: OUR deadlines, as a calendar somebody else subscribes
+ * to. Same file as the reader on purpose — one place that knows how this
+ * format escapes a comma and folds a long line, so the two halves cannot
+ * disagree about it.
+ *
+ * Pure, like the rest of this module: it takes rows and a clock and returns a
+ * string, so the whole feed is testable in Node with no network.
+ */
+
+export interface IcsOutEvent {
+  /** Stable per item — this is what stops a re-fetch duplicating everything. */
+  uid: string
+  /** ISO instant. */
+  start: string
+  /** Minutes. A deadline is a moment, but a zero-length event is invisible in
+   *  most month views, so it gets a short block ending AT the due time. */
+  durationMinutes?: number
+  summary: string
+  description?: string
+  url?: string
+}
+
+/** Escape a text value: RFC 5545 §3.3.11. Backslash first, or it doubles the
+ *  escapes it just wrote. */
+function escText(v: string): string {
+  return v
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n')
+}
+
+/** `20260112T235900Z`. Always UTC, so the feed needs no VTIMEZONE and no
+ *  client has to agree with us about what "America/Toronto" means. */
+export function icsStamp(iso: string): string {
+  return new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+}
+
+/**
+ * Fold to 75 OCTETS, not 75 characters.
+ *
+ * The limit in the spec is on bytes, and course titles carry accented
+ * characters — a line of 75 characters can be 80 bytes and a strict parser
+ * rejects it. Counting UTF-8 length and never splitting a surrogate pair is
+ * the difference between a feed Apple accepts and one it silently drops.
+ */
+function fold(line: string): string {
+  const bytes = (s: string) => new TextEncoder().encode(s).length
+  if (bytes(line) <= 75) return line
+  const out: string[] = []
+  let cur = ''
+  let limit = 75
+  for (const ch of line) {
+    if (bytes(cur + ch) > limit) {
+      out.push(cur)
+      cur = ch
+      limit = 74 // continuation lines start with a space, which costs one
+    } else {
+      cur += ch
+    }
+  }
+  out.push(cur)
+  return out.join('\r\n ')
+}
+
+/**
+ * A complete VCALENDAR.
+ *
+ * `REFRESH-INTERVAL` and `X-PUBLISHED-TTL` are the only levers we have over
+ * how often a client re-reads this, and they are HINTS. Apple honours them.
+ * Google ignores them entirely and refreshes subscribed calendars on its own
+ * schedule, which is measured in hours. The UI says so rather than letting
+ * someone conclude the sync is broken when it is Google being Google.
+ */
+export function buildIcs(opts: {
+  name: string
+  events: IcsOutEvent[]
+  now: number
+  /** Shown by some clients under the calendar's name. */
+  description?: string
+}): string {
+  const stamp = icsStamp(new Date(opts.now).toISOString())
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ConcordiaTracker//Deadlines//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escText(opts.name)}`,
+    'X-WR-TIMEZONE:America/Toronto',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT4H',
+    'X-PUBLISHED-TTL:PT4H',
+  ]
+  if (opts.description) lines.push(`X-WR-CALDESC:${escText(opts.description)}`)
+
+  for (const e of opts.events) {
+    const startMs = new Date(e.start).getTime()
+    if (!Number.isFinite(startMs)) continue // a bad date is dropped, never guessed
+    const mins = e.durationMinutes ?? 30
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${e.uid}`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART:${icsStamp(new Date(startMs).toISOString())}`,
+      `DTEND:${icsStamp(new Date(startMs + mins * 60_000).toISOString())}`,
+      `SUMMARY:${escText(e.summary)}`,
+    )
+    if (e.description) lines.push(`DESCRIPTION:${escText(e.description)}`)
+    if (e.url) lines.push(`URL:${e.url}`)
+    lines.push('CATEGORIES:ConcordiaTracker', 'TRANSP:TRANSPARENT', 'END:VEVENT')
+  }
+
+  lines.push('END:VCALENDAR')
+  // CRLF, because RFC 5545 says CRLF and at least one real client cares.
+  return lines.map(fold).join('\r\n') + '\r\n'
+}

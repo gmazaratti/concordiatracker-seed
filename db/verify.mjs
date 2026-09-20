@@ -434,6 +434,72 @@ check('a table with no term column is untouched',
   (await db.query('select count(*)::int c from public.no_term')).rows[0].c, 0)
 
 
+// -- db/calendar_feed.sql ----------------------------------------------------
+//
+// The token is the only thing standing between a stranger and a student's
+// deadlines, so what matters here is that rotating REALLY replaces it and that
+// enabling twice does not quietly hand out a second one.
+console.log(String.fromCharCode(10) + 'db/calendar_feed.sql')
+await db.exec(migration('calendar_feed.sql').replace(/references auth\.users \(id\) on delete cascade/g, ''))
+
+const firstToken = (await db.query('select public.enable_calendar_feed() t')).rows[0].t
+check('a token is 64 hex characters', /^[0-9a-f]{64}$/.test(firstToken), true)
+check(
+  'enabling twice returns the SAME link, not a second one',
+  (await db.query('select public.enable_calendar_feed() t')).rows[0].t,
+  firstToken,
+)
+check(
+  'and there is exactly one row for the user',
+  (await db.query('select count(*)::int c from public.calendar_feeds')).rows[0].c,
+  1,
+)
+check(
+  'my_calendar_feed hands back the layers, both on by default',
+  (await db.query('select include_assessments a, include_tasks t from public.my_calendar_feed()')).rows[0],
+  { a: true, t: true },
+)
+
+await db.exec('select public.set_calendar_feed_layers(false, null)')
+check(
+  'a null layer means leave it alone, not turn it off',
+  (await db.query('select include_assessments a, include_tasks t from public.my_calendar_feed()')).rows[0],
+  { a: false, t: true },
+)
+
+const rotated = (await db.query('select public.rotate_calendar_feed() t')).rows[0].t
+check('rotating mints a different token', rotated !== firstToken, true)
+check(
+  'and the old one resolves to nothing at all',
+  (await db.query('select count(*)::int c from public.calendar_feeds where token = $1', [firstToken])).rows[0].c,
+  0,
+)
+check(
+  'rotating also resets the read counter, so "never fetched" is honest again',
+  (await db.query('select last_fetched_at, fetch_count from public.my_calendar_feed()')).rows[0],
+  { last_fetched_at: null, fetch_count: 0 },
+)
+
+await db.exec("select public.ct_touch_calendar_feed($token$" + rotated + "$token$, 'Google-Calendar-Importer')")
+const touched = (await db.query('select fetch_count c, last_fetch_agent a from public.my_calendar_feed()')).rows[0]
+check('a fetch is counted', touched.c, 1)
+check('and the agent is kept, so the panel can say who read it', touched.a, 'Google-Calendar-Importer')
+
+await db.exec('select public.disable_calendar_feed()')
+check(
+  'turning it off removes the row, so the URL 404s',
+  (await db.query('select count(*)::int c from public.calendar_feeds')).rows[0].c,
+  0,
+)
+let rotateFailed = false
+try {
+  await db.query('select public.rotate_calendar_feed()')
+} catch {
+  rotateFailed = true
+}
+check('rotating a feed that does not exist is an error, not a silent no-op', rotateFailed, true)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

@@ -125,6 +125,7 @@ export const fr: Partial<Record<Key, string>> = {
   'settings.general': 'Général',
   'settings.account': 'Compte',
   'settings.moodle': 'Moodle',
+  'settings.calendarSync': 'Sync calendrier',
   'settings.privacy': 'Confidentialité',
   'settings.billing': 'Facturation',
   'settings.usage': 'Utilisation',

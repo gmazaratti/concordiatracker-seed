@@ -26,7 +26,7 @@ export const NAV = [
   },
   {
     title: 'Planning your term',
-    pages: ['today', 'calendar', 'moodle-sync', 'notifications'],
+    pages: ['today', 'calendar', 'calendar-sync', 'moodle-sync', 'notifications'],
   },
   {
     title: 'Planner',
@@ -755,6 +755,85 @@ export const PAGES = {
       { h2: 'Announcements' },
       {
         p: 'Below the due list, announcements posted by professors through the teacher portal appear for the courses you are enrolled in, with the date they were posted and whether they have been edited since.',
+      },
+    ],
+  },
+
+  'calendar-sync': {
+    title: 'Google and Apple Calendar',
+    section: 'Planning your term',
+    description:
+      'Subscribe to your ConcordiaTracker deadlines from Google Calendar, Apple Calendar or Outlook with one link, so a date you change here changes there too.',
+    blocks: [
+      {
+        p: 'Most people already live in one calendar, and it is usually not ours. Calendar sync puts your ConcordiaTracker deadlines into that calendar and keeps them right: change a date here, or let a moved Moodle deadline arrive overnight, and the entry over there follows.',
+      },
+
+      { h2: 'Turning it on' },
+      {
+        ol: [
+          'Open **Settings → Calendar sync** (the gear beside your name, or Calendar and then *Sync your calendar* in the right-hand rail).',
+          'Press **Turn on calendar sync**.',
+          'Press **Add to Google Calendar** or **Add to Apple Calendar**, or copy the link and paste it into whatever calendar you use.',
+        ],
+      },
+      {
+        p: 'For Outlook, Thunderbird or anything else, look for *Subscribe from web*, *From URL*, or *New calendar subscription* and paste the link there. It is an ordinary iCalendar feed, so anything that keeps a calendar can read it.',
+      },
+
+      { h2: 'It goes one way' },
+      {
+        p: 'Your deadlines show up in your calendar. Nothing travels back: events you create in Google or Apple stay there, we never read your calendar, and we never ask for access to your Google or Apple account. There is no sign-in step because there is nothing for us to sign in to.',
+      },
+
+      { h2: 'How often it updates' },
+      {
+        p: 'This is the part worth knowing before you rely on it, because it is the one thing we do not control.',
+      },
+      {
+        ul: [
+          '**Apple Calendar** asks you how often to refresh when you subscribe, and honours it — every five minutes if you want.',
+          '**Google Calendar** uses its own schedule for every subscribed calendar. In practice that is usually a few hours and can be up to a day. Google does not offer a refresh button and does not let the publisher set the interval.',
+          '**Outlook** behaves like Google: its own schedule, typically a few hours.',
+        ],
+      },
+      {
+        p: 'So a deadline that moves this afternoon is correct in ConcordiaTracker immediately and correct in Google whenever Google next looks. If something has just changed and it matters today, check here rather than there.',
+      },
+
+      { h2: 'The link is a key' },
+      {
+        p: 'Anyone holding your feed link can read those dates without signing in. That is exactly how it works at all: Google fetches it from Google\'s servers, with no session of yours. Treat it the way you would treat a password.',
+      },
+      {
+        p: 'If you have shared it, screenshotted it, or just want a fresh one, press **Rotate link**. The old link stops working immediately everywhere it has been pasted, and you re-add the calendar with the new one.',
+      },
+
+      { h2: 'What is in the feed' },
+      {
+        ul: [
+          '**Course deadlines** — assignments, quizzes and exams, each named with its course code so they read clearly among your other events.',
+          '**Tasks and Moodle deadlines** — anything you added yourself, plus whatever your Moodle calendar sends.',
+        ],
+      },
+      {
+        p: 'Each switch can be turned off on its own. Items with no date set are never included: a deadline nobody has written down is not something to put in a calendar.',
+      },
+      {
+        p: 'Anything you have marked done still appears, with a tick in front of it, so a week you have finished does not look empty.',
+      },
+
+      { h2: 'If nothing shows up' },
+      {
+        p: 'The Settings panel says whether anything has actually read the link, and when. That single line separates the two problems: if it says nothing has read it yet, the subscription did not take and it is worth adding the link again; if it says Google read it two hours ago, the link is fine and Google simply has not refreshed since.',
+      },
+
+      { h2: 'Turning it off' },
+      {
+        p: 'Press **Turn off**. The link stops working, and the entries disappear from your calendar the next time it looks. Nothing is written to your Google or Apple account, so there is nothing left behind to clean up.',
+      },
+      {
+        p: 'Calendar sync is part of the Semester pass. If a pass lapses the feed stops carrying your deadlines and carries one event saying so, rather than emptying your calendar with no explanation.',
       },
     ],
   },

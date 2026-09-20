@@ -151,10 +151,29 @@ function LayerRow({
   )
 }
 
+/**
+ * The door to calendar sync.
+ *
+ * It used to be a button whose entire behaviour was `setSynced(true)` and a
+ * line reading "Sync set up · Two-way sync coming soon" — a success state for
+ * something that had not happened, on a feature people were paying for. It now
+ * opens the panel that actually does it, and the label is the same either way
+ * because the promise is now real.
+ */
 function SyncButton({ pro }: { pro: boolean }) {
   const t = useT()
   const { openSettings } = useSettings()
-  const [synced, setSynced] = useState(false)
+  const [on, setOn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void supabase.rpc('my_calendar_feed').then(({ data }) => {
+      if (alive) setOn(Array.isArray(data) && data.length > 0)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   if (!pro) {
     return (
@@ -162,24 +181,24 @@ function SyncButton({ pro }: { pro: boolean }) {
         <UpgradeChip
           icon={RefreshCw}
           label={t('calendar.syncYours')}
-          onClick={() => openSettings('billing')}
+          onClick={() => openSettings('calendarSync')}
           className="sm:hidden"
         />
         <button
           type="button"
-          onClick={() => openSettings('billing')}
+          onClick={() => openSettings('calendarSync')}
           className="group hidden w-full items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent/50 sm:flex"
         >
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
-          <RefreshCw size={17} aria-hidden />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium text-fg">{t('calendar.syncYours')}</span>
-          <span className="block text-[12px] text-muted">
-            {t('calendar.syncProvider')} · <span className="text-accent">{t('today.semesterPass')}</span>
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
+            <RefreshCw size={17} aria-hidden />
           </span>
-        </span>
-        <Sparkles size={15} className="shrink-0 text-accent" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-medium text-fg">{t('calendar.syncYours')}</span>
+            <span className="block text-[12px] text-muted">
+              Google &amp; Apple · <span className="text-accent">{t('today.semesterPass')}</span>
+            </span>
+          </span>
+          <Sparkles size={15} className="shrink-0 text-accent" aria-hidden />
         </button>
       </>
     )
@@ -188,10 +207,10 @@ function SyncButton({ pro }: { pro: boolean }) {
   return (
     <button
       type="button"
-      onClick={() => setSynced(true)}
+      onClick={() => openSettings('calendarSync')}
       className={cn(
         'flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors duration-150',
-        synced
+        on
           ? 'border-success/40 bg-success/10'
           : 'border-border bg-surface hover:border-border-strong',
       )}
@@ -199,17 +218,17 @@ function SyncButton({ pro }: { pro: boolean }) {
       <span
         className={cn(
           'grid size-9 shrink-0 place-items-center rounded-lg',
-          synced ? 'bg-success/15 text-success' : 'bg-surface-2 text-fg',
+          on ? 'bg-success/15 text-success' : 'bg-surface-2 text-fg',
         )}
       >
-        {synced ? <Check size={17} aria-hidden /> : <RefreshCw size={17} aria-hidden />}
+        {on ? <Check size={17} aria-hidden /> : <RefreshCw size={17} aria-hidden />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-medium text-fg">
-          {synced ? t('calendar.syncSetUp') : t('calendar.syncCta')}
+          {on ? 'Calendar sync is on' : t('calendar.syncYours')}
         </span>
         <span className="block text-[12px] text-muted">
-          {synced ? t('calendar.syncSoon') : t('calendar.syncPush')}
+          {on ? 'Manage the link or turn it off' : 'Google, Apple, Outlook — one link'}
         </span>
       </span>
     </button>

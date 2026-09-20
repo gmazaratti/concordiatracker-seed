@@ -1,9 +1,10 @@
 import { createContext, useContext } from 'react'
 
-/** The five settings panes (Claude-desktop-style left nav). */
+/** The settings panes (Claude-desktop-style left nav). */
 export type SettingsSection =
   | 'general'
   | 'account'
+  | 'calendarSync'
   | 'moodle'
   | 'privacy'
   | 'billing'

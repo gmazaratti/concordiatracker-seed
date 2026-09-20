@@ -14,6 +14,7 @@ export type ErrorCode =
   | 'bad_request'
   | 'unauthorized'
   | 'forbidden'
+  | 'payment_required'
   | 'not_found'
   | 'method_not_allowed'
   | 'conflict'
@@ -26,6 +27,7 @@ const DEFAULT_CODE: Record<number, ErrorCode> = {
   400: 'bad_request',
   401: 'unauthorized',
   403: 'forbidden',
+  402: 'payment_required',
   404: 'not_found',
   405: 'method_not_allowed',
   409: 'conflict',
@@ -38,6 +40,7 @@ const DEFAULT_HINT: Record<ErrorCode, string> = {
   bad_request: 'Check the request parameters against the OpenAPI schema at /openapi.json.',
   unauthorized: 'Send a valid Supabase access token as `Authorization: Bearer <token>`.',
   forbidden: 'This account is not permitted to perform that action.',
+  payment_required: 'This feature is part of the Semester pass. See https://concordiatracker.com/#pricing.',
   not_found: 'Check the path against /openapi.json, or start from https://concordiatracker.com/llms.txt.',
   method_not_allowed: 'See /openapi.json for the methods this endpoint accepts.',
   conflict: 'The resource is not in a state that allows this action yet.',

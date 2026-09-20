@@ -54,6 +54,14 @@
       "destination": "/index.html"
     },
     {
+      "source": "/api/calendar/:token",
+      "destination": "/api/calendar?token=:token"
+    },
+    {
+      "source": "/api/library",
+      "destination": "/api/sections?feed=library"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/not-found?json=1"
     },

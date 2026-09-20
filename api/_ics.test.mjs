@@ -13,6 +13,8 @@ import {
   validateMoodleIcsUrl,
   eventsToTodos,
   markMoves,
+  buildIcs,
+  icsStamp,
 } from './_ics.ts'
 
 let failures = 0
@@ -177,6 +179,82 @@ check(
     validateMoodleIcsUrl('https://moodle.concordia.ca/moodle/calendar/view.php'),
   ].every((r) => !r.ok && r.reason.length > 25),
 )
+
+/* ── Writing ──────────────────────────────────────────────────────────────
+ *
+ * A feed Google or Apple rejects fails SILENTLY — the student just never sees
+ * an event and has nothing to look at. So these cover the parts that make a
+ * strict parser refuse a whole file: line length measured in OCTETS, text
+ * escaping, and CRLF.
+ */
+console.log('\nbuildIcs')
+const WNOW = Date.UTC(2026, 8, 19, 15, 0, 0)
+const ics = buildIcs({
+  name: 'ConcordiaTracker',
+  now: WNOW,
+  events: [
+    {
+      uid: 'a-1@concordiatracker.com',
+      start: '2026-10-12T23:59:00.000Z',
+      durationMinutes: 30,
+      summary: 'COMM 305 · Assignment 2, part one; final',
+      description: 'quiz · 15%\nTracked in ConcordiaTracker',
+      url: 'https://concordiatracker.com/app/courses/x',
+    },
+  ],
+})
+
+eq('stamps are basic-format UTC', icsStamp('2026-10-12T23:59:00.000Z'), '20261012T235900Z')
+check(
+  'it opens and closes a VCALENDAR',
+  ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.trimEnd().endsWith('END:VCALENDAR'),
+)
+check('every line ends CRLF, per the spec', !/[^\r]\n/.test(ics))
+check('the event carries its stable UID', ics.includes('UID:a-1@concordiatracker.com'))
+check('DTSTART is the due instant', ics.includes('DTSTART:20261012T235900Z'))
+check('DTEND is 30 minutes later', ics.includes('DTEND:20261013T002900Z'))
+check('a semicolon in a title is escaped', ics.includes('part one\\; final'))
+check('a comma in a title is escaped', ics.includes('Assignment 2\\, part one'))
+check('a newline in the description becomes a literal \\n', ics.includes('15%\\nTracked'))
+check('it declares a refresh hint', ics.includes('REFRESH-INTERVAL;VALUE=DURATION:PT4H'))
+
+/**
+ * Folding is measured in BYTES, not characters.
+ *
+ * Seventy accented characters is 140 octets on one line. A parser that
+ * enforces the limit drops the file, and the student sees an empty calendar
+ * with nothing anywhere explaining it.
+ */
+const wide = buildIcs({
+  name: 'x',
+  now: WNOW,
+  events: [{ uid: 'w@concordiatracker.com', start: '2026-10-12T12:00:00.000Z', summary: 'é'.repeat(70) }],
+})
+const enc = new TextEncoder()
+check(
+  'no line exceeds 75 octets',
+  wide.split('\r\n').every((l) => enc.encode(l).length <= 75),
+  wide.split('\r\n').map((l) => enc.encode(l).length).join(','),
+)
+check('a folded continuation starts with one space', wide.includes('\r\n '))
+check(
+  'folding is reversible — the title survives intact',
+  parseIcs(wide)[0]?.summary === 'é'.repeat(70),
+  JSON.stringify(parseIcs(wide)[0]?.summary?.slice(0, 24)),
+)
+
+// The reader and the writer share this file precisely so this holds.
+const round = parseIcs(ics)
+eq('one event round-trips', round.length, 1)
+eq('with its summary unescaped again', round[0].summary, 'COMM 305 · Assignment 2, part one; final')
+
+check(
+  'an unparseable date is dropped, never guessed at',
+  !buildIcs({ name: 'x', now: WNOW, events: [{ uid: 'bad@x', start: 'not a date', summary: 'x' }] }).includes(
+    'BEGIN:VEVENT',
+  ),
+)
+check('an empty calendar is still a valid calendar', buildIcs({ name: 'x', now: WNOW, events: [] }).includes('BEGIN:VCALENDAR'))
 
 console.log(failures === 0 ? '\nics: all checks passed' : `\nics: ${failures} FAILED`)
 process.exit(failures === 0 ? 0 : 1)

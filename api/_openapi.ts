@@ -136,6 +136,80 @@ export const OPENAPI = {
       },
     },
 
+    '/api/calendar/{token}.ics': {
+      get: {
+        operationId: 'getCalendarFeed',
+        tags: ['Calendar'],
+        summary: 'A student calendar feed, as iCalendar',
+        description:
+          'The subscribable calendar behind Calendar sync: one student, their deadlines, as ' +
+          'RFC 5545 text/calendar. The token in the path IS the credential, which is what lets ' +
+          'Google and Apple fetch it from their own servers with no session of ours, so it is ' +
+          '256 bits and rotatable, and an unknown one answers 404 rather than an empty ' +
+          'calendar. One direction only: nothing is ever read back out of the subscriber.',
+        security: [],
+        parameters: [
+          {
+            name: 'token',
+            in: 'path',
+            required: true,
+            description: 'The 64-character feed token, from POST /api/calendar.',
+            schema: { type: 'string', pattern: '^[0-9a-f]{64}$' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'An iCalendar document. A lapsed pass returns one event saying so.',
+            content: { 'text/calendar': { schema: { type: 'string' } } },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/calendar': {
+      post: {
+        operationId: 'manageCalendarFeed',
+        tags: ['Calendar'],
+        summary: 'Create, rotate, or turn off your calendar feed',
+        description:
+          'Needs a Supabase access token. "enable" is idempotent and hands back the same URL ' +
+          'rather than invalidating one already pasted into Google; "rotate" mints a new token ' +
+          'and breaks every copy of the old link; "layers" chooses what rides the feed. ' +
+          'Creating or rotating needs an active Semester pass and answers 402 without one.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['action'],
+                properties: {
+                  action: { type: 'string', enum: ['enable', 'rotate', 'disable', 'layers'] },
+                  assessments: { type: 'boolean', description: 'layers only: course deadlines.' },
+                  tasks: { type: 'boolean', description: 'layers only: tasks and Moodle items.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'The feed token and its URL, or { ok: true }.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { token: { type: 'string' }, url: { type: 'string' } },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
     '/api/ticket': {
       post: {
         operationId: 'createSupportTicket',
