@@ -75,7 +75,14 @@ export default async function handler(req: any, res: any) {
   const auth = await authenticate(req)
   if ('error' in auth) {
     if (auth.error.retryAfter) res.setHeader('Retry-After', String(auth.error.retryAfter))
-    fail(res, auth.error.status, auth.error.message)
+    // The shared default hint names a Supabase access token, which is the one
+    // credential that will NOT work here — so this route says what it wants.
+    fail(res, auth.error.status, auth.error.message, {
+      hint:
+        auth.error.status === 429
+          ? 'Each token is limited to 120 requests a minute. Wait for the Retry-After header and try again.'
+          : 'Send an API token as "Authorization: Bearer ct_owner_..." or "ct_pat_...". Create one in Settings → Developer, or in the admin console for an owner token. A Supabase session token will not work here.',
+    })
     return
   }
   const { caller } = auth
