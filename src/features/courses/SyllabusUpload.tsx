@@ -68,14 +68,41 @@ function toReview(parsed: ParsedSyllabus): ReviewItem[] {
 }
 
 /** Derived usage state. Module-level so reading the clock is allowed (not in render). */
-function usageState(u: ParseUsage): { remaining: number; blocked: boolean; message: string | null } {
+function usageState(u: ParseUsage): {
+  remaining: number
+  blocked: boolean
+  message: string | null
+  /** The sentence above the drop zone. Sized to the plan, not to a number. */
+  allowance: string
+} {
   const remaining = Math.max(0, u.limit - u.used)
-  if (u.used >= u.limit) return { remaining, blocked: true, message: `You've used all ${u.limit} uploads this month.` }
+  // On a paid plan `limit` is Infinity, and arithmetic on it renders
+  // "Infinity of Infinity uploads left this month" -- caught on screen.
+  // There is no count to show someone who has no cap.
+  const allowance = u.unlimited
+    ? 'Unlimited uploads on your pass'
+    : `${remaining} of ${u.limit} uploads left this month`
+  if (!u.unlimited && u.used >= u.limit) {
+    return { remaining, blocked: true, allowance, message: `You've used all ${u.limit} uploads this month.` }
+  }
   if (u.cooldownUntil) {
     const ms = new Date(u.cooldownUntil).getTime() - Date.now()
-    if (ms > 0) return { remaining, blocked: true, message: `Just uploaded: try again in ${Math.ceil(ms / 60000)} min.` }
+    if (ms > 0) {
+      const secs = Math.ceil(ms / 1000)
+      return {
+        remaining,
+        blocked: true,
+        allowance,
+        // Pro's cooldown is five seconds; rounding that up to "1 min" is a
+        // minute of someone staring at a disabled button for no reason.
+        message:
+          secs < 60
+            ? `Just uploaded: try again in ${secs}s.`
+            : `Just uploaded: try again in ${Math.ceil(secs / 60)} min.`,
+      }
+    }
   }
-  return { remaining, blocked: false, message: null }
+  return { remaining, blocked: false, allowance, message: null }
 }
 
 /** The real AI syllabus parser: drag-drop a PDF → Gemini extraction (server-side)
@@ -84,6 +111,7 @@ function usageState(u: ParseUsage): { remaining: number; blocked: boolean; messa
 export function SyllabusUploadPage({
   intoCourseId,
   onDone,
+  embedded = false,
 }: {
   /**
    * Import into a course that already exists instead of making a new one.
@@ -94,7 +122,18 @@ export function SyllabusUploadPage({
    * looks like an assessment you already have is flagged before it is added.
    */
   intoCourseId?: string
-  onDone?: () => void
+  /**
+   * Called instead of navigating once the import lands, with what was made.
+   *
+   * Onboarding needs the code and the count to add a line to its own list of
+   * courses added so far, so this reports rather than just signalling. It is
+   * the whole reason onboarding can use the REAL parser now: before, its
+   * upload step was a scripted animation that threw the file away and
+   * imported a sample course.
+   */
+  onDone?: (created?: { courseId: string; code: string; count: number }) => void
+  /** Drop the page chrome (back link, h1) — the host screen has its own. */
+  embedded?: boolean
 } = {}) {
   const navigate = useNavigate()
   const { createCourse, addAssessments, updateCourse, assessments: allAssessments } = useAppData()
@@ -249,20 +288,29 @@ export function SyllabusUploadPage({
       description: it.description.trim() || undefined,
     }))
     await addAssessments(assessments)
+    setSaving(false)
+    // Embedded callers stay where they are: onboarding is a sequence of steps
+    // and yanking someone out of it onto a course page abandons the rest.
+    if (onDone) {
+      onDone({ courseId: id, code: course.code.trim(), count: assessments.length })
+      return
+    }
     navigate(`/app/courses/${id}`)
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-5 sm:px-6">
-      <button
-        type="button"
-        onClick={() => navigate('/app/courses')}
-        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
-      >
-        <ArrowLeft size={16} aria-hidden /> Courses
-      </button>
+    <div className={embedded ? 'w-full' : 'mx-auto w-full max-w-2xl px-5 py-5 sm:px-6'}>
+      {!embedded && (
+        <button
+          type="button"
+          onClick={() => navigate('/app/courses')}
+          className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg"
+        >
+          <ArrowLeft size={16} aria-hidden /> Courses
+        </button>
+      )}
 
-      {phase !== 'review' && (
+      {phase !== 'review' && !embedded && (
         <>
           <h1 className="flex items-center gap-2 font-display text-[22px] font-semibold text-fg">
             <Sparkles size={18} className="text-accent" aria-hidden /> Upload a syllabus
@@ -282,7 +330,7 @@ export function SyllabusUploadPage({
               <span className="font-medium text-warning">{u.message}</span>
             ) : (
               <span>
-                {usage ? `${u?.remaining ?? usage.limit} of ${usage.limit} uploads left this month` : 'Up to 5 uploads per month'}
+                {u ? u.allowance : 'Up to 5 uploads per month on the free plan'}
                 {' · '}parsing can take up to ~15 seconds
               </span>
             )}

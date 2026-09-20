@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Search, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
-import { COMM221_PARSED, RAW_ROWS, type Phase } from '@/features/landing/parse-demo-data'
+import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
 import { blueprintFromRow, normalizeCode, type BlueprintRow } from '@/lib/supabase-adapters'
 import { searchCoursesEnriched, TRACKED_MIN, type EnrichedCourse } from '@/lib/catalog'
@@ -12,7 +11,6 @@ import { termRank } from '@/lib/term'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { Assessment } from '@/data/types'
-import { ONBOARD_COURSES, toAssessments } from './onboarding-data'
 
 type Mode = 'choose' | 'search' | 'pick' | 'pdf'
 const DAY = 86_400_000
@@ -93,22 +91,35 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
     record({ code, count: 0 })
   }
 
-  const importSample = async () => {
-    const c = ONBOARD_COURSES[0]
-    if (enrolled(c.code)) return record({ code: c.code, count: 0, already: true })
-    const id = await createCourse({ code: c.code, title: c.title })
-    if (!id) return
-    const items = toAssessments(c, id)
-    await addAssessments(items)
-    record({ code: c.code, count: items.length })
-  }
-
+  /**
+   * THE REAL PARSER, not a film of one.
+   *
+   * This step used to render a scripted animation over a hard-coded
+   * `syllabus.pdf`, with no file input anywhere, and then import a sample
+   * course from `ONBOARD_COURSES`. It looked like it worked, and a student
+   * who uploaded their own outline got a class they had never heard of.
+   *
+   * It is the same component the Courses page uses, so the review step, the
+   * error states, the duplicate check and the rate limiting are all the ones
+   * that are already tested — and onboarding cannot drift away from them.
+   */
   if (mode === 'pdf') {
     return (
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-2xl">
         <BackBtn onClick={() => setMode('choose')} />
-        <h2 className="mt-2 text-center font-display text-[20px] font-semibold text-fg sm:text-[26px]">{t('courses.readingSyllabus')}</h2>
-        <PdfParse onParsed={() => void importSample()} />
+        <h2 className="mt-2 mb-1 text-center font-display text-[20px] font-semibold text-fg sm:text-[26px]">
+          {t('courses.uploadSyllabus')}
+        </h2>
+        <p className="mb-4 text-center text-[13px] text-muted">
+          Drop the PDF in and we read the dates out of it. You get to check them before anything is saved.
+        </p>
+        <SyllabusUploadPage
+          embedded
+          onDone={(created) => {
+            if (created) record({ code: created.code || 'Course', count: created.count })
+            setMode('choose')
+          }}
+        />
       </div>
     )
   }
@@ -513,87 +524,6 @@ function BlueprintPick({
         <span className="shrink-0 text-[12px] font-medium text-accent">{t('courses.import')}</span>
       )}
     </button>
-  )
-}
-
-function PdfParse({ onParsed }: { onParsed: () => void }) {
-  const reduced = usePrefersReducedMotion()
-  const [phase, setPhase] = useState<Phase>('armed')
-  const [revealed, setRevealed] = useState(0)
-  const started = useRef(false)
-  const total = COMM221_PARSED.length
-
-  useEffect(() => {
-    if (started.current) return
-    started.current = true
-    const timers: ReturnType<typeof setTimeout>[] = []
-    const at = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms))
-    if (reduced) {
-      at(() => {
-        setPhase('done')
-        setRevealed(total)
-      }, 200)
-      at(onParsed, 400)
-    } else {
-      at(() => setPhase('drop'), 0)
-      at(() => setPhase('scanning'), 600)
-      at(() => setPhase('revealing'), 1700)
-      for (let i = 1; i <= total; i++) at(() => setRevealed(i), 1700 + i * 240)
-      at(() => setPhase('done'), 1700 + total * 240 + 300)
-      at(onParsed, 1700 + total * 240 + 950)
-    }
-    return () => timers.forEach(clearTimeout)
-  }, [reduced, total, onParsed])
-
-  return <CompactParse phase={phase} revealed={revealed} />
-}
-
-/** Compact, single-column parse — fits a phone, plays on all sizes. */
-function CompactParse({ phase, revealed }: { phase: Phase; revealed: number }) {
-  const scanning = phase === 'drop' || phase === 'scanning'
-  const parsed = phase === 'revealing' || phase === 'done'
-  const total = COMM221_PARSED.length
-  return (
-    <div className="mx-auto mt-5 max-w-md rounded-2xl border border-border bg-surface p-4">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
-          <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-danger uppercase">PDF</span>
-          syllabus.pdf
-        </span>
-        <span className="text-[11px] text-subtle">
-          {parsed ? (phase === 'done' ? `${total} dates found` : `${revealed} of ${total}`) : 'Scanning…'}
-        </span>
-      </div>
-
-      {!parsed ? (
-        <div className="relative mt-3 overflow-hidden rounded-lg border border-border bg-canvas/50 p-3 font-mono text-[10px] leading-relaxed text-subtle">
-          <p className="text-[10.5px] font-semibold text-fg">COMM 221 · Financial Markets</p>
-          <p className="mt-1.5 text-muted">Grade Composition:</p>
-          <div className="mt-1 space-y-1">
-            {RAW_ROWS.slice(0, 4).map(([label, w, when]) => (
-              <div key={label} className="flex items-baseline justify-between gap-2">
-                <span className="truncate">{label}</span>
-                <span className="shrink-0 tabular-nums text-muted">
-                  {w} · {when}
-                </span>
-              </div>
-            ))}
-          </div>
-          {scanning && (
-            <div className="ct-scan-sweep pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-accent/0 via-accent/25 to-accent/0" aria-hidden />
-          )}
-        </div>
-      ) : (
-        <ul className="mt-3 divide-y divide-border">
-          {COMM221_PARSED.slice(0, revealed).map((a) => (
-            <li key={a.id} className="ct-reveal-item flex items-center justify-between gap-2 py-2">
-              <span className="truncate text-[12px] font-medium text-fg">{a.title}</span>
-              <span className="shrink-0 text-[11px] font-semibold text-fg">{a.due}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   )
 }
 
