@@ -206,12 +206,23 @@ language sql security definer set search_path = public stable as $$
 $$;
 grant execute on function public.my_tickets() to authenticated;
 
+-- EVERY COLUMN REFERENCE IN HERE IS QUALIFIED, and it has to be. A plpgsql
+-- function declared `returns table (id uuid, ...)` puts `id`, `body`,
+-- `created_at`, `author_role` and `author_name` in scope as OUT VARIABLES for
+-- the whole body -- so a bare `where id = p_ticket_id` is ambiguous between the
+-- variable and tickets.id, and Postgres refuses the whole call with
+-- 42702 "column reference \"id\" is ambiguous".
+--
+-- It did, on every single call, from the day this shipped: the conversation
+-- view could never load a message, on either side. The client showed a spinner
+-- rather than the error, which is why it read as "tickets load forever" instead
+-- of "this query is broken".
 create or replace function public.ticket_thread(p_ticket_id uuid)
 returns table (id uuid, author_role text, author_name text, body text, created_at timestamptz)
 language plpgsql security definer set search_path = public as $$
 declare v_owner uuid;
 begin
-  select user_id into v_owner from public.tickets where id = p_ticket_id;
+  select t.user_id into v_owner from public.tickets t where t.id = p_ticket_id;
   if not found then raise exception 'That ticket does not exist.'; end if;
   if not public.is_admin() and v_owner is distinct from auth.uid() then
     raise exception 'That is not your ticket.';
@@ -219,7 +230,7 @@ begin
 
   -- Opening your own thread clears the unread badge.
   if v_owner = auth.uid() then
-    update public.tickets set user_seen_at = now() where id = p_ticket_id;
+    update public.tickets t set user_seen_at = now() where t.id = p_ticket_id;
   end if;
 
   return query

@@ -34,26 +34,43 @@ export function TicketsTab() {
   const [tick, setTick] = useState(0)
   const load = useCallback(() => setTick((n) => n + 1), [])
 
+  /**
+   * EVERY status is fetched, and the filter narrows in the client.
+   *
+   * It used to ask the server for one status at a time, so a queue of four
+   * tickets showed two and the other two were simply absent with nothing on
+   * screen accounting for them — the filter was doing its job silently, which
+   * reads exactly like tickets going missing. Holding the whole set lets each
+   * chip carry its own count, so a hidden ticket is always visible AS a number.
+   */
   useEffect(() => {
     let alive = true
     void (async () => {
       // Was `.catch(() => [])`, which made a failed query and an empty queue
       // look identical — the reason "tickets do not load" could not be told
       // apart from "there are no tickets".
-      const list = await adminTickets(filter === 'all' ? null : filter, q).catch((e: unknown) => {
+      const list = await adminTickets(null, q).catch((e: unknown) => {
         if (alive) setError(e instanceof Error ? e.message : 'Could not load tickets.')
-        return [] as AdminTicket[]
+        return null
       })
       if (!alive) return
-      setRows(list)
-      // Keep the open conversation in sync with the refreshed row, and drop the
-      // selection if the filter no longer includes it.
-      setSelected((cur) => (cur ? (list.find((t) => t.id === cur.id) ?? null) : null))
+      if (list) setError('')
+      setRows(list ?? [])
+      // Keep the open conversation in sync with the refreshed row.
+      setSelected((cur) => (cur ? ((list ?? []).find((t) => t.id === cur.id) ?? null) : null))
     })()
     return () => {
       alive = false
     }
-  }, [filter, q, tick])
+  }, [q, tick])
+
+  const counts = {
+    all: rows?.length ?? 0,
+    open: rows?.filter((t) => t.status === 'open').length ?? 0,
+    answered: rows?.filter((t) => t.status === 'answered').length ?? 0,
+    solved: rows?.filter((t) => t.status === 'solved').length ?? 0,
+  }
+  const shown = (rows ?? []).filter((t) => filter === 'all' || t.status === filter)
 
   async function changeStatus(id: string, status: TicketStatus) {
     await setTicketStatus(id, status)
@@ -71,13 +88,16 @@ export function TicketsTab() {
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors duration-150',
+                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors duration-150',
                   filter === f.id
                     ? 'bg-accent-soft text-accent'
                     : 'text-muted hover:bg-surface-2 hover:text-fg',
                 )}
               >
                 {f.label}
+                {rows !== null && (
+                  <span className="text-[11px] tabular-nums opacity-70">{counts[f.id]}</span>
+                )}
               </button>
             ))}
           </div>
@@ -94,11 +114,15 @@ export function TicketsTab() {
                 If this mentions a missing function, run <code>db/tickets.sql</code>.
               </span>
             </div>
-          ) : rows.length === 0 ? (
-            <EmptyState>No tickets match.</EmptyState>
+          ) : shown.length === 0 ? (
+            <EmptyState>
+              {counts.all > 0 && filter !== 'all'
+                ? `No ${filter} tickets. ${counts.all} in total — try All.`
+                : 'No tickets match.'}
+            </EmptyState>
           ) : (
             <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
-              {rows.map((t) => {
+              {shown.map((t) => {
                 const meta = STATUS_META[t.status]
                 return (
                   <li key={t.id}>

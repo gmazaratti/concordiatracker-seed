@@ -29,6 +29,9 @@ export function TicketThread({
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [loadedFor, setLoadedFor] = useState(ticketId)
+  // A retry counter rather than a re-fetch call: the fetch stays inside the
+  // effect, so nothing setStates synchronously in an effect body.
+  const [attempt, setAttempt] = useState(0)
   const endRef = useRef<HTMLDivElement>(null)
 
   // Clearing the old thread on a ticket switch is an adjust-state-during-render,
@@ -44,15 +47,27 @@ export function TicketThread({
     let alive = true
     void ticketThread(ticketId)
       .then((rows) => {
-        if (alive) setMessages(rows)
+        if (!alive) return
+        // Cleared here rather than at the top of the effect: a synchronous
+        // setState in an effect body is the cascading-render lint, and a
+        // retry that succeeds is the only thing that should clear the banner.
+        setError(null)
+        setMessages(rows)
       })
       .catch((e: unknown) => {
-        if (alive) setError(e instanceof Error ? e.message : 'Could not load this conversation.')
+        if (!alive) return
+        setError(e instanceof Error ? e.message : 'Could not load this conversation.')
+        // THE SPINNER HAS TO STOP. `messages === null` used to mean both "still
+        // loading" and "the load failed", so a query that always threw span
+        // forever with the reason printed underneath in small type. An empty
+        // array is the honest state here: we asked, we got nothing back, and
+        // the error banner says why.
+        setMessages([])
       })
     return () => {
       alive = false
     }
-  }, [ticketId])
+  }, [ticketId, attempt])
 
   // Land at the newest message, the way any chat does.
   useEffect(() => {
@@ -83,6 +98,10 @@ export function TicketThread({
           <div className="grid place-items-center py-10">
             <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
           </div>
+        ) : messages.length === 0 && !error ? (
+          <p className="py-10 text-center text-[12.5px] text-subtle">
+            No messages in this conversation yet.
+          </p>
         ) : (
           messages.map((m) => {
             const mine = m.author_role === perspective
@@ -111,9 +130,16 @@ export function TicketThread({
       </div>
 
       {error && (
-        <p className="border-t border-danger/30 bg-danger/10 px-4 py-2 text-[12px] text-danger">
-          {error}
-        </p>
+        <div className="flex items-start gap-3 border-t border-danger/30 bg-danger/10 px-4 py-2 text-[12px] text-danger">
+          <span className="min-w-0 flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="shrink-0 font-medium underline underline-offset-2 hover:no-underline"
+          >
+            Try again
+          </button>
+        </div>
       )}
 
       <div className="flex items-end gap-2 border-t border-border p-3">

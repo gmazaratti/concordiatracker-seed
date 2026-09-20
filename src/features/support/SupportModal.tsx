@@ -24,6 +24,7 @@ type View = { mode: 'list' } | { mode: 'new' } | { mode: 'thread'; ticket: Ticke
 export function SupportModal({ onClose }: { onClose: () => void }) {
   const [view, setView] = useState<View>({ mode: 'list' })
   const [tickets, setTickets] = useState<TicketSummary[] | null>(null)
+  const [error, setError] = useState('')
 
   // `refresh` only bumps a counter — the fetch happens in the effect, after an
   // await, so no setState runs synchronously in an effect body.
@@ -33,8 +34,16 @@ export function SupportModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     let alive = true
     void (async () => {
-      const rows = await myTickets().catch(() => [])
-      if (alive) setTickets(rows)
+      // A swallowed error used to render as "No tickets yet", which tells
+      // someone their open ticket was never filed. A failure and an empty
+      // list are different sentences.
+      const rows = await myTickets().catch((e: unknown) => {
+        if (alive) setError(e instanceof Error ? e.message : 'Could not load your tickets.')
+        return null
+      })
+      if (!alive) return
+      if (rows) setError('')
+      setTickets(rows ?? [])
     })()
     return () => {
       alive = false
@@ -72,7 +81,13 @@ export function SupportModal({ onClose }: { onClose: () => void }) {
         </header>
 
         {view.mode === 'list' && (
-          <TicketList tickets={tickets} onOpen={(t) => setView({ mode: 'thread', ticket: t })} onNew={() => setView({ mode: 'new' })} />
+          <TicketList
+            tickets={tickets}
+            error={error}
+            onRetry={refresh}
+            onOpen={(t) => setView({ mode: 'thread', ticket: t })}
+            onNew={() => setView({ mode: 'new' })}
+          />
         )}
         {view.mode === 'new' && (
           <NewTicketForm
@@ -102,10 +117,14 @@ function StatusBadge({ status }: { status: TicketStatus }) {
 
 function TicketList({
   tickets,
+  error,
+  onRetry,
   onOpen,
   onNew,
 }: {
   tickets: TicketSummary[] | null
+  error: string
+  onRetry: () => void
   onOpen: (t: TicketSummary) => void
   onNew: () => void
 }) {
@@ -113,6 +132,23 @@ function TicketList({
     return (
       <div className="grid flex-1 place-items-center">
         <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+        <h3 className="font-display text-[16px] font-medium text-fg">
+          Could not load your tickets
+        </h3>
+        <p className="max-w-xs text-[12.5px] leading-relaxed text-muted">{error}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-fg transition-colors duration-150 hover:bg-surface-2"
+        >
+          Try again
+        </button>
       </div>
     )
   }
