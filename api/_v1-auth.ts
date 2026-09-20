@@ -12,7 +12,7 @@
  */
 import { createHash } from 'node:crypto'
 
-export type Scope = 'owner' | 'me'
+export type Scope = 'owner' | 'me' | 'support'
 
 export interface Caller {
   userId: string
@@ -48,6 +48,33 @@ export async function rpc<T>(name: string, body: Record<string, unknown>): Promi
   })
   if (!res.ok) return null
   return (await res.json().catch(() => null)) as T | null
+}
+
+/**
+ * The same call, but handing back the error body instead of null.
+ *
+ * `rpc` swallowing the reason is right for a statistic — a missing number is
+ * a missing number. It is wrong wherever the DATABASE is the thing enforcing
+ * a rule, because then the refusal IS the answer and the caller has to be
+ * able to tell "you may not" from "it broke".
+ */
+export async function rpcRaw(
+  name: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: true; data: unknown } | { ok: false; error: unknown }> {
+  const s = svc()
+  if (!s) return { ok: false, error: { message: 'The API is not configured on this server.' } }
+  const res = await fetch(`${s.url}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: {
+      apikey: s.key,
+      Authorization: `Bearer ${s.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  const parsed = await res.json().catch(() => null)
+  return res.ok ? { ok: true, data: parsed } : { ok: false, error: parsed ?? {} }
 }
 
 /** GET a PostgREST table as the service role. */

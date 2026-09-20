@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
  * has been bitten by twice.
  */
 
-export type TokenScope = 'owner' | 'me'
+export type TokenScope = 'owner' | 'me' | 'support'
 
 export interface ApiToken {
   id: string

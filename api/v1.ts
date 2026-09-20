@@ -22,6 +22,7 @@
 import { authenticate } from './_v1-auth.js'
 import { ownerOverview, ownerPayments, ownerPing, ownerTimeseries, ownerUsers } from './_v1-owner.js'
 import { meAssignments, meCourses, meGpa, patchAssignment } from './_v1-me.js'
+import { getThread, kb, listThreads, patchThread, replyToThread } from './_v1-support.js'
 import { fail } from './_respond.js'
 
 export const config = { maxDuration: 30 }
@@ -34,6 +35,13 @@ const INDEX = {
   scopes: {
     owner: ['GET /api/v1/owner/overview', 'GET /api/v1/owner/users', 'GET /api/v1/owner/payments', 'GET /api/v1/owner/timeseries?days=30', 'GET /api/v1/owner/ping'],
     me: ['GET /api/v1/me/courses', 'GET /api/v1/me/assignments', 'PATCH /api/v1/me/assignments/{id}', 'GET /api/v1/me/gpa'],
+    support: [
+      'GET /api/v1/support/threads?type=&status=&since=&page=&per_page=',
+      'GET /api/v1/support/threads/{id}',
+      'POST /api/v1/support/threads/{id}/reply',
+      'PATCH /api/v1/support/threads/{id}',
+      'GET /api/v1/support/kb?q=',
+    ],
   },
   rate_limit: '120 requests per minute per token.',
 }
@@ -52,12 +60,32 @@ function readBody(req: any): Record<string, unknown> {
   return typeof b === 'object' ? (b as Record<string, unknown>) : {}
 }
 
+/**
+ * Send a handler's result.
+ *
+ * AN ERROR STILL CARRIES ITS REASON. The shared error shape is what every
+ * other endpoint returns and is worth keeping, but a 409 from the support
+ * desk is only useful if the caller can tell "a human took it" from "the
+ * customer asked for one", and the generic code (conflict) cannot say which.
+ * So the reason rides along as an extra field rather than being flattened
+ * into the sentence, where it would have to be matched on.
+ */
+function send(res: any, out: { status: number; json: Record<string, unknown> }) {
+  if (out.status < 400) {
+    res.status(out.status).json(out.json)
+    return
+  }
+  fail(res, out.status, String(out.json.error ?? 'Request failed.'), {
+    extra: out.json.reason ? { reason: out.json.reason } : undefined,
+  })
+}
+
 export default async function handler(req: any, res: any) {
   // Read-only from a browser is fine and useful (a dashboard on another
   // origin); the token is the credential, so CORS is not the control here.
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   if (req.method === 'OPTIONS') {
     res.status(204).end()
     return
@@ -142,7 +170,56 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    fail(res, 404, 'Unknown area. The API has two: /api/v1/owner and /api/v1/me.')
+    if (area === 'support') {
+      if (caller.scope !== 'support') {
+        fail(res, 403, 'This token is not scoped to the support desk.')
+        return
+      }
+      // A conversation is never cached. The whole job is noticing that
+      // something changed since the last poll.
+      res.setHeader('Cache-Control', 'private, no-store')
+
+      if (resource === 'kb') {
+        if (req.method !== 'GET') {
+          fail(res, 405, 'The knowledge base is read-only.')
+          return
+        }
+        return void send(res, kb((req.query ?? {}) as Record<string, unknown>))
+      }
+
+      if (resource !== 'threads') {
+        fail(res, 404, `No support endpoint called "${resource ?? ''}".`)
+        return
+      }
+
+      // /support/threads/{id}/reply — the id is one segment and the action
+      // the next. A thread id contains a colon, never a slash, so the two
+      // cannot run into each other.
+      if (id && raw[3] === 'reply') {
+        if (req.method !== 'POST') {
+          fail(res, 405, 'Replying is a POST.')
+          return
+        }
+        return void send(res, await replyToThread(decodeURIComponent(id), readBody(req)))
+      }
+      if (id) {
+        if (req.method === 'PATCH') {
+          return void send(res, await patchThread(decodeURIComponent(id), readBody(req)))
+        }
+        if (req.method !== 'GET') {
+          fail(res, 405, 'Use GET to read a thread, or PATCH to change its state.')
+          return
+        }
+        return void send(res, await getThread(decodeURIComponent(id)))
+      }
+      if (req.method !== 'GET') {
+        fail(res, 405, 'Listing threads is a GET.')
+        return
+      }
+      return void send(res, await listThreads((req.query ?? {}) as Record<string, unknown>))
+    }
+
+    fail(res, 404, 'Unknown area. The API has three: /api/v1/owner, /api/v1/me and /api/v1/support.')
   } catch (err) {
     fail(res, 500, err instanceof Error ? err.message : 'Unexpected error.')
   }

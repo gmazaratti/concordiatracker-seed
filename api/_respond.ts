@@ -73,16 +73,21 @@ export function fail(
   res: any,
   status: number,
   message: string,
-  opts: { code?: ErrorCode; hint?: string } = {},
+  opts: { code?: ErrorCode; hint?: string; extra?: Record<string, unknown> } = {},
 ): void {
   const code = opts.code ?? DEFAULT_CODE[status] ?? 'internal_error'
-  const body: ApiErrorBody = {
+  const body: ApiErrorBody & Record<string, unknown> = {
     error: message,
     code,
     message,
     hint: opts.hint ?? DEFAULT_HINT[code],
     status,
     docs: 'https://concordiatracker.com/docs/api',
+    // `extra` exists for one case: the support desk's 409s, where a caller
+    // has to tell "a human took it" from "the customer asked for one" and
+    // the generic `code` (conflict) cannot say which. Everything else keeps
+    // exactly the shape it had.
+    ...(opts.extra ?? {}),
   }
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
   res.status(status).json(body)

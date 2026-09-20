@@ -785,6 +785,189 @@ check('the series has one row per day with no gaps', tokSeries.length, 7)
 check('  including days where nothing happened', tokSeries[0].signups, 0)
 
 
+// ── db/support_api.sql ──────────────────────────────────────────────────────
+// The reply guard is the whole point of this file: it has to hold against a
+// careless caller, so it is enforced in the database and asserted here rather
+// than trusted to the HTTP layer.
+console.log('\ndb/support_api.sql')
+
+await db.exec(`
+  create sequence if not exists public.ticket_case_seq start 1001;
+  -- An earlier section already made a minimal tickets stand-in, so these are
+  -- ALTERs: create-if-not-exists would silently skip and leave it too thin.
+  create table if not exists public.tickets (id uuid primary key default gen_random_uuid());
+  alter table public.tickets
+    add column if not exists case_id text unique default 'TKT-' || nextval('public.ticket_case_seq'),
+    add column if not exists user_id uuid,
+    add column if not exists email text,
+    add column if not exists name text,
+    add column if not exists subject text,
+    add column if not exists category text not null default 'other',
+    add column if not exists status text not null default 'open',
+    add column if not exists source text not null default 'app',
+    add column if not exists context jsonb not null default '{}'::jsonb,
+    add column if not exists created_at timestamptz not null default now(),
+    add column if not exists last_activity_at timestamptz not null default now(),
+    add column if not exists user_seen_at timestamptz;
+  create table if not exists public.ticket_messages (
+    id uuid primary key default gen_random_uuid(),
+    ticket_id uuid not null references public.tickets(id) on delete cascade,
+    author_id uuid, author_role text not null,
+    author_name text not null default 'Support',
+    body text not null, created_at timestamptz not null default now(),
+    constraint msg_role_valid check (author_role in ('user','staff'))
+  );
+  create table if not exists public.bug_reports (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid, user_email text, title text not null,
+    description text default '', page text,
+    status text not null default 'open', admin_notes text,
+    created_at timestamptz not null default now()
+  );
+  create or replace function public.is_admin() returns boolean
+    language sql stable as $$ select true $$;
+`)
+await db.exec(migration('support_api.sql'))
+console.log('  ok    DDL applies')
+
+await db.exec(`
+  insert into public.tickets (id, email, name, subject, status)
+  values ('33333333-3333-3333-3333-333333333333','a@x.test','Ali','Calendar sync does nothing','open');
+  insert into public.ticket_messages (ticket_id, author_role, author_name, body)
+  values ('33333333-3333-3333-3333-333333333333','user','Ali','I paid for the calendar thing.');
+  insert into public.bug_reports (id, user_email, title, description, page)
+  values ('44444444-4444-4444-4444-444444444444','b@x.test','Blank screen','It went white','/app/today');
+`)
+const T = 't:33333333-3333-3333-3333-333333333333'
+const D = 'd:44444444-4444-4444-4444-444444444444'
+
+const thread = async (id) => (await db.query('select public.support_thread($1) t', [id])).rows[0].t
+const list = async (...a) =>
+  (await db.query('select public.support_threads($1,$2,$3,$4,$5) l', a)).rows[0].l
+const reply = async (id, text) => {
+  try {
+    await db.query('select public.support_reply($1,$2)', [id, text])
+    return 'ok'
+  } catch (e) {
+    return e.detail ?? e.message
+  }
+}
+const patch = async (id, status, needs) => {
+  try {
+    return await db
+      .query('select public.support_patch($1,$2,$3) t', [id, status, needs])
+      .then((r) => r.rows[0].t)
+  } catch (e) {
+    return { refused: e.detail ?? e.message }
+  }
+}
+
+// Ids are composite and say which table they came from.
+check('a ticket thread resolves', (await thread(T)).type, 'ticket')
+check('  and carries its case id', (await thread(T)).reference, 'TKT-1001')
+check('a diagnostic thread resolves', (await thread(D)).type, 'diagnostic')
+check('a malformed id is not found, not an error', await thread('nonsense'), null)
+check('a bare uuid with no prefix is not found', await thread('33333333-3333-3333-3333-333333333333'), null)
+
+// A diagnostic is a report: one user message, and nothing can reply to it.
+const supDiag = await thread(D)
+check('a diagnostic returns exactly one message', supDiag.messages.length, 1)
+check('  authored by the user side', supDiag.messages[0].author, 'user')
+check('  carrying the notes and the payload', supDiag.messages[0].text.includes('/app/today'), true)
+check('  and says it cannot be replied to', supDiag.can_reply, false)
+check('replying to a diagnostic is refused', await reply(D, 'hello'), 'diagnostic_not_repliable')
+
+// The happy path, and what it does to ownership.
+check('a new ticket reads as open', (await thread(T)).status, 'open')
+check('  and may be replied to', (await thread(T)).can_reply, true)
+check('an empty reply is refused', await reply(T, '   '), 'empty')
+check('a reply lands', await reply(T, 'Fixed — three months of Pro is on your account.'), 'ok')
+check('  replying to an open thread moves it to ai_handling', (await thread(T)).status, 'ai_handling')
+check('  the message is authored by the assistant', (await thread(T)).messages.at(-1).author, 'ai')
+check('  and the label is NOT written into the text',
+  (await thread(T)).messages.at(-1).text.toLowerCase().includes('ai'), false)
+check('  the assistant may keep replying', await reply(T, 'Anything else?'), 'ok')
+
+// needs_human: the customer asked for a person.
+await patch(T, null, true)
+check('flagging needs_human sticks', (await thread(T)).needs_human, true)
+check('  and blocks a reply', await reply(T, 'let me help'), 'needs_human')
+check('  and says so on the thread', (await thread(T)).can_reply, false)
+
+// The hand-back gesture, in one call.
+const handBack = await patch(T, 'ai_handling', null)
+check('setting ai_handling clears needs_human', handBack.needs_human, false)
+check('  and the assistant may reply again', await reply(T, 'Back to me.'), 'ok')
+
+// A human taking over, explicitly.
+await patch(T, 'human_takeover', null)
+check('human_takeover reads back', (await thread(T)).status, 'human_takeover')
+check('  and blocks a reply', await reply(T, 'me again'), 'human_takeover')
+
+// ...and implicitly, which is the one that matters: Alex simply replies.
+await patch(T, 'ai_handling', null)
+check('handed back to the assistant', (await thread(T)).status, 'ai_handling')
+await db.query('select public.reply_ticket($1,$2)', [
+  '33333333-3333-3333-3333-333333333333',
+  'Hi Ali, Alex here.',
+])
+check('A STAFF REPLY TAKES THE THREAD AUTOMATICALLY', (await thread(T)).status, 'human_takeover')
+check('  so the assistant stops without being told', await reply(T, 'draft'), 'human_takeover')
+check('  and the human message is labelled human, not staff',
+  (await thread(T)).messages.at(-1).author, 'human')
+
+// Resolved is the most final of the three.
+await patch(T, 'resolved', null)
+check('resolved reads back', (await thread(T)).status, 'resolved')
+check('  and blocks a reply even after a hand-back attempt', await reply(T, 'hello'), 'resolved')
+
+// Listing, filtering and `since`.
+const supAll = await list(null, null, null, 50, 0)
+check('the list returns both kinds', supAll.threads.length, 2)
+check('  with a total', supAll.total, 2)
+check('filtering by type works', (await list('diagnostic', null, null, 50, 0)).threads.length, 1)
+check('filtering by status works', (await list(null, 'resolved', null, 50, 0)).threads.length, 1)
+check('a status nobody is in returns none', (await list(null, 'open', null, 50, 0)).threads.length, 1)
+
+// THE `since` RULE. An old thread with a new message must come back, or a
+// poller would never see the reply it exists to answer.
+await db.exec(`
+  update public.tickets
+     set created_at = now() - interval '30 days', last_activity_at = now()
+   where id = '33333333-3333-3333-3333-333333333333';
+  update public.bug_reports
+     set created_at = now() - interval '30 days'
+   where id = '44444444-4444-4444-4444-444444444444';
+`)
+const supRecent = await list(null, null, new Date(Date.now() - 3600_000).toISOString(), 50, 0)
+check('since returns an OLD thread that was just updated', supRecent.threads.length, 1)
+check('  and it is the ticket, not the untouched diagnostic', supRecent.threads[0].type, 'ticket')
+
+// Paging.
+check('per_page is honoured', (await list(null, null, null, 1, 0)).threads.length, 1)
+check('  and the page number is derived from the offset', (await list(null, null, null, 1, 1)).page, 2)
+check('  while total counts everything that matched', (await list(null, null, null, 1, 0)).total, 2)
+
+// A diagnostic has no handling, and says so rather than pretending.
+check('a diagnostic refuses ai_handling', (await patch(D, 'ai_handling', null)).refused,
+  'diagnostic_has_no_handling')
+check('  refuses needs_human', (await patch(D, null, true)).refused, 'diagnostic_has_no_handling')
+check('  but can be resolved', (await patch(D, 'resolved', null)).status, 'resolved')
+check('an unknown status is refused', (await patch(T, 'sideways', null)).refused, 'bad_status')
+
+// The third token scope.
+const supTok = (await db.query("select * from public.create_api_token('Alfred','support')")).rows[0]
+check('a support token has its own prefix', supTok.token.slice(0, 7), 'ct_sup_')
+check('  and its own scope', (await db.query(
+  'select scope from public.ct_api_token_check(public.ct_hash_api_token($1))', [supTok.token],
+)).rows[0].scope, 'support')
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select false $$;`)
+let supRefused = false
+try { await db.query("select * from public.create_api_token('sneaky','support')") } catch { supRefused = true }
+check('a non-admin cannot mint one', supRefused, true)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

@@ -212,6 +212,13 @@ for (const r of [
   '/api/v1/me/assignments',
   '/api/v1/me/assignments/abc-123',
   '/api/v1/me/gpa',
+  // The support desk. A thread id contains a COLON, which must survive the
+  // rewrite intact or every lookup 404s.
+  '/api/v1/support/threads',
+  '/api/v1/support/threads/t:6f1c0a8e-1111-2222-3333-444455556666',
+  '/api/v1/support/threads/t:6f1c0a8e-1111-2222-3333-444455556666/reply',
+  '/api/v1/support/threads/d:6f1c0a8e-1111-2222-3333-444455556666',
+  '/api/v1/support/kb',
 ]) {
   const dest = resolve(r)
   check(`${r} reaches the v1 function`, dest === `/api/v1?path=${r.slice('/api/v1/'.length)}`, dest ?? '(no match)')

@@ -179,13 +179,19 @@ section('OpenAPI specification')
       ops.every((o) => !!o.op.summary),
     )
     check(
-      'every operation documents a 200 response with a schema',
+      'every operation documents a success response with a schema',
       // ANY media type, not application/json specifically: the calendar feed
       // genuinely serves text/calendar, and an assertion that reads 'must be
       // JSON' would be asserting a house style rather than the thing that
-      // matters, which is that a 200 says what shape it comes back in.
+      // matters, which is that a success says what shape it comes back in.
+      //
+      // ANY 2xx, not 200 specifically: creating a reply answers 201, which is
+      // the correct code for it. Insisting on 200 would have been this check
+      // enforcing a number rather than the guarantee behind it.
       ops.every((o) =>
-        Object.values(o.op.responses?.['200']?.content ?? {}).some((c) => !!c.schema),
+        Object.entries(o.op.responses ?? {})
+          .filter(([code]) => /^2\d\d$/.test(code))
+          .some(([, r]) => Object.values(r.content ?? {}).some((c) => !!c.schema)),
       ),
     )
     check(

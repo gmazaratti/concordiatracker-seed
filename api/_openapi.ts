@@ -567,6 +567,253 @@ export const OPENAPI = {
       },
     },
 
+    '/api/v1/support/threads': {
+      get: {
+        operationId: 'listSupportThreads',
+        tags: ['Support API'],
+        summary: 'Support threads, newest activity first',
+        description:
+          'Two kinds of thread. A `ticket` is anything a customer wrote and is a conversation; ' +
+          'a `diagnostic` is an automated report and cannot be replied to. Ids are composite ' +
+          'and stable: `t:<uuid>` and `d:<uuid>`. `since` matches threads created OR updated ' +
+          'at/after the timestamp, so an old thread with a new customer message is returned.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['ticket', 'diagnostic'] },
+            description: 'Only conversations, or only automated reports.',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['open', 'ai_handling', 'human_takeover', 'resolved'],
+            },
+            description: 'Only threads currently in this state.',
+          },
+          {
+            name: 'since',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'date-time' },
+            description: 'ISO-8601. Matches creation OR last activity.',
+          },
+          {
+            name: 'page',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, default: 1 },
+            description: 'Which page of results, counting from one.',
+          },
+          {
+            name: 'per_page',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 200, default: 50 },
+            description: 'How many threads per page.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'A page of threads.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SupportThreadList' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/support/threads/{id}': {
+      get: {
+        operationId: 'getSupportThread',
+        tags: ['Support API'],
+        summary: 'One thread, with its messages',
+        description:
+          'A diagnostic returns a single message authored by `user` carrying the notes and the ' +
+          'payload, so a client needs one code path rather than two. `can_reply` says whether ' +
+          'this thread will accept a reply right now.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'A composite thread id, e.g. t:9c1e… or d:4b77….',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The thread.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/SupportThread' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+      patch: {
+        operationId: 'patchSupportThread',
+        tags: ['Support API'],
+        summary: 'Change a thread state',
+        description:
+          'Either field, or both. Setting `ai_handling` CLEARS `needs_human` — that is the ' +
+          'hand-back gesture, done in one call so there is no window where the assistant owns a ' +
+          'thread still flagged for a person. A diagnostic has no conversation, so it accepts ' +
+          'only open or resolved and refuses the rest with a 409.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'A composite thread id.',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  status: {
+                    type: 'string',
+                    enum: ['open', 'ai_handling', 'human_takeover', 'resolved'],
+                  },
+                  needs_human: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'The updated thread.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/SupportThread' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/support/threads/{id}/reply': {
+      post: {
+        operationId: 'replyToSupportThread',
+        tags: ['Support API'],
+        summary: 'Reply to a customer',
+        description:
+          'Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. ' +
+          'WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here: a thread that a ' +
+          'person has taken over, that is resolved, or where the customer asked for a person ' +
+          'returns 409 with a machine-readable `reason` — one of human_takeover, resolved, ' +
+          'needs_human or diagnostic_not_repliable.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'A composite thread id. Diagnostics cannot be replied to.',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['text'],
+                properties: {
+                  text: {
+                    type: 'string',
+                    maxLength: 5000,
+                    description:
+                      'The reply. Never write an assistant label into it — the UI renders that ' +
+                      'from the author field.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'The reply was stored.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message_id: { type: 'string', format: 'uuid' },
+                    thread: { $ref: '#/components/schemas/SupportThread' },
+                  },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/support/kb': {
+      get: {
+        operationId: 'searchSupportKb',
+        tags: ['Support API'],
+        summary: 'The knowledge base to answer from',
+        description:
+          'Articles generated from the published documentation and the legal documents, so they ' +
+          'cannot drift from what a person would be told to read. Query the KB before drafting ' +
+          'and answer FROM these; every article carries a url so a reply can link the page ' +
+          'rather than paraphrasing it.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Keywords. Omit to list every article.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Matching articles, best first.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', nullable: true },
+                    count: { type: 'integer' },
+                    articles: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/KbArticle' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
     '/api/stripe-checkout': {
       post: {
         operationId: 'createCheckoutSession',
@@ -804,6 +1051,13 @@ export const OPENAPI = {
           'A ct_pat_… API token, created by the account holder in Settings → Developer. Reads ' +
           'and edits only that account. 120 requests a minute.',
       },
+      supportToken: {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'A ct_sup_… API token, created by an admin beside the support queue. Reads and ' +
+          'replies to customer threads; it can read nothing else. 120 requests a minute.',
+      },
       cronSecret: {
         type: 'apiKey',
         in: 'header',
@@ -813,6 +1067,72 @@ export const OPENAPI = {
     },
     schemas: {
       Error: errorSchema,
+      SupportThread: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Composite and stable: t:<uuid> or d:<uuid>.' },
+          type: { type: 'string', enum: ['ticket', 'diagnostic'] },
+          reference: { type: 'string', description: 'The case number a customer would quote.' },
+          subject: { type: 'string' },
+          status: {
+            type: 'string',
+            enum: ['open', 'ai_handling', 'human_takeover', 'resolved'],
+          },
+          needs_human: { type: 'boolean', description: 'The customer asked for a person.' },
+          can_reply: {
+            type: 'boolean',
+            description: 'Whether a reply would be accepted right now. The database decides.',
+          },
+          customer_email: { type: 'string' },
+          customer_name: { type: 'string' },
+          category: { type: 'string' },
+          source: { type: 'string' },
+          context: { type: 'object', description: 'Page, browser and app version at submit time.' },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' },
+          messages: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                author: {
+                  type: 'string',
+                  enum: ['user', 'ai', 'human'],
+                  description:
+                    'The customer-facing UI renders the assistant label from THIS, never from ' +
+                    'the message text.',
+                },
+                author_name: { type: 'string' },
+                text: { type: 'string' },
+                created_at: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+      SupportThreadList: {
+        type: 'object',
+        properties: {
+          threads: { type: 'array', items: { $ref: '#/components/schemas/SupportThread' } },
+          page: { type: 'integer' },
+          per_page: { type: 'integer' },
+          total: { type: 'integer' },
+          notes: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      KbArticle: {
+        type: 'object',
+        properties: {
+          slug: { type: 'string' },
+          title: { type: 'string' },
+          url: { type: 'string', format: 'uri' },
+          summary: { type: 'string' },
+          body: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          source: { type: 'string', enum: ['docs', 'policy', 'app'] },
+        },
+      },
       OwnerOverview: {
         type: 'object',
         description: 'Headline business figures. Internal accounts are excluded throughout.',
