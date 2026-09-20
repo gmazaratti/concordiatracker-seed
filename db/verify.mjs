@@ -678,6 +678,12 @@ await db.exec(`
   create table if not exists public.tickets (
     id uuid primary key default gen_random_uuid(), status text default 'open'
   );
+  -- Stripe's own event log, the only place a subscription's START date is
+  -- recorded. No payload column, like production.
+  create table if not exists public.stripe_events (
+    id text primary key, type text, processed_at timestamptz not null default now()
+  );
+  alter table public.user_profile add column if not exists trial_end timestamptz;
   alter table public.courses add column if not exists archived boolean default false;
 `)
 await db.exec(migration('api_tokens.sql'))

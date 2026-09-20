@@ -14,6 +14,16 @@ export interface SeriesPoint {
   visitors: number
   active: number
   page_views: number
+  /** Subscriptions that STARTED that day, from Stripe's event log. */
+  subscribers: number
+  /**
+   * Trials whose end date is that day — the day each one converts or lapses.
+   *
+   * NOT trials started: nothing records when a trial began (user_profile has
+   * trial_end and no start), and inferring one by subtracting an assumed
+   * length would be wrong for every account from when the trial was 7 days.
+   */
+  trials: number
 }
 
 export interface OverviewCounts {
@@ -120,14 +130,34 @@ export async function loadOverview(days: number): Promise<Overview> {
  *
  * Vite is the other case: `/api/*` is a serverless function, so locally the
  * dev server answers with index.html at 200 and `res.json()` yields {}.
+ *
+ * THE SAME RULE APPLIES INSIDE A SERIES POINT, and for the same reason. A
+ * deployment whose SQL migration has not been run yet returns rows without
+ * the newest columns, and the chart's scale is Math.max(1, ...values) — which
+ * is NaN the moment one value is undefined, so picking that metric draws
+ * nothing and the only way out is to pick a different one. A column the
+ * database has not got is a flat zero line, which is the truth.
  */
+const point = (p: Partial<SeriesPoint>): SeriesPoint => {
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+  return {
+    day: p.day ?? '',
+    signups: n(p.signups),
+    visitors: n(p.visitors),
+    active: n(p.active),
+    page_views: n(p.page_views),
+    subscribers: n(p.subscribers),
+    trials: n(p.trials),
+  }
+}
+
 function shape(j: Partial<Overview>, days: number): Overview {
   return {
     days: typeof j.days === 'number' ? j.days : days,
     generatedAt: j.generatedAt ?? new Date().toISOString(),
     timezone: j.timezone ?? 'UTC',
     stripe: j.stripe ?? { error: 'No figures came back from Stripe.' },
-    series: Array.isArray(j.series) ? j.series : [],
+    series: Array.isArray(j.series) ? j.series.map(point) : [],
     counts: j.counts ?? {},
     ops: j.ops ?? {},
     activity: Array.isArray(j.activity) ? j.activity : [],
@@ -197,13 +227,61 @@ export const compact = (n: number) =>
  *
  * INVENTED NAMES, NOT REAL ONES SHUFFLED. The obvious cheap version — take
  * the real rows and multiply them — would put an actual customer's email into
- * a screenshot next to a number that is not theirs. These are made up, and
- * the emails are on example.com, which IANA reserves and nobody can own.
+ * a screenshot next to a number that is not theirs. These are made up.
+ *
+ * THE ADDRESSES USE REAL CONSUMER DOMAINS, by request: example.com is
+ * unmistakably fake and made every screenshot read as a mock-up. The trade,
+ * written down because it is a real one: a plausible gmail address can belong
+ * to somebody. Most forms below carry digits, which is both how people
+ * actually write addresses and what makes an exact collision unlikely —
+ * but none of these were checked against a real inbox and none should be
+ * mailed.
  *
  * The shape is kept honest: subscriptions are rarer than signups, which are
  * rarer than parses, and the timestamps march backwards at plausible gaps, so
  * the list reads like a product rather than a wall of one event type.
  */
+const DOMAINS = [
+  'gmail.com', 'gmail.com', 'gmail.com', 'hotmail.com',
+  'outlook.com', 'icloud.com', 'yahoo.ca', 'live.ca',
+]
+
+/**
+ * An address in the shapes people really use — first.last, flast, a name with
+ * a number on the end — rather than one template repeated fifteen times,
+ * which is what makes a list of fake users look generated.
+ *
+ * KEYED ON THE NAME, NOT THE ROW. The feed reuses a name every few rows, and
+ * picking the form by row index gave the same person two different addresses
+ * two lines apart — the kind of detail that makes a reader stop trusting the
+ * whole screenshot. A name now always produces the same address.
+ *
+ * Accents are stripped the way a signup form would: Léa Gagnon types
+ * lea.gagnon, not léa.gagnon.
+ */
+function fakeEmail(name: string): string {
+  const plain = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '')
+  const [first, last] = name.split(' ')
+  const f = plain(first)
+  const l = plain(last ?? '')
+  // A plain character sum. It only has to be stable and well spread across a
+  // list of fifteen names, so anything stronger would be ceremony.
+  let h = 0
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  // FIVE forms, against eight domains: both counts are coprime with the
+  // feed's stride, so every combination gets used instead of the same two
+  // repeating down the page.
+  const forms = [
+    `${f}.${l}`,
+    `${f}${l}${60 + (h % 39)}`,
+    `${f[0]}${l}`,
+    `${f}${l}`,
+    `${f}.${l}${h % 10}`,
+  ]
+  return `${forms[h % forms.length]}@${DOMAINS[h % DOMAINS.length]}`
+}
+
 function fakeActivity(real: ActivityRow[]): ActivityRow[] {
   const who = [
     'Maya Chen', 'Devon Okafor', 'Sofia Ricci', 'Liam Tremblay', 'Priya Nair',
@@ -227,7 +305,7 @@ function fakeActivity(real: ActivityRow[]): ActivityRow[] {
         kind: 'subscription',
         label: i % 12 === 0 ? 'Started a trial' : 'Payment received',
         detail: i % 12 === 0 ? '3 days left' : '$15.00 — Paid',
-        who: `${name.split(' ')[0].toLowerCase()}@example.com`,
+        who: fakeEmail(name),
         at,
       })
     } else if (roll === 1 || roll === 4) {
@@ -245,7 +323,7 @@ function fakeActivity(real: ActivityRow[]): ActivityRow[] {
         kind: 'ticket',
         label: 'Support ticket',
         detail: 'Calendar sync',
-        who: `${name.split(' ')[0].toLowerCase()}@example.com`,
+        who: fakeEmail(name),
         at,
       })
     } else {
@@ -257,25 +335,67 @@ function fakeActivity(real: ActivityRow[]): ActivityRow[] {
   return [...rows, ...real].slice(0, 40)
 }
 
+/**
+ * A DAY IN THE DEMO PRODUCT, at the top of its curve. Everything else is
+ * derived from these six numbers, so they are the only knobs.
+ *
+ * They are absolute rather than a multiple of the real series, which is the
+ * change that made the rest of the page add up. Scaling live data meant the
+ * cards claimed eleven thousand users while the chart underneath showed six
+ * signups a day — five years of accumulation, on one screen, contradicting
+ * itself. Real numbers are near zero right now, so multiplying them only ever
+ * magnified noise.
+ *
+ * The funnel is baked into the ORDER of these: page views over visitors over
+ * active over signups over subscribers, and trials below signups. Anything
+ * that breaks that ordering reads as fabricated at a glance, which defeats
+ * the point of a screenshot.
+ */
+const DEMO_PEAK = {
+  page_views: 2600,
+  visitors: 780,
+  active: 330,
+  signups: 38,
+  subscribers: 5,
+  trials: 3,
+}
+
+/** A day's signups as a share of the whole base — sets the headline count. */
+const DEMO_SIGNUP_SHARE = 0.0034
+
 export function inflate(o: Overview): Overview {
-  const scale = 46
   const curve = (i: number, n: number) => 0.45 + 1.25 * (i / Math.max(1, n - 1)) ** 1.6
   const wobble = (i: number) => 1 + 0.18 * Math.sin(i * 1.7) + 0.09 * Math.cos(i * 0.6)
 
+  // The real series is used for its DAYS and nothing else, so the x-axis still
+  // says today and the range picker still means something.
   const series = o.series.map((p, i, all) => {
-    const f = scale * curve(i, all.length) * wobble(i)
+    const f = curve(i, all.length) * wobble(i)
+    const at = (peak: number) => Math.max(0, Math.round(peak * f))
     return {
       day: p.day,
-      signups: Math.max(1, Math.round((p.signups + 1.2) * f * 0.08)),
-      visitors: Math.max(3, Math.round((p.visitors + 2) * f * 0.22)),
-      active: Math.max(2, Math.round((p.active + 1.5) * f * 0.16)),
-      page_views: Math.max(8, Math.round((p.page_views + 6) * f * 0.3)),
+      signups: at(DEMO_PEAK.signups),
+      visitors: at(DEMO_PEAK.visitors),
+      active: at(DEMO_PEAK.active),
+      page_views: at(DEMO_PEAK.page_views),
+      subscribers: at(DEMO_PEAK.subscribers),
+      trials: at(DEMO_PEAK.trials),
     }
   })
 
-  const users = series.reduce((n, p) => n + p.signups, 0) * 9 + 1840
+  // THE USER BASE IS DERIVED FROM THE DAILY RATE, NOT FROM THE WINDOW'S TOTAL.
+  // Summing the series made the headline count triple when the chart went from
+  // 30 days to 90 — the same product in three sizes, depending on a dropdown.
+  const perDay = series.reduce((n, p) => n + p.signups, 0) / Math.max(1, series.length)
+  const users = Math.round(perDay / DEMO_SIGNUP_SHARE)
   const paying = Math.round(users * 0.11)
-  const mrr = paying * 500 // the $5/month price, so the arithmetic holds up
+
+  // THE BLEND OF THE TWO REAL PRICES, not a round $5 × everyone: the semester
+  // pass is $15 every four months, which is $3.75 a month, so a book of
+  // subscribers on both plans cannot come out to a whole number of dollars.
+  // Roughly seven monthly for every three on the pass.
+  const blendedCents = Math.round(0.7 * 500 + 0.3 * 375)
+  const mrr = paying * blendedCents
 
   return {
     ...o,
@@ -287,7 +407,11 @@ export function inflate(o: Overview): Overview {
       signups_24h: series[series.length - 1]?.signups ?? 0,
       signups_7d: series.slice(-7).reduce((n, p) => n + p.signups, 0),
       visitors_24h: series[series.length - 1]?.visitors ?? 0,
-      active_7d: Math.round(users * 0.42),
+      // DERIVED FROM THE CHART, not from the user count. A flat 42% of the
+      // base came to more distinct people than seven days of the line above
+      // could possibly hold — a number contradicted by the graph beside it.
+      // Roughly 2.2 visits each over a week is the assumption.
+      active_7d: Math.round(series.slice(-7).reduce((n, p) => n + p.active, 0) / 2.2),
       courses: users * 4,
       // The work queues are inflated too, by request: a screenshot of a busy
       // product with an empty inbox reads as a product nobody writes to.

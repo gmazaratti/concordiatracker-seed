@@ -262,8 +262,13 @@ returns jsonb language sql security definer set search_path = public stable as $
   select case when public.is_admin() then public.ct_overview_counts_raw() else '{}'::jsonb end;
 $$;
 
+-- The return type gains two columns, and `create or replace` cannot change a
+-- return type — it errors rather than replacing. Both are dropped first.
+drop function if exists public.admin_daily_series(int);
+drop function if exists public.ct_daily_series_raw(int);
 create or replace function public.ct_daily_series_raw(p_days int default 30)
-returns table (day date, signups int, visitors int, active int, page_views int)
+returns table (day date, signups int, visitors int, active int, page_views int,
+               subscribers int, trials int)
 language sql security definer set search_path = public stable as $$
   with days as (
     select generate_series(
@@ -283,14 +288,31 @@ language sql security definer set search_path = public stable as $$
       where e.created_at::date = days.d and e.user_id in (select user_id from real_users)),
     (select count(*)::int from public.site_events e
       where e.created_at::date = days.d and e.kind = 'view'
-        and (e.user_id is null or e.user_id in (select user_id from real_users)))
+        and (e.user_id is null or e.user_id in (select user_id from real_users))),
+    -- SUBSCRIBERS: subscriptions that STARTED that day, read from Stripe's own
+    -- event log rather than from user_profile, which holds only the CURRENT
+    -- state and so cannot say what was true last Tuesday.
+    (select count(*)::int from public.stripe_events se
+      where se.processed_at::date = days.d
+        and se.type = 'customer.subscription.created'),
+    -- TRIALS: trials whose end date is that day, i.e. the day each one
+    -- converts or lapses. NOT trials started — nothing in this schema records
+    -- when a trial BEGAN (user_profile has trial_end and no start, and
+    -- stripe_events stores no payload), and a start inferred from
+    -- trial_end minus an assumed length would be wrong for every account
+    -- created while STRIPE_TRIAL_DAYS was 7. If starts are wanted, the
+    -- webhook has to write the date down first.
+    (select count(*)::int from public.user_profile tp
+      where coalesce(tp.is_internal, false) = false
+        and tp.trial_end::date = days.d)
   from days order by days.d;
 $$;
 
 create or replace function public.admin_daily_series(p_days int default 30)
-returns table (day date, signups int, visitors int, active int, page_views int)
+returns table (day date, signups int, visitors int, active int, page_views int,
+               subscribers int, trials int)
 language sql security definer set search_path = public stable as $$
-  select s.day, s.signups, s.visitors, s.active, s.page_views
+  select s.day, s.signups, s.visitors, s.active, s.page_views, s.subscribers, s.trials
     from public.ct_daily_series_raw(p_days) s
    where public.is_admin();
 $$;

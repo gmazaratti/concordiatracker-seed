@@ -17,13 +17,19 @@
 -- generate_series, not group-by-date: a day with no signups has to appear as
 -- a zero, or the chart draws a straight line between the days either side and
 -- quietly reports activity that never happened.
+-- NOTE: db/api_tokens.sql supersedes this with a ct_daily_series_raw() split
+-- so the API and this dashboard cannot disagree. Kept in step so that
+-- whichever file runs last leaves the same columns behind.
+drop function if exists public.admin_daily_series(int);
 create or replace function public.admin_daily_series(p_days int default 30)
 returns table (
-  day        date,
-  signups    int,
-  visitors   int,
-  active     int,
-  page_views int
+  day         date,
+  signups     int,
+  visitors    int,
+  active      int,
+  page_views  int,
+  subscribers int,
+  trials      int
 )
 language sql security definer set search_path = public stable as $$
   with days as (
@@ -51,7 +57,23 @@ language sql security definer set search_path = public stable as $$
         and e.user_id in (select user_id from real_users)),
     (select count(*)::int from public.site_events e
       where e.created_at::date = days.d and e.kind = 'view'
-        and (e.user_id is null or e.user_id in (select user_id from real_users)))
+        and (e.user_id is null or e.user_id in (select user_id from real_users))),
+    -- SUBSCRIBERS: subscriptions that STARTED that day, read from Stripe's own
+    -- event log rather than from user_profile, which holds only the CURRENT
+    -- state and so cannot say what was true last Tuesday.
+    (select count(*)::int from public.stripe_events se
+      where se.processed_at::date = days.d
+        and se.type = 'customer.subscription.created'),
+    -- TRIALS: trials whose end date is that day, i.e. the day each one
+    -- converts or lapses. NOT trials started — nothing in this schema records
+    -- when a trial BEGAN (user_profile has trial_end and no start, and
+    -- stripe_events stores no payload), and a start inferred from
+    -- trial_end minus an assumed length would be wrong for every account
+    -- created while STRIPE_TRIAL_DAYS was 7. If starts are wanted, the
+    -- webhook has to write the date down first.
+    (select count(*)::int from public.user_profile tp
+      where coalesce(tp.is_internal, false) = false
+        and tp.trial_end::date = days.d)
   from days
   where public.is_admin()
   order by days.d;

@@ -32,12 +32,25 @@ import {
   type SeriesPoint,
 } from '../overview-data'
 
-type Metric = 'visitors' | 'signups' | 'active' | 'page_views'
+type Metric = 'visitors' | 'signups' | 'active' | 'page_views' | 'subscribers' | 'trials'
+
+/**
+ * Left to right, this is the funnel: someone arrives, comes back, reads,
+ * joins, pays. Subscribers sits at the end because it is the one that pays
+ * for the rest.
+ *
+ * "Trials ending" is named for what the data can actually support. We record
+ * trial_end and no trial start, so a "trials started" line would have to be
+ * inferred from an assumed trial length — which changed from 7 days to 3 —
+ * and would be quietly wrong for every older account.
+ */
 const METRICS: { id: Metric; label: string }[] = [
   { id: 'visitors', label: 'Visitors' },
-  { id: 'signups', label: 'Signups' },
   { id: 'active', label: 'Active users' },
   { id: 'page_views', label: 'Page views' },
+  { id: 'signups', label: 'Signups' },
+  { id: 'trials', label: 'Trials ending' },
+  { id: 'subscribers', label: 'Subscribers' },
 ]
 const RANGES = [7, 30, 90] as const
 

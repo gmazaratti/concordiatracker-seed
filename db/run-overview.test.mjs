@@ -21,10 +21,15 @@ await db.exec(`
   create or replace function public.is_admin() returns boolean language sql stable as $$ select true $$;
   create table public.user_profile (user_id uuid primary key, name text, email text, program text,
     created_at timestamptz default now(), is_internal boolean default false, comped boolean default false,
-    plan_status text, pro_until timestamptz);
+    plan_status text, pro_until timestamptz, trial_end timestamptz);
   create table public.site_events (id bigserial, visitor_id text, user_id uuid, kind text, path text,
     referrer_host text, utm_source text, device text, session_id text, created_at timestamptz default now());
   create table public.courses (id text primary key, user_id uuid, code text, archived boolean default false);
+  -- The webhook's ledger. id + type + processed_at and NO payload, exactly as
+  -- production has it: that missing payload is why the daily series can count
+  -- subscriptions STARTED but not trials started.
+  create table public.stripe_events (id text primary key, type text,
+    processed_at timestamptz default now());
   create table public.tickets (id uuid default gen_random_uuid(), user_id uuid, name text, email text,
     subject text, status text, created_at timestamptz default now());
   create table public.parse_events (id uuid default gen_random_uuid(), user_id uuid, success boolean,
@@ -62,6 +67,24 @@ function need(label, ok) {
   console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${label}`)
 }
 need('the series has one row per day, gaps included', series.rows.length === 7)
+
+// The two subscription columns COUNT, rather than merely parsing. Seeded
+// after the first read so the before/after difference is the assertion:
+// a column hard-wired to 0 would pass a "the query runs" check forever.
+await db.exec(`
+  insert into public.stripe_events (id, type, processed_at) values
+    ('evt_a', 'customer.subscription.created', now()),
+    ('evt_b', 'customer.subscription.created', now()),
+    -- Not a start, so it must NOT be counted.
+    ('evt_c', 'invoice.paid', now());
+  update public.user_profile set trial_end = now() where is_internal = false;
+`)
+const after = await db.query('select * from public.admin_daily_series(7)')
+const today = after.rows.at(-1)
+need('subscribers counts subscriptions started that day', today.subscribers === 2)
+need('  and ignores an event that is not a subscription start', today.subscribers !== 3)
+need('trials counts the trials ending that day', today.trials >= 1)
+need('yesterday stays zero rather than inheriting today', after.rows.at(-2).subscribers === 0)
 need('internal accounts are excluded from the counts', counts.rows[0].c.users_total === 1)
 need('every activity branch returns rows', new Set(act.rows.map((r) => r.kind)).size === 5)
 need('activity is newest first', act.rows.every((r, i, a) => i === 0 || a[i - 1].at >= r.at))

@@ -129,6 +129,8 @@ interface SeriesRow {
   visitors: number
   active: number
   page_views: number
+  subscribers: number
+  trials: number
 }
 
 export async function ownerTimeseries(daysRaw: unknown): Promise<Json> {
@@ -146,6 +148,11 @@ export async function ownerTimeseries(daysRaw: unknown): Promise<Json> {
       visitors: r.visitors,
       active_users: r.active,
       page_views: r.page_views,
+      // Subscriptions started that day. `trials_ending` is named for what it
+      // is: no trial START date is recorded anywhere, so this is the day a
+      // trial runs out, not the day it began.
+      subscribers: r.subscribers ?? 0,
+      trials_ending: r.trials ?? 0,
     })),
     notes: rows.length
       ? []
