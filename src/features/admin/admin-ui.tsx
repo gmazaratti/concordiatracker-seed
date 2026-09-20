@@ -176,3 +176,32 @@ export function ErrorState({ message }: { message: string }) {
     </p>
   )
 }
+
+/** One number with its label. Shared by the user pop-out and the dashboard so
+ *  a figure looks the same wherever it is read. */
+export function Stat({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone?: 'good' | 'warn' | 'bad'
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface px-3 py-2.5">
+      <p
+        className={cn(
+          'font-display text-[19px] leading-tight font-semibold tabular-nums',
+          tone === 'good' ? 'text-success' : tone === 'bad' ? 'text-danger' : tone === 'warn' ? 'text-warning' : 'text-fg',
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-0.5 text-[11px] tracking-wide text-subtle uppercase">{label}</p>
+      {hint && <p className="mt-0.5 text-[11px] leading-snug text-subtle">{hint}</p>}
+    </div>
+  )
+}

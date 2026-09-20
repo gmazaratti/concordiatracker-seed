@@ -11,6 +11,7 @@
 import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
 import { syncOutlines } from './_sync-outlines.js'
 import { syncMoodle } from './_sync-moodle.js'
+import { runReminders } from './_run-reminders.js'
 import { fail } from './_respond.js'
 
 /**
@@ -52,7 +53,7 @@ function toRow(c: CatalogRow, description: string | null) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   /**
-   * THREE JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline
+   * FOUR JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline
    * sync (api/_sync-outlines.ts) and `?job=moodle` refreshes every connected
    * Moodle calendar (api/_sync-moodle.ts), instead of the catalogue mirror.
    *
@@ -70,6 +71,10 @@ export default async function handler(req: any, res: any) {
   }
   if (req.query?.job === 'moodle') {
     await syncMoodle(req, res)
+    return
+  }
+  if (req.query?.job === 'reminders') {
+    await runReminders(req, res)
     return
   }
 

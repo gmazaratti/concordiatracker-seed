@@ -62,6 +62,10 @@
       "destination": "/api/sections?feed=library"
     },
     {
+      "source": "/api/run-reminders",
+      "destination": "/api/sync-catalog?job=reminders"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/not-found?json=1"
     },

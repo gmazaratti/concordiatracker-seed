@@ -25,6 +25,12 @@ export interface AdminUser {
   assignment_count: number
   following_count: number
   signups_attributed: number
+  /** From db/account_flags.sql. Older deployments may not send them yet. */
+  is_internal?: boolean
+  comped?: boolean
+  stripe_customer_id?: string | null
+  subscription_status?: string | null
+  last_seen_at?: string | null
 }
 
 export type ApplicationKind = 'request' | 'organization' | 'teacher'
@@ -237,10 +243,13 @@ export async function adminSetBlueprintPermission(uid: string, allowed: boolean)
   const { error } = await supabase.rpc('admin_set_blueprint_permission', { p_uid: uid, p_allowed: allowed })
   if (error) throw error
 }
-export async function adminSetPlan(uid: string, plan: string, expires: string | null) {
-  const { error } = await supabase.rpc('admin_set_plan', { p_uid: uid, p_plan: plan, p_expires: expires })
-  if (error) throw error
-}
+/**
+ * REMOVED. `admin_set_plan(uuid, text, timestamptz)` changed a plan with no
+ * record that it happened, which is the hole db/admin_audit.sql exists to
+ * close; it has been dropped from the database. Use `setPlanLogged` in
+ * user-detail-data.ts, which takes a reason and writes the audit entry in the
+ * same statement.
+ */
 /**
  * Where each Pro account came from.
  *

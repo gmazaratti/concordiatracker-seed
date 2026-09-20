@@ -1,6 +1,13 @@
 /**
  * POST /api/run-reminders — the scheduled reminder dispatcher.
  *
+ * NOT A ROUTE OF ITS OWN. The underscore keeps it out of Vercel's function
+ * count (Hobby allows 12, and we sit exactly on it). `api/sync-catalog.ts`
+ * dispatches here on `?job=reminders`, and a rewrite keeps the public
+ * `/api/run-reminders` URL working -- which matters, because the pg_cron job
+ * inside the database already points at that URL and nobody holds
+ * CRON_SECRET to go and edit it.
+ *
  * Called by Supabase pg_cron every ~15 min (gated by a shared CRON_SECRET, so
  * the public can't trigger it). Runs on the Vercel NODE runtime (web-push needs
  * Node crypto). Finds reminders whose time has come and haven't been sent, pushes
@@ -96,7 +103,7 @@ interface SeatAlert {
 const BATCH = 200
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function handler(req: any, res: any) {
+export async function runReminders(req: any, res: any) {
   if (req.method !== 'POST') {
     fail(res, 405, 'Method not allowed')
     return
