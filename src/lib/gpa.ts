@@ -1,6 +1,11 @@
 import type { Assessment, AssessmentKind, Course } from '@/data/types'
-import { gradeToPercent } from './grade'
-import { termRank } from './term'
+// Explicit .js extensions: this module is imported by the serverless API as
+// well as the app, and Vercel does NOT bundle — it runs the TypeScript with
+// Node's own resolver, which requires them. Vite resolves .js to .ts, so the
+// browser build is unaffected. Without this the whole /api/v1 function fails
+// to load, not just the GPA endpoint.
+import { gradeToPercent } from './grade.js'
+import { termRank } from './term.js'
 
 /** Concordia's 4.30 letter scale. Percentage cutoffs follow the common
  * undergraduate mapping (departments vary slightly — fine for a demo). */
