@@ -163,6 +163,82 @@ the thread. So a reply is not a draft in a queue somewhere — it reaches them.
 
 ---
 
+## The personal key — Alfred acting as you
+
+A second, separate key: `ct_per_…`, scope `me`. It shares nothing with the
+support key. Create it at **/admin → Assistant → Assistant access → the
+personal panel → Create**. Shown once, only its SHA-256 is stored, revocable
+on its own, and scoped to the account that created it — it can never reach
+another user's data.
+
+Same rules as the support key: `Authorization: Bearer`, 120 requests a
+minute, `429` with `Retry-After`, `401` means the key is dead.
+
+> Give Alfred BOTH keys and tell him which is which. A call to `/me/*` with
+> the support key is a `403`, and vice versa — the scopes do not overlap, and
+> neither one can read business metrics at all.
+
+### Courses
+
+```
+GET    /me/courses?archived=false
+POST   /me/courses                     { code | name, term, credits, … }
+GET    /me/courses/{id}                → the course + every assignment + weight total
+PATCH  /me/courses/{id}
+DELETE /me/courses/{id}                archives it
+DELETE /me/courses/{id}?hard=true      really deletes it, assignments and all
+POST   /me/courses/from-outline        the PDF as the raw body
+```
+
+`from-outline` runs the **same extractor as the website upload** — the same
+function, not a copy — so an outline cannot parse one way in the browser and
+another way through Alfred. It returns the course, the assignments, and a
+weight total. **A total that is not 100 means something is missing or
+ungraded; say so rather than assuming.** Max 4 MB, `Content-Type:
+application/pdf`.
+
+### Assignments
+
+```
+GET    /me/assignments?course_id=&status=todo|done|all&due_before=&due_after=&q=&page=&per_page=
+POST   /me/assignments                 { title, course_id?, kind?, due_at?, weight? }
+GET    /me/assignments/{id}
+PATCH  /me/assignments/{id}            any field, including status
+DELETE /me/assignments/{id}
+POST   /me/assignments/{id}/notes      { "note": "…" }  — appends
+PATCH  /me/assignments/{id}/grade      { "percent" } or { "earned", "total" }
+```
+
+`q` searches the title **and** the description, so "find the linked lists
+one" works when the phrase is in the blurb. `due_after=now` is accepted
+literally. `status=todo` means anything not done.
+
+### Grades and calendar
+
+```
+GET /me/gpa
+GET /me/calendar?from=&to=
+```
+
+`/me/gpa` calls the same functions the GPA screen calls, so it carries the
+rules that are easy to get wrong: Concordia's 4.30 scale, credit weighting,
+and only-the-latest-attempt for a retaken course. A course with nothing
+graded reports `null`, never zero.
+
+### Four things to hold on to
+
+- **An undated assignment is `due_at: null`.** It is never guessed. Do not
+  fill one in from context; ask.
+- **A weight that does not add to 100** on an imported outline is worth
+  raising, not smoothing over.
+- **Deleting an assignment is soft** and a course archives by default.
+  `?hard=true` on a course is the only irreversible verb in the personal API
+  — treat it that way.
+- **This is self-reported data**, not an official record. Never describe a
+  GPA from here as official.
+
+---
+
 ## Alfred's system prompt
 
 Paste this in as-is. Tool definitions are in
@@ -170,9 +246,23 @@ Paste this in as-is. Tool definitions are in
 if the API changes, so they can never disagree with the endpoint.
 
 ```text
-You work the support desk for ConcordiaTracker, an academic planner used by
-Concordia University students. You draft replies to customer messages. Alex
-approves each one before it is sent.
+You work for ConcordiaTracker, an academic planner used by Concordia
+University students. You have two jobs and a separate key for each.
+
+1. THE SUPPORT DESK (ct_sup_ key, /api/v1/support). You draft replies to
+   customer messages. Alex approves each one before it is sent.
+2. ALEX OWN ACCOUNT (ct_per_ key, /api/v1/me). You read and manage his
+   courses, deadlines and grades on his behalf.
+
+Never mix them up: a /me call with the support key is a 403, and neither key
+can read business metrics. If a call is refused for scope, you reached for
+the wrong key — do not retry with the other one unless the task really is
+the other job.
+
+ON HIS OWN ACCOUNT, three things are not yours to invent: a due date the
+outline did not give (it comes back null — ask, do not fill it in), a weight
+that does not add to 100 on an imported outline (raise it), and a grade. And
+treat ?hard=true on a course as the one irreversible verb it is.
 
 WHO YOU ARE TALKING TO
 Undergraduates, usually mid-term, usually annoyed about something concrete: a
