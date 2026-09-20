@@ -27,6 +27,9 @@ const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny; bounds Edge body
  * removes.
  */
 const MODEL_TIMEOUT_MS = 23_000
+/** Below this, the extracted "text" is a header and a link table, not a
+ *  syllabus — see the note at the call site for the measurements. */
+const MIN_TEXT_CHARS = 1_500
 
 const PROMPT = `You are an expert at reading university course syllabi and extracting the graded assessment schedule. You will receive a course syllabus as a PDF. Extract the course identity and EVERY graded assessment into the exact JSON schema provided.
 
@@ -270,9 +273,19 @@ export default async function handler(req: Request): Promise<Response> {
   } catch {
     extracted = '' // an unreadable structure is not an error, it is the fallback
   }
-  // Under ~400 chars means we got headers and no body — a scan, or a font we
-  // cannot map. The same threshold the outline sync uses for the same reason.
-  const useText = extracted.length >= 400
+  /**
+   * MEASURED, not guessed. Across the 45 real Concordia outlines cached from
+   * the eConcordia scrape, the three our extractor cannot read come out at
+   * 114, 532 and 544 characters; the thinnest one it CAN read is 4,410, and
+   * the median is 14,539. There is nothing at all between 550 and 4,400, so
+   * the line goes in that gap with room on both sides.
+   *
+   * The old 400 sat just BELOW the junk, which is how a document that yields
+   * 630 characters of link table took the text path, found no assessments,
+   * and handed the student an empty result with no reason — measured on
+   * exactly such a file.
+   */
+  const useText = extracted.length >= MIN_TEXT_CHARS
   const parts = useText
     ? [{ text: `${PROMPT}
 
@@ -288,16 +301,16 @@ ${extracted.slice(0, 120_000)}` }]
   // attempt is never handed back and the student is left with a cooldown for a
   // failure they did not cause. That is exactly the "it failed and didn't say
   // why" report. Aborting first means the failure is ours to describe.
-  let gemini: Response
-  try {
-    gemini = await fetch(
+  const started = Date.now()
+  const ask = (p: unknown[], budgetMs: number) =>
+    fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
-        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
+        signal: AbortSignal.timeout(budgetMs),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts }],
+          contents: [{ parts: p }],
           generationConfig: {
             temperature: 0,
             responseMimeType: 'application/json',
@@ -317,6 +330,10 @@ ${extracted.slice(0, 120_000)}` }]
         }),
       },
     )
+
+  let gemini: Response
+  try {
+    gemini = await ask(parts, MODEL_TIMEOUT_MS)
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError'
     const how = useText ? `text:${extracted.length}ch` : `pdf:${buf.byteLength}b`
@@ -363,8 +380,48 @@ ${extracted.slice(0, 120_000)}` }]
     await release(`model returned non-JSON: ${text.slice(0, 200)}`)
     return json({ error: 'The parser returned something we could not read. Try again.' }, 502)
   }
+  /**
+   * NOTHING FOUND ON THE TEXT PATH? LOOK AT THE PAGES BEFORE GIVING UP.
+   *
+   * A threshold can only ever be a guess about a file we have not seen: text
+   * can come out long enough to pass and still be mis-mapped glyphs, a table
+   * of contents, or a scanned page with a caption. "No assessments" is the
+   * one outcome that tells us the guess was probably wrong, and it is also
+   * the outcome a student reads as the feature not working — which is exactly
+   * what one reported.
+   *
+   * So when the fast path finds nothing, and there is budget left, we spend a
+   * second call reading the document itself. A syllabus that genuinely has no
+   * graded work costs one extra call, which is a fair price for never
+   * shrugging at one that does.
+   */
+  let out = parsed as { assessments?: unknown[] }
+  const foundNothing = !Array.isArray(out?.assessments) || out.assessments.length === 0
+  const budgetLeft = MODEL_TIMEOUT_MS - (Date.now() - started)
+  if (useText && foundNothing && budgetLeft > 6_000) {
+    try {
+      const second = await ask(
+        [{ inlineData: { mimeType, data: toBase64(buf) } }, { text: PROMPT }],
+        budgetLeft,
+      )
+      if (second.ok) {
+        const j = (await second.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[]
+        }
+        const t2 = j.candidates?.[0]?.content?.parts?.[0]?.text
+        if (t2) {
+          const retried = JSON.parse(t2) as { assessments?: unknown[] }
+          // Only if it did better. A second empty answer is now a real one.
+          if (Array.isArray(retried.assessments) && retried.assessments.length > 0) out = retried
+        }
+      }
+    } catch {
+      /* the first answer stands; a failed second look costs the student nothing */
+    }
+  }
+
   // Count this as a successful parse (toward the monthly cap) — only if a slot
   // was actually claimed (skipped when the limiter is unmigrated / failed open).
   if (slot?.event_id) await callRpc('finish_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
-  return json(parsed)
+  return json(out)
 }
