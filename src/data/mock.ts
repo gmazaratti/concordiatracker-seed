@@ -12,10 +12,19 @@ import { currentTermName } from '@/features/planner/past-terms'
  * NOTE: `plan` starts as 'free' so the free-vs-paid line and the contextual
  * paywall nudge are demonstrable. A dev toggle flips it to 'semester'.
  */
+/**
+ * The sample student the landing page and the demo reel are drawn around.
+ *
+ * DELIBERATELY NOT A REAL PERSON. This identity renders on the public marketing
+ * page, so it must not be anyone's actual name or reachable address: the email
+ * is on example.com, which IANA reserves for exactly this and can never belong
+ * to someone. A signed-in student never sees any of it - the app reads their
+ * own profile.
+ */
 export const currentUser: User = {
-  name: 'Alex Degryse',
-  email: 'alex.degryse@live.concordia.ca',
-  initials: 'AD',
+  name: 'Sam Tremblay',
+  email: 'sample.student@example.com',
+  initials: 'ST',
   plan: 'free',
   school: 'Gina Cody School of Engineering & Computer Science',
   program: 'Computer Science',

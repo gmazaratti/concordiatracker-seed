@@ -7,7 +7,7 @@ import {
   Search,
   Users,
 } from 'lucide-react'
-import { courses, seedAssessments, term } from '@/data/mock'
+import { courses, currentUser, seedAssessments, term } from '@/data/mock'
 import type { Assessment } from '@/data/types'
 import { daysUntil, relativeDueLabel, termProgress } from '@/lib/date'
 import { currentGpa } from '@/lib/gpa'
@@ -46,8 +46,9 @@ export function AppPreview({ name }: { name?: string }) {
   const { week, totalWeeks, percent } = termProgress(term.start, term.end)
   const overdue = dueItems.filter((a) => daysUntil(a.due) < 0)
   const thisWeek = dueItems.filter((a) => daysUntil(a.due) >= 0)
-  // Landing keeps the default sample identity; onboarding passes the real user.
-  const displayName = name?.trim() || 'Alex Degryse'
+  // Landing keeps the default SAMPLE identity; onboarding passes the real user.
+  // It must never be a real person's name - this renders on the public page.
+  const displayName = name?.trim() || currentUser.name
   const firstName = displayName.split(/\s+/)[0]
   const initials =
     displayName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U'
