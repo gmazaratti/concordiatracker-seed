@@ -142,7 +142,62 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    fail(res, 400, 'Unknown action.', { hint: 'stripe-user | stripe-rollup | reconcile' })
+    /**
+     * Everything the Overview page draws, in ONE call.
+     *
+     * Money from Stripe, everything else from Postgres, merged here rather
+     * than fetched separately by the page — three requests would mean three
+     * snapshots, and a card that disagrees with the chart beside it is worse
+     * than a slower page.
+     */
+    if (action === 'dashboard') {
+      const days = Math.min(365, Math.max(7, Number(req.query?.days ?? 30)))
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}`, 'Content-Type': 'application/json' }
+      const rpc = async (fn: string, args: object) => {
+        const r = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+          method: 'POST',
+          // As the CALLER, so the is_admin() gate inside each function is the
+          // one that decides — not a service key that bypasses it.
+          headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(args),
+        })
+        return r.ok ? await r.json() : null
+      }
+      void svc
+
+      const [rollup, series, counts, activity] = await Promise.all([
+        stripeRollup().catch((e: unknown) => ({
+          error: e instanceof Error ? e.message : 'Stripe did not answer.',
+        })),
+        rpc('admin_daily_series', { p_days: days }),
+        rpc('admin_overview_counts', {}),
+        rpc('admin_recent_activity', { p_limit: 25 }),
+      ])
+      // The operational counts the old Overview showed — pending applications,
+      // open bugs, orgs awaiting approval. Folded in rather than left on a
+      // second dashboard: two pages answering "how are we doing" is how you
+      // end up checking neither.
+      const ops = await rpc('admin_dashboard_stats', {})
+
+      res.setHeader('Cache-Control', 'no-store')
+      res.status(200).json({
+        days,
+        generatedAt: new Date().toISOString(),
+        // The timezone rule, stated rather than assumed: every bucket is a UTC
+        // calendar day, so "today" ends at 00:00 UTC, not midnight in Montreal.
+        timezone: 'UTC',
+        stripe: rollup,
+        series: series ?? [],
+        counts: counts ?? {},
+        ops: ops ?? {},
+        activity: activity ?? [],
+      })
+      return
+    }
+
+    fail(res, 400, 'Unknown action.', {
+      hint: 'stripe-user | stripe-rollup | reconcile | dashboard',
+    })
   } catch (e) {
     // Stripe's own message is the useful one here; the caller is an admin.
     fail(res, 502, e instanceof Error ? e.message : 'Stripe did not answer.', {

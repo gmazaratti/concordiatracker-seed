@@ -22,7 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useIsAdmin } from './admin-data'
-import { AdminDashboardTab } from './tabs/AdminDashboardTab'
+import { OverviewTab } from './tabs/OverviewTab'
 import { UsersTab } from './tabs/UsersTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
@@ -113,7 +113,7 @@ export function AdminConsole() {
   const body = (
     <div className="mx-auto w-full max-w-5xl px-5 py-6">
       <div role="tabpanel" id={`admin-panel-${current}`} aria-labelledby={`admin-tab-${current}`}>
-        {current === 'overview' && <AdminDashboardTab />}
+        {current === 'overview' && <OverviewTab />}
         {current === 'users' && <UsersTab />}
         {current === 'applications' && <ApplicationsTab />}
         {current === 'portals' && <PortalsTab />}

@@ -1270,3 +1270,37 @@ html {
 .ct-slide-over {
   animation: ct-slide-over 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
+
+/* A number settling into place when it changes. Keyed remount in the card, so
+ * switching demo mode reads as the same card moving rather than a new card
+ * appearing. Opacity + transform only. */
+@keyframes ct-count {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ct-count {
+  animation: ct-count 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* The chart line drawing itself once. `backwards` rather than `both`: a
+ * stroke-dashoffset left permanently applied is the same class of trap as a
+ * transform that never lets go (see .ct-section-in). */
+@keyframes ct-chart-draw {
+  from {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: 0;
+  }
+}
+.ct-chart-line {
+  animation: ct-chart-draw 620ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}
