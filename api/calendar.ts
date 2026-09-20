@@ -105,6 +105,7 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
     // Same reason as below: a renewed pass must not wait out a cache.
     res.setHeader('Cache-Control', 'no-store')
+    await touch(url, svc, feed.token, req)
     res.status(200).send(
       buildIcs({
         name: 'ConcordiaTracker (paused)',
@@ -123,7 +124,6 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
         ],
       }),
     )
-    void touch(url, svc, feed.token, req)
     return
   }
 
@@ -198,6 +198,13 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
    * fair price for a revoke that is instant and a counter that is true.
    */
   res.setHeader('Cache-Control', 'no-store')
+  // AWAITED, not fired and forgotten. A serverless function can be frozen the
+  // moment it responds, so the floating version never landed -- measured
+  // against production, where the counter stayed at zero through a real
+  // fetch. One extra round trip is the price of the one line in the panel
+  // that answers "has Google actually read this".
+  await touch(url, svc, feed.token, req)
+
   res.status(200).send(
     buildIcs({
       name: 'ConcordiaTracker',
@@ -206,8 +213,6 @@ async function serveFeed(req: any, res: any, url: string, svc: Record<string, st
       events,
     }),
   )
-
-  void touch(url, svc, feed.token, req)
 }
 
 /* ── Managing it ──────────────────────────────────────────────────────────── */
@@ -363,9 +368,12 @@ async function isPro(url: string, svc: Record<string, string>, userId: string): 
 /**
  * Record that somebody fetched it.
  *
- * Fire-and-forget, and deliberately AFTER the response: this exists to answer
- * "is Google actually reading my link", which is the one question the student
- * cannot check themselves, and it must never be able to fail the feed.
+ * This answers the one question the student cannot check from their end --
+ * "is Google actually reading my link" -- so it is awaited rather than fired
+ * and forgotten: a serverless function can be frozen as soon as it responds,
+ * and the floating version simply never ran.
+ *
+ * It still cannot fail the feed. A missed counter is not worth a calendar.
  */
 async function touch(url: string, svc: Record<string, string>, token: string, req: any) {
   try {
