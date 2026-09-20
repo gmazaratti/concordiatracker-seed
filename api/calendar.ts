@@ -256,9 +256,7 @@ async function manage(
   if (action === 'enable' || action === 'rotate') {
     const out = await rpc(action === 'enable' ? 'enable_calendar_feed' : 'rotate_calendar_feed')
     if (!out.ok) {
-      fail(res, 500, readPgError(out.body) ?? 'Could not set up the feed.', {
-        hint: 'If this mentions a missing function, run db/calendar_feed.sql.',
-      })
+      fail(res, ...unavailable(out.body, 'Could not set up the feed.'))
       return
     }
     const token = JSON.parse(out.body) as string
@@ -269,7 +267,7 @@ async function manage(
   if (action === 'disable') {
     const out = await rpc('disable_calendar_feed')
     if (!out.ok) {
-      fail(res, 500, readPgError(out.body) ?? 'Could not turn the feed off.')
+      fail(res, ...unavailable(out.body, 'Could not turn the feed off.'))
       return
     }
     res.status(200).json({ ok: true })
@@ -283,7 +281,7 @@ async function manage(
       p_tasks: typeof b.tasks === 'boolean' ? b.tasks : null,
     })
     if (!out.ok) {
-      fail(res, 500, readPgError(out.body) ?? 'Could not save that.')
+      fail(res, ...unavailable(out.body, 'Could not save that.'))
       return
     }
     res.status(200).json({ ok: true })
@@ -368,6 +366,31 @@ async function touch(url: string, svc: Record<string, string>, token: string, re
   } catch {
     /* a missed counter is not worth a failed calendar */
   }
+}
+
+/**
+ * A missing migration must not read as a broken product.
+ *
+ * Between shipping this code and running `db/calendar_feed.sql` the RPCs do
+ * not exist, and PostgREST answers PGRST202 / Postgres answers 42883. Passing
+ * that straight through puts "Could not find the function
+ * public.enable_calendar_feed" in front of a student, which is our problem
+ * described in our vocabulary. They get a sentence about waiting; the file to
+ * run stays in `hint`, where whoever deploys will look.
+ */
+function unavailable(
+  body: string,
+  fallback: string,
+): [number, string, { code?: 'not_configured'; hint?: string }] {
+  const pg = readPgError(body)
+  if (pg && /(PGRST202|42883|could not find the function|does not exist)/i.test(body)) {
+    return [
+      503,
+      'Calendar sync is still being switched on. Try again in a few minutes.',
+      { code: 'not_configured', hint: 'The server is missing db/calendar_feed.sql.' },
+    ]
+  }
+  return [500, pg ?? fallback, {}]
 }
 
 function readPgError(body: string): string | null {
