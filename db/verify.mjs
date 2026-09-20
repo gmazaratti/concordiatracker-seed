@@ -968,6 +968,160 @@ try { await db.query("select * from public.create_api_token('sneaky','support')"
 check('a non-admin cannot mint one', supRefused, true)
 
 
+// ── db/support_api_v2.sql ───────────────────────────────────────────────────
+// The holds. These are the rules that must survive a confused model, a retried
+// script, and a future endpoint that forgets to check — so they are asserted
+// here rather than trusted to the prompt that also states them.
+console.log('\ndb/support_api_v2.sql')
+
+await db.exec(`
+  create table if not exists public.admin_audit_log (
+    id bigserial primary key, actor_id uuid, actor_email text,
+    action text not null, target_id uuid, target_email text,
+    old_value jsonb, new_value jsonb, reason text not null,
+    created_at timestamptz not null default now()
+  );
+`)
+await db.exec(migration('support_api_v2.sql'))
+console.log('  ok    DDL applies')
+
+const mkTicket = async (subject, body) => {
+  const r = await db.query(
+    `insert into public.tickets (email, name, subject) values ('c@x.test','C',$1) returning id`,
+    [subject],
+  )
+  const id = r.rows[0].id
+  await db.query(
+    `insert into public.ticket_messages (ticket_id, author_role, author_name, body)
+     values ($1,'user','C',$2)`,
+    [id, body],
+  )
+  return `t:${id}`
+}
+const v2Reply = async (id, text) => {
+  try {
+    await db.query('select public.support_reply($1,$2)', [id, text])
+    return 'ok'
+  } catch (e) {
+    return e.detail ?? e.message
+  }
+}
+const v2Patch = async (id, status, needs, actor = 'admin') => {
+  try {
+    return (
+      await db.query('select public.support_patch($1,$2,$3,$4) t', [id, status, needs, actor])
+    ).rows[0].t
+  } catch (e) {
+    return { refused: e.detail ?? e.message }
+  }
+}
+const v2Thread = async (id) => (await db.query('select public.support_thread($1) t', [id])).rows[0].t
+
+/* ── The crisis hold ─────────────────────────────────────────────────────── */
+// Phrasings taken from how people actually write, not from a taxonomy.
+for (const [label, text] of [
+  ['the plain word', 'I have been thinking about suicide a lot this term'],
+  ['a euphemism', 'honestly I just want to die, nothing is working'],
+  ['an abbreviation', 'failing this course might make me kms tbh'],
+  ['self-harm', 'I have been hurting myself over these grades'],
+  ['no reason to live', 'I feel like there is no reason to live anymore'],
+]) {
+  const t = await mkTicket('Help', text)
+  check(`crisis: ${label} blocks a reply`, await v2Reply(t, 'Here is a KB link'), 'crisis_hold')
+  check(`  and flags it for a person`, (await v2Thread(t)).needs_human, true)
+}
+const v2Ordinary = await mkTicket('Import', 'My COMP 248 outline will not import, can you help')
+check('an ordinary thread is not held', await v2Reply(v2Ordinary, 'Try this'), 'ok')
+check('  and reports no hold', (await v2Thread(v2Ordinary)).hold, null)
+check('  and can_reply stays true', (await v2Thread(v2Ordinary)).can_reply, true)
+
+// A reply quoting a helpline must not lock the thread against the person
+// answering it — the hold reads the CUSTOMER's words only.
+const crisisT = await mkTicket('Help', 'I want to die')
+await v2Reply(crisisT, 'x')
+await db.query(
+  `insert into public.ticket_messages (ticket_id, author_role, author_name, body)
+   select id,'staff','Support','Please call 988 — they are there right now.' from public.tickets
+   where id = $1`,
+  [crisisT.slice(2)],
+)
+check(
+  'our own reply quoting a helpline does not re-trigger it',
+  await v2Reply(crisisT, 'follow up'),
+  // Still held — by the CUSTOMER's original words, which is correct — and
+  // not by ours. Proven by the ordinary thread below.
+  'crisis_hold',
+)
+const staffOnly = await mkTicket('Billing', 'How do I change my card')
+await db.query(
+  `insert into public.ticket_messages (ticket_id, author_role, author_name, body)
+   values ($1,'staff','Support','If you are in crisis call 988 or Samaritans 116 123.')`,
+  [staffOnly.slice(2)],
+)
+check('a helpline in OUR text alone does not hold the thread', await v2Reply(staffOnly, 'ok'), 'ok')
+
+/* ── The money hold ──────────────────────────────────────────────────────── */
+for (const [label, text] of [
+  ['refund', 'I want a refund for this month please'],
+  ['money back', 'can I get my money back, it never worked'],
+  ['chargeback', 'I will do a chargeback if this is not sorted'],
+  ['discount', 'any chance of a discount since it was broken'],
+  ['a fix date', 'when will this be fixed? I need it for Monday'],
+  ['an ETA', 'what is the eta on the calendar bug'],
+]) {
+  const t = await mkTicket('Money', text)
+  check(`money: ${label} blocks a reply`, await v2Reply(t, 'Sure!'), 'money_hold')
+  check(`  and flags it for a person`, (await v2Thread(t)).needs_human, true)
+}
+
+/* ── Resolved is Alex's word ─────────────────────────────────────────────── */
+const v2Own = await mkTicket('Question', 'How do I add a course')
+check('the assistant cannot resolve a thread', (await v2Patch(v2Own, 'resolved', null, 'support')).refused,
+  'resolve_is_human_only')
+check('  but the admin UI can', (await v2Patch(v2Own, 'resolved', null, 'admin')).status, 'resolved')
+const v2Esc = await mkTicket('Question', 'How do I add a course')
+check('the assistant CAN escalate', (await v2Patch(v2Esc, null, true, 'support')).needs_human, true)
+check('  and can hand back', (await v2Patch(v2Esc, 'ai_handling', null, 'support')).needs_human, false)
+
+/* ── Every automated reply is on the record ──────────────────────────────── */
+const v2Logged = await db.query(
+  `select action, target_email, new_value->>'body' as body, reason
+     from public.admin_audit_log where action = 'support.ai_reply' and new_value->>'body' = 'Try this' limit 1`,
+)
+check('an AI reply is written to the audit log', v2Logged.rows[0]?.action, 'support.ai_reply')
+check('  with the exact wording', v2Logged.rows[0]?.body, 'Try this')
+check('  and who it went to', v2Logged.rows[0]?.target_email, 'c@x.test')
+
+/* ── Listing: the needs_human filter and the cursor ──────────────────────── */
+const v2List = async (o = {}) =>
+  (
+    await db.query('select public.support_threads($1,$2,$3,$4,$5,$6,$7) l', [
+      o.type ?? null, o.status ?? null, o.since ?? null,
+      o.limit ?? 50, 0, o.needs_human ?? null, o.cursor ?? null,
+    ])
+  ).rows[0].l
+
+const v2Flagged = await v2List({ needs_human: true })
+check('needs_human=true filters', v2Flagged.threads.every((t) => t.needs_human === true), true)
+check('  and it finds every held thread', v2Flagged.threads.length >= 11, true)
+const v2Unflagged = await v2List({ needs_human: false })
+check('needs_human=false filters the other way',
+  v2Unflagged.threads.every((t) => t.needs_human === false), true)
+
+const v2P1 = await v2List({ limit: 3 })
+check('limit caps the page', v2P1.threads.length, 3)
+check('  and hands back a cursor', typeof v2P1.next_cursor === 'string', true)
+const v2P2 = await v2List({ limit: 3, cursor: v2P1.next_cursor })
+check('the cursor moves on', v2P2.threads.length, 3)
+check('  with no row repeated',
+  v2P1.threads.filter((a) => v2P2.threads.some((b) => b.id === a.id)).length, 0)
+const v2Last = await v2List({ limit: 500 })
+check('a page that does not fill returns no cursor', v2Last.next_cursor, null)
+check('every thread carries updated_at for incremental polling',
+  v2Last.threads.every((t) => !!t.updated_at), true)
+check('and its category', v2Last.threads.every((t) => !!t.category), true)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

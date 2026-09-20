@@ -22,7 +22,15 @@
 import { authenticate } from './_v1-auth.js'
 import { ownerOverview, ownerPayments, ownerPing, ownerTimeseries, ownerUsers } from './_v1-owner.js'
 import { meAssignments, meCourses, meGpa, patchAssignment } from './_v1-me.js'
-import { getThread, kb, listThreads, patchThread, replyToThread } from './_v1-support.js'
+import {
+  getThread,
+  kbList,
+  kbOne,
+  kbSearch,
+  listThreads,
+  patchThread,
+  replyToThread,
+} from './_v1-support.js'
 import { fail } from './_respond.js'
 
 export const config = { maxDuration: 30 }
@@ -184,7 +192,14 @@ export default async function handler(req: any, res: any) {
           fail(res, 405, 'The knowledge base is read-only.')
           return
         }
-        return void send(res, kb((req.query ?? {}) as Record<string, unknown>))
+        const q = (req.query ?? {}) as Record<string, unknown>
+        // /kb/search comes before /kb/{id}: "search" is a reserved id, and a
+        // future article slugged "search" would otherwise shadow the endpoint.
+        if (id === 'search') return void send(res, kbSearch(q))
+        if (id) return void send(res, kbOne(decodeURIComponent(id)))
+        // ?q= on the bare path still works — it is what the first cut did.
+        if (String(q.q ?? '').trim()) return void send(res, kbSearch(q))
+        return void send(res, kbList())
       }
 
       if (resource !== 'threads') {
@@ -192,10 +207,11 @@ export default async function handler(req: any, res: any) {
         return
       }
 
-      // /support/threads/{id}/reply — the id is one segment and the action
+      // /support/threads/{id}/replies — the id is one segment and the action
       // the next. A thread id contains a colon, never a slash, so the two
-      // cannot run into each other.
-      if (id && raw[3] === 'reply') {
+      // cannot run into each other. Singular is accepted as well: it is what
+      // the first cut of this endpoint used.
+      if (id && (raw[3] === 'replies' || raw[3] === 'reply')) {
         if (req.method !== 'POST') {
           fail(res, 405, 'Replying is a POST.')
           return

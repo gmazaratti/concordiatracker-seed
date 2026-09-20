@@ -15,7 +15,7 @@
  * point of keeping the API ignorant of it.
  */
 import { iso, rpcRaw } from './_v1-auth.js'
-import { articles, search } from './_v1-kb.js'
+import { article, articles, searchHits } from './_v1-kb.js'
 import { notifyTicketReply } from './_ticket-email.js'
 
 interface Json {
@@ -90,15 +90,29 @@ export async function listThreads(q: Json): Promise<{ status: number; json: Json
     return { status: 400, json: { error: 'since must be an ISO-8601 timestamp.' } }
   }
 
-  const perPage = Math.max(1, Math.min(Number(q.per_page) || 50, 200))
-  const page = Math.max(1, Number(q.page) || 1)
+  // `limit` is the documented name; `per_page` is accepted because the
+  // first version of this endpoint used it and something may already.
+  const limit = Math.max(1, Math.min(Number(q.limit ?? q.per_page) || 50, 200))
+  const cursor = String(q.cursor ?? '').trim()
+
+  // Tri-state on purpose: absent means "either", not "false".
+  let needsHuman: boolean | null = null
+  if (q.needs_human != null && q.needs_human !== '') {
+    const raw = String(q.needs_human).toLowerCase()
+    if (raw !== 'true' && raw !== 'false') {
+      return { status: 400, json: { error: 'needs_human must be true or false.' } }
+    }
+    needsHuman = raw === 'true'
+  }
 
   const out = await call<Json>('support_threads', {
     p_type: type || null,
     p_status: status || null,
     p_since: since || null,
-    p_limit: perPage,
-    p_offset: (page - 1) * perPage,
+    p_limit: limit,
+    p_offset: 0,
+    p_needs_human: needsHuman,
+    p_cursor: cursor || null,
   })
   if (!out.ok) return { status: out.status, json: { error: out.message, reason: out.reason } }
 
@@ -111,6 +125,8 @@ export async function listThreads(q: Json): Promise<{ status: number; json: Json
       notes: [
         '`since` matches threads created OR updated at or after the timestamp, so an older thread with a new customer message is returned.',
         'A diagnostic has no update timestamp — for those, `since` is the time it arrived.',
+        'Page with `cursor`, not an offset: threads reorder as they are answered, and an offset scan silently skips whatever moved up while you were reading. A null `next_cursor` means there is no more.',
+        '`hold` names a thread the assistant may never answer: crisis, money, or diagnostic. Held threads also read back as needs_human.',
       ],
     },
   }
@@ -129,8 +145,11 @@ export async function replyToThread(
   id: string,
   body: Json,
 ): Promise<{ status: number; json: Json }> {
-  const text = typeof body.text === 'string' ? body.text.trim() : ''
-  if (!text) return { status: 400, json: { error: 'Send { "text": "..." }.', reason: 'empty' } }
+  // `body` is the documented field; `text` is accepted too, because the
+  // first cut of this endpoint used it.
+  const raw = typeof body.body === 'string' ? body.body : body.text
+  const text = typeof raw === 'string' ? raw.trim() : ''
+  if (!text) return { status: 400, json: { error: 'Send { "body": "..." }.', reason: 'empty' } }
   if (text.length > 5000) {
     return { status: 400, json: { error: 'A reply is at most 5000 characters.', reason: 'too_long' } }
   }
@@ -173,23 +192,70 @@ export async function patchThread(id: string, body: Json): Promise<{ status: num
     p_thread: id,
     p_status: status,
     p_needs_human: hasFlag ? Boolean(body.needs_human) : null,
+    // The database refuses `resolved` from this actor. Closing a customer's
+    // problem is a judgement with a person's name on it, and the admin UI is
+    // where that name is.
+    p_actor: 'support',
   })
   if (!out.ok) return { status: out.status, json: { error: out.message, reason: out.reason } }
   return { status: 200, json: out.data }
 }
 
-/** The knowledge base. Queried before drafting; the assistant answers from
- *  these rather than from memory, and `url` lets a reply link the page. */
-export function kb(q: Json): { status: number; json: Json } {
-  const query = String(q.q ?? '').trim()
-  const found = query ? search(query) : articles()
+/**
+ * The knowledge base, in three shapes.
+ *
+ * Queried before drafting; the assistant answers from these rather than from
+ * memory, and every article carries a `url` so a reply can link the page
+ * instead of paraphrasing it into something subtly different.
+ *
+ * THE LIST AND THE SEARCH DO NOT CARRY BODIES. Forty articles' worth of prose
+ * is most of a context window spent on pages that will not be used; a title
+ * and a snippet are enough to choose by, and fetching the chosen one makes
+ * "answered only from the KB" checkable — the article quoted is the article
+ * asked for.
+ */
+export function kbList(): { status: number; json: Json } {
   return {
     status: 200,
     json: {
       generated_at: iso(Date.now()),
-      query: query || null,
-      count: found.length,
-      articles: found,
+      count: articles().length,
+      articles: articles().map((a) => ({
+        id: a.slug,
+        title: a.title,
+        url: a.url,
+        summary: a.summary,
+        tags: a.tags,
+        source: a.source,
+      })),
+    },
+  }
+}
+
+export function kbOne(id: string): { status: number; json: Json } {
+  const found = article(id)
+  if (!found) {
+    return { status: 404, json: { error: `No article with id "${id}".`, reason: 'not_found' } }
+  }
+  return { status: 200, json: { ...found, id: found.slug } }
+}
+
+export function kbSearch(q: Json): { status: number; json: Json } {
+  const query = String(q.q ?? '').trim()
+  if (!query) {
+    return { status: 400, json: { error: 'Give a query: /support/kb/search?q=…' } }
+  }
+  const hits = searchHits(query)
+  return {
+    status: 200,
+    json: {
+      generated_at: iso(Date.now()),
+      query,
+      count: hits.length,
+      results: hits,
+      notes: hits.length
+        ? ['Fetch the full text with GET /api/v1/support/kb/{id} before quoting it.']
+        : ['Nothing matched. Do not answer from memory — escalate with needs_human instead.'],
     },
   }
 }

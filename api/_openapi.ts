@@ -604,18 +604,30 @@ export const OPENAPI = {
             description: 'ISO-8601. Matches creation OR last activity.',
           },
           {
-            name: 'page',
+            name: 'needs_human',
             in: 'query',
             required: false,
-            schema: { type: 'integer', minimum: 1, default: 1 },
-            description: 'Which page of results, counting from one.',
+            schema: { type: 'boolean' },
+            description:
+              'Only threads flagged for a person, or only those not flagged. Omit for either. ' +
+              'A thread held for crisis or money reads as true whether or not anyone set it.',
           },
           {
-            name: 'per_page',
+            name: 'limit',
             in: 'query',
             required: false,
             schema: { type: 'integer', minimum: 1, maximum: 200, default: 50 },
-            description: 'How many threads per page.',
+            description: 'How many threads to return.',
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description:
+              'The next_cursor from the previous page. Page with this rather than an offset: ' +
+              'threads reorder as they are answered, so an offset scan silently skips whatever ' +
+              'moved up while you were reading. A null next_cursor means there is no more.',
           },
         ],
         responses: {
@@ -666,10 +678,12 @@ export const OPENAPI = {
         tags: ['Support API'],
         summary: 'Change a thread state',
         description:
-          'Either field, or both. Setting `ai_handling` CLEARS `needs_human` — that is the ' +
-          'hand-back gesture, done in one call so there is no window where the assistant owns a ' +
-          'thread still flagged for a person. A diagnostic has no conversation, so it accepts ' +
-          'only open or resolved and refuses the rest with a 409.',
+          'Either field, or both. Use it to ESCALATE: set needs_human true and leave the ' +
+          'thread for a person. Setting `ai_handling` CLEARS `needs_human` — the hand-back ' +
+          'gesture, one call so there is no window where the assistant owns a thread still ' +
+          'flagged for a person. `resolved` is REFUSED for this token (409 ' +
+          '`resolve_is_human_only`): deciding a customer problem is over is a judgement with ' +
+          'a person name on it. A diagnostic refuses handling changes with 409.',
         security: [{ supportToken: [] }],
         parameters: [
           {
@@ -709,17 +723,20 @@ export const OPENAPI = {
       },
     },
 
-    '/api/v1/support/threads/{id}/reply': {
+    '/api/v1/support/threads/{id}/replies': {
       post: {
         operationId: 'replyToSupportThread',
         tags: ['Support API'],
         summary: 'Reply to a customer',
         description:
           'Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. ' +
-          'WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here: a thread that a ' +
-          'person has taken over, that is resolved, or where the customer asked for a person ' +
-          'returns 409 with a machine-readable `reason` — one of human_takeover, resolved, ' +
-          'needs_human or diagnostic_not_repliable.',
+          'WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here, so no caller can ' +
+          'route around it. A refusal is 409 with a machine-readable `reason`: `crisis_hold` ' +
+          '(the customer mentioned self-harm — never answered automatically; follow the ' +
+          'crisis protocol and leave it for a person), `money_hold` (a refund, discount or ' +
+          'delivery date — those are promises a person makes), `human_takeover`, `resolved`, ' +
+          '`needs_human`, or `diagnostic_not_repliable`. Every accepted reply is written to ' +
+          'the admin audit log with its exact wording.',
         security: [{ supportToken: [] }],
         parameters: [
           {
@@ -736,9 +753,9 @@ export const OPENAPI = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['text'],
+                required: ['body'],
                 properties: {
-                  text: {
+                  body: {
                     type: 'string',
                     maxLength: 5000,
                     description:
@@ -770,16 +787,91 @@ export const OPENAPI = {
       },
     },
 
+    '/api/v1/support/kb/{id}': {
+      get: {
+        operationId: 'getSupportKbArticle',
+        tags: ['Support API'],
+        summary: 'One knowledge base article, in full',
+        description:
+          'The whole body. Fetch the article you intend to quote: the list and the search ' +
+          'return snippets only, so what you quoted is the article you asked for.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The article id, as returned by the list or the search.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The article.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/KbArticle' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/support/kb/search': {
+      get: {
+        operationId: 'searchSupportKbArticles',
+        tags: ['Support API'],
+        summary: 'Search the knowledge base',
+        description:
+          'Scored across title, id, summary and body, best first, with a snippet around the ' +
+          'match so relevance can be judged without fetching each one. A body hit counts ' +
+          'once per article, so a long page mentioning a word in passing does not outrank ' +
+          'the page about it. NOTHING MATCHING IS AN ANSWER: escalate rather than replying ' +
+          'from memory.',
+        security: [{ supportToken: [] }],
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The search terms.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Matching articles, best first.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string' },
+                    count: { type: 'integer' },
+                    results: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/KbHit' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
     '/api/v1/support/kb': {
       get: {
         operationId: 'searchSupportKb',
         tags: ['Support API'],
-        summary: 'The knowledge base to answer from',
+        summary: 'List every knowledge base article',
         description:
-          'Articles generated from the published documentation and the legal documents, so they ' +
-          'cannot drift from what a person would be told to read. Query the KB before drafting ' +
-          'and answer FROM these; every article carries a url so a reply can link the page ' +
-          'rather than paraphrasing it.',
+          'Id, title, url and summary for every article — no bodies, because forty articles ' +
+          'of prose is most of a context window spent on pages that will not be used. ' +
+          'Generated from the published documentation and the legal documents, so they ' +
+          'cannot drift from what a person would be told to read. Answer ONLY from these.',
         security: [{ supportToken: [] }],
         parameters: [
           {
@@ -1078,10 +1170,32 @@ export const OPENAPI = {
             type: 'string',
             enum: ['open', 'ai_handling', 'human_takeover', 'resolved'],
           },
-          needs_human: { type: 'boolean', description: 'The customer asked for a person.' },
+          needs_human: {
+            type: 'boolean',
+            description:
+              'The customer asked for a person, OR the thread is held. A held thread reads ' +
+              'as true without anyone having set a flag.',
+          },
+          hold: {
+            type: 'string',
+            nullable: true,
+            enum: ['crisis', 'money', 'diagnostic', null],
+            description:
+              'Why this thread may never be answered automatically, if it may not. Derived ' +
+              'from the customer own words on every read, so it cannot be cleared or ' +
+              'forgotten.',
+          },
           can_reply: {
             type: 'boolean',
             description: 'Whether a reply would be accepted right now. The database decides.',
+          },
+          attachments: {
+            type: 'array',
+            items: { type: 'string', format: 'uri' },
+            description:
+              'ALWAYS EMPTY. The product has no attachment upload — a customer cannot send ' +
+              'a file with a ticket. The field exists so the contract does not change on the ' +
+              'day uploads ship. Never wait for one.',
           },
           customer_email: { type: 'string' },
           customer_name: { type: 'string' },
@@ -1121,9 +1235,24 @@ export const OPENAPI = {
           notes: { type: 'array', items: { type: 'string' } },
         },
       },
+      KbHit: {
+        type: 'object',
+        description: 'A search result: enough to judge relevance, without the body.',
+        properties: {
+          id: { type: 'string' },
+          title: { type: 'string' },
+          url: { type: 'string', format: 'uri' },
+          summary: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          source: { type: 'string', enum: ['docs', 'policy', 'app'] },
+          score: { type: 'number' },
+          snippet: { type: 'string', description: 'The text around the first match.' },
+        },
+      },
       KbArticle: {
         type: 'object',
         properties: {
+          id: { type: 'string' },
           slug: { type: 'string' },
           title: { type: 'string' },
           url: { type: 'string', format: 'uri' },

@@ -115,22 +115,34 @@ export function articles(): KbArticle[] {
 }
 
 /**
- * Search. Deliberately a plain scored substring match rather than anything
- * clever: the corpus is a few dozen articles, the caller is a language model
- * that will read what comes back, and a fuzzy matcher that silently ranks the
- * wrong page first is worse than one whose behaviour is obvious. Title and
- * slug beat summary, which beats the body.
+ * Search. Deliberately a plain scored match rather than anything clever: the
+ * corpus is a few dozen articles, the caller is a language model that will
+ * read what comes back, and a fuzzy matcher that silently ranks the wrong
+ * page first is worse than one whose behaviour is obvious.
+ *
+ * Scoring, highest first: the whole phrase in the title, a term in the title,
+ * in the slug, in the summary, then in the body. **A body hit counts once per
+ * article, not once per occurrence** — otherwise a long page that says
+ * "calendar" thirty times in passing beats the page actually about calendars.
  */
 export function search(q: string): KbArticle[] {
-  const terms = q.toLowerCase().split(/\s+/).filter(Boolean)
-  if (!terms.length) return articles()
+  return ranked(q).map((x) => x.a)
+}
+
+function ranked(q: string): { a: KbArticle; score: number }[] {
+  const phrase = q.trim().toLowerCase()
+  const terms = phrase.split(/\s+/).filter(Boolean)
+  if (!terms.length) return articles().map((a) => ({ a, score: 0 }))
+
   return articles()
     .map((a) => {
-      let score = 0
       const title = a.title.toLowerCase()
       const slug = a.slug.toLowerCase()
       const summary = a.summary.toLowerCase()
       const body = a.body.toLowerCase()
+      let score = 0
+      if (terms.length > 1 && title.includes(phrase)) score += 25
+      if (terms.length > 1 && body.includes(phrase)) score += 8
       for (const t of terms) {
         if (title.includes(t)) score += 10
         if (slug.includes(t)) score += 8
@@ -140,6 +152,60 @@ export function search(q: string): KbArticle[] {
       return { a, score }
     })
     .filter((x) => x.score > 0)
-    .sort((x, y) => y.score - x.score)
-    .map((x) => x.a)
+    .sort((x, y) => y.score - x.score || x.a.title.localeCompare(y.a.title))
+}
+
+/** One article by its id (the slug). */
+export function article(id: string): KbArticle | null {
+  const want = id.trim().toLowerCase()
+  return articles().find((a) => a.slug.toLowerCase() === want) ?? null
+}
+
+export interface KbHit {
+  id: string
+  title: string
+  url: string
+  summary: string
+  tags: string[]
+  source: string
+  score: number
+  /** The text around the first match, so a reader can judge relevance
+   *  without a second request for the whole article. */
+  snippet: string
+}
+
+/**
+ * Search results, without the full bodies.
+ *
+ * Seventeen articles' worth of body text in one response is most of a context
+ * window spent on pages the assistant will not use. It gets a snippet to
+ * judge by and fetches the one it wants — which is also what makes "answer
+ * only from the KB" checkable: the article it quoted is the article it asked
+ * for.
+ */
+export function searchHits(q: string): KbHit[] {
+  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  return ranked(q).map(({ a, score }) => ({
+    id: a.slug,
+    title: a.title,
+    url: a.url,
+    summary: a.summary,
+    tags: a.tags,
+    source: a.source,
+    score,
+    snippet: snippetFor(a.body, terms),
+  }))
+}
+
+function snippetFor(body: string, terms: string[]): string {
+  const lower = body.toLowerCase()
+  let at = -1
+  for (const t of terms) {
+    const i = lower.indexOf(t)
+    if (i >= 0 && (at < 0 || i < at)) at = i
+  }
+  if (at < 0) return body.slice(0, 200).trim()
+  const from = Math.max(0, at - 90)
+  const to = Math.min(body.length, at + 150)
+  return (from > 0 ? '…' : '') + body.slice(from, to).trim() + (to < body.length ? '…' : '')
 }

@@ -1,6 +1,22 @@
 {
   "tools": [
     {
+      "name": "getSupportKbArticle",
+      "description": "GET /api/v1/support/kb/{id}. One knowledge base article, in full. The whole body. Fetch the article you intend to quote: the list and the search return snippets only, so what you quoted is the article you asked for.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The article id, as returned by the list or the search."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
       "name": "getSupportThread",
       "description": "GET /api/v1/support/threads/{id}. One thread, with its messages. A diagnostic returns a single message authored by `user` carrying the notes and the payload, so a client needs one code path rather than two. `can_reply` says whether this thread will accept a reply right now.",
       "input_schema": {
@@ -45,25 +61,27 @@
             "format": "date-time",
             "description": "ISO-8601. Matches creation OR last activity."
           },
-          "page": {
-            "type": "integer",
-            "minimum": 1,
-            "default": 1,
-            "description": "Which page of results, counting from one."
+          "needs_human": {
+            "type": "boolean",
+            "description": "Only threads flagged for a person, or only those not flagged. Omit for either. A thread held for crisis or money reads as true whether or not anyone set it."
           },
-          "per_page": {
+          "limit": {
             "type": "integer",
             "minimum": 1,
             "maximum": 200,
             "default": 50,
-            "description": "How many threads per page."
+            "description": "How many threads to return."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "The next_cursor from the previous page. Page with this rather than an offset: threads reorder as they are answered, so an offset scan silently skips whatever moved up while you were reading. A null next_cursor means there is no more."
           }
         }
       }
     },
     {
       "name": "patchSupportThread",
-      "description": "PATCH /api/v1/support/threads/{id}. Change a thread state. Either field, or both. Setting `ai_handling` CLEARS `needs_human` — that is the hand-back gesture, done in one call so there is no window where the assistant owns a thread still flagged for a person. A diagnostic has no conversation, so it accepts only open or resolved and refuses the rest with a 409.",
+      "description": "PATCH /api/v1/support/threads/{id}. Change a thread state. Either field, or both. Use it to ESCALATE: set needs_human true and leave the thread for a person. Setting `ai_handling` CLEARS `needs_human` — the hand-back gesture, one call so there is no window where the assistant owns a thread still flagged for a person. `resolved` is REFUSED for this token (409 `resolve_is_human_only`): deciding a customer problem is over is a judgement with a person name on it. A diagnostic refuses handling changes with 409.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -91,7 +109,7 @@
     },
     {
       "name": "replyToSupportThread",
-      "description": "POST /api/v1/support/threads/{id}/reply. Reply to a customer. Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here: a thread that a person has taken over, that is resolved, or where the customer asked for a person returns 409 with a machine-readable `reason` — one of human_takeover, resolved, needs_human or diagnostic_not_repliable.",
+      "description": "POST /api/v1/support/threads/{id}/replies. Reply to a customer. Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here, so no caller can route around it. A refusal is 409 with a machine-readable `reason`: `crisis_hold` (the customer mentioned self-harm — never answered automatically; follow the crisis protocol and leave it for a person), `money_hold` (a refund, discount or delivery date — those are promises a person makes), `human_takeover`, `resolved`, `needs_human`, or `diagnostic_not_repliable`. Every accepted reply is written to the admin audit log with its exact wording.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -99,7 +117,7 @@
             "type": "string",
             "description": "A composite thread id. Diagnostics cannot be replied to."
           },
-          "text": {
+          "body": {
             "type": "string",
             "maxLength": 5000,
             "description": "The reply. Never write an assistant label into it — the UI renders that from the author field."
@@ -107,13 +125,13 @@
         },
         "required": [
           "id",
-          "text"
+          "body"
         ]
       }
     },
     {
       "name": "searchSupportKb",
-      "description": "GET /api/v1/support/kb. The knowledge base to answer from. Articles generated from the published documentation and the legal documents, so they cannot drift from what a person would be told to read. Query the KB before drafting and answer FROM these; every article carries a url so a reply can link the page rather than paraphrasing it.",
+      "description": "GET /api/v1/support/kb. List every knowledge base article. Id, title, url and summary for every article — no bodies, because forty articles of prose is most of a context window spent on pages that will not be used. Generated from the published documentation and the legal documents, so they cannot drift from what a person would be told to read. Answer ONLY from these.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -122,6 +140,22 @@
             "description": "Keywords. Omit to list every article."
           }
         }
+      }
+    },
+    {
+      "name": "searchSupportKbArticles",
+      "description": "GET /api/v1/support/kb/search. Search the knowledge base. Scored across title, id, summary and body, best first, with a snippet around the match so relevance can be judged without fetching each one. A body hit counts once per article, so a long page mentioning a word in passing does not outrank the page about it. NOTHING MATCHING IS AN ANSWER: escalate rather than replying from memory.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "The search terms."
+          }
+        },
+        "required": [
+          "q"
+        ]
       }
     }
   ]
