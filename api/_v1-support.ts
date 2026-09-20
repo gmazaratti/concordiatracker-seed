@@ -46,20 +46,31 @@ async function call<T>(
 
   const err = (res.error ?? {}) as PgError
   const reason = err.details ?? ''
-  if (reason === 'not_found') {
-    return { ok: false, status: 404, reason, message: err.message ?? 'No thread with that id.' }
+
+  // MAP THE SQLSTATE, NOT A LIST OF REASONS. This used to be a hand-written
+  // allowlist of every `detail` the functions raise, and the first time the
+  // database learned three new ones — crisis_hold, money_hold and
+  // resolve_is_human_only — they fell through to a 500. A guard that answers
+  // "server error" is a guard the caller retries.
+  //
+  // The class is already encoded where it is raised, so read that instead and
+  // a reason added in SQL needs no change here:
+  //   P0002  the thing does not exist          → 404
+  //   22023  the caller sent something invalid → 400
+  //   P0001  the caller may not do this        → 409
+  if (err.code === 'P0002') {
+    return { ok: false, status: 404, reason: reason || 'not_found', message: err.message ?? 'No thread with that id.' }
   }
-  if (
-    reason === 'human_takeover' ||
-    reason === 'resolved' ||
-    reason === 'needs_human' ||
-    reason === 'diagnostic_not_repliable' ||
-    reason === 'diagnostic_has_no_handling'
-  ) {
-    return { ok: false, status: 409, reason, message: err.message ?? 'That thread is not open to you.' }
+  if (err.code === '22023') {
+    return { ok: false, status: 400, reason: reason || 'bad_request', message: err.message ?? 'Bad request.' }
   }
-  if (reason === 'empty' || reason === 'bad_status') {
-    return { ok: false, status: 400, reason, message: err.message ?? 'Bad request.' }
+  if (err.code === 'P0001') {
+    return {
+      ok: false,
+      status: 409,
+      reason: reason || 'conflict',
+      message: err.message ?? 'That thread is not open to you.',
+    }
   }
 
   // A MISSING FUNCTION IS A DEPLOYMENT FACT, NOT A SERVER ERROR, and saying
