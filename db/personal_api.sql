@@ -102,9 +102,16 @@ grant execute on function public.admin_ai_reply_count(int) to authenticated;
  * and deleting a term's history to tidy a list is the kind of thing somebody
  * does once and regrets. The API exposes both.
  */
+--
+-- courses.id is TEXT in this schema, not uuid: a manually created course gets
+-- an id like 'manual-course-1'. Typing this parameter uuid made every call
+-- fail with 42883 (operator does not exist: text = uuid). The drop is needed
+-- because `create or replace` with a different signature OVERLOADS rather
+-- than replaces, and PostgREST then cannot choose between the two.
+drop function if exists public.api_delete_course(uuid, uuid, boolean);
 create or replace function public.api_delete_course(
   p_user uuid,
-  p_course uuid,
+  p_course text,
   p_archive boolean default true
 )
 returns jsonb
@@ -133,7 +140,7 @@ begin
   end if;
   return jsonb_build_object('deleted', true, 'id', p_course);
 end $$;
-revoke all on function public.api_delete_course(uuid, uuid, boolean) from anon, authenticated;
+revoke all on function public.api_delete_course(uuid, text, boolean) from anon, authenticated;
 
 /**
  * Append a note to an assignment.

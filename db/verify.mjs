@@ -72,7 +72,7 @@ async function fixtures(db) {
       id serial primary key, course_code text, course_name text, professor text,
       section text, term text, verified boolean default false
     );
-    create table courses (id uuid primary key default gen_random_uuid(), user_id uuid, code text, final_percent numeric);
+    create table courses (id text primary key default gen_random_uuid()::text, user_id uuid, code text, final_percent numeric);
     create table seat_watches (
       id uuid primary key default gen_random_uuid(),
       user_id uuid not null, class_number text not null, term_code text not null,
@@ -523,10 +523,11 @@ await db.exec(`
   create table public.profile_follows (follower_id uuid, following_id uuid);
   drop table if exists public.courses cascade;
   create table public.courses (
-    -- uuid, like production. It was text here, which made the id comparison
-    -- in api_delete_course a 42883 "no operator matches" — a fixture bug that
-    -- reads exactly like a bug in the migration.
-    id uuid primary key default gen_random_uuid(), user_id uuid, code text,
+    -- TEXT, measured against production through PostgREST's own schema doc
+    -- rather than assumed: a manually created course gets an id like
+    -- 'manual-course-1', which is why this column was never uuid. A fixture
+    -- that types it uuid lets a migration pass here and throw 42883 live.
+    id text primary key default gen_random_uuid()::text, user_id uuid, code text,
     name text, color text, term text, archived boolean default false
   );
   insert into public.user_profile
@@ -1131,7 +1132,7 @@ console.log('\ndb/personal_api.sql')
 await db.exec(`
   create table if not exists public.assignments (
     id uuid primary key default gen_random_uuid(),
-    user_id uuid, course_id uuid, title text, date timestamptz,
+    user_id uuid, course_id text, title text, date timestamptz,
     type text, weight numeric, score numeric, raw_score numeric, raw_total numeric,
     done boolean, missed boolean, awaiting_grade boolean, extension_granted boolean,
     notes text, description text, status text,

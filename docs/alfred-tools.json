@@ -32,7 +32,6 @@
           },
           "course_id": {
             "type": "string",
-            "format": "uuid",
             "nullable": true
           },
           "kind": {
@@ -108,7 +107,6 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
             "description": "The course id."
           },
           "hard": {
@@ -166,7 +164,6 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
             "description": "The course id."
           }
         },
@@ -262,7 +259,6 @@
         "properties": {
           "course_id": {
             "type": "string",
-            "format": "uuid",
             "description": "Only assessments belonging to this course."
           },
           "status": {
@@ -499,7 +495,6 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
             "description": "The course id."
           }
         },

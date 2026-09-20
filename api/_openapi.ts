@@ -402,7 +402,7 @@ export const OPENAPI = {
             name: 'id',
             in: 'path',
             required: true,
-            schema: { type: 'string', format: 'uuid' },
+            schema: { type: 'string' },
             description: 'The course id.',
           },        ],
         responses: {
@@ -427,7 +427,7 @@ export const OPENAPI = {
             name: 'id',
             in: 'path',
             required: true,
-            schema: { type: 'string', format: 'uuid' },
+            schema: { type: 'string' },
             description: 'The course id.',
           },        ],
         requestBody: {
@@ -456,7 +456,7 @@ export const OPENAPI = {
             name: 'id',
             in: 'path',
             required: true,
-            schema: { type: 'string', format: 'uuid' },
+            schema: { type: 'string' },
             description: 'The course id.',
           },
           {
@@ -696,7 +696,7 @@ export const OPENAPI = {
             name: 'course_id',
             in: 'query',
             required: false,
-            schema: { type: 'string', format: 'uuid' },
+            schema: { type: 'string' },
             description: 'Only assessments belonging to this course.',
           },
           {
@@ -789,7 +789,7 @@ export const OPENAPI = {
                 required: ['title'],
                 properties: {
                   title: { type: 'string' },
-                  course_id: { type: 'string', format: 'uuid', nullable: true },
+                  course_id: { type: 'string', nullable: true },
                   kind: {
                     type: 'string',
                     enum: ['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'],
@@ -1747,7 +1747,7 @@ export const OPENAPI = {
       MyCourse: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string' },
           code: { type: 'string' },
           title: { type: 'string' },
           term: { type: 'string' },
@@ -1813,7 +1813,7 @@ export const OPENAPI = {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid' },
-          course_id: { type: 'string', format: 'uuid', nullable: true },
+          course_id: { type: 'string', nullable: true },
           title: { type: 'string' },
           kind: { type: 'string' },
           due: {
