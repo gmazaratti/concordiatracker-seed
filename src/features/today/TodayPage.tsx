@@ -15,16 +15,14 @@ import { PeerNudge } from './PeerNudge'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
-import { cn } from '@/lib/cn'
 import { useT, useI18n } from '@/i18n/i18n'
 import { useUiState } from '@/app/providers/ui-state'
 import {
   WIDGETS_BY_ID,
   GLANCE_ID,
-  DEFAULT_TOP,
-  DEFAULT_BELOW,
-  MAX_TOP,
-  MAX_BELOW,
+  DUE_ID,
+  DEFAULT_MAIN,
+  MAX_MAIN,
   MAX_WIDGETS,
   sanitizeLayout,
 } from './widgets/registry'
@@ -78,23 +76,36 @@ export function TodayPage() {
   // Unknown ids are dropped, so a layout saved against an older build can never
   // crash Today or render a widget twice.
   const widgets = sanitizeLayout(uiState.todayWidgets)
-  const topWidgets = sanitizeLayout(uiState.todayTopWidgets, DEFAULT_TOP)
+  /**
+   * The wide column, migrating the old two-band layout on read.
+   *
+   * Anyone who had put something above or below their deadlines keeps exactly
+   * the arrangement they had — the list simply says so explicitly now, with
+   * the due list in the middle where it always was.
+   */
+  const savedMain =
+    uiState.todayMain ??
+    [...(uiState.todayTopWidgets ?? []), DUE_ID, ...(uiState.todayBelowWidgets ?? [])]
+  const rawMain = sanitizeLayout(savedMain, DEFAULT_MAIN)
+  // The one invariant: the due list is on this screen somewhere. A saved
+  // layout that has lost it (an old write, a bad merge) gets it back at the
+  // top rather than rendering a Today with no deadlines on it.
+  const mainWidgets =
+    rawMain.includes(DUE_ID) || widgets.includes(DUE_ID) ? rawMain : [DUE_ID, ...rawMain]
   // Edit mode is explicit rather than long-press-only: widgets contain links,
   // so at rest every tap would race a drag.
-  const belowWidgets = sanitizeLayout(uiState.todayBelowWidgets, DEFAULT_BELOW)
   const [editing, setEditing] = useState(false)
 
   /**
-   * Zones are exclusive: a widget lives in exactly one. Writing all three at
-   * once means moving Weather to the top band removes it from the rail in the
-   * same update, instead of showing it twice or silently refusing.
+   * Zones are exclusive: a widget lives in exactly one. Writing both at once
+   * means dragging the due list into the rail removes it from the main column
+   * in the same update, instead of showing it twice or silently refusing.
    */
-  function setZone(zone: 'rail' | 'top' | 'below', next: string[]) {
+  function setZone(zone: 'rail' | 'main', next: string[]) {
     const others = (list: string[]) => list.filter((id) => !next.includes(id))
     patchUiState({
       todayWidgets: zone === 'rail' ? next : others(widgets),
-      todayTopWidgets: zone === 'top' ? next : others(topWidgets),
-      todayBelowWidgets: zone === 'below' ? next : others(belowWidgets),
+      todayMain: zone === 'main' ? next : others(mainWidgets),
     })
   }
   // Items the student resolved this session — surfaced under "Completed today".
@@ -161,11 +172,48 @@ export function TodayPage() {
   // Zones are declared once so the drag controller and the views agree on
   // capacity, layout, and where a widget currently lives.
   const zones: ZoneSpec[] = [
-    { id: 'top', ids: topWidgets, setIds: (n) => setZone('top', n), layout: topWidgets.length > 1 ? 'half' : 'wide', max: MAX_TOP },
+    { id: 'main', ids: mainWidgets, setIds: (n) => setZone('main', n), layout: 'wide', max: MAX_MAIN },
     { id: 'rail', ids: widgets, setIds: (n) => setZone('rail', n), layout: 'rail', max: MAX_WIDGETS },
-    { id: 'below', ids: belowWidgets, setIds: (n) => setZone('below', n), layout: belowWidgets.length > 1 ? 'half' : 'wide', max: MAX_BELOW },
   ]
   const zoneById = (id: string) => zones.find((z) => z.id === id)!
+
+  const dueList = (compact: boolean) => (
+    <DueList
+      compact={compact}
+      groups={groups}
+      moodle={moodleDue}
+      completed={completed}
+      prefs={todayPrefs}
+      courseById={courseById}
+      onResolve={resolve}
+      onDelete={deleteItem}
+      onUndo={undo}
+      onToggleMoodle={toggleTask}
+      onPrefsChange={updateTodayPrefs}
+    />
+  )
+
+  const glance = (
+    <GlanceStrip
+      term={term}
+      gpa={gpa}
+      overdue={groups.overdue.length + moodleCounts.overdue}
+      itemsLeft={groups.count + moodleCounts.near}
+      nextUp={groups.nextUp}
+      nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+      doneToday={completed.length}
+      courseCount={courses.length}
+      credits={credits}
+      cumulativeGpa={cumulativeGpa}
+    />
+  )
+
+  /** Both zones render the same three special cases; only the size differs. */
+  const renderIn = (zone: 'main' | 'rail') => (id: string) => {
+    if (id === DUE_ID) return dueList(zone === 'rail')
+    if (id === GLANCE_ID) return glance
+    return WIDGETS_BY_ID.get(id)?.render(zone === 'rail' ? 'rail' : 'wide')
+  }
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
@@ -185,86 +233,38 @@ export function TodayPage() {
       {/* Admin-only platform activity inbox (renders nothing for everyone else) */}
       <AdminActivityCard />
 
-      <WidgetBoard zones={zones} editing={editing}>
+      <WidgetBoard
+        zones={zones}
+        editing={editing}
+        onRequestEdit={() => setEditing(true)}
+        renderGhost={renderIn('rail')}
+      >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         <main className="flex min-w-0 flex-1 flex-col gap-3">
           <PeerNudge />
 
-          {/* The band above the due list: one wide card, or two halves. Empty by
-              default: this space used to be the workload panel for everyone,
-              and it's now something you opt into. */}
-          {(topWidgets.length > 0 || editing) && (
-            <WidgetZoneView
-              zone={zoneById('top')}
-              emptyHint="Drop a widget here: above your deadlines"
-              className={cn(
-                'grid items-stretch gap-3',
-                topWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
-              )}
-              renderItem={(id) =>
-                WIDGETS_BY_ID.get(id)?.render(topWidgets.length > 1 ? 'half' : 'wide')
-              }
-            />
-          )}
-          <DueList
-            groups={groups}
-            moodle={moodleDue}
-            completed={completed}
-            prefs={todayPrefs}
-            courseById={courseById}
-            onResolve={resolve}
-            onDelete={deleteItem}
-            onUndo={undo}
-            onToggleMoodle={toggleTask}
-            onPrefsChange={updateTodayPrefs}
+          {/* One ordered column. The due list is an item in it, so a widget
+              can sit above it, below it, or take its place while it moves to
+              the rail — which is three arrangements the old fixed-middle
+              layout could not express. */}
+          <WidgetZoneView
+            zone={zoneById('main')}
+            emptyHint="Drop a widget here"
+            className="flex flex-col gap-3"
+            renderItem={renderIn('main')}
           />
           <AnnouncementsDigest />
-
-          {/* Under the due list. On a light term the rail is much taller than
-              this column, and the gap reads as a mistake; this is the space to
-              fill, and it's opt-in rather than something that rearranges itself
-              as your workload changes. */}
-          {(belowWidgets.length > 0 || editing) && (
-            <WidgetZoneView
-              zone={zoneById('below')}
-              emptyHint="Drop a widget here: under your deadlines"
-              className={cn(
-                'grid items-stretch gap-3',
-                belowWidgets.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
-              )}
-              renderItem={(id) =>
-                WIDGETS_BY_ID.get(id)?.render(belowWidgets.length > 1 ? 'half' : 'wide')
-              }
-            />
-          )}
         </main>
 
         <aside className="flex flex-col gap-3 lg:w-[272px] lg:shrink-0">
-          {/* User-chosen widgets, in their order. The glance panel is rendered
-              here rather than by the registry because it needs the term totals
-              already computed above. */}
+          {/* User-chosen widgets, in their order. The glance panel and the due
+              list are rendered here rather than by the registry because they
+              need the term totals and the write handlers computed above. */}
           <WidgetZoneView
             zone={zoneById('rail')}
             emptyHint="Drop a widget here"
             className="flex flex-col gap-3"
-            renderItem={(id) =>
-              id === GLANCE_ID ? (
-                <GlanceStrip
-                term={term}
-                gpa={gpa}
-                overdue={groups.overdue.length + moodleCounts.overdue}
-                itemsLeft={groups.count + moodleCounts.near}
-                nextUp={groups.nextUp}
-                nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
-                doneToday={completed.length}
-                courseCount={courses.length}
-                credits={credits}
-                cumulativeGpa={cumulativeGpa}
-                />
-              ) : (
-                WIDGETS_BY_ID.get(id)?.render('rail')
-              )
-            }
+            renderItem={renderIn('rail')}
           />
           {/* Contextual nudges are NOT widgets: they appear because something
               needs attention, not because you chose them. */}
@@ -274,10 +274,8 @@ export function TodayPage() {
             onToggleEditing={() => setEditing((v) => !v)}
             layout={widgets}
             onChange={(next) => setZone('rail', next)}
-            topLayout={topWidgets}
-            onTopChange={(next) => setZone('top', next)}
-            belowLayout={belowWidgets}
-            onBelowChange={(next) => setZone('below', next)}
+            mainLayout={mainWidgets}
+            onMainChange={(next: string[]) => setZone('main', next)}
             ctx={{ courseCount: courses.length }}
           />
         </aside>

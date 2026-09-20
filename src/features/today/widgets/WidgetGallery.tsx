@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import {
-  MAX_BELOW,
-  MAX_TOP,
+  ADDABLE,
+  MAX_MAIN,
   MAX_WIDGETS,
-  WIDGETS,
   WIDGETS_BY_ID,
   fitsZone,
   type WidgetContext,
@@ -22,23 +21,20 @@ import {
 export function WidgetGallery({
   layout,
   onChange,
-  topLayout,
-  onTopChange,
-  belowLayout,
-  onBelowChange,
+  mainLayout,
+  onMainChange,
   ctx,
 }: {
   layout: string[]
   onChange: (next: string[]) => void
-  topLayout: string[]
-  onTopChange: (next: string[]) => void
-  belowLayout: string[]
-  onBelowChange: (next: string[]) => void
+  mainLayout: string[]
+  onMainChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const full = layout.length >= MAX_WIDGETS
-  const available = WIDGETS.filter(
-    (w) => !layout.includes(w.id) && (w.availableWhen?.(ctx) ?? true),
+  const available = ADDABLE.filter(
+    (w) =>
+      !layout.includes(w.id) && !mainLayout.includes(w.id) && (w.availableWhen?.(ctx) ?? true),
   )
 
   // Native HTML5 drag — no library, which keeps the "no animation/drag deps"
@@ -126,14 +122,18 @@ export function WidgetGallery({
                 >
                   <ChevronDown size={13} aria-hidden />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onChange(layout.filter((x) => x !== id))}
-                  aria-label={`Remove ${w.name}`}
-                  className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
-                >
-                  <X size={13} aria-hidden />
-                </button>
+                {w.fixed ? (
+                  <span className="px-1 text-[11px] text-subtle">always on</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onChange(layout.filter((x) => x !== id))}
+                    aria-label={`Remove ${w.name}`}
+                    className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
+                  >
+                    <X size={13} aria-hidden />
+                  </button>
+                )}
               </li>
             )
           })}
@@ -168,32 +168,22 @@ export function WidgetGallery({
 
       <div className="mt-5 border-t border-border pt-4">
         <p className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-          Above the due list
+          The wide column
         </p>
         <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
-          One wide card, or two side by side. Only widgets with a wide layout can
-          go here.
+          Full-width cards, in order, with your due list among them. Drag on Today itself to
+          reorder — double-click a card's header to start.
         </p>
-        <BandZone layout={topLayout} onChange={onTopChange} ctx={ctx} max={MAX_TOP} />
-      </div>
-
-      <div className="mt-5 border-t border-border pt-4">
-        <p className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-          Below the due list
-        </p>
-        <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
-          Fills the space under your deadlines: useful on a light term, when the
-          side column is otherwise much taller than the list.
-        </p>
-        <BandZone layout={belowLayout} onChange={onBelowChange} ctx={ctx} max={MAX_BELOW} />
+        <BandZone layout={mainLayout} onChange={onMainChange} ctx={ctx} max={MAX_MAIN} />
       </div>
     </div>
   )
 }
 
-/** A horizontal band — above or below the due list. Separate from the rail list
- * because the constraint differs: a capped count, and only widgets that declare
- * a wide or half layout are eligible. */
+/** The wide column. Separate from the rail list because the constraint differs:
+ * a capped count, and only widgets that declare a wide layout are eligible.
+ * `fixed` entries (the due list) show without a remove button — they can be
+ * moved, never deleted. */
 function BandZone({
   layout,
   onChange,
@@ -209,11 +199,8 @@ function BandZone({
   // Deliberately does NOT exclude widgets already in the rail: putting one up
   // here MOVES it rather than being blocked, which is what "I want weather at
   // the top" should do. TodayPage strips it from the rail on the way through.
-  const eligible = WIDGETS.filter(
-    (w) =>
-      !layout.includes(w.id) &&
-      (fitsZone(w, 'wide') || fitsZone(w, 'half')) &&
-      (w.availableWhen?.(ctx) ?? true),
+  const eligible = ADDABLE.filter(
+    (w) => !layout.includes(w.id) && fitsZone(w, 'wide') && (w.availableWhen?.(ctx) ?? true),
   )
 
   return (
@@ -231,17 +218,18 @@ function BandZone({
               >
                 <Icon size={13} className="shrink-0 text-subtle" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-fg">{w.name}</span>
-                <span className="shrink-0 text-[11px] text-subtle">
-                  {layout.length > 1 ? 'half' : 'wide'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onChange(layout.filter((x) => x !== id))}
-                  aria-label={`Remove ${w.name} from this band`}
-                  className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
-                >
-                  <X size={13} aria-hidden />
-                </button>
+                {w.fixed ? (
+                  <span className="shrink-0 pr-1 text-[11px] text-subtle">always on</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onChange(layout.filter((x) => x !== id))}
+                    aria-label={`Remove ${w.name} from the wide column`}
+                    className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:bg-danger/15 hover:text-danger"
+                  >
+                    <X size={13} aria-hidden />
+                  </button>
+                )}
               </li>
             )
           })}

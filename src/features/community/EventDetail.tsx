@@ -8,7 +8,6 @@ import {
   CalendarPlus,
   ChevronRight,
   Clock,
-  Mail,
   MapPin,
   Share2,
   UserPlus,
@@ -30,6 +29,7 @@ import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { ShareEventModal } from './ShareEventModal'
 import { useCommunity } from './useCommunity'
+import { ContactButton } from './ContactButton'
 
 /** Full-screen event detail — an overlay that fills the viewport (closable, not a
  * dropdown). The content (`EventDetailView`) is split out so it could become a
@@ -354,15 +354,7 @@ function HostCard({
         ) : (
           <FollowButton handle={org.handle} className="flex-1" />
         )}
-        <button
-          type="button"
-          onClick={gate}
-          title="Contact (mocked in this build)"
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-        >
-          <Mail size={14} aria-hidden />
-          Contact
-        </button>
+        <ContactButton org={org} onGate={gate} />
       </div>
 
       {more.length > 0 && (

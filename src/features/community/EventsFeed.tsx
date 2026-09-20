@@ -32,13 +32,26 @@ export function EventsFeed() {
   const [forYou, setForYou] = useState(false)
 
   const today = startOfToday()
-  const upcoming = useMemo(
-    () =>
-      events
-        .filter((e) => new Date(e.start) >= today)
-        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
-    [events, today],
-  )
+  /**
+   * Upcoming, newest first — with a recurring night collapsed to its NEXT date.
+   *
+   * A weekly party is four real events and the calendar needs all four, but a
+   * feed that prints the same title four times reads as a bug rather than as a
+   * schedule. The tile says "Every Thursday"; the org's own profile still lists
+   * every date, which is where that question gets asked.
+   */
+  const upcoming = useMemo(() => {
+    const sorted = events
+      .filter((e) => new Date(e.start) >= today)
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    const seen = new Set<string>()
+    return sorted.filter((e) => {
+      if (!e.seriesId) return true
+      if (seen.has(e.seriesId)) return false
+      seen.add(e.seriesId)
+      return true
+    })
+  }, [events, today])
   const visibleIds = useMemo(
     () =>
       new Set(

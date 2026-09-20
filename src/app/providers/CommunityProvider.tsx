@@ -22,13 +22,18 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
     void (async () => {
       // Appended only if the bilingual migration has been applied — see
       // optionalCols. Without this guard a pending migration blanks the feed.
-      const [orgExtra, evExtra] = await Promise.all([
+      // Probed SEPARATELY per migration rather than as one list: bundling
+      // them means a project that has `translations` but not `venue` loses
+      // both, which is the blackout this guard exists to prevent.
+      const [orgExtra, evExtra, orgVenue, evSeries] = await Promise.all([
         optionalCols(supabase, 'organizations', ['translations']),
         optionalCols(supabase, 'events', ['translations']),
+        optionalCols(supabase, 'organizations', ['email', 'venue']),
+        optionalCols(supabase, 'events', ['series_id', 'recurrence']),
       ])
       const [{ data: orgRows }, { data: evRows }] = await Promise.all([
-        supabase.from('organizations').select(ORG_COLS + orgExtra),
-        supabase.from('events').select(EVENT_COLS + evExtra),
+        supabase.from('organizations').select(ORG_COLS + orgExtra + orgVenue),
+        supabase.from('events').select(EVENT_COLS + evExtra + evSeries),
       ])
       if (!active) return
       const orgById = new Map<string, EventOrg>()

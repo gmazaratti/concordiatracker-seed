@@ -27,6 +27,70 @@ export function ModalShell({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const restoreRef = useRef<Element | null>(null)
+  const dragRef = useRef<{ y: number; t: number; last: number; v: number } | null>(null)
+
+  /**
+   * Slide the sheet down to dismiss it (phones only).
+   *
+   * Three ways out, which is what a bottom sheet is expected to have: tap
+   * above it, drag it down, or press the X. The gesture is 1:1 with the
+   * finger and projects the release velocity, so a flick closes and a slow
+   * tug that stops short springs back — the same rule the schedule builder's
+   * drag follows.
+   *
+   * THE TRANSFORM IS REMOVED THE MOMENT THE GESTURE ENDS, never left at
+   * `translateY(0)`. A transformed element becomes the containing block for
+   * every `position: fixed` descendant, and the custom Select and date picker
+   * inside these dialogs portal themselves as fixed — leaving an identity
+   * transform behind would trap their popovers inside the sheet. (See the
+   * `ct-section-in` bug: a `both`-filled transform did exactly that to the
+   * full-screen chat.)
+   */
+  function onSheetDown(e: React.PointerEvent) {
+    if (e.pointerType === 'mouse' || window.innerWidth >= 640) return
+    const el = ref.current
+    if (!el) return
+    // Capture, or the gesture dies the moment the finger leaves the 24px
+    // handle — which is immediately, since the whole point is moving down.
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragRef.current = { y: e.clientY, t: performance.now(), last: e.clientY, v: 0 }
+    el.style.transition = 'none'
+  }
+
+  function onSheetMove(e: React.PointerEvent) {
+    const d = dragRef.current
+    const el = ref.current
+    if (!d || !el) return
+    const dy = e.clientY - d.y
+    const now = performance.now()
+    if (now > d.t) d.v = ((e.clientY - d.last) / (now - d.t)) * 1000
+    d.t = now
+    d.last = e.clientY
+    // Upward drags resist rather than stop dead: a hard stop reads as frozen.
+    el.style.transform = `translateY(${dy > 0 ? dy : dy / 4}px)`
+  }
+
+  function onSheetUp() {
+    const d = dragRef.current
+    const el = ref.current
+    dragRef.current = null
+    if (!d || !el) return
+    const dy = d.last - d.y
+    // Project where the flick was heading, the way a scroll decelerates,
+    // rather than judging the raw distance at the instant of release.
+    const projected = dy + (d.v / 1000) * 0.998 / (1 - 0.998)
+    if (projected > 110) {
+      onClose()
+      return
+    }
+    el.style.transition = 'transform 220ms cubic-bezier(0.2,0.8,0.2,1)'
+    el.style.transform = 'translateY(0)'
+    window.setTimeout(() => {
+      if (!ref.current) return
+      ref.current.style.transform = ''
+      ref.current.style.transition = ''
+    }, 240)
+  }
 
   useEffect(() => {
     restoreRef.current = document.activeElement
@@ -87,6 +151,19 @@ export function ModalShell({
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
+        {/* The grabber. Phone only, and it is the drag target rather than the
+            whole sheet: the sheet's body scrolls, and a pull-down anywhere
+            inside it would fight that scroll on every single swipe. */}
+        <div
+          onPointerDown={onSheetDown}
+          onPointerMove={onSheetMove}
+          onPointerUp={onSheetUp}
+          onPointerCancel={onSheetUp}
+          className="flex h-6 shrink-0 touch-none items-center justify-center sm:hidden"
+        >
+          <span className="h-1 w-9 rounded-full bg-border-strong" aria-hidden />
+        </div>
+
         {/* A visible way out, on EVERY size. It used to be `sm:hidden` on the
             theory that desktop has Escape and a backdrop click — but neither is
             visible, and "there is no close button" is the first thing people

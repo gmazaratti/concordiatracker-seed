@@ -142,6 +142,7 @@ export function DueList({
   moodle,
   completed,
   prefs,
+  compact = false,
   courseById,
   onResolve,
   onDelete,
@@ -150,6 +151,10 @@ export function DueList({
   onPrefsChange,
 }: {
   groups: DueGroups
+  /** Rendered in the 272px side rail rather than the wide column: fewer rows
+   *  before the fold and a shorter scroll window, since the card is a third
+   *  of the width. */
+  compact?: boolean
   /** Moodle deadlines that are NOT already on screen as an assessment. */
   moodle: CalendarTask[]
   completed: Assessment[]
@@ -165,7 +170,7 @@ export function DueList({
   const [customizeOpen, setCustomizeOpen] = useState(false)
   // Long sections (a pile of overdue, say) collapse past this — the list stays
   // one calm screen and the rest sits behind "Show N more".
-  const CAP = 5
+  const CAP = compact ? 3 : 5
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const toggleExpanded = (key: string) =>
     setExpanded((prev) => {
@@ -214,7 +219,22 @@ export function DueList({
           const visible = isOpen ? section.items : section.items.slice(0, CAP)
           const hiddenCount = section.items.length - visible.length
           return (
-            <Section key={section.key} label={section.label} tone={section.tone} divider={i > 0}>
+            <Section
+              key={section.key}
+              label={section.label}
+              tone={section.tone}
+              divider={i > 0}
+              scroll={isOpen}
+              compact={compact}
+            >
+              {/* EXPANDING USED TO GROW THE PAGE.
+                  Fourteen overdue items turned "Show 9 more" into a card
+                  taller than the screen, which pushed everything under it —
+                  the announcements, the widgets — out of reach and made the
+                  rail scroll past its own content. Opening now hands the
+                  section a scroll window instead: the card keeps its height,
+                  the rest of the page stays where it was, and the extra rows
+                  are a flick away rather than a page scroll away. */}
               {visible.map((row) =>
                 row.kind === 'assessment' ? (
                   <DueRow
@@ -245,7 +265,9 @@ export function DueList({
                     className={cn('transition-transform duration-150', isOpen && 'rotate-180')}
                     aria-hidden
                   />
-                  {isOpen ? t('today.showFewer') : t('today.showMore', { count: hiddenCount })}
+                  {isOpen
+                    ? t('today.showFewer')
+                    : t('today.showMore', { count: hiddenCount })}
                 </button>
               )}
             </Section>
@@ -264,11 +286,16 @@ function Section({
   label,
   tone,
   divider = false,
+  scroll = false,
+  compact = false,
   children,
 }: {
   label: React.ReactNode
   tone: 'danger' | 'muted'
   divider?: boolean
+  /** Expanded: bound the height and scroll inside instead of growing. */
+  scroll?: boolean
+  compact?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -281,7 +308,22 @@ function Section({
       >
         {label}
       </p>
-      <ul className="divide-y divide-border">{children}</ul>
+      <ul
+        className={cn(
+          'divide-y divide-border',
+          // `overscroll-contain` so reaching the end of the section does not
+          // hand the gesture to the page and jump you somewhere else.
+          scroll && 'overscroll-contain overflow-y-auto',
+          // A ROW COUNT, not a viewport fraction. `60vh` measured shorter
+          // than the five rows the section was already showing on a laptop,
+          // so expanding made the card SMALLER — which is a strange thing for
+          // "Show 6 more" to do. 22rem is comfortably taller than five rows
+          // at either density, so opening always reveals.
+          scroll && (compact ? 'max-h-[15rem]' : 'max-h-[22rem]'),
+        )}
+      >
+        {children}
+      </ul>
     </section>
   )
 }

@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Mail } from 'lucide-react'
+import { ArrowLeft, Clock, MapPin, Phone } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { isRelevantTo, postedAgoLabel, type CampusEvent, type OrgLinks } from '@/data/community'
+import { isRelevantTo, postedAgoLabel, type CampusEvent, type EventOrg, type OrgLinks } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { EventTile } from './EventTile'
@@ -9,9 +9,42 @@ import { EventDetail } from './EventDetail'
 import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { VerifiedBadge } from './VerifiedBadge'
+import { ContactButton } from './ContactButton'
 import { SocialLinks } from './SocialLinks'
 import { useEventActions } from './useEventActions'
 import { useCommunity } from './useCommunity'
+
+/** Address, phone and opening hours for an org that is also a place. */
+function VenueBlock({ venue }: { venue: NonNullable<EventOrg['venue']> }) {
+  return (
+    <div className="mt-3 max-w-md rounded-xl border border-border bg-surface/50 px-3.5 py-3">
+      {venue.address && (
+        <p className="flex items-start gap-2 text-[13px] text-fg">
+          <MapPin size={13} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+          {venue.address}
+        </p>
+      )}
+      {venue.phone && (
+        <p className="mt-1.5 flex items-center gap-2 text-[13px]">
+          <Phone size={13} className="shrink-0 text-subtle" aria-hidden />
+          <a href={`tel:${venue.phone.replace(/[^\d+]/g, '')}`} className="text-fg hover:underline">
+            {venue.phone}
+          </a>
+        </p>
+      )}
+      {venue.hours && venue.hours.length > 0 && (
+        <div className="mt-2.5 flex items-start gap-2 border-t border-border/70 pt-2.5">
+          <Clock size={13} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+          <ul className="text-[12.5px] leading-relaxed text-muted">
+            {venue.hours.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** Full org profile — the host card expanded to a page: identity, bio, stats,
  * follow/contact, and ALL the org's events (upcoming + past, with when posted).
@@ -65,14 +98,7 @@ export function OrgProfilePage() {
         />
         <div className="mt-3 flex gap-2">
           <FollowButton handle={org.handle} />
-          <button
-            type="button"
-            title="Contact (mocked in this build)"
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <Mail size={14} aria-hidden />
-            Contact
-          </button>
+          <ContactButton org={org} />
         </div>
       </div>
 
@@ -86,6 +112,8 @@ export function OrgProfilePage() {
           {org.verified && ' · Verified org'}
         </p>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{org.bio}</p>
+
+        {org.venue && <VenueBlock venue={org.venue} />}
 
         <div className="mt-3 flex gap-5 text-[14px]">
           <span>

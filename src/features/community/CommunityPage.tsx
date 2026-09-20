@@ -8,6 +8,7 @@ import { ProfileView } from '@/features/profile/UserProfilePage'
 import { Mascot } from '@/components/Mascot'
 import { cn } from '@/lib/cn'
 import { EventsFeed } from './EventsFeed'
+import { FeedSection } from './FeedSection'
 import { CommunityRail } from './CommunityRail'
 import { ActivityButton, ActivityPanel } from './ActivityPanel'
 import { CommunitySearchBar } from './SearchOverlay'
@@ -21,10 +22,10 @@ import {
 /**
  * Community — the part of the app that is about everyone else.
  *
- * THREE SECTIONS, ONE SET OF CONTROLS. The rule this page is built on, after a
+ * FOUR SECTIONS, ONE SET OF CONTROLS. The rule this page is built on, after a
  * first version that broke it badly: a control appears in the section it acts
  * on and nowhere else. Search belongs to the sections where you are looking for
- * something. The bell belongs to Events, the landing section, because that is
+ * something. The bell belongs to Feed, the landing section, because that is
  * where you go to catch up. Your own avatar belongs nowhere here at all — the app's own top bar
  * already carries it, and putting a second one under it made the same face
  * appear twice on one screen.
@@ -75,9 +76,8 @@ export function CommunityPage() {
         <div className="mb-3 flex items-center gap-2">
           <CommunitySearchBar className="md:max-w-md" />
           {/* Landing section only. Notifications are a thing you open, clear
-              and leave —
-              carrying the bell into every section made it read as part of the
-              furniture rather than as something with news in it. */}
+              and leave — carrying the bell into every section made it read as
+              part of the furniture rather than as something with news in it. */}
           {section === DEFAULT_SECTION && (
             <ActivityButton count={waiting} onOpen={() => setActivity(true)} />
           )}
@@ -119,6 +119,9 @@ export function CommunityPage() {
           React tears the old section down rather than reconciling two
           different screens into each other. */}
       <div key={section} className="ct-section-in">
+        {section === 'feed' && (
+          <FeedSection requests={waiting} onOpenActivity={() => setActivity(true)} />
+        )}
         {section === 'events' && (
           <div className="flex gap-6">
             <div className="min-w-0 flex-1">

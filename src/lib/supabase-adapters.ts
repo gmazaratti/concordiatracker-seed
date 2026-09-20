@@ -420,6 +420,9 @@ export interface OrgRow {
   banner: string | null
   bio: string | null
   links: OrgLinks | null
+  /** Both optional: appended by the caller only once the migration is in. */
+  email?: string | null
+  venue?: EventOrg['venue'] | null
 }
 
 export function orgFromRow(r: OrgRow): EventOrg {
@@ -433,6 +436,8 @@ export function orgFromRow(r: OrgRow): EventOrg {
     banner: r.banner ?? undefined,
     bio: r.bio ?? '',
     links: r.links && Object.keys(r.links).length ? r.links : undefined,
+    email: r.email ?? undefined,
+    venue: r.venue ?? undefined,
   }
 }
 
@@ -448,6 +453,9 @@ export interface EventRow {
   image: string | null
   relevant_to: string[] | null
   posted_at: string
+  /** Both optional: appended by the caller only once the migration is in. */
+  series_id?: string | null
+  recurrence?: string | null
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
@@ -489,6 +497,8 @@ export function eventFromRow(r: EventRow, org: EventOrg): CampusEvent {
     image: r.image ?? undefined,
     relevantTo: r.relevant_to && r.relevant_to.length ? r.relevant_to : undefined,
     postedDaysAgo: Math.max(0, Math.round((Date.now() - new Date(r.posted_at).getTime()) / DAY_MS)),
+    seriesId: r.series_id ?? undefined,
+    recurrence: r.recurrence ?? undefined,
   }
 }
 

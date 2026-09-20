@@ -775,16 +775,24 @@ html[data-reduce-motion] *::after {
  * The per-element delay keeps them out of lockstep, which is what makes it look
  * organic rather than mechanical. The global reduced-motion block zeroes the
  * duration, and SortableWidgets also skips applying the class outright. */
+/* Edit mode's "these can be moved" cue.
+ *
+ * Slower and shallower than the iOS original on purpose: this sits under a
+ * list of deadlines rather than a grid of app icons, and at iOS speed the
+ * text underneath is genuinely hard to read. Slow enough to be calm, present
+ * enough that nobody wonders whether edit mode is on. Every keyframe starts
+ * and ends at the same transform, so the global reduced-motion rule leaves
+ * each card square. */
 @keyframes ct-wiggle {
-  0%, 100% { transform: rotate(-0.35deg); }
-  50%      { transform: rotate(0.35deg); }
+  0%, 100% { transform: rotate(-0.28deg) translateY(-0.5px); }
+  50%      { transform: rotate(0.28deg) translateY(0.5px); }
 }
 .ct-wiggle {
-  animation: ct-wiggle 0.42s ease-in-out infinite;
+  animation: ct-wiggle 0.9s ease-in-out infinite;
   transform-origin: 50% 50%;
 }
-.ct-wiggle:nth-child(2n)  { animation-delay: -0.14s; animation-duration: 0.46s; }
-.ct-wiggle:nth-child(3n)  { animation-delay: -0.28s; animation-duration: 0.39s; }
+.ct-wiggle:nth-child(2n)  { animation-delay: -0.3s; animation-duration: 1.02s; }
+.ct-wiggle:nth-child(3n)  { animation-delay: -0.6s; animation-duration: 0.84s; }
 
 /* ── Reduced transparency ─────────────────────────────────────────────────────
  * Translucency is used on ~22 surfaces (modals, sticky chrome, the recessed

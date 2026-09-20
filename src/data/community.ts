@@ -57,6 +57,23 @@ export interface EventOrg {
   bio: string
   /** Optional social + custom links — only the set ones render on the profile. */
   links?: OrgLinks
+  /**
+   * A real address the org publishes. Contact becomes a mailto: when it is set
+   * and stays the mocked button when it is not — a dead "Contact" that looks
+   * live is worse than one that says it is a stub.
+   */
+  email?: string
+  /**
+   * For orgs that are also a PLACE. A bar has an address, a phone and opening
+   * hours, and none of that belongs in a bio paragraph — you read hours as a
+   * table or you do not read them at all.
+   */
+  venue?: {
+    address?: string
+    phone?: string
+    /** One line per row, already formatted, e.g. "Thursday–Friday · 10am–2am". */
+    hours?: string[]
+  }
 }
 
 export interface CampusEvent {
@@ -84,6 +101,29 @@ export interface CampusEvent {
   /** How many days ago the host posted this event (for "Posted Xd ago" on the
    * org profile). Mock — in production this is the submission timestamp. */
   postedDaysAgo: number
+  /**
+   * A weekly night is not one event, it is many — but a feed that lists four
+   * copies of the same party reads as a bug, not as a schedule. Occurrences
+   * that share a `seriesId` are collapsed in the FEED to the next one and
+   * labelled with `recurrence`; the org's own profile still lists every date,
+   * which is where "every week" is the thing you came to read.
+   */
+  seriesId?: string
+  /** Human label for the repeat, e.g. "Every Thursday". */
+  recurrence?: string
+}
+
+/**
+ * The next `count` occurrences of a weekday, at a given local time.
+ *
+ * Reads the clock at module load like the rest of the seed, so "every Thursday"
+ * stays true whenever the page is opened rather than drifting into the past.
+ * `dow` is 0=Sunday … 4=Thursday.
+ */
+function nextWeekdays(dow: number, count: number, hour: number, minute = 0): string[] {
+  const today = new Date().getDay()
+  const first = (dow - today + 7) % 7
+  return Array.from({ length: count }, (_, i) => daysFromNow(first + i * 7, hour, minute))
 }
 
 const ORG = {
@@ -95,10 +135,10 @@ const ORG = {
   hack: { name: 'HackConcordia', handle: '@hackconcordia', verified: false, glyph: 'HC', color: '#22b8a6', logo: '/logos/hackconcordia.jpg', bio: "Quebec's largest student-run hackathon community: building, learning, and shipping together." },
   outdoors: { name: 'Concordia Outdoors Club', handle: '@conu.outdoors', verified: false, glyph: 'OC', color: '#6bbf59', bio: 'Day hikes, ski trips, and outdoor adventures for Concordia students of every level.' },
   library: { name: 'Concordia Library', handle: '@concordia.library', verified: true, glyph: 'LB', color: '#7c83f0', banner: '/logos/library-banner.jpg', bio: 'Research help, workshops, and study resources from the Concordia Library.' },
-  university: { name: 'Concordia University', handle: '@concordia', verified: true, glyph: 'CU', color: '#c2566e', bio: 'Official news, open houses, and university-wide events from Concordia University.' },
+  university: { name: 'Concordia University', handle: '@concordia', verified: true, glyph: 'CU', color: '#912338', logo: '/logos/concordia.png', banner: '/logos/concordia-banner.jpg', bio: 'Official news, open houses, and university-wide events from Concordia University.' },
   jmsb: { name: 'John Molson School of Business', handle: '@jmsb', verified: true, glyph: 'JM', color: '#912338', logo: 'https://i.ibb.co/HLVRHtf9/JMSB-Profile-Picture.png', bio: 'The John Molson School of Business: networking nights, case competitions, and career events for business students.' },
   casajmsb: { name: 'CASA JMSB', handle: '@casajmsb', verified: true, glyph: 'CJ', color: '#9b2335', logo: 'https://i.ibb.co/jkRyPXL8/CASA-JMSB-Profile-Picture.png', banner: 'https://i.ibb.co/mC78DnR1/CASA-JMSB-Banner.webp', bio: "The Commerce and Administration Students' Association: the official undergraduate association of JMSB." },
-  jmis: { name: 'John Molson Investment Society', handle: '@jmis', verified: true, glyph: 'JI', color: '#1f4e8c', logo: 'https://i.ibb.co/4qqLLxq/JMIS-Profile-Picture.png', bio: 'A student-run investment society at John Molson: speaker series, stock pitches, and portfolio workshops.', links: { linkedin: 'https://www.linkedin.com/company/jmis-ca/', instagram: 'https://www.instagram.com/jmis.ca/', website: 'https://linktr.ee/jmis.ca' } },
+  jmis: { name: 'John Molson Investment Society', handle: '@jmis', verified: true, glyph: 'JI', color: '#1f4e8c', logo: 'https://i.ibb.co/4qqLLxq/JMIS-Profile-Picture.png', banner: '/logos/jmis-banner.jpg', email: 'directors@jmis.ca', bio: 'A student-run investment society at John Molson: speaker series, stock pitches, and portfolio workshops.', links: { linkedin: 'https://www.linkedin.com/company/jmis-ca/', instagram: 'https://www.instagram.com/jmis.ca/', website: 'https://linktr.ee/jmis.ca' } },
   // Pink from the wordmark's dominant letterform, so the branded fallback tile
   // and the event banners read as theirs even before the logo loads.
   jmma: {
@@ -116,6 +156,29 @@ const ORG = {
     },
   },
   mathhelp: { name: 'Math & Stats Help Centre', handle: '@conu.mathhelp', verified: false, glyph: 'MS', color: '#e0853c', bio: 'Free peer tutoring and exam-prep sessions in mathematics and statistics.' },
+  // Reggies is a PLACE as much as an organiser, which is why EventOrg grew a
+  // `venue` block: an address, a phone number and opening hours are the three
+  // things anyone looks up about a bar, and none of them read well as prose.
+  reggies: {
+    name: 'Reggies',
+    handle: '@reggiesmtl',
+    verified: true,
+    glyph: 'RG',
+    color: '#d6322e',
+    logo: '/logos/reggies.png',
+    banner: '/logos/reggies-banner.jpg',
+    bio: "Concordia's own bar, on the mezzanine of the Hall building. Pints, pub food and a room that is already full of people you know — open to students and the neighbourhood alike.",
+    links: { instagram: 'https://www.instagram.com/reggiesmtl/', website: 'https://reggies.ca' },
+    venue: {
+      address: '1455 Blvd. De Maisonneuve Ouest, Montreal, QC',
+      phone: '(514) 789-2447',
+      hours: [
+        'Monday–Wednesday · 10am–11pm',
+        'Thursday–Friday · 10am–2am',
+        'Saturday–Sunday · private events only',
+      ],
+    },
+  },
 } satisfies Record<string, EventOrg>
 
 export const CAMPUS_EVENTS: CampusEvent[] = [
@@ -136,6 +199,44 @@ export const CAMPUS_EVENTS: CampusEvent[] = [
       'JMMA\u2019s first event of the year: one last summer night before the term takes over. ' +
       'Come meet the team, meet new people, and start the year properly. 5\u20139 PM at Espace Rodier. ' +
       'Tickets through the link in their Instagram bio.',
+  },
+  // Reggies' weekly night. Four real dates rather than one event wearing the
+  // word "weekly": the calendar has to be able to add a specific Thursday.
+  // The feed shows only the next one (see `seriesId`).
+  ...nextWeekdays(4, 4, 20).map((start, i) => ({
+    id: `ev-reggies-thirsty-${i}`,
+    seriesId: 'reggies-thirsty-thursdays',
+    recurrence: 'Every Thursday',
+    title: 'Thirsty Thursdays',
+    start,
+    mode: 'in-person' as const,
+    location: 'Reggies · Hall building mezzanine',
+    org: ORG.reggies,
+    category: 'nightlife' as const,
+    postedDaysAgo: 2,
+    description:
+      'The weekly night at Reggies: cheap pints, a full room and whoever is around. ' +
+      'Doors from 8 PM until close — the bar runs to 2 AM on a Thursday. ' +
+      'Student ID at the door; 18+.',
+  })),
+  {
+    // The date is the one the club publishes. It is in the PAST relative to
+    // today, so it sits under "Past" on their profile rather than in the feed —
+    // moving it forward to make it look live would be inventing a date.
+    id: 'ev-gamedev-summit',
+    title: 'Student Game Dev Summit 2026',
+    start: '2026-05-02T18:00:00-04:00',
+    mode: 'in-person',
+    location: 'ÉTS · Salon des diplômés E-2033, 1220 rue Notre-Dame Ouest',
+    org: ORG.gamedev,
+    category: 'clubs',
+    relevantTo: ['Computer Science', 'Computation Arts', 'Design', 'Gina Cody', 'Fine Arts'],
+    postedDaysAgo: 150,
+    description:
+      'An inter-university event designed to inspire growth and collaboration among students ' +
+      'interested in pursuing game development. Whether you are a programmer, artist, musician ' +
+      'or game designer, this is a space to meet people, network, and explore what the future of ' +
+      "Quebec's gaming industry will look like. 6–9 PM, 2nd floor of pavillon E at ÉTS.",
   },
   {
     id: 'ev-gamedev', title: 'Game Dev Club: Unity intro workshop',

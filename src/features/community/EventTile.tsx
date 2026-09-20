@@ -111,7 +111,15 @@ function MetaLine({ event, relevant }: { event: CampusEvent; relevant: boolean }
         )}
         <span className="truncate">{online ? 'Online' : l.location}</span>
       </span>
-      {relevant && (
+      {/* "Every Thursday" earns its place: the feed shows one occurrence of a
+          weekly night, so without it the card claims a single date for
+          something that happens every week. */}
+      {event.recurrence && (
+        <span className="ml-auto shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
+          {event.recurrence}
+        </span>
+      )}
+      {relevant && !event.recurrence && (
         <span className="ml-auto shrink-0 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent">
           For you
         </span>

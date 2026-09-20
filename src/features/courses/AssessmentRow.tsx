@@ -114,13 +114,58 @@ export function AssessmentRow({
             </div>
             <div className="mt-0.5 flex items-center gap-x-2 text-[11px]">
               <span className={cn('font-medium', due.tone)}>{due.label}</span>
+              {/* Phone only, and only when there is something to say. The
+                  status dropdown lives in the sheet down here, so without
+                  this a marked-late item would look untouched — but printing
+                  "Not started" on every row is the noise we just removed. */}
+              {assessment.status !== 'not-started' && (
+                <span className="inline-flex items-center gap-1 md:hidden">
+                  <span
+                    className={cn('size-1.5 rounded-full', STATUS_META[assessment.status].dot)}
+                    aria-hidden
+                  />
+                  <span className={STATUS_META[assessment.status].text}>
+                    {STATUS_META[assessment.status].label}
+                  </span>
+                </span>
+              )}
               <ProvenanceBadge provenance={assessment.provenance} tone="quiet" onlyOfficial />
             </div>
           </div>
         </div>
 
         {tab === 'grades' ? (
-          <div className="flex items-center gap-1.5">
+          <>
+            {/*
+              PHONE: the basics, and a door to everything else.
+              Five controls per row — status, grade, resolved mark, save,
+              discard — is a desk layout on a 343px card, and it was wrapping
+              into a second line per assessment, so fourteen items became a
+              wall. Here a row is what it is and what it is worth; changing
+              any of it opens the sheet, which has room to label its fields.
+            */}
+            <div className="flex items-center gap-0.5 md:hidden">
+              {resolved && (
+                <span className="px-1 text-right text-[12.5px] leading-tight font-medium text-fg tabular-nums">
+                  {Math.round(draftPct!)}%
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => openAssessment(assessment.id)}
+                aria-label={`Edit ${assessment.title}`}
+                className="grid size-8 place-items-center rounded-md text-subtle transition-colors duration-150 active:bg-surface-2 active:text-fg"
+              >
+                <Pencil size={15} aria-hidden />
+              </button>
+              <DropdownMenu
+                ariaLabel={`Actions for "${assessment.title}"`}
+                items={menuItems}
+                triggerClassName="grid size-8 place-items-center rounded-md text-subtle transition-colors duration-150 data-[state=open]:bg-surface-2 data-[state=open]:text-fg"
+              />
+            </div>
+
+            <div className="hidden items-center gap-1.5 md:flex">
             <Select
               ariaLabel={`Status for ${assessment.title}`}
               value={draftStatus}
@@ -189,13 +234,14 @@ export function AssessmentRow({
                   items={menuItems}
                   triggerClassName={cn(
                     'grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
-                    'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 max-md:opacity-60',
+                    'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
                     'data-[state=open]:bg-surface-2 data-[state=open]:text-fg data-[state=open]:opacity-100',
                   )}
                 />
               )}
             </div>
-          </div>
+            </div>
+          </>
         ) : (
           <span
             className={cn(

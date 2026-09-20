@@ -130,16 +130,18 @@ export function CourseDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6">
-      {/* Pinned, not parked in a box of its own.
-          The previous attempt made this page a fixed-height container with each
-          column scrolling inside it, which meant the panels each had their own
-          scrollbar and the assessment column had none at all — it was simply
-          clipped. `sticky` gets the same thing the right way: ONE scroll region
-          (the page), every panel at its full height, and the banner staying put
-          while they all move together. Losing the banner is how you end up
-          entering a mark on the wrong course. */}
-      <div className="lg:sticky lg:top-0 lg:z-20 lg:-mx-5 lg:-mt-5 lg:bg-canvas lg:px-5 lg:pt-5 lg:pb-3 lg:sm:-mx-6 lg:sm:px-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      {/* The banner does not move, and on a wide screen neither does the page.
+          An earlier attempt at this clipped the assessment column instead of
+          scrolling it — it had `overflow-hidden` on the row and no
+          `overflow-y-auto` or `min-h-0` on the columns themselves, so the
+          taller one was simply cut off. Both columns own a scroll region now,
+          and each needs `min-h-0` because a flex child's default `min-height:
+          auto` refuses to shrink below its content and the overflow never
+          engages. Below `lg` this is all off: one column, one page scroll.
+          Losing the banner is how you end up entering a mark on the wrong
+          course. */}
+      <div className="lg:shrink-0">
         <CourseHeader course={course} currentPercent={standing.currentPercent} />
       </div>
 
@@ -156,13 +158,13 @@ export function CourseDetailPage() {
       )}
 
       {holding ? (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
           {/* Sticks on desktop: the class details and the grade maths are what
               you read the assessment list AGAINST, and scrolling them off the
               top is what made the page feel like it moved instead of the
               content. Its own scrollbar, since the aside can outgrow the
               viewport on a course with a long breakdown. */}
-          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -171,7 +173,7 @@ export function CourseDetailPage() {
             />
           </aside>
 
-          <main className="min-w-0 flex-1">
+          <main className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-1.5">
             <div className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
               <CalendarClock size={22} className="mx-auto text-subtle" aria-hidden />
               <p className="mt-3 text-[15px] font-medium text-fg">Waiting for {course.term}</p>
@@ -203,8 +205,8 @@ export function CourseDetailPage() {
           autoStart={!!importItems}
         />
       ) : manual ? (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -220,7 +222,7 @@ export function CourseDetailPage() {
             )}
           </aside>
 
-          <main className="min-w-0 flex-1">
+          <main className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-1.5">
             <ManualCourseAssessments
               courseId={course.id}
               assessments={courseAssessments}
@@ -240,8 +242,8 @@ export function CourseDetailPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <aside className="flex flex-col gap-3 lg:w-[300px] lg:shrink-0">
+        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <div data-tour="course-info">
               <CourseInfoPanel
                 autoFill={autoFill}
@@ -266,7 +268,7 @@ export function CourseDetailPage() {
             </div>
           </aside>
 
-          <main className="flex min-w-0 flex-1 flex-col gap-3">
+          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             {/* A course with an outline could not receive another one, so a
                 corrected syllabus meant retyping it. Anything that looks like an
                 assessment already here is flagged and skipped, so importing

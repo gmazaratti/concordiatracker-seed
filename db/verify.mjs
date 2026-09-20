@@ -1374,6 +1374,88 @@ await db.exec(`create or replace function public.is_admin() returns boolean
     Object.keys((await db.query('select public.admin_social_graph(10) g')).rows[0].g).length, 0)
 }
 
+{
+// ── db/community_reggies.sql ────────────────────────────────────────────────
+// The weekly night is generated in SQL from now(), so the thing worth testing
+// is not "does the DDL apply" but "are these really Thursdays, are they all
+// in the future, and does running it twice give you sixty of them".
+console.log('\ndb/community_reggies.sql')
+await db.exec(`
+  create table if not exists public.organizations (
+    id uuid primary key default gen_random_uuid(),
+    handle text unique not null, name text not null, verified boolean default false,
+    glyph text, color text, logo text, banner text, bio text default '',
+    links jsonb default '{}'::jsonb, status text not null default 'approved'
+  );
+  create table if not exists public.events (
+    id uuid primary key default gen_random_uuid(),
+    org_id uuid not null references public.organizations(id) on delete cascade,
+    title text not null, start timestamptz not null, mode text default 'in-person',
+    location text, category text default 'clubs', description text default '',
+    image text, relevant_to text[] default '{}', posted_at timestamptz default now()
+  );
+  insert into public.organizations (handle, name) values
+    ('@concordiagamedev','Game Development Association'),
+    ('@concordia','Concordia University'),
+    ('@jmis','John Molson Investment Society')
+  on conflict (handle) do nothing;
+`)
+await db.exec(migration('community_reggies.sql'))
+console.log('  ok    DDL applies')
+
+const thursdays = async () =>
+  (await db.query(`select start from public.events
+                    where series_id = 'reggies-thirsty-thursdays' order by start`)).rows
+
+check('thirty occurrences', (await thursdays()).length, 30)
+check('  every one is a Thursday',
+  (await db.query(`select count(*)::int n from public.events
+                    where series_id = 'reggies-thirsty-thursdays'
+                      and extract(isodow from (start at time zone 'America/Toronto')) <> 4`)).rows[0].n, 0)
+check('  every one is at 8 PM local',
+  (await db.query(`select count(*)::int n from public.events
+                    where series_id = 'reggies-thirsty-thursdays'
+                      and (start at time zone 'America/Toronto')::time <> time '20:00'`)).rows[0].n, 0)
+check('  none of them is in the past',
+  (await db.query(`select count(*)::int n from public.events
+                    where series_id = 'reggies-thirsty-thursdays' and start < now()`)).rows[0].n, 0)
+// Compared as LOCAL DATES, not as timestamps: 8 PM every Thursday is 7d, 7d1h
+// and 6d23h of absolute time depending on which side of a daylight-saving
+// change you are on, and all three are the right answer.
+check('  they are a week apart',
+  (await db.query(`select count(distinct d)::int n from (
+      select (start at time zone 'America/Toronto')::date
+             - lag((start at time zone 'America/Toronto')::date) over (order by start) d
+        from public.events where series_id = 'reggies-thirsty-thursdays') x
+      where d is not null`)).rows[0].n, 1)
+check('  and that week is seven days',
+  (await db.query(`select max(d)::int m from (
+      select (start at time zone 'America/Toronto')::date
+             - lag((start at time zone 'America/Toronto')::date) over (order by start) d
+        from public.events where series_id = 'reggies-thirsty-thursdays') x`)).rows[0].m, 7)
+
+// Re-running refreshes rather than duplicates — the delete-then-insert is the
+// whole reason this file can be run again in March without leaving a page of
+// dates in the past.
+await db.exec(migration('community_reggies.sql'))
+check('running it twice still gives thirty', (await thursdays()).length, 30)
+
+check('the venue is on the org',
+  (await db.query(`select venue->>'phone' p from public.organizations where handle = '@reggiesmtl'`)).rows[0].p,
+  '(514) 789-2447')
+check('  with its opening hours',
+  (await db.query(`select jsonb_array_length(venue->'hours') n from public.organizations where handle = '@reggiesmtl'`)).rows[0].n, 3)
+check('JMIS gets a real contact address',
+  (await db.query("select email from public.organizations where handle = '@jmis'")).rows[0].email,
+  'directors@jmis.ca')
+check('the summit is filed under Game Dev',
+  (await db.query(`select count(*)::int n from public.events e
+                     join public.organizations o on o.id = e.org_id
+                    where e.title = 'Student Game Dev Summit 2026' and o.handle = '@concordiagamedev'`)).rows[0].n, 1)
+check('  and only once after a second run',
+  (await db.query(`select count(*)::int n from public.events where title = 'Student Game Dev Summit 2026'`)).rows[0].n, 1)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

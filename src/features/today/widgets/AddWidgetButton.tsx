@@ -17,10 +17,8 @@ import type { WidgetContext } from './registry'
 export function AddWidgetButton({
   layout,
   onChange,
-  topLayout,
-  onTopChange,
-  belowLayout,
-  onBelowChange,
+  mainLayout,
+  onMainChange,
   ctx,
   editing,
   onToggleEditing,
@@ -29,10 +27,8 @@ export function AddWidgetButton({
   onToggleEditing: () => void
   layout: string[]
   onChange: (next: string[]) => void
-  topLayout: string[]
-  onTopChange: (next: string[]) => void
-  belowLayout: string[]
-  onBelowChange: (next: string[]) => void
+  mainLayout: string[]
+  onMainChange: (next: string[]) => void
   ctx: WidgetContext
 }) {
   const [open, setOpen] = useState(false)
@@ -48,7 +44,7 @@ export function AddWidgetButton({
           <LayoutGrid size={14} aria-hidden />
           Add a widget
         </button>
-        {(layout.length > 1 || topLayout.length > 0) && (
+        {(layout.length > 1 || mainLayout.length > 1) && (
           <button
             type="button"
             onClick={onToggleEditing}
@@ -72,15 +68,14 @@ export function AddWidgetButton({
             <h2 className="font-display text-[18px] font-semibold text-fg">Widgets</h2>
             <p className="mt-0.5 mb-4 text-[12.5px] text-subtle">
               Every widget below is shown with your real data: what you see is what you
-              get. Nothing here is required; your deadlines stay put either way.
+              get. Drag anything on Today itself — double-click a card's header to start —
+              to move it between the wide column and the side rail.
             </p>
             <WidgetGallery
               layout={layout}
               onChange={onChange}
-              topLayout={topLayout}
-              onTopChange={onTopChange}
-              belowLayout={belowLayout}
-              onBelowChange={onBelowChange}
+              mainLayout={mainLayout}
+              onMainChange={onMainChange}
               ctx={ctx}
             />
           </div>

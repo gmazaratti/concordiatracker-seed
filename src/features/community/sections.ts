@@ -1,4 +1,4 @@
-import { CalendarDays, MessageSquare, UserRound, type LucideIcon } from 'lucide-react'
+import { CalendarDays, MessageSquare, Newspaper, UserRound, type LucideIcon } from 'lucide-react'
 
 /**
  * Community's own destinations. Three.
@@ -17,13 +17,24 @@ import { CalendarDays, MessageSquare, UserRound, type LucideIcon } from 'lucide-
  * A tab for something you open, clear and leave would spend a permanent slot on
  * a temporary job.
  */
-export type CommunitySection = 'events' | 'messages' | 'profile'
+/**
+ * FOUR now, and the fourth is not a fifth copy of the feed.
+ *
+ * Feed and Events are the two halves of "what is happening", split by the
+ * question each answers: Feed is ordered by when something was POSTED and led
+ * by what you follow (what is new); Events is ordered by when something STARTS
+ * and filtered by category (what is on). The rule that killed the old "Home"
+ * tab still holds — two tabs may not render the same list in the same order —
+ * and these do not.
+ */
+export type CommunitySection = 'feed' | 'events' | 'messages' | 'profile'
 
 export const COMMUNITY_SECTIONS: {
   id: CommunitySection
   label: string
   icon: LucideIcon
 }[] = [
+  { id: 'feed', label: 'Feed', icon: Newspaper },
   { id: 'events', label: 'Events', icon: CalendarDays },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
   { id: 'profile', label: 'You', icon: UserRound },
@@ -35,8 +46,14 @@ export function isCommunitySection(v: string | null): v is CommunitySection {
   return !!v && IDS.has(v)
 }
 
-/** The landing section, which carries no param so it has ONE address. */
-export const DEFAULT_SECTION: CommunitySection = 'events'
+/**
+ * The landing section, which carries no param so it has ONE address.
+ *
+ * Feed, not Events: opening Community asks "what have I missed", and that is
+ * the question the feed is ordered to answer. Events is one tap away and is
+ * where you go when you already know you are looking for something.
+ */
+export const DEFAULT_SECTION: CommunitySection = 'feed'
 
 export function communityHref(section: CommunitySection): string {
   return section === DEFAULT_SECTION ? '/app/community' : `/app/community?c=${section}`

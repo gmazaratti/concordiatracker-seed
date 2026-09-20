@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { GripHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { WIDGETS_BY_ID, fitsZone, type WidgetZone } from './registry'
@@ -59,8 +59,20 @@ interface DragState {
   y: number
 }
 
+/**
+ * How far down an item still counts as "the header".
+ *
+ * Double-clicking the top bar is what turns edit mode on, the way holding an
+ * icon does on a phone. It is a band rather than a real element because every
+ * widget draws its own header — WidgetCard's title row, the due list's, the
+ * glance panel's — and a shared handle would have meant rewriting all of them
+ * to hang one gesture off.
+ */
+const HEADER_BAND = 44
+
 interface BoardCtx {
   editing: boolean
+  requestEdit: () => void
   drag: DragState | null
   hoverZone: string | null
   registerZone: (id: string, el: HTMLElement | null) => void
@@ -74,10 +86,19 @@ const Ctx = createContext<BoardCtx | null>(null)
 export function WidgetBoard({
   zones,
   editing,
+  onRequestEdit,
+  renderGhost,
   children,
 }: {
   zones: ZoneSpec[]
   editing: boolean
+  /** Double-clicking any card's header turns edit mode on. */
+  onRequestEdit: () => void
+  /** Draws the copy that follows the pointer. Supplied by the owner because
+   *  two of the items (the due list, the glance panel) are rendered there
+   *  rather than by the registry, and a ghost that renders nothing makes the
+   *  drag look broken. */
+  renderGhost: (id: string) => React.ReactNode
   children: React.ReactNode
 }) {
   const reduced = usePrefersReducedMotion()
@@ -232,11 +253,9 @@ export function WidgetBoard({
   )
 
   const value = useMemo(
-    () => ({ editing, drag, hoverZone, registerZone, registerItem, begin, remove }),
-    [editing, drag, hoverZone, registerZone, registerItem, begin, remove],
+    () => ({ editing, requestEdit: onRequestEdit, drag, hoverZone, registerZone, registerItem, begin, remove }),
+    [editing, onRequestEdit, drag, hoverZone, registerZone, registerItem, begin, remove],
   )
-
-  const dragged = drag ? WIDGETS_BY_ID.get(drag.id) : null
 
   return (
     <Ctx value={value}>
@@ -244,7 +263,6 @@ export function WidgetBoard({
       {/* The travelling copy. Fixed-position and portalled so it can move
           between zones: the real element can never leave its parent. */}
       {drag &&
-        dragged &&
         createPortal(
           <div
             aria-hidden
@@ -257,7 +275,7 @@ export function WidgetBoard({
               filter: 'drop-shadow(0 18px 40px rgba(0,0,0,.55))',
             }}
           >
-            {dragged.render('rail')}
+            {renderGhost(drag.id)}
           </div>,
           document.body,
         )}
@@ -284,7 +302,7 @@ export function WidgetZoneView({
   /** Shown while dragging if the zone is empty, so it's a visible target. */
   emptyHint?: string
 }) {
-  const { editing, drag, hoverZone, registerZone, registerItem, begin, remove } = useBoard()
+  const { editing, requestEdit, drag, hoverZone, registerZone, registerItem, begin, remove } = useBoard()
   const w = drag ? WIDGETS_BY_ID.get(drag.id) : null
   const couldAccept =
     !!drag && !!w && fitsZone(w, zone.layout) && (zone.ids.includes(drag.id) || zone.ids.length < zone.max)
@@ -302,11 +320,20 @@ export function WidgetZoneView({
     >
       {zone.ids.map((id) => {
         const held = drag?.id === id
+        const def = WIDGETS_BY_ID.get(id)
         return (
           <div
             key={id}
             ref={(el) => registerItem(zone.id, id, el)}
             onPointerDown={(e) => editing && begin(zone.id, id, e)}
+            /* Only the header band arms edit mode. Widgets are full of links
+               and buttons, and a double-click anywhere would turn a missed
+               tap into a rearranged screen. */
+            onDoubleClick={(e) => {
+              if (editing) return
+              const r = e.currentTarget.getBoundingClientRect()
+              if (e.clientY - r.top <= HEADER_BAND) requestEdit()
+            }}
             className={cn(
               // h-full so two widgets sharing a row end level. Without it each
               // card was its own height and the shorter one left a gap under
@@ -328,7 +355,19 @@ export function WidgetZoneView({
 
             {editing && <div className="absolute inset-0 z-10 rounded-xl" aria-hidden />}
 
-            {editing && (
+            {/* The grab bar. Edit mode says "these move"; this says "and here
+                is where you take hold of them", which is the half that was
+                missing — a wiggling card with no handle reads as a glitch. */}
+            {editing && !held && (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 z-[11] flex h-9 items-center justify-center rounded-t-xl bg-accent/15 ring-1 ring-accent/35 ring-inset"
+              >
+                <GripHorizontal size={14} className="text-accent" />
+              </div>
+            )}
+
+            {editing && !def?.fixed && (
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}

@@ -1,4 +1,4 @@
-import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { LibraryWidget } from './LibraryWidget'
 import { ShuttleWidget } from './ShuttleWidget'
@@ -15,11 +15,16 @@ import { DebriefPanel } from '../DebriefPanel'
 /**
  * Every widget Today can show.
  *
- * THE RULE: the due list is not in here, and never will be. Widgets decorate the
- * screen around the spine; they can't replace it, sit above it, or push it below
- * the fold. iPhone widgets work because the home screen has no other job — Today
- * has exactly one, and this registry exists to keep that true while still
- * letting the screen feel like yours.
+ * THE DUE LIST IS IN HERE NOW, and that is a deliberate reversal.
+ *
+ * The old rule said widgets decorate around the spine and can never move it,
+ * on the reasoning that Today has exactly one job. That held while the only
+ * question was "what may sit above my deadlines". It stopped holding the
+ * moment the ask became "put the list in the rail and the glance panel where
+ * the list was" — which is a legitimate thing to want from a screen you were
+ * told is yours, and refusing it would have been the rule outliving its
+ * reason. It is `fixed`, so it can be MOVED and never REMOVED: there is no
+ * arrangement of Today that does not show you what is due.
  *
  * Adding a feature: add an entry here. It shows up in the gallery, becomes
  * addable, and needs no route, no tab, and no nav change.
@@ -37,6 +42,12 @@ export type WidgetZone = 'rail' | 'wide' | 'half'
 
 export interface WidgetDef {
   id: string
+  /**
+   * Can be moved, cannot be deleted, never appears in the gallery. The due
+   * list is the only one: losing it by accident would leave Today with
+   * nothing to say.
+   */
+  fixed?: boolean
   name: string
   /** One line in the gallery — what it does, not how. */
   description: string
@@ -60,14 +71,27 @@ export interface WidgetContext {
  * totals already computed there. */
 export const GLANCE_ID = 'glance'
 
+/** The due list, as a board item. Rendering is injected by TodayPage — it owns
+ * the grouping, the completed-today set and every write. */
+export const DUE_ID = 'due'
+
 export const WIDGETS: WidgetDef[] = [
   {
     id: GLANCE_ID,
     name: 'At a glance',
     description: 'GPA, overdue count, what is due this week, and term progress.',
     icon: Gauge,
-    zones: ['rail'],
+    zones: ['rail', 'half', 'wide'],
     render: () => null, // supplied by TodayPage: see renderWidget there
+  },
+  {
+    id: DUE_ID,
+    name: 'Due',
+    description: 'Everything with a deadline, grouped and tickable. Always on Today.',
+    icon: ListChecks,
+    fixed: true,
+    zones: ['rail', 'wide'],
+    render: () => null, // supplied by TodayPage
   },
   {
     id: 'next-class',
@@ -177,20 +201,26 @@ export const WIDGETS_BY_ID = new Map(WIDGETS.map((w) => [w.id, w]))
  * a full one invites nothing. */
 export const DEFAULT_WIDGETS = [GLANCE_ID, 'next-class']
 
-/** The band above the due list starts empty — the term-workload panel that used
- * to live there is now an opt-in widget rather than something everyone gets. */
-export const DEFAULT_TOP: string[] = []
+/**
+ * The wide column. One list, in order, with the due list somewhere in it.
+ *
+ * It used to be two separate bands — "above the due list" and "below" it —
+ * with the list itself nailed between them. That is three containers to
+ * express one column, and it made "move the glance panel to where Due is"
+ * unaskable. One ordered list says the same thing and can answer it.
+ */
+export const DEFAULT_MAIN = [DUE_ID]
 
-/** One wide card, or two halves. More than two and they stop being readable. */
-export const MAX_TOP = 2
-
-export const DEFAULT_BELOW: string[] = []
-/** Under the due list there's more room, so a 2×2 is fine. */
-export const MAX_BELOW = 4
+/** Five full-width cards is already a long scroll before anything else. */
+export const MAX_MAIN = 5
 
 export function fitsZone(w: WidgetDef, zone: WidgetZone): boolean {
   return (w.zones ?? ['rail']).includes(zone)
 }
+
+/** Everything the gallery may offer: the fixed ones are already on screen and
+ * cannot be added or removed, so listing them is only a dead row. */
+export const ADDABLE = WIDGETS.filter((w) => !w.fixed)
 
 /** More than this and the rail stops being glanceable. A stated cap reads as
  * considered design; an unbounded list reads as a settings screen. */

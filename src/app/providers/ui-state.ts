@@ -2,10 +2,16 @@ import { createContext, useContext } from 'react'
 
 /** Lightweight, per-user, cross-device UI flags (stored in user_profile.ui_state). */
 export interface UiState {
-  /** Widgets in the wide band above the due list — one wide, or two halves. */
+  /**
+   * The wide column on Today, in order, INCLUDING the due list itself (`due`).
+   * One list replaced the two bands below, which could not express "put the
+   * glance panel where the due list is"; both are still read once, to migrate
+   * an older saved layout without losing it.
+   */
+  todayMain?: string[]
+  /** @deprecated migrated into `todayMain` on read. */
   todayTopWidgets?: string[]
-  /** Widgets under the due list. Fills the dead space on a light term, where the
-   * rail is otherwise much taller than the main column. */
+  /** @deprecated migrated into `todayMain` on read. */
   todayBelowWidgets?: string[]
   /** Assessment the Countdown widget is pinned to (else the next exam). */
   countdownId?: string

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, UserPlus } from 'lucide-react'
 import { useFollows } from '@/app/providers/follows'
 import { useCommunity } from './useCommunity'
+import { eventsThisWeek, suggestOrgs } from './feed'
 import { useEventActions } from './useEventActions'
 import { OrgLogo } from './OrgLogo'
 import { VerifiedBadge } from './VerifiedBadge'
@@ -11,43 +12,6 @@ import { orgSlug, type CampusEvent, type EventOrg } from '@/data/community'
 import { useFollowedPeople, type PublicPerson } from './profile-follows'
 import { PersonAvatar } from './PersonAvatar'
 import { cn } from '@/lib/cn'
-
-const DAY = 86_400_000
-
-/* Clock reads live in module helpers rather than inline in the component: the
- * render path has to stay pure, and this keeps the selection logic testable. */
-
-/** Upcoming events inside the next 7 days, soonest first. */
-function eventsThisWeek(events: CampusEvent[], limit = 5): CampusEvent[] {
-  const now = Date.now()
-  return events
-    .filter((e) => {
-      const t = new Date(e.start).getTime()
-      return t >= now && t <= now + 7 * DAY
-    })
-    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-    .slice(0, limit)
-}
-
-/** Orgs the student doesn't follow yet, ranked by upcoming activity — a dead
- * org is a poor suggestion, so only ones with something coming up qualify. */
-function suggestOrgs(
-  orgs: EventOrg[],
-  events: CampusEvent[],
-  isFollowing: (handle: string) => boolean,
-  limit = 4,
-): EventOrg[] {
-  const now = Date.now()
-  const upcoming = new Map<string, number>()
-  for (const e of events) {
-    if (new Date(e.start).getTime() < now) continue
-    upcoming.set(e.org.handle, (upcoming.get(e.org.handle) ?? 0) + 1)
-  }
-  return orgs
-    .filter((o) => !isFollowing(o.handle) && (upcoming.get(o.handle) ?? 0) > 0)
-    .sort((a, b) => (upcoming.get(b.handle) ?? 0) - (upcoming.get(a.handle) ?? 0))
-    .slice(0, limit)
-}
 
 /**
  * Desktop-only right rail for Community.
@@ -159,6 +123,8 @@ function Panel({
     </section>
   )
 }
+
+const DAY = 86_400_000
 
 /** "Tomorrow · 6:00 PM" — short enough for a 300px rail. */
 function whenLabel(e: CampusEvent): string {
