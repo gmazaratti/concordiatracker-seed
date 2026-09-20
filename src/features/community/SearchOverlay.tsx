@@ -240,9 +240,24 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
               </>
             )
           ) : rows.length === 0 ? (
-            <p className="px-3 py-14 text-center text-[13px] text-subtle">
-              Nothing matching “{query.trim()}”. Handles are exact; names are not.
-            </p>
+            /**
+             * WHY THE SECOND SENTENCE. A student searches a classmate's exact
+             * handle and gets nothing, and concludes the search is broken --
+             * which is a reasonable thing to conclude, because the real reason
+             * is invisible from their side: people only appear here once they
+             * have switched their profile public, and it is off by default.
+             * Naming that turns a dead end into something they can act on
+             * (tell their friend), and it explains their OWN absence too.
+             */
+            <div className="px-6 py-14 text-center">
+              <p className="text-[13px] text-subtle">
+                Nothing matching “{query.trim()}”. Handles are exact; names are not.
+              </p>
+              <p className="mx-auto mt-2 max-w-xs text-[12px] leading-relaxed text-subtle">
+                People only show up here once they have turned on a public profile, so a
+                classmate who has not may be findable only by a direct link to their handle.
+              </p>
+            </div>
           ) : (
             <ul>
               {rows.map((row, i) => {

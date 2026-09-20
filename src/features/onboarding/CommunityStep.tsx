@@ -3,6 +3,7 @@ import type { CampusEvent } from '@/data/community'
 import { useCommunity } from '@/features/community/useCommunity'
 import { useFollows } from '@/app/providers/follows'
 import { useAppData } from '@/app/providers/app-data'
+import { FindableSwitch } from '@/features/community/FindableSwitch'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { FollowButton } from '@/features/community/FollowButton'
 import { EventTile } from '@/features/community/EventTile'
@@ -43,6 +44,12 @@ export function CommunityStep() {
       <p className="mt-2 text-center text-[13px] leading-relaxed text-muted sm:text-[14px]">
         {t('onboarding.campusSub')}
       </p>
+
+      {/* ASKED, not assumed. Discoverability is off for every new account and
+          nothing used to turn it on, so a classmate searching your handle
+          found nobody. The answer is to put the question somewhere people
+          actually see it -- not to default it on behind their back. */}
+      <FindableSwitch compact className="mt-5" />
 
       <section className="mt-5 sm:mt-6">
         <h3 className="mb-2.5 text-[12px] font-semibold tracking-wide text-subtle uppercase">{t('onboarding.campusStep1')}</h3>
