@@ -223,7 +223,12 @@ section('OpenAPI specification')
 /* ── 4. Error responses ───────────────────────────────────────────────────── */
 section('JSON error responses')
 {
-  const files = ['sections.ts', 'ticket.ts', 'stripe-checkout.ts', 'stripe-billing.ts', 'send-push.ts', 'sync-catalog.ts', 'run-reminders.ts', 'stripe-webhook.ts']
+  // DISCOVERED, not listed. The list went stale the moment a handler was
+  // renamed (run-reminders moved behind sync-catalog to free a function slot)
+  // and the whole suite died on ENOENT -- a test that breaks when you move a
+  // file is testing the list, not the code.
+  const files = (await readdir(path.join(ROOT, 'api')))
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
   let stragglers = []
   for (const f of files) {
     const src = await readFile(path.join(ROOT, 'api', f), 'utf8')
