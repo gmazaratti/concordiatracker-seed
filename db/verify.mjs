@@ -581,6 +581,72 @@ check('a private profile that DID share classes shows them', await classes('shar
 check('a public sharer shows theirs', await classes('loud'), [])
 
 
+// -- db/admin_audit.sql ------------------------------------------------------
+//
+// The log exists so "who gave this person Pro and why" has an answer that is
+// not somebody's memory. So what is asserted is that the answer is THERE and
+// cannot be quietly removed: a reason is mandatory, the actor is taken from
+// the session rather than from the caller, and the grant and its record are
+// one statement so a client cannot do the first and skip the second.
+console.log(String.fromCharCode(10) + 'db/admin_audit.sql')
+await db.exec(`
+  create or replace function public.is_admin() returns boolean
+    language sql stable as $fn$ select true $fn$;
+  -- auth.uid() resolves to the 'shy' row here, so that row is the acting
+  -- admin AND the founder the backfill attributes the old grants to.
+  update public.user_profile set email = 'alexxdegryse@gmail.com' where handle = 'shy';
+  insert into public.user_profile (user_id, handle, name, email, plan_status)
+    values ('55555555-5555-5555-5555-555555555555', 'flo', 'Florence Marie',
+            'florencemarie123@gmail.com', 'pro');
+`)
+await db.exec(migration('admin_audit.sql'))
+
+const FLO = '55555555-5555-5555-5555-555555555555'
+const audit = async (t) =>
+  (await db.query('select * from public.admin_audit_for_user($1, 50)', [t])).rows
+
+// One of the four comped emails exists in this fixture (Flo); the assertion
+// is that the backfill FINDS the accounts it names, not that all four are here.
+check('the backfill recorded the grant nobody could explain',
+  (await db.query("select count(*)::int c from public.admin_audit_log where action = 'plan.grant.backfill'")).rows[0].c, 1)
+check('and it says who and why', (await audit(FLO))[0].reason.startsWith('Comped by Alex'), true)
+check('Flo is marked comped', (await db.query(
+  "select comped from public.user_profile where handle = 'flo'")).rows[0].comped, true)
+
+// Re-running a migration must not duplicate history.
+await db.exec(migration('admin_audit.sql'))
+check('re-running does not double the backfill',
+  (await db.query("select count(*)::int c from public.admin_audit_log where action = 'plan.grant.backfill'")).rows[0].c, 1)
+
+// A grant through the wrapper leaves a record, with the before and after.
+await db.query("select public.admin_set_plan($1, true, 'Beta tester, 3 months', null)", [FLO])
+const rows = await audit(FLO)
+check('granting Pro logged an entry', rows[0].action, 'plan.grant')
+check('  with the reason given', rows[0].reason, 'Beta tester, 3 months')
+check('  the value before', rows[0].old_value.plan_status, 'pro')
+check('  and the value after', rows[0].new_value.plan_status, 'pro')
+check('  attributed to the signed-in admin', rows[0].actor_email, 'alexxdegryse@gmail.com')
+check('a hand grant also marks the account comped, so it never counts as paying',
+  (await db.query("select comped from public.user_profile where handle = 'flo'")).rows[0].comped, true)
+
+await db.query("select public.admin_set_flags($1, true, false, 'Moved to the test estate')", [FLO])
+check('a flag change is logged too', (await audit(FLO))[0].action, 'flag.set')
+check('  with its before', (await audit(FLO))[0].old_value.is_internal, false)
+
+// The reason is the whole point, so it is enforced rather than encouraged.
+let refused = false
+try { await db.query("select public.log_admin_action('plan.grant', $1, '   ')", [FLO]) }
+catch { refused = true }
+check('an action with a blank reason is refused', refused, true)
+
+// And an admin cannot rewrite what happened.
+const before = (await db.query('select count(*)::int c from public.admin_audit_log')).rows[0].c
+check('the log is append-only: no update or delete policy exists',
+  (await db.query(`select count(*)::int c from pg_policies
+     where tablename = 'admin_audit_log' and cmd in ('UPDATE','DELETE')`)).rows[0].c, 0)
+check('and every action so far is still there', before, 3)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

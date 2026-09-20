@@ -27,6 +27,18 @@
 --   schedule                → schedule_visibility (untouched here)
 -- ============================================================================
 
+-- ── Dropped before recreated, because the shape changed ──────────────────────
+-- `create or replace function` CANNOT change the row type defined by OUT
+-- parameters: Postgres answers 42P13 and refuses the whole file. Both of these
+-- gain or move a column, so they have to go first.
+--
+-- `if exists` on each, and both signatures for get_public_profile, because two
+-- earlier migrations defined it with different column lists and which one is
+-- live depends on the order they were applied.
+drop function if exists public.search_public_profiles(text, int);
+drop function if exists public.get_public_profile(text);
+drop function if exists public.get_public_courses(text);
+
 -- ── Search: everyone with a handle ───────────────────────────────────────────
 -- The ROW itself is minimal for a private account. Returning `program` for
 -- someone who never made their profile public would leak through the search
