@@ -4,16 +4,31 @@ import { cn } from '@/lib/cn'
 export function Group({
   label,
   children,
+  /**
+   * For content that is NOT a stack of `Row`s.
+   *
+   * The card itself has no padding, because a Row brings its own — so a
+   * section that drops prose or a panel straight in renders flush against
+   * the border, and `overflow-hidden` then CLIPS it rather than letting the
+   * overflow show. That is what made the Developer panel look broken.
+   */
+  padded = false,
 }: {
   label: string
   children: React.ReactNode
+  padded?: boolean
 }) {
   return (
     <section className="mb-6 last:mb-1">
       <h3 className="mb-2 px-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {label}
       </h3>
-      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/25">
+      <div
+        className={cn(
+          'divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-2/25',
+          padded && 'space-y-3 divide-y-0 px-4 py-3.5',
+        )}
+      >
         {children}
       </div>
     </section>

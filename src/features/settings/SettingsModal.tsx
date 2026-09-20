@@ -23,8 +23,18 @@ import { PrivacySection } from './sections/PrivacySection'
 import { BillingSection } from './sections/BillingSection'
 import { UsageSection } from './sections/UsageSection'
 import { DeveloperSection } from './sections/DeveloperSection'
+import { useIsAdmin } from '@/features/admin/admin-data'
 
-const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
+/**
+ * `adminOnly` is a display rule, and only a display rule.
+ *
+ * Hiding the tab does not protect anything and is not pretending to: minting
+ * a token goes through `create_api_token`, which checks the caller itself,
+ * and an owner-scope key is refused there whatever the screen shows. This is
+ * about not putting a developer credential in front of a student who has no
+ * use for one — clutter, not security.
+ */
+const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon; adminOnly?: boolean }[] = [
   { id: 'general', labelKey: 'settings.general', icon: SlidersHorizontal },
   { id: 'account', labelKey: 'settings.account', icon: UserRound },
   { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync },
@@ -32,7 +42,7 @@ const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
   { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
   { id: 'usage', labelKey: 'settings.usage', icon: Gauge },
-  { id: 'developer', labelKey: 'settings.developer', icon: Code2 },
+  { id: 'developer', labelKey: 'settings.developer', icon: Code2, adminOnly: true },
 ]
 
 const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
@@ -54,8 +64,13 @@ export function SettingsModal() {
   const { section, setSection, closeSettings } = useSettings()
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(closeSettings)
   const t = useT()
-  const active = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0]
-  const Body = CONTENT[section]
+  const { isAdmin } = useIsAdmin()
+  const sections = SECTIONS.filter((s) => !s.adminOnly || isAdmin)
+  // A deep link (or a stale `section`) must not land on a hidden tab, and it
+  // must not render a blank panel either. Fall back to the first one.
+  const visible = sections.some((s) => s.id === section) ? section : sections[0].id
+  const active = sections.find((s) => s.id === visible) ?? sections[0]
+  const Body = CONTENT[visible]
 
   return (
     <div
@@ -86,7 +101,7 @@ export function SettingsModal() {
             </button>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-2 pt-1 pb-2 sm:flex-col sm:overflow-visible sm:pb-3">
-            {SECTIONS.map((s) => {
+            {sections.map((s) => {
               const isActive = s.id === section
               return (
                 <button

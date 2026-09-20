@@ -371,6 +371,45 @@ export async function unfollowUser(handle: string): Promise<boolean> {
   return !error
 }
 
+/* ── Blocking ─────────────────────────────────────────────────────────────
+ *
+ * Every one of these is an RPC rather than a table write, because blocking is
+ * not one row: it also has to tear down the friendship and the follow in both
+ * directions. Doing that from the client would be three requests that can half
+ * fail, leaving a block with a live message thread behind it.
+ */
+
+/** Block someone. Disconnects and unfollows both ways, server-side. */
+export async function blockUser(handle: string): Promise<boolean> {
+  const { error } = await supabase.rpc('block_user', { p_handle: handle })
+  return !error
+}
+
+export async function unblockUser(handle: string): Promise<boolean> {
+  const { error } = await supabase.rpc('unblock_user', { p_handle: handle })
+  return !error
+}
+
+/** Did I block them? Decides whether the menu offers Block or Unblock. */
+export async function haveIBlocked(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('have_i_blocked', { p_handle: handle })
+  return !error && data === true
+}
+
+export interface BlockedUser {
+  handle: string
+  name: string | null
+  avatar_url: string | null
+  created_at: string
+}
+
+/** Who I have blocked — so it can be undone somewhere other than their profile,
+ *  which is the one place a blocked person's profile will not open. */
+export async function listBlocks(): Promise<BlockedUser[]> {
+  const { data, error } = await supabase.rpc('my_blocks')
+  return error ? [] : ((data as BlockedUser[] | null) ?? [])
+}
+
 export interface FollowedUser {
   user_id: string
   handle: string

@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn'
 import { Group, Row, Switch, Segmented } from '../controls'
 import { PushControl } from './PushControl'
 import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
+import { getReduceMotion, setReduceMotion } from '@/lib/reduce-motion'
 
 /** General: appearance, lightweight preferences, notifications, updates, and the
  * real English/French switch. Untranslated strings fall back to English, so the
@@ -17,7 +18,9 @@ import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 export function GeneralSection() {
   const { currentVersion, showIndicator, notificationsEnabled, setNotificationsEnabled, openHistory } =
     useUpdates()
-  const [reducedMotion, setReducedMotion] = useState(false)
+  // Seeded from what is actually stored, so the switch shows the state the
+  // page is already in rather than resetting to off on every open.
+  const [reducedMotion, setReducedMotion] = useState(getReduceMotion)
   const [weekStartMon, setWeekStartMon] = useState(true)
   const [deadlineReminders, setDeadlineReminders] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(false)
@@ -36,7 +39,14 @@ export function GeneralSection() {
 
       <Group label={t('settings.preferences')}>
         <Row label={t('settings.reduceMotion')} description="Minimize non-essential animation.">
-          <Switch checked={reducedMotion} onChange={setReducedMotion} label="Reduce motion" />
+          <Switch
+            checked={reducedMotion}
+            onChange={(on) => {
+              setReducedMotion(on)
+              setReduceMotion(on)
+            }}
+            label="Reduce motion"
+          />
         </Row>
         <Row label={t('settings.weekStartMon')} description="Used across the calendar.">
           <Switch checked={weekStartMon} onChange={setWeekStartMon} label="Start week on Monday" />

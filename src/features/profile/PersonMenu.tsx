@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, Link2, MessageSquare, MoreVertical, Rss, UserRound, UserX } from 'lucide-react'
-import { removeFriend, unfollowUser } from '@/lib/social'
+import { Ban, Check, Link2, MessageSquare, MoreVertical, Rss, UserRound, UserX } from 'lucide-react'
+import { blockUser, haveIBlocked, removeFriend, unblockUser, unfollowUser } from '@/lib/social'
 import { cn } from '@/lib/cn'
 
 /**
@@ -27,7 +27,9 @@ export interface PersonTarget {
 }
 
 const WIDTH = 210
-const HEIGHT = 190
+// Grows with the menu: the flip-up calculation uses it, and an undersized
+// estimate puts the last item off the bottom of the screen.
+const HEIGHT = 248
 
 export function PersonMenu({
   target,
@@ -42,6 +44,24 @@ export function PersonMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
+  // Blocking is the one irreversible-feeling action here, so it asks twice.
+  // The second click is the confirmation; there is no dialog, because a
+  // dialog over a context menu is two layers to dismiss.
+  const [confirmBlock, setConfirmBlock] = useState(false)
+  const [blocked, setBlocked] = useState<boolean | null>(null)
+  // A block that quietly does nothing is the worst version of this feature:
+  // you would believe you were no longer reachable. Say so instead.
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void haveIBlocked(target.handle).then((b) => {
+      if (alive) setBlocked(b)
+    })
+    return () => {
+      alive = false
+    }
+  }, [target.handle])
   const [pos] = useState(() => ({
     left: Math.min(target.at.x, window.innerWidth - WIDTH - 8),
     top:
@@ -133,6 +153,61 @@ export function PersonMenu({
             onClose()
           }}
         />
+      )}
+
+      {/* Rendered only once we know which way round it goes — showing "Block"
+          to someone who has already blocked them, and silently doing nothing
+          when they click it, is worse than a moment with no row. */}
+      {blocked === false && (
+        <>
+          {!target.following && !target.friendshipId && (
+            <div className="my-1 border-t border-border" />
+          )}
+          <Item
+            icon={Ban}
+            label={confirmBlock ? 'Block — are you sure?' : 'Block'}
+            danger
+            onSelect={() => {
+              if (!confirmBlock) {
+                setConfirmBlock(true)
+                return
+              }
+              void blockUser(target.handle).then((ok) => {
+                if (!ok) {
+                  setFailed(true)
+                  return
+                }
+                onChanged?.()
+                onClose()
+              })
+            }}
+          />
+        </>
+      )}
+      {blocked === true && (
+        <>
+          <div className="my-1 border-t border-border" />
+          <Item
+            icon={Ban}
+            label="Unblock"
+            onSelect={() => {
+              void unblockUser(target.handle).then((ok) => {
+                if (!ok) {
+                  setFailed(true)
+                  return
+                }
+                onChanged?.()
+                onClose()
+              })
+            }}
+          />
+        </>
+      )}
+
+      {failed && (
+        <p className="px-3 pt-1 pb-1.5 text-[11px] leading-snug text-danger">
+          That didn&rsquo;t go through. Nothing changed.
+        </p>
       )}
     </div>,
     document.body,

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Activity,
   ArrowLeft,
+  Ban,
   ChevronDown,
   Bot,
   Bug,
@@ -35,6 +36,7 @@ import { TicketsTab } from './tabs/TicketsTab'
 import { AttributionTab } from './tabs/AttributionTab'
 import { TrafficTab } from './tabs/TrafficTab'
 import { SurveyResultsTab } from './tabs/SurveyResultsTab'
+import { SocialTab } from './tabs/SocialTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -50,6 +52,9 @@ const TABS = [
   { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
+  // Next to the other moderation surfaces, not next to the stats: what is
+  // here is who blocked whom, which is a safety question.
+  { id: 'social', label: 'Social graph', icon: Ban },
   { id: 'data', label: 'Data reports', icon: ClipboardCheck },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
 ] as const
@@ -127,6 +132,7 @@ export function AdminConsole() {
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}
         {current === 'tickets' && <TicketsTab />}
+        {current === 'social' && <SocialTab />}
         {current === 'data' && <DataReportsTab />}
         {current === 'bugs' && <BugReportsTab />}
         {current === 'assistant' && <AssistantTab />}

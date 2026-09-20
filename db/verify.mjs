@@ -1238,6 +1238,142 @@ await db.exec(`create or replace function public.is_admin() returns boolean
 
 }
 
+/* ── blocks.sql ─────────────────────────────────────────────────────────────
+   Blocking, and the bug where an internal account could not see itself. */
+{
+  const ME = '21111111-1111-1111-1111-111111111111'
+  const THEM = '22222222-2222-2222-2222-222222222222'
+  const NOSY = '23333333-3333-3333-3333-333333333333'
+
+  await db.exec(`
+    drop table if exists public.profile_blocks cascade;
+    create table if not exists auth.users (id uuid primary key);
+    insert into auth.users (id) values ('${ME}'), ('${THEM}'), ('${NOSY}')
+      on conflict do nothing;
+
+    drop table if exists public.user_profile cascade;
+    create table public.user_profile (
+      user_id uuid primary key, handle text, name text, avatar_url text,
+      program text, program_id text, bio text, links jsonb,
+      profile_public boolean default false, courses_public boolean default false,
+      is_internal boolean default false
+    );
+    insert into public.user_profile (user_id, handle, name, profile_public, is_internal) values
+      ('${ME}',   'staffer', 'Staffer', true,  true),   -- internal, like @sarah
+      ('${THEM}', 'them',    'Them',    true,  false),
+      ('${NOSY}', 'nosy',    'Nosy',    true,  false);
+
+    drop table if exists public.friendships cascade;
+    create table public.friendships (
+      id uuid primary key default gen_random_uuid(),
+      requester uuid, addressee uuid, status text default 'accepted'
+    );
+    -- user_follows is the live table (profile_follows exists and is empty);
+    -- its columns are follower / following.
+    drop table if exists public.user_follows cascade;
+    create table public.user_follows (
+      follower uuid, following uuid, created_at timestamptz default now()
+    );
+    drop table if exists public.courses cascade;
+    create table public.courses (
+      id text primary key, user_id uuid, code text, name text, color text,
+      term text, archived boolean default false
+    );
+    insert into public.courses (id, user_id, code, name, term) values
+      ('c1', '${ME}', 'COMM 229', 'Comms', 'Fall 2026');
+  `)
+
+  // auth.uid() is swapped per-assertion, the way the other sections do it.
+  const beMe = (who) =>
+    db.exec(`create or replace function auth.uid() returns uuid language sql stable
+             as $$ select ${who === null ? 'null::uuid' : `'${who}'::uuid`} $$;`)
+
+  await beMe(ME)
+  await db.exec(migration('blocks.sql'))
+  console.log('')
+  console.log('blocks.sql')
+  check('  DDL applies', true, true)
+
+  /* THE BUG. An internal account is hidden from others and NOT from itself. */
+  await db.exec(`update public.user_profile
+                    set profile_public = false, bio = 'my bio', program = 'Finance'
+                  where handle = 'staffer';`)
+  const seeSelf = (await db.query("select * from public.get_public_profile('staffer')")).rows
+  check('you can always see your OWN profile, internal or not', seeSelf.length, 1)
+  check('  and PRIVATE does not redact it from you', seeSelf[0].bio, 'my bio')
+  check('  program too', seeSelf[0].program, 'Finance')
+  await db.exec("update public.user_profile set profile_public = true where handle = 'staffer';")
+
+  await beMe(THEM)
+  check('  and an internal account stays hidden from everyone else',
+    (await db.query("select * from public.get_public_profile('staffer')")).rows.length, 0)
+
+  /* Blocking. */
+  await beMe(ME)
+  await db.exec(`insert into public.friendships (requester, addressee) values ('${ME}','${THEM}');
+                 insert into public.profile_follows (follower_id, following_id) values ('${THEM}','${ME}');`)
+  await db.query("select public.block_user('them')")
+  check('blocking removes the friendship', (await db.query('select count(*)::int n from public.friendships')).rows[0].n, 0)
+  check('  and the follow, in both directions',
+    (await db.query('select count(*)::int n from public.user_follows')).rows[0].n, 0)
+  check('  the blocker cannot see them', (await db.query("select * from public.get_public_profile('them')")).rows.length, 0)
+
+  await beMe(THEM)
+  check('  and they cannot see the blocker either — symmetric from one row',
+    (await db.query("select * from public.get_public_profile('staffer')")).rows.length, 0)
+  // Between two ORDINARY accounts, so the assertion is about the block and
+  // not about is_internal. Searching for yourself must still find you, which
+  // is why the first version of this check passed for the wrong reason.
+  await beMe(THEM)
+  await db.query("select public.block_user('nosy')")
+  await beMe(NOSY)
+  check('  a blocked person is not in your search results',
+    (await db.query("select * from public.search_public_profiles('them')")).rows.length, 0)
+  check('  and you can still find yourself',
+    (await db.query("select * from public.search_public_profiles('nosy')")).rows.length, 1)
+  await beMe(THEM)
+  await db.query("select public.unblock_user('nosy')")
+
+  /* Someone uninvolved is unaffected — the block is a pair, not a ban. */
+  await beMe(NOSY)
+  check('an unrelated person still sees them', (await db.query("select * from public.get_public_profile('them')")).rows.length, 1)
+
+  /* Unblock. */
+  await beMe(ME)
+  await db.query("select public.unblock_user('them')")
+  check('unblocking restores visibility', (await db.query("select * from public.get_public_profile('them')")).rows.length, 1)
+  check('  but NOT the friendship', (await db.query('select count(*)::int n from public.friendships')).rows[0].n, 0)
+
+  /* Refusals. */
+  let selfBlock = 'no error'
+  try { await db.query("select public.block_user('staffer')") } catch (e) { selfBlock = e.code }
+  check('you cannot block yourself', selfBlock, '22023')
+
+  let ghost = 'no error'
+  try { await db.query("select public.block_user('nobody_at_all')") } catch (e) { ghost = e.code }
+  check('blocking an unknown handle is a clean not-found', ghost, 'P0002')
+
+  /* Your own classes show to you without the switch. */
+  check('your own courses are visible to you',
+    (await db.query("select * from public.get_public_courses('staffer')")).rows.length, 1)
+  await beMe(NOSY)
+  check('  and hidden from others until the switch is on',
+    (await db.query("select * from public.get_public_courses('staffer')")).rows.length, 0)
+
+  /* The admin view. */
+  await beMe(ME)
+  await db.query("select public.block_user('them')")
+  await db.exec(`create or replace function public.is_admin() returns boolean
+    language sql stable as $$ select true $$;`)
+  const graph = (await db.query('select public.admin_social_graph(10) g')).rows[0].g
+  check('the admin graph counts blocks', graph.counts.blocks, 1)
+  check('  and names both sides', graph.blocks[0].blocked_handle, 'them')
+  await db.exec(`create or replace function public.is_admin() returns boolean
+    language sql stable as $$ select false $$;`)
+  check('a non-admin gets nothing from it',
+    Object.keys((await db.query('select public.admin_social_graph(10) g')).rows[0].g).length, 0)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

@@ -745,6 +745,11 @@ html {
 }
 
 /* ---- Motion: restraint + respect prefers-reduced-motion ---- */
+/* The OS setting and the in-app one share ONE definition of what reduced
+   motion means. Duplicating the rules would let them drift, and every
+   component in this app was written to be correct under the media query —
+   so pointing the setting at the same block makes all of them correct
+   under the setting too, with no per-component work. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -754,6 +759,14 @@ html {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+html[data-reduce-motion] *,
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
 
 /* Edit-mode wiggle for the Today widgets — the iPhone home-screen tell that
@@ -1251,6 +1264,10 @@ html {
   .ct-navrow-right {
     transform: translate3d(0, 0, 0);
   }
+}
+html[data-reduce-motion] .ct-navrow-left,
+html[data-reduce-motion] .ct-navrow-right {
+  transform: translate3d(0, 0, 0);
 }
 
 /* A panel arriving from the right edge. Transform and opacity only, so it is

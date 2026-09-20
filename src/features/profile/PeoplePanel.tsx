@@ -341,8 +341,11 @@ export function PeoplePanel() {
                 app puts it, and where it is obviously scoped to the list under
                 it rather than to the whole page. Sticky, so it survives a long
                 thread list on desktop. */}
-            {accepted.length > 0 && (
-              <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-2 backdrop-blur-sm">
+            {/* SHOWN EVEN WITH NO CONVERSATIONS. It appearing only once you
+                have one means the list jumps the first time somebody writes
+                to you, and its absence reads as a panel that has not finished
+                loading rather than one with nothing in it. */}
+            <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-2 backdrop-blur-sm">
                 <div className="relative">
                   <Search
                     size={14}
@@ -368,8 +371,7 @@ export function PeoplePanel() {
                     </button>
                   )}
                 </div>
-              </div>
-            )}
+            </div>
 
             {accepted.length === 0 ? (
               <div className="lg:p-4">

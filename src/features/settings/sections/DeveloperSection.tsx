@@ -12,11 +12,11 @@ import { TokenPanel } from '@/features/tokens/TokenPanel'
 export function DeveloperSection() {
   return (
     <>
-      <Group label="API tokens">
+      <Group label="API tokens" padded>
         <TokenPanel scope="me" />
       </Group>
 
-      <Group label="What you can do with one">
+      <Group label="What you can do with one" padded>
         <ul className="space-y-1.5 text-[12.5px] leading-relaxed text-subtle">
           <li>
             <code className="rounded bg-surface-2 px-1">GET /api/v1/me/courses</code> — your
