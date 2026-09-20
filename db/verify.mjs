@@ -500,6 +500,87 @@ try {
 check('rotating a feed that does not exist is an error, not a silent no-op', rotateFailed, true)
 
 
+// -- db/account_flags.sql + db/searchable_profiles.sql -----------------------
+//
+// A PRIVACY CONTRACT, so it is asserted rather than described. "Findable but
+// private" is only true if the private row really does carry a name and a
+// picture and nothing else -- in the SEARCH results as well as on the page,
+// because a leak through search is still a leak.
+console.log(String.fromCharCode(10) + 'db/searchable_profiles.sql')
+await db.exec(`
+  drop table if exists public.user_profile cascade;
+  create table public.user_profile (
+    user_id uuid primary key, handle text, name text, avatar_url text,
+    program text, program_id text, bio text, links jsonb,
+    profile_public boolean, courses_public boolean, email text,
+    plan_status text, pro_until timestamptz,
+    -- The harness strips the ALTER on user_profile, so the columns
+    -- account_flags.sql adds have to exist here for its UPDATEs to land.
+    is_internal boolean not null default false,
+    comped boolean not null default false
+  );
+  drop table if exists public.profile_follows cascade;
+  create table public.profile_follows (follower_id uuid, following_id uuid);
+  drop table if exists public.courses cascade;
+  create table public.courses (
+    id text primary key, user_id uuid, code text, name text, color text,
+    term text, archived boolean default false
+  );
+  insert into public.user_profile
+    (user_id, handle, name, avatar_url, program, bio, links, profile_public, courses_public, email) values
+    ('${ME}', 'shy', 'Sarah Quiet', 'https://img/a.png', 'Finance', 'my bio',
+     '{"instagram":"x"}'::jsonb, false, false, 'shy@example.com'),
+    ('${OTHER}', 'loud', 'Leo Public', 'https://img/b.png', 'Comp Sci', 'hello',
+     '{"instagram":"y"}'::jsonb, true, true, 'loud@example.com'),
+    ('33333333-3333-3333-3333-333333333333', 'sharer', 'Sam Classes', null, 'Arts', null,
+     null, false, true, 'sharer@example.com'),
+    ('44444444-4444-4444-4444-444444444444', 'ctstaff', 'Concordia Tracker', null, null, null,
+     null, true, true, 'concordiatracker@gmail.com');
+  insert into public.courses (id, user_id, code, name, color, term) values
+    ('c1', '${ME}', 'FINA 210', 'Finance', 'rose', 'Fall 2026'),
+    ('c2', '33333333-3333-3333-3333-333333333333', 'ENGL 251', 'Lit', 'teal', 'Fall 2026');
+`)
+await db.exec(migration('account_flags.sql'))
+await db.exec(migration('searchable_profiles.sql'))
+
+check('the internal account was flagged by email', (await db.query(
+  "select is_internal from public.user_profile where handle = 'ctstaff'")).rows[0].is_internal, true)
+
+const hit = async (q) => (await db.query('select * from public.search_public_profiles($1, 10)', [q])).rows
+
+check('a PRIVATE handle is now found at all', (await hit('shy')).length, 1)
+const shy = (await hit('shy'))[0]
+check('  ...with their name', shy.name, 'Sarah Quiet')
+check('  ...and their picture', shy.avatar_url, 'https://img/a.png')
+check('  ...but NOT their program', shy.program, null)
+check('  ...and no follower count', shy.follower_count, 0)
+check('  ...flagged as private so the UI can say so', shy.is_public, false)
+check('searching a private NAME works too', (await hit('Sarah')).length, 1)
+check('a public profile still carries its program', (await hit('loud'))[0].program, 'Comp Sci')
+check('an internal account is invisible in search', (await hit('ctstaff')).length, 0)
+check('and invisible by its display name', (await hit('Concordia Tracker')).length, 0)
+
+const page = async (h) => (await db.query('select * from public.get_public_profile($1)', [h])).rows[0]
+const shyPage = await page('shy')
+check('the private PAGE gives a name', shyPage.name, 'Sarah Quiet')
+check('and a picture', shyPage.avatar_url, 'https://img/a.png')
+check('and no bio', shyPage.bio, null)
+check('and no program', shyPage.program, null)
+check('and no links', shyPage.links, {})
+check('and says it is private', shyPage.is_public, false)
+check('an internal handle has no page at all', await page('ctstaff'), undefined)
+const loudPage = await page('loud')
+check('a public page still gives the bio', loudPage.bio, 'hello')
+check('and the links', loudPage.links, { instagram: 'y' })
+
+const classes = async (h) => (await db.query('select code from public.get_public_courses($1)', [h])).rows.map(r => r.code)
+check('a private profile that never shared classes shows none', await classes('shy'), [])
+// The point of splitting the switches: sharing classes no longer requires
+// publishing a bio and a program you never wrote.
+check('a private profile that DID share classes shows them', await classes('sharer'), ['ENGL 251'])
+check('a public sharer shows theirs', await classes('loud'), [])
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

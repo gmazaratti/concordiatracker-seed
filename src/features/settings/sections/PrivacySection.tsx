@@ -70,16 +70,16 @@ function PublicProfileSettings() {
 
   return (
     <Group label={t('settings.profilePublic')}>
-      {/* The label used to describe only the PAGE. The same switch decides
-          whether a classmate searching your name finds you at all, and not
-          saying so is why 32 of 37 accounts were unfindable and nobody knew
-          which control to look for. */}
+      {/* Being FOUND is no longer this switch's job -- anyone with a handle
+          is searchable, and a private profile answers with a name and a
+          picture. What is left for it to decide is how much is on the page,
+          so that is what it says. */}
       <Row
         label="Public profile"
         description={
           user.handle
-            ? `Lets classmates find you by name or handle in Community, and shows your profile at concordiatracker.com/@${user.handle}. Off means neither.`
-            : 'Lets classmates find you by name or handle in Community, and shows a profile page at your handle.'
+            ? `Adds your program, bio and links at concordiatracker.com/@${user.handle}. Off still shows your name and picture to a classmate who searches you.`
+            : 'Adds your program, bio and links to your profile page. Off still shows your name and picture.'
         }
       >
         <Switch

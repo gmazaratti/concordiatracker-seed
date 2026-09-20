@@ -177,7 +177,12 @@ export function ProfileView({
             <div className="px-1">
               <Avatar profile={profile} founder={!!founder} />
               <div className="mt-2">
-                {profile.isPublic && profile.name && (
+                {/* The NAME is not gated any more. A profile you can find
+                    but which shows nothing at all is a worse answer than a
+                    private one: you cannot tell whether you found the right
+                    person. Name and picture always; everything below still
+                    answers to its own switch. */}
+                {profile.name && (
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
                       {profile.name}
@@ -240,7 +245,9 @@ export function ProfileView({
                 ) : (
                   <p className="mt-3 flex items-center gap-1.5 text-[13px] text-subtle">
                     <Lock size={14} aria-hidden />
-                    This profile is private.
+                    {viewer === 'self'
+                      ? 'Only your name and picture are shown. Edit profile to share more.'
+                      : 'This profile is private: only a name and a picture are shown.'}
                   </p>
                 )}
               </div>
@@ -316,11 +323,11 @@ export function ProfileView({
 function ProfileMeta({ handle, profile }: { handle: string; profile: PublicProfile | null }) {
   usePageMeta({
     title:
-      profile?.isPublic && profile.name
+      profile?.name
         ? `${profile.name} (@${profile.handle}) · ConcordiaTracker`
         : `@${handle} · ConcordiaTracker`,
     description:
-      profile?.isPublic && profile.name
+      profile?.name
         ? `${profile.name}${profile.program ? ` · ${profile.program}` : ''} on ConcordiaTracker.`
         : undefined,
     path: `/@${handle}`,
@@ -399,13 +406,8 @@ function stripScheme(v: string): string {
 function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?: boolean }) {
   const base = '-mt-12 grid size-24 place-items-center rounded-full ring-4 ring-canvas sm:-mt-14 sm:size-28'
   if (founder) return <FounderAvatar profile={profile} base={base} />
-  if (!profile.isPublic) {
-    return (
-      <div className={cn(base, 'bg-surface-2 text-subtle')} aria-label="Private profile">
-        <Lock size={34} aria-hidden />
-      </div>
-    )
-  }
+  // No padlock in place of a face. The picture is one of the two things a
+  // private profile is FOR — it is how you know you found the right Sarah.
   if (profile.avatarUrl) {
     return (
       <img
@@ -414,6 +416,13 @@ function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?
         referrerPolicy="no-referrer"
         className={cn(base, 'bg-surface-2 object-cover')}
       />
+    )
+  }
+  if (!profile.name) {
+    return (
+      <div className={cn(base, 'bg-surface-2 text-subtle')} aria-label="No picture">
+        <Lock size={30} aria-hidden />
+      </div>
     )
   }
   return (

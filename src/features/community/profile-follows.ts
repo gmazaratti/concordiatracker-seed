@@ -14,8 +14,11 @@ export interface PublicPerson {
   handle: string
   name: string | null
   avatar_url: string | null
+  /** Null on a private profile: the search row leaks no more than the page. */
   program: string | null
   follower_count: number
+  /** False means name and picture only, both here and on their profile. */
+  is_public?: boolean
 }
 
 export async function searchPeople(query: string, limit = 8): Promise<PublicPerson[]> {
