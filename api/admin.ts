@@ -179,6 +179,15 @@ export default async function handler(req: any, res: any) {
       // end up checking neither.
       const ops = await rpc('admin_dashboard_stats', {})
 
+      // Stripe's events are merged into the one feed, newest first, so the
+      // money and the signups sit on a single timeline instead of two lists
+      // you have to read against each other.
+      const stripeRows = (rollup as { activity?: unknown[] }).activity ?? []
+      const merged = [...((activity as unknown[]) ?? []), ...stripeRows]
+        .filter((r): r is { at: string } => !!(r as { at?: string })?.at)
+        .sort((a, b) => b.at.localeCompare(a.at))
+        .slice(0, 60)
+
       res.setHeader('Cache-Control', 'no-store')
       res.status(200).json({
         days,
@@ -190,7 +199,7 @@ export default async function handler(req: any, res: any) {
         series: series ?? [],
         counts: counts ?? {},
         ops: ops ?? {},
-        activity: activity ?? [],
+        activity: merged,
       })
       return
     }

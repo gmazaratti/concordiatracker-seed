@@ -29,13 +29,37 @@ export interface OverviewCounts {
   events_since: string | null
 }
 
+export type ActivityKind = 'signup' | 'subscription' | 'parse' | 'ticket' | 'bug' | 'admin'
+
 export interface ActivityRow {
-  kind: 'signup' | 'ticket' | 'course' | 'admin'
+  kind: ActivityKind
   label: string
   detail: string | null
   who: string
   at: string
 }
+
+/**
+ * The filters, and which are on to begin with.
+ *
+ * THE DEFAULT IS THE THREE THAT MEAN SOMETHING HAPPENED TO THE BUSINESS:
+ * someone joined, someone paid, someone got a syllabus in.
+ *
+ * Tickets and bugs have their own tabs and a Needs-attention strip. ADMIN
+ * ACTIONS are your own footprints, and a feed mostly made of things you did
+ * yourself says nothing about the product — which is exactly how it looked
+ * the moment the audit backfill put four of its own rows at the top.
+ */
+export const ACTIVITY_FILTERS: { id: ActivityKind; label: string; on: boolean }[] = [
+  { id: 'signup', label: 'Signups', on: true },
+  { id: 'subscription', label: 'Subscriptions', on: true },
+  { id: 'parse', label: 'Outlines scanned', on: true },
+  { id: 'ticket', label: 'Tickets', on: false },
+  { id: 'bug', label: 'Bugs', on: false },
+  { id: 'admin', label: 'Admin actions', on: false },
+]
+
+export const DEFAULT_ACTIVITY_KINDS = ACTIVITY_FILTERS.filter((f) => f.on).map((f) => f.id)
 
 export interface StripeSide {
   mode?: 'live' | 'test'
@@ -78,9 +102,36 @@ export async function loadOverview(days: number): Promise<Overview> {
   const res = await fetch(`/api/admin?action=dashboard&days=${days}`, {
     headers: { Authorization: `Bearer ${session.access_token}` },
   })
-  const json = (await res.json().catch(() => ({}))) as Overview & { error?: string }
+  const json = (await res.json().catch(() => ({}))) as Partial<Overview> & { error?: string }
   if (!res.ok) throw new Error(json.error || `Could not load the dashboard (${res.status}).`)
-  return json
+  return shape(json, days)
+}
+
+/**
+ * Give the payload its full shape before anything reads it.
+ *
+ * THE DASHBOARD MUST NOT WHITE-SCREEN OVER A MISSING FIELD. It did: when
+ * Stripe was unreachable the server answered 200 without a `stripe` key, the
+ * component read `.currency` off undefined, and the whole page rendered
+ * nothing — so a payments outage looked like a broken admin panel and told
+ * you neither thing. A missing section is now an empty section, which the
+ * cards already know how to draw, and Stripe's own `error`/`notes` say what
+ * went wrong in the place the money would have been.
+ *
+ * Vite is the other case: `/api/*` is a serverless function, so locally the
+ * dev server answers with index.html at 200 and `res.json()` yields {}.
+ */
+function shape(j: Partial<Overview>, days: number): Overview {
+  return {
+    days: typeof j.days === 'number' ? j.days : days,
+    generatedAt: j.generatedAt ?? new Date().toISOString(),
+    timezone: j.timezone ?? 'UTC',
+    stripe: j.stripe ?? { error: 'No figures came back from Stripe.' },
+    series: Array.isArray(j.series) ? j.series : [],
+    counts: j.counts ?? {},
+    ops: j.ops ?? {},
+    activity: Array.isArray(j.activity) ? j.activity : [],
+  }
 }
 
 /* ── Derived numbers, kept out of the component ──────────────────────────── */
@@ -109,11 +160,19 @@ export function delta(s: SeriesPoint[], k: keyof SeriesPoint): number | null {
  *  one month multiplied by twelve, not a year of observed revenue. */
 export const arr = (mrrCents: number) => mrrCents * 12
 
+/**
+ * CENTS ARE SHOWN WHEN THERE ARE CENTS. Rounding to whole dollars turned an
+ * MRR of $3.75 into "$4" — a made-up figure on the one card that has to be
+ * exactly right, and one you cannot reconcile against Stripe. Whole amounts
+ * still render clean ($15, not $15.00), so the common case stays readable.
+ */
 export function money(cents: number, currency = 'cad'): string {
+  const whole = cents % 100 === 0
   return new Intl.NumberFormat('en-CA', {
     style: 'currency',
     currency: currency.toUpperCase(),
-    maximumFractionDigits: 0,
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
   }).format(cents / 100)
 }
 

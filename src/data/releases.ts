@@ -26,6 +26,41 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.30.0',
+    name: 'Google Calendar, faster scans, and a reply from us',
+    date: '2026-09-20',
+    changes: [
+      {
+        kind: 'fixed',
+        text: 'Add to Google Calendar failed with “Unable to add calendar. Check the URL.” The link itself was always fine — Apple Calendar took it without complaint — but Google wants a subscription link handed to it in a particular form, and we were handing it the other one. It adds in one press now.',
+      },
+      {
+        kind: 'new',
+        text: 'A “How?” next to the link, with the actual menu names. Google Calendar, Apple Calendar on a Mac, on an iPhone, and Outlook each bury “subscribe to a calendar” somewhere different, so the panel now spells out where. It also says the one thing worth knowing up front: the Google Calendar phone app cannot add a calendar by link at all — that has to be done once from a computer, and it then appears on the phone.',
+      },
+      {
+        kind: 'improved',
+        text: 'Syllabus scanning is quicker, and it tries harder. Difficult PDFs used to time out and take one of your scans with them; a scan that comes back with nothing now has a second go at the file a different way before giving up, and when it does give up it says why.',
+      },
+      {
+        kind: 'new',
+        text: 'No monthly limit on scans with the semester pass. There is still a few seconds between scans, and a generous daily ceiling that exists only to stop something running away with itself — but the monthly cap is gone for Pro, and the counter no longer reads “Infinity of Infinity”.',
+      },
+      {
+        kind: 'fixed',
+        text: 'Uploading your syllabus during setup quietly ignored the file and loaded a sample class instead. It reads your actual PDF now, the same scanner the rest of the app uses.',
+      },
+      {
+        kind: 'improved',
+        text: 'A private profile can still be found. Searching someone’s handle now finds them and the profile opens — showing their name, their picture, and nothing else unless they chose to share it. Being findable and being visible are two different settings, and they should be.',
+      },
+      {
+        kind: 'new',
+        text: 'We can write back on your screen. If you report something, a short note from us can appear in the corner of the app — it waits until you have read it, and you can reply straight from it. Only ever in response to you; there are no broadcasts.',
+      },
+    ],
+  },
+  {
     version: '1.29.0',
     name: 'Calendar sync, for real this time',
     date: '2026-09-19',

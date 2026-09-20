@@ -4,6 +4,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BookOpen,
+  Bug,
+  CreditCard,
+  FileText,
   LifeBuoy,
   Loader2,
   Shapes,
@@ -15,6 +18,8 @@ import { cn } from '@/lib/cn'
 import { AreaChart, Sparkline } from '../AreaChart'
 import { Panel, RefreshButton } from '../admin-ui'
 import {
+  ACTIVITY_FILTERS,
+  DEFAULT_ACTIVITY_KINDS,
   arr,
   compact,
   delta,
@@ -22,6 +27,7 @@ import {
   loadOverview,
   money,
   total,
+  type ActivityKind,
   type Overview,
   type SeriesPoint,
 } from '../overview-data'
@@ -51,6 +57,7 @@ export function OverviewTab() {
   const [days, setDays] = useState<number>(30)
   const [metric, setMetric] = useState<Metric>('visitors')
   const [demo, setDemo] = useState(false)
+  const [kinds, setKinds] = useState<Set<ActivityKind>>(() => new Set(DEFAULT_ACTIVITY_KINDS))
   const [raw, setRaw] = useState<Overview | null>(null)
   const [error, setError] = useState('')
 
@@ -103,6 +110,7 @@ export function OverviewTab() {
   const revenue = Object.entries(s.revenueTotal ?? {})
   const chart = o.series.map((p: SeriesPoint) => ({ day: p.day, value: p[metric] }))
   const metricLabel = METRICS.find((m) => m.id === metric)?.label ?? ''
+  const shownActivity = o.activity.filter((a) => kinds.has(a.kind))
 
   return (
     <div className="space-y-4">
@@ -185,7 +193,12 @@ export function OverviewTab() {
       )}
 
       {/* ── The chart + activity ────────────────────────────────────────── */}
-      <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
+      {/* minmax(0, …), not a bare fr.
+          A bare `1.6fr` is `minmax(auto, 1.6fr)`, and that `auto` minimum is
+          the content's min-content width — so the activity list, full of long
+          unbroken reason text, refused to shrink and squeezed the chart into
+          a 90px strip. The explicit 0 floor is what lets the fractions hold. */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <Panel title={metricLabel}>
           <div className="px-3.5 pt-3">
             <div className="flex flex-wrap items-end justify-between gap-2">
@@ -230,12 +243,44 @@ export function OverviewTab() {
           </div>
         </Panel>
 
-        <Panel title="Recent activity" sub={`${o.activity.length} events`}>
-          <ul className="max-h-[320px] divide-y divide-border overflow-y-auto">
-            {o.activity.length === 0 && (
-              <li className="px-3.5 py-6 text-center text-[12.5px] text-subtle">Nothing yet.</li>
+        <Panel title="Recent activity" sub={`${shownActivity.length} of ${o.activity.length}`}>
+          <div className="flex flex-wrap gap-1 border-b border-border px-3.5 py-2">
+            {ACTIVITY_FILTERS.map((f) => {
+              const on = kinds.has(f.id)
+              const n = o.activity.filter((r) => r.kind === f.id).length
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    setKinds((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(f.id)) next.delete(f.id)
+                      else next.add(f.id)
+                      return next
+                    })
+                  }
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11.5px] font-medium transition-colors duration-150',
+                    on ? 'bg-accent-soft text-accent' : 'text-subtle hover:bg-surface-2 hover:text-fg',
+                  )}
+                >
+                  {f.label}
+                  {/* The count shows even when the filter is off, so turning
+                      one on is never a guess about whether anything is there. */}
+                  <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
+                </button>
+              )
+            })}
+          </div>
+          <ul className="max-h-[340px] min-h-[220px] divide-y divide-border overflow-y-auto">
+            {shownActivity.length === 0 && (
+              <li className="px-3.5 py-6 text-center text-[12.5px] text-subtle">
+                {o.activity.length === 0 ? 'Nothing yet.' : 'Nothing in the filters you have on.'}
+              </li>
             )}
-            {o.activity.map((a, i) => (
+            {shownActivity.map((a, i) => (
               <li key={`${a.at}-${i}`} className="flex items-start gap-2.5 px-3.5 py-2.5">
                 <ActivityIcon kind={a.kind} />
                 <div className="min-w-0 flex-1">
@@ -381,9 +426,11 @@ function Delta({ value, small = false }: { value: number | null; small?: boolean
 function ActivityIcon({ kind }: { kind: string }) {
   const map: Record<string, { icon: typeof Users; tone: string }> = {
     signup: { icon: UserPlus, tone: 'text-success' },
+    subscription: { icon: CreditCard, tone: 'text-accent' },
+    parse: { icon: FileText, tone: 'text-info' },
     ticket: { icon: LifeBuoy, tone: 'text-warning' },
-    course: { icon: BookOpen, tone: 'text-info' },
-    admin: { icon: Sparkles, tone: 'text-accent' },
+    bug: { icon: Bug, tone: 'text-danger' },
+    admin: { icon: Sparkles, tone: 'text-subtle' },
   }
   const { icon: Icon, tone } = map[kind] ?? { icon: Users, tone: 'text-subtle' }
   return (

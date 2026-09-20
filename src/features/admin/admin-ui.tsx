@@ -15,7 +15,10 @@ export function Panel({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-xl border border-border bg-surface">
+    // `min-w-0` because this is used as a grid child: without it the section's
+    // min-content width becomes the column's floor, and a panel full of long
+    // unbroken text pushes its neighbour to nothing.
+    <section className="min-w-0 rounded-xl border border-border bg-surface">
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold text-fg">{title}</h2>

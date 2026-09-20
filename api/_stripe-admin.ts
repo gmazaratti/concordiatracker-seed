@@ -109,6 +109,16 @@ async function get<T>(path: string): Promise<T> {
 const iso = (unix: number | null | undefined) =>
   typeof unix === 'number' ? new Date(unix * 1000).toISOString() : null
 
+/** "16 minutes", "3 days" — how long they lasted. */
+function humanGap(from: number, to: number): string {
+  const mins = Math.max(0, Math.round((to - from) / 60000))
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'}`
+  const hours = Math.round(mins / 60)
+  if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'}`
+  const days = Math.round(hours / 24)
+  return `${days} day${days === 1 ? '' : 's'}`
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
@@ -226,6 +236,14 @@ export async function stripeByEmail(email: string): Promise<StripeCustomerView |
   }
 }
 
+export interface StripeActivity {
+  kind: 'subscription'
+  label: string
+  detail: string | null
+  who: string
+  at: string
+}
+
 export interface StripeRollup {
   mode: 'live' | 'test'
   /** Distinct customers with at least one settled charge over $0. */
@@ -242,6 +260,9 @@ export interface StripeRollup {
   payingEmails: string[]
   trialingEmails: string[]
   charges: StripeChargeView[]
+  /** Subscribed / paid / cancelled, as feed rows. Money events belong in the
+   *  activity list beside signups — they are the ones you most want to see. */
+  activity: StripeActivity[]
   /** Anything worth saying out loud about how solid these numbers are. */
   notes: string[]
 }
@@ -320,8 +341,53 @@ export async function stripeRollup(): Promise<StripeRollup> {
     )
   }
 
+  // Subscribed / cancelled / paid, as timeline rows.
+  const activity: StripeActivity[] = []
+  for (const sub of subs.data ?? []) {
+    const email =
+      (typeof sub.customer === 'object' ? sub.customer?.email : null) ??
+      paidBy.get(typeof sub.customer === 'string' ? sub.customer : sub.customer?.id) ??
+      'Unknown'
+    const amt = sub.items?.data?.[0]?.price?.unit_amount
+    const started = iso(sub.start_date ?? sub.created)
+    if (started) {
+      activity.push({
+        kind: 'subscription',
+        label: sub.trial_end ? 'Started a trial' : 'Subscribed',
+        detail: amt != null ? `$${(amt / 100).toFixed(2)}` : null,
+        who: email,
+        at: started,
+      })
+    }
+    const cancelled = iso(sub.canceled_at)
+    if (cancelled) {
+      activity.push({
+        kind: 'subscription',
+        label: 'Cancelled',
+        // The gap between subscribing and cancelling is the whole story on a
+        // churn event, and it is invisible if you only log the cancellation.
+        detail: started
+          ? `after ${humanGap(new Date(started).getTime(), new Date(cancelled).getTime())}`
+          : null,
+        who: email,
+        at: cancelled,
+      })
+    }
+  }
+  for (const c of charges.data ?? []) {
+    if (!c.created) continue
+    activity.push({
+      kind: 'subscription',
+      label: c.paid && c.status === 'succeeded' ? 'Payment received' : 'Payment failed',
+      detail: `$${((c.amount ?? 0) / 100).toFixed(2)} — ${outcomeOf(c)}`,
+      who: c.billing_details?.email ?? c.receipt_email ?? 'Unknown',
+      at: iso(c.created) ?? '',
+    })
+  }
+
   return {
     mode: stripeMode(),
+    activity,
     payingCustomers: paidBy.size,
     trialing,
     activeSubscriptions,
