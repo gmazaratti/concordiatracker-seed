@@ -1,0 +1,128 @@
+{
+  "tools": [
+    {
+      "name": "getSupportThread",
+      "description": "GET /api/v1/support/threads/{id}. One thread, with its messages. A diagnostic returns a single message authored by `user` carrying the notes and the payload, so a client needs one code path rather than two. `can_reply` says whether this thread will accept a reply right now.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A composite thread id, e.g. t:9c1e… or d:4b77…."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "listSupportThreads",
+      "description": "GET /api/v1/support/threads. Support threads, newest activity first. Two kinds of thread. A `ticket` is anything a customer wrote and is a conversation; a `diagnostic` is an automated report and cannot be replied to. Ids are composite and stable: `t:<uuid>` and `d:<uuid>`. `since` matches threads created OR updated at/after the timestamp, so an old thread with a new customer message is returned.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ticket",
+              "diagnostic"
+            ],
+            "description": "Only conversations, or only automated reports."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "ai_handling",
+              "human_takeover",
+              "resolved"
+            ],
+            "description": "Only threads currently in this state."
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO-8601. Matches creation OR last activity."
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Which page of results, counting from one."
+          },
+          "per_page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "How many threads per page."
+          }
+        }
+      }
+    },
+    {
+      "name": "patchSupportThread",
+      "description": "PATCH /api/v1/support/threads/{id}. Change a thread state. Either field, or both. Setting `ai_handling` CLEARS `needs_human` — that is the hand-back gesture, done in one call so there is no window where the assistant owns a thread still flagged for a person. A diagnostic has no conversation, so it accepts only open or resolved and refuses the rest with a 409.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A composite thread id."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "ai_handling",
+              "human_takeover",
+              "resolved"
+            ]
+          },
+          "needs_human": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "replyToSupportThread",
+      "description": "POST /api/v1/support/threads/{id}/reply. Reply to a customer. Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here: a thread that a person has taken over, that is resolved, or where the customer asked for a person returns 409 with a machine-readable `reason` — one of human_takeover, resolved, needs_human or diagnostic_not_repliable.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A composite thread id. Diagnostics cannot be replied to."
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "The reply. Never write an assistant label into it — the UI renders that from the author field."
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "searchSupportKb",
+      "description": "GET /api/v1/support/kb. The knowledge base to answer from. Articles generated from the published documentation and the legal documents, so they cannot drift from what a person would be told to read. Query the KB before drafting and answer FROM these; every article carries a url so a reply can link the page rather than paraphrasing it.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Keywords. Omit to list every article."
+          }
+        }
+      }
+    }
+  ]
+}

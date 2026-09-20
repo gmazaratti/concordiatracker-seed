@@ -42,7 +42,8 @@
     "email:templates": "node scripts/auth-email-templates.mjs",
     "test:record-summary": "node src/lib/record-summary.test.mjs",
     "db:overview": "node db/run-overview.test.mjs",
-    "db:messages": "node db/run-messages.test.mjs"
+    "db:messages": "node db/run-messages.test.mjs",
+    "alfred:tools": "node scripts/alfred-tools.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
