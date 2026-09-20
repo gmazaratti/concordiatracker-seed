@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, Eye, Globe, Loader2, Radio, RefreshCw, Smartphone, UserPlus, Users } from 'lucide-react'
+import { Activity, ArrowDown, ArrowUp, Eye, Globe, Loader2, Radio, RefreshCw, Smartphone, UserPlus, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Segmented } from '@/features/settings/controls'
 import { cn } from '@/lib/cn'
+import { OnlineNow } from '../OnlineNow'
+import { deltasSinceLastLook } from '../SinceLastLook'
 
 interface Row {
   source?: string
@@ -86,6 +88,14 @@ export function TrafficTab() {
   }
 
   const returning = Math.max(0, data.window_visitors - data.new_visitors)
+  // Reading the baseline also WRITES the new one, so it runs once per render
+  // of a loaded page rather than inside an effect. Deliberately not a hook:
+  // a hook that writes during render is the trap this codebase keeps hitting.
+  const since = deltasSinceLastLook({
+    today_visitors: data.today_visitors,
+    window_visitors: data.window_visitors,
+    new_visitors: data.new_visitors,
+  })
 
   return (
     <div className="space-y-6">
@@ -109,10 +119,10 @@ export function TrafficTab() {
 
       {/* Headline */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Live value={data.live_now} />
-        <Stat icon={Users} label="Visitors today" value={data.today_visitors} sub={`${data.today_views} views`} />
-        <Stat icon={Eye} label={`Visitors · ${data.window_days}d`} value={data.window_visitors} sub={`${data.window_views} views`} />
-        <Stat icon={UserPlus} label="New visitors" value={data.new_visitors} sub={`${returning} returning`} />
+        <OnlineNow count={data.live_now} />
+        <Stat icon={Users} label="Visitors today" value={data.today_visitors} sub={`${data.today_views} views`} delta={since.today_visitors} />
+        <Stat icon={Eye} label={`Visitors · ${data.window_days}d`} value={data.window_visitors} sub={`${data.window_views} views`} delta={since.window_visitors} />
+        <Stat icon={UserPlus} label="New visitors" value={data.new_visitors} sub={`${returning} returning`} delta={since.new_visitors} />
       </div>
 
       {/* Daily chart */}
@@ -166,34 +176,19 @@ export function TrafficTab() {
   )
 }
 
-function Live({ value }: { value: number }) {
-  return (
-    <div className="rounded-xl border border-accent/50 bg-accent-soft/30 p-3.5">
-      <div className="flex items-center gap-1.5 text-accent">
-        <span className="relative flex size-2">
-          {value > 0 && (
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-75" />
-          )}
-          <span className={cn('relative inline-flex size-2 rounded-full', value > 0 ? 'bg-accent' : 'bg-subtle')} />
-        </span>
-        <span className="text-[11.5px] font-medium">Online now</span>
-      </div>
-      <p className="mt-1.5 text-[24px] font-semibold text-fg tabular-nums">{value}</p>
-      <p className="text-[11px] text-subtle">active in the last 5 min</p>
-    </div>
-  )
-}
-
 function Stat({
   icon: Icon,
   label,
   value,
   sub,
+  delta,
 }: {
   icon: typeof Users
   label: string
   value: number
   sub?: string
+  /** Change since YOU last opened this tab. Null on a first look. */
+  delta?: number | null
 }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-3.5">
@@ -201,9 +196,39 @@ function Stat({
         <Icon size={14} aria-hidden />
         <span className="text-[11.5px] font-medium">{label}</span>
       </div>
-      <p className="mt-1.5 text-[24px] font-semibold text-fg tabular-nums">{value.toLocaleString()}</p>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <p className="text-[24px] font-semibold text-fg tabular-nums">{value.toLocaleString()}</p>
+        <SinceDelta n={delta} />
+      </div>
       {sub && <p className="text-[11px] text-subtle">{sub}</p>}
     </div>
+  )
+}
+
+/**
+ * The arrow.
+ *
+ * Absent on a first look and absent at zero — an arrow that is always there
+ * stops being a signal, and "no change since you last looked" is better said
+ * by silence than by a grey 0. It animates in once, so a stat that moved
+ * catches the eye without the page twitching every refresh.
+ */
+function SinceDelta({ n }: { n?: number | null }) {
+  if (n === null || n === undefined || n === 0) return null
+  const up = n > 0
+  return (
+    <span
+      key={n}
+      title="Change since you last opened this tab"
+      className={cn(
+        'ct-delta-in inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+        up ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger',
+      )}
+    >
+      {up ? <ArrowUp size={10} aria-hidden /> : <ArrowDown size={10} aria-hidden />}
+      {up ? '+' : ''}
+      {n.toLocaleString()}
+    </span>
   )
 }
 

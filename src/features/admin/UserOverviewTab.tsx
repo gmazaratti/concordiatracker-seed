@@ -12,6 +12,7 @@ import {
   type UserSummary,
 } from './user-detail-data'
 import { Stat } from './admin-ui'
+import { UserMessagePanel } from './UserMessagePanel'
 
 const DURATIONS = [
   { value: '1', label: '1 month' },
@@ -178,6 +179,8 @@ export function OverviewTab({
         )}
         {err && <p className="mt-2 text-[12px] text-danger">{err}</p>}
       </div>
+
+      <UserMessagePanel userId={user.user_id} name={user.name} />
 
       {/* Notes stay exactly as they were — a scratchpad, not an audit trail. */}
       <div className="rounded-lg border border-border bg-surface p-3">

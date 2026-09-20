@@ -1304,3 +1304,36 @@ html {
 .ct-chart-line {
   animation: ct-chart-draw 620ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
 }
+
+/* A note arriving in the corner. Slightly overshoots, because a message from
+ * a person should land rather than fade in. `backwards`, not `both` — this
+ * element is unmounted when acknowledged, but the rule stands. */
+@keyframes ct-admin-msg {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ct-admin-msg {
+  animation: ct-admin-msg 340ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+}
+
+/* A delta arrow arriving. One shot, and only rendered when a number actually
+ * moved — an arrow that is always on screen is not a signal. */
+@keyframes ct-delta-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ct-delta-in {
+  animation: ct-delta-in 380ms cubic-bezier(0.34, 1.45, 0.64, 1) backwards;
+}
