@@ -2,91 +2,26 @@
  * POST /api/parse-syllabus — server-side syllabus extraction.
  *
  * Receives a PDF as the raw request body (Content-Type: application/pdf) and a
- * Supabase access token in `Authorization: Bearer <token>`. Verifies the user is
- * signed in, then sends the PDF to Gemini 2.5 Flash with a strict prompt +
- * JSON-schema-enforced output, and returns the structured { course, assessments }.
+ * Supabase access token in `Authorization: Bearer <token>`, and returns the
+ * structured { course, assessments }.
  *
- * The Google API key lives ONLY here as a server env var (GEMINI_API_KEY, NOT
+ * THE EXTRACTION ITSELF LIVES IN _parse-core.ts. The personal API runs the
+ * same one, and two copies of a prompt drift — after which a student's
+ * outline parses one way through the website and another way through their
+ * assistant. What stays here is what is genuinely this endpoint's: who may
+ * call it, what it costs them against the rate limit, and how a failure is
+ * worded to a person who is mid-upload and waiting.
+ *
+ * The Google API key lives only as a server env var (GEMINI_API_KEY, NOT
  * VITE_-prefixed), so it never reaches the browser bundle. Runs on the Edge
- * runtime — fetch / Request / Response / btoa are all standard, no Node deps.
+ * runtime — fetch / Request / Response are all standard, no Node deps.
  */
-import { pdfText } from './_econcordia'
+import { extractOutline, MAX_BYTES } from './_parse-core.js'
 
 export const config = { runtime: 'edge' }
 
-const GEMINI_MODEL = 'gemini-2.5-flash'
-const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny; bounds Edge body + quota
-/**
- * Abort the model before the platform aborts us, so the error is ours to word.
- *
- * 23s, under the Edge runtime's 25s ceiling. It was 20s, and that was the
- * whole of one paying student's "it says my outline is too long": three
- * timeouts in his log, one of them on 5,969 characters -- while a 17,466
- * character outline measured at 8.1s and came back fine. Length was never the
- * variable. Thinking tokens were, which is what `thinkingBudget: 0` below
- * removes.
- */
-const MODEL_TIMEOUT_MS = 23_000
-/** Below this, the extracted "text" is a header and a link table, not a
- *  syllabus — see the note at the call site for the measurements. */
-const MIN_TEXT_CHARS = 1_500
 
-const PROMPT = `You are an expert at reading university course syllabi and extracting the graded assessment schedule. You will receive a course syllabus as a PDF. Extract the course identity and EVERY graded assessment into the exact JSON schema provided.
 
-Rules:
-- Extract ONLY graded items — anything that contributes to the final grade (assignments, quizzes, tests, midterms, finals, labs, projects, graded reading responses, participation if it carries weight). Ignore lecture topics, ungraded readings, and office hours.
-- title: the assessment's name as written (e.g., "Assignment 2", "Midterm Exam", "Quiz 3 — Linked Lists").
-- kind: choose the SINGLE closest value from the allowed set. Guidance: a major mid-semester exam → "midterm"; the cumulative end-of-term exam → "final"; short recurring tests → "quiz"; written/programming deliverables → "assignment"; lab work → "lab"; larger multi-week deliverables → "project"; graded reading responses → "reading".
-- due: the deadline as an ISO 8601 date (YYYY-MM-DD), or datetime if a time is given. Resolve partial dates using the course term and year (e.g., "Oct 3" in a Fall 2026 course → "2026-10-03"). If the date is genuinely unknown, "TBA", or not derivable from the document, set due to null — do NOT guess.
-- weight: the percent of the final grade as a number from 0 to 100 (e.g., 15 for "15%"). If given as a range, use the midpoint. If no weight is stated, set null.
-- description: one or two FACTUAL sentences from the syllabus describing the assessment — what it covers, its format, sub-parts, or where it takes place. Use only information present in the document; never invent details. If nothing descriptive is available, use an empty string.
-- For the course, extract:
-  - code (e.g., "COMP 248"), title, term (e.g., "Fall 2026"), and section — the section identifier, e.g., "BB", "001", "Section A".
-  - instructorName and instructorEmail — the professor's full name and email address.
-  - taName and taEmail — the teaching assistant's name and email, ONLY if a TA is listed; otherwise leave both as empty strings.
-  - gradingScale — the letter-grade scale or grade cutoffs if the syllabus states one (e.g., "A: 90-100, A-: 85-89, B+: 80-84, ..."), as a single concise line; otherwise an empty string.
-  Use empty strings for anything not found. Never invent contact details or a grading scale.
-- If the document is not a syllabus, or contains no graded assessments, return an empty "assessments" array.
-
-Return ONLY the JSON object. No commentary, no markdown, no code fences.`
-
-const SCHEMA = {
-  type: 'OBJECT',
-  properties: {
-    course: {
-      type: 'OBJECT',
-      properties: {
-        code: { type: 'STRING' },
-        title: { type: 'STRING' },
-        term: { type: 'STRING' },
-        section: { type: 'STRING' },
-        instructorName: { type: 'STRING' },
-        instructorEmail: { type: 'STRING' },
-        taName: { type: 'STRING' },
-        taEmail: { type: 'STRING' },
-        gradingScale: { type: 'STRING' },
-      },
-    },
-    assessments: {
-      type: 'ARRAY',
-      items: {
-        type: 'OBJECT',
-        properties: {
-          title: { type: 'STRING' },
-          kind: {
-            type: 'STRING',
-            enum: ['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'],
-          },
-          due: { type: 'STRING', nullable: true },
-          weight: { type: 'NUMBER', nullable: true },
-          description: { type: 'STRING' },
-        },
-        required: ['title', 'kind', 'description'],
-      },
-    },
-  },
-  required: ['assessments'],
-}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -96,15 +31,6 @@ function json(body: unknown, status = 200): Response {
 }
 
 /** ArrayBuffer → base64, chunked so large buffers don't overflow the call stack. */
-function toBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf)
-  let bin = ''
-  const chunk = 0x8000
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk))
-  }
-  return btoa(bin)
-}
 
 interface Slot {
   allowed?: boolean
@@ -267,161 +193,50 @@ export default async function handler(req: Request): Promise<Response> {
    * layer at all and only the model can read it. So: text when we have it,
    * pixels when we do not — never a failure just because the fast path missed.
    */
-  let extracted = ''
-  try {
-    extracted = (await pdfText(new Uint8Array(buf))).trim()
-  } catch {
-    extracted = '' // an unreadable structure is not an error, it is the fallback
-  }
   /**
-   * MEASURED, not guessed. Across the 45 real Concordia outlines cached from
-   * the eConcordia scrape, the three our extractor cannot read come out at
-   * 114, 532 and 544 characters; the thinnest one it CAN read is 4,410, and
-   * the median is 14,539. There is nothing at all between 550 and 4,400, so
-   * the line goes in that gap with room on both sides.
+   * 3b. EXTRACT. The prompt, the schema, the text-before-pixels decision and
+   * the model call all live in _parse-core.ts, because the personal API runs
+   * the same extraction and two copies of a prompt drift — after which a
+   * student's outline parses one way through the website and another way
+   * through their assistant.
    *
-   * The old 400 sat just BELOW the junk, which is how a document that yields
-   * 630 characters of link table took the text path, found no assessments,
-   * and handed the student an empty result with no reason — measured on
-   * exactly such a file.
+   * What stays here is what is genuinely this endpoint's: who is allowed to
+   * call it, what it costs them, and how a failure is worded to a person
+   * mid-upload.
    */
-  const useText = extracted.length >= MIN_TEXT_CHARS
-  const parts = useText
-    ? [{ text: `${PROMPT}
+  const parsed = await extractOutline(buf, mimeType)
 
---- SYLLABUS TEXT ---
-${extracted.slice(0, 120_000)}` }]
-    : [{ inlineData: { mimeType, data: toBase64(buf) } }, { text: PROMPT }]
-
-  // 4. Ask Gemini to extract, constrained to the schema.
-  //
-  // BOUNDED ON OUR SIDE. The platform kills an Edge function that runs past its
-  // limit, and when it does it answers with an HTML gateway page: no JSON, so
-  // the browser shows a generic message, and no code of ours runs, so the
-  // attempt is never handed back and the student is left with a cooldown for a
-  // failure they did not cause. That is exactly the "it failed and didn't say
-  // why" report. Aborting first means the failure is ours to describe.
-  const started = Date.now()
-  const ask = (p: unknown[], budgetMs: number) =>
-    fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        signal: AbortSignal.timeout(budgetMs),
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: p }],
-          generationConfig: {
-            temperature: 0,
-            responseMimeType: 'application/json',
-            responseSchema: SCHEMA,
-            /**
-             * NO THINKING. 2.5-flash reasons before it answers unless told not
-             * to, and that reasoning is most of the wall clock here -- enough
-             * of it to push a two-page outline past the timeout while a
-             * six-page one squeaked under.
-             *
-             * Nothing is lost. The output is pinned to a JSON schema and the
-             * task is transcription, not deduction: find the graded rows, copy
-             * the dates and weights. There is no chain of reasoning to have.
-             */
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    )
-
-  let gemini: Response
-  try {
-    gemini = await ask(parts, MODEL_TIMEOUT_MS)
-  } catch (err) {
-    const timedOut = (err as Error)?.name === 'TimeoutError'
-    const how = useText ? `text:${extracted.length}ch` : `pdf:${buf.byteLength}b`
-    await release(timedOut ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${how})` : `fetch failed (${how}): ${(err as Error)?.message ?? 'unknown'}`)
+  if (!parsed.ok) {
+    await release(parsed.detail ?? parsed.failure ?? 'unknown')
+    if (parsed.failure === 'not_configured') {
+      return json({ error: 'Server is not configured for parsing.' }, 500)
+    }
+    if (parsed.failure === 'timeout') {
+      // NOT "try a shorter PDF". That was our timeout described as the
+      // student's fault, and it sent someone off trimming a two-page file
+      // that was never the problem. Length is not the variable; say so.
+      return json(
+        {
+          error:
+            'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and if it keeps happening send it to support. This attempt didn’t count against you.',
+        },
+        504,
+      )
+    }
+    if (parsed.failure === 'unreachable') {
+      return json({ error: 'Could not reach the parser. Try again — this one is on us.' }, 502)
+    }
+    if (parsed.failure === 'upstream') {
+      const status = parsed.upstreamStatus ?? 502
+      return json({ error: geminiReason(status, parsed.detail ?? '') }, status === 429 ? 429 : 502)
+    }
     return json(
-      {
-        // NOT "try a shorter PDF". That was our timeout, described as the
-        // student's fault, and it sent someone off trimming a two-page file
-        // that was never the problem. Length is not the variable; say so.
-        error: timedOut
-          ? 'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and if it keeps happening send it to support. This attempt didn’t count against you.'
-          : 'Could not reach the parser. Try again — this one is on us.',
-      },
-      timedOut ? 504 : 502,
-    )
-  }
-
-  if (!gemini.ok) {
-    const body = await gemini.text().catch(() => '')
-    // Logged server-side too: the message a student sees has to be short, and
-    // the one we need to debug with does not.
-    console.error('[parse-syllabus] gemini', gemini.status, body.slice(0, 400))
-    await release(`gemini ${gemini.status} (${useText ? 'text' : 'pdf'}): ${body.slice(0, 200)}`)
-    return json({ error: geminiReason(gemini.status, body) }, gemini.status === 429 ? 429 : 502)
-  }
-
-  const result = (await gemini.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[]
-  }
-  const text = result.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!text) {
-    // The model answered with nothing at all — that is us, not the document.
-    await release('model returned no text (empty candidates)')
-    return json(
-      { error: 'The parser came back empty. Try again; if it keeps happening, send us the file.' },
+      { error: 'The parser returned something we could not read. Try again.' },
       502,
     )
   }
 
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    await release(`model returned non-JSON: ${text.slice(0, 200)}`)
-    return json({ error: 'The parser returned something we could not read. Try again.' }, 502)
-  }
-  /**
-   * NOTHING FOUND ON THE TEXT PATH? LOOK AT THE PAGES BEFORE GIVING UP.
-   *
-   * A threshold can only ever be a guess about a file we have not seen: text
-   * can come out long enough to pass and still be mis-mapped glyphs, a table
-   * of contents, or a scanned page with a caption. "No assessments" is the
-   * one outcome that tells us the guess was probably wrong, and it is also
-   * the outcome a student reads as the feature not working — which is exactly
-   * what one reported.
-   *
-   * So when the fast path finds nothing, and there is budget left, we spend a
-   * second call reading the document itself. A syllabus that genuinely has no
-   * graded work costs one extra call, which is a fair price for never
-   * shrugging at one that does.
-   */
-  let out = parsed as { assessments?: unknown[] }
-  const foundNothing = !Array.isArray(out?.assessments) || out.assessments.length === 0
-  const budgetLeft = MODEL_TIMEOUT_MS - (Date.now() - started)
-  if (useText && foundNothing && budgetLeft > 6_000) {
-    try {
-      const second = await ask(
-        [{ inlineData: { mimeType, data: toBase64(buf) } }, { text: PROMPT }],
-        budgetLeft,
-      )
-      if (second.ok) {
-        const j = (await second.json()) as {
-          candidates?: { content?: { parts?: { text?: string }[] } }[]
-        }
-        const t2 = j.candidates?.[0]?.content?.parts?.[0]?.text
-        if (t2) {
-          const retried = JSON.parse(t2) as { assessments?: unknown[] }
-          // Only if it did better. A second empty answer is now a real one.
-          if (Array.isArray(retried.assessments) && retried.assessments.length > 0) out = retried
-        }
-      }
-    } catch {
-      /* the first answer stands; a failed second look costs the student nothing */
-    }
-  }
+  const out = { course: parsed.course, assessments: parsed.assessments }
 
-  // Count this as a successful parse (toward the monthly cap) — only if a slot
-  // was actually claimed (skipped when the limiter is unmigrated / failed open).
-  if (slot?.event_id) await callRpc('finish_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
   return json(out)
 }

@@ -389,6 +389,243 @@ export const OPENAPI = {
       },
     },
 
+    '/api/v1/me/courses/{id}': {
+      get: {
+        operationId: 'getMyCourse',
+        tags: ['Personal API'],
+        summary: 'One course, with its assignments',
+        description:
+          'The course plus every assignment on it, and a summary: how many there are, how many are graded, and what the weights add up to. A total that is not 100 is worth looking at.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The course id.',
+          },        ],
+        responses: {
+          '200': {
+            description: 'The course.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/MyCourse' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+      patch: {
+        operationId: 'updateMyCourse',
+        tags: ['Personal API'],
+        summary: 'Update a course',
+        description:
+          'Any of code, name, term, credits, colour, section, instructor, location, meeting_times, office_hours, syllabus_url, grading_scale, enrollment or archived. Fields are named explicitly rather than passed through, so nothing can set user_id and hand the course to somebody else.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The course id.',
+          },        ],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          '200': {
+            description: 'The updated course.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/MyCourse' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+      delete: {
+        operationId: 'deleteMyCourse',
+        tags: ['Personal API'],
+        summary: 'Archive a course, or really delete it',
+        description:
+          'Archives by default: a course with grades in it is a record, and clearing a term to tidy a list is the sort of thing somebody regrets. hard=true really removes it, and takes its assignments with it — they do not cascade, so a plain delete would leave rows still counting toward a GPA for a course that no longer exists.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The course id.',
+          },
+          {
+            name: 'hard',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'true deletes instead of archiving. There is no undo.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'What happened.',
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { archived: { type: 'boolean' }, deleted: { type: 'boolean' }, id: { type: 'string' } } },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/courses/from-outline': {
+      post: {
+        operationId: 'createMyCourseFromOutline',
+        tags: ['Personal API'],
+        summary: 'Create a course by uploading a syllabus PDF',
+        description:
+          'Send the PDF as the raw request body with Content-Type application/pdf. Runs the SAME extractor as the website upload — literally the same function — so an outline cannot parse one way in the browser and another way here. Creates the course and its assessments, and returns both plus the weight total. Dates the outline does not give come back null and are never guessed. Max 4 MB.',
+        security: [{ personalToken: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/pdf': { schema: { type: 'string', format: 'binary' } },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'The created course and its assignments.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/OutlineImport' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/assignments/{id}/notes': {
+      post: {
+        operationId: 'addMyAssignmentNote',
+        tags: ['Personal API'],
+        summary: 'Add a note to an assignment',
+        description:
+          'APPENDS to whatever notes are already there rather than replacing them: the endpoint is called add-a-note, and a write that silently overwrote would lose the student own writing the first time it was used. Replace outright with PATCH /me/assignments/{id} instead.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The assignment id.',
+          },        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', required: ['note'], properties: { note: { type: 'string' } } },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'The notes as they now stand.',
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { id: { type: 'string' }, notes: { type: 'string' } } },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/assignments/{id}/grade': {
+      patch: {
+        operationId: 'setMyAssignmentGrade',
+        tags: ['Personal API'],
+        summary: 'Set or clear a grade',
+        description:
+          'Either a percentage or a raw score. The same thing PATCH /me/assignments/{id} does with a grade field, as its own verb.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The assignment id.',
+          },        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  percent: { type: 'number', nullable: true },
+                  earned: { type: 'number', nullable: true },
+                  total: { type: 'number', nullable: true },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'The updated assignment.',
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { updated: { $ref: '#/components/schemas/MyAssignment' } } },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/calendar': {
+      get: {
+        operationId: 'getMyCalendar',
+        tags: ['Personal API'],
+        summary: 'Everything dated, grouped by day',
+        description:
+          'Assignments and personal or Moodle tasks in a date range, bucketed on the LOCAL date the way the calendar screen buckets them — slicing an ISO string would report a 23:59 deadline as the next day in UTC. An assignment with no date is not here, because we do not know when it is. Defaults to the last week and the next sixty days.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'from',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Start of the range. Defaults to seven days ago.',
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'date-time' },
+            description: 'End of the range. Defaults to sixty days ahead.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The days, each with its items.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/MyCalendar' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
     '/api/v1/me/courses': {
       get: {
         operationId: 'myCourses',
@@ -415,6 +652,29 @@ export const OPENAPI = {
               'application/json': {
                 schema: { $ref: '#/components/schemas/MyCourses' },
               },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+      post: {
+        operationId: 'createMyCourse',
+        tags: ['Personal API'],
+        summary: 'Create a course by hand',
+        description:
+          'At least a code or a name. Credits default to 3 only when nothing is given — a ' +
+          'wrong credit count silently breaks the full-time check, the cost estimate and the ' +
+          'degree audit at once, so it is never inferred from anything else.',
+        security: [{ personalToken: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object' } } },
+        },
+        responses: {
+          '201': {
+            description: 'The created course.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/MyCourse' } },
             },
           },
           ...commonErrors,
@@ -461,6 +721,43 @@ export const OPENAPI = {
               'Only assessments that are dated and not yet past. An undated one is excluded, ' +
               'because we do not know that it is upcoming.',
           },
+          {
+            name: 'q',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description:
+              "Keyword search over the title AND the description, so a phrase that is in " +
+              "the blurb rather than the name still finds it.",
+          },
+          {
+            name: 'due_before',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: "ISO-8601, or the word now. Undated assignments are excluded.",
+          },
+          {
+            name: 'due_after',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: "ISO-8601, or the word now. Undated assignments are excluded.",
+          },
+          {
+            name: 'page',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, default: 1 },
+            description: "Which page, counting from one.",
+          },
+          {
+            name: 'per_page',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 500, default: 100 },
+            description: "How many per page.",
+          },
         ],
         responses: {
           '200': {
@@ -474,9 +771,109 @@ export const OPENAPI = {
           ...commonErrors,
         },
       },
+      post: {
+        operationId: 'createMyAssignment',
+        tags: ['Personal API'],
+        summary: 'Add an assignment',
+        description:
+          "Needs a title. A course_id is checked against your own courses first, so an " +
+          "assignment cannot be filed against a stranger course. An omitted or null " +
+          "due_at means the date is unknown — it is never invented.",
+        security: [{ personalToken: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                  title: { type: 'string' },
+                  course_id: { type: 'string', format: 'uuid', nullable: true },
+                  kind: {
+                    type: 'string',
+                    enum: ['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'],
+                  },
+                  due_at: { type: 'string', format: 'date-time', nullable: true },
+                  weight: { type: 'number' },
+                  notes: { type: 'string' },
+                  description: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: "The created assignment.",
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { assignment: { $ref: '#/components/schemas/MyAssignment' } } },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
     },
 
     '/api/v1/me/assignments/{id}': {
+      get: {
+        operationId: 'getMyAssignment',
+        tags: ['Personal API'],
+        summary: 'One assignment, in full',
+        description: "Everything on it, including the notes and the grade.",
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: "The assignment id.",
+          },
+        ],
+        responses: {
+          '200': {
+            description: "The assignment.",
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/MyAssignment' } },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+      delete: {
+        operationId: 'deleteMyAssignment',
+        tags: ['Personal API'],
+        summary: 'Remove an assignment',
+        description:
+          "Soft delete. The row is marked deleted and disappears from every view, " +
+          "including the GPA, but is not destroyed — a script deleting the wrong row is " +
+          "a likelier accident than a person doing it, and one of the two should be " +
+          "recoverable.",
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: "The assignment id.",
+          },
+        ],
+        responses: {
+          '200': {
+            description: "It is gone from every view.",
+            content: {
+              'application/json': {
+                schema: { type: 'object', properties: { deleted: { type: 'boolean' }, id: { type: 'string' } } },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
       patch: {
         operationId: 'updateMyAssignment',
         tags: ['Personal API'],
@@ -1359,6 +1756,49 @@ export const OPENAPI = {
           instructor: { type: 'string' },
           archived: { type: 'boolean' },
           final_grade: { type: 'string', nullable: true },
+        },
+      },
+      OutlineImport: {
+        type: 'object',
+        description: "What a syllabus upload created.",
+        properties: {
+          course: { $ref: '#/components/schemas/MyCourse' },
+          assignments: { type: 'array', items: { $ref: '#/components/schemas/MyAssignment' } },
+          summary: {
+            type: 'object',
+            properties: {
+              count: { type: 'integer' },
+              weight_total: { type: 'number' },
+              weight_complete: {
+                type: 'boolean',
+                description:
+                  "Whether the weights reach 100. False means the outline is missing " +
+                  "something or has an ungraded component — worth a look either way.",
+              },
+              parse_path: { type: 'string', description: 'Which path read the file.' },
+              retried: { type: 'boolean' },
+            },
+          },
+          notes: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      MyCalendar: {
+        type: 'object',
+        properties: {
+          from: { type: 'string', format: 'date-time' },
+          to: { type: 'string', format: 'date-time' },
+          count: { type: 'integer' },
+          days: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day: { type: 'string', format: 'date' },
+                items: { type: 'array', items: { type: 'object' } },
+              },
+            },
+          },
+          notes: { type: 'array', items: { type: 'string' } },
         },
       },
       MyCourses: {

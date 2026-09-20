@@ -21,7 +21,25 @@
  */
 import { authenticate } from './_v1-auth.js'
 import { ownerOverview, ownerPayments, ownerPing, ownerTimeseries, ownerUsers } from './_v1-owner.js'
-import { meAssignments, meCourses, meGpa, patchAssignment } from './_v1-me.js'
+import {
+  meAssignments,
+  meCalendar,
+  meCourses,
+  meGpa,
+  patchAssignment,
+  setGrade,
+} from './_v1-me.js'
+import {
+  addNote,
+  courseFromOutline,
+  createAssignment,
+  createCourse,
+  deleteAssignment,
+  deleteCourse,
+  getAssignment,
+  getCourse,
+  patchCourse,
+} from './_v1-me-write.js'
 import {
   getThread,
   kbList,
@@ -42,7 +60,17 @@ const INDEX = {
   auth: 'Authorization: Bearer <token>. Create one in Settings (personal) or the admin console (owner).',
   scopes: {
     owner: ['GET /api/v1/owner/overview', 'GET /api/v1/owner/users', 'GET /api/v1/owner/payments', 'GET /api/v1/owner/timeseries?days=30', 'GET /api/v1/owner/ping'],
-    me: ['GET /api/v1/me/courses', 'GET /api/v1/me/assignments', 'PATCH /api/v1/me/assignments/{id}', 'GET /api/v1/me/gpa'],
+    me: [
+      'GET|POST /api/v1/me/courses',
+      'GET|PATCH|DELETE /api/v1/me/courses/{id}',
+      'POST /api/v1/me/courses/from-outline  (PDF body)',
+      'GET|POST /api/v1/me/assignments',
+      'GET|PATCH|DELETE /api/v1/me/assignments/{id}',
+      'POST /api/v1/me/assignments/{id}/notes  { "note": "…" }',
+      'PATCH /api/v1/me/assignments/{id}/grade  { "percent" } or { "earned", "total" }',
+      'GET /api/v1/me/gpa',
+      'GET /api/v1/me/calendar?from=&to=',
+    ],
     support: [
       'GET /api/v1/support/threads?type=&status=&needs_human=&since=&limit=&cursor=',
       'GET /api/v1/support/threads/{id}',
@@ -90,12 +118,33 @@ function send(res: any, out: { status: number; json: Record<string, unknown> }) 
   })
 }
 
+/** The request body as bytes. Vercel hands a Buffer when the content type
+ *  is not JSON; a string means the platform decoded it and latin1 puts the
+ *  bytes back unchanged. */
+async function rawBody(req: any): Promise<ArrayBuffer> {
+  const b = req?.body
+  if (b instanceof ArrayBuffer) return b
+  if (Buffer.isBuffer(b)) return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer
+  if (typeof b === 'string') {
+    const buf = Buffer.from(b, 'latin1')
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer
+  }
+  // Nothing pre-parsed: read the stream.
+  const chunks: Buffer[] = []
+  for await (const c of req) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c))
+  const all = Buffer.concat(chunks)
+  return all.buffer.slice(all.byteOffset, all.byteOffset + all.byteLength) as ArrayBuffer
+}
+
+const contentType = (req: any): string =>
+  String(req?.headers?.['content-type'] ?? 'application/pdf').split(';')[0]
+
 export default async function handler(req: any, res: any) {
   // Read-only from a browser is fine and useful (a dashboard on another
   // origin); the token is the credential, so CORS is not the control here.
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   if (req.method === 'OPTIONS') {
     res.status(204).end()
     return
@@ -165,24 +214,58 @@ export default async function handler(req: any, res: any) {
       }
       res.setHeader('Cache-Control', 'private, no-store')
 
-      if (req.method === 'PATCH' && resource === 'assignments') {
-        const out = await patchAssignment(caller.userId, String(id ?? ''), readBody(req))
-        if (out.status !== 200) {
-          fail(res, out.status as 400 | 404, String(out.json.error ?? 'Could not update that.'))
-          return
-        }
-        res.status(200).json(out.json)
-        return
-      }
-      if (req.method !== 'GET') {
-        fail(res, 405, 'Only GET, and PATCH on /me/assignments/{id}.')
-        return
-      }
       const q = (req.query ?? {}) as Record<string, unknown>
-      if (resource === 'courses') return void res.status(200).json(await meCourses(caller.userId, q))
-      if (resource === 'assignments')
-        return void res.status(200).json(await meAssignments(caller.userId, q))
-      if (resource === 'gpa') return void res.status(200).json(await meGpa(caller.userId))
+      const uid = caller.userId
+      const sub = raw[3] // /me/{resource}/{id}/{sub}
+      const M = req.method
+
+      if (resource === 'courses') {
+        // /me/courses/from-outline — checked BEFORE the {id} branch, because
+        // "from-outline" would otherwise be read as a course id and 404.
+        if (id === 'from-outline') {
+          if (M !== 'POST') return void fail(res, 405, 'Uploading an outline is a POST.')
+          return void send(res, await courseFromOutline(uid, await rawBody(req), contentType(req), q))
+        }
+        if (id) {
+          if (M === 'GET') return void send(res, await getCourse(uid, decodeURIComponent(id)))
+          if (M === 'PATCH')
+            return void send(res, await patchCourse(uid, decodeURIComponent(id), readBody(req)))
+          if (M === 'DELETE')
+            return void send(
+              res,
+              await deleteCourse(uid, decodeURIComponent(id), String(q.hard ?? '') === 'true'),
+            )
+          return void fail(res, 405, 'GET, PATCH or DELETE on a course.')
+        }
+        if (M === 'GET') return void send(res, await meCourses(uid, q))
+        if (M === 'POST') return void send(res, await createCourse(uid, readBody(req)))
+        return void fail(res, 405, 'GET to list courses, POST to create one.')
+      }
+
+      if (resource === 'assignments') {
+        if (id && sub === 'notes') {
+          if (M !== 'POST') return void fail(res, 405, 'Adding a note is a POST.')
+          return void send(res, await addNote(uid, decodeURIComponent(id), readBody(req)))
+        }
+        if (id && sub === 'grade') {
+          if (M !== 'PATCH') return void fail(res, 405, 'Setting a grade is a PATCH.')
+          return void send(res, await setGrade(uid, decodeURIComponent(id), readBody(req)))
+        }
+        if (id) {
+          if (M === 'GET') return void send(res, await getAssignment(uid, decodeURIComponent(id)))
+          if (M === 'PATCH')
+            return void send(res, await patchAssignment(uid, decodeURIComponent(id), readBody(req)))
+          if (M === 'DELETE') return void send(res, await deleteAssignment(uid, decodeURIComponent(id)))
+          return void fail(res, 405, 'GET, PATCH or DELETE on an assignment.')
+        }
+        if (M === 'GET') return void send(res, await meAssignments(uid, q))
+        if (M === 'POST') return void send(res, await createAssignment(uid, readBody(req)))
+        return void fail(res, 405, 'GET to list assignments, POST to create one.')
+      }
+
+      if (M !== 'GET') return void fail(res, 405, 'That endpoint is read-only.')
+      if (resource === 'gpa') return void send(res, await meGpa(uid))
+      if (resource === 'calendar') return void send(res, await meCalendar(uid, q))
       fail(res, 404, `No personal endpoint called "${resource ?? ''}".`)
       return
     }

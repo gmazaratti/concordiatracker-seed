@@ -11,7 +11,6 @@ import {
 } from '@/lib/tickets'
 import { TicketThread } from '@/features/support/TicketThread'
 import { EmptyState, Loading, Panel, SearchBar } from '../admin-ui'
-import { TokenPanel } from '@/features/tokens/TokenPanel'
 
 const FILTERS: { id: TicketStatus | 'all'; label: string }[] = [
   { id: 'open', label: 'Open' },
@@ -209,14 +208,6 @@ export function TicketsTab() {
           </Panel>
         )}
 
-        {/* The assistant's key sits with the queue it works, not on the stats
-            page: this is the screen you are on when you decide whether
-            something else should be answering these. */}
-        <Panel title="Assistant access" sub="/api/v1/support">
-          <div className="p-3.5">
-            <TokenPanel scope="support" />
-          </div>
-        </Panel>
       </div>
     </div>
   )

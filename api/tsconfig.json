@@ -19,7 +19,12 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // The API imports a few things from src/ ON PURPOSE — the GPA maths, the
+    // legal documents, the syllabus prompt — so that one calculation exists
+    // rather than two. Those files carry type-only `@/` imports, which are
+    // erased before anything runs but still have to resolve for tsc.
+    "paths": { "@/*": ["../src/*"] }
   },
   "include": ["**/*.ts"]
 }

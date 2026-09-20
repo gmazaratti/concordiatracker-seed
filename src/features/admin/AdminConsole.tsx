@@ -4,6 +4,7 @@ import {
   Activity,
   ArrowLeft,
   ChevronDown,
+  Bot,
   Bug,
   Building2,
   CalendarDays,
@@ -28,6 +29,7 @@ import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { PortalsTab } from './tabs/PortalsTab'
 import { VanityTab } from './tabs/VanityTab'
 import { BugReportsTab } from './tabs/BugReportsTab'
+import { AssistantTab } from './tabs/AssistantTab'
 import { DataReportsTab } from './tabs/DataReportsTab'
 import { TicketsTab } from './tabs/TicketsTab'
 import { AttributionTab } from './tabs/AttributionTab'
@@ -40,6 +42,9 @@ const TABS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'applications', label: 'Applications', icon: Inbox },
   { id: 'tickets', label: 'Support', icon: LifeBuoy },
+  // Next to Support, because what the assistant sent IS support — and the
+  // keys that let it live there too rather than on the stats page.
+  { id: 'assistant', label: 'Assistant', icon: Bot },
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'traffic', label: 'Traffic', icon: Activity },
   { id: 'attribution', label: 'Attribution', icon: Compass },
@@ -124,6 +129,7 @@ export function AdminConsole() {
         {current === 'tickets' && <TicketsTab />}
         {current === 'data' && <DataReportsTab />}
         {current === 'bugs' && <BugReportsTab />}
+        {current === 'assistant' && <AssistantTab />}
       </div>
     </div>
   )

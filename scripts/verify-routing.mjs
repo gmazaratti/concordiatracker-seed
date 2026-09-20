@@ -212,6 +212,11 @@ for (const r of [
   '/api/v1/me/assignments',
   '/api/v1/me/assignments/abc-123',
   '/api/v1/me/gpa',
+  '/api/v1/me/calendar',
+  '/api/v1/me/courses/6e0921df-57ae-411a-9b28-434ce9117e6a',
+  '/api/v1/me/courses/from-outline',
+  '/api/v1/me/assignments/507a45e5-ace8-45b1-a623-0f4ba2aba5b2/notes',
+  '/api/v1/me/assignments/507a45e5-ace8-45b1-a623-0f4ba2aba5b2/grade',
   // The support desk. A thread id contains a COLON, which must survive the
   // rewrite intact or every lookup 404s.
   '/api/v1/support/threads',

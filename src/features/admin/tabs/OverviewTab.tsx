@@ -17,7 +17,6 @@ import {
 import { cn } from '@/lib/cn'
 import { AreaChart, Sparkline } from '../AreaChart'
 import { Panel, RefreshButton } from '../admin-ui'
-import { TokenPanel } from '@/features/tokens/TokenPanel'
 import {
   ACTIVITY_FILTERS,
   DEFAULT_ACTIVITY_KINDS,
@@ -327,14 +326,6 @@ export function OverviewTab() {
 
       <NeedsAttention o={o} />
 
-      {/* An owner token reads these same figures from outside — a dashboard,
-          a cron job, an agent. It lives here rather than in Settings because
-          this is the page whose numbers it returns. */}
-      <Panel title="Read these numbers from outside" sub="API tokens">
-        <div className="p-3.5">
-          <TokenPanel scope="owner" />
-        </div>
-      </Panel>
 
       <Notes o={o} demo={demo} />
     </div>

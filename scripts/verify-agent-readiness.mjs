@@ -202,7 +202,15 @@ section('OpenAPI specification')
     )
     check(
       'every request body has a schema',
-      ops.every((o) => !o.op.requestBody || !!o.op.requestBody.content?.['application/json']?.schema),
+      // ANY media type, not application/json specifically. The syllabus
+      // upload takes application/pdf, and insisting on JSON would have been
+      // this check enforcing a house style rather than the guarantee behind
+      // it — which is that a body says what shape it is.
+      ops.every(
+        (o) =>
+          !o.op.requestBody ||
+          Object.values(o.op.requestBody.content ?? {}).some((c) => !!c.schema),
+      ),
     )
     check('defines an Error schema', !!spec.components?.schemas?.Error)
     check(

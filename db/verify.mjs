@@ -72,7 +72,7 @@ async function fixtures(db) {
       id serial primary key, course_code text, course_name text, professor text,
       section text, term text, verified boolean default false
     );
-    create table courses (id text primary key, user_id uuid, code text, final_percent numeric);
+    create table courses (id uuid primary key default gen_random_uuid(), user_id uuid, code text, final_percent numeric);
     create table seat_watches (
       id uuid primary key default gen_random_uuid(),
       user_id uuid not null, class_number text not null, term_code text not null,
@@ -126,7 +126,7 @@ check("another user's alert never leaks", (await alerts()).length, 1)
 
 await db.exec(`
   insert into courses (id, user_id, code) values
-    ('a','${ME}','COMP 248'), ('b','${OTHER}','comp248'), ('c','${OTHER}','COMP-248');
+    (gen_random_uuid(),'${ME}','COMP 248'), (gen_random_uuid(),'${OTHER}','comp248'), (gen_random_uuid(),'${OTHER}','COMP-248');
 `)
 const tracking = (await db.query('select * from public.course_tracking($1)', ['COMP248'])).rows[0]
 check('tracking counts distinct users, not rows', tracking.tracked_by, 2)
@@ -523,8 +523,11 @@ await db.exec(`
   create table public.profile_follows (follower_id uuid, following_id uuid);
   drop table if exists public.courses cascade;
   create table public.courses (
-    id text primary key, user_id uuid, code text, name text, color text,
-    term text, archived boolean default false
+    -- uuid, like production. It was text here, which made the id comparison
+    -- in api_delete_course a 42883 "no operator matches" — a fixture bug that
+    -- reads exactly like a bug in the migration.
+    id uuid primary key default gen_random_uuid(), user_id uuid, code text,
+    name text, color text, term text, archived boolean default false
   );
   insert into public.user_profile
     (user_id, handle, name, avatar_url, program, bio, links, profile_public, courses_public, email) values
@@ -537,8 +540,8 @@ await db.exec(`
     ('44444444-4444-4444-4444-444444444444', 'ctstaff', 'Concordia Tracker', null, null, null,
      null, true, true, 'concordiatracker@gmail.com');
   insert into public.courses (id, user_id, code, name, color, term) values
-    ('c1', '${ME}', 'FINA 210', 'Finance', 'rose', 'Fall 2026'),
-    ('c2', '33333333-3333-3333-3333-333333333333', 'ENGL 251', 'Lit', 'teal', 'Fall 2026');
+    (gen_random_uuid(), '${ME}', 'FINA 210', 'Finance', 'rose', 'Fall 2026'),
+    (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'ENGL 251', 'Lit', 'teal', 'Fall 2026');
 `)
 await db.exec(migration('account_flags.sql'))
 await db.exec(migration('searchable_profiles.sql'))
@@ -1121,6 +1124,112 @@ check('every thread carries updated_at for incremental polling',
   v2Last.threads.every((t) => !!t.updated_at), true)
 check('and its category', v2Last.threads.every((t) => !!t.category), true)
 
+
+{
+// ── db/personal_api.sql ─────────────────────────────────────────────────────
+console.log('\ndb/personal_api.sql')
+await db.exec(`
+  create table if not exists public.assignments (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid, course_id uuid, title text, date timestamptz,
+    type text, weight numeric, score numeric, raw_score numeric, raw_total numeric,
+    done boolean, missed boolean, awaiting_grade boolean, extension_granted boolean,
+    notes text, description text, status text,
+    provenance_status text, provenance_confirmations int
+  );
+`)
+await db.exec(migration('personal_api.sql'))
+// Earlier sections leave is_admin() wherever their last test needed it, so
+// this one states it rather than inheriting a value from three blocks up.
+await db.exec(
+  'create or replace function public.is_admin() returns boolean language sql stable as ' +
+    '$$ select true $$;',
+)
+console.log('  ok    DDL applies')
+
+check('a personal token is prefixed ct_per_',
+  (await db.query("select public.ct_new_api_token('me') t")).rows[0].t.slice(0, 7), 'ct_per_')
+check('  support is unchanged',
+  (await db.query("select public.ct_new_api_token('support') t")).rows[0].t.slice(0, 7), 'ct_sup_')
+check('  owner is unchanged',
+  (await db.query("select public.ct_new_api_token('owner') t")).rows[0].t.slice(0, 9), 'ct_owner_')
+
+/* Courses and their assignments go together, or not at all. */
+const COURSE = '55555555-5555-5555-5555-555555555555'
+const seed = async () => {
+  await db.query('delete from public.assignments')
+  await db.query('delete from public.courses where id = $1', [COURSE])
+  await db.query("insert into public.courses (id, user_id, code) values ($1,$2,'COMP 248')", [COURSE, ME])
+  await db.query(
+    `insert into public.assignments (user_id, course_id, title, weight, notes)
+     values ($1,$2,'Assignment 1',10,''), ($1,$2,'Midterm',30,'read chapter 4')`,
+    [ME, COURSE],
+  )
+}
+const counts = async () => ({
+  courses: (await db.query('select count(*)::int n from public.courses where id = $1', [COURSE])).rows[0].n,
+  assignments: (await db.query('select count(*)::int n from public.assignments where course_id = $1', [COURSE])).rows[0].n,
+})
+
+await seed()
+const archived = (await db.query('select public.api_delete_course($1,$2,true) r', [ME, COURSE])).rows[0].r
+check('archiving keeps the row', archived.archived, true)
+check('  and keeps its assignments', (await counts()).assignments, 2)
+check('  the course is marked archived',
+  (await db.query('select archived from public.courses where id = $1', [COURSE])).rows[0].archived, true)
+
+await seed()
+const deleted = (await db.query('select public.api_delete_course($1,$2,false) r', [ME, COURSE])).rows[0].r
+check('deleting removes the course', deleted.deleted, true)
+check('  AND its assignments, so none are orphaned', (await counts()).assignments, 0)
+
+/* Somebody else's course is not yours to delete. */
+await seed()
+let refused = false
+try { await db.query('select public.api_delete_course($1,$2,false)', [OTHER, COURSE]) } catch { refused = true }
+check('another user cannot delete it', refused, true)
+check('  and it is still there', (await counts()).courses, 1)
+
+/* Notes append. */
+const a1 = (await db.query("select id from public.assignments where title='Midterm'")).rows[0].id
+const noted = (await db.query('select public.api_append_note($1,$2,$3) r', [ME, a1, 'bring a calculator'])).rows[0].r
+check('a note is APPENDED, not substituted', noted.notes, 'read chapter 4\n\nbring a calculator')
+const a2 = (await db.query("select id from public.assignments where title='Assignment 1'")).rows[0].id
+check('  an empty field just takes the note',
+  (await db.query('select public.api_append_note($1,$2,$3) r', [ME, a2, 'first note'])).rows[0].r.notes,
+  'first note')
+let emptyRefused = false
+try { await db.query('select public.api_append_note($1,$2,$3)', [ME, a2, '  ']) } catch { emptyRefused = true }
+check('  an empty note is refused', emptyRefused, true)
+let notMine = false
+try { await db.query('select public.api_append_note($1,$2,$3)', [OTHER, a2, 'x']) } catch { notMine = true }
+check("  and another user's assignment is not found", notMine, true)
+
+/* The "what Alfred sent" feed. */
+await db.query(
+  `insert into public.admin_audit_log (actor_email, action, target_email, new_value, reason)
+   values ('assistant@support','support.ai_reply','c@x.test',
+           jsonb_build_object('thread','t:33333333-3333-3333-3333-333333333333',
+                              'case_id','TKT-1001','subject','Calendar','body','Here you go.'),
+           'Automated support reply')`,
+)
+const feed = (await db.query('select * from public.admin_ai_replies(7, 50)')).rows
+check('the feed returns the reply', feed.length >= 1, true)
+check('  with its exact wording', feed[0].body, 'Here you go.')
+check('  the case it belongs to', feed[0].case_id, 'TKT-1001')
+check('  and a thread id that links back', feed[0].thread, 't:33333333-3333-3333-3333-333333333333')
+check('  joined forward to the CURRENT status', feed[0].status_now !== undefined, true)
+check('the count is available for a badge',
+  (await db.query('select public.admin_ai_reply_count(7) n')).rows[0].n >= 1, true)
+
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select false $$;`)
+check('a non-admin sees nothing', (await db.query('select * from public.admin_ai_replies(7,50)')).rows.length, 0)
+check('  and no count', (await db.query('select public.admin_ai_reply_count(7) n')).rows[0].n, 0)
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select true $$;`)
+
+}
 
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
