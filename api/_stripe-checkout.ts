@@ -1,6 +1,12 @@
 /**
  * POST /api/stripe-checkout — start an EMBEDDED Stripe Checkout session.
  *
+ * NOT ROUTED ITSELF (leading underscore). Vercel's Hobby plan allows twelve
+ * serverless functions and we were at twelve, so this shares a function with
+ * stripe-billing, which it already shares every helper and its whole auth
+ * story with. `vercel.json` rewrites the public URL, so nothing outside this
+ * file changed — same path, same body, same response.
+ *
  * Embedded (not hosted) so the payment form mounts inside Settings → Billing
  * rather than bouncing the student to another tab. Returns a `client_secret`
  * the client hands to Stripe's <EmbeddedCheckout>.
@@ -18,7 +24,7 @@ function priceFor(plan: Plan): string | undefined {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function handler(req: any, res: any) {
+export async function startCheckout(req: any, res: any) {
   if (req.method !== 'POST') {
     fail(res, 405, 'Method not allowed')
     return

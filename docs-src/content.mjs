@@ -1321,8 +1321,8 @@ export const PAGES = {
     title: 'API reference',
     section: 'Developers',
     description:
-      'The ConcordiaTracker HTTP API: the OpenAPI specification, authentication, the open course '
-      + 'section endpoint, JSON error codes, and markdown content negotiation.',
+      'The ConcordiaTracker HTTP API: API tokens, the owner statistics endpoints, the personal '
+      + 'course and grade endpoints, the open course section endpoint, and JSON error codes.',
     blocks: [
       {
         p: 'ConcordiaTracker exposes a small HTTP API. Most of it backs the web app and needs a signed-in user, but one endpoint is open to anyone and is the useful one for an automated client: live section, meeting-time, and seat data for any Concordia course.',
@@ -1350,7 +1350,63 @@ export const PAGES = {
 
       { h2: 'Authentication' },
       {
-        p: 'Everything else requires a signed-in user. Send a Supabase access token as `Authorization: Bearer <token>`. Two endpoints are internal scheduled jobs authenticated by a deployment secret rather than a user token; they are listed in the specification for completeness and are not callable by clients.',
+        p: 'The web app authenticates with a Supabase access token, which expires in an hour and is minted by a browser sign-in. That is no use to a script, a cron job, or an agent, so anything unattended uses an API token instead: long-lived, named, revocable one at a time, and scoped narrower than a session.',
+      },
+      {
+        p: 'Send it the same way: `Authorization: Bearer <token>`. There are two scopes and a token can never widen its own.',
+      },
+      {
+        ul: [
+          '`ct_owner_…` — business statistics under `/api/v1/owner`. Created by an admin in the console. It reads counts and revenue and can never read an individual account.',
+          '`ct_pat_…` — your own data under `/api/v1/me`. Created by you in Settings → Developer. It can only ever see and edit your account.',
+        ],
+      },
+      {
+        note: 'A token is shown once, when it is created, and cannot be retrieved afterwards. Only its SHA-256 hash is stored, so a database dump is not a set of live credentials — and if you lose one, the answer is to revoke it and make another. Revoking takes effect immediately.',
+      },
+      {
+        p: 'Each token is limited to 120 requests a minute. Going over returns `rate_limited` with a `Retry-After` header, which is a different answer from `unauthorized` — a client that cannot tell them apart will either retry forever or give up on a token that is perfectly good.',
+      },
+
+      { h2: 'Owner API — how the business is doing' },
+      {
+        p: 'Four read-only endpoints, for a dashboard or an agent. Every response carries `generated_at`, `timezone: "UTC"`, and a `notes` array naming anything that makes the figures less than complete — Stripe paging, test mode, a missing key, or how far back visitor tracking actually goes.',
+      },
+      {
+        ul: [
+          '`GET /api/v1/owner/overview` — users, engagement, support load and revenue in one call.',
+          '`GET /api/v1/owner/users` — cohorts: new, active, comped, and breakdowns by school and programme.',
+          '`GET /api/v1/owner/payments` — revenue read live from Stripe.',
+          '`GET /api/v1/owner/timeseries?days=30` — daily signups, visitors, active users and page views.',
+        ],
+      },
+      {
+        p: 'The definitions are fixed and worth knowing, because the same words mean different things in different dashboards. A **paying customer** has been charged more than $0 and the charge settled. A trial is not a paying customer. A comped account is counted as a user and never as paying. Internal and test accounts are excluded from every figure except the one that counts them. **MRR** comes only from subscriptions that have actually been charged, and **ARR** is labelled an estimate because it is one month multiplied by twelve, not a year of observed revenue.',
+      },
+      {
+        note: '`/owner/users` returns counts and never identities — no names, no emails, no user ids. A long-lived token sitting in a cron job is a looser credential than a session, so the worst a leaked one can do is reveal how the business is doing, not export the user table.',
+      },
+      {
+        p: 'Amounts are in **cents**, so `mrr_cents: 375` is $3.75. Timestamps are ISO-8601 in UTC, always — a dashboard in another timezone silently shifting a day is the classic wrong answer nobody notices.',
+      },
+
+      { h2: 'Personal API — your own courses and grades' },
+      {
+        ul: [
+          '`GET /api/v1/me/courses` — your classes. `?archived=true` for finished ones.',
+          '`GET /api/v1/me/assignments` — every deadline with its weight and status. Filter with `course_id`, `status`, or `upcoming=true`.',
+          '`PATCH /api/v1/me/assignments/{id}` — change status, grade or notes.',
+          '`GET /api/v1/me/gpa` — your standing, per course and overall.',
+        ],
+      },
+      {
+        p: 'A PATCH body takes any of `status`, `notes`, and `grade`. A grade is either `{"percent": 87}` or `{"earned": 17, "total": 20}`, and `null` clears it. The response returns the assessment as it now stands, so nothing has to guess whether the write landed.',
+      },
+      {
+        p: 'Those three fields are the whole write surface, deliberately. A token cannot change a weight, move a date, or set provenance: a weight edited by a script is a grade computed from a number nobody checked, and provenance is a claim about where a date came from that a script cannot honestly make.',
+      },
+      {
+        p: 'Two things the responses are careful about. An assessment with no date returns `due: null` rather than today — an outline that says the Examinations Office will set the date has not given us one, and inventing it would put a made-up deadline on the highest-stakes item you have. And `/me/gpa` averages over the weight graded **so far**, returning that denominator as `graded_weight`, so a term two assessments in is not reported as though the ungraded 80% were zeros.',
       },
 
       { h2: 'Errors' },

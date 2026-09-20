@@ -647,6 +647,144 @@ check('the log is append-only: no update or delete policy exists',
 check('and every action so far is still there', before, 3)
 
 
+// ── db/api_tokens.sql ───────────────────────────────────────────────────────
+// The credential behind /api/v1. Three things are worth running rather than
+// reading: that the plaintext really is absent from the table, that the
+// OUT-parameter names in these `returns table` functions do not shadow their
+// own columns (the 42702 that took tickets down for weeks), and that the
+// owner statistics the API reads match the ones the dashboard reads.
+console.log('\ndb/api_tokens.sql')
+
+await db.exec(`
+  create table if not exists auth.users (id uuid primary key);
+  insert into auth.users (id) values ('${ME}'), ('${OTHER}') on conflict do nothing;
+  create table if not exists public.user_profile (user_id uuid primary key);
+  alter table public.user_profile
+    add column if not exists email text,
+    add column if not exists name text,
+    add column if not exists school text,
+    add column if not exists program text,
+    add column if not exists is_internal boolean default false,
+    add column if not exists comped boolean default false,
+    add column if not exists created_at timestamptz not null default now();
+  create table if not exists public.site_events (
+    id serial primary key, user_id uuid, visitor_id text, kind text,
+    created_at timestamptz not null default now()
+  );
+  create table if not exists public.tickets (
+    id uuid primary key default gen_random_uuid(), status text default 'open'
+  );
+  alter table public.courses add column if not exists archived boolean default false;
+`)
+await db.exec(migration('api_tokens.sql'))
+console.log('  ok    DDL applies')
+
+const mint = async (name, scope) =>
+  (await db.query('select * from public.create_api_token($1,$2)', [name, scope])).rows[0]
+
+const pat = await mint('my laptop', 'me')
+check('a personal token is prefixed so it is recognisable', pat.token.slice(0, 7), 'ct_pat_')
+check('  and is 244 bits of hex after it', pat.token.length, 71)
+check('  the list shows only its first 15 characters', pat.prefix, pat.token.slice(0, 15))
+
+// The whole security claim of this table, asserted rather than described.
+const tokRow = (await db.query('select token_hash, prefix from public.api_tokens')).rows[0]
+check('the plaintext is NOT stored anywhere on the row',
+  tokRow.token_hash === pat.token || tokRow.prefix === pat.token, false)
+check('  what is stored is its sha256',
+  tokRow.token_hash,
+  (await db.query('select public.ct_hash_api_token($1) h', [pat.token])).rows[0].h)
+
+const checkTok = async (tok) =>
+  (await db.query('select * from public.ct_api_token_check(public.ct_hash_api_token($1))', [tok])).rows
+
+const tokHit = (await checkTok(pat.token))[0]
+check('a valid token resolves to its owner', tokHit.user_id, ME)
+check('  with its scope', tokHit.scope, 'me')
+check('  and is allowed', tokHit.allowed, true)
+check('an unknown token resolves to nothing at all', (await checkTok('ct_pat_nope')).length, 0)
+
+// Usage is counted, which is what makes "this token has never been used" a
+// real answer in the UI rather than a guess.
+check('using it counts', (await db.query('select use_count from public.api_tokens where id=$1', [pat.id])).rows[0].use_count, 1)
+
+// The limiter: the 121st call inside one minute is refused, and the refusal
+// still identifies the token so the endpoint can answer 429 rather than 401.
+for (let i = 0; i < 118; i++) await checkTok(pat.token)
+const at120 = (await checkTok(pat.token))[0]
+check('the 120th call in a minute is still allowed', at120.allowed, true)
+const at121 = (await checkTok(pat.token))[0]
+check('the 121st is refused', at121.allowed, false)
+check('  but still names the token, so it is a 429 and not a 401', at121.user_id, ME)
+check('  and says when to come back', at121.retry_after > 0, true)
+
+// A new window forgives.
+await db.query("update public.api_tokens set window_start = now() - interval '2 minutes'")
+check('a fresh minute starts the count again', (await checkTok(pat.token))[0].allowed, true)
+
+// Scope cannot be widened: owner tokens need is_admin(), enforced in the
+// function rather than in the screen that calls it. An earlier section of this
+// file leaves is_admin() true, so "not an admin" is stated, not assumed.
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select false $$;`)
+let ownerRefused = false
+try { await mint('stats', 'owner') } catch { ownerRefused = true }
+check('a non-admin cannot mint an owner token', ownerRefused, true)
+
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select true $$;`)
+const own = await mint('dashboard', 'owner')
+check('an admin can', own.token.slice(0, 9), 'ct_owner_')
+check('  and it carries the owner scope', (await checkTok(own.token))[0].scope, 'owner')
+
+// Revoking is immediate and total.
+check('revoking reports that it did something', (await db.query('select public.revoke_api_token($1) r', [pat.id])).rows[0].r, true)
+check('  and the token stops resolving', (await checkTok(pat.token)).length, 0)
+check('  revoking twice does nothing the second time', (await db.query('select public.revoke_api_token($1) r', [pat.id])).rows[0].r, false)
+check('  but the row survives, so the list can still explain itself',
+  (await db.query('select count(*)::int c from public.api_tokens where revoked_at is not null')).rows[0].c, 1)
+
+// THE DRY GUARANTEE. The dashboard and the API must never be able to report
+// different numbers; they share one body, and this is what proves it.
+await db.exec(`
+  -- Earlier sections leave their own profiles behind, and these checks assert
+  -- exact counts, so this one starts from a known population.
+  delete from public.user_profile;
+  insert into public.user_profile (user_id, email, name, is_internal, comped, created_at)
+  values ('${ME}','a@x.test','A',false,false, now()),
+         ('${OTHER}','b@x.test','B',true,false, now())
+  on conflict (user_id) do update
+    set email = excluded.email, name = excluded.name,
+        is_internal = excluded.is_internal, comped = excluded.comped,
+        created_at = excluded.created_at;
+  insert into public.site_events (user_id, visitor_id, kind) values ('${ME}','v1','view');
+`)
+const rawCounts = (await db.query('select public.ct_overview_counts_raw() c')).rows[0].c
+const viaAdmin = (await db.query('select public.admin_overview_counts() c')).rows[0].c
+check('the API and the dashboard read one body: counts are identical', rawCounts, viaAdmin)
+check('  internal accounts are excluded from the total', rawCounts.users_total, 1)
+check('  and counted on their own line', rawCounts.internal, 1)
+
+await db.exec(`create or replace function public.is_admin() returns boolean
+  language sql stable as $$ select false $$;`)
+check('a non-admin gets nothing from the dashboard wrapper',
+  (await db.query('select public.admin_overview_counts() c')).rows[0].c, {})
+check('  while the raw function, which only the service role may call, still answers',
+  (await db.query('select public.ct_overview_counts_raw() c')).rows[0].c.users_total, 1)
+
+// /owner/users is counts-only by construction. If a name or an email ever
+// appears in its output, that is the leak this check exists to catch.
+const cohorts = (await db.query('select public.ct_owner_users_raw() c')).rows[0].c
+check('cohorts count the real users', cohorts.total, 1)
+check('  and report internal separately', cohorts.excluded_internal, 1)
+check('  and never name anybody',
+  JSON.stringify(cohorts).includes('a@x.test') || JSON.stringify(cohorts).includes('"A"'), false)
+
+const tokSeries = (await db.query('select * from public.ct_daily_series_raw(7)')).rows
+check('the series has one row per day with no gaps', tokSeries.length, 7)
+check('  including days where nothing happened', tokSeries[0].signups, 0)
+
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

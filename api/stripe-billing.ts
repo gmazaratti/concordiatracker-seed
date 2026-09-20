@@ -13,12 +13,19 @@
  * crafted request can't cancel or read anybody else's subscription.
  */
 import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
+import { startCheckout } from './_stripe-checkout.js'
 import { fail } from './_respond.js'
 
 type Action = 'summary' | 'cancel' | 'resume' | 'update-card' | 'checkout-status'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
+  // /api/stripe-checkout arrives here through a rewrite — see the header of
+  // _stripe-checkout.ts for why the two share one function.
+  if (String(req.query?.a ?? '') === 'checkout') {
+    await startCheckout(req, res)
+    return
+  }
   if (req.method !== 'POST') {
     fail(res, 405, 'Method not allowed')
     return

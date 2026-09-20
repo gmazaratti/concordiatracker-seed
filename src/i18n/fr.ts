@@ -129,6 +129,7 @@ export const fr: Partial<Record<Key, string>> = {
   'settings.privacy': 'Confidentialité',
   'settings.billing': 'Facturation',
   'settings.usage': 'Utilisation',
+  'settings.developer': 'Développeur',
   'settings.appearance': 'Apparence',
   'settings.theme': 'Thème',
   'settings.language': 'Langue',

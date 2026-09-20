@@ -1,5 +1,6 @@
 import {
   CalendarSync,
+  Code2,
   CreditCard,
   Gauge,
   GraduationCap,
@@ -21,6 +22,7 @@ import { MoodleSection } from './sections/MoodleSection'
 import { PrivacySection } from './sections/PrivacySection'
 import { BillingSection } from './sections/BillingSection'
 import { UsageSection } from './sections/UsageSection'
+import { DeveloperSection } from './sections/DeveloperSection'
 
 const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
   { id: 'general', labelKey: 'settings.general', icon: SlidersHorizontal },
@@ -30,6 +32,7 @@ const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon }[] = [
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
   { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
   { id: 'usage', labelKey: 'settings.usage', icon: Gauge },
+  { id: 'developer', labelKey: 'settings.developer', icon: Code2 },
 ]
 
 const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
@@ -40,6 +43,7 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
   privacy: PrivacySection,
   billing: BillingSection,
   usage: UsageSection,
+  developer: DeveloperSection,
 }
 
 /** The floating settings panel — Claude-desktop layout: a vertical section nav

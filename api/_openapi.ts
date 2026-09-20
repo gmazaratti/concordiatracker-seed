@@ -283,6 +283,290 @@ export const OPENAPI = {
       },
     },
 
+    '/api/v1/owner/overview': {
+      get: {
+        operationId: 'ownerOverview',
+        tags: ['Owner API'],
+        summary: 'Headline business figures',
+        description:
+          'Users, engagement, support load and revenue in one call. A paying customer has been ' +
+          'charged more than $0 and the charge settled; trials and comped accounts are reported ' +
+          'separately and are never counted as paying. Internal and test accounts are excluded ' +
+          'from every figure. Every timestamp is ISO-8601 in UTC, and `notes` lists anything ' +
+          'that makes the numbers less than complete.',
+        security: [{ ownerToken: [] }],
+        responses: {
+          '200': {
+            description: "The current figures.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OwnerOverview' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/owner/users': {
+      get: {
+        operationId: 'ownerUsers',
+        tags: ['Owner API'],
+        summary: 'User cohorts',
+        description:
+          'Counts only. This endpoint never returns names, emails or user ids: a long-lived ' +
+          'token should not be able to export the user table. Identities stay behind the admin ' +
+          'console, which needs a human sign-in.',
+        security: [{ ownerToken: [] }],
+        responses: {
+          '200': {
+            description: "Cohort counts.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OwnerUsers' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/owner/payments': {
+      get: {
+        operationId: 'ownerPayments',
+        tags: ['Owner API'],
+        summary: 'Revenue, read live from Stripe',
+        description:
+          'MRR is derived only from subscriptions that have actually been charged. ARR is an ' +
+          'estimate — MRR multiplied by twelve, not a year of observed revenue — and is named ' +
+          'one in the payload.',
+        security: [{ ownerToken: [] }],
+        responses: {
+          '200': {
+            description: "Revenue and subscription counts.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OwnerPayments' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/owner/timeseries': {
+      get: {
+        operationId: 'ownerTimeseries',
+        tags: ['Owner API'],
+        summary: 'Daily signups, visitors, active users and page views',
+        description:
+          'One row per day with no gaps: a day on which nothing happened is a zero, not a ' +
+          'missing entry, so a chart cannot interpolate over it.',
+        security: [{ ownerToken: [] }],
+        parameters: [
+          {
+            name: 'days',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 365, default: 30 },
+            description: 'How many days back to return.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: "The daily series.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/OwnerTimeseries' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/courses': {
+      get: {
+        operationId: 'myCourses',
+        tags: ['Personal API'],
+        summary: 'Your courses',
+        description:
+          'The classes on your account for the current term, or the finished ones with ' +
+          '`archived=true`. Each carries its code, title, term, credits, section and ' +
+          'instructor.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'archived',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'Return finished courses instead of current ones.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: "Your courses.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MyCourses' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/assignments': {
+      get: {
+        operationId: 'myAssignments',
+        tags: ['Personal API'],
+        summary: 'Your deadlines',
+        description:
+          'Every assessment on your account, earliest first. `upcoming=true` means dated and ' +
+          'not yet past — an UNDATED item is not upcoming, because we do not know that it is.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'course_id',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Only assessments belonging to this course.',
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: [
+                'not-started', 'in-progress', 'done', 'late',
+                'missed', 'extension', 'awaiting-grade',
+              ],
+            },
+            description: 'Only assessments currently in this state.',
+          },
+          {
+            name: 'upcoming',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+            description:
+              'Only assessments that are dated and not yet past. An undated one is excluded, ' +
+              'because we do not know that it is upcoming.',
+          },
+        ],
+        responses: {
+          '200': {
+            description: "Your assessments.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MyAssignments' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/assignments/{id}': {
+      patch: {
+        operationId: 'updateMyAssignment',
+        tags: ['Personal API'],
+        summary: 'Tick something off, or record a grade',
+        description:
+          'Changes status, grade or notes — the same narrow set the app itself allows. Not ' +
+          'weights, dates or provenance: a weight edited by a script is a grade computed from a ' +
+          'number nobody checked, and provenance is a claim about where a date came from that a ' +
+          'token cannot honestly make. Returns the row as it now stands.',
+        security: [{ personalToken: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'The assessment to change, as returned by /api/v1/me/assignments.',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  status: {
+                    type: 'string',
+                    enum: [
+                      'not-started', 'in-progress', 'done', 'late',
+                      'missed', 'extension', 'awaiting-grade',
+                    ],
+                  },
+                  notes: { type: 'string' },
+                  grade: {
+                    type: 'object',
+                    nullable: true,
+                    description: 'Either {percent} or {earned,total}. null clears the grade.',
+                    properties: {
+                      percent: { type: 'number', nullable: true },
+                      earned: { type: 'number', nullable: true },
+                      total: { type: 'number', nullable: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'The updated assessment.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { updated: { $ref: '#/components/schemas/MyAssignment' } },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/v1/me/gpa': {
+      get: {
+        operationId: 'myGpa',
+        tags: ['Personal API'],
+        summary: 'Your standing, per course and overall',
+        description:
+          'Each course percentage is a weighted average over the weight graded SO FAR, not out ' +
+          'of 100, and the denominator is returned as `graded_weight` so nobody has to guess ' +
+          'which of the two it is. A course with nothing graded reports null, never zero.',
+        security: [{ personalToken: [] }],
+        responses: {
+          '200': {
+            description: "Your standing.",
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/MyGpa' },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
     '/api/stripe-checkout': {
       post: {
         operationId: 'createCheckoutSession',
@@ -506,6 +790,20 @@ export const OPENAPI = {
         bearerFormat: 'JWT',
         description: 'A Supabase access token for the signed-in user.',
       },
+      ownerToken: {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'A ct_owner_… API token, created by an admin in the console. Reads business ' +
+          'statistics only; it can never read an individual account. 120 requests a minute.',
+      },
+      personalToken: {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'A ct_pat_… API token, created by the account holder in Settings → Developer. Reads ' +
+          'and edits only that account. 120 requests a minute.',
+      },
       cronSecret: {
         type: 'apiKey',
         in: 'header',
@@ -515,6 +813,155 @@ export const OPENAPI = {
     },
     schemas: {
       Error: errorSchema,
+      OwnerOverview: {
+        type: 'object',
+        description: 'Headline business figures. Internal accounts are excluded throughout.',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          timezone: { type: 'string', enum: ['UTC'] },
+          users: { type: 'object', additionalProperties: { type: 'integer' } },
+          engagement: { type: 'object' },
+          support: { type: 'object' },
+          money: { $ref: '#/components/schemas/OwnerPayments' },
+      notes: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Anything that makes these figures less than complete, in plain words.',
+      },
+        },
+      },
+      OwnerUsers: {
+        type: 'object',
+        description: 'Cohort counts. Never contains an identity.',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          total: { type: 'integer' },
+          comped: { type: 'integer', description: 'Counted as users, never as paying.' },
+          excluded_internal: { type: 'integer' },
+          new_7d: { type: 'integer' },
+          new_30d: { type: 'integer' },
+          active_7d: { type: 'integer' },
+          active_30d: { type: 'integer' },
+          with_courses: { type: 'integer' },
+          by_school: { type: 'object', additionalProperties: { type: 'integer' } },
+          by_program: { type: 'object', additionalProperties: { type: 'integer' } },
+      notes: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Anything that makes these figures less than complete, in plain words.',
+      },
+        },
+      },
+      OwnerPayments: {
+        type: 'object',
+        description: 'Revenue, read live from Stripe. Amounts are in CENTS.',
+        properties: {
+          configured: { type: 'boolean' },
+          mode: { type: 'string', enum: ['live', 'test'] },
+          currency: { type: 'string' },
+          paying_customers: { type: 'integer', description: 'Settled charge over $0. Not trials.' },
+          trialing: { type: 'integer' },
+          active_subscriptions: { type: 'integer' },
+          cancelling: { type: 'integer' },
+          mrr_cents: { type: 'integer' },
+          arr_cents_estimated: { type: 'integer', description: 'MRR × 12. An estimate.' },
+          revenue_total_cents: { type: 'object', additionalProperties: { type: 'integer' } },
+      notes: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Anything that makes these figures less than complete, in plain words.',
+      },
+        },
+      },
+      OwnerTimeseries: {
+        type: 'object',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          days: { type: 'integer' },
+          series: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day: { type: 'string', format: 'date' },
+                signups: { type: 'integer' },
+                visitors: { type: 'integer' },
+                active_users: { type: 'integer' },
+                page_views: { type: 'integer' },
+              },
+            },
+          },
+      notes: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Anything that makes these figures less than complete, in plain words.',
+      },
+        },
+      },
+      MyCourse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          code: { type: 'string' },
+          title: { type: 'string' },
+          term: { type: 'string' },
+          credits: { type: 'number' },
+          section: { type: 'string' },
+          instructor: { type: 'string' },
+          archived: { type: 'boolean' },
+          final_grade: { type: 'string', nullable: true },
+        },
+      },
+      MyCourses: {
+        type: 'object',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          count: { type: 'integer' },
+          courses: { type: 'array', items: { $ref: '#/components/schemas/MyCourse' } },
+        },
+      },
+      MyAssignment: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          course_id: { type: 'string', format: 'uuid', nullable: true },
+          title: { type: 'string' },
+          kind: { type: 'string' },
+          due: {
+            type: 'string',
+            format: 'date-time',
+            nullable: true,
+            description: 'null when the outline gives no date. Never invented.',
+          },
+          weight: { type: 'number' },
+          status: { type: 'string' },
+          grade: { type: 'object', nullable: true },
+          notes: { type: 'string' },
+          provenance: { type: 'object' },
+        },
+      },
+      MyAssignments: {
+        type: 'object',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          count: { type: 'integer' },
+          assignments: { type: 'array', items: { $ref: '#/components/schemas/MyAssignment' } },
+        },
+      },
+      MyGpa: {
+        type: 'object',
+        properties: {
+          generated_at: { type: 'string', format: 'date-time' },
+          courses: { type: 'array', items: { type: 'object' } },
+          term_percent: { type: 'number', nullable: true },
+          credits_graded: { type: 'number' },
+      notes: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Anything that makes these figures less than complete, in plain words.',
+      },
+        },
+      },
       Section: {
         type: 'object',
         description: 'One published section of a Concordia course.',

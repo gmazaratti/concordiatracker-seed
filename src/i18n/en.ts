@@ -123,6 +123,7 @@ export const en = {
   'settings.privacy': 'Privacy',
   'settings.billing': 'Billing',
   'settings.usage': 'Usage',
+  'settings.developer': 'Developer',
   'settings.appearance': 'Appearance',
   'settings.theme': 'Theme',
   'settings.language': 'Language',

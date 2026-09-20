@@ -92,6 +92,10 @@ function resolve(pathname, { markdown = false } = {}) {
     // rule that captures the wrong segment.
     let dest = rule.destination
     for (const [key, value] of Object.entries(m.groups ?? {})) {
+      // `:name*` FIRST. Replacing `:name` alone leaves the asterisk stranded
+      // in the destination — `path=owner/overview*` — which is not what Vercel
+      // produces and would have let a wrong wildcard destination pass here.
+      dest = dest.split(`:${key}*`).join(value ?? '')
       dest = dest.split(`:${key}`).join(value ?? '')
     }
     return dest
@@ -191,6 +195,42 @@ for (const r of ['/@ab', '/@' + 'a'.repeat(21), '/@Alex', '/@al-ex']) {
   const dest = resolve(r)
   check(`${r} → 404`, dest === '/api/not-found', dest ?? '(no match)')
 }
+
+console.log('\nThe v1 API')
+// Every /api/v1 path is served by ONE function, because Hobby allows twelve
+// and this project lives at the ceiling. A `[...path].ts` catch-all would have
+// worked only if the filesystem is consulted before `/api/:path*` sends
+// everything to the 404 — an assumption that has broken this project's routing
+// twice. A named rewrite is checkable, so it is checked.
+for (const r of [
+  '/api/v1/owner/overview',
+  '/api/v1/owner/users',
+  '/api/v1/owner/payments',
+  '/api/v1/owner/timeseries',
+  '/api/v1/owner/ping',
+  '/api/v1/me/courses',
+  '/api/v1/me/assignments',
+  '/api/v1/me/assignments/abc-123',
+  '/api/v1/me/gpa',
+]) {
+  const dest = resolve(r)
+  check(`${r} reaches the v1 function`, dest === `/api/v1?path=${r.slice('/api/v1/'.length)}`, dest ?? '(no match)')
+}
+check('the bare /api/v1 index reaches it too', resolve('/api/v1') === '/api/v1?path=', resolve('/api/v1'))
+// And the ordering still holds: anything else under /api is a real 404.
+check('an unknown /api path is still a 404', resolve('/api/nope') === '/api/not-found?json=1', resolve('/api/nope'))
+
+console.log('\nEndpoints that share a function')
+// stripe-checkout has no file of its own any more; it rides on stripe-billing
+// so the twelfth slot could go to v1. The PUBLIC URL must not change — the
+// browser client and the OpenAPI spec both name it.
+check(
+  '/api/stripe-checkout still resolves',
+  resolve('/api/stripe-checkout') === '/api/stripe-billing?a=checkout',
+  resolve('/api/stripe-checkout'),
+)
+check('/api/library still resolves', resolve('/api/library') === '/api/sections?feed=library', resolve('/api/library'))
+
 
 console.log('\nPaths that must return a real 404')
 const notFound = [

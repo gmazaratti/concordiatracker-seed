@@ -9,6 +9,7 @@ export type SettingsSection =
   | 'privacy'
   | 'billing'
   | 'usage'
+  | 'developer'
 
 export interface SettingsContextValue {
   open: boolean

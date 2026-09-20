@@ -66,6 +66,18 @@
       "destination": "/api/sync-catalog?job=reminders"
     },
     {
+      "source": "/api/v1",
+      "destination": "/api/v1?path="
+    },
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api/v1?path=:path*"
+    },
+    {
+      "source": "/api/stripe-checkout",
+      "destination": "/api/stripe-billing?a=checkout"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/not-found?json=1"
     },
