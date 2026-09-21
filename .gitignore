@@ -60,3 +60,6 @@ android/
 .record-summary.test.tmp.mjs
 .ec.mjs
 .alfred-token
+
+# Supabase CLI link state (local only; holds the project ref + pooler creds)
+supabase/

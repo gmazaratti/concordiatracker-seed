@@ -33,6 +33,15 @@ export function PublicLayout() {
             >
               {t('landing.docs')}
             </a>
+            {/* Clubs before teachers: there are far more of them, and the
+                whole point is that a president finds this without being
+                personally shown it. `lg:` so the mobile header stays two
+                items — it overflowed at 375px once already. */}
+            <Link to="/organizer" className="hidden lg:block">
+              <Button variant="ghost" size="sm">
+                For clubs
+              </Button>
+            </Link>
             <Link to="/teacher" className="hidden sm:block">
               <Button variant="ghost" size="sm">
                 {t('landing.forTeachers')}
@@ -79,6 +88,9 @@ export function PublicLayout() {
             </Link>
             <Link to="/terms" className="transition-colors hover:text-fg">
               Terms
+            </Link>
+            <Link to="/organizer" className="transition-colors hover:text-fg">
+              List your club
             </Link>
             <Link to="/educator" className="transition-colors hover:text-fg">
               Educators

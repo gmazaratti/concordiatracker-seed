@@ -506,3 +506,28 @@ export async function adminDeleteOutreach(code: string) {
   const { error } = await supabase.rpc('outreach_delete', { p_code: code })
   if (error) throw error
 }
+
+/** A club's answers to the signup questionnaire, as they wrote them. */
+export interface OrgApplication {
+  id: string
+  handle: string
+  name: string
+  status: string
+  applied_at: string | null
+  owner_email: string | null
+  owner_name: string | null
+  application: {
+    what?: string
+    category?: string
+    size?: string
+    role?: string
+    contact?: string
+    proof?: string
+  } | null
+}
+
+export async function adminListOrgApplications(): Promise<OrgApplication[]> {
+  const { data, error } = await supabase.rpc('admin_org_applications')
+  if (error) throw error
+  return (data ?? []) as OrgApplication[]
+}

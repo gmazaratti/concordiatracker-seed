@@ -1,43 +1,78 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, ClipboardList, Ticket } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
 import { AppleGlyph } from '@/components/AppleGlyph'
+import { OrgApplyForm } from './OrgApplyForm'
 
-const initials = (name: string) =>
-  name
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'OG'
-
-const suggestHandle = (name: string) =>
-  '@' + (name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'org')
-
-/** Organizer portal entry. The primary path is YOUR own org (persistent): continue
- * to it if you have one, or create one. The email + demo paths are for the seeds. */
+/**
+ * Organizer portal entry.
+ *
+ * TWO DOORS, ASKED AS A QUESTION. Most people arriving here followed a link
+ * we sent and hold a code; the rest are a club that found us on its own and
+ * has to be vetted. Those are different journeys, and this screen used to
+ * offer only the second one, unlabelled — so an invited org typed a name into
+ * a box and quietly became an unreviewed application, while a club that found
+ * us was never asked anything that would let anyone approve it.
+ *
+ * Applying does NOT gate the product: it opens the dashboard immediately and
+ * gates PUBLICATION. Somebody's evening of setup is never held hostage to our
+ * review queue.
+ */
 export function OrganizerSignIn() {
-  const { myOrg, createOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
+  const { myOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
   const { user: authUser, signInWithGoogle, signInWithApple } = useAuth()
-  const [name, setName] = useState('')
-  const [handle, setHandle] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [createError, setCreateError] = useState('')
+  const [path, setPath] = useState<'choose' | 'invite' | 'apply'>('choose')
+  const [code, setCode] = useState('')
 
-  async function create() {
-    if (!name.trim() || busy) return
-    setBusy(true)
-    setCreateError('')
-    const h = (handle.trim() || suggestHandle(name)).replace(/^@?/, '@')
-    const id = await createOrg({ name: name.trim(), handle: h, glyph: initials(name), color: '#5b9cf6' })
-    setBusy(false)
-    if (!id) setCreateError(`Couldn't create it: the handle ${h} may be taken. Try another.`)
-    // On success, createOrg signs you into the portal (the dashboard renders).
+  if (path === 'apply') {
+    return <OrgApplyForm onBack={() => setPath('choose')} onDone={signInSelfOrg} />
+  }
+
+  if (path === 'invite') {
+    // A code, not a second account system: the invite LINK already works by
+    // itself. This is for the person who has the code but not the link —
+    // forwarded, retyped off a slide, read out in a meeting.
+    const token = code.trim().replace(/^.*\/(?:join|invite)\//, '')
+    return (
+      <div className="mx-auto w-full max-w-md px-5 py-16">
+        <button
+          type="button"
+          onClick={() => setPath('choose')}
+          className="mb-4 text-[13px] text-muted transition-colors duration-150 hover:text-fg"
+        >
+          ← Back
+        </button>
+        <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
+          Enter your invite
+        </h1>
+        <p className="mt-1.5 text-[13px] text-subtle">
+          Paste the whole link or just the code — either works.
+        </p>
+        <input
+          autoFocus
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="demo-robotics"
+          aria-label="Invite code"
+          className="mt-5 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 font-mono text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+        />
+        <Link to={token ? `/organizer/invite/${encodeURIComponent(token)}` : '#'}>
+          <Button className="mt-3 w-full" disabled={!token}>
+            Continue
+          </Button>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setPath('apply')}
+          className="mt-4 w-full text-[12.5px] text-subtle transition-colors duration-150 hover:text-fg"
+        >
+          No invite? Apply instead
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -67,7 +102,7 @@ export function OrganizerSignIn() {
               Sign in with Apple
             </Button>
             <p className="mt-1.5 text-center text-[12px] text-subtle">
-              Sign in to create and manage your real org.
+              Sign in first — then tell us whether you were invited or are applying.
             </p>
           </>
         ) : myOrg ? (
@@ -75,38 +110,27 @@ export function OrganizerSignIn() {
             <Button className="mt-5 w-full" onClick={signInSelfOrg}>
               Continue as {myOrg.org.name}
             </Button>
-            <p className="mt-1.5 text-center text-[12px] text-subtle">Your org and its events are saved.</p>
+            <p className="mt-1.5 text-center text-[12px] text-subtle">
+              Your org and its events are saved.
+            </p>
           </>
         ) : (
           <>
-            <p className="mt-5 text-[12px] font-medium text-muted">Create your organization</p>
-            <input
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value)
-                setCreateError('')
-              }}
-              placeholder="Organization name (e.g. Robotics Club)"
-              aria-label="Organization name"
-              className="mt-1.5 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-            />
-            <input
-              value={handle}
-              onChange={(e) => {
-                setHandle(e.target.value)
-                setCreateError('')
-              }}
-              placeholder={name ? suggestHandle(name) : '@handle'}
-              aria-label="Org handle"
-              className="mt-2 w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-            />
-            {createError && <p className="mt-1.5 text-[12px] text-danger">{createError}</p>}
-            <Button className="mt-3 w-full" disabled={!name.trim() || busy} onClick={create}>
-              {busy ? 'Creating…' : 'Create & open dashboard'}
-            </Button>
-            <p className="mt-1.5 text-center text-[12px] text-subtle">
-              You can add a logo, banner, and links after.
-            </p>
+            <p className="mt-5 text-[12px] font-medium text-muted">Which are you?</p>
+            <div className="mt-2 flex flex-col gap-2">
+              <Door
+                icon={<Ticket size={15} className="shrink-0 text-accent" aria-hidden />}
+                title="I was invited"
+                sub="You have a link or a code from us"
+                onClick={() => setPath('invite')}
+              />
+              <Door
+                icon={<ClipboardList size={15} className="shrink-0 text-accent" aria-hidden />}
+                title="Apply to list my club"
+                sub="Six questions. Dashboard straight away, live once we approve you."
+                onClick={() => setPath('apply')}
+              />
+            </div>
           </>
         )}
 
@@ -128,12 +152,32 @@ export function OrganizerSignIn() {
           sandbox: nothing you do is saved or affects the real site.
         </p>
       </div>
-
-      <p className="mt-4 px-1 text-center text-[12px] text-subtle">
-        <Link to="/organizer/invite/demo-robotics" className="text-accent hover:underline">
-          Have an invite?
-        </Link>
-      </p>
     </div>
+  )
+}
+
+function Door({
+  icon,
+  title,
+  sub,
+  onClick,
+}: {
+  icon: React.ReactNode
+  title: string
+  sub: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-left transition-colors duration-150 hover:border-accent"
+    >
+      <span className="flex items-center gap-2 text-[13.5px] font-medium text-fg">
+        {icon}
+        {title}
+      </span>
+      <span className="mt-0.5 block text-[12px] text-subtle">{sub}</span>
+    </button>
   )
 }

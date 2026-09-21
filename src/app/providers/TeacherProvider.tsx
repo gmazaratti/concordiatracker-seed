@@ -460,6 +460,65 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     },
     [authUser],
   )
+  /**
+   * Apply to be listed — the path for a club nobody invited.
+   *
+   * Goes through `apply_for_org`, which creates the pending org AND records
+   * the answers in one statement, so a half-finished application cannot
+   * exist. It lives HERE rather than in the form because the provider only
+   * loads myOrgs on auth change: a form calling the RPC itself would leave
+   * the app not knowing the org exists, and `signInSelfOrg` would do nothing.
+   *
+   * Returns an error string for the form to show, or null on success.
+   */
+  const applyForOrg = useCallback(
+    async (input: {
+      name: string
+      handle: string
+      answers: Record<string, string>
+    }): Promise<string | null> => {
+      if (!authUser) return 'Sign in first.'
+      const { data: newId, error } = await supabase.rpc('apply_for_org', {
+        p_name: input.name,
+        p_handle: input.handle,
+        p_answers: input.answers,
+      })
+      if (error) {
+        if (error.message.includes('already have an application')) {
+          return "You already have an application waiting — we'll email you when it's reviewed."
+        }
+        if (error.code === '23505') return 'That handle is taken. Try another.'
+        // A missing RPC means the migration is pending. Say so plainly rather
+        // than blaming what they typed.
+        if (error.code === 'PGRST202') return 'Applications are not switched on yet. Try again shortly.'
+        return 'Something went wrong on our side. Try again in a moment.'
+      }
+      const id = String(newId)
+      const { data } = await supabase.from('organizations').select(ORG_COLS).eq('id', id).maybeSingle()
+      if (data) {
+        const row = data as OrgRow & { status: string }
+        setMyOrgs((prev) => [
+          {
+            id: row.id,
+            email: authUser.email ?? '',
+            status: 'pending',
+            org: orgFromRow(row),
+            events: [],
+            followers: 0,
+            members: [],
+          },
+          ...prev,
+        ])
+        setOwnedOrgIds((prev) => new Set(prev).add(row.id))
+        setPermsByOrg((prev) => ({ ...prev, [row.id]: ALL_ORG_PERMS }))
+        setSelectedOrgId(row.id)
+      }
+      setSessionId(SELF_ORG)
+      return null
+    },
+    [authUser],
+  )
+
   const signInSelfOrg = useCallback(() => {
     if (myOrgs.length) setSessionId(SELF_ORG)
   }, [myOrgs.length])
@@ -1181,6 +1240,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       signInSelfOrg,
       signInDemoOrg,
       approveOrg,
+      applyForOrg,
       orgInvites,
       getOrgInvite: (token: string) =>
         orgInvites.find((i) => i.token === token) ?? decodeOrgInvite(token) ?? undefined,
@@ -1237,6 +1297,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       signInSelfOrg,
       signInDemoOrg,
       approveOrg,
+      applyForOrg,
       orgInvites,
       createOrgInvite,
       acceptOrgInvite,

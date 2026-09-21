@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, UserPlus } from 'lucide-react'
+import { CalendarDays, Megaphone, UserPlus } from 'lucide-react'
 import { useFollows } from '@/app/providers/follows'
 import { useCommunity } from './useCommunity'
 import { eventsThisWeek, suggestOrgs } from './feed'
@@ -81,6 +81,23 @@ export function CommunityRail() {
         {(following.length > 0 || people.length > 0) && (
           <FollowingPanel orgs={following} people={people} />
         )}
+
+        {/* WHERE CLUB PEOPLE ALREADY ARE. A president browsing the events feed
+            is one tap from listing their own, which beats needing to be told
+            the portal exists. Quiet, at the bottom, and it does not compete
+            with the feed. */}
+        <Link
+          to="/organizer"
+          className="rounded-xl border border-dashed border-border px-3.5 py-3 transition-colors duration-150 hover:border-accent"
+        >
+          <span className="flex items-center gap-2 text-[12.5px] font-medium text-fg">
+            <Megaphone size={14} className="shrink-0 text-accent" aria-hidden />
+            Run a club?
+          </span>
+          <span className="mt-0.5 block text-[11.5px] leading-relaxed text-subtle">
+            List your events here — free, and students see them in this feed.
+          </span>
+        </Link>
       </div>
     </aside>
   )

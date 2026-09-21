@@ -17,6 +17,7 @@ import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshBut
 import { OrgInvitesPanel } from './OrgInvitesPanel'
 import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
 import { OutreachPanel } from './OutreachPanel'
+import { OrgApplicationsPanel } from './OrgApplicationsPanel'
 import { cn } from '@/lib/cn'
 
 export function PortalsTab() {
@@ -50,6 +51,9 @@ export function PortalsTab() {
           what went out, what was opened, what converted. The lists below are
           what you do about it. */}
       <OutreachPanel />
+
+      {/* Directly under the links, because these are what the links produce. */}
+      <OrgApplicationsPanel />
 
       {/* Primary: the lists you actually manage. Organizers get the wide column
           (most actions); teachers are compact beside them on large screens. */}

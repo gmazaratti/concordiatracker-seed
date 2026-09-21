@@ -118,6 +118,12 @@ export interface TeacherContextValue {
   signInSelfOrg: () => void
   signInDemoOrg: () => void
   approveOrg: (id: string) => void
+  /** Apply to be listed. Returns an error string to show, or null on success. */
+  applyForOrg: (input: {
+    name: string
+    handle: string
+    answers: Record<string, string>
+  }) => Promise<string | null>
   orgInvites: OrgInvite[]
   getOrgInvite: (token: string) => OrgInvite | undefined
   createOrgInvite: (input: {
