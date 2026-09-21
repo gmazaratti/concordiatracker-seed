@@ -16,6 +16,7 @@ import {
 import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton } from '../admin-ui'
 import { OrgInvitesPanel } from './OrgInvitesPanel'
 import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
+import { OutreachPanel } from './OutreachPanel'
 import { cn } from '@/lib/cn'
 
 export function PortalsTab() {
@@ -44,6 +45,11 @@ export function PortalsTab() {
         </div>
         <RefreshButton onClick={reloadAll} busy={teachers.loading || orgs.loading} />
       </header>
+
+      {/* FIRST, because during an outreach wave this is the screen you open:
+          what went out, what was opened, what converted. The lists below are
+          what you do about it. */}
+      <OutreachPanel />
 
       {/* Primary: the lists you actually manage. Organizers get the wide column
           (most actions); teachers are compact beside them on large screens. */}

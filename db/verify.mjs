@@ -1595,6 +1595,72 @@ check("  and left the reactor's alone", await unread(REACTOR), 2)
 check("  and the commenter's", await unread(TALKER), 1)
 }
 
+
+/* ── db/outreach_links.sql ────────────────────────────────────────────────
+ * The funnel has to be right or the wave is measured wrong: an unopened
+ * link must read as a zero and not as an absent row, and a view recorded
+ * BEFORE the link went out (me, testing it) must not count as interest. */
+console.log(String.fromCharCode(10) + 'db/outreach_links.sql')
+{
+  await db.exec(`
+    drop table if exists public.outreach_links cascade;
+    drop table if exists public.site_events cascade;
+    create table public.site_events (
+      id bigserial primary key, visitor_id text not null, kind text not null default 'view',
+      utm_campaign text, created_at timestamptz not null default now()
+    );
+    drop table if exists public.organizations cascade;
+    create table public.organizations (
+      id uuid primary key default gen_random_uuid(), handle text, name text,
+      status text default 'pending', created_at timestamptz not null default now()
+    );
+    create or replace function public.is_admin() returns boolean language sql as $$ select true $$;
+  `)
+  await db.exec(migration('outreach_links.sql'))
+
+  await db.query("select public.outreach_add('hackcon', 'HackConcordia')")
+  await db.query("select public.outreach_add('csu', 'CSU exec')")
+
+  const row = async (code) =>
+    (await db.query(`select * from public.outreach_rollup() where code = $1`, [code])).rows[0]
+
+  check('a link nobody opened is a row, not a silence', (await row('hackcon')).opens, 0)
+  check('  and it reads as not sent until you say so', (await row('hackcon')).sent_at, null)
+  check('  so days_out is null, not zero', (await row('hackcon')).days_out, null)
+
+  // A view from BEFORE it was sent — me, checking my own link.
+  await db.exec(`insert into public.site_events (visitor_id, utm_campaign, created_at)
+                 values ('me', 'hackcon', now() - interval '3 days')`)
+  await db.exec("update public.outreach_links set sent_at = now() - interval '1 day' where code = 'hackcon'")
+  check('a view from before it was sent is not interest', (await row('hackcon')).opens, 0)
+
+  // Two opens from one browser, one from another.
+  await db.exec(`insert into public.site_events (visitor_id, utm_campaign) values
+                 ('a','hackcon'), ('a','hackcon'), ('b','hackcon')`)
+  check('opens count every view', (await row('hackcon')).opens, 3)
+  check('  unique counts browsers, so a refresh is not a second person', (await row('hackcon')).unique_opens, 2)
+  check('  and days_out is measured from the send', (await row('hackcon')).days_out, 1)
+
+  check('not activated until an org points at it', (await row('hackcon')).signed_up, false)
+  await db.exec(`insert into public.organizations (handle, name, ref_code, status)
+                 values ('@hc', 'HackConcordia', 'hackcon', 'pending')`)
+  check('activated once one does', (await row('hackcon')).signed_up, true)
+  check('  and it names which org', (await row('hackcon')).org_handle, '@hc')
+  check('  carrying its status, so pending is visible', (await row('hackcon')).org_status, 'pending')
+
+  check('another link is unaffected', (await row('csu')).opens, 0)
+  check('  and still not signed up', (await row('csu')).signed_up, false)
+
+  // A second run of the same code updates rather than duplicating.
+  await db.query("select public.outreach_add('hackcon', 'HackConcordia (renamed)')")
+  check('re-adding a code renames it instead of duplicating', (await row('hackcon')).label, 'HackConcordia (renamed)')
+  check('  and there is still one row for it',
+    (await db.query("select count(*)::int n from public.outreach_links where code = 'hackcon'")).rows[0].n, 1)
+
+  await db.query("select public.outreach_mark_sent('hackcon', false)")
+  check('un-sending clears the date', (await row('hackcon')).sent_at, null)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

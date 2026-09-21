@@ -461,3 +461,48 @@ export function useIsAdmin(): { loading: boolean; isAdmin: boolean } {
 
   return state
 }
+
+/** One outreach link, with its whole funnel. Counts of BROWSERS, not people —
+ *  `visitor_id` is a random string a browser made for itself. */
+export interface OutreachLink {
+  code: string
+  label: string
+  target: string
+  sent_at: string | null
+  days_out: number | null
+  opens: number
+  unique_opens: number
+  first_open_at: string | null
+  last_open_at: string | null
+  signed_up: boolean
+  org_handle: string | null
+  org_name: string | null
+  activated_at: string | null
+  org_status: string | null
+}
+
+export async function adminListOutreach(): Promise<OutreachLink[]> {
+  const { data, error } = await supabase.rpc('outreach_rollup')
+  if (error) throw error
+  return (data ?? []) as OutreachLink[]
+}
+
+export async function adminAddOutreach(code: string, label: string, target: string, note?: string) {
+  const { error } = await supabase.rpc('outreach_add', {
+    p_code: code,
+    p_label: label,
+    p_target: target,
+    p_note: note ?? null,
+  })
+  if (error) throw error
+}
+
+export async function adminMarkOutreachSent(code: string, sent: boolean) {
+  const { error } = await supabase.rpc('outreach_mark_sent', { p_code: code, p_sent: sent })
+  if (error) throw error
+}
+
+export async function adminDeleteOutreach(code: string) {
+  const { error } = await supabase.rpc('outreach_delete', { p_code: code })
+  if (error) throw error
+}

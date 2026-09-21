@@ -5,6 +5,7 @@ import type { Blueprint } from '@/data/blueprints'
 import { CAMPUS_EVENTS, ORGS, type CampusEvent, type EventOrg } from '@/data/community'
 import { term } from '@/data/mock'
 import { supabase, fireWrite } from '@/lib/supabase'
+import { currentCampaign } from '@/lib/analytics'
 import {
   announcementFromRow,
   eventRowToManaged,
@@ -413,20 +414,32 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     async (input: { name: string; handle: string; glyph: string; color: string; bio?: string }) => {
       if (!authUser) return ''
       const handle = input.handle.startsWith('@') ? input.handle : `@${input.handle}`
-      const { data, error } = await supabase
-        .from('organizations')
-        .insert({
-          owner_id: authUser.id,
-          handle,
-          name: input.name,
-          verified: false,
-          glyph: input.glyph,
-          color: input.color,
-          bio: input.bio ?? '',
-          status: 'pending',
-        })
-        .select(ORG_COLS)
-        .maybeSingle()
+      const base = {
+        owner_id: authUser.id,
+        handle,
+        name: input.name,
+        verified: false,
+        glyph: input.glyph,
+        color: input.color,
+        bio: input.bio ?? '',
+        status: 'pending',
+      }
+      // Which outreach link brought them, when there was one. Null is the
+      // honest answer for everyone else — an unattributed signup must not be
+      // credited to whichever campaign happens to be open.
+      const ref = currentCampaign()
+      const write = (row: Record<string, unknown>) =>
+        supabase.from('organizations').insert(row).select(ORG_COLS).maybeSingle()
+
+      let { data, error } = await write(ref ? { ...base, ref_code: ref } : base)
+      // PGRST204 is what PostgREST answers for an unknown column on an
+      // INSERT (its own schema cache, before Postgres sees it); 42703 is the
+      // SELECT form. Either way the migration is pending — the org still gets
+      // created, it just arrives unattributed. Signing somebody up matters
+      // more than knowing where they came from.
+      if (ref && (error?.code === 'PGRST204' || error?.code === '42703')) {
+        ;({ data, error } = await write(base))
+      }
       if (error || !data) return ''
       const row = data as OrgRow & { status: string }
       const account: OrgAccount = {

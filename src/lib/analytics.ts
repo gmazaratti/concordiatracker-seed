@@ -152,3 +152,15 @@ export function startHeartbeat(): () => void {
   const id = window.setInterval(tick, PING_MS)
   return () => window.clearInterval(id)
 }
+
+/**
+ * The campaign this visit came from, if any.
+ *
+ * Read at the moment something is CREATED, not at page load: the whole point
+ * is to attribute the signup at the end of the journey to the link at the
+ * start of it, and the two can be several navigations apart. Session-scoped,
+ * so it never reaches across a closed tab and claims credit it did not earn.
+ */
+export function currentCampaign(): string | null {
+  return campaign().utm_campaign ?? null
+}
