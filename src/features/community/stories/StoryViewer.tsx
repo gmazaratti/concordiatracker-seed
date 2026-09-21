@@ -150,7 +150,7 @@ export function StoryViewer({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[70] flex flex-col bg-black" role="dialog" aria-modal="true">
       {/* Segments. One per story, filled behind you, timing the current one. */}
       <div className="flex gap-1 px-3 pt-3">
         {(stories ?? [{ id: 'x' } as Story]).map((s, n) => (
@@ -222,14 +222,28 @@ export function StoryViewer({
         </button>
       </div>
 
-      {/* The image, and the text the club dragged onto it. */}
-      <div className="relative min-h-0 flex-1">
+      {/*
+        THE FRAME IS 9:16, THE SAME SHAPE THE COMPOSER DRAWS ON.
+        Overlay positions are fractions OF THE FRAME, so if this box were
+        simply "whatever is left of the screen" a caption placed over
+        somebody's face would slide off it on a different aspect ratio. The
+        photo is `object-contain` inside that frame with a blurred copy of
+        itself behind, so a landscape picture is neither cropped nor sitting
+        on a bare black slab.
+      */}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center">
         {story ? (
-          <>
+          <div className="relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden">
+            <img
+              src={story.imageUrl}
+              alt=""
+              aria-hidden
+              className="absolute inset-0 size-full scale-110 object-cover opacity-40 blur-2xl"
+            />
             <img
               src={story.imageUrl}
               alt={story.caption ?? ''}
-              className="size-full object-contain"
+              className="relative size-full object-contain"
             />
             {story.overlays.map((o, n) => (
               <span
@@ -260,7 +274,7 @@ export function StoryViewer({
             <span className="pointer-events-none absolute inset-y-0 right-0 hidden w-10 items-center justify-center text-white/40 sm:flex">
               <ChevronRight size={22} aria-hidden />
             </span>
-          </>
+          </div>
         ) : (
           <div className="grid size-full place-items-center text-[13px] text-white/60">
             {stories ? 'Nothing here any more.' : 'Loading…'}
