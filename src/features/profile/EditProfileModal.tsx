@@ -48,6 +48,9 @@ export function EditProfileModal({
   const [pub, setPub] = useState(false)
   const [coursesPub, setCoursesPub] = useState(false)
   const [scheduleFriends, setScheduleFriends] = useState(false)
+  // Defaults TRUE where the column does, so an unrun migration cannot make a
+  // profile look like its owner turned their major off.
+  const [programPub, setProgramPub] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -56,7 +59,7 @@ export function EditProfileModal({
     let alive = true
     void supabase
       .from('user_profile')
-      .select('profile_public, bio, courses_public, schedule_visibility, links')
+      .select('profile_public, bio, courses_public, schedule_visibility, links, program_public')
       .eq('user_id', authUser.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -67,11 +70,13 @@ export function EditProfileModal({
           courses_public?: boolean
           schedule_visibility?: string
           links?: unknown
+          program_public?: boolean
         } | null
         setPub(!!r?.profile_public)
         setBio(r?.bio ?? '')
         setCoursesPub(!!r?.courses_public)
         setScheduleFriends(r?.schedule_visibility === 'friends')
+        setProgramPub(r?.program_public !== false)
         setLinks(cleanLinks(r?.links))
         setLoaded(true)
       })
@@ -93,6 +98,7 @@ export function EditProfileModal({
       .from('user_profile')
       .update({
         courses_public: coursesPub,
+        program_public: programPub,
         schedule_visibility: scheduleFriends ? 'friends' : 'private',
         links: cleanLinks(links),
       })
@@ -161,6 +167,17 @@ export function EditProfileModal({
                 label="Public profile"
                 body="Off means the page exists only for you."
               />
+              {/* THREE THINGS YOU CAN SHOW, one switch each. They are not
+                  degrees of the same setting: your major says which building
+                  you are in, your classes say which rooms, and your schedule
+                  says when — and somebody can reasonably want the first
+                  without the third. */}
+              <Toggle
+                checked={programPub}
+                onChange={setProgramPub}
+                label="Show my major"
+                body="The line under your name. Off hides it from everyone."
+              />
               <Toggle
                 checked={coursesPub}
                 onChange={setCoursesPub}
@@ -170,8 +187,8 @@ export function EditProfileModal({
               <Toggle
                 checked={scheduleFriends}
                 onChange={setScheduleFriends}
-                label="Let friends see my schedule"
-                body="Times and rooms, and only people whose request you accepted."
+                label="Show my schedule to people I follow back"
+                body="Times and rooms only — never a grade, and never to a stranger."
               />
             </div>
           </div>

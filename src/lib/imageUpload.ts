@@ -18,7 +18,19 @@ export const IMAGE_ACCEPT_ATTR = ACCEPT.join(',')
  * capped here and at the bucket, and the storage path is scoped to the user's own
  * folder by RLS.
  */
-export async function uploadOrgImage(file: File, kind: 'logo' | 'banner'): Promise<string> {
+export type ImageKind = 'logo' | 'banner' | 'post' | 'story'
+
+/** How large each kind is allowed to be on its longest edge. A story fills a
+ *  phone and a logo is 40px on a row, so one number for both would either
+ *  blur the story or ship a 1600px avatar to every feed row. */
+const MAX_DIM: Record<ImageKind, number> = {
+  logo: 512,
+  banner: 1600,
+  post: 1440,
+  story: 1440,
+}
+
+export async function uploadOrgImage(file: File, kind: ImageKind): Promise<string> {
   const { data: auth } = await supabase.auth.getUser()
   const uid = auth.user?.id
   if (!uid) throw new Error('Please sign in first.')
@@ -26,8 +38,7 @@ export async function uploadOrgImage(file: File, kind: 'logo' | 'banner'): Promi
   if (file.size > MAX_INPUT_BYTES) throw new Error('That image is too large (8 MB max).')
 
   // Cap dimensions (keeps files small) + re-encode to a clean raster WEBP.
-  const maxDim = kind === 'banner' ? 1600 : 512
-  const blob = await reencodeToWebp(file, maxDim)
+  const blob = await reencodeToWebp(file, MAX_DIM[kind] ?? 1024)
 
   const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.webp`
   const { error } = await supabase.storage.from('org-media').upload(path, blob, {

@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock,
   MapPin,
+  Repeat2,
   Share2,
   UserPlus,
   Video,
@@ -20,6 +21,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { formatDueDateTime, startOfToday } from '@/lib/date'
 import { clearReminder, EVENT_LEAD_MINUTES, setReminder } from '@/lib/reminders'
+import { eventRepostStates, toggleRepost } from '@/lib/social-posts'
 import { cn } from '@/lib/cn'
 import { useLocalizedEvent } from './useLocalizedEvent'
 import { EventMedia } from './EventMedia'
@@ -178,6 +180,7 @@ export function EventDetailView({
           </button>
         )}
         <RemindButton event={event} gate={gate} />
+        <RepostButton eventId={event.id} gate={gate} />
         <button
           type="button"
           onClick={onShare}
@@ -205,6 +208,58 @@ export function EventDetailView({
 
 /** "Remind me" toggle — schedules a real push 1 day before the event (and keeps
  * the existing event_reminders state for instant UI). Cleared on toggle off. */
+/**
+ * Pass this event on.
+ *
+ * REPOSTING IS NOT ATTENDING and the wording keeps them apart: "Add to my
+ * calendar" is what you do when you are going, this is what you do when
+ * somebody else should know. Conflating them would make the attendance
+ * signal — which the calendar layer actually uses — meaningless.
+ *
+ * The count comes back from the toggle, so the number never disagrees with
+ * the state of the button that produced it.
+ */
+function RepostButton({ eventId, gate }: { eventId: string; gate?: () => void }) {
+  const [on, setOn] = useState(false)
+  const [known, setKnown] = useState(false)
+
+  useEffect(() => {
+    if (gate) return
+    let alive = true
+    void eventRepostStates([eventId]).then((m) => {
+      if (!alive) return
+      setOn(m[eventId]?.iRepost ?? false)
+      setKnown(true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [eventId, gate])
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (gate) return gate()
+        const next = !on
+        setOn(next)
+        void toggleRepost('event', eventId).then(setOn)
+      }}
+      aria-pressed={on}
+      disabled={!gate && !known}
+      className={cn(
+        'inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[14px] font-medium transition-colors duration-150 disabled:opacity-60',
+        on
+          ? 'border-success bg-success/15 text-success'
+          : 'border-border text-muted hover:bg-surface-2 hover:text-fg',
+      )}
+    >
+      <Repeat2 size={16} aria-hidden />
+      {on ? 'Reposted' : 'Repost'}
+    </button>
+  )
+}
+
 function RemindButton({
   event,
   gate,

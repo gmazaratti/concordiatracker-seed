@@ -26,6 +26,41 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.31.0',
+    name: 'One relationship, and clubs that can actually post',
+    date: '2026-09-21',
+    changes: [
+      {
+        kind: 'improved',
+        text: 'Follows and connections are one thing now. You follow somebody; if they follow you back, that is the connection. There is nothing to accept and no second relationship to learn, and every connection you already had was carried over as a mutual follow.',
+      },
+      {
+        kind: 'new',
+        text: 'You can message anyone. If they do not follow you back you get one message — enough to say who you are and why — and after that it waits for them. You can narrow that in Settings to people you follow back, or turn messages off entirely.',
+      },
+      {
+        kind: 'new',
+        text: 'Clubs can post. Photos, one or a slideshow, with a caption — and you can like, comment, repost and send them on. Stories too: up for twenty-four hours, with text the club can drag onto the picture.',
+      },
+      {
+        kind: 'new',
+        text: 'Repost. The third button under a post or an event puts it on your profile, in a tab of its own, so passing something on does not mean screenshotting it.',
+      },
+      {
+        kind: 'improved',
+        text: 'Profiles were a wall you scrolled past. They have tabs now — outlines, reposts and classes for a student; events, posts and reposts for a club — and the counts above them open the list behind each one.',
+      },
+      {
+        kind: 'new',
+        text: 'A switch for your major, next to the ones for your classes and your schedule. Three separate things to show, three separate decisions.',
+      },
+      {
+        kind: 'fixed',
+        text: 'A first message from somebody you had not met was invisible. Those have existed since message requests shipped and nothing in the app ever showed them — your inbox only listed people you were already connected to.',
+      },
+    ],
+  },
+  {
     version: '1.30.0',
     name: 'Google Calendar, faster scans, and a reply from us',
     date: '2026-09-20',

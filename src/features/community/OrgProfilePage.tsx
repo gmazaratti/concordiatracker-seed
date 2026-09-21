@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MapPin, Phone } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Clock, Grid3x3, ImagePlus, MapPin, Phone, Repeat2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { supabase } from '@/lib/supabase'
+import { loadPosts, type FeedPost } from '@/lib/social-posts'
+import { ProfileTabs } from '@/features/profile/ProfileHeader'
 import { isRelevantTo, postedAgoLabel, type CampusEvent, type EventOrg, type OrgLinks } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { cn } from '@/lib/cn'
@@ -13,6 +17,40 @@ import { ContactButton } from './ContactButton'
 import { SocialLinks } from './SocialLinks'
 import { useEventActions } from './useEventActions'
 import { useCommunity } from './useCommunity'
+import { useMyOrgs } from './useMyOrgs'
+import { PostCard } from './posts/PostCard'
+import { PostComposer } from './posts/PostComposer'
+import { RepostsTab } from './posts/RepostsTab'
+
+/** Counts and my relationship to this club, from one definer call. Followers
+ *  CANNOT be counted client-side — org_follows is select-own, so a browser
+ *  query returns 1 or 0 and calls it the follower count. */
+interface OrgSocial {
+  followers: number
+  posts: number
+  iManage: boolean
+}
+
+function useOrgSocial(handle: string | undefined): OrgSocial {
+  const [state, setState] = useState<OrgSocial>({ followers: 0, posts: 0, iManage: false })
+  useEffect(() => {
+    if (!handle) return
+    let alive = true
+    void supabase.rpc('org_social', { p_handle: handle }).then(({ data }) => {
+      if (!alive || !data) return
+      const d = data as Record<string, unknown>
+      setState({
+        followers: Number(d.followers ?? 0),
+        posts: Number(d.posts ?? 0),
+        iManage: d.i_manage === true,
+      })
+    })
+    return () => {
+      alive = false
+    }
+  }, [handle])
+  return state
+}
 
 /** Address, phone and opening hours for an org that is also a place. */
 function VenueBlock({ venue }: { venue: NonNullable<EventOrg['venue']> }) {
@@ -87,6 +125,84 @@ export function OrgProfilePage() {
   const relevant = (e: CampusEvent) => isRelevantTo(e, user.program, user.school)
 
   return (
+    <OrgProfileBody
+      org={org}
+      upcoming={upcoming}
+      past={past}
+      relevant={relevant}
+      isAdded={isAdded}
+      add={add}
+      openEvent={openEvent}
+      closeEvent={closeEvent}
+      selectedEvent={selectedEvent}
+    />
+  )
+}
+
+/**
+ * The profile itself — the same shape a student's profile has, marked as an
+ * organisation.
+ *
+ * TABS, AND EVENTS IS FIRST. A club is judged on what it is running next, so
+ * that is the landing tab; posts are the second thing you look at and reposts
+ * the third. It is its own component because the page above it has to decide
+ * whether the org exists before any hook here can run — calling them in the
+ * parent would mean hooks above an early return.
+ */
+function OrgProfileBody({
+  org,
+  upcoming,
+  past,
+  relevant,
+  isAdded,
+  add,
+  openEvent,
+  closeEvent,
+  selectedEvent,
+}: {
+  org: EventOrg
+  upcoming: CampusEvent[]
+  past: CampusEvent[]
+  relevant: (e: CampusEvent) => boolean
+  isAdded: (e: CampusEvent) => boolean
+  add: (e: CampusEvent) => void
+  openEvent: (id: string) => void
+  closeEvent: () => void
+  selectedEvent: CampusEvent | undefined
+}) {
+  const slug = org.handle.replace(/^@/, '')
+  const social = useOrgSocial(slug)
+  const { orgs: myOrgs } = useMyOrgs()
+  const [tab, setTab] = useState('events')
+  const [posts, setPosts] = useState<FeedPost[] | null>(null)
+  const [composing, setComposing] = useState(false)
+  const [refresh, setRefresh] = useState(0)
+  const mine = myOrgs.find((o) => o.handle.replace(/^@/, '') === slug)
+
+  useEffect(() => {
+    if (tab !== 'posts') return
+    let alive = true
+    // Resolve the org id through the list we already loaded rather than a
+    // second lookup: a handle is what the URL carries, an id is what the feed
+    // function takes.
+    void supabase
+      .from('organizations')
+      .select('id')
+      .ilike('handle', `%${slug}`)
+      .limit(1)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        const id = (data as { id?: string } | null)?.id
+        if (!id) return alive && setPosts([])
+        const rows = await loadPosts({ orgId: id, limit: 30 })
+        if (alive) setPosts(rows)
+      })
+    return () => {
+      alive = false
+    }
+  }, [tab, slug, refresh])
+
+  return (
     <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
       <Link
         to="/app/community"
@@ -127,27 +243,26 @@ export function OrgProfilePage() {
       </div>
 
       <div className="mt-2 px-1">
-        <h1 className="flex items-center gap-1.5 font-display text-[22px] leading-tight font-semibold text-fg">
+        <h1 className="flex flex-wrap items-center gap-x-2 gap-y-1 font-display text-[22px] leading-tight font-semibold text-fg">
           <span>{org.name}</span>
           {org.verified && <VerifiedBadge size={18} />}
+          {/* SAID IN WORDS, not only in a seal. The seal means "this account
+              is who it says it is"; this says "this is a club, not a person",
+              which is a different fact and the one the brief asked to be
+              unmistakable. */}
+          <span className="rounded-full bg-info/15 px-2 py-0.5 text-[11px] font-semibold text-info">
+            Organization
+          </span>
         </h1>
-        <p className="text-[14px] text-subtle">
-          {org.handle}
-          {org.verified && ' · Verified org'}
-        </p>
+        <p className="text-[14px] text-subtle">{org.handle}</p>
         <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{org.bio}</p>
 
         {org.venue && <VenueBlock venue={org.venue} />}
 
         <div className="mt-3 flex gap-5 text-[14px]">
-          <span>
-            <strong className="font-semibold text-fg">{upcoming.length}</strong>{' '}
-            <span className="text-subtle">upcoming</span>
-          </span>
-          <span>
-            <strong className="font-semibold text-fg">{past.length}</strong>{' '}
-            <span className="text-subtle">past events</span>
-          </span>
+          <Count n={social.posts} label="post" />
+          <Count n={social.followers} label="follower" />
+          <Count n={upcoming.length} label="upcoming" plural={false} />
         </div>
       </div>
 
@@ -155,22 +270,79 @@ export function OrgProfilePage() {
           then the buttons, then a short segment continues to the right edge. */}
       <LinksDivider links={org.links} />
 
-      <section className="pt-5">
-        <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
-        {upcoming.length > 0 ? (
-          <EventGrid events={upcoming} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} />
-        ) : (
-          <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-8 text-center text-[13px] text-subtle">
-            No upcoming events from {org.name} right now.
-          </p>
-        )}
-      </section>
+      <ProfileTabs
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'events', label: 'Events', icon: CalendarDays, count: upcoming.length },
+          { id: 'posts', label: 'Posts', icon: Grid3x3, count: social.posts },
+          { id: 'reposts', label: 'Reposts', icon: Repeat2 },
+        ]}
+      />
 
-      {past.length > 0 && (
-        <section className="mt-5 border-t border-border pt-5">
-          <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Past</h2>
-          <EventGrid events={past} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} muted />
+      {tab === 'events' && (
+        <>
+          <section className="pt-5">
+            <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
+            {upcoming.length > 0 ? (
+              <EventGrid events={upcoming} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} />
+            ) : (
+              <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-8 text-center text-[13px] text-subtle">
+                No upcoming events from {org.name} right now.
+              </p>
+            )}
+          </section>
+
+          {past.length > 0 && (
+            <section className="mt-5 border-t border-border pt-5">
+              <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Past</h2>
+              <EventGrid events={past} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} muted />
+            </section>
+          )}
+        </>
+      )}
+
+      {tab === 'posts' && (
+        <section className="pt-4">
+          {mine && (
+            <button
+              type="button"
+              onClick={() => setComposing(true)}
+              className="mb-3 flex w-full items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-accent"
+            >
+              <ImagePlus size={15} className="shrink-0 text-accent" aria-hidden />
+              <span className="flex-1 text-[13px] text-muted">New post</span>
+            </button>
+          )}
+          {posts === null ? (
+            <p className="py-10 text-center text-[13px] text-subtle">Loading…</p>
+          ) : posts.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-10 text-center text-[13px] text-subtle">
+              {org.name} has not posted anything yet.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((po) => (
+                <PostCard
+                  key={po.id}
+                  post={po}
+                  canManage={social.iManage}
+                  onChanged={() => setRefresh((n) => n + 1)}
+                />
+              ))}
+            </div>
+          )}
         </section>
+      )}
+
+      {tab === 'reposts' && <RepostsTab handle={slug} isOrg onOpenEvent={openEvent} />}
+
+      {composing && mine && (
+        <PostComposer
+          orgs={[mine]}
+          onClose={() => setComposing(false)}
+          onPosted={() => setRefresh((n) => n + 1)}
+        />
       )}
 
       {selectedEvent && (
@@ -183,6 +355,21 @@ export function OrgProfilePage() {
         />
       )}
     </div>
+  )
+}
+
+/** One of the three numbers under the name. Pluralised, because "1 posts"
+ *  beside "1 followers" is what makes a page read as generated. `plural` is
+ *  off for words that do not take an s ("upcoming"). */
+function Count({ n, label, plural = true }: { n: number; label: string; plural?: boolean }) {
+  return (
+    <span>
+      <strong className="font-semibold text-fg tabular-nums">{n}</strong>{' '}
+      <span className="text-subtle">
+        {label}
+        {plural && n !== 1 ? 's' : ''}
+      </span>
+    </span>
   )
 }
 

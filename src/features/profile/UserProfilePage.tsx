@@ -6,12 +6,9 @@ import {
   ChevronRight,
   Download,
   FileText,
-  GraduationCap,
   Loader2,
-  Lock,
-  Pencil,
+  Repeat2,
   ShieldCheck,
-  LifeBuoy,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
@@ -22,24 +19,17 @@ import { HANDLE_RE } from '@/features/onboarding/handle'
 import { communityHref } from '@/features/community/sections'
 import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
-import { programById } from '@/data/programs'
 import { cn } from '@/lib/cn'
 import { termRank } from '@/lib/term'
 import { supabase } from '@/lib/supabase'
-import {
-  linkHref,
-  type ProfileLinks,
-} from '@/lib/social'
-import { FriendButton } from './FriendButton'
 import { EditProfileModal } from './EditProfileModal'
 import { ScheduleAccess } from './ScheduleAccess'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
-import { founderFor, type FounderProfile } from './founders'
 import { badgeForPerson } from './badges'
+import { ProfileHeader, ProfileTabs } from './ProfileHeader'
+import { RepostsTab } from '@/features/community/posts/RepostsTab'
 import { useSupport } from '@/app/providers/support'
 import { useCommunityData } from '@/app/providers/community-data'
-import { VerifiedBadge } from '@/features/community/VerifiedBadge'
-import { SocialLinks, SocialFieldIcon } from '@/features/community/SocialLinks'
 
 /**
  * Public user profile at `/@handle` — viewable by ANYONE (anon included). The
@@ -142,9 +132,16 @@ export function ProfileView({
   const { loading, notFound, profile, courses, blueprints, reload } = usePublicProfile(handle)
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
-  const prog = profile?.programId ? programById(profile.programId) : undefined
-  // Only applies to a real, closed set of handles — cosmetic, never a permission.
-  const founder = profile?.isPublic ? founderFor(handle) : undefined
+  /**
+   * THREE TABS, AND OUTLINES IS FIRST, as asked.
+   *
+   * They are not new content — they are the sections that were already
+   * stacked down this page, which meant a third-year's profile was a wall you
+   * scrolled past to reach anything. What a student publishes here is an
+   * outline, so that leads; reposts are the second thing they chose to pass
+   * on; classes are the fact about them.
+   */
+  const [tab, setTab] = useState('outlines')
   /*
    * The seal, and what colour it is. Staff is the closed set above; organizer
    * is DERIVED from owning an approved org, so it turns up when they are
@@ -179,154 +176,88 @@ export function ProfileView({
           <NotFound handle={handle} />
         ) : (
           <>
-            {/* Identity header: same language as org profiles. */}
-            {/* SHORTER WHEN IT IS YOUR OWN TAB. On a visitor's profile a tall
-                banner is the point — it is the first thing about that person.
-                In Community -> You it sits under a tab strip you just clicked,
-                and 208px of decoration before your own name reads as the page
-                having failed to load. Measured: it pushed the avatar 174px
-                below the tabs. */}
-            <div
-              className={cn(
-                'overflow-hidden rounded-2xl',
-                embedded ? 'h-24 sm:h-28' : 'h-40 sm:h-52',
-                founder && 'ct-aurora',
-              )}
-              style={founder ? FOUNDER_BANNER : bannerStyle(handle)}
+            {/*
+              THE HEADER IS ONE COMPONENT NOW (ProfileHeader), Instagram's
+              shape in our colours: a large avatar, the handle with its seal,
+              Orgs / Followers / Following as buttons into the list behind
+              each, the major as the coloured category line, the bio capped
+              at three lines, links, mutuals, then Follow / Message / bell.
+              It was a banner plus six ad-hoc blocks that each decided their
+              own spacing.
+            */}
+            <ProfileHeader
+              handle={profile.handle}
+              name={profile.name}
+              avatarUrl={profile.avatarUrl}
+              program={profile.program}
+              bio={profile.bio}
+              links={profile.links}
+              isPublic={profile.isPublic}
+              isSelf={viewer === 'self'}
+              role={badge?.role}
+              onEdit={() => setEditing(true)}
+              onMessage={() => navigate(`/app/community?c=messages&chat=${profile.handle}`)}
+              /* Only on the support account: somebody landing there with a
+                 problem should not have to find that support lives behind
+                 the avatar menu, and a DM has no case number. */
+              onHelp={badge?.kind === 'staff' && viewer === 'other' ? () => openSupport() : undefined}
             />
-            <div className="px-1">
-              <Avatar profile={profile} founder={!!founder} />
-              <div className="mt-2">
-                {/* The NAME is not gated any more. A profile you can find
-                    but which shows nothing at all is a worse answer than a
-                    private one: you cannot tell whether you found the right
-                    person. Name and picture always; everything below still
-                    answers to its own switch. */}
-                {profile.name && (
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
-                      {profile.name}
-                    </h1>
-                    {badge && (
-                      <>
-                        <VerifiedBadge
-                          size={17}
-                          tone={badge.tone}
-                          label={badge.label}
-                          className={founder ? '[filter:drop-shadow(0_0_4px_var(--ct-accent))]' : undefined}
-                        />
-                        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
-                          {badge.role}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                )}
-                <p className="text-[14px] text-subtle">@{profile.handle}</p>
-
-                {/* The controls belong HERE, on the thing they act on. Editing
-                    your own profile only from Settings meant looking at it,
-                    wanting to change it, and having to go somewhere else and
-                    find the right section. */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {viewer === 'self' ? (
-                    <>
-                      {/* A dialog on the page, not a link to Settings. The
-                          link could not work — SettingsProvider reads
-                          `?settings=` once on mount, above the router — and
-                          even fixed it would be the wrong answer: you edit a
-                          bio while looking at it. */}
-                      <button
-                        type="button"
-                        onClick={() => setEditing(true)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover active:scale-95"
-                      >
-                        <Pencil size={13} aria-hidden />
-                        Edit profile
-                      </button>
-                    </>
-                  ) : viewer === 'other' ? (
-                    <>
-                      <FriendButton
-                        handle={profile.handle}
-                        onMessage={(f) => navigate(`/app/community?c=messages&chat=${f.handle}`)}
-                      />
-                      {/* ONLY ON THE SUPPORT ACCOUNT. Somebody who lands on
-                          the brand profile with a problem should not have to
-                          discover that support lives behind the avatar menu —
-                          and "message us" would put a real question into a DM
-                          thread with no case number and no queue. This opens
-                          the ticket form, which is the thing that gets
-                          answered. */}
-                      {badge?.kind === 'staff' && (
-                        <button
-                          type="button"
-                          onClick={() => openSupport()}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-fg transition-colors duration-150 hover:border-accent active:scale-95"
-                        >
-                          <LifeBuoy size={13} className="text-accent" aria-hidden />
-                          Need help?
-                        </button>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-                {founder?.tagline && (
-                  <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-fg/90">{founder.tagline}</p>
-                )}
-
-                {profile.isPublic ? (
-                  <>
-                    {profile.program && (
-                      <p className="mt-2 inline-flex items-center gap-1.5 text-[14px] text-fg">
-                        <GraduationCap size={15} className="text-accent" aria-hidden />
-                        {profile.program}
-                        {prog && <span className="text-subtle">· {prog.credential}</span>}
-                      </p>
-                    )}
-                    {profile.bio && <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{profile.bio}</p>}
-                  </>
-                ) : (
-                  <p className="mt-3 flex items-center gap-1.5 text-[13px] text-subtle">
-                    <Lock size={14} aria-hidden />
-                    {viewer === 'self'
-                      ? 'Only your name and picture are shown. Edit profile to share more.'
-                      : 'This profile is private: only a name and a picture are shown.'}
-                  </p>
-                )}
-              </div>
-            </div>
 
             {profile.isPublic && (
               <>
-                {founder?.links && <LinksDivider links={founder.links} />}
-                <ProfileLinkRow links={profile.links} />
                 {/* Only on someone else's: your own schedule is the
                     planner, one tab away, and "request" makes no sense
                     pointed at yourself. */}
                 {viewer === 'other' && (
                   <ScheduleAccess handle={profile.handle} name={profile.name} />
                 )}
-                {/* An empty section on SOMEONE ELSE'S profile is noise: it
-                    tells you nothing and makes a page of two grey boxes, which
-                    is why every profile looked dead. Visitors see only what is
-                    actually there; the owner sees the gap AND what to do about
-                    it, because for them it is a prompt rather than an absence. */}
-                {courses.length > 0 && (
-                  <Section icon={BookOpen} title="Courses" count={courses.length}>
-                    <CoursesByTerm courses={courses} />
-                  </Section>
-                )}
 
-                {blueprints.length > 0 && (
-                  <Section icon={FileText} title="Uploaded outlines" count={blueprints.length}>
-                    <ul className="space-y-2">
+                <ProfileTabs
+                  active={tab}
+                  onChange={setTab}
+                  tabs={[
+                    { id: 'outlines', label: 'Outlines', icon: FileText, count: blueprints.length },
+                    { id: 'reposts', label: 'Reposts', icon: Repeat2 },
+                    { id: 'classes', label: 'Classes', icon: BookOpen, count: courses.length },
+                  ]}
+                />
+
+                {tab === 'outlines' &&
+                  (blueprints.length > 0 ? (
+                    <ul className="space-y-2 pt-4">
                       {blueprints.map((b) => (
                         <BlueprintRow key={b.id} bp={b} />
                       ))}
                     </ul>
-                  </Section>
+                  ) : (
+                    <TabEmpty>
+                      {viewer === 'self'
+                        ? 'Share a syllabus and the next student in your section imports it in one click.'
+                        : 'No outlines shared yet.'}
+                    </TabEmpty>
+                  ))}
+
+                {tab === 'reposts' && (
+                  <RepostsTab
+                    handle={profile.handle}
+                    onOpenEvent={(id) => navigate(`/app/community?event=${id}`)}
+                  />
                 )}
+
+                {tab === 'classes' &&
+                  (courses.length > 0 ? (
+                    <div className="pt-4">
+                      <CoursesByTerm courses={courses} />
+                    </div>
+                  ) : (
+                    <TabEmpty>
+                      {!profile.coursesPublic
+                        ? 'This profile keeps its class list private.'
+                        : viewer === 'self'
+                          ? 'Your class list is public but empty. Anything you add shows up here.'
+                          : 'No classes shared.'}
+                    </TabEmpty>
+                  ))}
 
                 {viewer === 'self' && (
                   <OwnerPrompts
@@ -336,14 +267,6 @@ export function ProfileView({
                     onEdit={() => setEditing(true)}
                     onChanged={reload}
                   />
-                )}
-
-                {viewer !== 'self' && courses.length === 0 && blueprints.length === 0 && (
-                  <p className="mt-6 rounded-xl border border-dashed border-border px-5 py-8 text-center text-[12.5px] text-subtle">
-                    {profile.coursesPublic
-                      ? `${profile.name ?? '@' + profile.handle} has not shared anything yet.`
-                      : 'This profile keeps its class list private.'}
-                  </p>
                 )}
               </>
             )}
@@ -410,68 +333,6 @@ function useViewer(handle: string): 'self' | 'other' | 'anon' | 'loading' {
     }
   }, [handle])
   return state
-}
-
-/** Whatever they linked, and nothing else. Every href is rebuilt from the
- *  platform's own base unless it is plainly http(s), so a pasted
- *  `javascript:` string can never become a link someone else clicks. */
-function ProfileLinkRow({ links }: { links: ProfileLinks }) {
-  const entries = (Object.keys(links) as (keyof ProfileLinks)[])
-    .map((k) => ({ kind: k, value: links[k] as string, href: linkHref(k, links[k] as string) }))
-    .filter((e) => e.href)
-  if (entries.length === 0) return null
-  return (
-    <div className="mt-4 flex flex-wrap gap-1.5">
-      {entries.map((e) => {
-        return (
-          <a
-            key={e.kind}
-            href={e.href as string}
-            target="_blank"
-            rel="noopener noreferrer nofollow ugc"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            {/* The same hand-rolled brand glyphs the org profiles use — lucide
-                dropped its brand icons over trademarks, and a second set here
-                would drift from that one. */}
-            <SocialFieldIcon field={e.kind} size={13} />
-            {stripScheme(e.value)}
-          </a>
-        )
-      })}
-    </div>
-  )
-}
-
-function stripScheme(v: string): string {
-  return v.replace(/^https?:/, '').replace(/^\/\//, '').slice(0, 28)
-}
-
-function Avatar({ profile, founder = false }: { profile: PublicProfile; founder?: boolean }) {
-  const base = '-mt-12 grid size-24 place-items-center rounded-full ring-4 ring-canvas sm:-mt-14 sm:size-28'
-  if (founder) return <FounderAvatar profile={profile} base={base} />
-  // No padlock in place of a face. The picture is one of the two things a
-  // private profile is FOR — it is how you know you found the right Sarah.
-  if (profile.avatarUrl) {
-    return (
-      <img
-        src={profile.avatarUrl}
-        alt=""
-        referrerPolicy="no-referrer"
-        className={cn(base, 'bg-surface-2 object-cover')}
-      />
-    )
-  }
-  if (!profile.name) {
-    return (
-      <div className={cn(base, 'bg-surface-2 text-subtle')} aria-label="No picture">
-        <Lock size={30} aria-hidden />
-      </div>
-    )
-  }
-  return (
-    <div className={cn(base, 'bg-accent-soft text-2xl font-semibold text-accent')}>{initialsOf(profile.name)}</div>
-  )
 }
 
 /**
@@ -548,26 +409,14 @@ function BlueprintRow({ bp }: { bp: PublicBlueprint }) {
   )
 }
 
-function Section({
-  icon: Icon,
-  title,
-  count,
-  children,
-}: {
-  icon: typeof BookOpen
-  title: string
-  count: number
-  children: React.ReactNode
-}) {
+/** An empty tab says what would fill it, and says it differently to the
+ *  person who could. A visitor reading "upload a syllabus" would be reading
+ *  somebody else's to-do list. */
+function TabEmpty({ children }: { children: React.ReactNode }) {
   return (
-    <section className="mt-6 border-t border-border pt-5">
-      <h2 className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        <Icon size={13} aria-hidden />
-        {title}
-        <span className="text-subtle/70">· {count}</span>
-      </h2>
+    <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[12.5px] leading-relaxed text-subtle">
       {children}
-    </section>
+    </p>
   )
 }
 
@@ -727,79 +576,3 @@ function NotFound({ handle }: { handle: string }) {
 
 /** Stable, pleasant banner gradient derived from the handle (no upload needed). */
 /** Brand-tinted aurora, used only for the founder header. */
-const FOUNDER_BANNER: React.CSSProperties = {
-  backgroundImage:
-    'linear-gradient(120deg, var(--ct-accent), var(--ct-surface-2) 35%, var(--ct-accent) 55%, var(--ct-surface) 80%, var(--ct-accent))',
-}
-
-/** The founder avatar, wrapped in a soft pulsing halo. */
-function FounderAvatar({ profile, base }: { profile: PublicProfile; base: string }) {
-  return (
-    <div className="relative inline-block">
-      <span
-        className="ct-halo pointer-events-none absolute -inset-2 rounded-full bg-accent blur-xl"
-        aria-hidden
-      />
-      {profile.avatarUrl ? (
-        <img
-          src={profile.avatarUrl}
-          alt=""
-          referrerPolicy="no-referrer"
-          className={cn(base, 'relative bg-surface-2 object-cover')}
-        />
-      ) : (
-        <div className={cn(base, 'relative bg-accent-soft text-2xl font-semibold text-accent')}>
-          {initialsOf(profile.name)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Social links sitting ON the rule above Courses — same treatment orgs get. */
-function LinksDivider({ links }: { links: FounderProfile['links'] }) {
-  return (
-    <div className="mt-6 flex items-center gap-3">
-      <span className="h-px flex-1 bg-border" aria-hidden />
-      <SocialLinks links={links} className="flex shrink-0 gap-2" />
-      <span className="h-px w-12 bg-border" aria-hidden />
-    </div>
-  )
-}
-
-/**
- * A banner derived from the handle, with texture rather than a flat wash.
- *
- * The old version was two stops of one hue, which on a profile with no courses
- * and no uploads left the whole page reading as a placeholder. Two soft radial
- * highlights and a faint grid give it something to look at without pretending
- * to be a photograph — and it is still deterministic, so a person's banner is
- * always theirs.
- */
-function bannerStyle(handle: string): React.CSSProperties {
-  let h = 0
-  for (let i = 0; i < handle.length; i++) h = (h * 31 + handle.charCodeAt(i)) % 360
-  const a = `hsl(${h} 48% 44%)`
-  const b = `hsl(${(h + 42) % 360} 52% 26%)`
-  const glow = `hsl(${(h + 18) % 360} 70% 62%)`
-  return {
-    backgroundImage: [
-      `radial-gradient(120% 140% at 12% 18%, ${glow}55, transparent 55%)`,
-      `radial-gradient(90% 120% at 88% 84%, ${glow}33, transparent 60%)`,
-      `linear-gradient(135deg, ${a}, ${b})`,
-    ].join(', '),
-  }
-}
-
-function initialsOf(name?: string): string {
-  return (
-    (name ?? '')
-      .trim()
-      .split(/\s+/)
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || '?'
-  )
-}

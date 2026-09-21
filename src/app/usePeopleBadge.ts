@@ -5,10 +5,10 @@ import { listNotifications, unreadNotifications } from '@/lib/notifications'
 /**
  * How many things are waiting on you from other people.
  *
- * Unread messages plus incoming connection requests, as ONE number: from the
- * sidebar's point of view they are the same fact — somebody is waiting — and
- * two badges on one row is two things to interpret before you have even
- * clicked.
+ * Unread messages plus new followers you have not followed back, as ONE
+ * number: from the sidebar's point of view they are the same fact — somebody
+ * is waiting — and two badges on one row is two things to interpret before you
+ * have even clicked.
  *
  * Polled on mount and when the tab comes back rather than on a timer. Nothing
  * here is urgent enough to justify waking a background tab, and a message that

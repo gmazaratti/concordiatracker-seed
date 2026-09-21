@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { Mascot } from '@/components/Mascot'
 import { OrgLogo } from './OrgLogo'
 import { useCommunity } from './useCommunity'
-import { acceptFriend, listFriends, removeFriend, type Friend } from '@/lib/social'
+import { acceptFriend, listFriends, type Friend } from '@/lib/social'
 import { relativeDueLabel } from '@/lib/date'
 import { listNotifications, markNotificationsRead } from '@/lib/notifications'
 import { useActivityFeed } from './useActivityFeed'
@@ -138,31 +138,18 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
                         className="min-w-0 flex-1 text-[13px] text-fg hover:underline"
                       >
                         <span className="font-medium">{it.friend.name ?? it.friend.handle}</span>{' '}
-                        wants to connect
+                        followed you
                       </Link>
                       <span className="flex shrink-0 gap-1.5">
                         <button
                           type="button"
                           onClick={() =>
-                            void acceptFriend(it.friend.friendship_id).then(() =>
-                              setTick((n) => n + 1),
-                            )
+                            void acceptFriend(it.friend.handle).then(() => setTick((n) => n + 1))
                           }
                           className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover active:scale-95"
                         >
                           <Check size={12} aria-hidden />
-                          Accept
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void removeFriend(it.friend.friendship_id).then(() =>
-                              setTick((n) => n + 1),
-                            )
-                          }
-                          className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] text-muted transition-colors duration-150 hover:text-fg active:scale-95"
-                        >
-                          Ignore
+                          Follow back
                         </button>
                       </span>
                     </div>

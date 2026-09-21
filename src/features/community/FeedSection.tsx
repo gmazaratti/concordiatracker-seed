@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
+  ImagePlus,
   Lightbulb,
   Megaphone,
   MessageCircle,
@@ -36,12 +37,19 @@ import { courseColor } from '@/lib/course-color'
 import { cn } from '@/lib/cn'
 import type { Course } from '@/data/types'
 import { orgSlug } from '@/data/community'
+import { loadPosts, loadStoryRings, type FeedPost, type StoryRing } from '@/lib/social-posts'
 import { useCommunity } from './useCommunity'
 import { useActivityFeed } from './useActivityFeed'
+import { useMyOrgs } from './useMyOrgs'
 import { suggestOrgs } from './feed'
 import { OrgLogo } from './OrgLogo'
 import { VerifiedBadge } from './VerifiedBadge'
 import { FollowButton } from './FollowButton'
+import { StoriesRow } from './stories/StoriesRow'
+import { StoryViewer } from './stories/StoryViewer'
+import { StoryComposer } from './stories/StoryComposer'
+import { PostCard } from './posts/PostCard'
+import { PostComposer } from './posts/PostComposer'
 
 const MINUTE = 60_000
 const HOUR = 3_600_000
@@ -63,9 +71,13 @@ const DAY = 86_400_000
  * board. Every row is something a PERSON did — that is the test for belonging
  * here, and it is why your own deadlines are not in it (Today owns those).
  *
- * STILL NOT A SOCIAL NETWORK: nobody can post into this and there is nothing
- * to like. See the note on `SuggestionRow` for the one row that already is
- * social, and which is where a social layer would grow from if it ever does.
+ * WHAT CHANGED: organisations can now post into it, and stories sit above it.
+ * That is still not "a social network" in the sense the rule was written to
+ * prevent — no student can post here, so there is no feed of strangers
+ * talking to strangers and no moderation surface that comes with one. Clubs
+ * publish; students follow, like, comment, repost and reply. The containment
+ * is the point, and it is enforced in the database (db/social_posts.sql), not
+ * by leaving the UI out.
  */
 type Row =
   | {
@@ -90,6 +102,7 @@ type Row =
       unread: boolean
     }
   | { kind: 'suggestion'; id: string; at: number; req: FeatureRequest }
+  | { kind: 'post'; id: string; at: number; post: FeedPost }
 
 export function FeedSection({
   requests,
@@ -104,6 +117,12 @@ export function FeedSection({
   const { orgs, events } = useCommunity()
   const { isFollowing, followedHandles } = useFollows()
   const { items: activity, loading } = useActivityFeed()
+  const { orgs: myOrgs } = useMyOrgs()
+  const [rings, setRings] = useState<StoryRing[]>([])
+  const [posts, setPosts] = useState<FeedPost[]>([])
+  const [watching, setWatching] = useState<StoryRing | null>(null)
+  const [composing, setComposing] = useState<'story' | 'post' | null>(null)
+  const [refresh, setRefresh] = useState(0)
   const [board, setBoard] = useState<FeatureRequest[]>([])
   const [reactions, setReactions] = useState<ReactionRow[]>([])
   const [comments, setComments] = useState<Map<string, number>>(new Map())
@@ -127,6 +146,29 @@ export function FeedSection({
       alive = false
     }
   }, [])
+
+  /*
+   * Stories and posts, re-read together on `refresh`.
+   *
+   * SEPARATE FROM THE EFFECT ABOVE on purpose: that one runs once, and this
+   * one has to run again after somebody posts or watches a reel, so the ring
+   * loses its gradient and a new post appears without a reload. Both swallow
+   * failures — a pending migration should cost the row, not the page.
+   */
+  useEffect(() => {
+    let alive = true
+    void loadStoryRings()
+      .then((r) => alive && setRings(r))
+      .catch(() => {})
+    void loadPosts({ limit: 20 })
+      .then((r) => alive && setPosts(r))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [refresh])
+
+  const myOrgIds = useMemo(() => new Set(myOrgs.map((o) => o.id)), [myOrgs])
 
   /*
    * THE SAME REACTIONS AS THE BOARD, not a read-only echo of them.
@@ -228,8 +270,12 @@ export function FeedSection({
       })
     }
 
+    for (const p of posts) {
+      out.push({ kind: 'post', id: `po-${p.id}`, at: new Date(p.createdAt).getTime(), post: p })
+    }
+
     return out.sort((a, b) => b.at - a.at).slice(0, 30)
-  }, [teacherAnnouncements, courseByCode, activity, board, now, lang])
+  }, [teacherAnnouncements, courseByCode, activity, board, posts, now, lang])
 
   const orgSuggestions = useMemo(
     () => suggestOrgs(orgs, events, isFollowing, 3),
@@ -238,6 +284,32 @@ export function FeedSection({
 
   return (
     <div className="mx-auto w-full max-w-2xl">
+      {/* Stories sit ABOVE everything, including the requests banner: they
+          expire, so they are the only thing on this page that is worth less
+          the longer it waits. */}
+      <StoriesRow
+        rings={rings}
+        myOrgs={myOrgs}
+        onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
+        onCompose={() => setComposing('story')}
+      />
+
+      {/* Only for somebody who runs a club. A composer a student cannot use
+          is a permanently disabled control at the top of their feed. */}
+      {myOrgs.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setComposing('post')}
+          className="mb-3 flex w-full items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-accent"
+        >
+          <ImagePlus size={15} className="shrink-0 text-accent" aria-hidden />
+          <span className="min-w-0 flex-1 text-[13px] text-muted">
+            Post something as {myOrgs[0].handle.replace(/^@/, '')}
+          </span>
+          <ArrowRight size={14} className="shrink-0 text-subtle" aria-hidden />
+        </button>
+      )}
+
       {requests > 0 && (
         <button
           type="button"
@@ -296,6 +368,12 @@ export function FeedSection({
                 <AnnouncementRow row={row} now={now} />
               ) : row.kind === 'note' ? (
                 <NoteRow row={row} now={now} />
+              ) : row.kind === 'post' ? (
+                <PostCard
+                  post={row.post}
+                  canManage={myOrgIds.has(row.post.orgId)}
+                  onChanged={() => setRefresh((n) => n + 1)}
+                />
               ) : (
                 <SuggestionRow
                   req={row.req}
@@ -310,6 +388,28 @@ export function FeedSection({
             </li>
           ))}
         </ul>
+      )}
+
+      {watching && (
+        <StoryViewer
+          ring={watching}
+          onClose={() => setWatching(null)}
+          onSeen={() => setRefresh((n) => n + 1)}
+        />
+      )}
+      {composing === 'story' && myOrgs.length > 0 && (
+        <StoryComposer
+          orgs={myOrgs}
+          onClose={() => setComposing(null)}
+          onPosted={() => setRefresh((n) => n + 1)}
+        />
+      )}
+      {composing === 'post' && myOrgs.length > 0 && (
+        <PostComposer
+          orgs={myOrgs}
+          onClose={() => setComposing(null)}
+          onPosted={() => setRefresh((n) => n + 1)}
+        />
       )}
     </div>
   )

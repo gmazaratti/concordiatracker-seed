@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ban, Check, Link2, MessageSquare, MoreVertical, Rss, UserRound, UserX } from 'lucide-react'
-import { blockUser, haveIBlocked, removeFriend, unblockUser, unfollowUser } from '@/lib/social'
+import { Ban, Check, Link2, MessageSquare, MoreVertical, Rss, UserRound } from 'lucide-react'
+import { blockUser, haveIBlocked, unblockUser, unfollowUser } from '@/lib/social'
 import { cn } from '@/lib/cn'
 
 /**
@@ -19,8 +19,12 @@ import { cn } from '@/lib/cn'
 export interface PersonTarget {
   handle: string
   name?: string | null
-  /** Present when you are connected — enables Message and Disconnect. */
-  friendshipId?: string
+  /**
+   * Mutual follow. It no longer gates Message — anyone may write to anyone,
+   * under the limits in db/social_follow_model.sql — so this only decides
+   * whether opening the EXISTING thread makes sense from this row.
+   */
+  connected?: boolean
   /** Present when you follow them — enables Unfollow. */
   following?: boolean
   at: { x: number; y: number }
@@ -108,7 +112,7 @@ export function PersonMenu({
           onClose()
         }}
       />
-      {target.friendshipId && onMessage && (
+      {target.connected && onMessage && (
         <Item
           icon={MessageSquare}
           label="Message"
@@ -131,7 +135,7 @@ export function PersonMenu({
         }}
       />
 
-      {(target.following || target.friendshipId) && <div className="my-1 border-t border-border" />}
+      {target.following && <div className="my-1 border-t border-border" />}
 
       {target.following && (
         <Item
@@ -143,26 +147,12 @@ export function PersonMenu({
           }}
         />
       )}
-      {target.friendshipId && (
-        <Item
-          icon={UserX}
-          label="Remove connection"
-          danger
-          onSelect={() => {
-            void removeFriend(target.friendshipId as string).then(() => onChanged?.())
-            onClose()
-          }}
-        />
-      )}
-
       {/* Rendered only once we know which way round it goes — showing "Block"
           to someone who has already blocked them, and silently doing nothing
           when they click it, is worse than a moment with no row. */}
       {blocked === false && (
         <>
-          {!target.following && !target.friendshipId && (
-            <div className="my-1 border-t border-border" />
-          )}
+          {!target.following && <div className="my-1 border-t border-border" />}
           <Item
             icon={Ban}
             label={confirmBlock ? 'Block — are you sure?' : 'Block'}

@@ -2,22 +2,34 @@ import { supabase } from './supabase'
 import type { RecordSnapshot } from './record-export'
 
 /**
- * Friends and direct messages.
+ * People and direct messages.
  *
- * Every rule that matters is enforced in the database, not here: you cannot
- * insert a message to someone who is not an accepted friend, you cannot accept
- * a request that was not sent to you, and a friend's timetable comes back empty
- * unless they turned it on. This file is a typed way to ask — it is not the
- * guard, and it must never be treated as one.
+ * ONE RELATIONSHIP NOW. Follows are the whole graph and a mutual follow IS the
+ * connection — see db/social_follow_model.sql. "Friend" survives here as the
+ * name of a row on the people screen, not as a second kind of tie.
+ *
+ * Every rule that matters is enforced in the database, not here: who may write
+ * to whom, the one-message limit on a stranger, the no-link rule on that
+ * message, and a timetable that comes back empty unless they turned it on.
+ * This file is a typed way to ask — it is not the guard, and it must never be
+ * treated as one.
  */
 export interface Friend {
+  /** The counterpart's user id. Only ever used as a key; every action takes a
+   *  handle now that there is no friendship row to point at. */
   friendship_id: string
   user_id: string
   handle: string
   name: string | null
   avatar_url: string | null
   program: string | null
-  status: 'pending' | 'accepted'
+  /**
+   * accepted  — mutual follow, or a conversation you have taken part in
+   * request   — a stranger has written to you and you have not answered
+   * pending   — they follow you and you have not followed back
+   * following — you follow them and they have not followed back
+   */
+  status: 'pending' | 'accepted' | 'request' | 'following'
   direction: 'incoming' | 'outgoing'
   created_at: string
 }
@@ -97,42 +109,34 @@ export async function listFriends(): Promise<Friend[]> {
   return (data ?? []) as Friend[]
 }
 
-/** Send a request by handle. Returns a message on failure, null on success. */
+/**
+ * Follow somebody. Returns a message on failure, null on success.
+ *
+ * This used to open a request that had to be accepted. There is nothing to
+ * accept any more: following is instant and one-way, and if they follow back
+ * you are connected. The three functions below are the same write for that
+ * reason — they are kept apart because the SENTENCE differs at each call site
+ * ("Follow", "Follow back", "Unfollow") and collapsing them would make the
+ * buttons read wrong.
+ */
 export async function requestFriend(handle: string): Promise<string | null> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return 'You need to be signed in.'
-
-  const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
-  if (!theirId) return `No one here has the handle @${handle}.`
-  if (theirId === me.user.id) return 'That is you.'
-
-  const { error } = await supabase
-    .from('friendships')
-    .insert({ requester: me.user.id, addressee: theirId, status: 'pending' })
-  // The unique index on the ORDERED pair is what makes this reachable: it fires
-  // whether they asked you or you asked them, which is exactly what we want to
-  // report rather than silently creating a mirrored second row.
-  if (error) {
-    return error.code === '23505'
-      ? 'There is already a request between you two.'
-      : 'Could not send that request.'
-  }
-  return null
+  const { data, error } = await supabase.rpc('follow_user', { p_handle: handle, p_follow: true })
+  if (error) return 'Could not follow that account.'
+  return data === true ? null : `No one here has the handle @${handle}.`
 }
 
-export async function acceptFriend(friendshipId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('friendships')
-    .update({ status: 'accepted', responded_at: new Date().toISOString() })
-    .eq('id', friendshipId)
-  return !error
+/** Follow back somebody who already follows you. */
+export async function acceptFriend(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('follow_user', { p_handle: handle, p_follow: true })
+  return !error && data === true
 }
 
-/** Declining and unfriending are the same row deletion, deliberately: a
- *  declined request that lingers is a record of a rejection nobody needs. */
-export async function removeFriend(friendshipId: string): Promise<boolean> {
-  const { error } = await supabase.from('friendships').delete().eq('id', friendshipId)
-  return !error
+/** Unfollow. There is no "decline" — nobody is waiting on your permission. */
+export async function removeFriend(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('follow_user', { p_handle: handle, p_follow: false })
+  return !error && data === true
 }
 
 /** The conversation with one person, oldest first. */
@@ -165,11 +169,43 @@ export async function sendMessage(
     attachment: attachment ?? null,
   })
   if (!error) return null
-  // The insert policy requires an accepted friendship, so this is the message
-  // a rejected write actually means.
-  return error.code === '42501'
-    ? 'You can only message people you are friends with.'
-    : 'Could not send that.'
+  // 42501 is the insert policy. It can now mean several different things —
+  // they have messages off, they only take them from people they follow back,
+  // you have already used your one message, or the text has a link in it — so
+  // ask the database WHICH rather than guessing at a sentence.
+  if (error.code === '42501') {
+    const { data } = await supabase.rpc('ct_dm_block_reason', {
+      p_from: me.user.id,
+      p_to: recipient,
+      p_body: body.trim(),
+    })
+    return dmRefusal(typeof data === 'string' ? data : null)
+  }
+  return 'Could not send that.'
+}
+
+/** The reason a write was refused, in words, from the RECIPIENT's side — every
+ *  one of these is their choice, and the sender is not owed a tour of their
+ *  settings beyond the fact. */
+export function dmRefusal(reason: string | null): string {
+  switch (reason) {
+    case 'closed':
+      return 'This person has messages turned off.'
+    case 'mutuals-only':
+      return 'They only accept messages from people they follow back.'
+    case 'request-pending':
+      return 'You have already sent your one message. You can write again once they follow you back.'
+    case 'blocked':
+      return 'You cannot message this account.'
+    case 'link':
+      return 'A first message to someone new cannot contain a link.'
+    case 'too-long':
+      return 'That first message is too long — 500 characters maximum.'
+    case 'rate':
+      return 'You have started a lot of new conversations today. Try again tomorrow.'
+    default:
+      return 'Could not send that.'
+  }
 }
 
 export async function markRead(otherId: string): Promise<void> {

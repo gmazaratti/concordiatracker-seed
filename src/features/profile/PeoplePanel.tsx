@@ -12,7 +12,6 @@ import {
   acceptFriend,
   listFollowing,
   listFriends,
-  removeFriend,
   unfollowUser,
   type FollowedUser,
   type Friend,
@@ -199,7 +198,7 @@ export function PeoplePanel() {
    * existing order, rather than being hidden.
    */
   const accepted = [...(friends ?? [])]
-    .filter((f) => f.status === 'accepted')
+    .filter((f) => f.status === 'accepted' || f.status === 'request')
     .sort((a, b) => {
       const ta = byOther.get(a.user_id)?.last_at ?? ''
       const tb = byOther.get(b.user_id)?.last_at ?? ''
@@ -215,12 +214,22 @@ export function PeoplePanel() {
           f.handle.toLowerCase().includes(q) || (f.name ?? '').toLowerCase().includes(q),
       )
     : accepted
+  /**
+   * WHAT IS WAITING ON YOU, under one relationship.
+   *
+   * `pending` is somebody who followed you and has not been followed back —
+   * not a request in the old sense, because nobody needs your permission, but
+   * still the one thing on this screen you might act on.
+   *
+   * `request` is a first message from somebody you are not mutual with. Those
+   * rows have existed since message requests shipped and the UI never read
+   * them: the inbox iterated accepted friendships, so a stranger's one message
+   * was invisible to the person it was sent to.
+   */
   const incoming = (friends ?? []).filter(
     (f) => f.status === 'pending' && f.direction === 'incoming',
   )
-  const outgoing = (friends ?? []).filter(
-    (f) => f.status === 'pending' && f.direction === 'outgoing',
-  )
+  const requests = (friends ?? []).filter((f) => f.status === 'request')
 
   /**
    * `?attach=event:ev-123` — a Share button elsewhere in the app hands the
@@ -394,7 +403,7 @@ export function PeoplePanel() {
               <div className="lg:p-4">
                 <Empty
                   title="No conversations yet"
-                  body="Connections are two-way. Open a classmate's profile, send a request, and once they accept you can message them."
+                  body="Open a classmate's profile and press Message. If they do not follow you back you get one message to say who you are."
                 />
               </div>
             ) : shownThreads.length === 0 ? (
@@ -487,7 +496,7 @@ export function PeoplePanel() {
               your existing connections are the Inbox, and listing them again
               here is the same list twice under a different word. */}
           {incoming.length > 0 && (
-            <Section title="Waiting on you" count={incoming.length}>
+            <Section title="Followed you" count={incoming.length}>
               <ul className="space-y-2">
                 {incoming.map((f) => (
                   <PersonRow
@@ -497,18 +506,11 @@ export function PeoplePanel() {
                   >
                     <button
                       type="button"
-                      onClick={() => void acceptFriend(f.friendship_id).then(refresh)}
+                      onClick={() => void acceptFriend(f.handle).then(refresh)}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
                     >
                       <Check size={13} aria-hidden />
-                      Accept
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void removeFriend(f.friendship_id).then(refresh)}
-                      className="rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
-                    >
-                      Decline
+                      Follow back
                     </button>
                   </PersonRow>
                 ))}
@@ -516,25 +518,22 @@ export function PeoplePanel() {
             </Section>
           )}
 
-          {outgoing.length > 0 && (
-            <Section title="You asked" count={outgoing.length}>
+          {requests.length > 0 && (
+            <Section title="Message requests" count={requests.length}>
               <ul className="space-y-2">
-                {outgoing.map((f) => (
+                {requests.map((f) => (
                   <PersonRow
                     key={f.friendship_id}
                     friend={f}
                     onMenu={(at) => setMenu(targetFor(f, at))}
                   >
-                    <span className="inline-flex items-center gap-1.5 text-[12px] text-subtle">
-                      <Clock size={13} aria-hidden />
-                      Waiting
-                    </span>
                     <button
                       type="button"
-                      onClick={() => void removeFriend(f.friendship_id).then(refresh)}
-                      className="rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] text-muted transition-colors duration-150 hover:text-fg"
+                      onClick={() => openChat(f)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
                     >
-                      Cancel
+                      <Clock size={13} aria-hidden />
+                      Read it
                     </button>
                   </PersonRow>
                 ))}
@@ -542,10 +541,10 @@ export function PeoplePanel() {
             </Section>
           )}
 
-          {incoming.length + outgoing.length === 0 && (
+          {incoming.length + requests.length === 0 && (
             <Empty
               title="Nothing waiting"
-              body="Requests you send and requests you get both land here. Search a classmate's handle to send one."
+              body="A new follower, or a first message from someone you have not met, lands here."
             />
           )}
         </div>
@@ -742,7 +741,7 @@ function targetFor(f: Friend, at: { x: number; y: number }): PersonTarget {
   return {
     handle: f.handle,
     name: f.name,
-    friendshipId: f.status === 'accepted' ? f.friendship_id : undefined,
+    connected: f.status === 'accepted',
     at,
   }
 }

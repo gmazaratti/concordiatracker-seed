@@ -13,7 +13,7 @@ import { useSettings } from '@/app/providers/settings'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { supabase } from '@/lib/supabase'
-import { Group, Row, Switch, Flag } from '../controls'
+import { Group, Row, Segmented, Switch, Flag } from '../controls'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 import { useT } from '@/i18n/i18n'
 
@@ -31,13 +31,17 @@ function PublicProfileSettings() {
   const [coursesPub, setCoursesPub] = useState(false)
   const [scheduleFriends, setScheduleFriends] = useState(false)
   const [links, setLinks] = useState<ProfileLinks>({})
+  /** Who may start a conversation with you. Enforced on the WRITE, in
+   *  db/social_follow_model.sql — a message that should not have been sent
+   *  should not exist, rather than being filtered out of your inbox. */
+  const [dm, setDm] = useState<'everyone' | 'mutuals' | 'off'>('everyone')
 
   useEffect(() => {
     if (!authUser) return
     let active = true
     void supabase
       .from('user_profile')
-      .select('profile_public, bio, courses_public, schedule_visibility, links')
+      .select('profile_public, bio, courses_public, schedule_visibility, links, dm_policy')
       .eq('user_id', authUser.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -48,12 +52,14 @@ function PublicProfileSettings() {
           courses_public?: boolean
           schedule_visibility?: string
           links?: unknown
+          dm_policy?: string
         } | null
         setPub(!!r?.profile_public)
         setBio(r?.bio ?? '')
         setCoursesPub(!!r?.courses_public)
         setScheduleFriends(r?.schedule_visibility === 'friends')
         setLinks(cleanLinks(r?.links))
+        if (r?.dm_policy === 'mutuals' || r?.dm_policy === 'off') setDm(r.dm_policy)
       })
     return () => {
       active = false
@@ -116,6 +122,26 @@ function PublicProfileSettings() {
             write({ schedule_visibility: v ? 'friends' : 'private' })
           }}
           label="Let friends see my schedule"
+        />
+      </Row>
+
+      <Row
+        label="Who can message you"
+        description="Anyone can send you ONE message; after that they need you to follow them back. Turn that down to people you follow back, or off entirely."
+        stacked
+      >
+        <Segmented
+          ariaLabel="Who can message you"
+          value={dm}
+          options={[
+            { value: 'everyone', label: 'Anyone' },
+            { value: 'mutuals', label: 'People I follow back' },
+            { value: 'off', label: 'No one' },
+          ]}
+          onChange={(v) => {
+            setDm(v)
+            write({ dm_policy: v })
+          }}
         />
       </Row>
 

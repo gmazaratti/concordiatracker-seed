@@ -1370,3 +1370,85 @@ html[data-reduce-motion] .ct-navrow-right {
 .ct-delta-in {
   animation: ct-delta-in 380ms cubic-bezier(0.34, 1.45, 0.64, 1) backwards;
 }
+
+/* ── Stories ───────────────────────────────────────────────────────────────
+ * The unseen ring. A CONIC gradient in fixed hexes rather than theme tokens,
+ * for the same reason a course chip keeps its colour: the ring means "there is
+ * something new here" to everybody, and a signal that changes hue with the
+ * viewer's theme is one they have to learn twice.
+ *
+ * Seen rings drop to a flat border — that contrast IS the information, so it
+ * must not depend on noticing a shade.
+ */
+.ct-story-ring {
+  background: conic-gradient(
+    from 140deg,
+    #f0a13a,
+    #f0523a,
+    #d63aa4,
+    #7b61ff,
+    #3ab7f0,
+    #f0a13a
+  );
+}
+
+/* Caption entrances. Each runs ONCE and ends at the resting position, so the
+ * global reduced-motion rule (duration: 0) leaves the text exactly where the
+ * club put it rather than part-way through a move. */
+@keyframes ct-story-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+.ct-story-rise {
+  animation: ct-story-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes ct-story-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.ct-story-fade {
+  animation: ct-story-fade 700ms ease-out backwards;
+}
+
+@keyframes ct-story-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.ct-story-pop {
+  animation: ct-story-pop 520ms cubic-bezier(0.34, 1.5, 0.64, 1) backwards;
+}
+
+/* The segment timer across the top of a story. Width, not transform, because
+ * it has to be readable as a measured bar rather than a sliding block. */
+@keyframes ct-story-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+.ct-story-progress {
+  animation: ct-story-progress linear forwards;
+}
