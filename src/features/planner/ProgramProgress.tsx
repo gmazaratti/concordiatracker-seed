@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ExternalLink, Info, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, ExternalLink, Info, Loader2, Users } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
-import { listPrograms, loadProgram, loadProgramChoice, saveProgramChoice } from '@/lib/programs'
+import { listPrograms, loadProgram, loadProgramChoice, programPicks, saveProgramChoice, type ProgramPick } from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
 
@@ -31,6 +32,22 @@ export function ProgramProgress() {
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [unsaved, setUnsaved] = useState(false)
+  const [picks, setPicks] = useState<ProgramPick[]>([])
+
+  // Loaded beside the programme; failure is silent because a missing crowd
+  // signal costs a hint, not the audit.
+  useEffect(() => {
+    let alive = true
+    // Every branch settles through the promise, never synchronously: a
+    // setState in the body of an effect is `react-hooks/set-state-in-effect`
+    // and cascades a render.
+    void (id ? programPicks(id) : Promise.resolve([] as ProgramPick[])).then(
+      (p) => alive && setPicks(p),
+    )
+    return () => {
+      alive = false
+    }
+  }, [id])
 
   useEffect(() => {
     let alive = true
@@ -116,6 +133,13 @@ export function ProgramProgress() {
     () => new Set(courses.filter((c) => c.code.trim()).map((c) => normalizeCode(c.code))),
     [courses],
   )
+
+  // Already mine — on the record or registered now. Never suggested back.
+  const held = useMemo(() => {
+    const out = new Set(inProgress)
+    for (const c of completed) out.add(normalizeCode(c.code))
+    return out
+  }, [inProgress, completed])
 
   const progress = useMemo(
     () => (program ? computeProgress(program, completed) : null),
@@ -341,6 +365,7 @@ export function ProgramProgress() {
                     Not ticked off automatically — which courses satisfy this depends on wording we
                     will not guess at.
                   </p>
+                  <Picks picks={picks} mine={held} />
                 </div>
               )}
 
@@ -376,6 +401,47 @@ export function ProgramProgress() {
 }
 
 /** What the three states mean, said once at the top rather than per pill. */
+/**
+ * What other people in this programme are registered in.
+ *
+ * A FACT, PRESENTED AS ONE. It is not a reading of the rule above it and the
+ * copy says so — those rules are prose with exclusion pairs, and the single
+ * seeded rule that names any courses names them as an exclusion. This says
+ * "these are common", never "these count". Hidden entirely below three
+ * takers (the server enforces it too) and when everything popular is already
+ * yours, because a suggestion list of things you have done is noise.
+ */
+function Picks({ picks, mine }: { picks: ProgramPick[]; mine: Set<string> }) {
+  const fresh = picks.filter((p) => !mine.has(normalizeCode(p.code))).slice(0, 6)
+  if (fresh.length === 0) return null
+  return (
+    <div className="mt-3 border-t border-border pt-2.5">
+      <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-subtle">
+        <Users size={12} aria-hidden />
+        Common in your programme
+      </p>
+      <ul className="mt-1.5 flex flex-wrap gap-1.5">
+        {fresh.map((p) => (
+          <li key={p.code}>
+            <Link
+              to={`/app/planner?tab=directory&q=${encodeURIComponent(p.code)}`}
+              title={p.title ?? undefined}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1 text-[12px] text-fg transition-colors duration-150 hover:border-accent"
+            >
+              <span className="font-medium">{p.code}</span>
+              <span className="text-subtle">{p.takers}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-subtle">
+        How many students in your programme have each one. Whether it satisfies the rule above is
+        still the rule's call, not ours.
+      </p>
+    </div>
+  )
+}
+
 function Legend() {
   const items: { cls: string; dot: string; label: string; hint: string }[] = [
     {

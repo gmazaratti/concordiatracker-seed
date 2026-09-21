@@ -92,7 +92,22 @@ export async function listPrograms(): Promise<Program[]> {
  * everyone does before the things their major adds.
  */
 export async function loadProgram(id: string): Promise<ProgramWithGroups | null> {
-  const { data: prog } = await supabase.from('programs').select('*').eq('id', id).maybeSingle()
+  /*
+   * RESOLVED THROUGH THE ALIAS, because there are two programme id schemes
+   * and the one a student's profile holds is not the one this table uses.
+   * `finance-bcomm` (the picker's frozen slug) and `bcomm-finance` (this
+   * table) are the same programme written backwards — measured on production,
+   * ZERO of the ids students actually hold existed here, so this lookup has
+   * always returned null and the audit has always been empty.
+   *
+   * Falls back to the plain match when the RPC is missing, so a pending
+   * migration leaves today's behaviour rather than breaking the tab.
+   */
+  const { data: viaAlias } = await supabase.rpc('program_by_any_id', { p_id: id })
+  const resolved = Array.isArray(viaAlias) ? viaAlias[0] : null
+  const prog =
+    resolved ??
+    (await supabase.from('programs').select('*').eq('id', id).maybeSingle()).data
   if (!prog) return null
   const program = prog as Program
 
@@ -110,3 +125,32 @@ export async function loadProgram(id: string): Promise<ProgramWithGroups | null>
   return { ...program, groups: all }
 }
 
+
+/** A course held by several students in the same programme. Counts only — the
+ *  function that produces these never returns a user id. */
+export interface ProgramPick {
+  code: string
+  title: string | null
+  credits: number | null
+  takers: number
+}
+
+/**
+ * What other students in this programme are actually registered in.
+ *
+ * NOT a reading of the elective rules — those are prose we refuse to
+ * interpret, and the one seeded rule that names courses names them as an
+ * EXCLUSION. This is a fact about the crowd, shown as one, so a student
+ * staring at "24 credits of major requirements" has somewhere to start.
+ * Empty until three people share a course, and empty is fine: it renders
+ * nothing rather than an encouraging blank.
+ */
+export async function programPicks(programId: string): Promise<ProgramPick[]> {
+  const { data, error } = await supabase.rpc('program_course_picks', {
+    p_program_id: programId,
+    p_limit: 12,
+  })
+  // A pending migration costs the suggestions, never the page.
+  if (error || !Array.isArray(data)) return []
+  return data as ProgramPick[]
+}

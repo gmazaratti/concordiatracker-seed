@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { AlertTriangle, ArrowUpRight, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { HowTo } from '@/features/moodle/MoodleGuide'
+import { MoodleCourses } from '@/features/moodle/MoodleCourses'
+import type { CalendarTask } from '@/data/types'
 import { GraduationCap } from 'lucide-react'
 import { Slide } from './OnboardingSlides'
 
@@ -17,16 +19,26 @@ import { Slide } from './OnboardingSlides'
  * It reuses `HowTo` rather than restating the instructions, so the drawing of
  * Moodle's export page cannot say one thing here and another in Settings.
  *
- * Deliberately NOT doing the course import here: this step's job is to get the
- * link in. Offering "and add these five classes?" in the same breath is two
- * decisions in one screen, and the offer is waiting in Settings → Moodle (and
- * on the next sync) either way.
+ * THE COURSE IMPORT IS A SECOND BEAT, NOT THE SAME BREATH. It was left out
+ * entirely at first, on the grounds that "paste this link" and "add these
+ * five classes?" are two decisions in one screen. That reasoning holds for
+ * one SCREEN and not for one STEP: the very next thing we ask is "add your
+ * courses", and the whole argument for putting Moodle first is that a pasted
+ * link can make that unnecessary. So the offer appears only AFTER the connect
+ * succeeds, in the success state, once the first decision is already made and
+ * answered. The feed named the classes; not offering them means asking the
+ * student to type what we are already showing them.
+ *
+ * It reads the classes out of the connect RESPONSE (`items`) rather than
+ * waiting for the provider to reload — the sync just wrote them and the
+ * answer is already in hand.
  */
 export function MoodleStep({ onConnected }: { onConnected: () => void }) {
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ imported: number; found: number } | null>(null)
+  const [items, setItems] = useState<CalendarTask[]>([])
 
   async function connect() {
     if (busy || url.trim().length < 20) return
@@ -49,9 +61,22 @@ export function MoodleStep({ onConnected }: { onConnected: () => void }) {
         error?: string
         imported?: number
         found?: number
+        items?: { title: string; due: string; note: string | null }[]
       }
       if (!res.ok) throw new Error(json.error || `That didn’t work (${res.status}).`)
       setDone({ imported: json.imported ?? 0, found: json.found ?? 0 })
+      // Shaped into tasks because that is what `coursesFromMoodle` reads; the
+      // ids are local and never written anywhere.
+      setItems(
+        (json.items ?? []).map((it, i) => ({
+          id: `moodle-preview-${i}`,
+          title: it.title,
+          due: it.due,
+          done: false,
+          note: it.note ?? undefined,
+          source: 'moodle',
+        })),
+      )
       onConnected()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
@@ -75,9 +100,12 @@ export function MoodleStep({ onConnected }: { onConnected: () => void }) {
             : 'Nothing upcoming in Moodle yet — we check again every night and add deadlines as your professors post them.'
         }
         extra={
-          <p className="mt-5 text-[12.5px] text-subtle">
-            You can disconnect any time in Settings → Moodle.
-          </p>
+          <div className="mt-5 w-full text-left">
+            {items.length > 0 && <MoodleCourses tasks={items} />}
+            <p className="mt-4 text-center text-[12.5px] text-subtle">
+              You can disconnect any time in Settings → Moodle.
+            </p>
+          </div>
         }
       />
     )
