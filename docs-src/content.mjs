@@ -137,6 +137,38 @@ const SUPPORT_STATUS_SCRIPT = `
 })();
 `
 
+/**
+ * The setup walkthrough, as a silent looping clip — a GIF that happens to be
+ * an MP4 (same 26 seconds at 1.2 MB instead of ~25 MB, and without a GIF's
+ * 256 colours fringing every label). No controls and no click target: a
+ * control bar invites you to operate it, and the point is that it plays
+ * itself while you read the steps beside it.
+ *
+ * Autoplay is dropped under `prefers-reduced-motion`, which a stylesheet
+ * cannot do for a <video>; controls appear in that one case so the poster is
+ * not a dead end. Done in the page script rather than with attributes,
+ * because this markup is static HTML.
+ */
+const MOODLE_VIDEO =
+  '<video id="moodle-loop" src="/moodle/setup.mp4" poster="/moodle/setup-poster.jpg"' +
+  ' muted loop playsinline preload="metadata" aria-label="The Moodle setup, start to finish"' +
+  ' style="display:block;width:100%;margin:18px 0;border-radius:12px;border:1px solid var(--border)"></video>'
+
+const MOODLE_VIDEO_SCRIPT = `
+(function () {
+  var v = document.getElementById("moodle-loop")
+  if (!v) return
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    v.controls = true
+    return
+  }
+  // Autoplay is a request, not a guarantee: a browser may refuse it even
+  // muted, and a rejected promise must not surface as an unhandled error.
+  var p = v.play()
+  if (p && p.catch) p.catch(function () { v.controls = true })
+})()
+`
+
 export const PAGES = {
   /* ── Getting started ───────────────────────────────────────────────────── */
 
@@ -839,6 +871,7 @@ export const PAGES = {
   },
 
   'moodle-sync': {
+    script: MOODLE_VIDEO_SCRIPT,
     title: 'Connect Moodle',
     section: 'Planning your term',
     description:
@@ -853,13 +886,7 @@ export const PAGES = {
         p: 'One link from Moodle. Not your password — we never ask for one, and Concordia signs you in through its own system anyway.',
       },
 
-      { h2: 'Watch it' },
-      {
-        raw: '<video controls preload="none" playsinline poster="/moodle/setup-poster.jpg" style="width:100%;border-radius:10px;border:1px solid var(--ct-border)"><source src="/moodle/setup.mp4" type="video/mp4">The written steps below cover the same ground.</video>',
-      },
-      {
-        p: 'Twenty-six seconds, no sound, the whole thing end to end. It does not play until you press it — the steps below are the instructions, this is the second opinion.',
-      },
+      { raw: MOODLE_VIDEO },
 
       { h2: 'Where to get the link' },
       {

@@ -11,6 +11,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { useAppData } from '@/app/providers/app-data'
 import { HowTo } from '@/features/moodle/MoodleGuide'
+import { MoodleVideo } from '@/features/moodle/MoodleVideo'
 import { WhatThatLinkIs } from '@/features/moodle/WhatThatLinkIs'
 import { SyncedList, type SyncedItem } from '@/features/moodle/SyncedList'
 import { MoodleCourses } from '@/features/moodle/MoodleCourses'
@@ -146,6 +147,12 @@ export function MoodleSection() {
         </p>
         <div className="space-y-3">
           {!connected && <HowTo />}
+          {/* OUTSIDE the !connected gate. The guide is instructions for
+              connecting, so it retires once you have — but the walkthrough is
+              the one thing a connected person still wants (to re-watch, or to
+              reconnect after resetting the token), and gating it meant the
+              person who asked for it could not find it on their own account. */}
+          <MoodleVideo />
 
         {connected ? (
           <>

@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, PlayCircle } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 import { MOODLE_EXPORT_URL } from './moodle-ui'
@@ -45,41 +45,7 @@ export function HowTo() {
 
       <ExportPagePreview />
 
-      {/*
-        NO AUTOPLAY, and that is the considered choice rather than the lazy one.
-        This is a tutorial, not a decorative loop: you want to pause it, scrub
-        back over the bit you missed, and not have it start talking over the
-        written steps you are already reading. It also sidesteps
-        `prefers-reduced-motion` entirely — there is nothing to suppress if
-        nothing moves until you ask — and `preload="none"` means the 1.2 MB is
-        only ever fetched by someone who actually presses play.
-        The drawing above stays the primary instruction: it themes, it
-        translates, a screen reader can read it, and it does not go stale the
-        day Moodle restyles. The video is the optional second opinion.
-      */}
-      <details className="group rounded-xl border border-border bg-surface/60">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg">
-          <PlayCircle size={15} className="shrink-0 text-accent" aria-hidden />
-          Watch it, 26 seconds
-          <ChevronDown
-            size={14}
-            className="ml-auto shrink-0 transition-transform duration-150 group-open:rotate-180"
-            aria-hidden
-          />
-        </summary>
-        <div className="px-3.5 pb-3.5">
-          <video
-            controls
-            preload="none"
-            playsInline
-            poster="/moodle/setup-poster.jpg"
-            className="w-full rounded-lg border border-border"
-          >
-            <source src="/moodle/setup.mp4" type="video/mp4" />
-            Your browser cannot play this. The written steps above cover the same ground.
-          </video>
-        </div>
-      </details>
+
     </div>
   )
 }

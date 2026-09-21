@@ -36,7 +36,12 @@ begin
             'email', coalesce(up.email, '')
           ) order by up.created_at), '[]'::jsonb)
         from public.user_profile up
-        where up.user_id <> c.user_id and up.created_at > c.since) as new_users
+        -- Internal accounts do not count as signups anywhere else — the
+        -- dashboard's user and paying-customer numbers already exclude
+        -- them — so alerting on one was the odd surface out. Staff logins
+        -- and throwaway test accounts were waking the admin at 2am.
+        where up.user_id <> c.user_id and up.created_at > c.since
+          and coalesce(up.is_internal, false) = false) as new_users
     from computed c
   ),
   -- Claim (stamp) admins with anything pending so the next run won't resend.
