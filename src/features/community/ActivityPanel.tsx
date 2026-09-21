@@ -6,14 +6,11 @@ import { createPortal } from 'react-dom'
 import { Mascot } from '@/components/Mascot'
 import { OrgLogo } from './OrgLogo'
 import { useCommunity } from './useCommunity'
-import { useFollows } from '@/app/providers/follows'
 import { acceptFriend, listFriends, removeFriend, type Friend } from '@/lib/social'
 import { relativeDueLabel } from '@/lib/date'
-import {
-  listNotifications,
-  markNotificationsRead,
-  type AppNotification,
-} from '@/lib/notifications'
+import { listNotifications, markNotificationsRead } from '@/lib/notifications'
+import { useActivityFeed } from './useActivityFeed'
+import type { AppNotification as ActivityNotification } from '@/lib/notifications'
 import { cn } from '@/lib/cn'
 
 /**
@@ -28,22 +25,15 @@ import { cn } from '@/lib/cn'
  * kinds of news but they are the same question — what happened since I last
  * looked — and splitting them means checking three places to answer it.
  */
-type Item =
-  | { kind: 'event'; id: string; at: number; title: string; orgHandle: string }
-  | { kind: 'request'; id: string; at: number; friend: Friend }
-  | { kind: 'accepted'; id: string; at: number; friend: Friend }
-  | { kind: 'stored'; id: string; at: number; n: AppNotification }
-
 export function ActivityPanel({ onClose }: { onClose: () => void }) {
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
-  const { events, orgs } = useCommunity()
-  const { isFollowing } = useFollows()
-  const [friends, setFriends] = useState<Friend[] | null>(null)
-  const [stored, setStored] = useState<AppNotification[]>([])
+  const { orgs } = useCommunity()
+  // ONE assembler, shared with the Today widget. This panel used to build the
+  // list itself, which is two places for the same question to be answered
+  // differently the first time either gains a source.
+  const { items } = useActivityFeed()
   const [tick, setTick] = useState(0)
-  // Read once. The clock is impure, and a list that re-derives "how long ago"
-  // on every render reorders itself while you are reading it.
-  const [now] = useState(() => Date.now())
+  const [friends, setFriends] = useState<Friend[] | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -52,58 +42,21 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       alive = false
     }
   }, [tick])
+  // Accepting or declining re-reads the friend list; the feed itself is read
+  // once on open, which is what "since I last looked" means.
+  void friends
 
   /**
-   * Load, then mark the lot read — opening the panel IS reading them.
-   * The unread dots stay on screen for this viewing (the rows render from
-   * what was loaded, not from what the write then changed), so you can still
-   * see which ones were new; they are simply not new the next time.
+   * Opening the panel IS reading them. The rows still render from what was
+   * loaded, so the unread dots stay visible for this viewing; they are simply
+   * not new the next time.
    */
   useEffect(() => {
-    let alive = true
     void (async () => {
       const rows = await listNotifications()
-      if (!alive) return
-      setStored(rows)
       if (rows.some((r) => !r.read_at)) void markNotificationsRead()
     })()
-    return () => {
-      alive = false
-    }
   }, [])
-
-  const items = useMemo(() => {
-    const out: Item[] = []
-
-    // Only orgs you follow. An "activity" feed that shows every event on
-    // campus is just the events tab with worse sorting.
-    for (const e of events) {
-      if (!isFollowing(e.org.handle)) continue
-      const posted = now - (e.postedDaysAgo ?? 0) * 86_400_000
-      out.push({
-        kind: 'event',
-        id: `ev-${e.id}`,
-        at: posted,
-        title: e.title,
-        orgHandle: e.org.handle,
-      })
-    }
-
-    for (const f of friends ?? []) {
-      const at = new Date(f.created_at).getTime()
-      if (f.status === 'pending' && f.direction === 'incoming') {
-        out.push({ kind: 'request', id: `rq-${f.friendship_id}`, at, friend: f })
-      } else if (f.status === 'accepted') {
-        out.push({ kind: 'accepted', id: `ac-${f.friendship_id}`, at, friend: f })
-      }
-    }
-
-    for (const n of stored) {
-      out.push({ kind: 'stored', id: `nt-${n.id}`, at: new Date(n.created_at).getTime(), n })
-    }
-
-    return out.sort((a, b) => b.at - a.at).slice(0, 60)
-  }, [events, isFollowing, friends, now, stored])
 
   const orgByHandle = useMemo(
     () => new Map(orgs.map((o) => [o.handle, o])),
@@ -213,7 +166,7 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
                         </button>
                       </span>
                     </div>
-                  ) : (
+                  ) : it.kind === 'accepted' ? (
                     <Link
                       to={`/app/community?c=messages&chat=${it.friend.handle}`}
                       onClick={onClose}
@@ -226,6 +179,19 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
                       </span>
                       <span className="shrink-0 text-[11px] text-subtle">
                         {relativeDueLabel(new Date(it.at).toISOString())}
+                      </span>
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/app/community?c=messages"
+                      onClick={onClose}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]"
+                    >
+                      <MessageSquare size={16} className="shrink-0 text-accent" aria-hidden />
+                      <span className="min-w-0 flex-1 text-[13px] text-fg">
+                        {it.count === 1
+                          ? '1 unread message'
+                          : `${it.count} unread messages`}
                       </span>
                     </Link>
                   )}
@@ -277,7 +243,7 @@ export function ActivityButton({
  * events and connection requests, and tinting whole rows would make the panel
  * read as two designs stitched together.
  */
-function StoredRow({ n, onClose }: { n: AppNotification; onClose: () => void }) {
+function StoredRow({ n, onClose }: { n: ActivityNotification; onClose: () => void }) {
   const Icon = n.kind === 'request_comment' ? MessageSquare : Tag
   const body = (
     <>

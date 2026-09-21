@@ -1552,14 +1552,32 @@ await db.exec(
 )
 check('a hidden comment notifies nobody', (await inbox(POSTER)).length, 2)
 
+// A follow is the third point-in-time event. The fixture needs the two
+// tables the trigger reads.
+await db.exec(`
+  create table if not exists public.user_follows (
+    follower uuid not null, following uuid not null,
+    created_at timestamptz not null default now(),
+    primary key (follower, following)
+  );
+`)
+await db.exec(`insert into public.user_profile (user_id, name, handle)
+  values ('${TALKER}', 'Sam Tremblay', 'sam') on conflict (user_id) do nothing`)
+await db.exec(`insert into public.user_follows (follower, following) values ('${TALKER}', '${POSTER}')`)
+check('a follow notifies the person followed',
+  (await inbox(POSTER)).filter((n) => n.kind === 'follow').length, 1)
+check('  and names them', (await inbox(POSTER)).at(-1).title, 'Sam Tremblay started following you')
+check('  and not the follower', (await inbox(TALKER)).filter((n) => n.kind === 'follow').length, 0)
+
 // Marking read is scoped to the caller. NOT tested here: that the select
 // policy hides other people's rows — PGlite runs as the table owner, so RLS
 // is bypassed and a `select count(*)` would pass whatever the policy said.
 // This asserts the RPC's own `user_id = auth.uid()` filter instead, which is
 // the part that is logic rather than permissions.
 await beMeN(POSTER)
+// Three by now: the reply, the status change, and the follow.
 check('marking read marks yours',
-  (await db.query('select public.mark_notifications_read() n')).rows[0].n, 2)
+  (await db.query('select public.mark_notifications_read() n')).rows[0].n, 3)
 check('  and is idempotent',
   (await db.query('select public.mark_notifications_read() n')).rows[0].n, 0)
 const unread = async (uid) =>

@@ -1,4 +1,4 @@
-import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { LibraryWidget } from './LibraryWidget'
 import { ShuttleWidget } from './ShuttleWidget'
@@ -10,6 +10,7 @@ import { StreakWidget } from './StreakWidget'
 import { StudyTimerWidget } from './StudyTimerWidget'
 import { SeatWatchWidget } from './SeatWatchWidget'
 import { RadarWidget } from './RadarWidget'
+import { ActivityWidget } from './ActivityWidget'
 import { DebriefPanel } from '../DebriefPanel'
 
 /**
@@ -110,6 +111,14 @@ export const WIDGETS: WidgetDef[] = [
     zones: ['rail', 'half', 'wide'],
     render: () => <RadarWidget />,
     availableWhen: (ctx) => ctx.courseCount > 0,
+  },
+  {
+    id: 'activity',
+    name: 'Activity',
+    description: 'Replies, follows, connection requests and unread messages.',
+    icon: BellRing,
+    zones: ['rail', 'half', 'wide'],
+    render: (zone) => <ActivityWidget zone={zone} />,
   },
   {
     id: 'shuttle',

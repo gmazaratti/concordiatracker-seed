@@ -156,3 +156,34 @@ drop trigger if exists trg_request_comment on public.feature_request_comments;
 create trigger trg_request_comment
   after insert on public.feature_request_comments
   for each row execute function public.ct_on_request_comment();
+
+-- ── Follows ──────────────────────────────────────────────────────────────────
+-- Somebody following you is the other point-in-time event on this list: the
+-- row it creates is standing state ("they follow you"), but "they STARTED
+-- following you, since you last looked" is not recoverable from it once a
+-- second person does the same. A trigger, for the same reason as the others.
+create or replace function public.ct_on_follow() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare who text; slug text;
+begin
+  select coalesce(nullif(p.name, ''), 'Someone'), p.handle
+    into who, slug
+    from public.user_profile p
+   where p.user_id = new.follower;
+
+  perform public.ct_notify(
+    array[new.following],
+    'follow',
+    coalesce(who, 'Someone') || ' started following you',
+    null,
+    case when slug is null then null else '/@' || slug end,
+    null,
+    who
+  );
+  return new;
+end $$;
+
+drop trigger if exists trg_user_follow on public.user_follows;
+create trigger trg_user_follow
+  after insert on public.user_follows
+  for each row execute function public.ct_on_follow();
