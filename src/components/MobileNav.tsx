@@ -70,7 +70,17 @@ export function MobileNav() {
         change while the rows slide. The blur is computed once; the rows move
         above it for free.
       */}
-      <div className="absolute inset-0 bg-surface/85 backdrop-blur-xl" aria-hidden />
+      {/* Saturated, not just blurred. Blur alone drains the colour out of
+          whatever is behind the bar, so the surface goes grey and reads as a
+          translucent panel rather than as glass; the saturation is what every
+          native frosted material does and what was missing here. It stays on
+          this SIBLING layer — as an ancestor of the sliding rows it forced a
+          re-composite through the filter on every frame, which is what made
+          the tab morph stutter. */}
+      <div
+        className="absolute inset-0 bg-surface/85 backdrop-blur-xl backdrop-saturate-[180%]"
+        aria-hidden
+      />
 
       {/* Both rows are always mounted, both absolutely positioned inside a
           track of fixed height. Only transform and opacity ever change, so the

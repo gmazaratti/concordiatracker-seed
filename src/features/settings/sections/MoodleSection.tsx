@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  Eye,
+  EyeOff,
   AlertTriangle,
   Check,
   Loader2,
@@ -36,10 +38,21 @@ interface MoodleStatus {
 }
 
 
+/**
+ * A hint, deliberately NOT validation — the server is what decides whether a
+ * link is usable (`validateMoodleIcsUrl` pins the host and the path). This
+ * exists only so a masked field can still tell you the paste landed.
+ */
+function looksLikeMoodleLink(value: string): boolean {
+  const v = value.trim().toLowerCase()
+  return v.includes('export_execute.php') && v.includes('authtoken=')
+}
+
 export function MoodleSection() {
   const [status, setStatus] = useState<MoodleStatus | null>(null)
   const [url, setUrl] = useState('')
   const [busy, setBusy] = useState<'' | 'connect' | 'sync' | 'disconnect'>('')
+  const [reveal, setReveal] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState('')
   const [items, setItems] = useState<SyncedItem[]>([])
@@ -208,16 +221,49 @@ export function MoodleSection() {
             <label htmlFor="moodle-url" className="block text-[13px] font-medium text-fg">
               Paste your calendar link
             </label>
-            <input
-              id="moodle-url"
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://moodle.concordia.ca/moodle/calendar/export_execute.php?..."
-              spellCheck={false}
-              autoComplete="off"
-              className="w-full rounded-lg border border-border bg-canvas px-3 py-2 font-mono text-[12px] text-fg placeholder:text-subtle outline-none focus:border-border-strong"
-            />
+            {/*
+              MASKED BY DEFAULT, and this is a safety feature rather than a
+              nicety. The link carries `authtoken=…`, which reads your Moodle
+              calendar forever with no login — so the one moment it is ever on
+              screen is the moment it can be screen-shared, shoulder-surfed or
+              filmed. A recording of this flow leaked a live token exactly
+              that way, and the answer is not to ask people to blur video.
+              The eye is there because you still need to be able to check a
+              paste that went wrong.
+            */}
+            <div className="relative">
+              <input
+                id="moodle-url"
+                type={reveal ? 'url' : 'password'}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://moodle.concordia.ca/moodle/calendar/export_execute.php?..."
+                spellCheck={false}
+                autoComplete="off"
+                // Password managers offer to save anything shaped like this.
+                data-1p-ignore
+                data-lpignore="true"
+                className="w-full rounded-lg border border-border bg-canvas py-2 pr-10 pl-3 font-mono text-[12px] text-fg outline-none placeholder:text-subtle focus:border-border-strong"
+              />
+              <button
+                type="button"
+                onClick={() => setReveal((v) => !v)}
+                aria-label={reveal ? 'Hide the link' : 'Show the link'}
+                title={reveal ? 'Hide the link' : 'Show the link'}
+                className="absolute inset-y-0 right-0 grid w-10 place-items-center rounded-r-lg text-subtle transition-colors duration-150 hover:text-fg"
+              >
+                {reveal ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+              </button>
+            </div>
+            {/* Confirmation without exposure: while it is hidden you still
+                need to know the paste landed and landed right. */}
+            {url.trim() !== '' && (
+              <p className="text-[11.5px] text-subtle">
+                {looksLikeMoodleLink(url)
+                  ? 'Looks like a Moodle calendar link.'
+                  : 'That does not look like the calendar link yet — it should contain export_execute.php and authtoken.'}
+              </p>
+            )}
             <button
               type="button"
               disabled={busy !== '' || url.trim().length < 20}
