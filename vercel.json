@@ -42,7 +42,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/:page(app|teacher|organizer|admin|feedback|survey|onboarding|demo|concordia-gpa-calculator|concordia-syllabus-tracker)",
+      "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|concordia-gpa-calculator|concordia-syllabus-tracker)",
       "destination": "/index.html"
     },
     {

@@ -4,6 +4,7 @@
  *   ?action=stripe-user&email=…   one customer: subscription, invoices, charges
  *   ?action=stripe-rollup         the money, for the dashboard
  *   ?action=reconcile             what Stripe says vs what our tables say
+ *   ?action=org-approved&id=…     tell an org its portal is live (POST)
  *
  * WHY A SERVER ROUTE AT ALL. The Stripe secret key can never reach a browser,
  * and the admin panel is a browser. Everything here is a read; nothing writes
@@ -16,6 +17,7 @@
  */
 import { stripeByEmail, stripeRollup, stripeMode } from './_stripe-admin.js'
 import { fail } from './_respond.js'
+import { sendEmail } from './_email.js'
 
 export const config = { maxDuration: 30 }
 
@@ -201,6 +203,60 @@ export default async function handler(req: any, res: any) {
         ops: ops ?? {},
         activity: merged,
       })
+      return
+    }
+
+    /*
+     * AN APPROVAL NOBODY IS TOLD ABOUT IS NOT AN APPROVAL.
+     * A club signs up, reads "pending", and hears nothing — so it never comes
+     * back, and the approval we eventually clicked reaches an empty chair.
+     * Fired by the admin console right after the status write. Best-effort,
+     * like every other send: `sendEmail` never throws, and a bounced email
+     * must not make a successful approval look failed.
+     */
+    if (action === 'org-approved') {
+      const id = String(req.query?.id ?? '').trim()
+      if (!id) {
+        fail(res, 400, 'Which org? Pass ?id=<org id>.', { code: 'bad_request' })
+        return
+      }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const rows = await fetch(
+        `${url}/rest/v1/organizations?id=eq.${encodeURIComponent(id)}&select=name,handle,owner_id,status`,
+        { headers: svc },
+      ).then((r) => r.json())
+      const org = Array.isArray(rows) ? rows[0] : null
+      if (!org) {
+        fail(res, 404, 'No org with that id.', { code: 'not_found' })
+        return
+      }
+      if (!org.owner_id) {
+        // Seeded orgs have no owner and no one to write to. Not an error.
+        res.status(200).json({ sent: false, reason: 'no_owner' })
+        return
+      }
+      const prof = await fetch(
+        `${url}/rest/v1/user_profile?user_id=eq.${org.owner_id}&select=email,name`,
+        { headers: svc },
+      ).then((r) => r.json())
+      const to = Array.isArray(prof) && prof[0]?.email ? String(prof[0].email) : ''
+      if (!to) {
+        res.status(200).json({ sent: false, reason: 'no_email' })
+        return
+      }
+      const site = process.env.PUBLIC_SITE_URL ?? 'https://concordiatracker.com'
+      const sent = await sendEmail({
+        to,
+        subject: `${org.name} is live on ConcordiaTracker`,
+        heading: `${org.name} is approved`,
+        paragraphs: [
+          `Your organizer portal is open. Anything you post now shows up in the Community feed that every ConcordiaTracker student sees.`,
+          `Your public page is ${site}/app/community/org/${String(org.handle).replace(/^@/, '')} — share it anywhere.`,
+        ],
+        button: { label: 'Post your first event', href: `${site}/organizer` },
+        footnote: 'Reply to this email if anything looks wrong and a person will read it.',
+      })
+      res.status(200).json({ sent })
       return
     }
 

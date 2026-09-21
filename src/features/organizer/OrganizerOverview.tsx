@@ -71,8 +71,14 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
 
       {pending && (
         <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
-          <strong className="font-semibold">Pending approval.</strong> You can set up your profile
-          and draft events now: they go live in Community once an admin approves your org.
+          {/* Says what happens NEXT and who does it. "Pending" on its own is a
+              dead end: nobody knows whether to wait, email someone, or give
+              up — and the club that gives up is the one you spent the
+              outreach on. The email is real (api/admin.ts → org-approved). */}
+          <strong className="font-semibold">Waiting on us, not on you.</strong> Set up your profile
+          and draft your events now — nothing is lost. We check new organizations by hand, and
+          you'll get an email the moment yours is approved; everything you've drafted goes live
+          in the Community feed at that point.
         </div>
       )}
 

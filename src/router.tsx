@@ -120,6 +120,16 @@ export function AppRoutes() {
         <Route path="team" element={<OrganizerTeam />} />
       </Route>
 
+      {/*
+        ALIASES FOR THE ONE LINK WE HAND OUT. /organizer is the real route and
+        the plural is what half of everyone types — before an outreach wave
+        that is not a typo, it is a share of the campaign landing on a 404.
+        "orgs" and "clubs" are the other two people reach for.
+      */}
+      <Route path="/organizers" element={<Navigate to="/organizer" replace />} />
+      <Route path="/orgs" element={<Navigate to="/organizer" replace />} />
+      <Route path="/clubs" element={<Navigate to="/organizer" replace />} />
+
       {/* Short organizer invite links (email-friendly): /join/<token>: same
           accept page as /organizer/invite/<token>, slimmer URL. */}
       <Route path="/join" element={<OrganizerLayout />}>

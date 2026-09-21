@@ -10,7 +10,7 @@
 drop function if exists public.admin_activity_digests();
 
 create or replace function public.admin_activity_digests()
-returns table (user_id uuid, features int, bugs int, applications int, new_users jsonb)
+returns table (user_id uuid, features int, bugs int, applications int, new_users jsonb, new_orgs jsonb)
 language plpgsql security definer set search_path = public as $$
 begin
   return query
@@ -41,7 +41,20 @@ begin
         -- them — so alerting on one was the odd surface out. Staff logins
         -- and throwaway test accounts were waking the admin at 2am.
         where up.user_id <> c.user_id and up.created_at > c.since
-          and coalesce(up.is_internal, false) = false) as new_users
+          and coalesce(up.is_internal, false) = false) as new_users,
+      -- ORGS ARE NAMED, not counted. They were folded into `applications` as
+      -- a bare number, and a push reading "3 applications" is ignorable —
+      -- John Molson Marketing Association sat pending for two months behind
+      -- exactly that. A club that signed up and cannot post is a club that
+      -- gives up on you, and at the scale of an outreach wave that is the
+      -- whole campaign. One push each, with the name on it.
+      (select coalesce(
+          jsonb_agg(jsonb_build_object(
+            'name',   o.name,
+            'handle', o.handle
+          ) order by o.created_at), '[]'::jsonb)
+        from public.organizations o
+        where o.status = 'pending' and o.created_at > c.since) as new_orgs
     from computed c
   ),
   -- Claim (stamp) admins with anything pending so the next run won't resend.
@@ -49,12 +62,14 @@ begin
     update public.admins adm set activity_pushed_at = now()
     from data d
     where adm.user_id = d.user_id
-      and (d.features + d.bugs + d.applications + jsonb_array_length(d.new_users)) > 0
+      and (d.features + d.bugs + d.applications
+           + jsonb_array_length(d.new_users) + jsonb_array_length(d.new_orgs)) > 0
     returning adm.user_id
   )
-  select d.user_id, d.features::int, d.bugs::int, d.applications::int, d.new_users
+  select d.user_id, d.features::int, d.bugs::int, d.applications::int, d.new_users, d.new_orgs
   from data d
-  where (d.features + d.bugs + d.applications + jsonb_array_length(d.new_users)) > 0;
+  where (d.features + d.bugs + d.applications
+         + jsonb_array_length(d.new_users) + jsonb_array_length(d.new_orgs)) > 0;
 end; $$;
 
 revoke all on function public.admin_activity_digests() from public, anon, authenticated;

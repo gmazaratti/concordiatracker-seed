@@ -332,6 +332,28 @@ export async function adminResolveApplication(kind: ApplicationKind, refId: stri
 export async function adminSetOrgStatus(orgId: string, status: string) {
   const { error } = await supabase.rpc('admin_set_org_status', { p_org_id: orgId, p_status: status })
   if (error) throw error
+  /*
+   * TELL THEM. A club signs up, reads "pending", and hears nothing back — so
+   * it never returns, and the approval reaches an empty chair. Fired only on
+   * approval, after the write succeeded, and never allowed to fail the
+   * approval itself: a bounced email must not make a completed action look
+   * broken. (The endpoint is admin-gated and re-checks; this is a trigger,
+   * not the authority.)
+   */
+  if (status === 'approved') {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (token) {
+        await fetch(`/api/admin?action=org-approved&id=${encodeURIComponent(orgId)}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
 }
 export async function adminDeleteOrg(orgId: string) {
   const { error } = await supabase.rpc('admin_delete_org', { p_org_id: orgId })

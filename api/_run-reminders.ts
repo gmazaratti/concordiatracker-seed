@@ -38,6 +38,8 @@ interface AdminDigest {
   applications: number
   /** New signups since the last push — sent as individual notifications. */
   new_users: { name: string; email: string }[]
+  /** Orgs waiting for approval — also individual, for the same reason. */
+  new_orgs?: { name: string; handle: string }[]
 }
 
 /** Digest body for everything EXCEPT signups, e.g. "1 feature request · 2 applications". */
@@ -362,6 +364,23 @@ export async function runReminders(req: any, res: any) {
               body: u.email ? `${u.name} · ${u.email}` : u.name,
               url: '/admin?tab=users',
               tag: `ct-signup-${u.email || u.name}`, // unique so they don't collapse
+            }),
+          )
+        }
+        /*
+         * ONE PUSH PER PENDING ORG, WITH ITS NAME.
+         * These used to be a number inside `applications`, and a club that
+         * signs up and cannot post is a club that gives up. Straight to the
+         * tab that has the Approve button.
+         */
+        for (const o of d.new_orgs ?? []) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: 'Org waiting for approval',
+              body: `${o.name} · ${o.handle}`,
+              url: '/admin?tab=portals',
+              tag: `ct-org-${o.handle}`,
             }),
           )
         }
