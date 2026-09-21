@@ -9,6 +9,7 @@ import {
   LogOut,
   Megaphone,
   MessagesSquare,
+  Bell,
   Settings,
   UserRound,
   ShieldCheck,
@@ -17,6 +18,7 @@ import {
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
+import { useActivityBadge } from '@/app/usePeopleBadge'
 import { useSupport } from '@/app/providers/support'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
@@ -47,6 +49,7 @@ export function AvatarMenu({
   const { user, plan, setPlan } = useAppData()
   const { signOut } = useAuth()
   const { openSettings } = useSettings()
+  const bell = useActivityBadge()
   const { openSupport } = useSupport()
   const { showIndicator, openHistory } = useUpdates()
   const { isAdmin } = useIsAdmin()
@@ -148,6 +151,21 @@ export function AvatarMenu({
               My profile
             </MenuLink>
           )}
+          {/* Notifications were reachable from exactly one place: a bell that
+              only exists inside Community. Nobody hunts for a bell on a page
+              they are not on, so there is a door here too, on every screen. */}
+          <MenuLink
+            to="/app/community?activity=1"
+            icon={Bell}
+            onSelect={() => setOpen(false)}
+          >
+            Notifications
+            {bell > 0 && (
+              <span className="ml-auto rounded-full bg-accent px-1.5 text-[10.5px] font-semibold text-accent-contrast">
+                {bell}
+              </span>
+            )}
+          </MenuLink>
           <MenuButton
             icon={Settings}
             onSelect={() => {

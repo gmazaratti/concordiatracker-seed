@@ -46,7 +46,9 @@ export function CommunityPage() {
   const waiting = usePeopleBadge()
   // The bell counts notifications too; the Messages pill deliberately does not.
   const bell = useActivityBadge()
-  const [activity, setActivity] = useState(false)
+  // Openable by URL so anything anywhere can point at it — the toast does,
+  // and so does the avatar menu.
+  const [activity, setActivity] = useState(() => params.get('activity') === '1')
 
   // Completes the getting-started "Explore Community" step.
   useEffect(() => {
@@ -136,7 +138,18 @@ export function CommunityPage() {
         {section === 'profile' && <YouSection handle={user.handle} />}
       </div>
 
-      {activity && <ActivityPanel onClose={() => setActivity(false)} />}
+      {activity && (
+        <ActivityPanel
+          onClose={() => {
+            setActivity(false)
+            if (params.get('activity')) {
+              const p = new URLSearchParams(params)
+              p.delete('activity')
+              setParams(p, { replace: true })
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

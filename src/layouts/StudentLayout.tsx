@@ -13,6 +13,7 @@ import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { SupportLayer } from '@/features/support/SupportLayer'
+import { NotificationToast } from '@/features/community/NotificationToast'
 import { ThemePreviewBar } from '@/components/ThemePreviewBar'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { SeatAlertLayer } from '@/features/seats/SeatAlertLayer'
@@ -91,6 +92,9 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       <QuickActionLayer />
       <SettingsLayer />
       <SupportLayer />
+      {/* Mounted on the shell, not in Community: the point is that it finds
+          you on whatever page you land on. */}
+      <NotificationToast />
       <UpdatesLayer />
       <ThemePreviewBar />
       <SurveyClaimLayer />
