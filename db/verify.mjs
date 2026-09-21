@@ -1661,6 +1661,83 @@ console.log(String.fromCharCode(10) + 'db/outreach_links.sql')
   check('un-sending clears the date', (await row('hackcon')).sent_at, null)
 }
 
+
+/* ── db/org_approval_gate.sql ─────────────────────────────────────────────
+ * The gate was a UI convention: an ordinary account could insert an org
+ * already approved AND verified, or update its own to approved, straight
+ * through the anon API. `verified` is the blue seal students are told means
+ * an authenticated real organization. These assert the database refuses it
+ * now, and that an admin still can. */
+console.log(String.fromCharCode(10) + 'db/org_approval_gate.sql')
+{
+  const ME = '00000000-0000-0000-0000-0000000000a1'
+  await db.exec(`
+    drop table if exists public.events cascade;
+    drop table if exists public.organizations cascade;
+    create table public.organizations (
+      id uuid primary key default gen_random_uuid(), owner_id uuid, handle text,
+      name text, verified boolean default false, status text default 'pending',
+      created_at timestamptz not null default now()
+    );
+    create table public.events (
+      id uuid primary key default gen_random_uuid(), org_id uuid, title text
+    );
+  `)
+
+  // auth.uid() and is_admin() are stubs the harness can flip.
+  const beUser = (uid) =>
+    db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$ select '${uid}'::uuid $$;
+             create or replace function public.is_admin() returns boolean language sql stable as $$ select false $$;`)
+  const beAdmin = () =>
+    db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$ select '${ME}'::uuid $$;
+             create or replace function public.is_admin() returns boolean language sql stable as $$ select true $$;`)
+
+  await db.exec(`create schema if not exists auth;`)
+  await beUser(ME)
+  await db.exec(migration('org_approval_gate.sql'))
+
+  // 1. Insert claiming approved + verified.
+  await beUser(ME)
+  await db.exec(`insert into public.organizations (owner_id, handle, name, status, verified)
+                 values ('${ME}', '@sneaky', 'Sneaky', 'approved', true)`)
+  let row = (await db.query("select status, verified from public.organizations where handle = '@sneaky'")).rows[0]
+  check('an insert claiming approved lands pending', row.status, 'pending')
+  check('  and claiming the verified seal does not get it', row.verified, false)
+
+  // 2. Update to approve itself.
+  await db.exec("update public.organizations set status = 'approved', verified = true where handle = '@sneaky'")
+  row = (await db.query("select status, verified from public.organizations where handle = '@sneaky'")).rows[0]
+  check('self-approving by update is refused', row.status, 'pending')
+  check('  and so is self-verifying', row.verified, false)
+
+  // 3. An ordinary profile edit still works — the guard preserves, never rejects.
+  await db.exec("update public.organizations set name = 'Sneaky Renamed' where handle = '@sneaky'")
+  row = (await db.query("select name, status from public.organizations where handle = '@sneaky'")).rows[0]
+  check('editing the profile still works', row.name, 'Sneaky Renamed')
+  check('  and does not disturb the status', row.status, 'pending')
+
+  // 4. Cannot hand the org to someone else / claim someone else's.
+  await db.exec(`insert into public.organizations (owner_id, handle, name) values (null, '@seeded', 'Seeded')`)
+  row = (await db.query("select owner_id from public.organizations where handle = '@seeded'")).rows[0]
+  check('an insert is stamped with the real caller, not the claimed one', row.owner_id, ME)
+
+  // 5. An admin still can.
+  await beAdmin()
+  await db.exec("update public.organizations set status = 'approved', verified = true where handle = '@sneaky'")
+  row = (await db.query("select status, verified from public.organizations where handle = '@sneaky'")).rows[0]
+  check('an admin can approve', row.status, 'approved')
+  check('  and can grant the seal', row.verified, true)
+
+  // 6. Events cannot be re-pointed at another org.
+  await beUser(ME)
+  const mine = (await db.query("select id from public.organizations where handle = '@sneaky'")).rows[0].id
+  const other = (await db.query("select id from public.organizations where handle = '@seeded'")).rows[0].id
+  await db.exec(`insert into public.events (org_id, title) values ('${mine}', 'Mine')`)
+  await db.exec(`update public.events set org_id = '${other}' where title = 'Mine'`)
+  const ev = (await db.query("select org_id from public.events where title = 'Mine'")).rows[0]
+  check('an event cannot be re-pointed at another org', ev.org_id, mine)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

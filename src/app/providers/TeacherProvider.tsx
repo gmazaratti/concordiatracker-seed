@@ -801,19 +801,18 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // ── Organizer: admin (invite/approve orgs) ────────────────────────────────
   const approveOrg = useCallback(
     (id: string) => {
-      // A real org you manage → persist the approval (so its events reach the
-      // feed) + refresh. (Dev: the owner self-approves via the admin console;
-      // real admin-only approval is a connection-phase RLS hardening.)
+      /*
+       * NO SELF-APPROVAL. This used to write status/verified straight from
+       * the client for an org you own — which, with the owner_write policy
+       * permitting any column, meant anyone could approve themselves into the
+       * student feed wearing the verified seal. Reproduced with a disposable
+       * account before removing it. The database now refuses it outright
+       * (db/org_approval_gate.sql), so this is the second lock, not the only
+       * one: approval goes through `admin_set_org_status`, which checks
+       * is_admin().
+       */
       if (myOrgs.some((o) => o.id === id)) {
-        setMyOrgs((prev) =>
-          prev.map((o) =>
-            o.id === id ? { ...o, status: 'approved', org: { ...o.org, verified: true } } : o,
-          ),
-        )
-        fireWrite(
-          supabase.from('organizations').update({ status: 'approved', verified: true }).eq('id', id),
-        )
-        refreshCommunity()
+        console.warn('approveOrg: approval is admin-only — use Admin → Portals.')
         return
       }
       setOrgs((prev) =>
@@ -822,7 +821,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         ),
       )
     },
-    [myOrgs, refreshCommunity],
+    [myOrgs],
   )
 
   const createOrgInvite = useCallback(
