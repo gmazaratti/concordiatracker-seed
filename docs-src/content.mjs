@@ -853,6 +853,14 @@ export const PAGES = {
         p: 'One link from Moodle. Not your password — we never ask for one, and Concordia signs you in through its own system anyway.',
       },
 
+      { h2: 'Watch it' },
+      {
+        raw: '<video controls preload="none" playsinline poster="/moodle/setup-poster.jpg" style="width:100%;border-radius:10px;border:1px solid var(--ct-border)"><source src="/moodle/setup.mp4" type="video/mp4">The written steps below cover the same ground.</video>',
+      },
+      {
+        p: 'Twenty-six seconds, no sound, the whole thing end to end. It does not play until you press it — the steps below are the instructions, this is the second opinion.',
+      },
+
       { h2: 'Where to get the link' },
       {
         ol: [
