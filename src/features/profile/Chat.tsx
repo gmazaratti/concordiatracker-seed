@@ -18,7 +18,8 @@ import { supabase } from '@/lib/supabase'
 import { listSchedules, type SavedSchedule } from '@/lib/schedules'
 import { useCommunity } from '@/features/community/useCommunity'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
-import { founderFor } from './founders'
+import { badgeForPerson } from './badges'
+import { useCommunityData } from '@/app/providers/community-data'
 import { CHAT_THEMES, chatTheme } from './chat-themes'
 import {
   listMessages,
@@ -82,7 +83,8 @@ export function Chat({
 
   const theme = chatTheme(uiState.chatThemes?.[friend.user_id])
   const pro = plan !== 'free'
-  const founder = founderFor(friend.handle)
+  const { orgNameByOwner } = useCommunityData()
+  const badge = badgeForPerson(friend.handle, orgNameByOwner[friend.user_id])
 
   useEffect(() => {
     let alive = true
@@ -229,7 +231,7 @@ export function Chat({
             className="flex items-center gap-1 text-[13.5px] font-medium text-fg hover:underline"
           >
             <span className="truncate">{friend.name ?? friend.handle}</span>
-            {founder && <VerifiedBadge size={14} />}
+            {badge && <VerifiedBadge size={14} tone={badge.tone} label={badge.label} />}
           </Link>
           <p className="truncate text-[11.5px] text-subtle">@{friend.handle}</p>
         </div>

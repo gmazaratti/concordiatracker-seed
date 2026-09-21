@@ -12,6 +12,9 @@ export interface CommunityDataValue {
   loading: boolean
   /** org_id keyed by handle — follows persist by org_id, the app speaks handles. */
   orgIdByHandle: Record<string, string>
+  /** user_id -> the name of the approved org they own. Drives the organizer
+   *  badge on a PERSON, which is derived rather than granted. */
+  orgNameByOwner: Record<string, string>
   refresh: () => void
 }
 

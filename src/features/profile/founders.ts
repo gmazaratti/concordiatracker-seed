@@ -17,6 +17,17 @@ export interface FounderProfile {
 }
 
 export const FOUNDERS: Record<string, FounderProfile> = {
+  /* The product's own account. It was missing, so the brand profile was the
+     one unverified account on a site whose whole badge system exists to say
+     which accounts are real. `role` is what shows under the name — for this
+     one "Computer Science" was never true. */
+  concordiatracker: {
+    role: 'Administrator',
+    tagline: 'The team behind ConcordiaTracker. Questions, bugs, ideas — we read all of it.',
+    links: {
+      website: 'https://concordiatracker.com',
+    },
+  },
   alex: {
     role: 'Founder',
     tagline: 'Building ConcordiaTracker so nobody else has to guess what’s due.',

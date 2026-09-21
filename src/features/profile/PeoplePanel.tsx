@@ -28,7 +28,8 @@ import { Avatar, Chat } from './Chat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
 import { ScheduleAccess } from './ScheduleAccess'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
-import { founderFor } from './founders'
+import { badgeForPerson, type Badge } from './badges'
+import { useCommunityData } from '@/app/providers/community-data'
 
 /** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
  *  inside a component body) — the same shape as `usageState` and `splitByTime`. */
@@ -51,16 +52,27 @@ const ago = (iso: string) => shortAgo(iso, Date.now())
  * "sent an attachment" — the point of the line is to say whether the thread
  * needs you, and "an attachment" cannot.
  */
+/** The seal for a person, wherever their handle appears. One component so the
+ *  colour and the label cannot differ between the DM list, the chat header and
+ *  a follow row — which is how the founder ended up verified in one of them
+ *  and not the others. */
+function PersonSeal({ handle, userId, size }: { handle: string; userId: string; size: number }) {
+  const { orgNameByOwner } = useCommunityData()
+  const badge = badgeForPerson(handle, orgNameByOwner[userId])
+  if (!badge) return null
+  return <VerifiedBadge size={size} tone={badge.tone} label={badge.label} />
+}
+
 function ThreadLine({
   friend,
   thread,
   me,
-  verified,
+  badge,
 }: {
   friend: Friend
   thread: Thread | undefined
   me: string
-  verified: boolean
+  badge: Badge | undefined
 }) {
   const unread = thread?.unread ?? 0
   const mine = !!thread?.last_sender && thread.last_sender === me
@@ -77,7 +89,7 @@ function ThreadLine({
           <span className={cn('truncate', unread > 0 && 'font-semibold')}>
             {friend.name ?? friend.handle}
           </span>
-          {verified && <VerifiedBadge size={12} />}
+          {badge && <VerifiedBadge size={12} tone={badge.tone} label={badge.label} />}
         </span>
         <span
           className={cn(
@@ -126,6 +138,7 @@ function ThreadLine({
 type Pill = 'inbox' | 'requests' | 'following'
 
 export function PeoplePanel() {
+  const { orgNameByOwner } = useCommunityData()
   const [params, setParams] = useSearchParams()
   // `?people=requests` so a link can land on the right pill. Read ONCE as an
   // initial value: after that the pills are yours to click and the URL should
@@ -412,7 +425,7 @@ export function PeoplePanel() {
                         friend={f}
                         thread={byOther.get(f.user_id)}
                         me={meId}
-                        verified={!!founderFor(f.handle)}
+                        badge={badgeForPerson(f.handle, orgNameByOwner[f.user_id])}
                       />
                     </button>
                     <PersonMenuButton onOpen={(at) => setMenu(targetFor(f, at))} />
@@ -434,7 +447,7 @@ export function PeoplePanel() {
                 <Avatar friend={active} size={64} />
                 <p className="mt-2.5 flex items-center gap-1 text-[14px] font-medium text-fg">
                   <span className="min-w-0 truncate">{active.name ?? active.handle}</span>
-                  {founderFor(active.handle) && <VerifiedBadge size={14} />}
+                  <PersonSeal handle={active.handle} userId={active.user_id} size={14} />
                 </p>
                 <p className="text-[12px] text-subtle">@{active.handle}</p>
                 {active.program && (
@@ -709,7 +722,7 @@ function PersonRow({
       <Link to={`/@${friend.handle}`} className="group min-w-0 flex-1">
         <span className="flex items-center gap-1 text-[13px] font-medium text-fg group-hover:underline">
           <span className="truncate">{friend.name ?? friend.handle}</span>
-          {founderFor(friend.handle) && <VerifiedBadge size={13} />}
+          <PersonSeal handle={friend.handle} userId={friend.user_id} size={13} />
         </span>
         <span className="block truncate text-[11.5px] text-subtle">
           @{friend.handle}

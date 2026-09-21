@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
 
 const FOCUSABLE =
@@ -128,7 +129,19 @@ export function ModalShell({
     }
   }
 
-  return (
+  /*
+   * PORTALLED TO <body>, and this is a correctness fix rather than tidiness.
+   * A `position: fixed` overlay is positioned against the nearest ancestor
+   * with a transform, filter, backdrop-filter, perspective, contain or
+   * will-change — and this shell is opened from inside a chat bubble, a
+   * Community section and an animated card, all of which have had one.
+   * Measured before the fix: opening an event embed in a DM rendered the
+   * full-screen dim at 589x222, clipped to the bubble, which is why the page
+   * behind looked broken. Chasing each animation is a game you lose the next
+   * time somebody adds one; leaving the tree ends the class of bug.
+   * (Select, DropdownMenu and DateTimePicker already portal for this reason.)
+   */
+  return createPortal(
     <div
       /* A plain dim, no backdrop-blur. Over a dense surface — a chat with an
          event banner in it — a 4px blur reads as a rendering fault rather than
@@ -186,6 +199,7 @@ export function ModalShell({
           children
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

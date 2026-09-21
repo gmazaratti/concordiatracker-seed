@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 
 export interface PublicProfile {
+  /** Needed to tell whether this person owns an organisation — the organizer
+   *  badge is derived from ownership rather than granted. */
+  userId: string
   handle: string
   isPublic: boolean
   name?: string
@@ -38,6 +41,7 @@ export interface PublicBlueprint {
 }
 
 interface ProfileRpcRow {
+  user_id: string
   handle: string
   is_public: boolean
   name: string | null
@@ -101,6 +105,7 @@ export function usePublicProfile(handle: string): PublicProfileState {
         return
       }
       const profile: PublicProfile = {
+        userId: row.user_id,
         handle: row.handle,
         isPublic: row.is_public,
         name: row.name ?? undefined,

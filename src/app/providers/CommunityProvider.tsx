@@ -4,7 +4,9 @@ import { eventFromRow, orgFromRow, optionalCols, type EventRow, type OrgRow } fr
 import { CommunityDataContext, type CommunityDataValue } from './community-data'
 import type { CampusEvent, EventOrg } from '@/data/community'
 
-const ORG_COLS = 'id, handle, name, verified, glyph, color, logo, banner, bio, links'
+// owner_id so a PERSON can be shown as an organizer. Derived, never granted:
+// the badge appears when they own an approved org and goes away by itself.
+const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links'
 const EVENT_COLS =
   'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
 
@@ -15,6 +17,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
   const [orgs, setOrgs] = useState<EventOrg[]>([])
   const [events, setEvents] = useState<CampusEvent[]>([])
   const [orgIdByHandle, setOrgIdByHandle] = useState<Record<string, string>>({})
+  const [orgNameByOwner, setOrgNameByOwner] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(() => {
@@ -38,9 +41,11 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
       if (!active) return
       const orgById = new Map<string, EventOrg>()
       const idByHandle: Record<string, string> = {}
-      for (const row of (orgRows as OrgRow[] | null) ?? []) {
+      const byOwner: Record<string, string> = {}
+      for (const row of (orgRows as (OrgRow & { owner_id?: string | null })[] | null) ?? []) {
         orgById.set(row.id, orgFromRow(row))
         idByHandle[row.handle] = row.id
+        if (row.owner_id) byOwner[row.owner_id] = row.name ?? row.handle
       }
       const evs: CampusEvent[] = []
       for (const row of (evRows as EventRow[] | null) ?? []) {
@@ -51,6 +56,7 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
       setOrgs([...orgById.values()])
       setEvents(evs)
       setOrgIdByHandle(idByHandle)
+      setOrgNameByOwner(byOwner)
       setLoading(false)
     })()
     return () => {
@@ -61,8 +67,8 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => load(), [load])
 
   const value = useMemo<CommunityDataValue>(
-    () => ({ orgs, events, loading, orgIdByHandle, refresh: load }),
-    [orgs, events, loading, orgIdByHandle, load],
+    () => ({ orgs, events, loading, orgIdByHandle, orgNameByOwner, refresh: load }),
+    [orgs, events, loading, orgIdByHandle, orgNameByOwner, load],
   )
 
   return <CommunityDataContext value={value}>{children}</CommunityDataContext>

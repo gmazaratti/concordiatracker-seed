@@ -316,7 +316,19 @@ export function linkHref(kind: keyof ProfileLinks, value: string): string | null
   const v = value.trim()
   if (!v) return null
   const safeUrl = /^https?:\/\//i.test(v) ? v : null
-  const handle = v.replace(/^@/, '').replace(/\/+$/, '')
+  /*
+   * ALL FOUR SHAPES PEOPLE ACTUALLY TYPE: "@alex", "alex",
+   * "https://instagram.com/alex" and — the one that used to break —
+   * "instagram.com/alex" with no protocol, which fell through to the handle
+   * branch and produced instagram.com/instagram.com%2Falex. Strip a leading
+   * host (with or without www) before treating the rest as a handle.
+   */
+  const handle = v
+    .replace(/^@/, '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./i, '')
+    .replace(/^(?:instagram\.com|x\.com|twitter\.com|linkedin\.com\/in|linkedin\.com)\/?/i, '')
+    .replace(/\/+$/, '')
   switch (kind) {
     case 'instagram':
       return safeUrl ?? `https://instagram.com/${encodeURIComponent(handle)}`
@@ -325,7 +337,9 @@ export function linkHref(kind: keyof ProfileLinks, value: string): string | null
     case 'linkedin':
       return safeUrl ?? `https://linkedin.com/in/${encodeURIComponent(handle)}`
     case 'website':
-      return safeUrl ?? `https://${handle.replace(/^\/+/, '')}`
+      // A website is the one field where a bare domain IS the answer, so the
+      // host is kept rather than stripped.
+      return safeUrl ?? `https://${v.replace(/^@/, '').replace(/^https?:\/\//i, '').replace(/^\/+/, '')}`
   }
 }
 

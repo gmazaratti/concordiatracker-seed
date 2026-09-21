@@ -29,9 +29,12 @@ import { TOUR_STEPS } from '@/features/tour/steps'
 import type { Plan } from '@/data/types'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
+import { badgeForPerson } from '@/features/profile/badges'
+import { useCommunityData } from '@/app/providers/community-data'
 
-/** The people who built this — badged "Founder" with a verification seal in
- * the profile block (cosmetic; admin rights are gated separately in the DB). */
+/** The people who built this — badged with a verification seal in the profile
+ * block (cosmetic; admin rights are gated separately in the DB). Kept as
+ * emails because this block has the signed-in user, not a looked-up profile. */
 const FOUNDER_EMAILS = new Set(['alexxdegryse@gmail.com', 'concordiatracker@gmail.com'])
 
 /**
@@ -52,6 +55,18 @@ export function AvatarMenu({
   const bell = useActivityBadge()
   const { openSupport } = useSupport()
   const { showIndicator, openHistory } = useUpdates()
+  /*
+   * Staff comes from the email set above (this block has the signed-in user,
+   * not a fetched profile); organizer is derived from owning an approved org,
+   * so a club president sees "Organizer" without anyone granting it.
+   */
+  const { orgNameByOwner } = useCommunityData()
+  const { session } = useAuth()
+  const badge = FOUNDER_EMAILS.has(user.email.toLowerCase())
+    // By handle, with no fallback: guessing a founder identity when the
+    // handle is missing would put someone else's role on this account.
+    ? badgeForPerson(user.handle)
+    : badgeForPerson(null, session?.user?.id ? orgNameByOwner[session.user.id] : undefined)
   const { isAdmin } = useIsAdmin()
   const { myOrg } = useTeacher()
   const { start } = useTour()
@@ -115,12 +130,16 @@ export function AvatarMenu({
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1">
               <span className="truncate text-[13px] font-medium text-fg">{user.name}</span>
-              {FOUNDER_EMAILS.has(user.email.toLowerCase()) && (
-                <VerifiedBadge size={13} />
-              )}
+              {badge && <VerifiedBadge size={13} tone={badge.tone} label={badge.label} />}
             </span>
-            {FOUNDER_EMAILS.has(user.email.toLowerCase()) ? (
-              <span className="block truncate text-[11px] font-medium text-accent">Founder</span>
+            {/* The role where the plan usually goes. Someone who runs a club
+                reads "Organizer" the same way the founder reads "Founder" —
+                it is the most useful thing to say about that account, and the
+                plan is in Settings. */}
+            {badge ? (
+              <span className="block truncate text-[11px] font-medium text-accent">
+                {badge.role}
+              </span>
             ) : (
               <span className="block truncate text-[11px] text-subtle">
                 {plan === 'free' ? 'Free plan' : 'Semester pass'}

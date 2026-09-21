@@ -1205,7 +1205,15 @@ html[data-reduce-motion] *::after {
   from { opacity: 0; transform: translateY(6px) scale(0.985); }
   to   { opacity: 1; transform: none; }
 }
-.ct-msg-in { animation: ct-msg-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* `backwards`, NEVER `both`. A both-filled animation stays in effect forever
+   after it ends, so this bubble kept a transform — and a transformed element
+   is the containing block for every `position: fixed` DESCENDANT. Opening an
+   event embed inside a message rendered its full-screen overlay at 589x222,
+   clipped to the bubble, which is the "weird dark highlight" a theme made
+   obvious. Same bug as `.ct-section-in`; this one was missed when that was
+   fixed. The end state already equals the element's own styles, so reduced
+   motion is unaffected. */
+.ct-msg-in { animation: ct-msg-in 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
 
 /* The three dots. Deliberately a low-amplitude bob: a typing indicator sits on
    screen for whole seconds at a time and anything livelier becomes a tic. */

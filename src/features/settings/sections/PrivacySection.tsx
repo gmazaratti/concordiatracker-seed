@@ -165,9 +165,9 @@ function PublicProfileSettings() {
 }
 
 const LINK_FIELDS: { key: keyof ProfileLinks; label: string; placeholder: string }[] = [
-  { key: 'instagram', label: 'Instagram', placeholder: '@yourhandle' },
+  { key: 'instagram', label: 'Instagram', placeholder: '@you, you, or a link' },
   { key: 'linkedin', label: 'LinkedIn', placeholder: 'your-name' },
-  { key: 'x', label: 'X', placeholder: '@yourhandle' },
+  { key: 'x', label: 'X', placeholder: '@you, you, or a link' },
   { key: 'website', label: 'Website', placeholder: 'yoursite.com' },
 ]
 

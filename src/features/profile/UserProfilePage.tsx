@@ -11,6 +11,7 @@ import {
   Lock,
   Pencil,
   ShieldCheck,
+  LifeBuoy,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
@@ -34,6 +35,9 @@ import { EditProfileModal } from './EditProfileModal'
 import { ScheduleAccess } from './ScheduleAccess'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
 import { founderFor, type FounderProfile } from './founders'
+import { badgeForPerson } from './badges'
+import { useSupport } from '@/app/providers/support'
+import { useCommunityData } from '@/app/providers/community-data'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SocialLinks, SocialFieldIcon } from '@/features/community/SocialLinks'
 
@@ -141,6 +145,15 @@ export function ProfileView({
   const prog = profile?.programId ? programById(profile.programId) : undefined
   // Only applies to a real, closed set of handles — cosmetic, never a permission.
   const founder = profile?.isPublic ? founderFor(handle) : undefined
+  /*
+   * The seal, and what colour it is. Staff is the closed set above; organizer
+   * is DERIVED from owning an approved org, so it turns up when they are
+   * approved and goes away if the org does — nobody has to remember to
+   * revoke it. See features/profile/badges.ts for why the colours differ.
+   */
+  const { orgNameByOwner } = useCommunityData()
+  const { openSupport } = useSupport()
+  const badge = badgeForPerson(handle, profile ? orgNameByOwner[profile.userId] : undefined)
 
   return (
     <>
@@ -167,9 +180,16 @@ export function ProfileView({
         ) : (
           <>
             {/* Identity header: same language as org profiles. */}
+            {/* SHORTER WHEN IT IS YOUR OWN TAB. On a visitor's profile a tall
+                banner is the point — it is the first thing about that person.
+                In Community -> You it sits under a tab strip you just clicked,
+                and 208px of decoration before your own name reads as the page
+                having failed to load. Measured: it pushed the avatar 174px
+                below the tabs. */}
             <div
               className={cn(
-                'h-40 overflow-hidden rounded-2xl sm:h-52',
+                'overflow-hidden rounded-2xl',
+                embedded ? 'h-24 sm:h-28' : 'h-40 sm:h-52',
                 founder && 'ct-aurora',
               )}
               style={founder ? FOUNDER_BANNER : bannerStyle(handle)}
@@ -187,11 +207,16 @@ export function ProfileView({
                     <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
                       {profile.name}
                     </h1>
-                    {founder && (
+                    {badge && (
                       <>
-                        <VerifiedBadge size={17} className="[filter:drop-shadow(0_0_4px_var(--ct-accent))]" />
+                        <VerifiedBadge
+                          size={17}
+                          tone={badge.tone}
+                          label={badge.label}
+                          className={founder ? '[filter:drop-shadow(0_0_4px_var(--ct-accent))]' : undefined}
+                        />
                         <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
-                          {founder.role}
+                          {badge.role}
                         </span>
                       </>
                     )}
@@ -221,10 +246,29 @@ export function ProfileView({
                       </button>
                     </>
                   ) : viewer === 'other' ? (
-                    <FriendButton
-                      handle={profile.handle}
-                      onMessage={(f) => navigate(`/app/community?c=messages&chat=${f.handle}`)}
-                    />
+                    <>
+                      <FriendButton
+                        handle={profile.handle}
+                        onMessage={(f) => navigate(`/app/community?c=messages&chat=${f.handle}`)}
+                      />
+                      {/* ONLY ON THE SUPPORT ACCOUNT. Somebody who lands on
+                          the brand profile with a problem should not have to
+                          discover that support lives behind the avatar menu —
+                          and "message us" would put a real question into a DM
+                          thread with no case number and no queue. This opens
+                          the ticket form, which is the thing that gets
+                          answered. */}
+                      {badge?.kind === 'staff' && (
+                        <button
+                          type="button"
+                          onClick={() => openSupport()}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-fg transition-colors duration-150 hover:border-accent active:scale-95"
+                        >
+                          <LifeBuoy size={13} className="text-accent" aria-hidden />
+                          Need help?
+                        </button>
+                      )}
+                    </>
                   ) : null}
                 </div>
                 {founder?.tagline && (
