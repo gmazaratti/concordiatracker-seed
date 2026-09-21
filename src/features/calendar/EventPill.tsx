@@ -24,10 +24,13 @@ export function EventPill({
   item,
   course,
   className,
+  dotOnly = false,
 }: {
   item: CalendarItem
   course?: Course
   className?: string
+  /** Narrow month cells: the marker only, with the title for screen readers. */
+  dotOnly?: boolean
 }) {
   const overdue = isOverdue(item)
 
@@ -53,6 +56,26 @@ export function EventPill({
     const Icon = ACADEMIC_META[item.event.kind].icon
     dot = <Icon size={11} className="shrink-0 text-info" aria-hidden />
     label = item.event.title
+  }
+
+  /*
+    A MONTH CELL ON A PHONE IS ~46px WIDE. A label truncated into it reads
+    "L…", "Q…", "A…" — one letter and an ellipsis, which tells you nothing at
+    all and still costs the row its height. The dot alone says the one thing
+    that fits: something is on this day, and roughly what kind. The title is
+    a tap away in the day sheet, and stays available to assistive tech here.
+  */
+  if (dotOnly) {
+    return (
+      <span className="inline-flex" title={label}>
+        {overdue ? (
+          <span className="size-1.5 shrink-0 rounded-full bg-danger" aria-hidden />
+        ) : (
+          dot
+        )}
+        <span className="sr-only">{label}</span>
+      </span>
+    )
   }
 
   return (

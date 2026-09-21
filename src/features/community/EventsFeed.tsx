@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   CalendarRange,
+  GraduationCap,
   LayoutGrid,
   Rows3,
   type LucideIcon,
@@ -87,25 +88,33 @@ export function EventsFeed() {
           </Chip>
         ))}
 
-        <div className="flex items-center gap-1.5 sm:ml-auto">
-          {user.program && (
-            <button
-              type="button"
-              onClick={() => setForYou((v) => !v)}
-              aria-pressed={forYou}
-              className={cn(
-                'rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-[transform,background-color,border-color,color] duration-150 active:scale-95',
-                forYou
-                  ? 'border-accent bg-accent-soft text-fg'
-                  : 'border-border bg-surface text-muted hover:text-fg',
-              )}
-            >
-              For my program
-            </button>
-          )}
+      </FilterBar>
+
+      {/* Second line, because these are not categories. "For my program" was
+          the only chip without an icon, so it was also the only one that wrapped
+          to two lines when the row got tight — and the view toggle was never a
+          filter at all. */}
+      <div className="mb-4 flex items-center gap-1.5">
+        {user.program && (
+          <button
+            type="button"
+            onClick={() => setForYou((v) => !v)}
+            aria-pressed={forYou}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium whitespace-nowrap transition-[transform,background-color,border-color,color] duration-150 active:scale-95',
+              forYou
+                ? 'border-accent bg-accent-soft text-fg'
+                : 'border-border bg-surface text-muted hover:text-fg',
+            )}
+          >
+            <GraduationCap size={13} aria-hidden />
+            For my program
+          </button>
+        )}
+        <div className="ml-auto">
           <ViewToggle view={communityView} onChange={setCommunityView} />
         </div>
-      </FilterBar>
+      </div>
 
       <AnimatedEventList
         key={communityView}
@@ -161,6 +170,7 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
+      aria-label={typeof children === 'string' ? children : undefined}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-[transform,background-color,border-color,color] duration-150 active:scale-95',
         active
@@ -169,7 +179,16 @@ function Chip({
       )}
     >
       {Icon && <Icon size={13} style={{ color }} aria-hidden />}
-      {children}
+      {/*
+        THE LABEL COLLAPSES ON A PHONE UNLESS IT IS THE ONE IN EFFECT.
+        Six labelled chips are ~490px of content in 343px of screen, which is
+        why this row used to scroll sideways — and a filter you have to swipe
+        to discover is barely better than the disclosure it replaced. Icons
+        alone are ~280px and fit, and the chip that is actually doing
+        something still says so in words. `aria-label` carries the name at
+        every size, so nothing is lost to anyone reading it aloud.
+      */}
+      <span className={cn(Icon && !active && 'hidden sm:inline')}>{children}</span>
     </button>
   )
 }
@@ -235,40 +254,18 @@ function EmptyState({ forYou }: { forYou: boolean }) {
   )
 }
 
-/**
- * The filter row: one line that scrolls sideways on a phone, wrapping above sm.
- */
+/** The category row. Wraps if it ever has to; at six chips it does not. */
 function FilterBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-4">
       {/*
-        Always visible, and it scrolls sideways on a phone.
-        These used to hide behind a "Filters" disclosure below sm, because six
-        chips plus two controls wrapped to three rows and pushed the first event
-        most of a screen down. Hiding them was the wrong half of that trade:
-        "what is on this weekend" is the question this tab exists to answer, and
-        a filter nobody can see is a filter nobody uses.
-
-        One scrolling row solves both — full height back for the events, and the
-        categories in the place every app a student uses puts them. The edges
-        fade rather than being cut, so it is obvious there is more sideways.
+        EVERY FILTER VISIBLE, IN ONE ROW, WITH NO SWIPING.
+        Third attempt at this. It hid behind a "Filters" disclosure (nobody
+        found them), then scrolled sideways (you had to swipe to learn the
+        options existed). The width was always the real constraint, so the
+        labels give way instead of the options: see the note in `Chip`.
       */}
-      <div className="relative -mx-4 sm:mx-0">
-        <div
-          className={cn(
-            'flex items-center gap-1.5 overflow-x-auto px-4 pb-1 sm:flex-wrap sm:overflow-visible sm:px-0',
-            // Chrome only; the scrollbar itself would be a second horizontal
-            // line under a row that is already one line tall.
-            '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-          )}
-        >
-          {children}
-        </div>
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-canvas to-transparent sm:hidden"
-          aria-hidden
-        />
-      </div>
+      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
   )
 }

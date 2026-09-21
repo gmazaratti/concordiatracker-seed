@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useVisualViewport } from '@/app/hooks/useVisualViewport'
 import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { useCommandPalette } from '@/app/providers/command-palette'
@@ -110,16 +111,35 @@ function CommandPaletteDialog() {
         items: indexed(results).filter((r) => r.cmd.group === label),
       })).filter((s) => s.items.length)
 
+  const vv = useVisualViewport(true)
+
+  // `sm` is 640px in this project's Tailwind config; the inline height must
+  // only ever apply where the keyboard actually overlays the page.
+  const mobile = vv.height > 0 && window.innerWidth < 640
+
   return (
+    /*
+      SIZED TO THE VISIBLE AREA, not to `inset-0`.
+      On a phone the software keyboard does not shrink the layout viewport —
+      on iOS it does not even shrink `100dvh` — so a panel anchored to the
+      bottom of `inset-0` renders UNDERNEATH the keyboard. That produced both
+      halves of the reported bug from one cause: with few results the panel sat
+      below the keyboard and only appeared after dismissing it, and with many
+      results `max-h-[70vh]` measured 70% of a viewport taller than the one you
+      can see, so the list ran off the screen. Pinning to `visualViewport` fixes
+      both, because the box now ends where the keyboard begins.
+      Desktop is untouched: the inline height only applies under `sm`.
+    */
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm sm:items-start sm:p-4 sm:pt-[12vh] sm:pb-4"
+      style={mobile ? { top: vv.offsetTop, height: vv.height } : undefined}
+      className="ct-animate-fade fixed inset-x-0 z-50 flex items-end justify-center bg-black/55 p-0 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm max-sm:bottom-auto sm:inset-0 sm:items-start sm:p-4 sm:pt-[12vh] sm:pb-4"
       onMouseDown={closePalette}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="ct-animate-pop flex max-h-[70vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl sm:max-w-xl sm:rounded-2xl"
+        className="ct-animate-pop flex max-h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl sm:max-h-[70vh] sm:max-w-xl sm:rounded-2xl"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
@@ -150,7 +170,7 @@ function CommandPaletteDialog() {
           id="command-list"
           role="listbox"
           aria-label="Commands"
-          className="overflow-y-auto py-2"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2"
         >
           {results.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">

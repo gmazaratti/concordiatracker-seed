@@ -345,7 +345,11 @@ export function PeoplePanel() {
                 have one means the list jumps the first time somebody writes
                 to you, and its absence reads as a panel that has not finished
                 loading rather than one with nothing in it. */}
-            <div className="sticky top-0 z-10 border-b border-border bg-surface/95 p-2 backdrop-blur-sm">
+            {/* No panel behind it on a phone. The list there is plain page flow, so a
+    full-width sticky band with square corners read as a stray block behind
+    the rounded field. In the desktop two-pane layout it IS a panel header,
+    and keeps its background. */}
+            <div className="sticky top-0 z-10 p-2 lg:border-b lg:border-border lg:bg-surface/95 lg:backdrop-blur-sm">
                 <div className="relative">
                   <Search
                     size={14}
