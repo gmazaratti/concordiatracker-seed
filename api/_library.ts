@@ -18,6 +18,15 @@
  * it. Printing "0 people" there would be a confident lie about a building you
  * might walk to. Anything without a recent reading is returned as `null` with
  * its age, and the widget says it does not know.
+ *
+ * AND THE SECOND ONE: the count is a NET TALLY across the gates, and over a
+ * day it records marginally more exits than entries — somebody walks out of a
+ * door that was not counting when they came in. So once the building empties
+ * overnight it settles slightly BELOW zero. Measured at 01:05 Montreal:
+ * Webster "-47.0000", Vanier "-3.0000". There is no such thing as minus
+ * forty-seven people, and rendering it was the bug. A non-positive count
+ * means the room is empty, so it is clamped to zero and flagged — the widget
+ * says "Empty" rather than printing a number the sensor did not really give.
  */
 import { fail } from './_respond.js'
 
@@ -31,8 +40,12 @@ const FUTURE_SLACK = 60
 export interface LibraryOccupancy {
   id: string
   name: string
-  /** People counted, or null when there is no usable reading. */
+  /** People counted, or null when there is no usable reading. Never negative:
+   *  see the note above about the tally drifting below zero when empty. */
   people: number | null
+  /** The reading was fresh and non-positive — nobody is in there. Distinct
+   *  from `people === null`, which means we do not know. */
+  empty: boolean
   /** ISO timestamp of the reading, or null when there has never been one. */
   at: string | null
   /** Minutes since the reading. Null alongside a null `at`. */
@@ -129,10 +142,13 @@ export async function libraryHandler(_req: any, res: any) {
       // skew, it is a timestamp we have misread.
       const stale = ageMinutes === null || ageMinutes > STALE_MINUTES || ageMinutes < -FUTURE_SLACK
       const count = Number(v?.Occupancy)
+      const usable = !stale && Number.isFinite(count)
+      const rounded = usable ? Math.round(count) : null
       return {
         id,
         name: NAMES[id] ?? id,
-        people: stale || !Number.isFinite(count) ? null : Math.round(count),
+        people: rounded === null ? null : Math.max(0, rounded),
+        empty: rounded !== null && rounded <= 0,
         at: at ? at.toISOString() : null,
         ageMinutes,
         stale,

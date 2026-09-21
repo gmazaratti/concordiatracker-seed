@@ -24,6 +24,8 @@ interface Row {
   id: string
   name: string
   people: number | null
+  /** Fresh reading, nobody there. Rendered as a word, not a zero. */
+  empty?: boolean
   ageMinutes: number | null
   stale: boolean
 }
@@ -42,7 +44,7 @@ const ROUGH_CAPACITY: Record<string, number> = { Webster: 900, Vanier: 350, Grey
 const ROTATE_MS = 10_000
 
 const CAVEAT =
-  'People counted through the gates, from Concordia’s own sensors, updated every few minutes. The bar is a rough sense of how busy it is, not a count of free seats.'
+  'People counted through the gates, from Concordia’s own sensors, updated every few minutes. The bar is a rough sense of how busy it is, not a count of free seats. The gates count net arrivals, so the tally drifts a little either side of zero once a building empties.'
 
 export function LibraryWidget({ zone }: { zone: WidgetZone }) {
   const [rows, setRows] = useState<Row[] | null>(null)
@@ -140,6 +142,10 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
         {visible.map((r) => {
           const cap = ROUGH_CAPACITY[r.id] ?? 500
           const pct = r.people === null ? 0 : Math.min(100, Math.round((r.people / cap) * 100))
+          // "Empty" beats "0". The sensor's tally drifts a little below zero
+          // overnight, so the honest reading of a non-positive count is that
+          // the room is empty, not that exactly nobody is inside.
+          const value = r.people === null ? '—' : r.empty ? 'Empty' : String(r.people)
           return (
             // Keyed by the branch so a rotation swaps the whole row and the
             // fade plays, rather than the numbers changing in place.
@@ -152,7 +158,7 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
                     r.people === null ? 'text-subtle' : 'text-fg',
                   )}
                 >
-                  {r.people === null ? '—' : r.people}
+                  {value}
                 </span>
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
@@ -167,7 +173,10 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
                           ? 'bg-accent'
                           : 'bg-success',
                   )}
-                  style={{ width: `${r.people === null ? 0 : Math.max(pct, 3)}%` }}
+                  // No sliver for an empty room: a 3% minimum exists so a
+                  // handful of people is still visible, and it read as "a few
+                  // are in" next to a count that said otherwise.
+                  style={{ width: `${r.people === null || r.empty ? 0 : Math.max(pct, 3)}%` }}
                 />
               </div>
               <p className="mt-0.5 text-[10.5px] text-subtle">
