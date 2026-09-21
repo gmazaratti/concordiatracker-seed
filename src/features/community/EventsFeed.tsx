@@ -6,6 +6,7 @@ import {
   Rows3,
   type LucideIcon,
 } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { isRelevantTo, type EventCategory } from '@/data/community'
@@ -72,46 +73,85 @@ export function EventsFeed() {
           sit in this component AND again in the page header above it, which is
           how one screen ended up with two search fields and two bells. They
           belong to the section, not to the feed; the feed owns filtering. */}
-      <FilterBar>
-        <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
-          All
-        </Chip>
-        {CATEGORY_ORDER.map((c) => (
-          <Chip
-            key={c}
-            active={filter === c}
-            onClick={() => setFilter(c)}
-            icon={CATEGORY_META[c].icon}
-            color={CATEGORY_META[c].hex}
-          >
-            {CATEGORY_META[c].label}
-          </Chip>
-        ))}
-
-      </FilterBar>
-
-      {/* Second line, because these are not categories. "For my program" was
-          the only chip without an icon, so it was also the only one that wrapped
-          to two lines when the row got tight — and the view toggle was never a
-          filter at all. */}
+      {/*
+        ONE ROW, ALWAYS. Categories, the programme filter and the layout
+        toggle used to be two rows — "For my program" was pushed onto its own
+        line by the wrap, and the toggle went with it, which made a control
+        that has nothing to do with filtering look like the last filter.
+      */}
       <div className="mb-4 flex items-center gap-1.5">
+        {/*
+          MOBILE: ONE DROPDOWN, NOT SIX CHIPS.
+          Six chips do not fit 343px, and the two previous attempts at that
+          were both worse than this: a sideways-scrolling strip hides the
+          options behind a gesture nobody knows to make, and wrapping pushes
+          everything else onto a second line. A dropdown shows the whole list
+          in one tap, costs one line, and says which filter is on.
+        */}
+        <div className="sm:hidden">
+          <Select
+            size="sm"
+            tone="control"
+            ariaLabel="Filter events by category"
+            value={filter}
+            onChange={(v) => setFilter(v as CatFilter)}
+            options={[
+              { value: 'all', label: 'All events' },
+              ...CATEGORY_ORDER.map((c) => ({ value: c, label: CATEGORY_META[c].label })),
+            ]}
+          />
+        </div>
+
+        {/* Desktop keeps the chips: they fit, and seeing every option at once
+            beats a dropdown when there is room for it. */}
+        <div className="hidden items-center gap-1.5 sm:flex">
+          <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
+            All
+          </Chip>
+          {CATEGORY_ORDER.map((c) => (
+            <Chip
+              key={c}
+              active={filter === c}
+              onClick={() => setFilter(c)}
+              icon={CATEGORY_META[c].icon}
+              color={CATEGORY_META[c].hex}
+            >
+              {CATEGORY_META[c].label}
+            </Chip>
+          ))}
+        </div>
+
+        {/* Not a category, so it sits after them rather than among them — but
+            on the same line.
+            ICON-ONLY UNTIL THERE IS GENUINELY ROOM. Measured: once the rail
+            appears at xl the content column is ~642–700px, and six labelled
+            chips are already 489 of it — with the words here the layout
+            toggle overflowed the column by 61px at 1280. The categories keep
+            their labels (that is the part worth reading); this one has a
+            tooltip and an aria-label until 2xl, where it fits. */}
         {user.program && (
           <button
             type="button"
             onClick={() => setForYou((v) => !v)}
             aria-pressed={forYou}
+            aria-label="For my program"
+            title="For my program"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium whitespace-nowrap transition-[transform,background-color,border-color,color] duration-150 active:scale-95',
+              'inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-[transform,background-color,border-color,color] duration-150 active:scale-95 sm:py-1',
               forYou
                 ? 'border-accent bg-accent-soft text-fg'
                 : 'border-border bg-surface text-muted hover:text-fg',
             )}
           >
             <GraduationCap size={13} aria-hidden />
-            For my program
+            <span className="hidden 2xl:inline">My program</span>
           </button>
         )}
-        <div className="ml-auto">
+
+        {/* Always visible, always here. It was previously only reachable on
+            the second row, which is also where it stopped looking like a
+            layout control. */}
+        <div className="ml-auto shrink-0">
           <ViewToggle view={communityView} onChange={setCommunityView} />
         </div>
       </div>
@@ -250,22 +290,6 @@ function EmptyState({ forYou }: { forYou: boolean }) {
           ? 'Try clearing the “For my program” filter to see everything coming up.'
           : 'No events match this filter right now. New events show up here as orgs post them.'}
       </p>
-    </div>
-  )
-}
-
-/** The category row. Wraps if it ever has to; at six chips it does not. */
-function FilterBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mb-4">
-      {/*
-        EVERY FILTER VISIBLE, IN ONE ROW, WITH NO SWIPING.
-        Third attempt at this. It hid behind a "Filters" disclosure (nobody
-        found them), then scrolled sideways (you had to swipe to learn the
-        options existed). The width was always the real constraint, so the
-        labels give way instead of the options: see the note in `Chip`.
-      */}
-      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
   )
 }
