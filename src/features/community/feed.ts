@@ -37,38 +37,3 @@ export function suggestOrgs(
     .sort((a, b) => (upcoming.get(b.handle) ?? 0) - (upcoming.get(a.handle) ?? 0))
     .slice(0, limit)
 }
-
-/**
- * The feed itself: what the orgs have posted lately.
- *
- * Ordered by WHEN IT WAS POSTED, not when it happens — that is the difference
- * between a feed and a calendar, and the calendar already exists two tabs over.
- * Orgs you follow come first, because following something and then not seeing
- * it is the one outcome that makes the button pointless; everything else
- * follows underneath so the feed is never empty for a new account.
- *
- * A recurring night appears once. Four copies of the same party is what a feed
- * looks like when nobody thought about it.
- */
-export function feedPosts(
-  events: CampusEvent[],
-  isFollowing: (handle: string) => boolean,
-  limit = 12,
-): { event: CampusEvent; followed: boolean }[] {
-  const now = Date.now()
-  const seen = new Set<string>()
-  return events
-    .filter((e) => new Date(e.start).getTime() >= now)
-    .filter((e) => {
-      if (!e.seriesId) return true
-      if (seen.has(e.seriesId)) return false
-      seen.add(e.seriesId)
-      return true
-    })
-    .map((e) => ({ event: e, followed: isFollowing(e.org.handle) }))
-    .sort((a, b) => {
-      if (a.followed !== b.followed) return a.followed ? -1 : 1
-      return a.event.postedDaysAgo - b.event.postedDaysAgo
-    })
-    .slice(0, limit)
-}
