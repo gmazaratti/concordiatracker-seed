@@ -36,6 +36,21 @@ export interface UserVisit {
   device: string | null
   source: string
   first_path: string | null
+  /** Every page of the session, in the order they were first opened. */
+  pages?: { path: string; views: number; at: string }[]
+}
+
+/** One of a user's courses, with how it got there. */
+export interface UserCourse {
+  id: string
+  code: string
+  name: string
+  term: string | null
+  credits: number | null
+  archived: boolean
+  assessments: number
+  /** null = added before we recorded it. Shown as "not recorded", never guessed. */
+  source: string | null
 }
 
 export interface AuditEntry {
@@ -111,6 +126,12 @@ export async function userVisits(userId: string, limit = 50): Promise<UserVisit[
   const { data, error } = await supabase.rpc('admin_user_visits', { p_user: userId, p_limit: limit })
   if (error) throw error
   return (data ?? []) as UserVisit[]
+}
+
+export async function userCourses(userId: string): Promise<UserCourse[]> {
+  const { data, error } = await supabase.rpc('admin_user_courses', { p_user: userId })
+  if (error) throw error
+  return (data ?? []) as UserCourse[]
 }
 
 export async function userAudit(userId: string): Promise<AuditEntry[]> {

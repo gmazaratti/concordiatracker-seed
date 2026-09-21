@@ -18,7 +18,7 @@ export function AddCourseChooser({ onClose }: { onClose: () => void }) {
     navigate(path)
   }
   async function createManually() {
-    const id = await createCourse()
+    const id = await createCourse({ source: 'manual' })
     onClose()
     if (id) navigate(`/app/courses/${id}`)
   }

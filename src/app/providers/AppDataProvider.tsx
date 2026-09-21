@@ -415,11 +415,19 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       term?: string
       /** Omitted means registered — see the note on Course.enrollment. */
       enrollment?: Course['enrollment']
+      /**
+       * HOW it was added, recorded rather than inferred. `origin: 'manual'`
+       * is stamped on every path, so it cannot tell a catalogue pick from a
+       * typed code — which is exactly the wrong answer the admin panel was
+       * about to show. Every caller passes this; an omitted one stays null
+       * and reads as "not recorded" rather than as a guess.
+       */
+      source?: 'catalogue' | 'manual' | 'blueprint' | 'outline' | 'moodle' | 'syllabus'
     }) => {
       if (!authUser) return ''
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
-      const { data } = await supabase
+      let { data } = await supabase
         .from('courses')
         .insert({
           user_id: authUser.id,
@@ -438,9 +446,35 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           syllabus_url: '',
           origin: 'manual',
           enrollment: init?.enrollment ?? null,
+          source: init?.source ?? null,
         })
         .select('*')
         .maybeSingle()
+      // The source column may not be migrated yet; the course matters more
+      // than knowing where it came from, so retry without it.
+      if (!data && init?.source) {
+        const retry = await supabase
+          .from('courses')
+          .insert({
+            user_id: authUser.id,
+            code: init?.code ?? '',
+            name: init?.title ?? '',
+            term: init?.term ?? term.name,
+            credits: init?.credits ?? 3,
+            color,
+            section: init?.section ?? '',
+            professor: '',
+            prof_email: '',
+            location: '',
+            time: '',
+            syllabus_url: '',
+            origin: 'manual',
+            enrollment: init?.enrollment ?? null,
+          })
+          .select('*')
+          .maybeSingle()
+        if (retry.data) data = retry.data
+      }
       if (!data) return ''
       const course = courseFromRow(data as CourseRow)
       updateCourses((list) => [...list, course])

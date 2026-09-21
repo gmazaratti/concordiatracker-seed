@@ -187,14 +187,17 @@ export function Stat({
   value,
   hint,
   tone,
+  onClick,
 }: {
   label: string
   value: string
   hint?: string
   tone?: 'good' | 'warn' | 'bad'
+  /** Makes the card a button — for a number that has something behind it. */
+  onClick?: () => void
 }) {
-  return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-2.5">
+  const inner = (
+    <>
       <p
         className={cn(
           'font-display text-[19px] leading-tight font-semibold tabular-nums',
@@ -205,6 +208,18 @@ export function Stat({
       </p>
       <p className="mt-0.5 text-[11px] tracking-wide text-subtle uppercase">{label}</p>
       {hint && <p className="mt-0.5 text-[11px] leading-snug text-subtle">{hint}</p>}
-    </div>
+    </>
   )
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent"
+      >
+        {inner}
+      </button>
+    )
+  }
+  return <div className="rounded-lg border border-border bg-surface px-3 py-2.5">{inner}</div>
 }

@@ -82,7 +82,7 @@ export function AddCourses({
 
   const importBlueprint = async (code: string, name: string, bp: Blueprint) => {
     if (enrolled(code)) return record({ code, count: 0, already: true })
-    const id = await createCourse({ code, title: name })
+    const id = await createCourse({ source: 'catalogue', code, title: name })
     if (!id) return
     const items = rebaseUpcoming(blueprintToAssessments(bp)).map((a) => ({
       ...a,
@@ -96,7 +96,7 @@ export function AddCourses({
   /** Add a catalogue course with no outline behind it. */
   const addEmpty = async (code: string, name: string) => {
     if (enrolled(code)) return record({ code, count: 0, already: true })
-    const id = await createCourse({ code, title: name })
+    const id = await createCourse({ source: 'catalogue', code, title: name })
     if (!id) return
     record({ code, count: 0 })
   }
@@ -119,7 +119,7 @@ export function AddCourses({
         onBack={() => setMode('choose')}
         onAdd={async (code, name) => {
           if (enrolled(code)) return record({ code, count: 0, already: true })
-          await createCourse({ code, title: name })
+          await createCourse({ source: 'catalogue', code, title: name })
           record({ code, count: 0 })
         }}
       />

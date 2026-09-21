@@ -250,7 +250,7 @@ export function SyllabusUploadPage({
       return
     }
 
-    const id = await createCourse({
+    const id = await createCourse({ source: 'syllabus',
       code: course.code.trim(),
       title: course.title.trim(),
       section: course.section.trim(),

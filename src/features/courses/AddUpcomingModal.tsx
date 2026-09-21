@@ -69,7 +69,7 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
   async function add() {
     if (!chosen || !term || saving) return
     setSaving(true)
-    const id = await createCourse({
+    const id = await createCourse({ source: 'catalogue',
       code: `${chosen.subject} ${chosen.catalog}`,
       title: chosen.title,
       // The calendar's own credit value, not an assumed 3. COMP 248 is 3.5, and
@@ -93,7 +93,7 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
     if (!code) return
     setSaving(true)
     const credits = Number(manual.credits)
-    const id = await createCourse({
+    const id = await createCourse({ source: 'catalogue',
       code,
       title: manual.title.trim(),
       credits: Number.isFinite(credits) && credits > 0 ? credits : 3,

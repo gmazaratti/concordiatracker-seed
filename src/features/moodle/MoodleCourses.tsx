@@ -81,7 +81,7 @@ export function MoodleCourses({ tasks }: { tasks: CalendarTask[] }) {
     for (const h of missing) {
       if (!picked.has(h.code)) continue
       const cat = catalog[h.code]
-      const id = await createCourse({
+      const id = await createCourse({ source: 'moodle',
         term: h.termCode ? termLabel(h.termCode) : undefined,
       })
       if (!id) continue

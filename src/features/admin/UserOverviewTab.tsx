@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -10,9 +10,80 @@ import {
   when,
   type AuditEntry,
   type UserSummary,
+  userCourses,
+  type UserCourse,
 } from './user-detail-data'
 import { Stat } from './admin-ui'
+import { ModalShell } from '@/command/ModalShell'
+import { cn } from '@/lib/cn'
 import { UserMessagePanel } from './UserMessagePanel'
+
+const SOURCE_LABEL: Record<string, string> = {
+  catalogue: 'Concordia catalogue',
+  manual: 'Typed in',
+  blueprint: 'Blueprint import',
+  outline: 'Verified outline',
+  moodle: 'From Moodle',
+  syllabus: 'Uploaded a syllabus',
+}
+
+/** Their courses, and how each one got there. */
+function CoursesPanel({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const [rows, setRows] = useState<UserCourse[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void userCourses(userId)
+      .then((r) => alive && setRows(r))
+      .catch(() => alive && setFailed(true))
+    return () => {
+      alive = false
+    }
+  }, [userId])
+
+  return (
+    <ModalShell label="Courses" onClose={onClose} widthClass="sm:max-w-lg">
+      <div className="p-4 sm:p-5">
+        <h2 className="font-display text-[17px] font-medium text-fg">Courses</h2>
+        {failed ? (
+          <p className="mt-3 text-[13px] text-danger">Could not load them. Try again.</p>
+        ) : !rows ? (
+          <p className="mt-3 text-[13px] text-subtle">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="mt-3 text-[13px] text-subtle">No courses on this account.</p>
+        ) : (
+          <ul className="mt-3 flex flex-col divide-y divide-border">
+            {rows.map((c) => (
+              <li key={c.id} className="flex items-baseline gap-2 py-2">
+                <span className="w-[86px] shrink-0 font-mono text-[12px] text-fg">{c.code}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] text-muted">{c.name || '—'}</span>
+                  <span className="block text-[11px] text-subtle">
+                    {c.term ?? 'no term'} · {c.assessments} assessment{c.assessments === 1 ? '' : 's'}
+                    {c.archived && ' · archived'}
+                  </span>
+                </span>
+                {/* Null is shown as "not recorded" rather than guessed — the
+                    inference this replaced labelled every catalogue pick
+                    "manual", which is the kind of confident wrong answer that
+                    makes a panel worse than no panel. */}
+                <span
+                  className={cn(
+                    'shrink-0 rounded px-1.5 py-0.5 text-[10.5px]',
+                    c.source ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-subtle',
+                  )}
+                >
+                  {c.source ? (SOURCE_LABEL[c.source] ?? c.source) : 'Not recorded'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </ModalShell>
+  )
+}
 
 const DURATIONS = [
   { value: '1', label: '1 month' },
@@ -54,6 +125,7 @@ export function OverviewTab({
   const [months, setMonths] = useState('3')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [showCourses, setShowCourses] = useState(false)
   const isPro = user.plan_status === 'pro'
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -78,7 +150,16 @@ export function OverviewTab({
         <Stat label="Total time" value={s ? duration(s.total_seconds) : '—'} />
         <Stat label="Avg visit" value={s ? duration(s.avg_seconds) : '—'} />
         <Stat label="Page views" value={s ? String(s.page_views) : '—'} />
-        <Stat label="Courses" value={String(user.course_count)} />
+        {/* A number with something behind it. "12 courses" tells you nothing
+            you can act on; WHICH classes and HOW they were added is the
+            difference between a student who uploaded a syllabus and one who
+            imported somebody else's outline. */}
+        <Stat
+          label="Courses"
+          value={String(user.course_count)}
+          hint={user.course_count > 0 ? 'Tap to see them' : undefined}
+          onClick={user.course_count > 0 ? () => setShowCourses(true) : undefined}
+        />
         <Stat label="Assignments" value={String(user.assignment_count)} />
         <Stat label="Syllabus parses" value={s ? String(s.parses) : '—'} />
         <Stat label="Tickets" value={s ? String(s.tickets) : '—'} />
@@ -214,6 +295,8 @@ export function OverviewTab({
           </p>
         </div>
       )}
+
+      {showCourses && <CoursesPanel userId={user.user_id} onClose={() => setShowCourses(false)} />}
     </div>
   )
 }

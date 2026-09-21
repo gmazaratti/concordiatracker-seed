@@ -133,6 +133,9 @@ export interface AppDataContextValue {
     term?: string
     /** Omitted means registered — see the note on Course.enrollment. */
     enrollment?: Course['enrollment']
+    /** How it was added — recorded, because origin cannot tell a catalogue
+     *  pick from a typed code. Null reads as "not recorded". */
+    source?: 'catalogue' | 'manual' | 'blueprint' | 'outline' | 'moodle' | 'syllabus'
   }) => Promise<string>
   /** Delete a course and all its assessments (the Courses card "Delete" action). */
   removeCourse: (id: string) => void

@@ -60,10 +60,29 @@ export function VisitsTab({
                     )}
                     {when(v.started_at)}
                   </span>
-                  {v.first_path && (
-                    <span className="mt-0.5 block truncate font-mono text-[11px] text-subtle">
-                      {v.first_path}
+                  {/* EVERY PAGE, not just the landing one. The journey was
+                      already in site_events and only the first row was read,
+                      so every session read "/app" and looked like we track
+                      nothing. In first-opened order, because the sequence is
+                      the interesting part. */}
+                  {v.pages && v.pages.length > 0 ? (
+                    <span className="mt-1 flex flex-wrap gap-1">
+                      {v.pages.map((p) => (
+                        <span
+                          key={p.path}
+                          className="inline-flex items-center gap-1 rounded bg-surface-2/70 px-1.5 py-0.5 font-mono text-[10.5px] text-subtle"
+                        >
+                          {p.path}
+                          {p.views > 1 && <span className="text-[9.5px] text-muted">×{p.views}</span>}
+                        </span>
+                      ))}
                     </span>
+                  ) : (
+                    v.first_path && (
+                      <span className="mt-0.5 block truncate font-mono text-[11px] text-subtle">
+                        {v.first_path}
+                      </span>
+                    )
                   )}
                 </td>
                 <td className="px-3 py-2 tabular-nums text-muted">{duration(v.seconds)}</td>

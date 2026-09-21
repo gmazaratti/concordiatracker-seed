@@ -99,7 +99,7 @@ export function BlueprintBrowserPage() {
       navigate(`/app/courses/${existing.id}`)
       return
     }
-    const id = await createCourse({
+    const id = await createCourse({ source: 'blueprint',
       code,
       title: c.title,
       credits: c.class_unit ?? undefined,
@@ -120,7 +120,7 @@ export function BlueprintBrowserPage() {
       setParams({ course: mine.id })
       return
     }
-    const id = await createCourse({ code: o.code, title: o.courseName })
+    const id = await createCourse({ source: 'blueprint', code: o.code, title: o.courseName })
     if (id) {
       setTyped('')
       setParams({ course: id })
