@@ -22,7 +22,9 @@ import {
   courseFromRow,
   courseToRow,
   taskFromRow,
+  taskPatchToRow,
   taskToInsert,
+  type NewTask,
   type AssignmentRow,
   type CourseRow,
   type TodoRow,
@@ -38,6 +40,20 @@ import type {
   Course,
   Grade,
 } from '@/data/types'
+
+/**
+ * "That column does not exist yet" — for an INSERT.
+ *
+ * MEASURED, not guessed: PostgREST refuses an unknown column from its own
+ * schema cache with **PGRST204**, before Postgres is ever asked, so a write
+ * guard that only looks for 42703 never fires. (42703 is what you get back
+ * from a SELECT of an unknown column, which is why `optionalCols` is right to
+ * check it.) Both are accepted here because the cache can also be stale in
+ * the other direction right after a migration.
+ */
+function missingColumn(error: { code?: string } | null): boolean {
+  return error?.code === 'PGRST204' || error?.code === '42703'
+}
 
 // Stable empty refs so a signed-out / loading state doesn't churn consumers.
 const NO_COURSES: Course[] = []
@@ -225,17 +241,58 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   )
 
   // Personal calendar tasks → the `todos` table (insert DB-generated id, adopt it).
-  const addTask = useCallback(
-    async (task: { title: string; due: string; note?: string }) => {
-      if (!authUser) return
-      const { data } = await supabase
-        .from('todos')
-        .insert(taskToInsert(task, authUser.id))
-        .select('*')
-        .maybeSingle()
-      if (data) updateTasks((list) => [...list, taskFromRow(data as TodoRow)])
+  /**
+   * One insert for one task or a whole repeat.
+   *
+   * `steps` and `repeat_group` are stripped and retried on 42703, the same
+   * guard `addAssessments` uses for `description`: a pending migration should
+   * cost a checklist, never the ability to add anything to your calendar.
+   */
+  const addTasks = useCallback(
+    async (tasks: NewTask[]) => {
+      if (!authUser || tasks.length === 0) return
+      const rows = tasks.map((t) => taskToInsert(t, authUser.id))
+      const first = await supabase.from('todos').insert(rows).select('*')
+      let data = first.data
+      if (missingColumn(first.error)) {
+        const stripped = rows.map((r) => {
+          const copy = { ...r }
+          delete copy.steps
+          delete copy.repeat_group
+          return copy
+        })
+        data = (await supabase.from('todos').insert(stripped).select('*')).data
+      }
+      if (data) {
+        updateTasks((list) => [...list, ...(data as TodoRow[]).map(taskFromRow)])
+      }
     },
     [authUser, updateTasks],
+  )
+  const addTask = useCallback((task: NewTask) => void addTasks([task]), [addTasks])
+
+  /** Edit in place. Only the keys passed are written, so saving a title cannot
+   *  blank a note the form never held. */
+  const updateTask = useCallback(
+    (id: string, patch: Partial<CalendarTask>) => {
+      updateTasks((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+      fireWrite(supabase.from('todos').update(taskPatchToRow(patch)).eq('id', id))
+    },
+    [updateTasks],
+  )
+
+  /** End a repeat. Only occurrences from now on — deleting the days you already
+   *  ticked would erase a record of work done, and "stop reminding me" is not a
+   *  request to rewrite the past. */
+  const removeTaskSeries = useCallback(
+    (group: string) => {
+      const from = new Date().toISOString()
+      updateTasks((list) =>
+        list.filter((t) => t.repeatGroup !== group || (!!t.due && t.due < from)),
+      )
+      fireWrite(supabase.rpc('delete_todo_series', { p_group: group, p_from: from }))
+    },
+    [updateTasks],
   )
   const toggleTask = useCallback(
     (id: string) => {
@@ -300,7 +357,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       const first = await supabase.from('assignments').insert(rows).select('*')
       let data = first.data
       // The `description` column may not be migrated yet → retry without it.
-      if (first.error?.code === '42703') {
+      if (missingColumn(first.error)) {
         const stripped = rows.map((r) => {
           const copy = { ...r }
           delete copy.description
@@ -622,6 +679,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateTodayPrefs,
       personalTasks,
       addTask,
+      addTasks,
+      updateTask,
+      removeTaskSeries,
       toggleTask,
       removeTask,
       isReminderSet: (eventId: string) => reminderIds.has(eventId),
@@ -673,6 +733,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateTodayPrefs,
       personalTasks,
       addTask,
+      addTasks,
+      updateTask,
+      removeTaskSeries,
       toggleTask,
       removeTask,
       reminderIds,

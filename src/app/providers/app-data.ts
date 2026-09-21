@@ -8,6 +8,7 @@ import type {
   Plan,
   User,
 } from '@/data/types'
+import type { NewTask } from '@/lib/supabase-adapters'
 import type { PeerCorrection } from '@/data/peer-corrections'
 
 /** The in-memory app store. Everything is mock + ephemeral: editing a status,
@@ -176,7 +177,12 @@ export interface AppDataContextValue {
 
   /** Personal calendar tasks/notes (the "My calendar" layer). In-memory. */
   personalTasks: CalendarTask[]
-  addTask: (task: { title: string; due: string; note?: string }) => void
+  addTask: (task: NewTask) => void
+  /** Several at once — one insert for a whole repeat. */
+  addTasks: (tasks: NewTask[]) => Promise<void>
+  updateTask: (id: string, patch: Partial<CalendarTask>) => void
+  /** End a repeat from now on, keeping the days already ticked. */
+  removeTaskSeries: (group: string) => void
   toggleTask: (id: string) => void
   removeTask: (id: string) => void
 

@@ -106,6 +106,13 @@ export interface Assessment {
 
 /** A personal calendar task/note the user adds (the "My calendar" layer, beyond
  * assignment deadlines). In-memory only, like everything else in the seed. */
+/** One line of a task's checklist. No date and no id: a step that needs
+ *  either of those is a task, not a step. */
+export interface TaskStep {
+  text: string
+  done: boolean
+}
+
 export interface CalendarTask {
   id: string
   title: string
@@ -113,6 +120,12 @@ export interface CalendarTask {
   due: string
   done: boolean
   note?: string
+  /** Preparation steps — "a checklist for the day", ticked independently of
+   *  the task itself. Empty for most tasks. */
+  steps?: TaskStep[]
+  /** Set on every occurrence created by one repeat, so the run can be ended
+   *  together. Absent on a one-off. */
+  repeatGroup?: string
   /** 'moodle' for a synced deadline; undefined when the student typed it. */
   source?: string
   /**

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Check, PartyPopper, Rss, UserPlus, X } from 'lucide-react'
+import { Bell, Check, MessageSquare, PartyPopper, Rss, Tag, UserPlus, X } from 'lucide-react'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { createPortal } from 'react-dom'
 import { Mascot } from '@/components/Mascot'
@@ -9,6 +9,11 @@ import { useCommunity } from './useCommunity'
 import { useFollows } from '@/app/providers/follows'
 import { acceptFriend, listFriends, removeFriend, type Friend } from '@/lib/social'
 import { relativeDueLabel } from '@/lib/date'
+import {
+  listNotifications,
+  markNotificationsRead,
+  type AppNotification,
+} from '@/lib/notifications'
 import { cn } from '@/lib/cn'
 
 /**
@@ -27,12 +32,14 @@ type Item =
   | { kind: 'event'; id: string; at: number; title: string; orgHandle: string }
   | { kind: 'request'; id: string; at: number; friend: Friend }
   | { kind: 'accepted'; id: string; at: number; friend: Friend }
+  | { kind: 'stored'; id: string; at: number; n: AppNotification }
 
 export function ActivityPanel({ onClose }: { onClose: () => void }) {
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
   const { events, orgs } = useCommunity()
   const { isFollowing } = useFollows()
   const [friends, setFriends] = useState<Friend[] | null>(null)
+  const [stored, setStored] = useState<AppNotification[]>([])
   const [tick, setTick] = useState(0)
   // Read once. The clock is impure, and a list that re-derives "how long ago"
   // on every render reorders itself while you are reading it.
@@ -45,6 +52,25 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       alive = false
     }
   }, [tick])
+
+  /**
+   * Load, then mark the lot read — opening the panel IS reading them.
+   * The unread dots stay on screen for this viewing (the rows render from
+   * what was loaded, not from what the write then changed), so you can still
+   * see which ones were new; they are simply not new the next time.
+   */
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const rows = await listNotifications()
+      if (!alive) return
+      setStored(rows)
+      if (rows.some((r) => !r.read_at)) void markNotificationsRead()
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const items = useMemo(() => {
     const out: Item[] = []
@@ -72,8 +98,12 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       }
     }
 
+    for (const n of stored) {
+      out.push({ kind: 'stored', id: `nt-${n.id}`, at: new Date(n.created_at).getTime(), n })
+    }
+
     return out.sort((a, b) => b.at - a.at).slice(0, 60)
-  }, [events, isFollowing, friends, now])
+  }, [events, isFollowing, friends, now, stored])
 
   const orgByHandle = useMemo(
     () => new Map(orgs.map((o) => [o.handle, o])),
@@ -117,7 +147,9 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
             <ul className="space-y-1.5">
               {items.map((it) => (
                 <li key={it.id}>
-                  {it.kind === 'event' ? (
+                  {it.kind === 'stored' ? (
+                    <StoredRow n={it.n} onClose={onClose} />
+                  ) : it.kind === 'event' ? (
                     <Link
                       to={`/app/community?event=${it.id.slice(3)}`}
                       onClick={onClose}
@@ -235,5 +267,50 @@ export function ActivityButton({
         />
       )}
     </button>
+  )
+}
+
+/**
+ * A stored notification: a request you care about moved, or somebody replied.
+ *
+ * Unread is a dot rather than a background wash. These sit in a list beside
+ * events and connection requests, and tinting whole rows would make the panel
+ * read as two designs stitched together.
+ */
+function StoredRow({ n, onClose }: { n: AppNotification; onClose: () => void }) {
+  const Icon = n.kind === 'request_comment' ? MessageSquare : Tag
+  const body = (
+    <>
+      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+        <Icon size={15} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start gap-1.5">
+          <span className="min-w-0 flex-1 text-[13.5px] leading-snug text-fg">{n.title}</span>
+          {!n.read_at && (
+            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />
+          )}
+        </span>
+        {n.body && (
+          <span className="mt-0.5 block truncate text-[12px] text-subtle">{n.body}</span>
+        )}
+        <span className="mt-0.5 block text-[11.5px] text-subtle">
+          {relativeDueLabel(n.created_at)}
+        </span>
+      </span>
+    </>
+  )
+
+  const cls =
+    'flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]'
+
+  // A notification whose link never made it to the row is still worth reading;
+  // it just is not a door.
+  return n.link ? (
+    <Link to={n.link} onClick={onClose} className={cls}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls}>{body}</div>
   )
 }

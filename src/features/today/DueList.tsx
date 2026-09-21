@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
-import { MoodleDueRow } from './MoodleDueRow'
+import { TaskDueRow } from './TaskDueRow'
 import { CustomizeToday } from './CustomizeToday'
 import type { DueGroups } from './due'
 
@@ -106,16 +106,16 @@ function buildSections(
           ),
         }
       })
-    // Grouping by COURSE cannot place a Moodle deadline: these are the ones
-    // that matched no assessment, so we do not know which class they belong
-    // to with enough confidence to file them under one. Their own group is
-    // honest; guessing a course would not be.
+    // Grouping by COURSE cannot place these: a Moodle item matched no
+    // assessment, so we do not know its class with enough confidence to file
+    // it under one, and a task you wrote yourself has no class at all. Their
+    // own group is honest; guessing a course would not be.
     if (moodle.length) {
       sections.push({
         key: 'moodle',
         tone: 'muted' as const,
         items: merge([], moodle),
-        label: <span className="inline-flex items-center gap-1.5">From Moodle</span>,
+        label: <span className="inline-flex items-center gap-1.5">Not tied to a class</span>,
       })
     }
     return sections
@@ -148,6 +148,7 @@ export function DueList({
   onDelete,
   onUndo,
   onToggleMoodle,
+  onToggleStep,
   onPrefsChange,
 }: {
   groups: DueGroups
@@ -155,7 +156,8 @@ export function DueList({
    *  before the fold and a shorter scroll window, since the card is a third
    *  of the width. */
   compact?: boolean
-  /** Moodle deadlines that are NOT already on screen as an assessment. */
+  /** Todos: Moodle deadlines that are NOT already on screen as an assessment,
+   *  plus anything you put on your own calendar for today. */
   moodle: CalendarTask[]
   completed: Assessment[]
   prefs: TodayPrefs
@@ -164,6 +166,8 @@ export function DueList({
   onDelete: (id: string) => void
   onUndo: (id: string) => void
   onToggleMoodle: (id: string) => void
+  /** Tick one line of a task's checklist, in place. */
+  onToggleStep: (id: string, index: number) => void
   onPrefsChange: (patch: Partial<TodayPrefs>) => void
 }) {
   const t = useT()
@@ -246,11 +250,12 @@ export function DueList({
                     onDelete={() => onDelete(row.id)}
                   />
                 ) : (
-                  <MoodleDueRow
+                  <TaskDueRow
                     key={row.id}
                     task={row.item}
                     prefs={prefs}
                     onToggle={() => onToggleMoodle(row.id)}
+                    onToggleStep={(i) => onToggleStep(row.id, i)}
                   />
                 ),
               )}

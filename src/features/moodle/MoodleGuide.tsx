@@ -13,18 +13,28 @@ export function HowTo() {
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface-2/40 p-4">
       <ol className="space-y-2">
+        {/* A BUTTON, not a coloured phrase.
+            This was `text-accent` with `hover:underline`, and the label was
+            the PATH through Moodle's own menus — so it read as emphasis on an
+            instruction rather than as a thing to press, and at least one
+            person navigated Moodle by hand for minutes before noticing it was
+            clickable. The link now says what it does, looks pressable at
+            rest, and the menu path stays underneath for anyone who would
+            rather find it themselves. */}
         <Step n={1}>
-          Open{' '}
+          Sign in if it asks — you will land on the page below.
           <a
             href={MOODLE_EXPORT_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 font-medium text-accent hover:underline"
+            className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
           >
-            Moodle → Calendar → Export
-            <ExternalLink size={11} aria-hidden />
-          </a>{' '}
-          and sign in if it asks. You will land on the page below.
+            Open Moodle&rsquo;s export page
+            <ExternalLink size={12} aria-hidden />
+          </a>
+          <span className="mt-1 block text-[11.5px] text-subtle">
+            Or find it yourself: Moodle → Calendar → Export
+          </span>
         </Step>
         <Step n={2}>
           Pick the two highlighted options, then press{' '}

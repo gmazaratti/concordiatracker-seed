@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
-import { usePeopleBadge } from '@/app/usePeopleBadge'
+import { useActivityBadge, usePeopleBadge } from '@/app/usePeopleBadge'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
 import { ProfileView } from '@/features/profile/UserProfilePage'
 import { Mascot } from '@/components/Mascot'
@@ -44,6 +44,8 @@ export function CommunityPage() {
   const { user } = useAppData()
   const [params, setParams] = useSearchParams()
   const waiting = usePeopleBadge()
+  // The bell counts notifications too; the Messages pill deliberately does not.
+  const bell = useActivityBadge()
   const [activity, setActivity] = useState(false)
 
   // Completes the getting-started "Explore Community" step.
@@ -79,7 +81,7 @@ export function CommunityPage() {
               and leave — carrying the bell into every section made it read as
               part of the furniture rather than as something with news in it. */}
           {section === DEFAULT_SECTION && (
-            <ActivityButton count={waiting} onOpen={() => setActivity(true)} />
+            <ActivityButton count={bell} onOpen={() => setActivity(true)} />
           )}
         </div>
       )}

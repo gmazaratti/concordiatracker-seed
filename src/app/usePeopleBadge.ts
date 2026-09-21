@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listFriends, unreadCount } from '@/lib/social'
+import { listNotifications, unreadNotifications } from '@/lib/notifications'
 
 /**
  * How many things are waiting on you from other people.
@@ -37,4 +38,37 @@ export function usePeopleBadge(): number {
   }, [])
 
   return count
+}
+
+
+/**
+ * What the BELL should say — the people badge plus unread notifications.
+ *
+ * Deliberately a second hook rather than a bigger `usePeopleBadge`. That one
+ * also numbers the sidebar's Community item and the Messages pill, and a
+ * shipped feature request has nothing to do with either: a count that grows
+ * because an admin moved a status would send someone to look for a message
+ * that is not there.
+ */
+export function useActivityBadge(): number {
+  const people = usePeopleBadge()
+  const [notes, setNotes] = useState(0)
+
+  useEffect(() => {
+    let alive = true
+    const load = () => {
+      void listNotifications().then((rows) => {
+        if (alive) setNotes(unreadNotifications(rows))
+      })
+    }
+    load()
+    const onVisible = () => document.visibilityState === 'visible' && load()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
+
+  return people + notes
 }

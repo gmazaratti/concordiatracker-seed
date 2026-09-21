@@ -1,5 +1,5 @@
-import { Check, CircleDashed, Trash2 } from 'lucide-react'
-import type { Course } from '@/data/types'
+import { Check, CircleDashed, Pencil, Repeat, Trash2 } from 'lucide-react'
+import type { CalendarTask, Course, TaskStep } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseChip } from '@/components/CourseChip'
@@ -23,14 +23,19 @@ export function ItemRow({
   item,
   course,
   closeBeforeOpen,
+  onEditTask,
 }: {
   item: CalendarItem
   course?: Course
   /** The day modal passes its close fn so opening an assessment doesn't stack. */
   closeBeforeOpen?: () => void
+  /** Offered only where there is somewhere for the form to go — the day modal
+   *  swaps its own footer. Without it the pencil is not drawn, rather than
+   *  drawn and dead. */
+  onEditTask?: (task: CalendarTask) => void
 }) {
   const t = useT()
-  const { setStatus, toggleTask, removeTask } = useAppData()
+  const { setStatus, toggleTask, removeTask, updateTask } = useAppData()
   const { openAssessment } = useQuickActions()
 
   if (item.kind === 'assessment') {
@@ -107,18 +112,54 @@ export function ItemRow({
           <p className={cn('text-[14px] font-medium text-fg', t.done && 'text-muted line-through')}>
             {t.title}
           </p>
-          {t.note && <p className="mt-0.5 text-[12px] text-subtle">{t.note}</p>}
-          <p className="mt-0.5 text-[11px] text-subtle">
-            {t.source === 'moodle' ? 'Moodle' : 'Task'} · {TIME.format(new Date(t.due))}
+          {t.note && (
+            <p className="mt-0.5 text-[12px] leading-relaxed whitespace-pre-line text-subtle">
+              {t.note}
+            </p>
+          )}
+          {/* Ticked HERE rather than behind an edit screen. A checklist you
+              have to open a form to cross a line off is not a checklist. */}
+          {t.steps && t.steps.length > 0 && (
+            <StepChecklist
+              steps={t.steps}
+              onToggle={(i) =>
+                updateTask(t.id, {
+                  steps: t.steps!.map((s, n) => (n === i ? { ...s, done: !s.done } : s)),
+                })
+              }
+            />
+          )}
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-subtle">
+            <span>
+              {t.source === 'moodle' ? 'Moodle' : 'Task'} · {TIME.format(new Date(t.due))}
+            </span>
+            {t.repeatGroup && (
+              <span className="inline-flex items-center gap-1">
+                <Repeat size={10} aria-hidden />
+                repeats
+              </span>
+            )}
           </p>
           {t.movedFrom && <MovedNote id={t.id} from={t.movedFrom} to={t.due} />}
         </div>
 
+        {/* A Moodle deadline is the professor's record, not yours — editing it
+            here would only make your copy disagree with the next sync. */}
+        {onEditTask && t.source !== 'moodle' && (
+          <button
+            type="button"
+            onClick={() => onEditTask(t)}
+            aria-label={`Edit "${t.title}"`}
+            className="mt-0.5 shrink-0 rounded-md p-1 text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            <Pencil size={14} aria-hidden />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => removeTask(t.id)}
           aria-label={`Delete "${t.title}"`}
-          className="mt-0.5 shrink-0 rounded-md p-1 text-subtle opacity-0 transition-colors duration-150 group-hover:opacity-100 hover:bg-surface-2 hover:text-danger focus-visible:opacity-100"
+          className="mt-0.5 shrink-0 rounded-md p-1 text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-danger [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100"
         >
           <Trash2 size={14} aria-hidden />
         </button>
@@ -157,6 +198,52 @@ export function ItemRow({
         <p className="text-[14px] font-medium text-fg">{e.title}</p>
         <p className="mt-0.5 text-[11px] text-subtle">Concordia · {t(meta.labelKey)}</p>
       </div>
+    </div>
+  )
+}
+
+
+/** The task's own checklist, ticked in place. Progress is stated as a count
+ *  rather than a bar: three of five is a fact, a bar is a decoration. */
+function StepChecklist({
+  steps,
+  onToggle,
+}: {
+  steps: TaskStep[]
+  onToggle: (index: number) => void
+}) {
+  const done = steps.filter((s) => s.done).length
+  return (
+    <div className="mt-1.5">
+      <p className="mb-1 text-[11px] font-medium text-subtle">
+        {done} of {steps.length} done
+      </p>
+      <ul className="flex flex-col gap-1">
+        {steps.map((s, i) => (
+          <li key={i}>
+            <button
+              type="button"
+              onClick={() => onToggle(i)}
+              aria-pressed={s.done}
+              className="flex w-full items-start gap-2 rounded-md py-0.5 text-left transition-colors duration-150 hover:bg-surface-2/60"
+            >
+              <span
+                className={cn(
+                  'mt-[3px] grid size-3.5 shrink-0 place-items-center rounded-[4px] border transition-colors duration-150',
+                  s.done
+                    ? 'border-transparent bg-success text-accent-contrast'
+                    : 'border-border-strong text-transparent',
+                )}
+              >
+                <Check size={10} strokeWidth={3} aria-hidden />
+              </span>
+              <span className={cn('text-[12.5px] text-muted', s.done && 'text-subtle line-through')}>
+                {s.text}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

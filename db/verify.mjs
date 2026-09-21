@@ -1456,6 +1456,120 @@ check('  and only once after a second run',
   (await db.query(`select count(*)::int n from public.events where title = 'Student Game Dev Summit 2026'`)).rows[0].n, 1)
 }
 
+{
+// ── db/notifications.sql ────────────────────────────────────────────────────
+// The thing worth testing is the FAN-OUT and who is left out of it, not the
+// DDL: a notification sent to the person who caused it is the bug everyone
+// ships once.
+console.log('\ndb/notifications.sql')
+await db.exec(`
+  create table if not exists public.feature_requests (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid, title text not null, status text not null default 'open'
+  );
+  create table if not exists public.feature_request_reactions (
+    id uuid primary key default gen_random_uuid(),
+    request_id uuid not null references public.feature_requests(id) on delete cascade,
+    user_id uuid not null, emoji text not null
+  );
+  create table if not exists public.feature_request_comments (
+    id uuid primary key default gen_random_uuid(),
+    request_id uuid not null references public.feature_requests(id) on delete cascade,
+    user_id uuid not null, author_name text not null, body text not null,
+    hidden boolean not null default false, created_at timestamptz not null default now()
+  );
+  create table if not exists auth.users (id uuid primary key);
+  insert into auth.users (id) values
+    ('33333333-3333-3333-3333-333333333333'),
+    ('44444444-4444-4444-4444-444444444444'),
+    ('55555555-5555-5555-5555-555555555555'),
+    ('66666666-6666-6666-6666-666666666666')
+  on conflict do nothing;
+`)
+await db.exec(migration('notifications.sql'))
+console.log('  ok    DDL applies')
+
+// Each section stubs auth.uid() for itself rather than inheriting whatever
+// the last one happened to leave behind.
+const beMeN = (who) =>
+  db.exec(
+    'create or replace function auth.uid() returns uuid language sql stable as ' +
+      '$fn$ select ' + (who === null ? 'null::uuid' : "'" + who + "'::uuid") + ' $fn$;',
+  )
+await beMeN(null)
+
+const POSTER = '33333333-3333-3333-3333-333333333333'
+const REACTOR = '44444444-4444-4444-4444-444444444444'
+const TALKER = '55555555-5555-5555-5555-555555555555'
+const LATE = '66666666-6666-6666-6666-666666666666'
+const REQ = 'aaaaaaaa-0000-0000-0000-000000000001'
+
+await db.exec(`
+  insert into public.feature_requests (id, user_id, title)
+    values ('${REQ}', '${POSTER}', 'Personal calendar');
+  insert into public.feature_request_reactions (request_id, user_id, emoji)
+    values ('${REQ}', '${REACTOR}', 'up');
+  insert into public.feature_request_comments (request_id, user_id, author_name, body)
+    values ('${REQ}', '${TALKER}', 'Sam', 'yes please');
+`)
+
+const inbox = async (uid) =>
+  (await db.query(
+    `select kind, title, body from public.notifications where user_id = '${uid}' order by created_at`,
+  )).rows
+
+// The comment above fanned out on insert: poster and reactor hear, Sam does not.
+check('a reply reaches the poster', (await inbox(POSTER)).length, 1)
+check('  and everyone who reacted', (await inbox(REACTOR)).length, 1)
+check('  and NOT the person who wrote it', (await inbox(TALKER)).length, 0)
+check('  it names who replied and what about',
+  (await inbox(POSTER))[0].title, 'Sam replied on "Personal calendar"')
+
+await db.exec(`update public.feature_requests set status = 'shipped' where id = '${REQ}'`)
+check('a status change reaches the poster', (await inbox(POSTER)).length, 2)
+check('  the reactor', (await inbox(REACTOR)).length, 2)
+check('  and the commenter, who had nothing before', (await inbox(TALKER)).length, 1)
+check('  and says what it became',
+  (await inbox(TALKER))[0].title, 'Personal calendar is now shipped')
+
+// Someone who reacts AFTER the change is not told about it retroactively —
+// the whole reason these are stored rather than derived.
+await db.exec(
+  `insert into public.feature_request_reactions (request_id, user_id, emoji) values ('${REQ}', '${LATE}', 'fire')`,
+)
+check('a late reactor hears nothing about the past', (await inbox(LATE)).length, 0)
+
+// A write that does not move the status must not fan out again.
+await db.exec(`update public.feature_requests set title = 'Personal calendar' where id = '${REQ}'`)
+check('an unrelated edit sends nothing', (await inbox(POSTER)).length, 2)
+await db.exec(`update public.feature_requests set status = 'shipped' where id = '${REQ}'`)
+check('  and neither does re-setting the same status', (await inbox(POSTER)).length, 2)
+
+// A hidden (moderated) comment is not news.
+await db.exec(
+  `insert into public.feature_request_comments (request_id, user_id, author_name, body, hidden)
+   values ('${REQ}', '${LATE}', 'Spam', 'buy now', true)`,
+)
+check('a hidden comment notifies nobody', (await inbox(POSTER)).length, 2)
+
+// Marking read is scoped to the caller. NOT tested here: that the select
+// policy hides other people's rows — PGlite runs as the table owner, so RLS
+// is bypassed and a `select count(*)` would pass whatever the policy said.
+// This asserts the RPC's own `user_id = auth.uid()` filter instead, which is
+// the part that is logic rather than permissions.
+await beMeN(POSTER)
+check('marking read marks yours',
+  (await db.query('select public.mark_notifications_read() n')).rows[0].n, 2)
+check('  and is idempotent',
+  (await db.query('select public.mark_notifications_read() n')).rows[0].n, 0)
+const unread = async (uid) =>
+  (await db.query(
+    `select count(*)::int n from public.notifications where user_id = '${uid}' and read_at is null`,
+  )).rows[0].n
+check("  and left the reactor's alone", await unread(REACTOR), 2)
+check("  and the commenter's", await unread(TALKER), 1)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

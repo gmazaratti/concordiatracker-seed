@@ -3,6 +3,7 @@ import type {
   AssessmentKind,
   AssessmentStatus,
   CalendarTask,
+  TaskStep,
   Course,
   Grade,
   ProvenanceStatus,
@@ -261,6 +262,9 @@ export interface TodoRow {
   done: boolean | null
   source?: string | null
   moved_from?: string | null
+  /** Both optional: appended by the caller only once the migration is in. */
+  steps?: TaskStep[] | null
+  repeat_group?: string | null
 }
 
 export function taskFromRow(r: TodoRow): CalendarTask {
@@ -272,14 +276,41 @@ export function taskFromRow(r: TodoRow): CalendarTask {
     note: r.note ?? undefined,
     source: r.source ?? undefined,
     movedFrom: r.moved_from ?? undefined,
+    steps: r.steps && r.steps.length ? r.steps : undefined,
+    repeatGroup: r.repeat_group ?? undefined,
   }
 }
 
-export function taskToInsert(
-  task: { title: string; due: string; note?: string },
-  userId: string,
-): Record<string, unknown> {
-  return { user_id: userId, title: task.title, due: task.due, note: task.note ?? null, done: false }
+export interface NewTask {
+  title: string
+  due: string
+  note?: string
+  steps?: TaskStep[]
+  repeatGroup?: string
+}
+
+export function taskToInsert(task: NewTask, userId: string): Record<string, unknown> {
+  return {
+    user_id: userId,
+    title: task.title,
+    due: task.due,
+    note: task.note ?? null,
+    done: false,
+    steps: task.steps ?? [],
+    repeat_group: task.repeatGroup ?? null,
+  }
+}
+
+/** A partial edit → DB columns. Only the keys present are written, so saving
+ *  the title cannot blank a note the form never loaded. */
+export function taskPatchToRow(patch: Partial<CalendarTask>): Record<string, unknown> {
+  const row: Record<string, unknown> = {}
+  if ('title' in patch) row.title = patch.title
+  if ('due' in patch) row.due = patch.due
+  if ('note' in patch) row.note = patch.note ?? null
+  if ('done' in patch) row.done = patch.done
+  if ('steps' in patch) row.steps = patch.steps ?? []
+  return row
 }
 
 // ── Blueprints (shared_blueprints) ──────────────────────────────────────────

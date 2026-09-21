@@ -64,6 +64,7 @@ export function TodayPage() {
     assessments,
     personalTasks,
     toggleTask,
+    updateTask,
     setStatus,
     removeAssessment,
     addAssessments,
@@ -114,20 +115,22 @@ export function TodayPage() {
   const groups = useMemo(() => groupDue(assessments), [assessments])
 
   /**
-   * Moodle deadlines that are NOT a second copy of something already here.
+   * Todos that are NOT a second copy of something already here.
    *
    * THIS IS THE DUPLICATE ANSWER. A synced "Assignment 2 is due" and the
    * Assignment 2 on your course are the same piece of work, and showing both
    * would double the list for anyone whose syllabus is also in Moodle. The
    * assessment wins — it carries the weight and your grade — and the synced
    * copy is dropped. What survives is the deadlines no syllabus lists, which
-   * is exactly what connecting Moodle was for.
+   * is exactly what connecting Moodle was for — alongside anything you put on
+   * your own calendar, because a study block you set for this evening belongs
+   * on the screen you check this evening.
    *
    * Anything still open, and undone.
    */
-  const moodleDue = useMemo(() => {
+  const todosDue = useMemo(() => {
     const covered = coveredTaskIds(pairMoodleToAssessments(personalTasks, assessments, courses))
-    return personalTasks.filter((tk) => tk.source === 'moodle' && !tk.done && !covered.has(tk.id))
+    return personalTasks.filter((tk) => !tk.done && !covered.has(tk.id))
   }, [personalTasks, assessments, courses])
   /**
    * The same two numbers the rail shows, for the Moodle half.
@@ -136,7 +139,7 @@ export function TodayPage() {
    * a list of five rows is the kind of small inconsistency that makes someone
    * distrust both numbers.
    */
-  const moodleCounts = useMemo(() => countNear(moodleDue), [moodleDue])
+  const todoCounts = useMemo(() => countNear(todosDue), [todosDue])
 
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
   // Cumulative across FINISHED terms — the sub-line under this term's GPA.
@@ -152,6 +155,14 @@ export function TodayPage() {
   function resolve(id: string, status: AssessmentStatus) {
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
+  }
+  /** Tick one line of a task's checklist without opening anything. */
+  function toggleStep(id: string, index: number) {
+    const task = personalTasks.find((tk) => tk.id === id)
+    if (!task?.steps) return
+    updateTask(id, {
+      steps: task.steps.map((s, n) => (n === index ? { ...s, done: !s.done } : s)),
+    })
   }
   function undo(id: string) {
     setResolvedIds((prev) => prev.filter((x) => x !== id))
@@ -181,7 +192,7 @@ export function TodayPage() {
     <DueList
       compact={compact}
       groups={groups}
-      moodle={moodleDue}
+      moodle={todosDue}
       completed={completed}
       prefs={todayPrefs}
       courseById={courseById}
@@ -189,6 +200,7 @@ export function TodayPage() {
       onDelete={deleteItem}
       onUndo={undo}
       onToggleMoodle={toggleTask}
+      onToggleStep={toggleStep}
       onPrefsChange={updateTodayPrefs}
     />
   )
@@ -197,8 +209,8 @@ export function TodayPage() {
     <GlanceStrip
       term={term}
       gpa={gpa}
-      overdue={groups.overdue.length + moodleCounts.overdue}
-      itemsLeft={groups.count + moodleCounts.near}
+      overdue={groups.overdue.length + todoCounts.overdue}
+      itemsLeft={groups.count + todoCounts.near}
       nextUp={groups.nextUp}
       nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
       doneToday={completed.length}
