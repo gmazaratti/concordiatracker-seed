@@ -212,15 +212,26 @@ function OrgProfileBody({
         Community
       </Link>
 
-      {/* Identity header: Twitter/X-inspired: banner, overlapping circular
-          avatar, actions top-right, then name / handle / bio / stats. */}
-      <div className="relative h-40 overflow-hidden rounded-2xl sm:h-52" style={{ backgroundColor: org.color }}>
+      {/*
+        THE SAME SHAPE A STUDENT'S PROFILE HAS, plus a banner.
+        A club is an account here, not a different species of page — so the
+        avatar sits left with the handle, the seal, the counts, the bio and
+        the actions beside it, exactly as ProfileHeader lays them out. The
+        banner is the one thing an org gets and a person does not, and it goes
+        above all of it rather than reorganising what is underneath.
+      */}
+      <div
+        className="relative h-32 overflow-hidden rounded-2xl sm:h-44"
+        style={{ backgroundColor: org.color }}
+      >
         {org.banner ? (
           <img
             src={org.banner}
             alt=""
             className="absolute inset-0 size-full object-cover"
             onError={(e) => {
+              // A dead URL hides itself so the brand colour shows through —
+              // never an empty box, the rule every org image here follows.
               e.currentTarget.style.display = 'none'
             }}
           />
@@ -229,40 +240,46 @@ function OrgProfileBody({
         )}
       </div>
 
-      <div className="flex items-start justify-between gap-3 px-1">
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-start sm:gap-10">
         <OrgLogo
           org={org}
-          className="-mt-12 size-24 ring-4 ring-canvas sm:-mt-14 sm:size-28"
+          className="-mt-10 size-20 shrink-0 ring-4 ring-canvas sm:-mt-14 sm:size-36"
           rounded="rounded-full"
           textClass="text-3xl"
         />
-        <div className="mt-3 flex gap-2">
-          <FollowButton handle={org.handle} />
-          <ContactButton org={org} />
-        </div>
-      </div>
 
-      <div className="mt-2 px-1">
-        <h1 className="flex flex-wrap items-center gap-x-2 gap-y-1 font-display text-[22px] leading-tight font-semibold text-fg">
-          <span>{org.name}</span>
-          {org.verified && <VerifiedBadge size={18} />}
-          {/* SAID IN WORDS, not only in a seal. The seal means "this account
-              is who it says it is"; this says "this is a club, not a person",
-              which is a different fact and the one the brief asked to be
-              unmistakable. */}
-          <span className="rounded-full bg-info/15 px-2 py-0.5 text-[11px] font-semibold text-info">
-            Organization
-          </span>
-        </h1>
-        <p className="text-[14px] text-subtle">{org.handle}</p>
-        <p className="mt-3 max-w-2xl text-[14px] leading-relaxed whitespace-pre-line text-fg/90">{org.bio}</p>
+        <div className="min-w-0 flex-1 sm:pt-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h1 className="text-[20px] leading-tight font-semibold text-fg">{slug}</h1>
+            {org.verified && <VerifiedBadge size={16} />}
+            {/* SAID IN WORDS, not only in a seal. The seal means "this account
+                is who it says it is"; this says "this is a club, not a
+                person", which is a different fact and the one the brief asked
+                to be unmistakable. */}
+            <span className="rounded-full bg-info/15 px-2 py-0.5 text-[11px] font-semibold text-info">
+              Organization
+            </span>
+          </div>
+          <p className="mt-0.5 text-[13.5px] text-subtle">{org.name}</p>
 
-        {org.venue && <VenueBlock venue={org.venue} />}
+          <div className="mt-3 flex items-center gap-5 text-[13.5px]">
+            <Count n={social.posts} label="post" />
+            <Count n={social.followers} label="follower" />
+            <Count n={upcoming.length} label="upcoming" plural={false} />
+          </div>
 
-        <div className="mt-3 flex gap-5 text-[14px]">
-          <Count n={social.posts} label="post" />
-          <Count n={social.followers} label="follower" />
-          <Count n={upcoming.length} label="upcoming" plural={false} />
+          {org.bio && (
+            <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed whitespace-pre-line text-fg/90">
+              {org.bio}
+            </p>
+          )}
+
+          {org.venue && <VenueBlock venue={org.venue} />}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <FollowButton handle={org.handle} />
+            <ContactButton org={org} />
+          </div>
         </div>
       </div>
 
