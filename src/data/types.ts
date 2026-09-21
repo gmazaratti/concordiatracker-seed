@@ -19,6 +19,13 @@ export interface User {
   school: string
   /** Major / program of study (set in Settings). */
   program: string
+  /**
+   * False when the student said they are not at Concordia during onboarding.
+   * Hides the Concordia-specific surfaces (Moodle, the course catalogue, the
+   * shuttle, blueprints) — it never gates the core product, which is the same
+   * whatever school you are at.
+   */
+  atConcordia: boolean
 }
 
 /**

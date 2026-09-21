@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { LangTabs } from '@/components/LangTabs'
+import { mergeTranslations } from '@/lib/localized'
+import type { Lang } from '@/i18n/i18n'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowLeft, Check, ExternalLink } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
@@ -38,6 +41,10 @@ function ProfileForm({
   const [name, setName] = useState(org.name)
   const [handle, setHandle] = useState(org.handle)
   const [bio, setBio] = useState(org.bio)
+  // The bio is the one field on this page with a language. A name, a colour
+  // and a link do not, so the tabs govern the bio alone rather than the form.
+  const [lang, setLang] = useState<Lang>('en')
+  const [frBio, setFrBio] = useState(org.translations?.fr?.bio ?? '')
   const [logo, setLogo] = useState(org.logo ?? '')
   const [banner, setBanner] = useState(org.banner ?? '')
   const [color, setColor] = useState(org.color)
@@ -69,6 +76,9 @@ function ProfileForm({
       banner: banner.trim() || undefined,
       color,
       links: cleanLinks(),
+      // mergeTranslations DROPS a blank, so clearing the French version
+      // restores the fallback rather than publishing an empty bio.
+      translations: mergeTranslations(org.translations, 'fr', { bio: frBio.trim() }),
     })
     setSaved(true)
   }
@@ -129,11 +139,22 @@ function ProfileForm({
         </div>
 
         <Field label="Bio">
+          <LangTabs
+            className="mb-2"
+            value={lang}
+            onChange={setLang}
+            filled={frBio.trim() ? ['fr'] : []}
+            hint={lang === 'fr' ? 'Leave this blank and French readers see the English bio.' : undefined}
+          />
           <textarea
-            value={bio}
-            onChange={(e) => { setBio(e.target.value); touch() }}
+            value={lang === 'fr' ? frBio : bio}
+            onChange={(e) => {
+              if (lang === 'fr') setFrBio(e.target.value)
+              else setBio(e.target.value)
+              touch()
+            }}
             rows={3}
-            placeholder="A short description of your org."
+            placeholder={lang === 'fr' ? 'Une courte description de votre organisation.' : 'A short description of your org.'}
             className={cn(field, 'resize-none')}
           />
         </Field>

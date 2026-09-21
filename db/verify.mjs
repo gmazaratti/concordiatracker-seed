@@ -519,8 +519,15 @@ await db.exec(`
     is_internal boolean not null default false,
     comped boolean not null default false
   );
-  drop table if exists public.profile_follows cascade;
-  create table public.profile_follows (follower_id uuid, following_id uuid);
+  -- The live follow graph. profile_follows was a duplicate that never
+  -- received a row, and search counted IT — so every follower count read 0.
+  -- Dropped by db/drop_profile_follows.sql; the fixture only ever creates the
+  -- real one now, so a query against the dead table fails here instead of
+  -- quietly returning zero in production.
+  drop table if exists public.user_follows cascade;
+  create table public.user_follows (
+    follower uuid, following uuid, created_at timestamptz default now()
+  );
   drop table if exists public.courses cascade;
   create table public.courses (
     -- TEXT, measured against production through PostgREST's own schema doc
@@ -1311,7 +1318,7 @@ await db.exec(`create or replace function public.is_admin() returns boolean
   /* Blocking. */
   await beMe(ME)
   await db.exec(`insert into public.friendships (requester, addressee) values ('${ME}','${THEM}');
-                 insert into public.profile_follows (follower_id, following_id) values ('${THEM}','${ME}');`)
+                 insert into public.user_follows (follower, following) values ('${THEM}','${ME}');`)
   await db.query("select public.block_user('them')")
   check('blocking removes the friendship', (await db.query('select count(*)::int n from public.friendships')).rows[0].n, 0)
   check('  and the follow, in both directions',

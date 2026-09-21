@@ -29,6 +29,10 @@ export function SetupStep({
   setProfilePublic,
   program,
   setProgram,
+  atConcordia,
+  setAtConcordia,
+  school,
+  setSchool,
   avatarUrl,
   handleStatus,
 }: {
@@ -41,6 +45,10 @@ export function SetupStep({
   setProfilePublic: (v: boolean) => void
   program: ProgramSelection | null
   setProgram: (v: ProgramSelection) => void
+  atConcordia: boolean
+  setAtConcordia: (v: boolean) => void
+  school: string
+  setSchool: (v: string) => void
   avatarUrl?: string
   handleStatus: 'idle' | 'free' | 'taken'
 }) {
@@ -77,11 +85,58 @@ export function SetupStep({
       </Centered>
     )
   }
+  /*
+   * THE WALL THIS ESCAPE EXISTS TO REMOVE.
+   * Advancing required a Concordia programme, so someone at another school
+   * could get three screens in and no further — with nothing on the page
+   * even acknowledging that they might not be here. The product is built for
+   * Concordia and says so; that is a reason to ask the question plainly, not
+   * a reason to assume the answer.
+   */
+  if (!atConcordia) {
+    return (
+      <Centered heading="Where do you study?" sub="We'll skip the Concordia-only bits. Everything else works the same.">
+        <input
+          autoFocus
+          value={school}
+          onChange={(e) => setSchool(e.target.value)}
+          placeholder="Your school"
+          maxLength={80}
+          className={field}
+        />
+        <input
+          value={program?.name ?? ''}
+          onChange={(e) => setProgram({ id: 'other', name: e.target.value })}
+          placeholder="Your program (optional)"
+          maxLength={80}
+          className={field}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            setAtConcordia(true)
+            setSchool('')
+          }}
+          className="mt-4 text-[12.5px] text-subtle transition-colors duration-150 hover:text-fg"
+        >
+          Actually, I am at Concordia
+        </button>
+      </Centered>
+    )
+  }
+
   return (
     <Centered heading={t('onboarding.programHeading')} sub={t('onboarding.programSub')}>
       <div className="mt-1">
         <ProgramPicker value={program} onChange={setProgram} autoFocus size="lg" />
       </div>
+      <button
+        type="button"
+        onClick={() => setAtConcordia(false)}
+        className="mt-5 text-[12.5px] text-subtle transition-colors duration-150 hover:text-fg"
+      >
+        I'm not at Concordia
+      </button>
     </Centered>
   )
 }

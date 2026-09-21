@@ -59,7 +59,7 @@ language sql security definer set search_path = public stable as $$
     p.avatar_url,
     case when p.profile_public then p.program end,
     case when p.profile_public
-         then (select count(*)::int from public.profile_follows f where f.following_id = p.user_id)
+         then (select count(*)::int from public.user_follows f where f.following = p.user_id)
          else 0 end,
     coalesce(p.profile_public, false)
   from public.user_profile p
@@ -73,7 +73,7 @@ language sql security definer set search_path = public stable as $$
     (lower(p.handle) = lower(trim(p_q))) desc,
     -- Then public profiles, which are the ones with something to look at.
     coalesce(p.profile_public, false) desc,
-    (select count(*) from public.profile_follows f where f.following_id = p.user_id) desc,
+    (select count(*) from public.user_follows f where f.following = p.user_id) desc,
     p.handle
   limit greatest(1, least(coalesce(p_limit, 8), 25));
 $$;

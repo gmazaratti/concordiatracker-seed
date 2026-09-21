@@ -1,3 +1,10 @@
+-- SUPERSEDED — DO NOT RUN. This table is a duplicate of `user_follows`, which
+-- is the one the app actually writes to. It never received a row, and while it
+-- existed `search_public_profiles` counted it, so every follower count in
+-- search read 0. Removed by db/drop_profile_follows.sql. Kept only so the
+-- history of the schema is readable; running it re-creates the confusion.
+-- (If you are looking for the live follow graph: db/user_follows.sql.)
+
 -- ── Following people (not just orgs) ─────────────────────────────────────────
 -- Org follows are still an in-memory stub; THIS is real and persisted, because
 -- follower counts are shown publicly and a number that resets on reload is worse

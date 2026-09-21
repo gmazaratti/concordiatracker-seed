@@ -17,7 +17,7 @@ import { usePageMeta } from '@/app/hooks/usePageMeta'
 export function PublicEventPage() {
   const { eventId } = useParams()
   const navigate = useNavigate()
-  const { eventById } = useCommunity()
+  const { eventById, loading } = useCommunity()
   const [shareOpen, setShareOpen] = useState(false)
   const [gateOpen, setGateOpen] = useState(false)
 
@@ -63,7 +63,10 @@ export function PublicEventPage() {
           {shareOpen && <ShareEventModal event={event} onClose={() => setShareOpen(false)} />}
         </>
       ) : (
-        <NotFound />
+        /* Same race as the org profile: this page ALWAYS opens cold (that is
+           what a shared link is), so deciding "not found" before the events
+           have loaded would show the dead end to every visitor. */
+        loading ? <EventSkeleton /> : <NotFound />
       )}
 
       {gateOpen && <SignupGate onClose={() => setGateOpen(false)} />}
@@ -107,6 +110,16 @@ function SignupGate({ onClose }: { onClose: () => void }) {
         </p>
       </div>
     </ModalShell>
+  )
+}
+
+function EventSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-2xl px-5 py-8">
+      <div className="ct-shimmer h-48 rounded-xl" />
+      <div className="ct-shimmer mt-4 h-6 w-2/3 rounded" />
+      <div className="ct-shimmer mt-2 h-3 w-1/3 rounded" />
+    </div>
   )
 }
 

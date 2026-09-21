@@ -28,6 +28,7 @@ export const currentUser: User = {
   plan: 'free',
   school: 'Gina Cody School of Engineering & Computer Science',
   program: 'Computer Science',
+  atConcordia: true,
 }
 
 /**

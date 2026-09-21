@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
-  Heart,
   Lightbulb,
   Megaphone,
   MessageCircle,
@@ -19,10 +18,14 @@ import {
   listCommentCounts,
   listFeatureRequests,
   listReactions,
-  totalReactions,
+  summarizeReactions,
+  toggleReaction,
+  withSeed,
   type FeatureRequest,
   type ReactionRow,
 } from '@/features/feedback/feedback-data'
+import { ReactionBar } from '@/features/feedback/ReactionBar'
+import { supabase } from '@/lib/supabase'
 import { markNotificationsRead } from '@/lib/notifications'
 import { normalizeCode } from '@/lib/supabase-adapters'
 import { localized } from '@/lib/localized'
@@ -104,12 +107,14 @@ export function FeedSection({
   const [board, setBoard] = useState<FeatureRequest[]>([])
   const [reactions, setReactions] = useState<ReactionRow[]>([])
   const [comments, setComments] = useState<Map<string, number>>(new Map())
+  const [uid, setUid] = useState<string | null>(null)
   // Read the clock ONCE, as the activity hook does: a list that re-derives
   // "how long ago" on every render reorders itself while you are reading it.
   const [now] = useState(() => Date.now())
 
   useEffect(() => {
     let alive = true
+    void supabase.auth.getUser().then(({ data }) => alive && setUid(data.user?.id ?? null))
     void Promise.all([listFeatureRequests(), listReactions(), listCommentCounts()])
       .then(([r, x, c]) => {
         if (!alive) return
@@ -122,6 +127,28 @@ export function FeedSection({
       alive = false
     }
   }, [])
+
+  /*
+   * THE SAME REACTIONS AS THE BOARD, not a read-only echo of them.
+   * This row used to draw a heart and a total. The board reacts with emoji,
+   * so the feed was showing a different summary of the same thing — and a
+   * count you cannot press, next to a thread where you can, reads as broken.
+   * Optimistic then written, mirroring `RequestsBoard.react`.
+   */
+  const react = async (requestId: string, emoji: string) => {
+    if (!uid) return
+    const mine = reactions.some((r) => r.request_id === requestId && r.user_id === uid && r.emoji === emoji)
+    setReactions((prev) =>
+      mine
+        ? prev.filter((r) => !(r.request_id === requestId && r.user_id === uid && r.emoji === emoji))
+        : [...prev, { request_id: requestId, user_id: uid, emoji }],
+    )
+    try {
+      await toggleReaction(requestId, emoji)
+    } catch {
+      setReactions(await listReactions().catch(() => reactions))
+    }
+  }
 
   const courseByCode = useMemo(() => {
     const m = new Map<string, Course>()
@@ -274,7 +301,9 @@ export function FeedSection({
                   req={row.req}
                   at={row.at}
                   now={now}
-                  hearts={totalReactions(reactions, row.req.id)}
+                  reactions={withSeed(summarizeReactions(reactions, row.req.id, uid), row.req.seed_reactions)}
+                  canReact={!!uid}
+                  onReact={(emoji) => void react(row.req.id, emoji)}
                   comments={comments.get(row.req.id) ?? 0}
                 />
               )}
@@ -443,50 +472,62 @@ function SuggestionRow({
   req,
   at,
   now,
-  hearts,
+  reactions,
+  canReact,
+  onReact,
   comments,
 }: {
   req: FeatureRequest
   at: number
   now: number
-  hearts: number
+  reactions: ReturnType<typeof summarizeReactions>
+  canReact: boolean
+  onReact: (emoji: string) => void
   comments: number
 }) {
   const initials = req.author_name.slice(0, 2).toUpperCase()
   return (
-    <RowShell
-      to={`/app/requests?request=${req.id}`}
-      avatar={<Avatar url={req.author_avatar} initials={initials} />}
-    >
-      <span className="flex items-center gap-1.5 text-[12.5px]">
-        <span className="truncate font-medium text-fg">{req.author_name}</span>
-        {req.author_handle && <span className="truncate text-subtle">@{req.author_handle}</span>}
-        <span className="shrink-0 text-subtle">· {ago(at, now)}</span>
-        {req.status !== 'open' && (
-          <span className={cn('ml-auto shrink-0 font-medium capitalize', STATUS_TONE[req.status])}>
-            {req.status}
+    /* The reaction bar is a SIBLING of the link, never inside it — a button
+       nested in an anchor navigates as well as reacting, which is the bug
+       the event tile's Add overlay already exists to avoid. */
+    <div className="flex gap-3 px-1 py-3.5 sm:px-3">
+      <Avatar url={req.author_avatar} initials={initials} />
+      <div className="min-w-0 flex-1">
+        <Link
+          to={`/app/requests?request=${req.id}`}
+          className="block transition-opacity duration-150 hover:opacity-80"
+        >
+          <span className="flex items-center gap-1.5 text-[12.5px]">
+            <span className="truncate font-medium text-fg">{req.author_name}</span>
+            {req.author_handle && <span className="truncate text-subtle">@{req.author_handle}</span>}
+            <span className="shrink-0 text-subtle">· {ago(at, now)}</span>
+            {req.status !== 'open' && (
+              <span className={cn('ml-auto shrink-0 font-medium capitalize', STATUS_TONE[req.status])}>
+                {req.status}
+              </span>
+            )}
           </span>
-        )}
-      </span>
-      <span className="mt-1 block text-[14px] leading-snug font-medium text-fg">{req.title}</span>
-      {req.body && (
-        <span className="mt-0.5 line-clamp-2 text-[12.5px] leading-relaxed text-muted">
-          {req.body}
-        </span>
-      )}
-      <span className="mt-2 flex items-center gap-4 text-[12px] text-subtle">
-        <span className="inline-flex items-center gap-1">
-          <Heart size={13} aria-hidden />
-          {hearts}
-          <span className="sr-only">reactions</span>
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <MessageCircle size={13} aria-hidden />
-          {comments}
-          <span className="sr-only">{comments === 1 ? 'reply' : 'replies'}</span>
-        </span>
-      </span>
-    </RowShell>
+          <span className="mt-1 block text-[14px] leading-snug font-medium text-fg">{req.title}</span>
+          {req.body && (
+            <span className="mt-0.5 line-clamp-2 text-[12.5px] leading-relaxed text-muted">
+              {req.body}
+            </span>
+          )}
+        </Link>
+
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <ReactionBar reactions={reactions} canReact={canReact} onToggle={onReact} />
+          <Link
+            to={`/app/requests?request=${req.id}`}
+            className="inline-flex items-center gap-1 text-[12px] text-subtle transition-colors duration-150 hover:text-fg"
+          >
+            <MessageCircle size={13} aria-hidden />
+            {comments}
+            <span className="sr-only">{comments === 1 ? 'reply' : 'replies'}</span>
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }
 

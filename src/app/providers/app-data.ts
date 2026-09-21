@@ -92,6 +92,8 @@ export interface AppDataContextValue {
     programId?: string
     program?: string
     profilePublic?: boolean
+    school?: string
+    atConcordia?: boolean
   }) => Promise<{ error: 'handle-taken' | 'save-failed' | null }>
   /** Change the @handle from Settings. The DB enforces a 14-day cooldown
    * (`error: 'cooldown'`) and uniqueness (`error: 'taken'`). */

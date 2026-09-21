@@ -46,6 +46,20 @@ function VenueBlock({ venue }: { venue: NonNullable<EventOrg['venue']> }) {
   )
 }
 
+function ProfileSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+      <div className="ct-shimmer h-40 rounded-xl" />
+      <div className="mt-4 flex items-end gap-3">
+        <div className="ct-shimmer size-20 rounded-full" />
+        <div className="ct-shimmer h-5 w-40 rounded" />
+      </div>
+      <div className="ct-shimmer mt-4 h-3 w-full rounded" />
+      <div className="ct-shimmer mt-2 h-3 w-2/3 rounded" />
+    </div>
+  )
+}
+
 /** Full org profile — the host card expanded to a page: identity, bio, stats,
  * follow/contact, and ALL the org's events (upcoming + past, with when posted).
  * Reuses the event card components; opening an event uses the same `?event=`
@@ -53,11 +67,21 @@ function VenueBlock({ venue }: { venue: NonNullable<EventOrg['venue']> }) {
 export function OrgProfilePage() {
   const { handle } = useParams()
   const { user } = useAppData()
-  const { orgBySlug, eventsByOrg } = useCommunity()
+  const { orgBySlug, eventsByOrg, loading } = useCommunity()
   const { isAdded, add, openEvent, closeEvent, selectedEvent } = useEventActions()
 
   const org = handle ? orgBySlug(handle) : undefined
-  if (!org) return <Navigate to="/app/community" replace />
+  /*
+   * WAIT FOR THE DATA BEFORE DECIDING IT DOES NOT EXIST.
+   * This redirected on `!org` alone, and the orgs arrive from Supabase a beat
+   * after mount — so opening a profile from a shared link, a bookmark or a
+   * reload bounced you to Community, at random, depending on which won the
+   * race. It looked like the org was missing. It was not.
+   */
+  if (!org) {
+    if (loading) return <ProfileSkeleton />
+    return <Navigate to="/app/community" replace />
+  }
 
   const { upcoming, past } = eventsByOrg(org.handle, startOfToday())
   const relevant = (e: CampusEvent) => isRelevantTo(e, user.program, user.school)

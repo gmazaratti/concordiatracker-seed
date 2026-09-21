@@ -49,6 +49,8 @@ export function OnboardingPage() {
   const [handle, setHandle] = useState('')
   const [profilePublic, setProfilePublic] = useState(false)
   const [program, setProgram] = useState<ProgramSelection | null>(null)
+  const [atConcordia, setAtConcordia] = useState(true)
+  const [school, setSchool] = useState('')
   const [addedCourse, setAddedCourse] = useState(false)
   const [moodleDone, setMoodleDone] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -74,10 +76,19 @@ export function OnboardingPage() {
       : step === 1
         ? HANDLE_RE.test(handle) && handleStatus !== 'taken'
         : step === 2
-          ? program !== null
-          : step === STEP_COURSE
-            ? addedCourse
-            : true
+          ? // A Concordia student picks a programme; everyone else names their
+            // school. Either answer is enough to move on — neither is a wall.
+            atConcordia
+            ? program !== null
+            : school.trim().length > 0
+          : true
+
+  /*
+   * Moodle is Concordia's Moodle. Showing its four-click setup guide to
+   * someone at another school is asking them to do something they cannot do,
+   * so the step is skipped over entirely rather than shown and skipped.
+   */
+  const skips = (n: number) => !atConcordia && n === STEP_MOODLE
 
   const finish = async () => {
     setSubmitError('')
@@ -85,8 +96,10 @@ export function OnboardingPage() {
     const { error } = await completeOnboarding({
       name: name.trim(),
       handle,
-      programId: program?.id,
+      programId: atConcordia ? program?.id : undefined,
       program: program?.name,
+      school: atConcordia ? undefined : school.trim(),
+      atConcordia,
       profilePublic,
     })
     if (error === 'handle-taken') {
@@ -124,9 +137,13 @@ export function OnboardingPage() {
   }
   const advance = () => {
     if (isLast) void finish()
-    else if (canAdvance) setStep((s) => s + 1)
+    else if (canAdvance) setStep((s) => (skips(s + 1) ? s + 2 : s + 1))
   }
-  const back = () => setStep((s) => Math.max(minStep, s - 1))
+  const back = () =>
+    setStep((s) => {
+      const prev = skips(s - 1) ? s - 2 : s - 1
+      return Math.max(minStep, prev)
+    })
 
   // Keyboard: ←/→/Enter advance, Esc skip. A ref keeps the handler fresh.
   const ref = useRef({ advance, back, skip })
@@ -215,6 +232,10 @@ export function OnboardingPage() {
                 setProfilePublic={setProfilePublic}
                 program={program}
                 setProgram={setProgram}
+                atConcordia={atConcordia}
+                setAtConcordia={setAtConcordia}
+                school={school}
+                setSchool={setSchool}
                 avatarUrl={user.avatarUrl}
                 handleStatus={handleStatus}
               />
@@ -227,7 +248,7 @@ export function OnboardingPage() {
             ) : step === STEP_MOODLE ? (
               <MoodleStep onConnected={() => setMoodleDone(true)} />
             ) : step === STEP_COURSE ? (
-              <AddCourses onAdded={() => setAddedCourse(true)} />
+              <AddCourses onAdded={() => setAddedCourse(true)} concordia={atConcordia} />
             ) : step === STEP_HOW ? (
               <HowItWorksSlide />
             ) : step === STEP_COMMUNITY ? (
@@ -245,7 +266,7 @@ export function OnboardingPage() {
           {label}
           {!isLast && <ArrowRight size={16} aria-hidden />}
         </Button>
-        {step === STEP_MOODLE && !moodleDone && (
+        {step === STEP_MOODLE && !moodleDone && atConcordia && (
           <button
             type="button"
             onClick={() => setStep((s) => s + 1)}

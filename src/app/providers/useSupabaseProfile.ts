@@ -22,6 +22,7 @@ interface ProfileRow {
   onboarding_completed: boolean | null
   profile_public?: boolean | null
   bio?: string | null
+  at_concordia?: boolean | null
 }
 
 const COLS =
@@ -180,6 +181,9 @@ export function useSupabaseProfile() {
       plan: toPlan(profile?.plan_status, profile?.pro_until),
       school: profile?.school ?? '',
       program: profile?.program ?? '',
+      // Absent column (migration pending) reads as true, which is the default
+      // the column itself carries — so a pending migration changes nothing.
+      atConcordia: profile?.at_concordia !== false,
     }
   }, [row, authUser])
 
@@ -195,7 +199,15 @@ export function useSupabaseProfile() {
    * the display name; `programId` is the canonical id (or 'other'). */
   const completeOnboarding = useCallback(
     async (
-      data: { name?: string; handle?: string; programId?: string; program?: string; profilePublic?: boolean },
+      data: {
+        name?: string
+        handle?: string
+        programId?: string
+        program?: string
+        profilePublic?: boolean
+        school?: string
+        atConcordia?: boolean
+      },
     ): Promise<{ error: 'handle-taken' | 'save-failed' | null }> => {
       if (!authUser) return { error: null }
       const patch: Partial<ProfileRow> = { onboarding_completed: true }
@@ -204,15 +216,18 @@ export function useSupabaseProfile() {
       if (data.program) patch.program = data.program
       if (data.programId) patch.program_id = data.programId
       if (data.profilePublic !== undefined) patch.profile_public = data.profilePublic
+      if (data.school !== undefined) patch.school = data.school
+      if (data.atConcordia !== undefined) patch.at_concordia = data.atConcordia
       // Write FIRST, then reflect locally — so a rejected handle (unique
       // violation) never leaves the app thinking onboarding succeeded.
       let { error } = await supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
       // program_id / profile_public columns may not be migrated yet → retry
       // with only the long-standing columns.
-      if (error?.code === '42703') {
+      if (error?.code === '42703' || error?.code === 'PGRST204') {
         const rest = { ...patch }
         delete rest.program_id
         delete rest.profile_public
+        delete rest.at_concordia
         ;({ error } = await supabase.from('user_profile').update(rest).eq('user_id', authUser.id))
       }
       if (error) {

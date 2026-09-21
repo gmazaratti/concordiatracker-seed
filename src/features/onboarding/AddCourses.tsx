@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Search, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Pencil, Search, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { SyllabusUploadPage } from '@/features/courses/SyllabusUpload'
 import { blueprintToAssessments, netVotes, type Blueprint } from '@/data/blueprints'
@@ -12,7 +12,7 @@ import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { Assessment } from '@/data/types'
 
-type Mode = 'choose' | 'search' | 'pick' | 'pdf'
+type Mode = 'choose' | 'search' | 'pick' | 'pdf' | 'manual'
 const DAY = 86_400_000
 const BP_COLS =
   'id, user_id, course_code, course_name, professor, author, section, term, items, verified, upvotes, downvotes, imports, created_at'
@@ -51,7 +51,17 @@ function rebaseUpcoming(items: Assessment[]): Assessment[] {
  * ranked most-credible-first), or upload a syllabus to parse. Each import joins
  * a running list; the parent's Continue proceeds once at least one is in.
  */
-export function AddCourses({ onAdded }: { onAdded: () => void }) {
+export function AddCourses({
+  onAdded,
+  concordia = true,
+}: {
+  onAdded: () => void
+  /** False hides the Concordia catalogue search — it can only ever come back
+   *  empty for someone at another school, and a search box that never finds
+   *  your class reads as the product being broken rather than the wrong
+   *  school. Typing the course in and parsing a syllabus both still work. */
+  concordia?: boolean
+}) {
   const t = useT()
   const { createCourse, addAssessments, courses } = useAppData()
   const [mode, setMode] = useState<Mode>('choose')
@@ -103,6 +113,19 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
    * error states, the duplicate check and the rate limiting are all the ones
    * that are already tested — and onboarding cannot drift away from them.
    */
+  if (mode === 'manual') {
+    return (
+      <ManualCourse
+        onBack={() => setMode('choose')}
+        onAdd={async (code, name) => {
+          if (enrolled(code)) return record({ code, count: 0, already: true })
+          await createCourse({ code, title: name })
+          record({ code, count: 0 })
+        }}
+      />
+    )
+  }
+
   if (mode === 'pdf') {
     return (
       <div className="mx-auto w-full max-w-2xl">
@@ -171,10 +194,10 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
 
       <div className={cn('grid gap-3 sm:grid-cols-2', has ? 'mt-5' : 'mt-5 sm:mt-6')}>
         <ChoiceTile
-          icon={Search}
-          label={t('courses.findCourse')}
-          desc={t('courses.findCourseDesc')}
-          onClick={() => setMode('search')}
+          icon={concordia ? Search : Pencil}
+          label={concordia ? t('courses.findCourse') : 'Type it in'}
+          desc={concordia ? t('courses.findCourseDesc') : 'Course code and name'}
+          onClick={() => setMode(concordia ? 'search' : 'manual')}
         />
         <ChoiceTile
           icon={FileText}
@@ -183,6 +206,66 @@ export function AddCourses({ onAdded }: { onAdded: () => void }) {
           onClick={() => setMode('pdf')}
         />
       </div>
+    </div>
+  )
+}
+
+/** Typing a course in by hand — the path for anyone the Concordia catalogue
+ *  cannot answer for. Code and name only: deadlines come from a syllabus or
+ *  get added later, and asking for them here would be a form, not a step. */
+function ManualCourse({
+  onBack,
+  onAdd,
+}: {
+  onBack: () => void
+  onAdd: (code: string, name: string) => Promise<void>
+}) {
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const ready = code.trim().length > 1
+
+  const submit = async () => {
+    if (!ready || busy) return
+    setBusy(true)
+    await onAdd(code.trim().toUpperCase(), name.trim() || code.trim().toUpperCase())
+    setBusy(false)
+    setCode('')
+    setName('')
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-md flex-col">
+      <BackBtn onClick={onBack} />
+      <h2 className="mt-3 text-center font-display text-[21px] leading-tight font-semibold text-fg sm:text-[26px]">
+        Add a course
+      </h2>
+      <input
+        autoFocus
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && void submit()}
+        placeholder="Course code (e.g. MATH 133)"
+        maxLength={20}
+        className="mt-5 w-full rounded-xl border border-border bg-surface px-4 py-3 text-[16px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+      />
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && void submit()}
+        placeholder="Course name (optional)"
+        maxLength={90}
+        className="mt-3 w-full rounded-xl border border-border bg-surface px-4 py-3 text-[16px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+      />
+      <button
+        type="button"
+        disabled={!ready || busy}
+        onClick={() => void submit()}
+        className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-[14px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Check size={15} aria-hidden />}
+        Add course
+      </button>
     </div>
   )
 }
