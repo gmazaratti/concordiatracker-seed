@@ -1994,6 +1994,148 @@ console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
   check('  and is marked as coming from the API', trail.reason, 'api:agent')
 }
 
+
+/* ── db/org_handoff.sql ───────────────────────────────────────────────────
+ * A placeholder organisation is created unowned, set up by whoever made it,
+ * and then handed to a real club with a single-use link. The subtle part, and
+ * the reason this section exists: `ct_guard_org_status` pins owner_id for
+ * every non-admin caller, which silently swallowed the ownership transfer for
+ * as long as handoff invites have existed. */
+console.log(String.fromCharCode(10) + 'db/org_handoff.sql')
+{
+  const ADMIN = '00000000-0000-0000-0000-0000000000c1'
+  const CLUB = '00000000-0000-0000-0000-0000000000c2'
+  const OTHER = '00000000-0000-0000-0000-0000000000c3'
+
+  await db.exec(`
+    drop table if exists public.org_invites cascade;
+    drop table if exists public.org_members cascade;
+    drop table if exists public.organizations cascade;
+    create schema if not exists auth;
+    create table if not exists auth.users (id uuid primary key);
+    alter table auth.users add column if not exists email text;
+    create table public.organizations (
+      id uuid primary key default gen_random_uuid(), owner_id uuid, handle text,
+      name text, verified boolean default false, status text default 'pending',
+      bio text, logo text, banner text, color text, glyph text,
+      application jsonb, applied_at timestamptz,
+      created_at timestamptz not null default now()
+    );
+    create table public.org_members (
+      id uuid primary key default gen_random_uuid(), org_id uuid, user_id uuid,
+      name text, email text, role text default 'member', status text default 'active',
+      invite_token text, permissions jsonb, joined_at timestamptz, avatar_url text,
+      created_at timestamptz not null default now()
+    );
+    create table public.org_invites (
+      id uuid primary key default gen_random_uuid(), org_id uuid, token text,
+      org_name text, org_handle text, glyph text, color text, recipient_email text,
+      max_uses integer default 1, use_count integer default 0,
+      expires_at timestamptz default now() + interval '14 days',
+      created_at timestamptz not null default now()
+    );
+    create table if not exists public.user_profile_h (user_id uuid primary key, name text, avatar_url text);
+  `)
+
+  // user_profile already exists from an earlier section in some runs; the
+  // claim function reads name/avatar off it, so make sure those columns are
+  // there rather than assuming which section ran first.
+  await db.exec(`
+    create table if not exists public.user_profile (user_id uuid primary key);
+    alter table public.user_profile add column if not exists name text;
+    alter table public.user_profile add column if not exists avatar_url text;
+  `)
+
+  await db.exec(`
+    create or replace function public.admin_create_org(
+      p_name text, p_handle text, p_glyph text, p_color text, p_bio text default '',
+      p_logo text default null, p_banner text default null, p_verified boolean default true)
+    returns uuid language plpgsql security definer as $$
+    declare v uuid;
+    begin
+      if not public.is_admin() then raise exception 'not authorized'; end if;
+      insert into public.organizations (owner_id, handle, name, verified, glyph, color, bio, logo, banner, status)
+        values (null, p_handle, p_name, coalesce(p_verified,false), p_glyph, p_color, p_bio, p_logo, p_banner, 'approved')
+        returning id into v;
+      return v;
+    end $$;
+  `)
+
+  const be = (uid, admin) =>
+    db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$ select '${uid}'::uuid $$;
+             create or replace function public.is_admin() returns boolean language sql stable as $$ select ${admin} $$;`)
+
+  await be(ADMIN, 'true')
+  await db.exec(migration('org_handoff.sql'))
+  // The guard has to be attached for any of this to mean anything.
+  await db.exec(`
+    drop trigger if exists ct_guard_org_status on public.organizations;
+    create trigger ct_guard_org_status before insert or update on public.organizations
+      for each row execute function public.ct_guard_org_status();
+  `)
+  await db.exec(`insert into auth.users (id, email) values
+    ('${ADMIN}','admin@example.com'), ('${CLUB}','club@example.com'), ('${OTHER}','other@example.com')`)
+
+  // ── Created unowned ──────────────────────────────────────────────────
+  const orgId = (await db.query(
+    `select public.ct_agent_create_org('Claim Society', '@claimsoc', 'CS', '#333', '', null, null, false) as id`,
+  )).rows[0].id
+  let org = (await db.query(`select owner_id, status from public.organizations where id = '${orgId}'`)).rows[0]
+  check('a created organisation has no owner', org.owner_id, null)
+  check('  and the creator is an ADMIN member, not the owner',
+    (await db.query(`select role from public.org_members where org_id = '${orgId}' and user_id = '${ADMIN}'`)).rows[0].role,
+    'admin')
+  check('  which is still enough to publish as it',
+    (await db.query(`select public.ct_can_act_as_org('${orgId}') as a`)).rows[0].a, true)
+
+  // ── The guard still pins owner_id for an ordinary update ─────────────
+  await be(OTHER, 'false')
+  await db.exec(`update public.organizations set owner_id = '${OTHER}' where id = '${orgId}'`)
+  check('an ordinary caller cannot hand themselves the organisation',
+    (await db.query(`select owner_id from public.organizations where id = '${orgId}'`)).rows[0].owner_id, null)
+
+  // ── The claim ────────────────────────────────────────────────────────
+  await db.exec(`insert into public.org_invites (org_id, token, org_name, org_handle, max_uses)
+                 values ('${orgId}', 'tok-claim', 'Claim Society', '@claimsoc', 1)`)
+  await be(CLUB, 'false')
+  const res = (await db.query(`select public.accept_org_invite('tok-claim') as r`)).rows[0].r
+  check('the claim runs for real, not as a dry run', res.dry_run, false)
+  check('  and reports removing the previous holder', res.removed_members, 1)
+  check('the claimer becomes the owner',
+    (await db.query(`select owner_id from public.organizations where id = '${orgId}'`)).rows[0].owner_id, CLUB)
+  check('  and is the only member',
+    (await db.query(`select count(*)::int as n from public.org_members where org_id = '${orgId}'`)).rows[0].n, 1)
+  check('  as owner',
+    (await db.query(`select role from public.org_members where org_id = '${orgId}'`)).rows[0].role, 'owner')
+
+  // ── Nobody else keeps access ─────────────────────────────────────────
+  await be(ADMIN, 'true')
+  check('the account that set it up is out',
+    (await db.query(`select count(*)::int as n from public.org_members where org_id = '${orgId}' and user_id = '${ADMIN}'`)).rows[0].n,
+    0)
+
+  // ── The link is spent, and the hatch did not stay open ───────────────
+  await be(OTHER, 'false')
+  let spent = false
+  try {
+    await db.query(`select public.accept_org_invite('tok-claim')`)
+  } catch {
+    spent = true
+  }
+  check('a single-use link cannot be used twice', spent, true)
+
+  await db.exec(`update public.organizations set owner_id = '${OTHER}' where id = '${orgId}'`)
+  check('and the claim setting did not leave ownership writable afterwards',
+    (await db.query(`select owner_id from public.organizations where id = '${orgId}'`)).rows[0].owner_id, CLUB)
+
+  // ── Status and verified are NOT relaxed by the hatch ─────────────────
+  check('claiming did not approve the organisation on the way through',
+    (await db.query(`select status from public.organizations where id = '${orgId}'`)).rows[0].status, 'approved')
+  await db.exec(`update public.organizations set verified = true where id = '${orgId}'`)
+  check('and an ordinary caller still cannot grant the seal',
+    (await db.query(`select verified from public.organizations where id = '${orgId}'`)).rows[0].verified, false)
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)
