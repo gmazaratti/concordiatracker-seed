@@ -10,6 +10,7 @@
  */
 import { fetchCatalog, fetchDescriptions, type CatalogRow } from './_concordia.js'
 import { syncOutlines } from './_sync-outlines.js'
+import { syncSections } from './_sync-sections.js'
 import { syncMoodle } from './_sync-moodle.js'
 import { runReminders } from './_run-reminders.js'
 import { fail } from './_respond.js'
@@ -53,7 +54,7 @@ function toRow(c: CatalogRow, description: string | null) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
   /**
-   * FOUR JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline
+   * FIVE JOBS, ONE FUNCTION. `?job=outlines` runs the eConcordia outline
    * sync (api/_sync-outlines.ts) and `?job=moodle` refreshes every connected
    * Moodle calendar (api/_sync-moodle.ts), instead of the catalogue mirror.
    *
@@ -67,6 +68,12 @@ export default async function handler(req: any, res: any) {
    */
   if (req.query?.job === 'outlines') {
     await syncOutlines(req, res)
+    return
+  }
+  // `?job=sections&term=2254` mirrors one term's schedule, a batch of
+  // subjects per call. See api/_sync-sections.ts for why it is batched.
+  if (req.query?.job === 'sections') {
+    await syncSections(req, res)
     return
   }
   if (req.query?.job === 'moodle') {
