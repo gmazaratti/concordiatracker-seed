@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
-import { usePeopleBadge } from '@/app/usePeopleBadge'
+import { useUnreadMessages } from '@/app/usePeopleBadge'
 import { useAppData } from '@/app/providers/app-data'
 import { PersonAvatar } from '@/features/community/PersonAvatar'
 import { useT } from '@/i18n/i18n'
@@ -43,7 +43,7 @@ import { cn } from '@/lib/cn'
  */
 export function MobileNav() {
   const badges = useNavBadges()
-  const waiting = usePeopleBadge()
+  const unread = useUnreadMessages()
   const { user } = useAppData()
   const t = useT()
   const { pathname } = useLocation()
@@ -141,9 +141,14 @@ export function MobileNav() {
              * naming. The ring is how it says "selected" without a colour
              * change, which a photo would swallow.
              *
-             * The label is dropped with it, so the row reserves that space
-             * instead: without it the avatar would float up out of line with
-             * the four icons beside it.
+             * IT IS AS TALL AS AN ICON PLUS ITS LABEL, not as tall as the
+             * icon it replaced. A 22px face with an empty label under it
+             * reserved the right amount of ROW but put the face itself at
+             * the top of that space, so it sat level with the four icons
+             * rather than level with the icon-and-word blocks beside it —
+             * visibly high, and off centre. 36px is 20 (icon) + 4 (gap) +
+             * 12 (label line), so it occupies exactly one slot's worth of
+             * content and centres against its neighbours by construction.
              */
             if (s.id === 'profile') {
               return (
@@ -152,7 +157,7 @@ export function MobileNav() {
                   to={communityHref(s.id)}
                   aria-label={s.label}
                   aria-current={on ? 'page' : undefined}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 transition-transform duration-150 active:scale-95"
+                  className="flex min-w-0 flex-1 flex-col items-center justify-center py-2 transition-transform duration-150 active:scale-95"
                 >
                   <PersonAvatar
                     person={{
@@ -161,13 +166,10 @@ export function MobileNav() {
                       avatar_url: user.avatarUrl ?? null,
                     }}
                     className={cn(
-                      'size-[22px] transition-shadow duration-150',
+                      'size-9 transition-shadow duration-150',
                       on && 'ring-2 ring-accent ring-offset-1 ring-offset-surface',
                     )}
                   />
-                  <span aria-hidden className="text-[10px] leading-none">
-                    &nbsp;
-                  </span>
                 </Link>
               )
             }
@@ -183,11 +185,17 @@ export function MobileNav() {
               >
                 <span className="relative">
                   <s.icon size={20} aria-hidden />
-                  {s.id === 'messages' && waiting > 0 && (
+                  {/* A COUNT, not a dot. A dot says "something"; the number
+                      is the difference between glancing and opening. Floated
+                      over the icon so it can never shift the bar, and capped
+                      at 9+ so the pill's width is stable. */}
+                  {s.id === 'messages' && unread > 0 && (
                     <span
-                      className="absolute -top-0.5 -right-1.5 size-2 rounded-full bg-accent ring-2 ring-surface"
-                      aria-hidden
-                    />
+                      className="absolute -top-1.5 -right-2.5 inline-flex min-w-[1.05rem] items-center justify-center rounded-full bg-accent px-1 py-px text-[10px] leading-none font-bold text-accent-contrast tabular-nums ring-2 ring-surface"
+                      aria-label={`${unread} unread messages`}
+                    >
+                      {unread > 9 ? '9+' : unread}
+                    </span>
                   )}
                 </span>
                 <span className="w-full truncate text-center tracking-tight">{s.label}</span>

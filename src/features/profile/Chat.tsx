@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookOpen,
   CalendarRange,
   Check,
   CheckCheck,
+  ChevronLeft,
   GraduationCap,
   Palette,
   PartyPopper,
@@ -33,6 +34,7 @@ import {
 import type { SectionOption } from '@/lib/seats'
 import { placeSections, weeklyHours } from '@/features/planner/schedule'
 import { AttachmentEmbed } from './AttachmentEmbed'
+import { setOpenThread } from '@/lib/message-toast'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { cn } from '@/lib/cn'
 
@@ -54,10 +56,22 @@ export function Chat({
   friend,
   onBack,
   initialAttachment,
+  unreadOnOpen = 0,
   className,
 }: {
   friend: Friend
   onBack?: () => void
+  /**
+   * How many of theirs were unread the moment you opened this, counted by the
+   * list that opened it.
+   *
+   * IT CANNOT BE DERIVED HERE. Opening a conversation marks it read — the
+   * list does it optimistically so the badge clears instantly, and this
+   * component does it again on load — so by the time the messages arrive
+   * `read_at` is already set on every one of them and there is nothing left
+   * to divide. The count has to be carried in from before that happened.
+   */
+  unreadOnOpen?: number
   /** Pre-loaded from a Share button elsewhere, so "send this to a friend"
    *  lands in the composer rather than making you find it again in the +. */
   initialAttachment?: Attachment
@@ -85,6 +99,16 @@ export function Chat({
   const pro = plan !== 'free'
   const { orgNameByOwner } = useCommunityData()
   const badge = badgeForPerson(friend.handle, orgNameByOwner[friend.user_id])
+
+  /**
+   * While this conversation is on screen, its messages do not raise the
+   * in-app banner. A banner for a message you are watching arrive is noise,
+   * and it covers the top of the thread you are reading.
+   */
+  useEffect(() => {
+    setOpenThread(friend.user_id)
+    return () => setOpenThread(null)
+  }, [friend.user_id])
 
   useEffect(() => {
     let alive = true
@@ -149,8 +173,43 @@ export function Chat({
   }, [me, friend.user_id])
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' })
+    /*
+     * The CONTAINER is scrolled, not the element scrolled into view.
+     * `scrollIntoView` walks up and scrolls EVERY scrollable ancestor, so on
+     * desktop sending a message dragged the whole page down and took the
+     * composer off the bottom of the screen with it.
+     */
+    const box = endRef.current?.parentElement
+    if (box) box.scrollTop = box.scrollHeight
   }, [rows, theyType])
+
+  /**
+   * WHERE YOU LEFT OFF.
+   *
+   * Frozen the first time a conversation loads, and deliberately not
+   * recomputed: opening the thread marks it read, and a message that arrives
+   * while you are looking at it is not one you missed. Recomputing from
+   * `read_at` on every refetch would drop a second divider above every live
+   * message, which is the opposite of what the line is for.
+   */
+  const [divider, setDivider] = useState<{ friend: string; id: string | null }>({
+    friend: '',
+    id: null,
+  })
+  if (rows && divider.friend !== friend.user_id) {
+    // Walk back from the newest, counting only THEIRS, until the count they
+    // were unread by is used up. That message is the first one you had not
+    // seen.
+    let left = unreadOnOpen
+    let at: string | null = null
+    for (let i = rows.length - 1; i >= 0 && left > 0; i--) {
+      if (rows[i].sender === me) continue
+      left -= 1
+      if (left === 0) at = rows[i].id
+    }
+    // Nothing above it to divide from means nothing to draw.
+    setDivider({ friend: friend.user_id, id: at && rows[0]?.id !== at ? at : null })
+  }
 
   function announceTyping() {
     if (!me) return
@@ -219,9 +278,10 @@ export function Chat({
           <button
             type="button"
             onClick={onBack}
-            className="rounded px-1 text-[13px] text-muted transition-colors hover:text-fg lg:hidden"
+            aria-label="Back to conversations"
+            className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2 lg:hidden"
           >
-            ←
+            <ChevronLeft size={22} aria-hidden />
           </button>
         )}
         <Avatar friend={friend} size={34} />
@@ -309,8 +369,17 @@ export function Chat({
           const endsRun = next?.sender !== m.sender
           const last = i === (rows ?? []).length - 1
           return (
+            <Fragment key={m.id}>
+              {divider.id === m.id && (
+                <div className="flex items-center gap-3 py-2" role="separator">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] font-medium tracking-wide text-subtle">
+                    New messages
+                  </span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              )}
             <div
-              key={m.id}
               className={cn(
                 'ct-msg-in flex items-end gap-2',
                 mine ? 'justify-end' : 'justify-start',
@@ -366,6 +435,7 @@ export function Chat({
                 )}
               </div>
             </div>
+            </Fragment>
           )
         })}
 
@@ -389,6 +459,12 @@ export function Chat({
       </div>
 
       {/* ── Composer ───────────────────────────────────────────────────── */}
+      {/*
+        PINNED. `shrink-0` inside a column whose middle is the only thing that
+        scrolls — so a long conversation can never push the box off the bottom
+        of the screen, which it used to do on desktop because `scrollIntoView`
+        scrolled the page as well as the list.
+      */}
       <form onSubmit={submit} className="shrink-0 border-t border-border/70 p-2.5">
         {pending && (
           <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1.5">
@@ -516,30 +592,37 @@ export function Chat({
             )}
           </div>
 
-          <textarea
-            value={body}
-            onChange={(e) => {
-              setBody(e.target.value)
-              announceTyping()
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void submit(e as unknown as React.FormEvent)
-              }
-            }}
-            rows={1}
-            placeholder={`Message ${friend.name ?? friend.handle}`}
-            className="min-h-[38px] flex-1 resize-none rounded-2xl border border-border bg-canvas px-3.5 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-          />
-          <button
-            type="submit"
-            aria-label="Send"
-            disabled={!body.trim() && !pending}
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-all duration-150 hover:bg-accent-hover disabled:opacity-40"
-          >
-            <Send size={15} aria-hidden />
-          </button>
+          {/* ONE PILL holding the text and the send, the shape every
+              messenger a student already uses puts here. The button inside it
+              rather than beside it is what makes the row read as a single
+              field instead of three controls in a line, and it keeps the
+              tap target at the thumb's end of the bar. */}
+          <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
+            <textarea
+              value={body}
+              onChange={(e) => {
+                setBody(e.target.value)
+                announceTyping()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  void submit(e as unknown as React.FormEvent)
+                }
+              }}
+              rows={1}
+              placeholder={`Message ${friend.name ?? friend.handle}`}
+              className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+            />
+            <button
+              type="submit"
+              aria-label="Send"
+              disabled={!body.trim() && !pending}
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-all duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+            >
+              <Send size={15} aria-hidden />
+            </button>
+          </div>
         </div>
         {error && <p className="mt-1.5 text-[11.5px] text-warning">{error}</p>}
       </form>

@@ -45,8 +45,16 @@ export function usePullToRefresh<T extends HTMLElement>(
     let startY: number | null = null
     let armed = false
 
+    /*
+     * THE WRAPPER ITSELF COUNTS. This used to start at `el.parentElement`,
+     * which was fine while every list scrolled with the page — but the
+     * conversation list is now its own scroll region and the wrapper IS that
+     * region. Walking straight past it found `window`, whose scrollTop is
+     * permanently 0 on a page that does not scroll, so the gesture armed
+     * halfway down a list and refreshed on an ordinary swipe.
+     */
     const scroller = (): HTMLElement | Window => {
-      let p: HTMLElement | null = el.parentElement
+      let p: HTMLElement | null = el
       while (p) {
         const oy = getComputedStyle(p).overflowY
         if (oy === 'auto' || oy === 'scroll') return p

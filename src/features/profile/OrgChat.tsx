@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, SendHorizonal } from 'lucide-react'
+import { ChevronLeft, Loader2, SendHorizonal } from 'lucide-react'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { myThreadWithOrg, sendMessageToOrg, type OrgDm } from '@/lib/org-messages'
 import { shortAgo } from '@/lib/social'
@@ -87,14 +87,14 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2.5 border-b border-border px-3 py-2.5">
+      <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-3 py-2.5">
         <button
           type="button"
           onClick={onBack}
           aria-label="Back to conversations"
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors duration-150 hover:text-fg lg:hidden"
+          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2 lg:hidden"
         >
-          <ArrowLeft size={17} aria-hidden />
+          <ChevronLeft size={22} aria-hidden />
         </button>
         <OrgFace org={org} className="size-9" />
         <Link
@@ -162,36 +162,38 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
         <div ref={end} />
       </div>
 
-      <div className="border-t border-border p-2.5">
+      <div className="shrink-0 border-t border-border p-2.5">
         {error && <p className="mb-1.5 px-1 text-[11.5px] text-warning">{error}</p>}
         <div className="flex items-end gap-2">
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void send()
-              }
-            }}
-            rows={1}
-            maxLength={2000}
-            placeholder={`Message ${org.name}…`}
-            className="max-h-32 min-h-[40px] flex-1 resize-none rounded-xl border border-border bg-canvas px-3 py-2.5 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => void send()}
-            disabled={!body.trim() || sending}
-            aria-label="Send"
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
-          >
-            {sending ? (
-              <Loader2 size={16} className="animate-spin" aria-hidden />
-            ) : (
-              <SendHorizonal size={16} aria-hidden />
-            )}
-          </button>
+          <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  void send()
+                }
+              }}
+              rows={1}
+              maxLength={2000}
+              placeholder={`Message ${org.name}…`}
+              className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={!body.trim() || sending}
+              aria-label="Send"
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+            >
+              {sending ? (
+                <Loader2 size={15} className="animate-spin" aria-hidden />
+              ) : (
+                <SendHorizonal size={15} aria-hidden />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

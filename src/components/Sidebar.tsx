@@ -178,7 +178,10 @@ export function Sidebar() {
 
       <div className={cn('flex items-center gap-1.5', collapsed && 'flex-col')}>
         <div className={cn('min-w-0', !collapsed && 'flex-1')}>
-          <AvatarMenu align="bottom" compact={collapsed} />
+          {/* Collapsed, the face sits in a 68px rail at the left edge, so the
+              menu has to open into the page. Right-anchored it went off the
+              side of the screen. */}
+          <AvatarMenu align="bottom" compact={collapsed} side={collapsed ? 'left' : 'right'} />
         </div>
         <SettingsGearButton />
       </div>

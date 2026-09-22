@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
 import { useActivityBadge } from '@/app/usePeopleBadge'
+import { cn } from '@/lib/cn'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
 import { ProfileView } from '@/features/profile/UserProfilePage'
 import { Mascot } from '@/components/Mascot'
@@ -69,9 +70,23 @@ export function CommunityPage() {
    * somebody new is the compose button, next to that field.
    */
   const showSearch = section === 'events'
+  const full = section === 'messages'
 
   return (
-    <div className="mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5">
+    /*
+     * MESSAGES TAKES THE WHOLE SCREEN. Everywhere else here is a document you
+     * scroll, so it gets a reading column with air around it. A messenger is
+     * not that: it is two panes that scroll independently inside a frame that
+     * does not move, and the reading column was what made it read as an embed
+     * floating on a page rather than the page itself.
+     */
+    <div
+      className={cn(
+        full
+          ? 'flex h-full min-h-0 w-full flex-col overflow-hidden'
+          : 'mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5',
+      )}
+    >
       <h1 className="sr-only">Social</h1>
 
       {showSearch && (
@@ -90,14 +105,14 @@ export function CommunityPage() {
         What is left up here is the bell, which is not a destination: it opens
         a sheet and comes back.
       */}
-      <div className="mb-2 flex justify-end">
+      <div className={cn('flex justify-end', full ? 'shrink-0 px-3 pt-2 sm:px-4' : 'mb-2')}>
         <ActivityButton count={bell} onOpen={() => setActivity(true)} />
       </div>
 
       {/* Keyed on the section so the animation replays on every switch, and so
           React tears the old section down rather than reconciling two
           different screens into each other. */}
-      <div key={section} className="ct-section-in">
+      <div key={section} className={cn('ct-section-in', full && 'flex min-h-0 flex-1 flex-col')}>
         {section === 'feed' && <FeedSection />}
         {section === 'events' && (
           <div className="flex gap-6">

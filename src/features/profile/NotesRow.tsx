@@ -48,12 +48,12 @@ export function NotesRow() {
 
   return (
     <>
-      <div className="-mx-4 mb-1 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-3 mb-1 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* items-START, so the AVATARS line up. Aligning the bottoms instead
             lets a slot with an extra caption under it ride its face higher
             than its neighbours, and the row stops reading as a row. The
             padding above reserves the space the bubbles float in. */}
-        <div className="flex w-max items-start gap-3 pt-11 pb-2">
+        <div className="flex w-max items-start gap-3 pt-12 pb-2">
           <Slot
             avatar={
               <PersonAvatar
@@ -134,7 +134,12 @@ function Slot({
       <span className="relative flex justify-center">
         <span
           className={cn(
-            'pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-max max-w-[5.5rem]',
+            /* 7rem over a 5rem slot. At 5.5rem "Share a note" clipped its own
+               second line, which is a poor first impression from the control
+               that invites you to write one. It still cannot reach a
+               neighbour: the gap is 0.75rem and the overhang is 1rem a side,
+               and the two-line clamp caps the height either way. */
+            'pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-max max-w-[7rem]',
             '-translate-x-1/2 rounded-2xl rounded-bl-sm px-2 py-1 text-center',
             'text-[10.5px] leading-[1.25] [display:-webkit-box] [-webkit-box-orient:vertical]',
             '[-webkit-line-clamp:2] overflow-hidden',
@@ -153,12 +158,12 @@ function Slot({
       )}
     </>
   )
-  if (!onClick) return <span className="block w-[4.5rem] shrink-0">{body}</span>
+  if (!onClick) return <span className="block w-[5rem] shrink-0">{body}</span>
   return (
     <button
       type="button"
       onClick={onClick}
-      className="block w-[4.5rem] shrink-0 transition-transform duration-150 active:scale-95"
+      className="block w-[5rem] shrink-0 transition-transform duration-150 active:scale-95"
     >
       {body}
     </button>

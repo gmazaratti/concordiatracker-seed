@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { usePeopleBadge } from '@/app/usePeopleBadge'
+import { useUnreadMessages } from '@/app/usePeopleBadge'
 import {
   COMMUNITY_SECTIONS,
   DEFAULT_SECTION,
@@ -22,7 +22,10 @@ import { cn } from '@/lib/cn'
  */
 export function SocialSubNav({ open }: { open: boolean }) {
   const [params] = useSearchParams()
-  const waiting = usePeopleBadge()
+  // Messages only. The Social row above this one carries the wider "somebody
+  // is waiting" count; repeating that number against a section called
+  // Messages would have it claim followers as unread mail.
+  const unread = useUnreadMessages()
   const raw = params.get('c')
   const active: CommunitySection = isCommunitySection(raw) ? raw : DEFAULT_SECTION
 
@@ -42,7 +45,7 @@ export function SocialSubNav({ open }: { open: boolean }) {
         <div className="mt-0.5 mb-1 ml-[26px] border-l border-border pl-2">
           {COMMUNITY_SECTIONS.map((s) => {
             const on = active === s.id
-            const badge = s.id === 'messages' ? waiting : 0
+            const badge = s.id === 'messages' ? unread : 0
             return (
               <Link
                 key={s.id}
@@ -63,7 +66,7 @@ export function SocialSubNav({ open }: { open: boolean }) {
                 <span className="min-w-0 flex-1 truncate">{s.label}</span>
                 {badge > 0 && (
                   <span className="shrink-0 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-contrast">
-                    {badge}
+                    {badge > 9 ? '9+' : badge}
                   </span>
                 )}
               </Link>

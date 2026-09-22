@@ -45,10 +45,20 @@ const FOUNDER_EMAILS = new Set(['alexxdegryse@gmail.com', 'concordiatracker@gmai
 export function AvatarMenu({
   align = 'bottom',
   compact = false,
+  side = 'right',
   icon,
 }: {
   align?: 'bottom' | 'top'
   compact?: boolean
+  /**
+   * WHICH EDGE THE MENU HANGS FROM, and it exists because `compact` was doing
+   * two jobs. Compact means "the trigger is just a face", which is true both
+   * in the mobile top bar — where the face is at the RIGHT edge of the screen
+   * and the menu must open leftward — and in a COLLAPSED sidebar, where the
+   * face is at the left edge and a right-anchored 240px menu runs straight off
+   * the screen. Same trigger, opposite answer, so the caller states it.
+   */
+  side?: 'left' | 'right'
   /**
    * Replaces the avatar on the trigger. The profile page passes a hamburger:
    * the whole screen is already your face, and a second copy of it in the bar
@@ -163,7 +173,7 @@ export function AvatarMenu({
           role="menu"
           className={cn(
             'ct-animate-pop absolute z-40 rounded-xl border border-border bg-surface p-1.5 shadow-2xl',
-            compact ? 'right-0 w-60' : 'right-0 left-0',
+            compact ? cn('w-60', side === 'left' ? 'left-0' : 'right-0') : 'right-0 left-0',
             align === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2',
           )}
         >

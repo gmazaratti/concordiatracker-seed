@@ -1,4 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useAppTitle } from '@/app/hooks/useAppTitle'
+import { MessageToast } from '@/features/profile/MessageToast'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/app/providers/auth'
 import { useAppData } from '@/app/providers/app-data'
@@ -37,6 +39,10 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   const { user, loading } = useAuth()
   const { onboardingCompleted } = useAppData()
   const { pathname } = useLocation()
+  // Before the early returns: a hook is a hook. It writes nothing
+  // outside /app, so the login screen and a public profile keep their
+  // own titles.
+  useAppTitle()
 
   /**
    * A PROFILE OWNS THE WHOLE SCREEN, and so does Community.
@@ -79,6 +85,11 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
             </div>
           </header>
         )}
+
+        {/* The in-app message banner. On the shell, above <main>, because a
+            message can arrive on any screen and it must not scroll with the
+            one you happen to be on. */}
+        <MessageToast />
 
         <main className="relative flex-1 overflow-y-auto">
           {/* `children` for the one page that lives at a top-level URL but

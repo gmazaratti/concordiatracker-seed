@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { listFriends, unreadCount } from '@/lib/social'
 import { listNotifications, unreadNotifications } from '@/lib/notifications'
+import { useMessageTick } from '@/lib/message-alerts'
 
 /**
  * How many things are waiting on you from other people.
@@ -40,6 +41,37 @@ export function usePeopleBadge(): number {
   return count
 }
 
+
+/**
+ * UNREAD MESSAGES, and nothing else.
+ *
+ * Deliberately not `usePeopleBadge`, which folds in new followers: this
+ * number rides on the Messages icon, and a badge there that counts somebody
+ * following you sends a person into their inbox looking for a message that
+ * was never sent. It also reacts to `useMessageTick`, so the count moves the
+ * instant a message lands rather than on the next visibility change — the
+ * badge is on screen while the message arrives, which is the whole point.
+ */
+export function useUnreadMessages(): number {
+  const [count, setCount] = useState(0)
+  const live = useMessageTick()
+
+  useEffect(() => {
+    let alive = true
+    const load = () => {
+      void unreadCount().then((n) => alive && setCount(n))
+    }
+    load()
+    const onVisible = () => document.visibilityState === 'visible' && load()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [live])
+
+  return count
+}
 
 /**
  * What the BELL should say — the people badge plus unread notifications.
