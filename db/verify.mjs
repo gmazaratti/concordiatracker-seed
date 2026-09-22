@@ -1878,6 +1878,20 @@ console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
   check('an agent admin loses the write bypass', await adminWrite(), false)
   check('  so it CANNOT publish as an org it does not belong to', await canAct(), false)
 
+  // ── The OTHER agent signal: the account itself ───────────────────────
+  // The claim only exists on a token the API signs. The fallback route mints
+  // a genuine Supabase session, which cannot carry a custom claim — so if the
+  // claim were the only evidence, that path would quietly hand the admin
+  // write-anywhere bypass back. The table is what stops it failing open.
+  await asBrowser()
+  check('with no claim the admin bypass is back', await adminWrite(), true)
+  await db.exec(`insert into public.agent_accounts (user_id, label) values ('${ADMIN}', 'test agent')`)
+  check('  but a registered agent account loses it anyway', await adminWrite(), false)
+  check('  and cannot publish as a stranger org', await canAct(), false)
+  await db.exec(`delete from public.agent_accounts where user_id = '${ADMIN}'`)
+  check('  removing the marking restores it', await adminWrite(), true)
+  await asAgent()
+
   // ── Membership still works with the claim set ────────────────────────
   await db.exec(`insert into public.org_members (org_id, user_id, role, status) values ('${theirs}', '${ADMIN}', 'admin', 'active')`)
   check('a member with the claim can publish', await canAct(), true)

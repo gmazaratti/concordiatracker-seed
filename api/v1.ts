@@ -74,7 +74,7 @@ import {
   patchEvent,
   revokeInvite,
 } from './_v1-org-publish.js'
-import { JwtUnavailable, mintActorJwt } from './_v1-jwt.js'
+import { JwtUnavailable, actorToken } from './_v1-jwt.js'
 import { table } from './_v1-auth.js'
 import { fail } from './_respond.js'
 
@@ -402,11 +402,11 @@ export default async function handler(req: any, res: any) {
       // removes the admin write bypass, so publishing still needs membership.
       let jwt: string
       try {
-        jwt = mintActorJwt(caller.userId, await actorEmail(caller.userId))
+        jwt = await actorToken(caller.userId, await actorEmail(caller.userId))
       } catch (e) {
         if (e instanceof JwtUnavailable) {
           fail(res, 503, e.message, {
-            hint: 'Set SUPABASE_JWT_SECRET (Supabase Dashboard, Settings, API, JWT Settings) on the deployment.',
+            hint: 'Setting SUPABASE_JWT_SECRET (Supabase Dashboard, Settings, API, JWT Settings) is the fast path. Without it the API borrows a session instead, which needs the agent account to have an email on its profile.',
           })
           return
         }

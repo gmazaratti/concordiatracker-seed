@@ -262,3 +262,38 @@ begin
 end;
 $$;
 grant execute on function public.ct_agent_audit(text, uuid, jsonb) to authenticated;
+
+-- ── Which accounts are agents, independent of how they got their token ──────
+--
+-- WHY A TABLE AS WELL AS THE CLAIM. The narrowing above hangs on `ct_agent`
+-- being inside the token, which is fine while the API signs its own. It is
+-- not fine as the only signal: the API also has a fallback that mints a
+-- genuine Supabase session (used when SUPABASE_JWT_SECRET is not set), and a
+-- real session token cannot carry a custom claim. If the claim were the only
+-- evidence, that path would silently restore the admin write-anywhere bypass
+-- — the exact thing this file exists to remove, failing open.
+--
+-- So an account can also be marked an agent once, here. It is the stronger
+-- signal of the two: an agent account is passwordless and cannot be signed
+-- into, so EVERY token that will ever exist for it is one the API minted.
+--
+-- Either signal is enough. Neither grants anything; both only remove.
+create table if not exists public.agent_accounts (
+  user_id    uuid primary key,
+  label      text,
+  created_at timestamptz not null default now()
+);
+-- Read through the definer function below and nowhere else. Who the agents
+-- are is not interesting to a client, and a list of privileged accounts is
+-- not a thing to hand out.
+alter table public.agent_accounts enable row level security;
+
+create or replace function public.ct_is_agent()
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(
+           (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'ct_agent')::boolean,
+           false
+         )
+      or exists (select 1 from public.agent_accounts a where a.user_id = auth.uid());
+$$;
+grant execute on function public.ct_is_agent() to authenticated, anon;

@@ -134,14 +134,54 @@ console.log('\nthe minted token')
   check('  and no email claim when there is none', j(other.split('.')[1]).email === undefined)
 
   delete process.env.SUPABASE_JWT_SECRET
+  check('with no secret it signs nothing rather than signing with nothing', mintActorJwt(uid, null) === null)
+  check('  and JwtUnavailable is still the way that is reported', typeof JwtUnavailable === 'function')
+}
+
+console.log('\nchoosing a route')
+{
+  // No secret AND no Supabase configuration: neither route is open, and the
+  // failure has to be an explicit refusal rather than an empty string that
+  // would be sent as a Bearer token and 401 somewhere confusing.
+  const keep = {
+    url: process.env.VITE_SUPABASE_URL,
+    svc: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    anon: process.env.VITE_SUPABASE_ANON_KEY,
+  }
+  delete process.env.SUPABASE_JWT_SECRET
+  delete process.env.VITE_SUPABASE_URL
+  delete process.env.SUPABASE_URL
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  delete process.env.VITE_SUPABASE_ANON_KEY
+  delete process.env.SUPABASE_ANON_KEY
+
+  const { actorToken, JwtUnavailable: JU } = await import('./_v1-jwt.ts')
+
   let threw = null
   try {
-    mintActorJwt(uid, null)
+    await actorToken('11111111-2222-3333-4444-555555555555', 'agent@example.com')
   } catch (e) {
     threw = e
   }
-  check('with no secret it refuses rather than signing with nothing', threw instanceof JwtUnavailable)
-  check('  and the message names the variable', String(threw?.message).includes('SUPABASE_JWT_SECRET'))
+  check('with no route at all it refuses', threw instanceof JU)
+
+  threw = null
+  try {
+    await actorToken('11111111-2222-3333-4444-555555555555', null)
+  } catch (e) {
+    threw = e
+  }
+  check('an account with no email cannot use the fallback, and is told why',
+    threw instanceof JU && String(threw.message).includes('no email'))
+
+  // Back the way it was, so a later import in the same process is unaffected.
+  process.env.SUPABASE_JWT_SECRET = 'test-secret-not-a-real-one'
+  const again = await actorToken('11111111-2222-3333-4444-555555555555', null)
+  check('once the secret is back, signing is the route taken', again.split('.').length === 3)
+  delete process.env.SUPABASE_JWT_SECRET
+  if (keep.url) process.env.VITE_SUPABASE_URL = keep.url
+  if (keep.svc) process.env.SUPABASE_SERVICE_ROLE_KEY = keep.svc
+  if (keep.anon) process.env.VITE_SUPABASE_ANON_KEY = keep.anon
 }
 
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)

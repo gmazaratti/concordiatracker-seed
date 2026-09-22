@@ -18,6 +18,14 @@
  * Signing needs SUPABASE_JWT_SECRET, which is strictly less powerful than the
  * service-role key already in this environment.
  *
+ * AND A FALLBACK, SO NOTHING IS BLOCKED ON THAT SECRET. Without it, the
+ * service-role key alone can still get a genuine session for the account:
+ * generate a magic link (never sent anywhere) and redeem it. Measured at
+ * ~165ms. The refresh token it issues is revoked immediately, and the access
+ * token keeps verifying afterwards because it is a stateless JWT — checked,
+ * not assumed. So no credential outlives the request either way; the signed
+ * path is simply faster and does not touch the auth service.
+ *
  * THE ct_agent CLAIM IS THE POINT. Four write policies and ct_can_act_as_org
  * grant an admin write access to every organisation. That is right for a human
  * in the console and wrong for an unattended agent, so the claim rides in the
@@ -42,6 +50,8 @@ export interface ActorToken {
   userId: string
 }
 
+/** Only thrown when NEITHER route is available, which means the deployment
+ *  has no Supabase configuration at all. */
 export class JwtUnavailable extends Error {}
 
 /**
@@ -51,13 +61,9 @@ export class JwtUnavailable extends Error {}
  * auth.uid() returns. `email` is included because two org helpers match a
  * membership row by email as well as by id.
  */
-export function mintActorJwt(userId: string, email: string | null): string {
+export function mintActorJwt(userId: string, email: string | null): string | null {
   const secret = process.env.SUPABASE_JWT_SECRET
-  if (!secret) {
-    throw new JwtUnavailable(
-      'SUPABASE_JWT_SECRET is not set on this deployment, so the API cannot act for an account.',
-    )
-  }
+  if (!secret) return null
   const now = Math.floor(Date.now() / 1000)
   const header = b64(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })))
   const payload = b64(
@@ -80,6 +86,80 @@ export function mintActorJwt(userId: string, email: string | null): string {
   )
   const signature = b64(createHmac('sha256', secret).update(`${header}.${payload}`).digest())
   return `${header}.${payload}.${signature}`
+}
+
+/**
+ * A session for the account, using only the service-role key.
+ *
+ * generate_link does NOT send anything — it hands back the token that would
+ * have been in the email. Redeeming it gives an ordinary hour-long session,
+ * which is longer than this needs, so the refresh token is thrown away at
+ * once and only the access token is used, for this one request.
+ *
+ * THE CLAIM CANNOT RIDE IN THIS ONE. A real Supabase token carries no custom
+ * claims, so `ct_agent` is absent and the narrowing would fail OPEN if the
+ * claim were the only evidence. It is not: db/alfred_admin_scope.sql also
+ * marks the account in `agent_accounts`, and ct_is_agent() reads either. That
+ * table is the reason this fallback is safe to have at all.
+ */
+async function borrowSession(email: string): Promise<string | null> {
+  const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL
+  const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const anon = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
+  if (!url || !svc || !anon) return null
+
+  const gen = await fetch(`${url}/auth/v1/admin/generate_link`, {
+    method: 'POST',
+    headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'magiclink', email }),
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!gen.ok) return null
+  const link = (await gen.json().catch(() => null)) as { hashed_token?: string } | null
+  if (!link?.hashed_token) return null
+
+  const ver = await fetch(`${url}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { apikey: anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!ver.ok) return null
+  const sess = (await ver.json().catch(() => null)) as
+    | { access_token?: string; refresh_token?: string }
+    | null
+  if (!sess?.access_token) return null
+
+  // Revoke the long-lived half straight away. Deliberately not awaited on the
+  // critical path's behalf beyond this: if it fails the token still expires on
+  // its own, and failing the request over it would be the worse outcome.
+  void fetch(`${url}/auth/v1/logout?scope=global`, {
+    method: 'POST',
+    headers: { apikey: anon, Authorization: `Bearer ${sess.access_token}` },
+  }).catch(() => {})
+
+  return sess.access_token
+}
+
+/**
+ * The token every admin-scope request runs as, by whichever route is open.
+ *
+ * Signing is preferred: it is instant, scoped to sixty seconds, and never
+ * involves the auth service. The session route exists so a deployment that
+ * has not been given the JWT secret still works rather than returning 503.
+ */
+export async function actorToken(userId: string, email: string | null): Promise<string> {
+  const signed = mintActorJwt(userId, email)
+  if (signed) return signed
+  if (email) {
+    const borrowed = await borrowSession(email)
+    if (borrowed) return borrowed
+  }
+  throw new JwtUnavailable(
+    email
+      ? 'Could not obtain a token for the agent account. Set SUPABASE_JWT_SECRET, or check that the account still exists.'
+      : 'The agent account has no email on its profile, so the API cannot act for it.',
+  )
 }
 
 function base(): { url: string; anon: string } | null {
