@@ -22,6 +22,178 @@
       }
     },
     {
+      "name": "adminIndex",
+      "description": "GET /api/v1/admin. List every admin endpoint. The names that can be passed to adminRead and adminWrite, with the arguments each one takes, and the destructive ones that are deliberately not reachable.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "adminRead",
+      "description": "GET /api/v1/admin/{name}. Read anything the admin console shows. One endpoint over the console read functions. Names: overview, dashboard, revenue, billing, pro-breakdown, timeseries (days), traffic (days), users, user (user), user-courses (user), user-visits (user, limit), online (minutes), social-graph (limit), tickets (status, q), open-tickets, bug-reports, data-reports, applications, org-applications, parse-failures, orgs, org-members (org_id), teachers, audit (limit), audit-user (target, limit), activity (limit), activity-feed, digests, ai-replies (days, limit), ai-reply-count (days), message-replies (limit), messages (user), survey, survey-outlines, survey-responses. Call GET /api/v1/admin for the current list.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Which read to run."
+          },
+          "user": {
+            "type": "string",
+            "description": "A user id, for the per-account reads."
+          },
+          "target": {
+            "type": "string",
+            "description": "A user id, for audit-user."
+          },
+          "org_id": {
+            "type": "string",
+            "description": "An organisation id, for org-members."
+          },
+          "days": {
+            "type": "integer",
+            "description": "How far back to look, for timeseries, traffic, ai-replies and ai-reply-count."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "How many rows to return, for the list reads."
+          },
+          "minutes": {
+            "type": "integer",
+            "description": "How recently somebody was active, for online."
+          },
+          "status": {
+            "type": "string",
+            "description": "For tickets."
+          },
+          "q": {
+            "type": "string",
+            "description": "A search term, for tickets."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "name": "adminWrite",
+      "description": "POST /api/v1/admin/{name}. Change something in the admin console. The non-destructive console writes. Names: set-plan, set-flags, set-user-notes, set-vanity, set-blueprint-permission, set-org-status, resolve-application, extend-org-invite, moderate-request, moderate-comment, update-bug-report, update-data-report, mark-activity-seen. Pass that call arguments in the body, with or without the p_ prefix. Every one is recorded in the audit log. Deleting anything is not reachable here.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Which write to run."
+          },
+          "target": {
+            "type": "string",
+            "description": "A user id. set-plan, set-flags."
+          },
+          "uid": {
+            "type": "string",
+            "description": "A user id. set-user-notes, set-vanity, set-blueprint-permission."
+          },
+          "id": {
+            "type": "string",
+            "description": "The row being changed. moderate-request, moderate-comment, update-bug-report, update-data-report, extend-org-invite."
+          },
+          "org_id": {
+            "type": "string",
+            "description": "An organisation id. set-org-status."
+          },
+          "pro": {
+            "type": "boolean",
+            "description": "set-plan."
+          },
+          "until": {
+            "type": "string",
+            "description": "set-plan. ISO-8601, or omit for no end date."
+          },
+          "internal": {
+            "type": "boolean",
+            "description": "set-flags. Marks a staff account so it is not counted as a user."
+          },
+          "comped": {
+            "type": "boolean",
+            "description": "set-flags. A free Pro account that is never a paying customer."
+          },
+          "allowed": {
+            "type": "boolean",
+            "description": "set-blueprint-permission."
+          },
+          "status": {
+            "type": "string",
+            "description": "set-org-status, moderate-request, update-bug-report, update-data-report."
+          },
+          "notes": {
+            "type": "string",
+            "description": "set-user-notes, update-bug-report, update-data-report."
+          },
+          "code": {
+            "type": "string",
+            "description": "set-vanity."
+          },
+          "kind": {
+            "type": "string",
+            "description": "resolve-application."
+          },
+          "ref_id": {
+            "type": "string",
+            "description": "resolve-application."
+          },
+          "accept": {
+            "type": "boolean",
+            "description": "resolve-application."
+          },
+          "days": {
+            "type": "integer",
+            "description": "extend-org-invite."
+          },
+          "reset_uses": {
+            "type": "boolean",
+            "description": "extend-org-invite."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "moderate-request."
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "moderate-request, moderate-comment."
+          },
+          "public": {
+            "type": "boolean",
+            "description": "update-bug-report."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why. Recorded in the audit log. set-plan, set-flags."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    {
+      "name": "claimOrganization",
+      "description": "POST /api/v1/orgs/{handle}/claim. Join an organisation that has no team yet. Makes this account the owner-member of an organisation that nobody is on, so it can publish. Refused once anybody else is on the team.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
       "name": "createMyAssignment",
       "description": "POST /api/v1/me/assignments. Add an assignment. Needs a title. A course_id is checked against your own courses first, so an assignment cannot be filed against a stranger course. An omitted or null due_at means the date is unknown — it is never invented.",
       "input_schema": {
@@ -80,6 +252,227 @@
       "input_schema": {
         "type": "object",
         "properties": {}
+      }
+    },
+    {
+      "name": "createOrganization",
+      "description": "POST /api/v1/orgs. Create an organisation and take it on. Creates an approved organisation and makes this account its owner-member, so it can publish straight away. A real club can be handed the organisation later with an invite of kind \"org\". Research the branding from the club own public sources before calling this: name, bio, colour and images are all settable here or by PATCH.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The club full name."
+          },
+          "handle": {
+            "type": "string",
+            "description": "Its @handle. The @ is optional."
+          },
+          "bio": {
+            "type": "string",
+            "description": "A short description, in the club own words where possible."
+          },
+          "color": {
+            "type": "string",
+            "description": "Brand colour as #rrggbb. Used wherever no image is set."
+          },
+          "glyph": {
+            "type": "string",
+            "description": "Two letters shown when there is no logo."
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "The blue seal. Only for an organisation confirmed to be real."
+          }
+        },
+        "required": [
+          "name",
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "createOrganizationEvent",
+      "description": "POST /api/v1/orgs/{handle}/events. Post an event. Publishes an event to the Community feed. Never invent a date or a room: if the source does not say, leave location empty rather than guessing.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "title": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "description": "When it starts, ISO-8601 with an offset, e.g. 2026-10-02T18:30:00-04:00. Montreal is -04:00 in summer and -05:00 in winter."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "in-person",
+              "online"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "description": "Room or address, or a joining note for an online event."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "clubs",
+              "career",
+              "academic",
+              "official",
+              "nightlife"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "description": "A URL from the media upload."
+          },
+          "relevant_to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Programmes or faculties this is aimed at, for the \"For your programme\" badge."
+          },
+          "recurrence": {
+            "type": "string",
+            "description": "Free text such as \"Every Thursday\", shown as a tag."
+          },
+          "series_id": {
+            "type": "string",
+            "description": "Shared id so repeats collapse to the next occurrence in the feed."
+          }
+        },
+        "required": [
+          "handle",
+          "title",
+          "start"
+        ]
+      }
+    },
+    {
+      "name": "createOrganizationInvite",
+      "description": "POST /api/v1/orgs/{handle}/invites. Generate an invite link. kind \"team\" adds somebody to this organisation with a role. kind \"org\" makes a link that hands the whole organisation to whoever accepts it, which is how a real club takes over a profile that was set up for them. Returns the URL.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "team",
+              "org"
+            ],
+            "description": "Defaults to team."
+          },
+          "email": {
+            "type": "string",
+            "description": "Who it is for. Optional; the link works regardless."
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "member"
+            ],
+            "description": "Team invites only."
+          },
+          "max_uses": {
+            "type": "integer",
+            "description": "Hand-over invites only. Defaults to 1."
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "description": "Hand-over invites only. Defaults to 14."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "createOrganizationPost",
+      "description": "POST /api/v1/orgs/{handle}/posts. Publish a feed post. A caption and one to ten images, shown in the Community feed and on the organisation profile. Upload the images first with the media endpoint and pass their URLs. Followers who have not switched it off are notified.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "caption": {
+            "type": "string",
+            "description": "At most 2200 characters."
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "One to ten image URLs from the media upload, in order."
+          }
+        },
+        "required": [
+          "handle",
+          "media"
+        ]
+      }
+    },
+    {
+      "name": "createOrganizationStory",
+      "description": "POST /api/v1/orgs/{handle}/stories. Post a story. One image, gone after 24 hours. Upload the image first with the media endpoint.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "image_url": {
+            "type": "string",
+            "description": "A URL from the media upload."
+          },
+          "caption": {
+            "type": "string"
+          },
+          "place": {
+            "type": "string",
+            "description": "A location label shown on the story."
+          },
+          "link_url": {
+            "type": "string",
+            "description": "A link viewers can open."
+          },
+          "overlays": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Text drawn on the image. Each is {text, x, y, font, color, chip, anim} where x and y are fractions of the 9:16 frame, 0 to 1."
+          }
+        },
+        "required": [
+          "handle",
+          "image_url"
+        ]
       }
     },
     {
@@ -173,6 +566,38 @@
       }
     },
     {
+      "name": "getOrganization",
+      "description": "GET /api/v1/orgs/{handle}. Read one organisation. The full profile for one handle.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "getOrganizationInsights",
+      "description": "GET /api/v1/orgs/{handle}/insights. How far an organisation reaches. Follower, event and post counts. Aggregate only: which students followed, watched or added an event is never returned, by design.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
       "name": "getSupportKbArticle",
       "description": "GET /api/v1/support/kb/{id}. One knowledge base article, in full. The whole body. Fetch the article you intend to quote: the list and the search return snippets only, so what you quoted is the article you asked for.",
       "input_schema": {
@@ -201,6 +626,103 @@
         },
         "required": [
           "id"
+        ]
+      }
+    },
+    {
+      "name": "listOrganizationEvents",
+      "description": "GET /api/v1/orgs/{handle}/events. List an organisation events. Every event the organisation has published, newest first, with its id for editing.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "upcoming": {
+            "type": "boolean",
+            "description": "true to return only events that have not happened yet."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "listOrganizationInvites",
+      "description": "GET /api/v1/orgs/{handle}/invites. List invites and what became of them. Team invites with whether they were accepted and when, and hand-over invites with how many times the link was opened and used. The recorded email on a hand-over invite is whatever was typed on the invite screen, not a verified identity.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "listOrganizationPosts",
+      "description": "GET /api/v1/orgs/{handle}/posts. List an organisation feed posts. Posts still showing in the feed, newest first, with their captions, images and ids.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "listOrganizations",
+      "description": "GET /api/v1/orgs. List student organisations. Every organisation on the platform, newest first, with its handle, name, bio, brand colour, logo, banner, approval status and verified flag. Use it to find the handle to pass to the other calls.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Narrow by name or handle."
+          }
+        }
+      }
+    },
+    {
+      "name": "listOrganizationStories",
+      "description": "GET /api/v1/orgs/{handle}/stories. List live stories. Only stories still inside their 24 hours.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "listOrganizationTeam",
+      "description": "GET /api/v1/orgs/{handle}/team. Who is on an organisation team. Members with their role, permissions, status and the date they joined. Says whether an invite is still outstanding; the invite token itself is not returned.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          }
+        },
+        "required": [
+          "handle"
         ]
       }
     },
@@ -357,6 +879,27 @@
       }
     },
     {
+      "name": "removeOrganizationPost",
+      "description": "DELETE /api/v1/orgs/{handle}/posts/{id}. Take a post down. Hides it from the feed. The row is kept.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "id": {
+            "type": "string",
+            "description": "The item id."
+          }
+        },
+        "required": [
+          "handle",
+          "id"
+        ]
+      }
+    },
+    {
       "name": "replyToSupportThread",
       "description": "POST /api/v1/support/threads/{id}/replies. Reply to a customer. Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here, so no caller can route around it. A refusal is 409 with a machine-readable `reason`: `crisis_hold` (the customer mentioned self-harm — never answered automatically; follow the crisis protocol and leave it for a person), `money_hold` (a refund, discount or delivery date — those are promises a person makes), `human_takeover`, `resolved`, `needs_human`, or `diagnostic_not_repliable`. Every accepted reply is written to the admin audit log with its exact wording.",
       "input_schema": {
@@ -375,6 +918,27 @@
         "required": [
           "id",
           "body"
+        ]
+      }
+    },
+    {
+      "name": "revokeOrganizationInvite",
+      "description": "DELETE /api/v1/orgs/{handle}/invites/{id}. Revoke an invite that has not been accepted. Refused once the invite has been accepted, because that is a teammate rather than an invite and removing one is held back behind the admin console.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "id": {
+            "type": "string",
+            "description": "The item id."
+          }
+        },
+        "required": [
+          "handle",
+          "id"
         ]
       }
     },
@@ -433,6 +997,46 @@
         },
         "required": [
           "id"
+        ]
+      }
+    },
+    {
+      "name": "setOrganizationBanner",
+      "description": "POST /api/v1/orgs/{handle}/banner. Upload and set the banner. The wide image across the top of the profile. Same body rules as the logo: raw image bytes or JSON with \"data_base64\", at most 4 MB.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "data_base64": {
+            "type": "string",
+            "description": "The image, base64 encoded. At most 4 MB decoded."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "setOrganizationLogo",
+      "description": "POST /api/v1/orgs/{handle}/logo. Upload and set the logo. Send the image as raw bytes with a Content-Type of image/png, image/jpeg or image/webp, or as JSON with a base64 \"data_base64\" field. At most 4 MB. Stores it and sets it on the profile in one call.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "data_base64": {
+            "type": "string",
+            "description": "The image, base64 encoded. At most 4 MB decoded."
+          }
+        },
+        "required": [
+          "handle"
         ]
       }
     },
@@ -500,6 +1104,123 @@
         },
         "required": [
           "id"
+        ]
+      }
+    },
+    {
+      "name": "updateOrganization",
+      "description": "PATCH /api/v1/orgs/{handle}. Edit an organisation profile. Change any of name, bio, colour, glyph, contact email, links or venue. Only fields you send are touched. Requires this account to be on the organisation team.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Brand colour as #rrggbb."
+          },
+          "glyph": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "description": "A public contact address. Turns Contact into a real mailto link."
+          },
+          "links": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Any of website, instagram, x, linkedin, as full URLs."
+          },
+          "venue": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "For a place rather than a club: address, phone, hours."
+          }
+        },
+        "required": [
+          "handle"
+        ]
+      }
+    },
+    {
+      "name": "updateOrganizationEvent",
+      "description": "PATCH /api/v1/orgs/{handle}/events/{id}. Edit an event. Only the fields you send are changed.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "id": {
+            "type": "string",
+            "description": "The item id."
+          },
+          "title": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "description": "ISO-8601 with an offset."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "in-person",
+              "online"
+            ]
+          },
+          "location": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "clubs",
+              "career",
+              "academic",
+              "official",
+              "nightlife"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "handle",
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "uploadOrganizationMedia",
+      "description": "POST /api/v1/orgs/{handle}/media. Upload an image and get its URL. Stores an image and returns its public URL, to pass as \"media\" on a post, \"image_url\" on a story or \"image\" on an event. A slideshow is several of these followed by one post. Same body rules as the logo.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The organisation handle. The @ is optional."
+          },
+          "data_base64": {
+            "type": "string",
+            "description": "The image, base64 encoded. At most 4 MB decoded."
+          }
+        },
+        "required": [
+          "handle"
         ]
       }
     }

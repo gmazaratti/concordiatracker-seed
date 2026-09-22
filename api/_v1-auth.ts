@@ -12,7 +12,7 @@
  */
 import { createHash } from 'node:crypto'
 
-export type Scope = 'owner' | 'me' | 'support'
+export type Scope = 'owner' | 'me' | 'support' | 'admin'
 
 export interface Caller {
   userId: string

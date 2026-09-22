@@ -1738,6 +1738,207 @@ console.log(String.fromCharCode(10) + 'db/org_approval_gate.sql')
   check('an event cannot be re-pointed at another org', ev.org_id, mine)
 }
 
+
+/* ── db/alfred_admin_scope.sql ────────────────────────────────────────────
+ * An admin acting through the API must NOT inherit the admin write bypass.
+ * Four policies and ct_can_act_as_org grant an admin write access to every
+ * organisation, which is right for a person in the console and wrong for an
+ * unattended agent. The narrowing hangs on one claim inside the minted token,
+ * so these assert the claim actually flips it, that membership still works
+ * with the claim set, and that the claim grants nothing on its own. */
+console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
+{
+  const ADMIN = '00000000-0000-0000-0000-0000000000b1'
+  const MEMBER = '00000000-0000-0000-0000-0000000000b2'
+
+  await db.exec(`
+    drop table if exists public.events cascade;
+    drop table if exists public.org_members cascade;
+    drop table if exists public.org_invites cascade;
+    drop table if exists public.organizations cascade;
+    drop table if exists public.admin_audit_log cascade;
+    drop table if exists public.api_tokens cascade;
+    create schema if not exists auth;
+    create table if not exists auth.users (id uuid primary key);
+    alter table auth.users add column if not exists email text;
+    create table public.organizations (
+      id uuid primary key default gen_random_uuid(), owner_id uuid, handle text,
+      name text, verified boolean default false, status text default 'approved',
+      bio text, logo text, banner text, color text, glyph text,
+      created_at timestamptz not null default now()
+    );
+    create table public.org_members (
+      id uuid primary key default gen_random_uuid(), org_id uuid, user_id uuid,
+      name text, email text, role text default 'member', status text default 'active',
+      invite_token text, permissions jsonb, joined_at timestamptz,
+      created_at timestamptz not null default now()
+    );
+    create table public.org_invites (
+      id uuid primary key default gen_random_uuid(), org_id uuid, token text,
+      created_at timestamptz not null default now()
+    );
+    create table public.events (
+      id uuid primary key default gen_random_uuid(), org_id uuid, title text
+    );
+    create table public.admin_audit_log (
+      id bigserial primary key, actor_id uuid, actor_email text, action text,
+      target_id uuid, old_value jsonb, new_value jsonb, reason text,
+      created_at timestamptz not null default now()
+    );
+    create table public.api_tokens (
+      id uuid primary key default gen_random_uuid(), user_id uuid, scope text,
+      name text, token_hash text, prefix text, revoked_at timestamptz,
+      created_at timestamptz not null default now()
+    );
+    alter table public.organizations enable row level security;
+    alter table public.org_members   enable row level security;
+    alter table public.org_invites   enable row level security;
+    alter table public.events        enable row level security;
+    -- FORCE, or the policies below are never consulted: PGlite runs as the
+    -- table owner, and an owner is exempt from its own RLS unless told not to
+    -- be. Without this the next two checks pass on a technicality and prove
+    -- nothing about production, where the caller is never the owner.
+    alter table public.organizations force row level security;
+    alter table public.org_members   force row level security;
+    alter table public.org_invites   force row level security;
+    alter table public.events        force row level security;
+    create policy o_read on public.organizations for select using (true);
+    create policy m_read on public.org_members   for select using (true);
+    create policy e_read on public.events        for select using (true);
+    create policy i_read on public.org_invites   for select using (true);
+    create or replace function public.ct_hash_api_token(p_token text) returns text
+      language sql immutable as $$ select md5(p_token) $$;
+    create or replace function public.org_perm(p_org uuid, p_perm text)
+    returns boolean language sql stable security definer as $$
+      select exists (select 1 from public.organizations o where o.id = p_org and o.owner_id = auth.uid())
+          or exists (select 1 from public.org_members m
+                      where m.org_id = p_org and m.status = 'active' and m.user_id = auth.uid());
+    $$;
+  `)
+
+  const be = (uid, admin) =>
+    db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$ select '${uid}'::uuid $$;
+             create or replace function public.is_admin() returns boolean language sql stable as $$ select ${admin} $$;`)
+
+  // The claim the API puts inside the token it mints, and the ordinary
+  // browser case where there is none.
+  const asAgent = () => db.exec(`select set_config('request.jwt.claims', '{"ct_agent":true}', false)`)
+  const asBrowser = () => db.exec(`select set_config('request.jwt.claims', '{"sub":"x"}', false)`)
+
+  await be(ADMIN, 'true')
+  await asBrowser()
+  await db.exec(migration('alfred_admin_scope.sql'))
+
+  await db.exec(`insert into auth.users (id, email) values
+    ('${ADMIN}', 'alfred@example.com'), ('${MEMBER}', 'member@example.com')`)
+  await db.exec(`insert into public.organizations (handle, name, status) values ('@theirs', 'Theirs', 'approved')`)
+  const theirs = (await db.query(`select id from public.organizations where handle = '@theirs'`)).rows[0].id
+
+  // ── The scope list survived, and the prefixes are right ──────────────
+  const scopes = (await db.query('select public.ct_api_scopes() as s')).rows[0].s
+  check('the scope list carries all four', [...scopes].sort().join(','), 'admin,me,owner,support')
+  check('an admin token is prefixed ct_adm_', (await db.query(`select public.ct_api_scope_prefix('admin') as p`)).rows[0].p, 'ct_adm_')
+  check('a personal token is prefixed ct_per_', (await db.query(`select public.ct_api_scope_prefix('me') as p`)).rows[0].p, 'ct_per_')
+  check('  and support did not get lost again', (await db.query(`select public.ct_api_scope_prefix('support') as p`)).rows[0].p, 'ct_sup_')
+
+  // ── The claim flips the bypass, and only the bypass ──────────────────
+  const agentNow = async () => (await db.query('select public.ct_is_agent() as a')).rows[0].a
+  const adminWrite = async () => (await db.query('select public.ct_admin_write() as a')).rows[0].a
+  const canAct = async () => (await db.query(`select public.ct_can_act_as_org('${theirs}') as a`)).rows[0].a
+
+  await asBrowser()
+  check('a browser session is not an agent', await agentNow(), false)
+  check('an admin in the console keeps the write bypass', await adminWrite(), true)
+  check('  so it can publish as an org it does not belong to', await canAct(), true)
+
+  await asAgent()
+  check('the minted claim marks the caller as an agent', await agentNow(), true)
+  check('an agent admin loses the write bypass', await adminWrite(), false)
+  check('  so it CANNOT publish as an org it does not belong to', await canAct(), false)
+
+  // ── Membership still works with the claim set ────────────────────────
+  await db.exec(`insert into public.org_members (org_id, user_id, role, status) values ('${theirs}', '${ADMIN}', 'admin', 'active')`)
+  check('a member with the claim can publish', await canAct(), true)
+  await db.exec(`delete from public.org_members where org_id = '${theirs}'`)
+
+  // ── The claim grants nothing to a non-admin ──────────────────────────
+  await be(MEMBER, 'false')
+  await asAgent()
+  check('the claim alone is not a permission', await canAct(), false)
+
+  // ── The policy, not just the helper ──────────────────────────────────
+  // A superuser has BYPASSRLS, and `force row level security` does not
+  // override that, so asserting a policy from the harness's default role
+  // would pass whatever the policy said. These run as an ordinary role.
+  await db.exec(`
+    do $$ begin
+      if not exists (select 1 from pg_roles where rolname = 'ct_rls_probe') then
+        create role ct_rls_probe nologin;
+      end if;
+    end $$;
+    grant usage on schema public, auth to ct_rls_probe;
+    grant select, insert, update, delete on public.organizations, public.org_members,
+      public.org_invites, public.events to ct_rls_probe;
+    grant select on auth.users to ct_rls_probe;
+  `)
+  const asRole = () => db.exec('set role ct_rls_probe')
+  const asOwner = () => db.exec('reset role')
+
+  await be(ADMIN, 'true')
+  await asAgent()
+  await asRole()
+  await db.exec(`update public.organizations set name = 'Renamed by agent' where id = '${theirs}'`)
+  await asOwner()
+  let row = (await db.query(`select name from public.organizations where id = '${theirs}'`)).rows[0]
+  check('RLS refuses an agent editing an org it is not on', row.name, 'Theirs')
+
+  await asBrowser()
+  await asRole()
+  await db.exec(`update public.organizations set name = 'Renamed by admin' where id = '${theirs}'`)
+  await asOwner()
+  row = (await db.query(`select name from public.organizations where id = '${theirs}'`)).rows[0]
+  check('  while the console still can', row.name, 'Renamed by admin')
+
+  await asAgent()
+  await asRole()
+  let blocked = false
+  try {
+    await db.exec(`insert into public.events (org_id, title) values ('${theirs}', 'Gatecrash')`)
+  } catch {
+    blocked = true
+  }
+  await asOwner()
+  check('an agent cannot post an event to a stranger org',
+    blocked || (await db.query(`select count(*)::int as n from public.events where title = 'Gatecrash'`)).rows[0].n === 0,
+    true)
+
+  // ── Claiming an org with no team, and refusing one with a team ───────
+  const claimed = (await db.query(`select public.ct_agent_claim_org('${theirs}') as id`)).rows[0].id
+  check('an agent can take an ownerless, teamless org', typeof claimed, 'string')
+  check('  and is then an active owner-member',
+    (await db.query(`select role || ':' || status as r from public.org_members where org_id = '${theirs}' and user_id = '${ADMIN}'`)).rows[0].r,
+    'owner:active')
+  check('  which lets it publish', await canAct(), true)
+
+  await db.exec(`insert into public.organizations (handle, name) values ('@taken', 'Taken')`)
+  const taken = (await db.query(`select id from public.organizations where handle = '@taken'`)).rows[0].id
+  await db.exec(`insert into public.org_members (org_id, user_id, role, status) values ('${taken}', '${MEMBER}', 'owner', 'active')`)
+  let refused = false
+  try {
+    await db.query(`select public.ct_agent_claim_org('${taken}')`)
+  } catch {
+    refused = true
+  }
+  check('an org that already has a team cannot be taken over', refused, true)
+
+  // ── Every agent write leaves a trace ─────────────────────────────────
+  await db.query(`select public.ct_agent_audit('agent.test', '${theirs}'::uuid, '{"k":1}'::jsonb)`)
+  const trail = (await db.query(`select actor_id, action, reason from public.admin_audit_log where action = 'agent.test'`)).rows[0]
+  check('an agent write is recorded', trail.action, 'agent.test')
+  check('  against the session, not an argument', trail.actor_id, ADMIN)
+  check('  and is marked as coming from the API', trail.reason, 'api:agent')
+}
+
 await db.close()
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 process.exit(failures === 0 ? 0 : 1)

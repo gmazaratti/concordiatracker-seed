@@ -39,6 +39,7 @@ scripts/*
 !scripts/scrape-outlines.mjs
 !scripts/send-test-email.mjs
 !scripts/stamp-sw.mjs
+!scripts/verify-alfred.mjs
 !scripts/sync-sections.mjs
 # Kept even though it is a one-off: it is the record of WHICH reviews we
 # were licensed to take and which we refused. This repo is public.

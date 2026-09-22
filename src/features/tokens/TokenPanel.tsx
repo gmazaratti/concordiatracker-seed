@@ -77,7 +77,17 @@ export function TokenPanel({ scope }: { scope: TokenScope }) {
   return (
     <div className="space-y-3">
       <p className="text-[12.5px] leading-relaxed text-subtle">
-        {scope === 'support' ? (
+        {scope === 'admin' ? (
+          <>
+            The widest key this system issues. It reaches everything the admin console shows
+            through <code className="rounded bg-surface-2 px-1">/api/v1/admin</code>, and manages
+            student organisations through{' '}
+            <code className="rounded bg-surface-2 px-1">/api/v1/orgs</code> — profiles, images,
+            events, posts, stories and invites. Publishing still needs the account to be on that
+            organisation&rsquo;s team, and deleting an org or a teammate is not reachable at all.
+            Every write it makes is recorded in the audit log.
+          </>
+        ) : scope === 'support' ? (
           <>
             A key for an assistant working the support desk through{' '}
             <code className="rounded bg-surface-2 px-1">/api/v1/support</code>. It can read
@@ -138,11 +148,13 @@ export function TokenPanel({ scope }: { scope: TokenScope }) {
           onKeyDown={(e) => e.key === 'Enter' && void make()}
           maxLength={60}
           placeholder={
-            scope === 'support'
-              ? 'Whose assistant is it? e.g. Alfred'
-              : scope === 'owner'
-                ? 'What is it for? e.g. Grafana'
-                : 'e.g. my laptop script'
+            scope === 'admin'
+              ? 'Whose agent is it? e.g. Alfred'
+              : scope === 'support'
+                ? 'Whose assistant is it? e.g. Alfred'
+                : scope === 'owner'
+                  ? 'What is it for? e.g. Grafana'
+                  : 'e.g. my laptop script'
           }
           aria-label="Token name"
           className="min-w-0 flex-1 rounded-md border border-border bg-canvas px-2.5 py-1.5 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"

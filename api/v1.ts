@@ -49,6 +49,33 @@ import {
   patchThread,
   replyToThread,
 } from './_v1-support.js'
+import { adminCall, adminIndex } from './_v1-admin.js'
+import {
+  claimOrg,
+  createOrg,
+  getOrg,
+  listOrgs,
+  patchOrg,
+  setOrgImage,
+  uploadMedia,
+} from './_v1-orgs.js'
+import {
+  createEvent,
+  createInvite,
+  createPost,
+  createStory,
+  getTeam,
+  hidePost,
+  listEvents,
+  listInvites,
+  listPosts,
+  listStories,
+  orgInsights,
+  patchEvent,
+  revokeInvite,
+} from './_v1-org-publish.js'
+import { JwtUnavailable, mintActorJwt } from './_v1-jwt.js'
+import { table } from './_v1-auth.js'
 import { fail } from './_respond.js'
 
 export const config = { maxDuration: 30 }
@@ -79,6 +106,20 @@ const INDEX = {
       'GET /api/v1/support/kb',
       'GET /api/v1/support/kb/{id}',
       'GET /api/v1/support/kb/search?q=',
+    ],
+    admin: [
+      'GET /api/v1/admin  (the list of everything below)',
+      'GET /api/v1/admin/{name}  e.g. overview, users, tickets, orgs, audit',
+      'POST /api/v1/admin/{name}  the non-destructive writes',
+      'GET|POST /api/v1/orgs',
+      'GET|PATCH /api/v1/orgs/{handle}',
+      'POST /api/v1/orgs/{handle}/claim',
+      'POST /api/v1/orgs/{handle}/logo | /banner | /media   (image bytes)',
+      'GET|POST /api/v1/orgs/{handle}/events, PATCH /events/{id}',
+      'GET|POST /api/v1/orgs/{handle}/posts, DELETE /posts/{id}',
+      'GET|POST /api/v1/orgs/{handle}/stories',
+      'GET|POST /api/v1/orgs/{handle}/invites, DELETE /invites/{id}',
+      'GET /api/v1/orgs/{handle}/team, GET /api/v1/orgs/{handle}/insights',
     ],
   },
   rate_limit: '120 requests per minute per token.',
@@ -138,6 +179,24 @@ async function rawBody(req: any): Promise<ArrayBuffer> {
 
 const contentType = (req: any): string =>
   String(req?.headers?.['content-type'] ?? 'application/pdf').split(';')[0]
+
+/** Where invite links should point. The deployment's own host, so a preview
+ *  build hands out preview links rather than production ones. */
+function siteOrigin(req: any): string {
+  const host = String(req?.headers?.['x-forwarded-host'] ?? req?.headers?.host ?? '')
+  if (!host) return 'https://concordiatracker.com'
+  const proto = String(req?.headers?.['x-forwarded-proto'] ?? 'https')
+  return proto + '://' + host
+}
+
+/** Two org helpers match a membership row by email as well as by id, so the
+ *  minted token carries one. Missing is fine; it only narrows the match. */
+async function actorEmail(userId: string): Promise<string | null> {
+  const rows = await table<{ email: string | null }>(
+    'user_profile?user_id=eq.' + encodeURIComponent(userId) + '&select=email&limit=1',
+  )
+  return rows[0]?.email ?? null
+}
 
 export default async function handler(req: any, res: any) {
   // Read-only from a browser is fine and useful (a dashboard on another
@@ -327,7 +386,128 @@ export default async function handler(req: any, res: any) {
       return void send(res, await listThreads((req.query ?? {}) as Record<string, unknown>))
     }
 
-    fail(res, 404, 'Unknown area. The API has three: /api/v1/owner, /api/v1/me and /api/v1/support.')
+    if (area === 'admin' || area === 'orgs') {
+      if (caller.scope !== 'admin') {
+        fail(
+          res,
+          403,
+          'This is a ' + caller.scope + ' token. Managing organisations and reading admin data needs an admin token.',
+        )
+        return
+      }
+      res.setHeader('Cache-Control', 'private, no-store')
+
+      // Act as the account rather than as the service role, so the database's
+      // own policies decide. The ct_agent claim inside this token is what
+      // removes the admin write bypass, so publishing still needs membership.
+      let jwt: string
+      try {
+        jwt = mintActorJwt(caller.userId, await actorEmail(caller.userId))
+      } catch (e) {
+        if (e instanceof JwtUnavailable) {
+          fail(res, 503, e.message, {
+            hint: 'Set SUPABASE_JWT_SECRET (Supabase Dashboard, Settings, API, JWT Settings) on the deployment.',
+          })
+          return
+        }
+        throw e
+      }
+
+      const q = (req.query ?? {}) as Record<string, unknown>
+      const M = req.method as string
+      const uid = caller.userId
+
+      if (area === 'admin') {
+        if (!resource) return void send(res, adminIndex())
+        return void send(res, await adminCall(jwt, resource, M, q, readBody(req)))
+      }
+
+      // /orgs, /orgs/{handle}, /orgs/{handle}/{section}/{itemId}
+      const handle = resource
+      const section = raw[2]
+      const itemId = raw[3]
+      const origin = siteOrigin(req)
+
+      if (!handle) {
+        if (M === 'GET') return void send(res, await listOrgs(jwt, q))
+        if (M === 'POST') return void send(res, await createOrg(jwt, readBody(req)))
+        return void fail(res, 405, 'GET to list organisations, POST to create one.')
+      }
+
+      if (!section) {
+        if (M === 'GET') return void send(res, await getOrg(jwt, handle))
+        if (M === 'PATCH') return void send(res, await patchOrg(jwt, uid, handle, readBody(req)))
+        return void fail(res, 405, 'GET to read an organisation, PATCH to edit it.')
+      }
+
+      switch (section) {
+        case 'claim':
+          if (M !== 'POST') return void fail(res, 405, 'Claiming is a POST.')
+          return void send(res, await claimOrg(jwt, handle))
+
+        case 'logo':
+        case 'banner':
+          if (M !== 'POST') return void fail(res, 405, 'Uploading an image is a POST.')
+          return void send(
+            res,
+            await setOrgImage(jwt, uid, handle, section, await rawBody(req), contentType(req)),
+          )
+
+        case 'media':
+          if (M !== 'POST') return void fail(res, 405, 'Uploading an image is a POST.')
+          return void send(res, await uploadMedia(jwt, uid, await rawBody(req), contentType(req)))
+
+        case 'events':
+          if (itemId) {
+            if (M !== 'PATCH') return void fail(res, 405, 'PATCH to edit an event.')
+            return void send(res, await patchEvent(jwt, uid, handle, decodeURIComponent(itemId), readBody(req)))
+          }
+          if (M === 'GET') return void send(res, await listEvents(jwt, handle, q))
+          if (M === 'POST') return void send(res, await createEvent(jwt, uid, handle, readBody(req)))
+          return void fail(res, 405, 'GET to list events, POST to create one.')
+
+        case 'posts':
+          if (itemId) {
+            if (M !== 'DELETE') return void fail(res, 405, 'DELETE to take a post down.')
+            return void send(res, await hidePost(jwt, uid, handle, decodeURIComponent(itemId)))
+          }
+          if (M === 'GET') return void send(res, await listPosts(jwt, handle))
+          if (M === 'POST') return void send(res, await createPost(jwt, uid, handle, readBody(req)))
+          return void fail(res, 405, 'GET to list posts, POST to publish one.')
+
+        case 'stories':
+          if (M === 'GET') return void send(res, await listStories(jwt, handle))
+          if (M === 'POST') return void send(res, await createStory(jwt, uid, handle, readBody(req)))
+          return void fail(res, 405, 'GET to list live stories, POST to add one.')
+
+        case 'invites':
+          if (itemId) {
+            if (M !== 'DELETE') return void fail(res, 405, 'DELETE to revoke an invite.')
+            return void send(res, await revokeInvite(jwt, uid, handle, decodeURIComponent(itemId)))
+          }
+          if (M === 'GET') return void send(res, await listInvites(jwt, handle, origin))
+          if (M === 'POST') return void send(res, await createInvite(jwt, uid, handle, readBody(req), origin))
+          return void fail(res, 405, 'GET to list invites, POST to create one.')
+
+        case 'team':
+          if (M !== 'GET') return void fail(res, 405, 'The team list is read-only here.')
+          return void send(res, await getTeam(jwt, handle))
+
+        case 'insights':
+          if (M !== 'GET') return void fail(res, 405, 'Insights are read-only.')
+          return void send(res, await orgInsights(jwt, handle))
+
+        default:
+          fail(res, 404, 'No organisation endpoint called "' + section + '".')
+          return
+      }
+    }
+
+    fail(
+      res,
+      404,
+      'Unknown area. The API has five: /api/v1/owner, /api/v1/me, /api/v1/support, /api/v1/admin and /api/v1/orgs.',
+    )
   } catch (err) {
     fail(res, 500, err instanceof Error ? err.message : 'Unexpected error.')
   }

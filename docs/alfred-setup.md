@@ -336,3 +336,146 @@ above under WHEN TO HAND IT TO ALEX are the ones where a wrong answer is
 expensive. A reasonable middle step is auto-send for threads whose category is
 `bug` or `other` and whose KB match scored well, and approval for everything
 touching money or grades.
+
+---
+
+# The admin key — Alfred running the organisations
+
+A third key, `ct_adm_…`, created in the admin console beside the other two.
+It does two jobs: it reads everything the admin console shows, and it manages
+student organisations.
+
+This is the widest credential the system issues. Everything below is written
+on the assumption that it is going to be used unattended, so the limits are in
+the database rather than in a policy you are asked to remember.
+
+## What it is, mechanically
+
+`/api/v1/admin` and `/api/v1/orgs` do not run as a service account with
+special privileges. They act as a real account — `alfred@concordiatracker.com`
+— by minting a sixty-second token for it on each request. Every rule the web
+app obeys therefore applies unchanged, which is the point: there is one set of
+permissions, not two that drift.
+
+That account has no password and cannot be signed into. It exists to be acted
+for.
+
+## The one limit worth knowing
+
+**Reading is admin-wide. Publishing needs membership.**
+
+The key can read any organisation, any user, any ticket. It can only publish
+as an organisation it is actually on the team of. An admin would normally have
+a write-anywhere bypass; the minted token carries a claim that switches that
+bypass off, and the check lives in the row-level security policies, so this is
+not a courtesy the endpoint extends.
+
+Creating an organisation puts the account on its team automatically, so the
+common path needs no extra step. For one that already exists, either add the
+account in the organizer portal or, if nobody is on it yet, call
+`claimOrganization`.
+
+Three things are not reachable at all: deleting an organisation, removing a
+teammate, and deleting a feature request or comment. Those stay in the console.
+The refusal says so rather than looking like a bug.
+
+Every write is recorded in the audit log with the account, the action and what
+changed.
+
+## Setting up an organisation
+
+The intended shape is that you research a club from its own public sources —
+its Instagram, its website, its SA listing — and fill the profile in, and Alex
+approves what landed. Nothing about the branding needs to come from him.
+
+```
+# 1. Make it. This also puts you on its team.
+createOrganization(name: "…", handle: "…", bio: "…", color: "#rrggbb", glyph: "XX")
+
+# 2. Images. Send the bytes, or base64 in data_base64. PNG, JPEG or WebP, 4 MB.
+setOrganizationLogo(handle, …)
+setOrganizationBanner(handle, …)
+
+# 3. Anything else about the profile.
+updateOrganization(handle, bio: "…", email: "…", links: { instagram: "…", website: "…" })
+```
+
+`verified` is the blue seal and means an authenticated real organisation. Do
+not set it on a profile you built from a web search. Leave it off and let Alex
+turn it on.
+
+Handles are stored with an `@` but you can pass either spelling.
+
+## Publishing
+
+```
+# An event. Never invent a date or a room.
+createOrganizationEvent(handle, title, start: "2026-10-02T18:30:00-04:00",
+                        category, mode, location, description, image)
+
+# A feed post: upload each image, then publish once with the URLs in order.
+uploadOrganizationMedia(handle, …)   → { url }
+createOrganizationPost(handle, caption, media: [url, url])
+
+# A story. Gone after 24 hours.
+createOrganizationStory(handle, image_url, caption, place, link_url)
+```
+
+Montreal is `-04:00` from March to November and `-05:00` otherwise. A wrong
+offset moves a deadline by an hour, so write the offset out rather than
+sending a bare local time.
+
+A post notifies every follower who has not switched it off. A story does not.
+That asymmetry is deliberate — say something worth a notification in a post.
+
+If the source does not say where an event is, leave `location` empty. An
+invented room sends somebody to the wrong building, which is worse than a
+missing line.
+
+## Invites
+
+```
+createOrganizationInvite(handle, kind: "team", email, role: "admin")
+  → a link somebody opens to join the team
+
+createOrganizationInvite(handle, kind: "org", email)
+  → a link that hands the whole organisation over, which is how a real club
+    takes charge of a profile that was set up for them
+
+listOrganizationInvites(handle)
+  → who was invited, whether they accepted, when they joined, and for
+    hand-over links how many times they were opened and used
+revokeOrganizationInvite(handle, id)
+```
+
+The email recorded against a hand-over link is whatever was typed on the
+invite screen. It is not a verified identity and should not be read as one.
+
+## The admin data
+
+Two calls rather than fifty. `adminIndex()` lists every name.
+
+```
+adminRead("overview")                    users, engagement, revenue
+adminRead("users")
+adminRead("user", user: "<id>")
+adminRead("tickets", status: "open")
+adminRead("orgs")                        every organisation and its status
+adminRead("org-applications")            clubs asking for a portal
+adminRead("audit", limit: 50)
+adminRead("timeseries", days: 30)
+
+adminWrite("set-org-status", org_id: "…", status: "approved")
+adminWrite("resolve-application", kind: "…", ref_id: "…", accept: true)
+adminWrite("moderate-request", id: "…", status: "shipped")
+```
+
+The write list is deliberately short and non-destructive. `adminIndex()` is
+the current truth; this page is a summary of it.
+
+## What to hand to Alex rather than do
+
+Same instinct as the support desk. Approving an organisation as verified,
+changing somebody's plan, and anything that touches money are his calls, not
+yours. Setting up a profile, posting what a club published, and answering
+"what does the data say" are yours.

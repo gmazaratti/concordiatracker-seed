@@ -64,12 +64,23 @@ create policy "api_tokens_select_own" on public.api_tokens
 -- ── 2. Minting ──────────────────────────────────────────────────────────────
 -- Two UUIDs = 244 bits, the same construction the calendar feed uses, for the
 -- same reason: no extension required and far beyond guessing.
-create or replace function public.ct_new_api_token(p_scope text)
-returns text language sql volatile as $$
-  select 'ct_' || case when p_scope = 'owner' then 'owner' else 'pat' end || '_'
-         || replace(gen_random_uuid()::text, '-', '')
-         || replace(gen_random_uuid()::text, '-', '');
-$$;
+-- THE SCOPE LIST AND THE PREFIX MAP DO NOT LIVE HERE. An earlier copy of this
+-- file hard-coded both, and re-running it on 2026-09-20 silently reverted the
+-- 'support' scope and the ct_per_ prefix that two later migrations had added.
+-- db/alfred_admin_scope.sql owns them now; these two definitions only fill the
+-- gap on a project where that file has not run yet, and never narrow it.
+do $mint$ begin
+  if to_regprocedure('public.ct_api_scope_prefix(text)') is null then
+    execute $fn$
+      create or replace function public.ct_new_api_token(p_scope text)
+      returns text language sql volatile as $inner$
+        select 'ct_' || case when p_scope = 'owner' then 'owner' else 'pat' end || '_'
+               || replace(gen_random_uuid()::text, '-', '')
+               || replace(gen_random_uuid()::text, '-', '');
+      $inner$;
+    $fn$;
+  end if;
+end $mint$;
 
 create or replace function public.ct_hash_api_token(p_token text)
 returns text language sql immutable as $$
@@ -95,10 +106,18 @@ begin
   if v_uid is null then
     raise exception 'Sign in first.' using errcode = '28000';
   end if;
-  if p_scope not in ('owner', 'me') then
+  -- Read from ct_api_scopes() when it exists, so re-running this file can
+  -- never take a scope away from a project that already has more of them.
+  if to_regprocedure('public.ct_api_scopes()') is not null then
+    if not (p_scope = any (public.ct_api_scopes())) then
+      raise exception 'Unknown scope %', p_scope using errcode = '22023';
+    end if;
+    if p_scope = any (public.ct_api_admin_scopes()) and not public.is_admin() then
+      raise exception 'Only an admin can create a % token.', p_scope using errcode = '42501';
+    end if;
+  elsif p_scope not in ('owner', 'me') then
     raise exception 'Unknown scope %', p_scope using errcode = '22023';
-  end if;
-  if p_scope = 'owner' and not public.is_admin() then
+  elsif p_scope = 'owner' and not public.is_admin() then
     raise exception 'Only an admin can create an owner token.' using errcode = '42501';
   end if;
   if v_name is null then

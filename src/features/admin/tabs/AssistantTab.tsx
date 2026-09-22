@@ -191,7 +191,11 @@ export function AssistantTab() {
 
       <Panel title="Assistant access" sub="API keys">
         <div className="space-y-5 p-3.5">
-          <TokenPanel scope="support" />
+          {/* First, because it is the one that can do the most. */}
+          <TokenPanel scope="admin" />
+          <div className="border-t border-border pt-4">
+            <TokenPanel scope="support" />
+          </div>
           <div className="border-t border-border pt-4">
             <TokenPanel scope="me" />
           </div>

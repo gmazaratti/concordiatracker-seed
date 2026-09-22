@@ -1388,13 +1388,18 @@ export const PAGES = {
         p: 'The web app authenticates with a Supabase access token, which expires in an hour and is minted by a browser sign-in. That is no use to a script, a cron job, or an agent, so anything unattended uses an API token instead: long-lived, named, revocable one at a time, and scoped narrower than a session.',
       },
       {
-        p: 'Send it the same way: `Authorization: Bearer <token>`. There are two scopes and a token can never widen its own.',
+        p: 'Send it the same way: `Authorization: Bearer <token>`. There are four scopes and a token can never widen its own.',
       },
       {
         ul: [
           '`ct_owner_…` — business statistics under `/api/v1/owner`. Created by an admin in the console. It reads counts and revenue and can never read an individual account.',
-          '`ct_pat_…` — your own data under `/api/v1/me`. Created by you in Settings → Developer. It can only ever see and edit your account.',
+          '`ct_per_…` — your own data under `/api/v1/me`. Created by you in Settings → Developer. It can only ever see and edit your account. Older keys start `ct_pat_` and still work.',
+          '`ct_sup_…` — the support desk under `/api/v1/support`. Created by an admin. It reads and answers support conversations and nothing else.',
+          '`ct_adm_…` — everything the admin console shows, under `/api/v1/admin`, plus managing student organisations under `/api/v1/orgs`. Created by an admin. The widest key here by a distance.',
         ],
+      },
+      {
+        note: 'An admin token still cannot publish as an organisation it does not belong to. That is enforced by the database rather than by the endpoint: the token carries a claim that removes an admin’s usual write-anywhere bypass, so being on the team is the only route in. Deleting an organisation, a teammate or a post is not reachable through the API at all, and every write an admin token makes is recorded in the audit log.',
       },
       {
         note: 'A token is shown once, when it is created, and cannot be retrieved afterwards. Only its SHA-256 hash is stored, so a database dump is not a set of live credentials — and if you lose one, the answer is to revoke it and make another. Revoking takes effect immediately.',

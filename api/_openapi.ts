@@ -83,6 +83,19 @@ export const OPENAPI = {
     { name: 'Billing', description: 'Stripe checkout and subscription management.' },
     { name: 'Notifications', description: 'Web push to a signed-in user devices.' },
     { name: 'Internal', description: 'Scheduled jobs. Require the deployment cron secret.' },
+    {
+      name: 'Organizations API',
+      description:
+        'Manage a student organisation: its profile, images, events, posts, stories, team and ' +
+        'invites. Needs a ct_adm_ token. Reading is admin-wide; publishing needs the account to ' +
+        'be on that organisation team, which the database enforces.',
+    },
+    {
+      name: 'Admin API',
+      description:
+        'Everything the admin console shows, over HTTP. Needs a ct_adm_ token. Destructive calls ' +
+        'are deliberately not reachable.',
+    },
   ],
 
   paths: {
@@ -1516,6 +1529,626 @@ export const OPENAPI = {
         },
       },
     },
+
+    '/api/v1/orgs': {
+      get: {
+        operationId: 'listOrganizations',
+        tags: ['Organizations API'],
+        summary: 'List student organisations',
+        description:
+          'Every organisation on the platform, newest first, with its handle, name, bio, brand ' +
+          'colour, logo, banner, approval status and verified flag. Use it to find the handle to ' +
+          'pass to the other calls.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            required: false,
+            description: 'Narrow by name or handle.',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: { '200': { description: 'The organisations.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'createOrganization',
+        tags: ['Organizations API'],
+        summary: 'Create an organisation and take it on',
+        description:
+          'Creates an approved organisation and makes this account its owner-member, so it can ' +
+          'publish straight away. A real club can be handed the organisation later with an ' +
+          'invite of kind "org". Research the branding from the club own public sources before ' +
+          'calling this: name, bio, colour and images are all settable here or by PATCH.',
+        security: [{ adminToken: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'handle'],
+                properties: {
+                  name: { type: 'string', description: 'The club full name.' },
+                  handle: { type: 'string', description: 'Its @handle. The @ is optional.' },
+                  bio: { type: 'string', description: 'A short description, in the club own words where possible.' },
+                  color: { type: 'string', description: 'Brand colour as #rrggbb. Used wherever no image is set.' },
+                  glyph: { type: 'string', description: 'Two letters shown when there is no logo.' },
+                  verified: { type: 'boolean', description: 'The blue seal. Only for an organisation confirmed to be real.' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'The organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}': {
+      get: {
+        operationId: 'getOrganization',
+        tags: ['Organizations API'],
+        summary: 'Read one organisation',
+        description: 'The full profile for one handle.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      patch: {
+        operationId: 'updateOrganization',
+        tags: ['Organizations API'],
+        summary: 'Edit an organisation profile',
+        description:
+          'Change any of name, bio, colour, glyph, contact email, links or venue. Only fields you ' +
+          'send are touched. Requires this account to be on the organisation team.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  bio: { type: 'string' },
+                  color: { type: 'string', description: 'Brand colour as #rrggbb.' },
+                  glyph: { type: 'string' },
+                  email: { type: 'string', description: 'A public contact address. Turns Contact into a real mailto link.' },
+                  links: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description: 'Any of website, instagram, x, linkedin, as full URLs.',
+                  },
+                  venue: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description: 'For a place rather than a club: address, phone, hours.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'The updated organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/claim': {
+      post: {
+        operationId: 'claimOrganization',
+        tags: ['Organizations API'],
+        summary: 'Join an organisation that has no team yet',
+        description:
+          'Makes this account the owner-member of an organisation that nobody is on, so it can ' +
+          'publish. Refused once anybody else is on the team.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/logo': {
+      post: {
+        operationId: 'setOrganizationLogo',
+        tags: ['Organizations API'],
+        summary: 'Upload and set the logo',
+        description:
+          'Send the image as raw bytes with a Content-Type of image/png, image/jpeg or ' +
+          'image/webp, or as JSON with a base64 "data_base64" field. At most 4 MB. Stores it and ' +
+          'sets it on the profile in one call.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: { required: true, content: {
+            'image/png': { schema: { type: 'string', format: 'binary' } },
+            'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+            'image/webp': { schema: { type: 'string', format: 'binary' } },
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  data_base64: { type: 'string', description: 'The image, base64 encoded. At most 4 MB decoded.' },
+                },
+              },
+            },
+          } },
+        responses: { '200': { description: 'The stored URL and the updated organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/banner': {
+      post: {
+        operationId: 'setOrganizationBanner',
+        tags: ['Organizations API'],
+        summary: 'Upload and set the banner',
+        description:
+          'The wide image across the top of the profile. Same body rules as the logo: raw image ' +
+          'bytes or JSON with "data_base64", at most 4 MB.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: { required: true, content: {
+            'image/png': { schema: { type: 'string', format: 'binary' } },
+            'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+            'image/webp': { schema: { type: 'string', format: 'binary' } },
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  data_base64: { type: 'string', description: 'The image, base64 encoded. At most 4 MB decoded.' },
+                },
+              },
+            },
+          } },
+        responses: { '200': { description: 'The stored URL and the updated organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/media': {
+      post: {
+        operationId: 'uploadOrganizationMedia',
+        tags: ['Organizations API'],
+        summary: 'Upload an image and get its URL',
+        description:
+          'Stores an image and returns its public URL, to pass as "media" on a post, "image_url" ' +
+          'on a story or "image" on an event. A slideshow is several of these followed by one ' +
+          'post. Same body rules as the logo.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: { required: true, content: {
+            'image/png': { schema: { type: 'string', format: 'binary' } },
+            'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+            'image/webp': { schema: { type: 'string', format: 'binary' } },
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  data_base64: { type: 'string', description: 'The image, base64 encoded. At most 4 MB decoded.' },
+                },
+              },
+            },
+          } },
+        responses: { '201': { description: 'The stored URL.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/events': {
+      get: {
+        operationId: 'listOrganizationEvents',
+        tags: ['Organizations API'],
+        summary: 'List an organisation events',
+        description:
+          'Every event the organisation has published, newest first, with its id for editing.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          {
+            name: 'upcoming',
+            in: 'query',
+            required: false,
+            description: 'true to return only events that have not happened yet.',
+            schema: { type: 'boolean' },
+          },
+        ],
+        responses: { '200': { description: 'The events.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'createOrganizationEvent',
+        tags: ['Organizations API'],
+        summary: 'Post an event',
+        description:
+          'Publishes an event to the Community feed. Never invent a date or a room: if the source ' +
+          'does not say, leave location empty rather than guessing.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title', 'start'],
+                properties: {
+                  title: { type: 'string' },
+                  start: {
+                    type: 'string',
+                    description:
+                      'When it starts, ISO-8601 with an offset, e.g. 2026-10-02T18:30:00-04:00. ' +
+                      'Montreal is -04:00 in summer and -05:00 in winter.',
+                  },
+                  mode: { type: 'string', enum: ['in-person', 'online'] },
+                  location: { type: 'string', description: 'Room or address, or a joining note for an online event.' },
+                  category: { type: 'string', enum: ['clubs', 'career', 'academic', 'official', 'nightlife'] },
+                  description: { type: 'string' },
+                  image: { type: 'string', description: 'A URL from the media upload.' },
+                  relevant_to: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Programmes or faculties this is aimed at, for the "For your programme" badge.',
+                  },
+                  recurrence: { type: 'string', description: 'Free text such as "Every Thursday", shown as a tag.' },
+                  series_id: { type: 'string', description: 'Shared id so repeats collapse to the next occurrence in the feed.' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'The event.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/events/{id}': {
+      patch: {
+        operationId: 'updateOrganizationEvent',
+        tags: ['Organizations API'],
+        summary: 'Edit an event',
+        description: 'Only the fields you send are changed.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  start: { type: 'string', description: 'ISO-8601 with an offset.' },
+                  mode: { type: 'string', enum: ['in-person', 'online'] },
+                  location: { type: 'string' },
+                  category: { type: 'string', enum: ['clubs', 'career', 'academic', 'official', 'nightlife'] },
+                  description: { type: 'string' },
+                  image: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'The updated event.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/posts': {
+      get: {
+        operationId: 'listOrganizationPosts',
+        tags: ['Organizations API'],
+        summary: 'List an organisation feed posts',
+        description:
+          'Posts still showing in the feed, newest first, with their captions, images and ids.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The posts.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'createOrganizationPost',
+        tags: ['Organizations API'],
+        summary: 'Publish a feed post',
+        description:
+          'A caption and one to ten images, shown in the Community feed and on the organisation ' +
+          'profile. Upload the images first with the media endpoint and pass their URLs. ' +
+          'Followers who have not switched it off are notified.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['media'],
+                properties: {
+                  caption: { type: 'string', description: 'At most 2200 characters.' },
+                  media: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'One to ten image URLs from the media upload, in order.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'The post.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/posts/{id}': {
+      delete: {
+        operationId: 'removeOrganizationPost',
+        tags: ['Organizations API'],
+        summary: 'Take a post down',
+        description: 'Hides it from the feed. The row is kept.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'Confirmation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/stories': {
+      get: {
+        operationId: 'listOrganizationStories',
+        tags: ['Organizations API'],
+        summary: 'List live stories',
+        description: 'Only stories still inside their 24 hours.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The stories.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'createOrganizationStory',
+        tags: ['Organizations API'],
+        summary: 'Post a story',
+        description: 'One image, gone after 24 hours. Upload the image first with the media endpoint.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['image_url'],
+                properties: {
+                  image_url: { type: 'string', description: 'A URL from the media upload.' },
+                  caption: { type: 'string' },
+                  place: { type: 'string', description: 'A location label shown on the story.' },
+                  link_url: { type: 'string', description: 'A link viewers can open.' },
+                  overlays: {
+                    type: 'array',
+                    items: { type: 'object', additionalProperties: true },
+                    description:
+                      'Text drawn on the image. Each is {text, x, y, font, color, chip, anim} ' +
+                      'where x and y are fractions of the 9:16 frame, 0 to 1.',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'The story.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/team': {
+      get: {
+        operationId: 'listOrganizationTeam',
+        tags: ['Organizations API'],
+        summary: 'Who is on an organisation team',
+        description:
+          'Members with their role, permissions, status and the date they joined. Says whether an ' +
+          'invite is still outstanding; the invite token itself is not returned.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The team.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/invites': {
+      get: {
+        operationId: 'listOrganizationInvites',
+        tags: ['Organizations API'],
+        summary: 'List invites and what became of them',
+        description:
+          'Team invites with whether they were accepted and when, and hand-over invites with how ' +
+          'many times the link was opened and used. The recorded email on a hand-over invite is ' +
+          'whatever was typed on the invite screen, not a verified identity.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The invites.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'createOrganizationInvite',
+        tags: ['Organizations API'],
+        summary: 'Generate an invite link',
+        description:
+          'kind "team" adds somebody to this organisation with a role. kind "org" makes a link ' +
+          'that hands the whole organisation to whoever accepts it, which is how a real club ' +
+          'takes over a profile that was set up for them. Returns the URL.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  kind: { type: 'string', enum: ['team', 'org'], description: 'Defaults to team.' },
+                  email: { type: 'string', description: 'Who it is for. Optional; the link works regardless.' },
+                  name: { type: 'string' },
+                  role: { type: 'string', enum: ['owner', 'admin', 'member'], description: 'Team invites only.' },
+                  max_uses: { type: 'integer', description: 'Hand-over invites only. Defaults to 1.' },
+                  expires_in_days: { type: 'integer', description: 'Hand-over invites only. Defaults to 14.' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'The invite and its URL.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/invites/{id}': {
+      delete: {
+        operationId: 'revokeOrganizationInvite',
+        tags: ['Organizations API'],
+        summary: 'Revoke an invite that has not been accepted',
+        description:
+          'Refused once the invite has been accepted, because that is a teammate rather than an ' +
+          'invite and removing one is held back behind the admin console.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'Confirmation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/insights': {
+      get: {
+        operationId: 'getOrganizationInsights',
+        tags: ['Organizations API'],
+        summary: 'How far an organisation reaches',
+        description:
+          'Follower, event and post counts. Aggregate only: which students followed, watched or ' +
+          'added an event is never returned, by design.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The counts.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/admin': {
+      get: {
+        operationId: 'adminIndex',
+        tags: ['Admin API'],
+        summary: 'List every admin endpoint',
+        description:
+          'The names that can be passed to adminRead and adminWrite, with the arguments each one ' +
+          'takes, and the destructive ones that are deliberately not reachable.',
+        security: [{ adminToken: [] }],
+        responses: { '200': { description: 'The list.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/admin/{name}': {
+      get: {
+        operationId: 'adminRead',
+        tags: ['Admin API'],
+        summary: 'Read anything the admin console shows',
+        description:
+          'One endpoint over the console read functions. Names: overview, dashboard, revenue, ' +
+          'billing, pro-breakdown, timeseries (days), traffic (days), users, user (user), ' +
+          'user-courses (user), user-visits (user, limit), online (minutes), social-graph ' +
+          '(limit), tickets (status, q), open-tickets, bug-reports, data-reports, applications, ' +
+          'org-applications, parse-failures, orgs, org-members (org_id), teachers, audit (limit), ' +
+          'audit-user (target, limit), activity (limit), activity-feed, digests, ai-replies ' +
+          '(days, limit), ai-reply-count (days), message-replies (limit), messages (user), ' +
+          'survey, survey-outlines, survey-responses. Call GET /api/v1/admin for the current list.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'name', in: 'path', required: true, description: 'Which read to run.', schema: { type: 'string' } },
+          { name: 'user', in: 'query', required: false, description: 'A user id, for the per-account reads.', schema: { type: 'string' } },
+          { name: 'target', in: 'query', required: false, description: 'A user id, for audit-user.', schema: { type: 'string' } },
+          { name: 'org_id', in: 'query', required: false, description: 'An organisation id, for org-members.', schema: { type: 'string' } },
+          { name: 'days', in: 'query', required: false, description: 'How far back to look, for timeseries, traffic, ai-replies and ai-reply-count.', schema: { type: 'integer' } },
+          { name: 'limit', in: 'query', required: false, description: 'How many rows to return, for the list reads.', schema: { type: 'integer' } },
+          { name: 'minutes', in: 'query', required: false, description: 'How recently somebody was active, for online.', schema: { type: 'integer' } },
+          { name: 'status', in: 'query', required: false, description: 'For tickets.', schema: { type: 'string' } },
+          { name: 'q', in: 'query', required: false, description: 'A search term, for tickets.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'The data.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+      post: {
+        operationId: 'adminWrite',
+        tags: ['Admin API'],
+        summary: 'Change something in the admin console',
+        description:
+          'The non-destructive console writes. Names: set-plan, set-flags, set-user-notes, ' +
+          'set-vanity, set-blueprint-permission, set-org-status, resolve-application, ' +
+          'extend-org-invite, moderate-request, moderate-comment, update-bug-report, ' +
+          'update-data-report, mark-activity-seen. Pass that call arguments in the body, with or ' +
+          'without the p_ prefix. Every one is recorded in the audit log. Deleting anything is ' +
+          'not reachable here.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'name', in: 'path', required: true, description: 'Which write to run.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                additionalProperties: true,
+                // Named rather than left open: a model handed an empty bag
+                // guesses at key names, and a guessed key is silently dropped.
+                properties: {
+                  target: { type: 'string', description: 'A user id. set-plan, set-flags.' },
+                  uid: { type: 'string', description: 'A user id. set-user-notes, set-vanity, set-blueprint-permission.' },
+                  id: { type: 'string', description: 'The row being changed. moderate-request, moderate-comment, update-bug-report, update-data-report, extend-org-invite.' },
+                  org_id: { type: 'string', description: 'An organisation id. set-org-status.' },
+                  pro: { type: 'boolean', description: 'set-plan.' },
+                  until: { type: 'string', description: 'set-plan. ISO-8601, or omit for no end date.' },
+                  internal: { type: 'boolean', description: 'set-flags. Marks a staff account so it is not counted as a user.' },
+                  comped: { type: 'boolean', description: 'set-flags. A free Pro account that is never a paying customer.' },
+                  allowed: { type: 'boolean', description: 'set-blueprint-permission.' },
+                  status: { type: 'string', description: 'set-org-status, moderate-request, update-bug-report, update-data-report.' },
+                  notes: { type: 'string', description: 'set-user-notes, update-bug-report, update-data-report.' },
+                  code: { type: 'string', description: 'set-vanity.' },
+                  kind: { type: 'string', description: 'resolve-application.' },
+                  ref_id: { type: 'string', description: 'resolve-application.' },
+                  accept: { type: 'boolean', description: 'resolve-application.' },
+                  days: { type: 'integer', description: 'extend-org-invite.' },
+                  reset_uses: { type: 'boolean', description: 'extend-org-invite.' },
+                  pinned: { type: 'boolean', description: 'moderate-request.' },
+                  hidden: { type: 'boolean', description: 'moderate-request, moderate-comment.' },
+                  public: { type: 'boolean', description: 'update-bug-report.' },
+                  reason: { type: 'string', description: 'Why. Recorded in the audit log. set-plan, set-flags.' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'The result.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
   },
 
   components: {
@@ -1539,6 +2172,16 @@ export const OPENAPI = {
         description:
           'A ct_pat_… API token, created by the account holder in Settings → Developer. Reads ' +
           'and edits only that account. 120 requests a minute.',
+      },
+      adminToken: {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'A ct_adm_… API token, created by an admin in the console. The widest key this system ' +
+          'issues: it reads everything the admin console shows and manages student ' +
+          'organisations. Publishing as an organisation still requires membership of it, and ' +
+          'deleting an organisation or a teammate is not reachable. Every write is recorded in ' +
+          'the audit log. 120 requests a minute.',
       },
       supportToken: {
         type: 'http',
