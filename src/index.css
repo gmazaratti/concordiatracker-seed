@@ -286,6 +286,24 @@ html {
     background-color: var(--ct-canvas);
   }
 
+  /*
+   * NOTHING RUBBER-BANDS. In the installed PWA you could put a finger on the
+   * bottom bar and drag the WHOLE document up, exposing a band of blank
+   * canvas under it — the shell is `h-[100dvh] overflow-hidden`, so there was
+   * nothing to scroll, but the platform still bounces the document itself.
+   * `overscroll-behavior: none` is what declines that, and it has to be on
+   * BOTH html and body: the propagation stops at whichever one the browser
+   * treats as the viewport-scrolling element, and that differs between iOS
+   * and Android.
+   *
+   * `position: fixed` on body would also do it and is the usual advice —
+   * rejected, because it breaks `100dvh` and every safe-area inset under it.
+   */
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+
   body {
     margin: 0;
     min-height: 100svh;
@@ -1530,4 +1548,43 @@ html[data-reduce-motion] .ct-navrow-right {
 }
 .ct-toast-in {
   animation: ct-toast-in 240ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* ── A bottom sheet arrives from the bottom ─────────────────────────────────
+   `ct-animate-pop` is right for a dialog that belongs to a spot on the
+   screen; a sheet belongs to the bottom edge, and scaling one up from its
+   own centre reads as a card appearing rather than a surface being pulled
+   up. The curve is the one iOS uses for sheet presentation — fast out of the
+   gate, long settle — and above `sm` it goes back to the pop, because on a
+   desktop this is a centred dialog and nothing is being pulled from an edge.
+
+   NO FILL MODE AT ALL, which is stricter than the usual `backwards` rule
+   here and deliberately so. `backwards` holds the FROM state for as long as
+   the animation has not started — and an animation that never starts leaves
+   the element parked 100% below the viewport. Caught exactly that way: in a
+   harness whose animation clock is frozen the sheet measured at
+   `translateY(564px)`, entirely off screen, while reporting itself
+   "running". This is ModalShell, the shell under EVERY dialog in the app, so
+   the failure mode is "no dialog in the product is visible" — far too much
+   to wager on an animation always firing. With no fill the element simply
+   starts where it belongs. (`both` would be worse again: a lingering
+   transform makes the element a containing block for every fixed descendant,
+   which is its own two-afternoon bug.) */
+@keyframes ct-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ct-sheet-in {
+  animation: ct-sheet-up 340ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (min-width: 640px) {
+  .ct-sheet-in {
+    animation: ct-pop-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }

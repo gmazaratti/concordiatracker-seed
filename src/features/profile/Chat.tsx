@@ -1,14 +1,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  BookOpen,
-  CalendarRange,
   Check,
   CheckCheck,
   ChevronLeft,
-  GraduationCap,
   Palette,
-  PartyPopper,
   Plus,
   Send,
 } from 'lucide-react'
@@ -29,11 +25,9 @@ import {
   type Attachment,
   type Friend,
   type Message,
-  type SharedClass,
 } from '@/lib/social'
-import type { SectionOption } from '@/lib/seats'
-import { placeSections, weeklyHours } from '@/features/planner/schedule'
 import { AttachmentEmbed } from './AttachmentEmbed'
+import { AttachSheet } from './AttachSheet'
 import { setOpenThread } from '@/lib/message-toast'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { cn } from '@/lib/cn'
@@ -96,6 +90,9 @@ export function Chat({
   const typingSentAt = useRef(0)
 
   const theme = chatTheme(uiState.chatThemes?.[friend.user_id])
+  /** An attachment with no words is a message too, which is why this is not
+   *  just `body.trim()`. */
+  const canSend = !!body.trim() || !!pending
   const pro = plan !== 'free'
   const { orgNameByOwner } = useCommunityData()
   const badge = badgeForPerson(friend.handle, orgNameByOwner[friend.user_id])
@@ -383,12 +380,12 @@ export function Chat({
               className={cn(
                 'ct-msg-in flex items-end gap-2',
                 mine ? 'justify-end' : 'justify-start',
-                grouped ? 'mt-0.5' : 'mt-2',
+                grouped ? 'mt-1' : 'mt-2.5',
               )}
             >
               {!mine && (
                 <span className={cn('shrink-0', !endsRun && 'invisible')}>
-                  <Avatar friend={friend} size={24} />
+                  <Avatar friend={friend} size={26} />
                 </span>
               )}
               <div className="max-w-[78%]">
@@ -399,7 +396,15 @@ export function Chat({
                 {m.body.trim() ? (
                   <div
                     className={cn(
-                      'rounded-2xl px-3 py-2',
+                      /*
+                       * SIZED TO THE REFERENCE, which means bigger than it
+                       * was. 12.5px is a caption; a message is prose you read
+                       * one-handed, and every messenger a student uses sets
+                       * it around 15. The radius went up with it — a 22px
+                       * corner on a 40px-tall bubble is the shape people read
+                       * as a message, and 16px read as a card.
+                       */
+                      'rounded-[22px] px-3.5 py-2.5',
                       mine
                         ? 'rounded-br-md bg-accent text-accent-contrast'
                         : 'rounded-bl-md border border-border bg-surface-2 text-fg',
@@ -410,7 +415,9 @@ export function Chat({
                         : undefined
                     }
                   >
-                    <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">{m.body}</p>
+                    <p className="text-[15px] leading-[1.35] whitespace-pre-wrap lg:text-[14px]">
+                      {m.body}
+                    </p>
                     {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
                   </div>
                 ) : (
@@ -482,115 +489,25 @@ export function Chat({
         )}
 
         <div className="flex items-end gap-2">
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setAttachOpen((o) => !o)}
-              aria-label="Send something"
-              aria-expanded={attachOpen}
-              className={cn(
-                'grid size-9 place-items-center rounded-full border border-border text-muted transition-all duration-200 hover:border-accent hover:text-fg',
-                attachOpen && 'rotate-45 border-accent text-accent',
-              )}
-            >
-              <Plus size={16} aria-hidden />
-            </button>
-
-            {attachOpen && (
-              <div className="ct-animate-pop absolute bottom-full left-0 z-30 mb-2 max-h-[320px] w-[248px] overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-2xl">
-                <AttachGroup label="Your schedule">
-                  <AttachRow
-                    icon={CalendarRange}
-                    label="This semester"
-                    hint={`${attachables.term.length} classes`}
-                    onPick={() => {
-                      setPending(snapshotOf('current', 'My current schedule', currentClasses))
-                      setAttachOpen(false)
-                    }}
-                  />
-                  {attachables.schedules.map((s) => (
-                    <AttachRow
-                      key={s.id}
-                      icon={CalendarRange}
-                      label={s.name}
-                      hint={`${(s.sections ?? []).length} classes`}
-                      onPick={() => {
-                        setPending(
-                          snapshotOf(
-                            s.id,
-                            s.name,
-                            (s.sections ?? []).map((p) => ({
-                              code: p.code,
-                              meets: p.section.meetingTimes ?? '',
-                              room: p.section.building
-                                ? `${p.section.building} ${p.section.room}`.trim()
-                                : p.section.room || undefined,
-                              section: p.section.section,
-                            })),
-                          ),
-                        )
-                        setAttachOpen(false)
-                      }}
-                    />
-                  ))}
-                </AttachGroup>
-
-                {record && record.courseCount > 0 && (
-                  <AttachGroup label="Your record">
-                    <AttachRow
-                      icon={GraduationCap}
-                      label="My record"
-                      hint={`${record.credits} credits${record.gpa === null ? '' : ` · GPA ${record.gpa.toFixed(2)}`}`}
-                      onPick={() => {
-                        setPending({ kind: 'record', snapshot: record })
-                        setAttachOpen(false)
-                      }}
-                    />
-                  </AttachGroup>
-                )}
-
-                {attachables.term.length > 0 && (
-                  <AttachGroup label="A class">
-                    {attachables.term.map((c) => (
-                      <AttachRow
-                        key={c.id}
-                        icon={BookOpen}
-                        label={c.code || 'Course'}
-                        hint={c.title}
-                        onPick={() => {
-                          setPending({
-                            kind: 'course',
-                            code: c.code,
-                            title: c.title,
-                            color: c.color,
-                            credits: c.credits,
-                          })
-                          setAttachOpen(false)
-                        }}
-                      />
-                    ))}
-                  </AttachGroup>
-                )}
-
-                {attachables.upcoming.length > 0 && (
-                  <AttachGroup label="An event">
-                    {attachables.upcoming.map((e) => (
-                      <AttachRow
-                        key={e.id}
-                        icon={PartyPopper}
-                        label={e.title}
-                        hint={e.org.name}
-                        onPick={() => {
-                          setPending({ kind: 'event', id: e.id, title: e.title })
-                          setAttachOpen(false)
-                        }}
-                      />
-                    ))}
-                  </AttachGroup>
-                )}
-              </div>
+          {/*
+            THE SAME HEIGHT AS THE FIELD BESIDE IT. At size-9 against a 42px
+            pill and `items-end`, this sat three pixels low — the kind of
+            thing you see before you can name it. It also lost its `relative`
+            wrapper: nothing is anchored to it any more now that the picker
+            is a sheet.
+          */}
+          <button
+            type="button"
+            onClick={() => setAttachOpen(true)}
+            aria-label="Send something"
+            aria-expanded={attachOpen}
+            className={cn(
+              'grid size-[42px] shrink-0 place-items-center rounded-full border border-border text-muted transition-all duration-200 hover:border-accent hover:text-fg',
+              attachOpen && 'rotate-45 border-accent text-accent',
             )}
-          </div>
+          >
+            <Plus size={18} aria-hidden />
+          </button>
 
           {/* ONE PILL holding the text and the send, the shape every
               messenger a student already uses puts here. The button inside it
@@ -612,20 +529,73 @@ export function Chat({
               }}
               rows={1}
               placeholder={`Message ${friend.name ?? friend.handle}`}
-              className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+              className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
             />
+            {/*
+              THE SEND ARRIVES WITH THE FIRST CHARACTER. A permanently
+              present, permanently disabled button is a control that spends
+              most of its life saying no — so it grows in from nothing when
+              there is something to send. Width AND scale animate, so the
+              field reflows smoothly instead of the button popping over it.
+
+              `disabled` stays for the keyboard: the animation hides it, and
+              hiding is not the same as disabling.
+            */}
             <button
               type="submit"
               aria-label="Send"
-              disabled={!body.trim() && !pending}
-              className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-all duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+              disabled={!canSend}
+              tabIndex={canSend ? 0 : -1}
+              className={cn(
+                'grid h-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-accent-contrast',
+                'transition-[width,opacity,transform] duration-200 ease-out hover:bg-accent-hover',
+                canSend ? 'w-8 scale-100 opacity-100' : 'pointer-events-none w-0 scale-75 opacity-0',
+              )}
             >
-              <Send size={15} aria-hidden />
+              {/* Nudged right by a pixel: the paper plane's bounding box is
+                  centred but its ink is not, so a mathematically centred
+                  glyph reads as sitting left. */}
+              <Send size={15} className="translate-x-px" aria-hidden />
             </button>
           </div>
         </div>
         {error && <p className="mt-1.5 text-[11.5px] text-warning">{error}</p>}
       </form>
+
+      {attachOpen && (
+        <AttachSheet
+          classes={attachables.term.map((c) => ({
+            id: c.id,
+            code: c.code,
+            title: c.title,
+            color: c.color,
+            credits: c.credits,
+          }))}
+          schedules={[
+            { id: 'current', name: 'My current schedule', classes: currentClasses },
+            ...attachables.schedules.map((sc) => ({
+              id: sc.id,
+              name: sc.name,
+              classes: (sc.sections ?? []).map((p) => ({
+                code: p.code,
+                meets: p.section.meetingTimes ?? '',
+                room: p.section.building
+                  ? `${p.section.building} ${p.section.room}`.trim()
+                  : p.section.room || undefined,
+                section: p.section.section,
+              })),
+            })),
+          ]}
+          events={attachables.upcoming.map((e) => ({
+            id: e.id,
+            title: e.title,
+            org: e.org.name,
+          }))}
+          record={record}
+          onPick={setPending}
+          onClose={() => setAttachOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -658,68 +628,8 @@ export function Avatar({ friend, size = 32 }: { friend: Friend; size?: number })
   )
 }
 
-function AttachGroup({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-2 last:mb-0">
-      <p className="px-1.5 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
-        {label}
-      </p>
-      {children}
-    </div>
-  )
-}
 
-function AttachRow({
-  icon: Icon,
-  label,
-  hint,
-  onPick,
-}: {
-  icon: typeof BookOpen
-  label: string
-  hint?: string
-  onPick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onPick}
-      className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors duration-150 hover:bg-surface-2"
-    >
-      <Icon size={13} className="shrink-0 text-accent" aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[12px] text-fg">{label}</span>
-        {hint && <span className="block truncate text-[10.5px] text-subtle">{hint}</span>}
-      </span>
-    </button>
-  )
-}
 
-/**
- * A schedule, frozen at the moment it was sent.
- *
- * Unlike a course or an event, a schedule row is private — a reference to one
- * is unreadable to the person you sent it to and would render as an empty box.
- * It is also not what sending a timetable is FOR: people screenshot these so a
- * friend can glance at them later, and a snapshot is the honest version of that
- * screenshot. Stamped with the date so it can never pass for live.
- */
-function snapshotOf(id: string, name: string, classes: SharedClass[]): Attachment {
-  const placed = placeSections(
-    classes.map((c) => ({
-      code: c.code,
-      section: { meetingTimes: c.meets } as SectionOption,
-    })),
-  )
-  return {
-    kind: 'schedule',
-    id,
-    name,
-    classes,
-    sentAt: new Date().toISOString(),
-    hours: weeklyHours(placed),
-  }
-}
 
 function describe(a: Attachment): string {
   if (a.kind === 'schedule') return `Schedule · ${a.name}`

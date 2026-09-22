@@ -139,7 +139,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
                 {m.fromOrg && <OrgFace org={org} className="size-6 shrink-0" />}
                 <span
                   className={cn(
-                    'max-w-[78%] rounded-2xl px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap',
+                    'max-w-[78%] rounded-[22px] px-3.5 py-2.5 text-[15px] leading-[1.35] whitespace-pre-wrap lg:text-[14px]',
                     m.fromOrg
                       ? 'rounded-bl-md bg-surface-2 text-fg'
                       : 'rounded-br-md bg-accent text-accent-contrast',
@@ -178,19 +178,27 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
               rows={1}
               maxLength={2000}
               placeholder={`Message ${org.name}…`}
-              className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+              className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
             />
+            {/* Grows in with the first character — see Chat.tsx. */}
             <button
               type="button"
               onClick={() => void send()}
               disabled={!body.trim() || sending}
+              tabIndex={body.trim() ? 0 : -1}
               aria-label="Send"
-              className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+              className={cn(
+                'grid h-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-accent-contrast',
+                'transition-[width,opacity,transform] duration-200 ease-out hover:bg-accent-hover',
+                body.trim()
+                  ? 'w-8 scale-100 opacity-100'
+                  : 'pointer-events-none w-0 scale-75 opacity-0',
+              )}
             >
               {sending ? (
                 <Loader2 size={15} className="animate-spin" aria-hidden />
               ) : (
-                <SendHorizonal size={15} aria-hidden />
+                <SendHorizonal size={15} className="translate-x-px" aria-hidden />
               )}
             </button>
           </div>

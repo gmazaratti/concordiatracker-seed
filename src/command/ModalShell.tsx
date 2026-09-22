@@ -158,7 +158,10 @@ export function ModalShell({
         aria-label={label}
         tabIndex={-1}
         className={cn(
-          'ct-animate-pop relative w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
+          // On a phone this IS a bottom sheet, so it comes up from the
+          // bottom rather than scaling out of its own centre. Above `sm` the
+          // class reverts to the pop — see index.css.
+          'ct-sheet-in relative w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
           widthClass,
         )}
         onMouseDown={(e) => e.stopPropagation()}

@@ -165,14 +165,20 @@ export function TicketThread({
             rows={1}
             placeholder={perspective === 'staff' ? 'Reply to this person…' : 'Write a message…'}
             aria-label="Your message"
-            className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+            className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
           />
+          {/* Grows in with the first character — see Chat.tsx. */}
           <button
             type="button"
             onClick={() => void send()}
             disabled={!draft.trim() || sending}
+            tabIndex={draft.trim() ? 0 : -1}
             aria-label="Send message"
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+            className={cn(
+              'grid h-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-accent-contrast',
+              'transition-[width,opacity,transform] duration-200 ease-out hover:bg-accent-hover',
+              draft.trim() ? 'w-8 scale-100 opacity-100' : 'pointer-events-none w-0 scale-75 opacity-0',
+            )}
           >
             {sending ? (
               <Loader2 size={15} className="animate-spin" aria-hidden />
