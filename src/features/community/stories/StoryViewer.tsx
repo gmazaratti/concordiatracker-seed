@@ -1,7 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Eye, Heart, MapPin, Pause, Send, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  ChevronLeft,
+  ChevronRight,
+  EyeOff,
+  Eye,
+  Flag,
+  Heart,
+  MapPin,
+  Pause,
+  Play,
+  Send,
+  X,
+} from 'lucide-react'
+import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import { useFollows } from '@/app/providers/follows'
+import { muteOrg } from '../muted-orgs'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { sendMessageToOrg } from '@/lib/org-messages'
 import {
@@ -16,6 +31,10 @@ import { animClass, fontClass, storyAge } from './story-text'
 import { ShareSheet } from '../ShareSheet'
 
 const SEGMENT_MS = 5000
+/** Past this much downward travel, letting go closes the reel. */
+const DISMISS = 110
+/** Below this, a gesture is still a tap and the halves get it. */
+const GESTURE = 10
 /** Module level so reading the clock is allowed — the same shape as `ago` in
  *  PeoplePanel (`react-hooks/purity` bars a clock read in a component body). */
 const now = () => Date.now()
@@ -58,6 +77,14 @@ export function StoryViewer({
   const [sharing, setSharing] = useState(false)
   const [liked, setLiked] = useState(false)
   const timer = useRef<number | null>(null)
+  const replyRef = useRef<HTMLInputElement>(null)
+  /** How far the reel has been dragged down, in px. Drives both the transform
+   *  and the backdrop's opacity, so the gesture is 1:1 the whole way. */
+  const [drag, setDrag] = useState(0)
+  const [swiping, setSwiping] = useState(false)
+  const touch = useRef<{ x: number; y: number; id: number; moved: boolean } | null>(null)
+  const { isFollowing, toggleFollow } = useFollows()
+  const navigate = useNavigate()
 
   useEffect(() => {
     let alive = true
@@ -143,6 +170,70 @@ export function StoryViewer({
     if (err) setReply(body)
   }
 
+  /*
+   * DOWN CLOSES, UP REPLIES, HOLD PAUSES — the three gestures every story reel
+   * has, and the reason the tap halves alone were not enough: on a phone the
+   * only way out of this was a 32px X in the corner, which is the hardest
+   * target on the screen to hit one-handed.
+   *
+   * The drag is 1:1 and the reel goes WITH the finger, so letting go halfway
+   * springs back to exactly where it was. A close that only happens on release,
+   * with nothing moving until then, is a gesture you have to be told about.
+   *
+   * TOUCH ONLY. A mouse has the X, the arrows and Escape; hijacking a
+   * mouse-drag here would fight text selection for no gain.
+   */
+  const down = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return
+    touch.current = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false }
+    setPaused(true)
+  }
+
+  const move = (e: React.PointerEvent) => {
+    const t = touch.current
+    if (!t || e.pointerId !== t.id) return
+    const dy = e.clientY - t.y
+    const dx = e.clientX - t.x
+    if (!t.moved && Math.abs(dy) < GESTURE && Math.abs(dx) < GESTURE) return
+    if (!t.moved) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Sideways is not one of ours; give the gesture up so nothing sticks.
+        touch.current = null
+        setPaused(false)
+        return
+      }
+      t.moved = true
+      setSwiping(true)
+    }
+    // Upward travel is not shown — it opens the composer on release instead,
+    // and dragging the picture off the top of the screen would imply it
+    // dismisses that way too.
+    setDrag(Math.max(0, dy))
+  }
+
+  const up = (e: React.PointerEvent) => {
+    const t = touch.current
+    touch.current = null
+    setSwiping(false)
+    if (!t || e.pointerId !== t.id) return
+    const dy = e.clientY - t.y
+    setDrag(0)
+    if (!t.moved) {
+      setPaused(false)
+      return
+    }
+    if (dy > DISMISS) {
+      onClose()
+      return
+    }
+    if (dy < -GESTURE * 4) {
+      // Up: the reply box, which is what "swipe up" means on every other reel.
+      replyRef.current?.focus()
+      return
+    }
+    setPaused(false)
+  }
+
   const toggleLike = () => {
     if (!story) return
     const nextLiked = !liked
@@ -151,9 +242,34 @@ export function StoryViewer({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex flex-col bg-black" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-[70] flex flex-col bg-black"
+      role="dialog"
+      aria-modal="true"
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+      /* A drag that ended past the tap threshold must not also fire the tap
+         zone underneath it: swiping down would close the reel AND advance it
+         on the way out. Caught on the way in, before the half-screen button
+         ever sees it. */
+      onClickCapture={(e) => {
+        if (drag > GESTURE) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }}
+      style={{
+        transform: drag ? `translate3d(0, ${drag}px, 0) scale(${Math.max(0.88, 1 - drag / 1400)})` : undefined,
+        opacity: drag ? Math.max(0.35, 1 - drag / 420) : undefined,
+        transition: swiping ? 'none' : 'transform 240ms cubic-bezier(0.32,0.72,0,1), opacity 240ms ease',
+        borderRadius: drag ? 18 : undefined,
+        touchAction: 'none',
+      }}
+    >
       {/* Segments. One per story, filled behind you, timing the current one. */}
-      <div className="flex gap-1 px-3 pt-3">
+      <div className="flex gap-[3px] px-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
         {(stories ?? [{ id: 'x' } as Story]).map((s, n) => (
           <span key={s.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
             <span
@@ -205,19 +321,56 @@ export function StoryViewer({
           </span>
         )}
         <span className="flex-1" />
-        <button
-          type="button"
-          onClick={() => setPaused((v) => !v)}
-          aria-label={paused ? 'Play' : 'Pause'}
-          className="grid size-8 place-items-center rounded-full text-white/80 hover:text-white"
-        >
-          {paused ? <ChevronRight size={18} aria-hidden /> : <Pause size={17} aria-hidden />}
-        </button>
+        {/* Follow, then the overflow, then close — the reference's order, and
+            the one every reel uses. Outlined rather than filled: on top of a
+            photograph a solid accent button is the loudest thing on screen and
+            it is not the thing you came to look at. */}
+        {!isFollowing(ring.handle) && (
+          <button
+            type="button"
+            onClick={() => toggleFollow(ring.handle)}
+            className="shrink-0 rounded-lg border border-white/60 px-2.5 py-1 text-[12.5px] font-semibold text-white transition-colors duration-150 hover:bg-white/15 active:scale-95"
+          >
+            Follow
+          </button>
+        )}
+        <DropdownMenu
+          ariaLabel="Story options"
+          triggerClassName="grid size-8 shrink-0 place-items-center rounded-full text-white/80 hover:text-white"
+          items={[
+            {
+              id: 'pause',
+              label: paused ? 'Play' : 'Pause',
+              icon: paused ? Play : Pause,
+              onSelect: () => setPaused((v) => !v),
+            },
+            {
+              id: 'mute',
+              label: `Stop suggesting ${ring.handle.replace(/^@/, '')}`,
+              icon: EyeOff,
+              onSelect: () => {
+                muteOrg(ring.orgId)
+                onClose()
+              },
+            },
+            {
+              id: 'report',
+              label: 'Report',
+              icon: Flag,
+              danger: true,
+              separated: true,
+              onSelect: () => {
+                onClose()
+                navigate('/app/community?support=1')
+              },
+            },
+          ]}
+        />
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="grid size-8 place-items-center rounded-full text-white/80 hover:text-white"
+          className="grid size-8 shrink-0 place-items-center rounded-full text-white/80 transition-transform duration-150 hover:text-white active:scale-90"
         >
           <X size={20} aria-hidden />
         </button>
@@ -309,9 +462,12 @@ export function StoryViewer({
         </div>
       )}
 
-      {/* Reply, like, share — the three things you can do to a story. */}
-      <div className="flex items-center gap-2 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      {/* Reply, like, share — the three things you can do to a story.
+          `touch-auto` puts native touch behaviour back for the field: the
+          gesture layer above owns the picture, not the keyboard. */}
+      <div className="flex touch-auto items-center gap-2 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <input
+          ref={replyRef}
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           onFocus={() => setPaused(true)}

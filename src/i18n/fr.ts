@@ -385,6 +385,7 @@ export const fr: Partial<Record<Key, string>> = {
   'today.edit': 'Modifier',
   'today.editDetails': 'Modifier les détails',
   'today.openInCourse': 'Ouvrir dans le cours',
+  'today.openShort': 'Cours',
   'today.delete': 'Supprimer',
   'today.unverifiedDate': 'Date non vérifiée: pas encore corroborée',
 

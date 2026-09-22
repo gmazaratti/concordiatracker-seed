@@ -103,6 +103,42 @@ export interface Message {
   read_at: string | null
 }
 
+/**
+ * Somebody who is not in your list, shaped like somebody who is.
+ *
+ * `my_friends` is the FOLLOW GRAPH — it returns people you follow, people who
+ * follow you, and people who have written to you. Everyone else on the service
+ * is simply absent from it, which is correct for a contacts list and was quietly
+ * wrong everywhere the app then said "open a conversation with this person":
+ * the Message button on a stranger's profile hands over `?chat=handle`, the
+ * panel could not find them, and it dropped you on the inbox with no
+ * explanation.
+ *
+ * Whether you may actually SEND anything is not decided here and never was —
+ * `ct_dm_block_reason` and the insert policy decide that, and the composer
+ * reports what they say. This only answers "who is that handle".
+ */
+export async function lookupPerson(handle: string): Promise<Friend | null> {
+  const clean = handle.trim().replace(/^@+/, '')
+  if (!clean) return null
+  const { data, error } = await supabase.rpc('get_public_profile', { p_handle: clean })
+  if (error) return null
+  const row = (data as { user_id?: string; handle?: string; name?: string | null; avatar_url?: string | null }[] | null)?.[0]
+  if (!row?.user_id || !row.handle) return null
+  return {
+    friendship_id: row.user_id,
+    user_id: row.user_id,
+    handle: row.handle,
+    name: row.name ?? null,
+    avatar_url: row.avatar_url ?? null,
+    program: null,
+    // Not a claim about the relationship — just "we have not been introduced".
+    status: 'following',
+    direction: 'outgoing',
+    created_at: new Date(0).toISOString(),
+  }
+}
+
 export async function listFriends(): Promise<Friend[]> {
   const { data, error } = await supabase.rpc('my_friends')
   if (error) return []

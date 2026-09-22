@@ -1,12 +1,12 @@
 import { Fragment, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Bell, Inbox, PanelLeftClose, Settings } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
+import { NotificationsBell } from './NotificationsBell'
 import { useSettings } from '@/app/providers/settings'
 import { useUiState } from '@/app/providers/ui-state'
-import { useActivityBadge } from '@/app/usePeopleBadge'
 import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
@@ -193,7 +193,7 @@ export function Sidebar() {
           <AvatarMenu align="bottom" compact={collapsed} side={collapsed ? 'left' : 'right'} />
         </div>
         <div className={cn('flex shrink-0 items-center', collapsed && 'flex-col')}>
-          <NotificationsButton />
+          <NotificationsBell />
           <SettingsGearButton />
         </div>
       </div>
@@ -214,26 +214,6 @@ export function Sidebar() {
  * toast and the avatar menu all point at the same thing without anyone
  * hoisting state out of Community.
  */
-function NotificationsButton() {
-  const count = useActivityBadge()
-  return (
-    <Link
-      to="/app/community?activity=1"
-      aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
-      title="Notifications"
-      className="relative grid size-8 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-    >
-      <Bell size={17} aria-hidden />
-      {count > 0 && (
-        <span
-          className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger ring-2 ring-canvas"
-          aria-hidden
-        />
-      )}
-    </Link>
-  )
-}
-
 /** The settings affordance beside the profile block — opens the floating panel. */
 function SettingsGearButton() {
   const { openSettings } = useSettings()

@@ -6,7 +6,6 @@ import {
   Download,
   FileText,
   Loader2,
-  Bell,
   Menu,
   Repeat2,
   ShieldCheck,
@@ -26,8 +25,9 @@ import { usePublicProfile, type PublicBlueprint, type PublicProfile } from './us
 import { badgeForPerson } from './badges'
 import { ProfileHeader, ProfileTabs } from './ProfileHeader'
 import { AvatarMenu } from '@/components/AvatarMenu'
+import { NotificationsBell } from '@/components/NotificationsBell'
+import { ProfileSkeleton } from '@/components/ui/Skeleton'
 import { ProfileCreateMenu } from './ProfileCreateMenu'
-import { useActivityBadge } from '@/app/usePeopleBadge'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SavedTab } from './SavedTab'
 import { RepostsTab } from '@/features/community/posts/RepostsTab'
@@ -155,6 +155,17 @@ export function ProfileView({
   const { openSupport } = useSupport()
   const badge = badgeForPerson(handle, profile ? orgNameByOwner[profile.userId] : undefined)
 
+  /*
+   * A RESERVED HANDLE RESOLVES SERVER-SIDE, so `/@ceo` returns Alex's row with
+   * `handle: "alex"` on it. The address bar has to follow: leaving it saying
+   * "ceo" would mean one person's profile living at a URL that is not theirs,
+   * which breaks sharing, the canonical tag and anybody's ability to tell whose
+   * page they are looking at. `replace` so Back leaves the alias behind.
+   */
+  if (!embedded && profile && profile.handle.toLowerCase() !== handle.toLowerCase()) {
+    return <Navigate to={`/@${profile.handle}`} replace />
+  }
+
   return (
     <>
       {!embedded && <ProfileMeta handle={handle} profile={profile} />}
@@ -175,7 +186,7 @@ export function ProfileView({
             <span className="truncate text-[17px] font-semibold text-fg">{handle}</span>
             {badge && <VerifiedBadge size={15} tone={badge.tone} label={badge.label} />}
           </h2>
-          {viewer === 'self' && <ProfileBell />}
+          {viewer === 'self' && <NotificationsBell variant="profile" />}
           <AvatarMenu align="top" compact icon={<Menu size={19} aria-hidden />} />
         </div>
       )}
@@ -194,9 +205,7 @@ export function ProfileView({
           </Link>
         )}
         {loading ? (
-          <div className="grid place-items-center py-24">
-            <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
-          </div>
+          <ProfileSkeleton />
         ) : notFound || !profile ? (
           <NotFound handle={handle} />
         ) : (
@@ -285,27 +294,6 @@ export function ProfileView({
 
       {editing && <EditProfileModal onClose={() => setEditing(false)} onSaved={reload} />}
     </>
-  )
-}
-
-/** Notifications, in the profile bar. Same address the sidebar's bell and
- *  the toast use — `?activity=1` opens the panel wherever you are. */
-function ProfileBell() {
-  const count = useActivityBadge()
-  return (
-    <Link
-      to="/app/community?activity=1"
-      aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
-      className="relative grid size-9 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
-    >
-      <Bell size={19} aria-hidden />
-      {count > 0 && (
-        <span
-          className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger ring-2 ring-canvas"
-          aria-hidden
-        />
-      )}
-    </Link>
   )
 }
 

@@ -11,15 +11,19 @@ import {
   Repeat2,
   Send,
   Trash2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
 import {
   deletePost,
   loadComments,
+  postAspect,
   togglePostLike,
   toggleRepost,
   type FeedPost,
   type PostComment,
+  type PostMedia,
 } from '@/lib/social-posts'
 import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
@@ -187,16 +191,16 @@ export function PostCard({
             const el = e.currentTarget
             setSlide(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)))
           }}
+          /* THE BOX IS THE RIGHT SHAPE BEFORE ANYTHING IS IN IT. Every card
+             used to be a hard square, so a portrait photo was cropped and a
+             9:16 clip lost its top and bottom. The ratio comes from the first
+             slide's real dimensions and applies to the whole strip, so a
+             carousel does not resize under your thumb as you swipe. */
+          style={{ aspectRatio: postAspect(post.media) }}
           className="flex snap-x snap-mandatory overflow-x-auto rounded-none sm:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {post.media.map((m, i) => (
-            <img
-              key={i}
-              src={m.url}
-              alt=""
-              loading="lazy"
-              className="aspect-square w-full shrink-0 snap-center bg-surface-2 object-cover"
-            />
+            <Slide key={i} media={m} active={slide === i} eager={i === 0} />
           ))}
         </div>
         {post.media.length > 1 && (
@@ -566,4 +570,95 @@ function ago(iso: string): string {
   if (d < DAY) return `${Math.floor(d / HOUR)}h`
   if (d < 7 * DAY) return `${Math.floor(d / DAY)}d`
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+/**
+ * One slide: a picture, or a clip that plays itself.
+ *
+ * VIDEO BEHAVES LIKE A REEL AND THERE IS NO REELS TAB. A club posts a clip and
+ * it sits in the feed between the photographs, which is the whole point — a
+ * separate tab for one media type splits an already-small amount of content in
+ * half and asks people to check two places.
+ *
+ * MUTED, LOOPING, AND IT ONLY PLAYS WHEN YOU CAN SEE IT. Autoplay with sound
+ * is blocked by every browser anyway, and a video that keeps running after you
+ * have scrolled past costs battery and data for something nobody is watching.
+ * The observer pauses it the moment it leaves the viewport and the carousel
+ * pauses every slide that is not the current one.
+ *
+ * SOUND IS A DELIBERATE TAP, and the control says which state it is in rather
+ * than what it would do — a speaker icon that means "it is muted" and one that
+ * means "press to mute" are the same icon, and this one is the former.
+ */
+function Slide({
+  media,
+  active,
+  eager,
+}: {
+  media: PostMedia
+  /** The slide the carousel is currently on. */
+  active: boolean
+  eager?: boolean
+}) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [muted, setMuted] = useState(true)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting && entry.intersectionRatio > 0.55),
+      { threshold: [0, 0.55, 1] },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (visible && active) {
+      // A rejected play() is normal (a tab in the background, a data-saver
+      // setting); it is not an error worth surfacing.
+      void el.play().catch(() => {})
+    } else {
+      el.pause()
+    }
+  }, [visible, active])
+
+  if (media.kind !== 'video') {
+    return (
+      <img
+        src={media.url}
+        alt=""
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        className="size-full shrink-0 snap-center bg-surface-2 object-cover"
+        style={{ width: '100%' }}
+      />
+    )
+  }
+
+  return (
+    <div className="relative size-full w-full shrink-0 snap-center bg-black">
+      <video
+        ref={ref}
+        src={media.url}
+        muted={muted}
+        loop
+        playsInline
+        preload={eager ? 'metadata' : 'none'}
+        className="size-full object-contain"
+      />
+      <button
+        type="button"
+        onClick={() => setMuted((v) => !v)}
+        aria-label={muted ? 'Sound is off' : 'Sound is on'}
+        className="absolute right-3 bottom-3 grid size-8 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-150 active:scale-90"
+      >
+        {muted ? <VolumeX size={15} aria-hidden /> : <Volume2 size={15} aria-hidden />}
+      </button>
+    </div>
+  )
 }

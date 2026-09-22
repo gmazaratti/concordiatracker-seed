@@ -36,6 +36,9 @@ import { ContactButton } from './ContactButton'
 /** Full-screen event detail — an overlay that fills the viewport (closable, not a
  * dropdown). The content (`EventDetailView`) is split out so it could become a
  * linkable route later; the overlay just adds the chrome + a11y. */
+/** How many of a host's other events show at once, and per press. */
+const HOST_PAGE = 4
+
 export function EventDetail({
   event,
   added,
@@ -360,6 +363,31 @@ function HostCard({
   onOpenEvent: (id: string) => void
   gate?: () => void
 }) {
+  /*
+   * A WEEKLY NIGHT HAS THIRTY OCCURRENCES.
+   *
+   * Reggies' Thirsty Thursdays is one event repeated every week for a year, so
+   * "more from this host" rendered thirty rows under a page that is otherwise
+   * a screen and a half — the detail became a directory, and the useful part
+   * of it (what else is on soon) sat above thirty near-identical lines.
+   *
+   * Four, then as many again per press. Four is enough to say "there is more
+   * here" without the section competing with the event you opened, and the
+   * count on the button says how much more rather than making you press it to
+   * find out.
+   *
+   * Reset on the event id, not on `more`: opening another event FROM this very
+   * list has to start the next one collapsed again.
+   */
+  const [shownHost, setShownHost] = useState(HOST_PAGE)
+  const [shownFor, setShownFor] = useState(event.id)
+  if (shownFor !== event.id) {
+    setShownFor(event.id)
+    setShownHost(HOST_PAGE)
+  }
+  const hostList = more.slice(0, shownHost)
+  const hostLeft = more.length - hostList.length
+
   const { org } = event
   const identity = (
     <>
@@ -418,7 +446,7 @@ function HostCard({
             More from this host
           </p>
           <ul className="flex flex-col gap-1.5">
-            {more.map((e) => (
+            {hostList.map((e) => (
               <li key={e.id}>
                 <button
                   type="button"
@@ -437,6 +465,16 @@ function HostCard({
               </li>
             ))}
           </ul>
+          {hostLeft > 0 && (
+            <button
+              type="button"
+              onClick={() => setShownHost((n) => n + HOST_PAGE)}
+              className="mt-2 w-full rounded-lg border border-border py-2 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+            >
+              Load {Math.min(hostLeft, HOST_PAGE)} more
+              <span className="text-subtle"> · {hostLeft} left</span>
+            </button>
+          )}
         </div>
       )}
     </div>

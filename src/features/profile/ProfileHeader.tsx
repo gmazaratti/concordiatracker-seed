@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellRing, GraduationCap, LifeBuoy, Link2, Pencil, Share2 } from 'lucide-react'
+import { CachedImg } from '@/components/ui/CachedImg'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SocialFieldIcon } from '@/features/community/SocialLinks'
 import { badgeForPerson } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
 import { linkHref, type ProfileLinks } from '@/lib/social'
-import { dmMessage, profileSocial, setFollow, type ProfileSocial } from '@/lib/social-graph'
+import {
+  cachedProfileSocial,
+  dmMessage,
+  profileSocial,
+  setFollow,
+  type ProfileSocial,
+} from '@/lib/social-graph'
 import { FollowListPage, type FollowListKind } from './FollowListPage'
 import { cn } from '@/lib/cn'
 
@@ -57,7 +64,9 @@ export function ProfileHeader({
   onHelp?: () => void
 }) {
   const { orgNameByOwner } = useCommunityData()
-  const [social, setSocial] = useState<ProfileSocial | null>(null)
+  // Seeded from the last answer so the counts and the Follow button are
+  // already right on the first frame of a profile you have opened before.
+  const [social, setSocial] = useState<ProfileSocial | null>(() => cachedProfileSocial(handle))
   const [list, setList] = useState<FollowListKind | null>(null)
   const [notify, setNotify] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -378,12 +387,15 @@ function Actions({
 }
 
 function Avatar({ name, handle, url }: { name?: string; handle: string; url?: string }) {
+  const [broken, setBroken] = useState(false)
   const initials = (name ?? handle).slice(0, 2).toUpperCase()
-  return url ? (
-    <img
+  // 86px and the first thing on the page: this is the one image on a profile
+  // that absolutely cannot arrive late. See CachedImg.
+  return url && !broken ? (
+    <CachedImg
       src={url}
-      alt=""
-      referrerPolicy="no-referrer"
+      eager
+      onFailed={() => setBroken(true)}
       className="size-[86px] shrink-0 rounded-full bg-surface-2 object-cover"
     />
   ) : (

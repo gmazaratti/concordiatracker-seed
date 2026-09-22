@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CachedImg } from '@/components/ui/CachedImg'
 import {
   Check,
   CheckCheck,
@@ -606,20 +607,22 @@ export function Chat({
 }
 
 export function Avatar({ friend, size = 32 }: { friend: Friend; size?: number }) {
-  if (friend.avatar_url) {
+  /*
+   * A dead avatar URL used to hide the element, which left a hole the row's
+   * layout had already reserved. Falling back to the initials tile — the same
+   * one every other surface uses — fills it, and `CachedImg` means a face this
+   * session has already seen is painted on the first frame instead of fading
+   * in again on every remount of the list.
+   */
+  const [broken, setBroken] = useState(false)
+  if (friend.avatar_url && !broken) {
     return (
-      <img
+      <CachedImg
         src={friend.avatar_url}
-        alt=""
-        width={size}
-        height={size}
-        className="shrink-0 rounded-full object-cover"
+        eager
+        onFailed={() => setBroken(true)}
         style={{ width: size, height: size }}
-        // A dead avatar URL hides itself rather than showing a broken image;
-        // the initials tile underneath is the fallback everywhere else too.
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-        }}
+        className="shrink-0 rounded-full object-cover"
       />
     )
   }

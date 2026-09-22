@@ -12,6 +12,33 @@ import { supabase } from './supabase'
 
 export interface PostMedia {
   url: string
+  /** Absent means a picture. Stored on the row, because guessing from the file
+   *  extension breaks the moment a URL carries a query string. */
+  kind?: 'video'
+  /** Natural size, when the uploader could read it. Used to reserve the right
+   *  box before the bytes land — see `postAspect`. */
+  w?: number
+  h?: number
+}
+
+/**
+ * The shape of a card, from the FIRST piece of media.
+ *
+ * Instagram's range, and the reasons are theirs and good: a portrait taller
+ * than 4:5 eats a whole phone screen and pushes the caption and the actions
+ * off it; a panorama wider than 1.91:1 becomes a stripe you cannot see
+ * anything in. Anything outside that gets letterboxed inside the nearest
+ * allowed box rather than being cropped to a square, which is what the old
+ * hard-coded `aspect-square` did to every portrait ever posted.
+ *
+ * ONE SHAPE FOR THE WHOLE CARROUSEL, taken from the first slide. Sizing each
+ * slide to itself makes the page jump as you swipe, and the caption underneath
+ * move with it.
+ */
+export function postAspect(media: PostMedia[]): number {
+  const first = media[0]
+  if (!first?.w || !first?.h) return 1
+  return Math.min(1.91, Math.max(0.8, first.w / first.h))
 }
 
 export interface FeedPost {
@@ -56,10 +83,22 @@ interface PostRow {
  *  objects with a url is dropped rather than rendered as a broken frame. */
 function toMedia(raw: unknown): PostMedia[] {
   if (!Array.isArray(raw)) return []
-  return raw
-    .map((m) => (m && typeof m === 'object' ? (m as { url?: unknown }).url : undefined))
-    .filter((u): u is string => typeof u === 'string' && u.length > 0)
-    .map((url) => ({ url }))
+  const out: PostMedia[] = []
+  for (const m of raw) {
+    if (!m || typeof m !== 'object') continue
+    const row = m as { url?: unknown; kind?: unknown; w?: unknown; h?: unknown }
+    if (typeof row.url !== 'string' || !row.url) continue
+    const num = (v: unknown) => (typeof v === 'number' && v > 0 ? v : undefined)
+    out.push({
+      url: row.url,
+      // Anything other than the one value we write is a picture. A kind we do
+      // not recognise must not become a <video> pointed at a JPEG.
+      kind: row.kind === 'video' ? 'video' : undefined,
+      w: num(row.w),
+      h: num(row.h),
+    })
+  }
+  return out
 }
 
 function toPost(r: PostRow): FeedPost {
@@ -106,7 +145,7 @@ export async function publishPost(
 ): Promise<string | null> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return 'You need to be signed in.'
-  if (media.length === 0) return 'Add at least one image.'
+  if (media.length === 0) return 'Add at least one photo or video.'
   const { error } = await supabase.from('org_posts').insert({
     org_id: orgId,
     author_user: me.user.id,

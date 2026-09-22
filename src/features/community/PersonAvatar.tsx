@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { CachedImg } from '@/components/ui/CachedImg'
 import { cn } from '@/lib/cn'
 import type { PublicPerson } from './profile-follows'
 
@@ -15,6 +17,7 @@ export function PersonAvatar({
   person: Pick<PublicPerson, 'handle' | 'name' | 'avatar_url'>
   className?: string
 }) {
+  const [broken, setBroken] = useState(false)
   const initials =
     (person.name ?? person.handle)
       .trim()
@@ -25,11 +28,20 @@ export function PersonAvatar({
       .join('')
       .toUpperCase() || '?'
 
-  return person.avatar_url ? (
-    <img
+  /*
+   * A FACE MUST NOT BLINK. `CachedImg` paints a picture this session has
+   * already decoded on the first frame instead of starting from an empty box
+   * — which is what made the same avatar fade in again every time you walked
+   * between Messages and a profile.
+   *
+   * A genuine failure falls through to the initials rather than leaving a
+   * broken frame, and is NOT remembered as loaded, so it retries next time.
+   */
+  return person.avatar_url && !broken ? (
+    <CachedImg
       src={person.avatar_url}
-      alt=""
-      referrerPolicy="no-referrer"
+      eager
+      onFailed={() => setBroken(true)}
       className={cn('shrink-0 rounded-full bg-surface-2 object-cover', className)}
     />
   ) : (

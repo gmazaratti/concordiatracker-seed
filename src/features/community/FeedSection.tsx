@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Mascot } from '@/components/Mascot'
 import { loadPosts, loadStoryRings, type FeedPost, type StoryRing } from '@/lib/social-posts'
 import { PullToRefresh } from '@/components/PullToRefresh'
+import { PostSkeleton, StoriesRowSkeleton } from '@/components/ui/Skeleton'
+import { warm } from '@/lib/img-cache'
 import { useMyOrgs } from './useMyOrgs'
 import { mutedOrgs } from './muted-orgs'
 import { StoriesRow } from './stories/StoriesRow'
@@ -42,10 +44,36 @@ export function FeedSection() {
   useEffect(() => {
     let alive = true
     void loadStoryRings()
-      .then((r) => alive && setRings(r))
+      .then((r) => {
+        if (!alive) return
+        setRings(r)
+        // The ring row is the first thing on the screen and every logo in it
+        // is tiny, so fetching them all costs almost nothing and removes the
+        // most visible pop-in on the page.
+        warm(r.map((x) => x.logo), 8)
+      })
       .catch(() => {})
     void loadPosts({ limit: 30 })
-      .then((r) => alive && setPosts(r))
+      .then((r) => {
+        if (!alive) return
+        setPosts(r)
+        /*
+         * THE FIRST THREE PICTURES, AND ONLY THE FIRST THREE.
+         *
+         * A post image is the heaviest thing in Community and the slowest to
+         * arrive on a phone, and the rows render long before it does. Warming
+         * the top of the feed means the two or three cards somebody actually
+         * sees before they scroll are already decoded; the rest stay lazy, so
+         * this never turns into thirty parallel requests competing with the
+         * one image that is on screen.
+         *
+         * It is a HINT. Nothing here awaits it and a failure is silent.
+         */
+        warm(
+          r.slice(0, 3).flatMap((post) => post.media.slice(0, 1).map((m) => m.url)),
+          3,
+        )
+      })
       .catch(() => alive && setPosts([]))
     return () => {
       alive = false
@@ -77,15 +105,25 @@ export function FeedSection() {
 
   return (
     <PullToRefresh onRefresh={reload} className="mx-auto w-full max-w-[470px]">
-      <StoriesRow
-        rings={rings}
-        myOrgs={myOrgs}
-        onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
-        onCompose={() => setComposing(true)}
-      />
+      {/* One or the other, never both: the skeleton IS the row until the
+          rings land, so the top of the feed does not grow a second strip. */}
+      {posts === null && rings.length === 0 ? (
+        <StoriesRowSkeleton />
+      ) : (
+        <StoriesRow
+          rings={rings}
+          myOrgs={myOrgs}
+          onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
+          onCompose={() => setComposing(true)}
+        />
+      )}
 
       {shown === null ? (
-        <p className="px-1 py-12 text-center text-[13px] text-subtle">Loading…</p>
+        /* The shape of the thing that is coming, not the word "Loading".
+           The feed used to paint its text as soon as the rows landed and then
+           leave a grey hole where each picture was going, so the page arrived
+           in two stages and moved between them. */
+        <PostSkeleton count={2} />
       ) : shown.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
           <Mascot mood="resting" size="sm" soft className="text-accent" />

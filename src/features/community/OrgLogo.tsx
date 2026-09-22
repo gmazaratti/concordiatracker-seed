@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CachedImg } from '@/components/ui/CachedImg'
 import type { EventOrg } from '@/data/community'
 import { cn } from '@/lib/cn'
 
@@ -37,11 +38,11 @@ export function OrgLogo({
       aria-hidden
     >
       {showLogo ? (
-        <img
-          src={org.logo}
-          alt=""
+        <CachedImg
+          src={org.logo!}
+          eager
+          onFailed={() => setFailed(true)}
           className="absolute inset-0 size-full object-cover"
-          onError={() => setFailed(true)}
         />
       ) : (
         org.glyph

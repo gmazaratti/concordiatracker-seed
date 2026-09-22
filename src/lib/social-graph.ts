@@ -57,6 +57,23 @@ const EMPTY: ProfileSocial = {
   mutualsTotal: 0,
 }
 
+/**
+ * The last answer for each handle, so a header that has been drawn once draws
+ * again immediately.
+ *
+ * Counts are exactly the kind of thing that must not flicker: they sit at the
+ * top of the page, they are three digits wide, and watching them go 0 → 6 on
+ * every visit reads as the number being unreliable rather than as the page
+ * loading. The request still goes out; this only decides what is on screen
+ * while it is in flight. Cleared by a reload, like everything else in memory.
+ */
+const socialCache = new Map<string, ProfileSocial>()
+
+/** What we already know, if anything. Synchronous, for a first paint. */
+export function cachedProfileSocial(handle: string): ProfileSocial | null {
+  return socialCache.get(handle.trim().toLowerCase()) ?? null
+}
+
 /** Counts, your relationship to them, and the mutuals preview — one call,
  *  because the header renders as a unit and four round trips to draw one
  *  block is how a profile pops into place a piece at a time. */
@@ -64,7 +81,7 @@ export async function profileSocial(handle: string): Promise<ProfileSocial | nul
   const { data, error } = await supabase.rpc('profile_social', { p_handle: handle })
   if (error || !data) return null
   const d = data as Record<string, unknown>
-  return {
+  const row: ProfileSocial = {
     ...EMPTY,
     userId: String(d.user_id ?? ''),
     followers: Number(d.followers ?? 0),
@@ -77,6 +94,8 @@ export async function profileSocial(handle: string): Promise<ProfileSocial | nul
     mutuals: (d.mutuals ?? []) as MutualPreview[],
     mutualsTotal: Number(d.mutuals_total ?? 0),
   }
+  socialCache.set(handle.trim().toLowerCase(), row)
+  return row
 }
 
 export interface FollowRow {

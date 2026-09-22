@@ -58,3 +58,32 @@ export const DEFAULT_SECTION: CommunitySection = 'feed'
 export function communityHref(section: CommunitySection): string {
   return section === DEFAULT_SECTION ? '/app/community' : `/app/community?c=${section}`
 }
+
+/**
+ * Where the bell points, from wherever you are.
+ *
+ * It used to be the constant `/app/community?activity=1`, which is right from
+ * anywhere EXCEPT Community — and inside Community it was quietly destructive:
+ * the section lives in `?c=`, so replacing the whole query string dropped it
+ * and the notifications panel opened over the Feed. Pressing the bell on your
+ * own profile navigated you off your own profile, which is exactly what was
+ * reported.
+ *
+ * Passing the current `location.search` keeps the section, and the open chat,
+ * and anything else that was in there. From outside Community there is nothing
+ * to keep and this is the old constant.
+ */
+export function activityHref(search?: string): string {
+  const params = new URLSearchParams(search ?? '')
+  params.set('activity', '1')
+  const query = params.toString()
+  return query ? `/app/community?${query}` : '/app/community?activity=1'
+}
+
+/** Are we looking at our own profile right now? Both addresses count: the
+ *  standalone page and Community's own tab. */
+export function onOwnProfile(pathname: string, search: string, handle?: string): boolean {
+  if (!handle) return false
+  if (pathname.toLowerCase() === `/@${handle.toLowerCase()}`) return true
+  return pathname.startsWith('/app/community') && new URLSearchParams(search).get('c') === 'profile'
+}

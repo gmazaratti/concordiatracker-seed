@@ -4,7 +4,6 @@ import {
   Check,
   Clock,
   GraduationCap,
-  Loader2,
   Search,
   Send,
   SlidersHorizontal,
@@ -17,6 +16,7 @@ import { useCommunity } from '@/features/community/useCommunity'
 import {
   acceptFriend,
   listFriends,
+  lookupPerson,
   type Friend,
   listThreads,
   markThreadRead,
@@ -37,6 +37,9 @@ import { useMessageTick } from '@/lib/message-alerts'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { NotesRow } from './NotesRow'
 import { SearchOverlay } from '@/features/community/SearchOverlay'
+import { searchPeople, type PublicPerson } from '@/features/community/profile-follows'
+import { PersonAvatar } from '@/features/community/PersonAvatar'
+import { ThreadSkeleton } from '@/components/ui/Skeleton'
 import { MessageFilterSheet } from './MessageFilterSheet'
 import { describeFilters, matchesFilters, type MessageFilterId } from './message-filters'
 import { SupportConversation, SupportPane } from './SupportThreads'
@@ -229,11 +232,77 @@ export function PeoplePanel() {
   const [opened, setOpened] = useState<string | null>(null)
   if (wanted && friends && opened !== wanted) {
     setOpened(wanted)
-    const found = friends.find(
-      (f) => f.status === 'accepted' && f.handle.toLowerCase() === wanted.toLowerCase(),
-    )
+    const found = friends.find((f) => f.handle.toLowerCase() === wanted.toLowerCase())
     if (found) setActive(found)
   }
+
+  /*
+   * THE HANDLE MIGHT NOT BE IN YOUR LIST AT ALL, and that was the bug.
+   *
+   * `my_friends` is the follow graph: people you follow, people who follow
+   * you, people who have written. A classmate you have never interacted with
+   * is in none of those, so the Message button on their profile handed over
+   * `?chat=them`, the lookup above found nothing, and the panel showed the
+   * inbox — on a phone, where the inbox replaces the conversation, that looks
+   * exactly like the button not working.
+   *
+   * The old filter also required `status === 'accepted'`, which quietly
+   * excluded somebody who follows you and is waiting to be followed back.
+   *
+   * Whether a message will be DELIVERED is still the database's call. Opening
+   * the conversation is not the same question, and the composer says so if the
+   * answer is no.
+   */
+  const [strangerFor, setStrangerFor] = useState<string | null>(null)
+  useEffect(() => {
+    if (!wanted || !friends || strangerFor === wanted) return
+    if (friends.some((f) => f.handle.toLowerCase() === wanted.toLowerCase())) return
+    let alive = true
+    void lookupPerson(wanted).then((person) => {
+      if (!alive) return
+      setStrangerFor(wanted)
+      if (person) {
+        setActiveOrg(null)
+        setActiveTicket(null)
+        setActive(person)
+      }
+    })
+    return () => {
+      alive = false
+    }
+  }, [wanted, friends, strangerFor])
+
+  /*
+   * THE SAME FIELD FINDS PEOPLE YOU HAVE NEVER SPOKEN TO.
+   *
+   * It narrowed your conversations and nothing else, so typing a classmate's
+   * name returned "no conversation matching" — technically true and useless,
+   * since the reason you are typing their name is that there is no
+   * conversation yet. The results are a SEPARATE group below your own threads,
+   * because "who I talk to" and "who exists" are different answers and merging
+   * them into one list would bury the first under the second.
+   */
+  const [peopleHits, setPeopleHits] = useState<PublicPerson[]>([])
+  useEffect(() => {
+    const term = threadQuery.trim()
+    let alive = true
+    // The setState lives in the timer, never in the effect body — see
+    // SearchOverlay, and react-hooks/set-state-in-effect.
+    const id = window.setTimeout(
+      () => {
+        if (!term) {
+          if (alive) setPeopleHits([])
+          return
+        }
+        void searchPeople(term, 6).then((rows) => alive && setPeopleHits(rows))
+      },
+      term ? 200 : 0,
+    )
+    return () => {
+      alive = false
+      window.clearTimeout(id)
+    }
+  }, [threadQuery])
 
   const byOther = new Map(threads.map((t) => [t.other, t]))
   /*
@@ -309,6 +378,12 @@ export function PeoplePanel() {
     (t) => !q || t.subject.toLowerCase().includes(q) || t.case_id.toLowerCase().includes(q),
   )
   const nothingShown = shownThreads.length === 0 && shownOrgThreads.length === 0
+  /** Search results minus anybody already on the list above, so the same
+   *  person never appears twice under two headings. */
+  const newPeople = peopleHits.filter(
+    (person) => !shownThreads.some((f) => f.handle.toLowerCase() === person.handle.toLowerCase()),
+  )
+  const showPeople = q.length > 0 && newPeople.length > 0
   /**
    * WHAT IS WAITING ON YOU, under one relationship.
    *
@@ -377,6 +452,13 @@ export function PeoplePanel() {
     })
     setActive(null)
     void markThreadRead(t.other)
+  }
+
+  /** A handle from the people results: resolve it, then open it exactly as a
+   *  row from your own list opens. */
+  const openHandle = async (handle: string) => {
+    const person = await lookupPerson(handle)
+    if (person) openChat(person)
   }
 
   const openChat = (f: Friend) => {
@@ -565,22 +647,18 @@ export function PeoplePanel() {
         </div>
 
         <PullToRefresh onRefresh={reload} className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-          {friends === null && (
-            <p className="flex items-center gap-2 py-10 text-[13px] text-subtle">
-              <Loader2 size={15} className="animate-spin" aria-hidden />
-              Loading
-            </p>
-          )}
+          {/* The real row's shape, so nothing moves when the list lands. */}
+          {friends === null && <ThreadSkeleton rows={7} />}
           {friends !== null && pill === 'inbox' && (
             <>
-              {accepted.length === 0 && orgThreads.length === 0 ? (
+              {accepted.length === 0 && orgThreads.length === 0 && !showPeople ? (
                 <div className="lg:p-4">
                   <Empty
                     title="No conversations yet"
                     body="Open a classmate's profile and press Message. If they do not follow you back you get one message to say who you are."
                   />
                 </div>
-              ) : nothingShown ? (
+              ) : nothingShown && !showPeople ? (
                 /* Says WHICH narrowing emptied the list, and offers the way
                    back. "Nothing here" next to a filter you set by accident is
                    a dead end. */
@@ -696,6 +774,38 @@ export function PeoplePanel() {
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {/* Everyone else on ConcordiaTracker. Under your own
+                  conversations, never mixed into them. */}
+              {showPeople && (
+                <>
+                  <p className="px-3 pt-4 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    On ConcordiaTracker
+                  </p>
+                  <ul className="divide-y divide-border lg:divide-y-0">
+                    {newPeople.map((person) => (
+                      <li key={person.handle} className="flex items-center transition-colors duration-150 hover:bg-surface-2/60">
+                        <button
+                          type="button"
+                          onClick={() => void openHandle(person.handle)}
+                          className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-1 pl-0.5 text-left lg:px-3"
+                        >
+                          <PersonAvatar person={person} className="size-11" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13.5px] font-medium text-fg">
+                              {person.name ?? person.handle}
+                            </span>
+                            <span className="block truncate text-[12.5px] text-subtle">
+                              @{person.handle}
+                              {person.program ? ` · ${person.program}` : ''}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </>
           )}

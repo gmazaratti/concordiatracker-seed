@@ -6,6 +6,7 @@ import type { TodayPrefs } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
+import { SwipeRow, type SwipeAction } from '@/components/SwipeRow'
 import { KIND_LABEL } from '@/lib/assessment'
 import { courseColor } from '@/lib/course-color'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
@@ -89,16 +90,37 @@ export function DueRow({
     },
   ]
 
+  /*
+   * THE SWIPE ACTIONS ARE THE MENU'S ACTIONS, from the same array.
+   *
+   * Two lists would drift the first time one of them gained an entry, and a
+   * gesture that does something the visible menu does not offer is a gesture
+   * nobody can discover or verify.
+   */
+  const swipeActions: SwipeAction[] = menuItems.map((m) => ({
+    id: m.id,
+    label: m.id === 'open' ? t('today.openShort') : m.label,
+    icon: m.icon!,
+    onSelect: m.onSelect,
+    danger: m.danger,
+  }))
+
   return (
     <li
       className={cn(
-        'group relative px-3',
-        compact ? 'py-1.5' : 'py-2.5',
+        'group relative',
         resolving && 'ct-animate-complete pointer-events-none',
       )}
       onAnimationEnd={resolving ? handleAnimationEnd : undefined}
     >
-      <div className="flex items-start gap-3">
+      <SwipeRow
+        disabled={resolving}
+        onSwipeRight={markDone}
+        rightIcon={Check}
+        rightLabel={t('today.markDone')}
+        actions={swipeActions}
+      >
+      <div className={cn('flex items-start gap-3 px-3', compact ? 'py-1.5' : 'py-2.5')}>
         <button
           type="button"
           onClick={markDone}
@@ -179,6 +201,7 @@ export function DueRow({
           )}
         />
       </div>
+      </SwipeRow>
     </li>
   )
 }

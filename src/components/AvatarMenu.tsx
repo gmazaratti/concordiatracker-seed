@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   CalendarDays,
@@ -31,6 +31,7 @@ import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { badgeForPerson } from '@/features/profile/badges'
 import { useCommunityData } from '@/app/providers/community-data'
+import { activityHref, onOwnProfile } from '@/features/community/sections'
 
 /** The people who built this — badged with a verification seal in the profile
  * block (cosmetic; admin rights are gated separately in the DB). Kept as
@@ -90,6 +91,11 @@ export function AvatarMenu({
   const t = useT()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+  /* A link to the page you are already on is a dead entry in a short menu —
+     and on the profile page the menu IS the only chrome, so it reads as the
+     one thing that does not work. */
+  const here = onOwnProfile(location.pathname, location.search, user.handle)
 
   useEffect(() => {
     if (!open) return
@@ -180,7 +186,7 @@ export function AvatarMenu({
           {/* Your own profile, first. It is the page every other social
               action starts from, and until now the only way to reach it was to
               already know your own handle and type the URL. */}
-          {user.handle && (
+          {user.handle && !here && (
             <MenuLink
               to={`/@${user.handle}`}
               icon={UserRound}
@@ -193,7 +199,7 @@ export function AvatarMenu({
               only exists inside Community. Nobody hunts for a bell on a page
               they are not on, so there is a door here too, on every screen. */}
           <MenuLink
-            to="/app/community?activity=1"
+            to={activityHref(location.pathname.startsWith('/app/community') ? location.search : '')}
             icon={Bell}
             onSelect={() => setOpen(false)}
           >

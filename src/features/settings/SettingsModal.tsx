@@ -73,8 +73,24 @@ export function SettingsModal() {
   const Body = CONTENT[visible]
 
   return (
+    /*
+     * WHERE IT COMES FROM IS THE POINT.
+     *
+     * On a desktop this is opened from a gear in the bottom-left corner of the
+     * sidebar, and it used to appear as an island in the middle of the screen
+     * with a scale-up — the visual grammar of an interruption. Settings is not
+     * an interruption; it is a place you asked to go. It now rises from that
+     * corner: bottom-aligned, and clear of the sidebar's own 16rem, so the
+     * panel reads as the sidebar unfolding rather than as something that
+     * landed on top of the page.
+     *
+     * On a PHONE there is no sidebar and no corner, so it is the whole page,
+     * arriving from the bottom edge like every other full-screen sheet here.
+     * Same rise, one class, because the difference between an 18px lift on a
+     * panel and on a page is not worth two.
+     */
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-stretch justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
+      className="ct-animate-fade fixed inset-0 z-50 flex items-stretch justify-center bg-black/45 sm:items-end sm:justify-start sm:p-3"
       onMouseDown={closeSettings}
     >
       <div
@@ -85,7 +101,7 @@ export function SettingsModal() {
         tabIndex={-1}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
-        className="ct-animate-pop flex w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-[620px] sm:max-h-[88vh] sm:max-w-4xl sm:flex-row sm:rounded-2xl sm:border sm:border-border"
+        className="ct-panel-up flex w-full flex-col overflow-hidden bg-surface outline-none sm:h-[min(620px,calc(100vh-1.5rem))] sm:max-w-4xl sm:flex-row sm:rounded-2xl sm:border sm:border-border sm:shadow-2xl lg:ml-64"
       >
         {/* Section nav: left rail on desktop, horizontal scroll row on mobile */}
         <div className="flex shrink-0 flex-col border-b border-border bg-surface-2/30 sm:w-56 sm:border-r sm:border-b-0">

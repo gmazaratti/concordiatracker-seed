@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { warm } from '@/lib/img-cache'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 
 export interface PublicProfile {
@@ -77,6 +78,31 @@ export interface PublicProfileState {
   reload: () => void
 }
 
+type Loaded = Omit<PublicProfileState, 'reload'>
+
+/**
+ * What we already know about a profile, from this session.
+ *
+ * Messages → a profile → back → the same profile again is the single most
+ * walked path in Community, and every leg of it used to throw the answer away
+ * and show a spinner for the round trip. Keyed by the handle you asked for —
+ * lower-cased, so `/@Alex` and `/@alex` share one entry, and an alias like
+ * `ceo` caches under `ceo` while the row inside it is Alex's.
+ *
+ * STALE-WHILE-REVALIDATE, not a TTL. A cached profile paints instantly and the
+ * request goes out anyway; when it lands the page updates in place. So the
+ * data is never older than one navigation, and nobody ever waits to look at
+ * something they were looking at ten seconds ago. There is no eviction — a
+ * session would have to open hundreds of profiles for the map to be worth
+ * anything, and a reload empties it.
+ */
+const cache = new Map<string, Loaded>()
+
+/** Dropped when you edit yourself, so Save is not followed by the old bio. */
+export function forgetProfile(handle: string): void {
+  cache.delete(handle.trim().toLowerCase())
+}
+
 /**
  * Loads a user's PUBLIC profile by handle via the SECURITY DEFINER RPCs — the
  * only path that can read another user's data, and only when they're public.
@@ -85,23 +111,34 @@ export interface PublicProfileState {
  */
 export function usePublicProfile(handle: string): PublicProfileState {
   const [tick, setTick] = useState(0)
-  const reload = useCallback(() => setTick((n) => n + 1), [])
-  const [state, setState] = useState<Omit<PublicProfileState, 'reload'>>({
-    loading: true,
-    notFound: false,
-    profile: null,
-    courses: [],
-    blueprints: [],
-  })
+  const reload = useCallback(() => {
+    forgetProfile(handle)
+    setTick((n) => n + 1)
+  }, [handle])
+  const key = handle.trim().toLowerCase()
+  const [state, setState] = useState<Loaded>(
+    () =>
+      cache.get(key) ?? {
+        loading: true,
+        notFound: false,
+        profile: null,
+        courses: [],
+        blueprints: [],
+      },
+  )
 
   useEffect(() => {
     let active = true
+    const put = (next: Loaded) => {
+      cache.set(key, next)
+      if (active) setState(next)
+    }
     void (async () => {
       const { data } = await supabase.rpc('get_public_profile', { p_handle: handle })
       if (!active) return
       const row = (data as ProfileRpcRow[] | null)?.[0]
       if (!row) {
-        setState({ loading: false, notFound: true, profile: null, courses: [], blueprints: [] })
+        put({ loading: false, notFound: true, profile: null, courses: [], blueprints: [] })
         return
       }
       const profile: PublicProfile = {
@@ -116,8 +153,10 @@ export function usePublicProfile(handle: string): PublicProfileState {
         links: cleanLinks(row.links),
         coursesPublic: row.courses_public === true,
       }
+      // The face is the one thing on this page that must never blink.
+      warm([profile.avatarUrl], 1)
       if (!row.is_public) {
-        setState({ loading: false, notFound: false, profile, courses: [], blueprints: [] })
+        put({ loading: false, notFound: false, profile, courses: [], blueprints: [] })
         return
       }
       const [courseRes, bpRes] = await Promise.all([
@@ -142,12 +181,12 @@ export function usePublicProfile(handle: string): PublicProfileState {
         imports: b.imports ?? 0,
         itemCount: b.item_count ?? 0,
       }))
-      setState({ loading: false, notFound: false, profile, courses, blueprints })
+      put({ loading: false, notFound: false, profile, courses, blueprints })
     })()
     return () => {
       active = false
     }
-  }, [handle, tick])
+  }, [handle, key, tick])
 
   return { ...state, reload }
 }

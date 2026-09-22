@@ -89,6 +89,17 @@
     />
     <meta name="twitter:image" content="https://concordiatracker.com/og-image.png" />
 
+    <!--
+      The two origins every signed-in screen fetches from, warmed before any
+      of our JavaScript has decided to. DNS + TLS to Supabase is 100-300ms on
+      a phone network, and it was being paid serially the moment the first
+      avatar or post image appeared. `preconnect` opens the socket; it does
+      NOT download anything, so it costs the landing page nothing — which is
+      the constraint, since that page must not get slower to make Community
+      faster.
+    -->
+    <link rel="preconnect" href="https://auth.concordiatracker.com" crossorigin />
+    <link rel="dns-prefetch" href="https://auth.concordiatracker.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

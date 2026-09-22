@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ImagePlus, Loader2, X } from 'lucide-react'
-import { IMAGE_ACCEPT_ATTR, uploadOrgImage } from '@/lib/imageUpload'
+import { ImagePlus, Loader2, Play, X } from 'lucide-react'
+import { MEDIA_ACCEPT_ATTR, uploadOrgImageSized, uploadOrgVideo } from '@/lib/imageUpload'
 import { publishPost, type PostMedia } from '@/lib/social-posts'
 import { cn } from '@/lib/cn'
 import type { PublishableOrg } from '../useMyOrgs'
@@ -19,6 +19,11 @@ const MAX = 10
  * SINGLE IMAGE OR SLIDESHOW IS NOT A MODE. Add one picture and it is a post;
  * add more and it is a carousel. Asking which one up front is a question the
  * answer to which is already visible on screen.
+ *
+ * NEITHER IS VIDEO. One picker takes both, the file decides which upload path
+ * it goes down, and a clip sits in the feed alongside the photographs. A
+ * "video post" mode would be a second composer that asks you to categorise
+ * your own file before it will let you choose it.
  */
 export function PostComposer({
   orgs,
@@ -55,10 +60,13 @@ export function PostComposer({
     setUploading((n) => n + chosen.length)
     for (const f of chosen) {
       try {
-        const url = await uploadOrgImage(f, 'post')
-        setMedia((prev) => [...prev, { url }])
+        // The file says what it is; nobody is asked to declare it.
+        const item = f.type.startsWith('video/')
+          ? await uploadOrgVideo(f)
+          : await uploadOrgImageSized(f, 'post')
+        setMedia((prev) => [...prev, item])
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'One image could not be uploaded.')
+        setError(e instanceof Error ? e.message : 'One file could not be uploaded.')
       } finally {
         setUploading((n) => Math.max(0, n - 1))
       }
@@ -118,11 +126,22 @@ export function PostComposer({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {media.map((m, i) => (
-              <div key={m.url} className="relative aspect-square overflow-hidden rounded-lg">
-                <img src={m.url} alt="" className="size-full object-cover" />
+              <div key={m.url} className="relative aspect-square overflow-hidden rounded-lg bg-black">
+                {m.kind === 'video' ? (
+                  <>
+                    {/* Muted, no controls: this is a thumbnail, not a player.
+                        The first frame is all it has to say. */}
+                    <video src={m.url} muted playsInline preload="metadata" className="size-full object-cover" />
+                    <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/85">
+                      <Play size={18} className="fill-current" aria-hidden />
+                    </span>
+                  </>
+                ) : (
+                  <img src={m.url} alt="" className="size-full object-cover" />
+                )}
                 <button
                   type="button"
-                  aria-label="Remove image"
+                  aria-label="Remove"
                   onClick={() => setMedia((prev) => prev.filter((_, n) => n !== i))}
                   className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/60 text-white"
                 >
@@ -143,11 +162,11 @@ export function PostComposer({
             {media.length + uploading < MAX && (
               <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-subtle transition-colors duration-150 hover:border-accent hover:text-accent">
                 <ImagePlus size={20} aria-hidden />
-                <span className="sr-only">Add images</span>
+                <span className="sr-only">Add photos or video</span>
                 <input
                   type="file"
                   multiple
-                  accept={IMAGE_ACCEPT_ATTR}
+                  accept={MEDIA_ACCEPT_ATTR}
                   className="sr-only"
                   onChange={(e) => {
                     if (e.target.files) void add(e.target.files)

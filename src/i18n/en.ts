@@ -378,6 +378,7 @@ export const en = {
   'today.edit': 'Edit',
   'today.editDetails': 'Edit details',
   'today.openInCourse': 'Open in course',
+  'today.openShort': 'Course',
   'today.delete': 'Delete',
   'today.unverifiedDate': 'Unverified date: not yet corroborated',
 

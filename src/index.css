@@ -516,6 +516,45 @@ html {
   animation: ct-row-complete 320ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+/* The bell acknowledging a press. Rocks, settles, and ends at identity — so
+ * the global reduced-motion duration-zero rule leaves it exactly upright
+ * rather than frozen mid-swing. No fill mode: this wraps nothing, but an
+ * entrance transform that never lets go is the bug recorded against
+ * .ct-section-in and it is not worth risking twice. */
+@keyframes ct-bell-ring {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-11deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-5deg); }
+  75% { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Settings rising out of the sidebar's bottom corner.
+ *
+ * NOT A POP. The panel used to scale up in the middle of the screen, which is
+ * the gesture for "something interrupted you" — and settings is not an
+ * interruption, it is a place you asked to go. It comes up from the gear it
+ * was opened from instead: a short lift and a fade, anchored bottom-left, so
+ * the panel visibly belongs to the button underneath it.
+ *
+ * No fill mode. The end state is the element's own, and an entrance transform
+ * that never lets go is the containing-block trap recorded on .ct-section-in. */
+@keyframes ct-panel-up {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ct-panel-up {
+  animation: ct-panel-up 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ct-bell-ring {
+  animation: ct-bell-ring 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: 50% 12%;
+}
+
 .ct-animate-check {
   animation: ct-check-burst 300ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }

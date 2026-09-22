@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
@@ -38,9 +38,16 @@ export function CommunityPage() {
   const { loaded, uiState, patchUiState } = useUiState()
   const { user } = useAppData()
   const [params, setParams] = useSearchParams()
-  // Openable by URL so anything anywhere can point at it — the toast does,
-  // and so does the avatar menu.
-  const [activity, setActivity] = useState(() => params.get('activity') === '1')
+  /*
+   * READ FROM THE URL EVERY RENDER, not captured once on mount.
+   *
+   * It was initial state, so it only ever opened if `?activity=1` was in the
+   * address when this page first mounted. Pressing the bell from inside
+   * Community is a same-route navigation — nothing remounts — so the param
+   * appeared and the panel did not. That is the whole of "clicking
+   * notifications on my own profile does nothing except move me".
+   */
+  const activity = params.get('activity') === '1'
 
   // Completes the getting-started "Explore Community" step.
   useEffect(() => {
@@ -134,12 +141,11 @@ export function CommunityPage() {
       {activity && (
         <ActivityPanel
           onClose={() => {
-            setActivity(false)
-            if (params.get('activity')) {
-              const p = new URLSearchParams(params)
-              p.delete('activity')
-              setParams(p, { replace: true })
-            }
+            // Closing it is closing the URL: one source of truth, so Back
+            // behaves and a second press reopens it.
+            const p = new URLSearchParams(params)
+            p.delete('activity')
+            setParams(p, { replace: true })
           }}
         />
       )}
