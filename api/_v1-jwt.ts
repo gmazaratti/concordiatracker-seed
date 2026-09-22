@@ -40,6 +40,14 @@
  * that exists for exactly this. That is the same exposure the signed path has
  * and it is bounded by the same clock.
  *
+ * THERE IS A SECOND, SEPARATE FAILURE AND CACHING DOES NOT REMOVE IT. GoTrue
+ * keeps one outstanding magic-link token per user, so two instances starting
+ * cold at the same instant overwrite each other's link and one of them gets a
+ * 403 from `verify`. Retrying the whole cycle with jitter clears it, and the
+ * cache makes it rare, but the only thing that removes it is not calling the
+ * auth service: SET SUPABASE_JWT_SECRET. Everything in this fallback is a
+ * workaround for that one missing variable.
+ *
  * THE ct_agent CLAIM IS THE POINT. Four write policies and ct_can_act_as_org
  * grant an admin write access to every organisation. That is right for a human
  * in the console and wrong for an unattended agent, so the claim rides in the
@@ -142,44 +150,76 @@ async function borrowSession(email: string): Promise<BorrowResult> {
   const anon = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
   if (!url || !svc || !anon) return { why: 'unconfigured' }
 
-  const gen = await fetch(`${url}/auth/v1/admin/generate_link`, {
-    method: 'POST',
-    headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'magiclink', email }),
-    signal: AbortSignal.timeout(10_000),
-  })
-  if (!gen.ok) {
-    return { why: gen.status === 429 ? 'rate-limited' : 'refused', status: gen.status, at: 'generate_link' }
-  }
-  const link = (await gen.json().catch(() => null)) as { hashed_token?: string } | null
-  if (!link?.hashed_token) return { why: 'refused', at: 'generate_link' }
-
   /*
-   * ONE RETRY ON 429, and only on 429. The window is short and a single
-   * pause clears an incidental collision between two concurrent requests.
-   * It is insurance, not the fix: the cache above is what keeps us out of
-   * the limit, and retrying into a limit we are genuinely over is how the
-   * original outage got worse rather than better.
+   * THE WHOLE CYCLE RETRIES, not just the redeem half, and that distinction
+   * is the entire point.
+   *
+   * GoTrue keeps ONE outstanding magic-link token per user. Two instances
+   * asking for a link at the same moment means the second `generate_link`
+   * OVERWRITES the first, and the first instance's `verify` then answers
+   * 403 — its token is simply gone. Measured on production: 20 concurrent
+   * admin calls from cold gave 4 successes and 16 of `verify answered 403`.
+   * Re-verifying the same dead hash can never succeed, so a retry that only
+   * repeats the second call is no retry at all; it has to go back and ask
+   * for a new link.
+   *
+   * THE WAIT IS JITTERED because the failure is contention. A fixed backoff
+   * re-collides the same racers on the same schedule, which is how a thundering
+   * herd stays a herd.
    */
-  let ver: Response | null = null
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt) await new Promise((r) => setTimeout(r, 900))
-    ver = await fetch(`${url}/auth/v1/verify`, {
+  let sess: { access_token?: string; expires_at?: number } | null = null
+  let lastWhy: 'rate-limited' | 'refused' = 'refused'
+  let lastStatus: number | undefined
+  let lastAt = 'generate_link'
+
+  for (let attempt = 0; attempt < 3 && !sess?.access_token; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 150 + Math.random() * 700))
+
+    const gen = await fetch(`${url}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers: { apikey: svc, Authorization: `Bearer ${svc}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'magiclink', email }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!gen.ok) {
+      lastWhy = gen.status === 429 ? 'rate-limited' : 'refused'
+      lastStatus = gen.status
+      lastAt = 'generate_link'
+      // A 429 here is a real budget problem, not contention; another attempt
+      // only spends more of it.
+      if (gen.status === 429) break
+      continue
+    }
+    const link = (await gen.json().catch(() => null)) as { hashed_token?: string } | null
+    if (!link?.hashed_token) {
+      lastWhy = 'refused'
+      lastStatus = undefined
+      lastAt = 'generate_link'
+      continue
+    }
+
+    const ver = await fetch(`${url}/auth/v1/verify`, {
       method: 'POST',
       headers: { apikey: anon, 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
       signal: AbortSignal.timeout(10_000),
     })
-    if (ver.ok || ver.status !== 429) break
+    if (!ver.ok) {
+      lastWhy = ver.status === 429 ? 'rate-limited' : 'refused'
+      lastStatus = ver.status
+      lastAt = 'verify'
+      if (ver.status === 429) break
+      continue
+    }
+    sess = (await ver.json().catch(() => null)) as { access_token?: string; expires_at?: number } | null
+    if (!sess?.access_token) {
+      lastWhy = 'refused'
+      lastStatus = undefined
+      lastAt = 'verify'
+    }
   }
-  if (!ver || !ver.ok) {
-    const status = ver?.status
-    return { why: status === 429 ? 'rate-limited' : 'refused', status, at: 'verify' }
-  }
-  const sess = (await ver.json().catch(() => null)) as
-    | { access_token?: string; expires_at?: number }
-    | null
-  if (!sess?.access_token) return { why: 'refused', at: 'verify' }
+
+  if (!sess?.access_token) return { why: lastWhy, status: lastStatus, at: lastAt }
 
   /*
    * `scope=local`, NOT global. Global revokes every session this account has

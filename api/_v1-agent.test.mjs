@@ -271,12 +271,56 @@ console.log('\nchoosing a route')
     err = e
   }
   const verifies = calls.filter((c) => c.includes('/auth/v1/verify')).length
-  check('a 429 on verify is retried exactly once', verifies === 2, `verify x${verifies}, want 2`)
+  // A 429 is a real budget problem, not contention. Retrying into it is
+  // exactly how the outage got worse instead of recovering, so it stops.
+  check('a 429 on verify is NOT retried', verifies === 1, `verify x${verifies}, want 1`)
   check(
     'and the refusal names the rate limit, not the missing secret',
     !!err && /rate-limited/i.test(String(err.message)) && /429/.test(String(err.message)),
     err ? String(err.message).slice(0, 130) : 'did not throw',
   )
+
+  /*
+   * A 403 IS THE OPPOSITE CASE. GoTrue holds one magic-link token per user,
+   * so a concurrent instance's generate_link overwrites ours and verify
+   * answers 403 on a hash that no longer exists. Re-verifying it could never
+   * work — the retry has to fetch a NEW link, which is why the whole cycle
+   * repeats. Measured on production before this: 20 cold concurrent calls
+   * gave 16 of these.
+   */
+  const modD = await fresh('d')
+  verifyStatus = 403
+  calls.length = 0
+  let err403 = null
+  try {
+    await modD.actorToken(uid, 'agent@example.com')
+  } catch (e) {
+    err403 = e
+  }
+  const gens403 = calls.filter((c) => c.includes('generate_link')).length
+  const vers403 = calls.filter((c) => c.includes('/auth/v1/verify')).length
+  check('a 403 retries the WHOLE cycle, asking for a fresh link each time',
+    gens403 === 3 && vers403 === 3, `generate_link x${gens403}, verify x${vers403}, want 3 and 3`)
+  check('and it still gives up rather than looping', !!err403)
+
+  // The one that matters: a 403 that clears on the second go succeeds.
+  const modE = await fresh('e')
+  let seen = 0
+  verifyStatus = 403
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url) => {
+    const u = String(url)
+    if (u.includes('/auth/v1/verify')) {
+      seen++
+      if (seen >= 2) verifyStatus = 200
+    }
+    return realFetch(url)
+  }
+  const recovered = await modE.actorToken(uid, 'agent@example.com').catch(() => null)
+  check('a link that loses one race still gets a session on the retry',
+    recovered === 'borrowed.jwt.here', String(recovered))
+  globalThis.fetch = realFetch
+  verifyStatus = 200
 
   globalThis.fetch = keep.fetch
   delete process.env.VITE_SUPABASE_URL
