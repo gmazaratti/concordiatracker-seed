@@ -38,5 +38,5 @@ export const STUDENT_NAV: NavItem[] = [
   { to: '/app/courses', label: 'Courses', labelKey: 'nav.courses', icon: BookOpen },
   { to: '/app/calendar', label: 'Calendar', labelKey: 'nav.calendar', icon: CalendarDays },
   { to: '/app/planner', label: 'Planner', labelKey: 'nav.planner', icon: Compass },
-  { to: '/app/community', label: 'Community', labelKey: 'nav.community', icon: Users },
+  { to: '/app/community', label: 'Social', labelKey: 'nav.community', icon: Users },
 ]

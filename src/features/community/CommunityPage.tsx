@@ -2,22 +2,17 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
-import { useActivityBadge, usePeopleBadge } from '@/app/usePeopleBadge'
+import { useActivityBadge } from '@/app/usePeopleBadge'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
 import { ProfileView } from '@/features/profile/UserProfilePage'
 import { Mascot } from '@/components/Mascot'
-import { cn } from '@/lib/cn'
 import { EventsFeed } from './EventsFeed'
 import { FeedSection } from './FeedSection'
 import { CommunityRail } from './CommunityRail'
 import { ActivityButton, ActivityPanel } from './ActivityPanel'
 import { CommunitySearchBar } from './SearchOverlay'
-import {
-  COMMUNITY_SECTIONS,
-  DEFAULT_SECTION,
-  isCommunitySection,
-  type CommunitySection,
-} from './sections'
+import { DEFAULT_SECTION, isCommunitySection, type CommunitySection } from './sections'
+
 
 /**
  * Community — the part of the app that is about everyone else.
@@ -43,7 +38,6 @@ export function CommunityPage() {
   const { loaded, uiState, patchUiState } = useUiState()
   const { user } = useAppData()
   const [params, setParams] = useSearchParams()
-  const waiting = usePeopleBadge()
   // The bell counts notifications too; the Messages pill deliberately does not.
   const bell = useActivityBadge()
   // Openable by URL so anything anywhere can point at it — the toast does,
@@ -57,15 +51,6 @@ export function CommunityPage() {
 
   const raw = params.get('c')
   const section: CommunitySection = isCommunitySection(raw) ? raw : DEFAULT_SECTION
-
-  const go = (next: CommunitySection) => {
-    const p = new URLSearchParams(params)
-    if (next === DEFAULT_SECTION) {
-      p.delete('c')
-      p.delete('chat')
-    } else p.set('c', next)
-    setParams(p)
-  }
 
   /*
    * SEARCH BELONGS TO THE SECTIONS THAT ARE DIRECTORIES.
@@ -87,7 +72,7 @@ export function CommunityPage() {
 
   return (
     <div className="mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5">
-      <h1 className="sr-only">Community</h1>
+      <h1 className="sr-only">Social</h1>
 
       {showSearch && (
         <div className="mb-3 flex items-center gap-2">
@@ -95,53 +80,19 @@ export function CommunityPage() {
         </div>
       )}
 
-      {/* Phone: the sections live in the bottom bar, so the bell needs a home
-          of its own up here. It is the only thing on the row — the app's own
-          top bar stands down over Community, so there is nothing to sit
-          beside. */}
-      <div className="mb-1 flex justify-end md:hidden">
+      {/*
+        THE SECTIONS MOVED INTO THE SIDEBAR, nested under Social the way the
+        planner's are. A strip across the top of the page was a second
+        navigation bar under the first one, and the conversation pane — the
+        part of this tab that actually wants the height — was paying for it.
+        The phone still reaches them from the bottom bar.
+
+        What is left up here is the bell, which is not a destination: it opens
+        a sheet and comes back.
+      */}
+      <div className="mb-2 flex justify-end">
         <ActivityButton count={bell} onOpen={() => setActivity(true)} />
       </div>
-
-      {/* Desktop: the sections, and the bell on the same row at the far end.
-          The phone reaches the sections from the bottom bar, and two
-          navigations for one set of destinations is the clutter this whole
-          layout exists to avoid. */}
-      <nav
-        className="mb-4 hidden items-center gap-1 border-b border-border md:flex"
-        role="tablist"
-      >
-        {COMMUNITY_SECTIONS.map((s) => {
-          const on = section === s.id
-          const badge = s.id === 'messages' ? waiting : 0
-          return (
-            <button
-              key={s.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => go(s.id)}
-              className={cn(
-                '-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-medium transition-colors duration-150',
-                on ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
-              )}
-            >
-              <s.icon size={14} aria-hidden />
-              {s.label}
-              {badge > 0 && (
-                <span className="rounded-full bg-accent px-1.5 text-[10.5px] font-semibold text-accent-contrast">
-                  {badge}
-                </span>
-              )}
-            </button>
-          )
-        })}
-        {/* Not a tab, and not inside the tablist's reading order as one: it
-            opens a sheet rather than switching the pane below. */}
-        <span className="ml-auto pb-1">
-          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
-        </span>
-      </nav>
 
       {/* Keyed on the section so the animation replays on every switch, and so
           React tears the old section down rather than reconciling two

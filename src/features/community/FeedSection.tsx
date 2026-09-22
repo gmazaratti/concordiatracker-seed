@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Mascot } from '@/components/Mascot'
 import { loadPosts, loadStoryRings, type FeedPost, type StoryRing } from '@/lib/social-posts'
+import { PullToRefresh } from '@/components/PullToRefresh'
 import { useMyOrgs } from './useMyOrgs'
 import { StoriesRow } from './stories/StoriesRow'
 import { StoryViewer } from './stories/StoryViewer'
@@ -52,8 +53,15 @@ export function FeedSection() {
 
   const myOrgIds = useMemo(() => new Set(myOrgs.map((o) => o.id)), [myOrgs])
 
+  /** Waits for the fetch, so the spinner is honest about when it is done. */
+  const reload = () =>
+    Promise.all([
+      loadStoryRings().then(setRings).catch(() => {}),
+      loadPosts({ limit: 30 }).then(setPosts).catch(() => {}),
+    ]).then(() => undefined)
+
   return (
-    <div className="mx-auto w-full max-w-[470px]">
+    <PullToRefresh onRefresh={reload} className="mx-auto w-full max-w-[470px]">
       <StoriesRow
         rings={rings}
         myOrgs={myOrgs}
@@ -98,6 +106,6 @@ export function FeedSection() {
           onPosted={() => setRefresh((n) => n + 1)}
         />
       )}
-    </div>
+    </PullToRefresh>
   )
 }

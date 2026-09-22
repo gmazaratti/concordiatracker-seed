@@ -12,6 +12,7 @@ import { PushControl } from './PushControl'
 import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 import { getReduceMotion, setReduceMotion } from '@/lib/reduce-motion'
 import { OrgPostSwitch } from './OrgPostSwitch'
+import { MessageAlertSwitch } from './MessageAlertSwitch'
 
 /** General: appearance, lightweight preferences, notifications, updates, and the
  * real English/French switch. Untranslated strings fall back to English, so the
@@ -59,8 +60,9 @@ export function GeneralSection() {
       {/* REAL, unlike the three email switches below it, which are still local
           state. Worth keeping apart rather than mixing a stored preference in
           with placeholders. */}
-      <Group label="Community">
+      <Group label="Social">
         <OrgPostSwitch />
+        <MessageAlertSwitch />
       </Group>
 
       <Group label={t('settings.email')}>

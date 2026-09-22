@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Check, Clock, GraduationCap, Loader2, Search, SlidersHorizontal, SquarePen, X } from 'lucide-react'
+import { Check, Clock, GraduationCap, Loader2, Search, Send, SlidersHorizontal, SquarePen, X } from 'lucide-react'
 import { Mascot } from '@/components/Mascot'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { OrgLogo } from '@/features/community/OrgLogo'
@@ -23,6 +23,7 @@ import {
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/app/providers/auth'
+import { useAppData } from '@/app/providers/app-data'
 import { Avatar, Chat } from './Chat'
 import { OrgChat, OrgFace, type OrgChatTarget } from './OrgChat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
@@ -30,6 +31,8 @@ import { ScheduleAccess } from './ScheduleAccess'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { badgeForPerson, type Badge } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
+import { useMessageTick } from '@/lib/message-alerts'
+import { PullToRefresh } from '@/components/PullToRefresh'
 import { NotesRow } from './NotesRow'
 import { SearchOverlay } from '@/features/community/SearchOverlay'
 
@@ -141,6 +144,7 @@ type Pill = 'inbox' | 'requests' | 'following'
 
 export function PeoplePanel() {
   const { orgNameByOwner } = useCommunityData()
+  const { user: profile } = useAppData()
   const [params, setParams] = useSearchParams()
   // `?people=requests` so a link can land on the right pill. Read ONCE as an
   // initial value: after that the pills are yours to click and the URL should
@@ -175,6 +179,9 @@ export function PeoplePanel() {
    *  the overlay that finds people already exists. */
   const [composing, setComposing] = useState(false)
   const refresh = useCallback(() => setTick((n) => n + 1), [])
+  /** Bumps when a message arrives anywhere, so the list reloads itself
+   *  instead of waiting for a navigation. */
+  const live = useMessageTick()
 
   useEffect(() => {
     let alive = true
@@ -184,7 +191,7 @@ export function PeoplePanel() {
     return () => {
       alive = false
     }
-  }, [tick])
+  }, [tick, live])
 
   /**
    * `?chat=handle` opens straight into a conversation, so a Message button
@@ -316,15 +323,49 @@ export function PeoplePanel() {
     { id: 'following', label: 'Following', badge: 0 },
   ]
 
+  /** Waits for the three loads, so the spinner stops when the list is
+   *  genuinely current rather than when the request was sent. */
+  const reload = () =>
+    Promise.all([
+      listFriends().then(setFriends).catch(() => {}),
+      listFollowing().then(setFollowing).catch(() => {}),
+      listThreads().then(setThreads).catch(() => {}),
+    ]).then(() => undefined)
+
   return (
-    <div className="flex min-h-0 flex-col">
+    <PullToRefresh onRefresh={reload} className="flex min-h-0 flex-col">
+      {/*
+        THE WHOLE HEAD IS ONE CHILD, and that is the point of the wrapper.
+        Flex `order` defaults to 0, so the moment these four rows asked for
+        1, 2 and 3 the thread list below them — which had asked for nothing
+        — sorted itself above the lot. Ordering inside a container of their
+        own keeps it where it belongs and stops the next person adding a
+        row here from hitting the same thing.
+      */}
+      <div className="flex flex-col">
+      {/* Desktop only: the reference heads the rail with who you are posting
+          as and the way to start something new. On a phone that row is the
+          bottom bar's job and the compose button rides with the search. */}
+      <div className="order-0 mb-2 hidden items-center gap-1 md:flex">
+        <span className="min-w-0 truncate text-[17px] font-bold text-fg">
+          {profile.handle ?? 'You'}
+        </span>
+        {profile.handle && <PersonSeal handle={profile.handle} userId={meId} size={15} />}
+      </div>
       {/*
         THE ORDER IS THE REFERENCE'S: search, then notes, then filters, then
         the list. Search leads because it is what you reach for when you know
         who you want; the notes row sits under it because it is a glance, not
         a control; the filters sit directly on top of the thing they narrow.
       */}
-      <div className="mb-1 flex items-center gap-2">
+      {/*
+        THE TWO REFERENCES DISAGREE, and both are right for their own screen:
+        on a phone the search sits above the filters, on desktop the tabs sit
+        above the search. So the head is one flex column and each piece is
+        ordered per breakpoint rather than duplicated into two trees that
+        would drift.
+      */}
+      <div className="order-1 mb-1 flex items-center gap-2 md:order-2">
         <div className="relative min-w-0 flex-1">
           <Search
             size={15}
@@ -360,12 +401,13 @@ export function PeoplePanel() {
         </button>
       </div>
 
-      <NotesRow />
-      {composing && <SearchOverlay onClose={() => setComposing(false)} />}
+      <div className="order-2 md:order-3">
+        <NotesRow />
+      </div>
 
       {/* One scrolling row, edges not cut. Same treatment as the event filter
           chips, because it is the same kind of control. */}
-      <div className="-mx-4 mb-3 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="order-3 -mx-4 mb-3 overflow-x-auto px-4 sm:mx-0 sm:px-0 md:order-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max items-center gap-2" role="tablist">
           <span
             aria-hidden
@@ -398,7 +440,8 @@ export function PeoplePanel() {
           ))}
         </div>
       </div>
-
+      </div>
+      {composing && <SearchOverlay onClose={() => setComposing(false)} />}
       {friends === null && (
         <p className="flex items-center gap-2 py-10 text-[13px] text-subtle">
           <Loader2 size={15} className="animate-spin" aria-hidden />
@@ -599,11 +642,26 @@ export function PeoplePanel() {
             </>
           ) : (
             accepted.length > 0 && (
-              <div className="hidden flex-1 place-items-center p-6 text-center lg:grid">
-                <p className="max-w-xs text-[12.5px] leading-relaxed text-subtle">
-                  Pick someone to see your conversation. The + sends a schedule, a class or an
-                  event, and they open the live thing rather than a screenshot.
-                </p>
+              /* The reference's empty pane: a mark, a title, one line, and the
+                 action. The paragraph that used to live here explained the
+                 attachment menu to somebody who had not opened a conversation
+                 yet — the wrong thing at the wrong moment, and it left the
+                 largest area on the screen reading as an error message. */
+              <div className="hidden flex-1 flex-col items-center justify-center gap-3 p-6 text-center lg:flex">
+                <span className="grid size-24 place-items-center rounded-full border-2 border-fg/85">
+                  <Send size={38} className="-ml-1 text-fg/85" aria-hidden />
+                </span>
+                <div>
+                  <p className="text-[19px] font-medium text-fg">Your messages</p>
+                  <p className="mt-1 text-[13.5px] text-subtle">Send a message to start a chat.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setComposing(true)}
+                  className="mt-1 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                >
+                  Send message
+                </button>
               </div>
             )
           )}
@@ -683,7 +741,7 @@ export function PeoplePanel() {
           onClose={() => setMenu(null)}
         />
       )}
-    </div>
+    </PullToRefresh>
   )
 }
 

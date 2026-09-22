@@ -17,7 +17,7 @@ export const fr: Partial<Record<Key, string>> = {
   'nav.today': 'Aujourd’hui',
   'nav.courses': 'Cours',
   'nav.calendar': 'Calendrier',
-  'nav.community': 'Communauté',
+  'nav.community': 'Social',
   'nav.planner': 'Planifier',
   'nav.search': 'Rechercher',
   'nav.settings': 'Paramètres',

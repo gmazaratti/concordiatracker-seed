@@ -3,6 +3,8 @@ import { ArrowLeft } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { usePeopleBadge } from '@/app/usePeopleBadge'
+import { useAppData } from '@/app/providers/app-data'
+import { PersonAvatar } from '@/features/community/PersonAvatar'
 import { useT } from '@/i18n/i18n'
 import {
   COMMUNITY_SECTIONS,
@@ -42,6 +44,7 @@ import { cn } from '@/lib/cn'
 export function MobileNav() {
   const badges = useNavBadges()
   const waiting = usePeopleBadge()
+  const { user } = useAppData()
   const t = useT()
   const { pathname } = useLocation()
   const [params] = useSearchParams()
@@ -121,7 +124,7 @@ export function MobileNav() {
               is a place, not a stack, and `back` here means "out of Community". */}
           <Link
             to="/app"
-            aria-label="Leave Community"
+            aria-label="Leave Social"
             className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] text-subtle transition-transform duration-150 active:scale-95"
           >
             <ArrowLeft size={20} aria-hidden />
@@ -130,6 +133,44 @@ export function MobileNav() {
 
           {COMMUNITY_SECTIONS.map((s) => {
             const on = section === s.id
+            /*
+             * YOUR OWN SLOT IS YOUR FACE, not a person glyph over the word
+             * "You". Every app a student already has does it this way, and
+             * the reason is that a photo is recognised faster than a label
+             * is read — it is the one item in the bar that does not need
+             * naming. The ring is how it says "selected" without a colour
+             * change, which a photo would swallow.
+             *
+             * The label is dropped with it, so the row reserves that space
+             * instead: without it the avatar would float up out of line with
+             * the four icons beside it.
+             */
+            if (s.id === 'profile') {
+              return (
+                <Link
+                  key={s.id}
+                  to={communityHref(s.id)}
+                  aria-label={s.label}
+                  aria-current={on ? 'page' : undefined}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 transition-transform duration-150 active:scale-95"
+                >
+                  <PersonAvatar
+                    person={{
+                      handle: user.handle ?? '',
+                      name: user.name ?? null,
+                      avatar_url: user.avatarUrl ?? null,
+                    }}
+                    className={cn(
+                      'size-[22px] transition-shadow duration-150',
+                      on && 'ring-2 ring-accent ring-offset-1 ring-offset-surface',
+                    )}
+                  />
+                  <span aria-hidden className="text-[10px] leading-none">
+                    &nbsp;
+                  </span>
+                </Link>
+              )
+            }
             return (
               <Link
                 key={s.id}

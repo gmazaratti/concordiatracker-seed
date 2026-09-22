@@ -10,6 +10,7 @@ import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
 import { PlannerSubNav } from './PlannerSubNav'
+import { SocialSubNav } from './SocialSubNav'
 import { AvatarMenu } from './AvatarMenu'
 import { cn } from '@/lib/cn'
 
@@ -29,7 +30,9 @@ export function Sidebar() {
   const t = useT()
   // The planner's sections nest under it while you are in there, so the page
   // does not need a second rail of its own.
-  const onPlanner = useLocation().pathname.startsWith('/app/planner')
+  const path = useLocation().pathname
+  const onPlanner = path.startsWith('/app/planner')
+  const onSocial = path.startsWith('/app/community')
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -147,6 +150,7 @@ export function Sidebar() {
               under Planner and folds back when you leave, instead of nine rows
               appearing and vanishing between one frame and the next. */}
           {to === '/app/planner' && !collapsed && <PlannerSubNav open={onPlanner} />}
+          {to === '/app/community' && !collapsed && <SocialSubNav open={onSocial} />}
           </Fragment>
         ))}
 
