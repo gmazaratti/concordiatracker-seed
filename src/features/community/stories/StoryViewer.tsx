@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Eye, Heart, MapPin, Pause, Send, X } from 'lucide-react'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
-import { sendMessage } from '@/lib/social'
+import { sendMessageToOrg } from '@/lib/org-messages'
 import {
   loadStoryReel,
   markStorySeen,
@@ -34,9 +34,10 @@ const now = () => Date.now()
  * people watched; `story_views` is select-own, so it can never be told which
  * ones. Same line the organizer metrics draw.
  *
- * REPLIES ARE ORDINARY DMs. "Send message" writes to `messages`, so the
- * recipient's DM policy, blocks and the stranger limits all apply with no
- * second path to keep in step.
+ * REPLIES GO TO THE CLUB'S INBOX. They are still ordinary rows in `messages`
+ * — so blocks and the limits apply with no second path — but addressed to the
+ * ORGANISATION rather than to whoever happens to own it. A reply that lands in
+ * one person's DMs is a reply the club loses when they graduate.
  */
 export function StoryViewer({
   ring,
@@ -137,7 +138,7 @@ export function StoryViewer({
     setReply('')
     // Named so the recipient knows what it answers — a bare line arriving out
     // of nowhere is the reason story replies feel like spam elsewhere.
-    const err = await sendMessageToOrgOwner(ring, `Replying to your story: ${body}`)
+    const err = await sendMessageToOrg(ring.orgId, `Replying to your story: ${body}`)
     setSent(!err)
     if (err) setReply(body)
   }
@@ -377,13 +378,4 @@ export function StoryViewer({
     </div>,
     document.body,
   )
-}
-
-/** A story reply goes to the account that runs the club, because an org has no
- *  inbox of its own yet. Honest about the limit rather than dropping it. */
-async function sendMessageToOrgOwner(ring: StoryRing, body: string): Promise<string | null> {
-  const { ownerIdForOrg } = await import('@/lib/org-owner')
-  const owner = await ownerIdForOrg(ring.orgId)
-  if (!owner) return 'That club has no one to receive messages yet.'
-  return sendMessage(owner, body)
 }

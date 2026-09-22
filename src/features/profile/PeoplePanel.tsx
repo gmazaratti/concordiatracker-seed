@@ -24,6 +24,7 @@ import {
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/app/providers/auth'
 import { Avatar, Chat } from './Chat'
+import { OrgChat, OrgFace, type OrgChatTarget } from './OrgChat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
 import { ScheduleAccess } from './ScheduleAccess'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
@@ -153,6 +154,15 @@ export function PeoplePanel() {
   const meId = authUser?.id ?? ''
   const [following, setFollowing] = useState<FollowedUser[] | null>(null)
   const [active, setActive] = useState<Friend | null>(null)
+  /**
+   * A club conversation, held apart from `active`.
+   *
+   * `Friend` is a person — it carries a program, a follow state and a person
+   * menu, none of which mean anything opposite an organisation. Dressing a
+   * club up as one would have put a nullable branch on every consumer, so the
+   * two open into the same slot and nothing else is shared.
+   */
+  const [activeOrg, setActiveOrg] = useState<OrgChatTarget | null>(null)
   const [tick, setTick] = useState(0)
   const [menu, setMenu] = useState<PersonTarget | null>(null)
   // Filters the thread list only. This is not the Community search — that one
@@ -191,6 +201,12 @@ export function PeoplePanel() {
   }
 
   const byOther = new Map(threads.map((t) => [t.other, t]))
+  /*
+   * Clubs you have written to. They cannot come from `my_friends` — that is
+   * the follow graph between PEOPLE — so the thread list is their only source,
+   * which is why it now carries the counterpart's name and logo on the row.
+   */
+  const orgThreads = threads.filter((t) => t.other_kind === 'org')
   /**
    * NEWEST FIRST. A message list ordered by when you became friends is a
    * contacts list; the whole reason to open this screen is "who said
@@ -260,7 +276,22 @@ export function PeoplePanel() {
     return undefined
   }, [attachParam, events, record])
 
+  const openOrgChat = (t: Thread) => {
+    setActiveOrg({
+      id: t.other,
+      handle: t.other_handle ?? '',
+      name: t.other_name ?? t.other_handle ?? 'Club',
+      avatar: t.other_avatar,
+      color: null,
+      glyph: null,
+      verified: false,
+    })
+    setActive(null)
+    void markThreadRead(t.other)
+  }
+
   const openChat = (f: Friend) => {
+    setActiveOrg(null)
     setActive(f)
     // Clear the badge optimistically, then tell the server. Waiting for the
     // round trip leaves a dot on the conversation you are looking at.
@@ -399,19 +430,82 @@ export function PeoplePanel() {
                 </div>
             </div>
 
-            {accepted.length === 0 ? (
+            {accepted.length === 0 && orgThreads.length === 0 ? (
               <div className="lg:p-4">
                 <Empty
                   title="No conversations yet"
                   body="Open a classmate's profile and press Message. If they do not follow you back you get one message to say who you are."
                 />
               </div>
-            ) : shownThreads.length === 0 ? (
+            ) : shownThreads.length === 0 && orgThreads.length === 0 && q ? (
               <p className="px-3 py-8 text-center text-[12.5px] text-subtle">
                 No conversation matching “{threadQuery.trim()}”.
               </p>
             ) : (
               <ul className="divide-y divide-border lg:divide-y-0">
+                {orgThreads.length > 0 && (
+                  <li className="px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    Clubs
+                  </li>
+                )}
+                {orgThreads.map((t) => (
+                  <li
+                    key={`org-${t.other}`}
+                    className={cn(
+                      'flex items-center pr-1 transition-colors duration-150',
+                      activeOrg?.id === t.other ? 'lg:bg-accent-soft' : 'hover:bg-surface-2/60',
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => openOrgChat(t)}
+                      className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-1 pl-0.5 text-left lg:px-3"
+                    >
+                      <OrgFace
+                        org={{
+                          id: t.other,
+                          handle: t.other_handle ?? '',
+                          name: t.other_name ?? '',
+                          avatar: t.other_avatar,
+                          color: null,
+                          glyph: null,
+                          verified: false,
+                        }}
+                        className="size-11"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline gap-2">
+                          <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-fg">
+                            {t.other_name ?? t.other_handle}
+                          </span>
+                          {t.last_at && (
+                            <span className="shrink-0 text-[11px] text-subtle">{ago(t.last_at)}</span>
+                          )}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'min-w-0 flex-1 truncate text-[12.5px]',
+                              t.unread > 0 ? 'font-medium text-fg' : 'text-subtle',
+                            )}
+                          >
+                            {t.unread >= 4
+                              ? `${t.unread} new messages`
+                              : (t.last_from_me ? 'You: ' : '') + (t.last_body ?? '')}
+                          </span>
+                          {t.unread > 0 && (
+                            <span className="size-2 shrink-0 rounded-full bg-accent" aria-hidden />
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+                {orgThreads.length > 0 && shownThreads.length > 0 && (
+                  <li className="px-3 pt-3 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    People
+                  </li>
+                )}
                 {shownThreads.map((f) => (
                   <li
                     key={f.friendship_id}
@@ -444,7 +538,9 @@ export function PeoplePanel() {
             )}
           </aside>
 
-          {active ? (
+          {activeOrg ? (
+            <OrgChat org={activeOrg} onBack={() => setActiveOrg(null)} />
+          ) : active ? (
             <>
               <Chat
                 friend={active}

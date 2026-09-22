@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Clock, Grid3x3, ImagePlus, MapPin, Phone, Repeat2 } from 'lucide-react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, CalendarDays, Clock, Grid3x3, ImagePlus, MapPin, MessageSquare, Phone, Repeat2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { supabase } from '@/lib/supabase'
 import { loadPosts, type FeedPost } from '@/lib/social-posts'
@@ -21,6 +21,7 @@ import { useMyOrgs } from './useMyOrgs'
 import { PostCard } from './posts/PostCard'
 import { PostComposer } from './posts/PostComposer'
 import { RepostsTab } from './posts/RepostsTab'
+import { MessageOrgModal } from './MessageOrgModal'
 
 /** Counts and my relationship to this club, from one definer call. Followers
  *  CANNOT be counted client-side — org_follows is select-own, so a browser
@@ -173,34 +174,59 @@ function OrgProfileBody({
   const slug = org.handle.replace(/^@/, '')
   const social = useOrgSocial(slug)
   const { orgs: myOrgs } = useMyOrgs()
-  const [tab, setTab] = useState('events')
+  /*
+   * THE TAB IS IN THE URL. A post notification has to land on the post, and
+   * "open the club, then press Posts" is the step that makes someone give up.
+   * It is also what makes a club's own link to its posts shareable.
+   */
+  const [params, setParams] = useSearchParams()
+  const urlTab = params.get('tab')
+  const tab = urlTab === 'posts' || urlTab === 'reposts' ? urlTab : 'events'
+  const setTab = (next: string) => {
+    const p = new URLSearchParams(params)
+    if (next === 'events') p.delete('tab')
+    else p.set('tab', next)
+    setParams(p, { replace: true })
+  }
   const [posts, setPosts] = useState<FeedPost[] | null>(null)
   const [composing, setComposing] = useState(false)
+  const [messaging, setMessaging] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const mine = myOrgs.find((o) => o.handle.replace(/^@/, '') === slug)
 
+  /*
+   * THE ID, RESOLVED ONCE. The URL carries a handle; posts and the inbox both
+   * take an id. Looking it up per tab meant two round trips for the same fact
+   * and left Message with nothing to address until Posts had been opened.
+   */
+  const [orgId, setOrgId] = useState<string | null>(null)
   useEffect(() => {
-    if (tab !== 'posts') return
     let alive = true
-    // Resolve the org id through the list we already loaded rather than a
-    // second lookup: a handle is what the URL carries, an id is what the feed
-    // function takes.
     void supabase
       .from('organizations')
       .select('id')
       .ilike('handle', `%${slug}`)
       .limit(1)
       .maybeSingle()
-      .then(async ({ data }) => {
-        const id = (data as { id?: string } | null)?.id
-        if (!id) return alive && setPosts([])
-        const rows = await loadPosts({ orgId: id, limit: 30 })
-        if (alive) setPosts(rows)
+      .then(({ data }) => {
+        if (alive) setOrgId((data as { id?: string } | null)?.id ?? null)
       })
     return () => {
       alive = false
     }
-  }, [tab, slug, refresh])
+  }, [slug])
+
+  useEffect(() => {
+    // Nothing to ask for until the handle has resolved. Setting an empty list
+    // here would be a synchronous setState in an effect; `posts === null`
+    // already renders as "loading", which is what is true.
+    if (tab !== 'posts' || !orgId) return
+    let alive = true
+    void loadPosts({ orgId, limit: 30 }).then((rows) => alive && setPosts(rows))
+    return () => {
+      alive = false
+    }
+  }, [tab, orgId, refresh])
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
@@ -278,6 +304,19 @@ function OrgProfileBody({
 
           <div className="mt-4 flex flex-wrap gap-2">
             <FollowButton handle={org.handle} />
+            {/* A real conversation with the CLUB, not an email to whoever set
+                it up. Hidden on your own club — its inbox is in the portal,
+                and the database refuses a message to yourself anyway. */}
+            {!mine && (
+              <button
+                type="button"
+                onClick={() => setMessaging(true)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              >
+                <MessageSquare size={14} aria-hidden />
+                Message
+              </button>
+            )}
             <ContactButton org={org} />
           </div>
         </div>
@@ -353,6 +392,21 @@ function OrgProfileBody({
       )}
 
       {tab === 'reposts' && <RepostsTab handle={slug} isOrg onOpenEvent={openEvent} />}
+
+      {messaging && (
+        <MessageOrgModal
+          org={{
+            id: orgId,
+            handle: org.handle,
+            name: org.name,
+            avatar: org.logo ?? null,
+            color: org.color,
+            glyph: org.glyph,
+            verified: org.verified,
+          }}
+          onClose={() => setMessaging(false)}
+        />
+      )}
 
       {composing && mine && (
         <PostComposer

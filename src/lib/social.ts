@@ -477,10 +477,19 @@ export async function listFollowing(): Promise<FollowedUser[]> {
 
 /** The outside view of one conversation: who, what last, when, how many unread. */
 export interface Thread {
+  /** A user id, or an ORGANISATION id when `other_kind` is 'org'. */
   other: string
+  other_kind: 'user' | 'org'
+  /** Carried on the row so the inbox can render itself. It used to be
+   *  assembled from `my_friends`, which is the follow graph between PEOPLE and
+   *  can never contain a club. */
+  other_handle: string | null
+  other_name: string | null
+  other_avatar: string | null
   last_body: string | null
   last_attachment: Attachment | null
   last_sender: string | null
+  last_from_me: boolean
   last_at: string | null
   unread: number
 }

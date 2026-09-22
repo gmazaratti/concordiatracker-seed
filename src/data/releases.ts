@@ -26,6 +26,29 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
   {
+    version: '1.32.0',
+    name: 'Clubs have an inbox',
+    date: '2026-09-21',
+    changes: [
+      {
+        kind: 'new',
+        text: 'You can message a club. There is a Message button on every club profile, and replying to a story writes to the club too — not to whoever happens to have set it up.',
+      },
+      {
+        kind: 'new',
+        text: 'Clubs get an inbox in the organizer portal. Anyone on the team can answer and the reply goes out as the club, so a conversation does not leave when one person graduates.',
+      },
+      {
+        kind: 'new',
+        text: 'When a club you follow posts, you hear about it. That is what following one is for, so it starts on — and there is a switch in Settings if you would rather it did not. Stories never notify: they are on the ring at the top of the feed.',
+      },
+      {
+        kind: 'improved',
+        text: 'A club cannot start a conversation with you. It can only answer someone who wrote to it first, and that is enforced in the database rather than left to the screen.',
+      },
+    ],
+  },
+  {
     version: '1.31.0',
     name: 'One relationship, and clubs that can actually post',
     date: '2026-09-21',
