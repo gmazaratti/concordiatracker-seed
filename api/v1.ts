@@ -225,7 +225,12 @@ export default async function handler(req: any, res: any) {
       hint:
         auth.error.status === 429
           ? 'Each token is limited to 120 requests a minute. Wait for the Retry-After header and try again.'
-          : 'Send an API token as "Authorization: Bearer ct_owner_..." or "ct_pat_...". Create one in Settings → Developer, or in the admin console for an owner token. A Supabase session token will not work here.',
+          : auth.error.status === 503
+            ? // Do NOT tell them to check their token here. The lookup failed;
+              // the token was never judged. Saying otherwise is what sent
+              // somebody re-minting a credential that was fine.
+              'This is a fault on our side, not a problem with your token. Retry in a few seconds.'
+            : 'Send an API token as "Authorization: Bearer ct_owner_...", "ct_adm_...", "ct_sup_..." or "ct_per_...". Create one in Settings → Developer, or in the admin console. A Supabase session token will not work here.',
     })
     return
   }

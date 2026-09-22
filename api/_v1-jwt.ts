@@ -21,10 +21,24 @@
  * AND A FALLBACK, SO NOTHING IS BLOCKED ON THAT SECRET. Without it, the
  * service-role key alone can still get a genuine session for the account:
  * generate a magic link (never sent anywhere) and redeem it. Measured at
- * ~165ms. The refresh token it issues is revoked immediately, and the access
- * token keeps verifying afterwards because it is a stateless JWT — checked,
- * not assumed. So no credential outlives the request either way; the signed
- * path is simply faster and does not touch the auth service.
+ * ~165ms. The access token keeps verifying after the session is revoked
+ * because it is a stateless JWT — checked, not assumed.
+ *
+ * THE FALLBACK IS CACHED, AND THAT IS NOT AN OPTIMISATION. It took the API
+ * down. `/auth/v1/verify` is rate-limited PER IP by the auth service, and a
+ * serverless deployment egresses from very few of them — so one session per
+ * REQUEST meant an agent working through a list of organisations spent its
+ * budget in about two minutes. Measured on the live project: 107 admin calls
+ * in 2m26s, then `verify` answering
+ * `429 over_request_rate_limit`, and every admin-scope call 503ing after it.
+ * `generate_link` and PostgREST were both fine throughout; only this one
+ * endpoint was refusing.
+ *
+ * A session lasts an hour, so reusing one across requests on a warm instance
+ * turns a hundred of those round trips into one. The token is held in memory
+ * only, never written anywhere, and belongs to a passwordless service account
+ * that exists for exactly this. That is the same exposure the signed path has
+ * and it is bounded by the same clock.
  *
  * THE ct_agent CLAIM IS THE POINT. Four write policies and ct_can_act_as_org
  * grant an admin write access to every organisation. That is right for a human
@@ -50,9 +64,29 @@ export interface ActorToken {
   userId: string
 }
 
-/** Only thrown when NEITHER route is available, which means the deployment
- *  has no Supabase configuration at all. */
+/** Thrown when neither route can produce a token. The message names which
+ *  half failed, because "set the secret" was the wrong advice during an
+ *  auth-service rate limit and sent somebody looking at the wrong thing. */
 export class JwtUnavailable extends Error {}
+
+type BorrowResult =
+  | { token: string; expiresAt: number }
+  | { why: 'rate-limited' | 'refused' | 'unconfigured'; status?: number; at?: string }
+
+/**
+ * The borrowed session, per warm instance.
+ *
+ * Module scope, so it lives as long as the instance and dies with it. Keyed
+ * by account even though there is one agent today: a cache that cannot say
+ * whose token it holds is the kind that eventually hands one identity's
+ * token to another.
+ */
+const cache = new Map<string, { token: string; expiresAt: number }>()
+const inflight = new Map<string, Promise<string>>()
+
+/** Retire a session with five minutes to spare, so a request that starts
+ *  just under the wire cannot finish just over it. */
+const CACHE_MARGIN_MS = 5 * 60 * 1000
 
 /**
  * Sign a Supabase access token for one account.
@@ -102,11 +136,11 @@ export function mintActorJwt(userId: string, email: string | null): string | nul
  * marks the account in `agent_accounts`, and ct_is_agent() reads either. That
  * table is the reason this fallback is safe to have at all.
  */
-async function borrowSession(email: string): Promise<string | null> {
+async function borrowSession(email: string): Promise<BorrowResult> {
   const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
   const anon = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY
-  if (!url || !svc || !anon) return null
+  if (!url || !svc || !anon) return { why: 'unconfigured' }
 
   const gen = await fetch(`${url}/auth/v1/admin/generate_link`, {
     method: 'POST',
@@ -114,31 +148,53 @@ async function borrowSession(email: string): Promise<string | null> {
     body: JSON.stringify({ type: 'magiclink', email }),
     signal: AbortSignal.timeout(10_000),
   })
-  if (!gen.ok) return null
+  if (!gen.ok) {
+    return { why: gen.status === 429 ? 'rate-limited' : 'refused', status: gen.status, at: 'generate_link' }
+  }
   const link = (await gen.json().catch(() => null)) as { hashed_token?: string } | null
-  if (!link?.hashed_token) return null
+  if (!link?.hashed_token) return { why: 'refused', at: 'generate_link' }
 
-  const ver = await fetch(`${url}/auth/v1/verify`, {
-    method: 'POST',
-    headers: { apikey: anon, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
-    signal: AbortSignal.timeout(10_000),
-  })
-  if (!ver.ok) return null
+  /*
+   * ONE RETRY ON 429, and only on 429. The window is short and a single
+   * pause clears an incidental collision between two concurrent requests.
+   * It is insurance, not the fix: the cache above is what keeps us out of
+   * the limit, and retrying into a limit we are genuinely over is how the
+   * original outage got worse rather than better.
+   */
+  let ver: Response | null = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 900))
+    ver = await fetch(`${url}/auth/v1/verify`, {
+      method: 'POST',
+      headers: { apikey: anon, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (ver.ok || ver.status !== 429) break
+  }
+  if (!ver || !ver.ok) {
+    const status = ver?.status
+    return { why: status === 429 ? 'rate-limited' : 'refused', status, at: 'verify' }
+  }
   const sess = (await ver.json().catch(() => null)) as
-    | { access_token?: string; refresh_token?: string }
+    | { access_token?: string; expires_at?: number }
     | null
-  if (!sess?.access_token) return null
+  if (!sess?.access_token) return { why: 'refused', at: 'verify' }
 
-  // Revoke the long-lived half straight away. Deliberately not awaited on the
-  // critical path's behalf beyond this: if it fails the token still expires on
-  // its own, and failing the request over it would be the worse outcome.
-  void fetch(`${url}/auth/v1/logout?scope=global`, {
+  /*
+   * `scope=local`, NOT global. Global revokes every session this account has
+   * anywhere — including the one a concurrently-running instance just minted
+   * and is about to use. That was pointless churn at best and a race at
+   * worst. Local drops the refresh token for this session only; the access
+   * token keeps verifying because PostgREST checks a signature and not a
+   * session row, which was measured rather than assumed.
+   */
+  void fetch(`${url}/auth/v1/logout?scope=local`, {
     method: 'POST',
     headers: { apikey: anon, Authorization: `Bearer ${sess.access_token}` },
   }).catch(() => {})
 
-  return sess.access_token
+  return { token: sess.access_token, expiresAt: (sess.expires_at ?? 0) * 1000 }
 }
 
 /**
@@ -151,15 +207,38 @@ async function borrowSession(email: string): Promise<string | null> {
 export async function actorToken(userId: string, email: string | null): Promise<string> {
   const signed = mintActorJwt(userId, email)
   if (signed) return signed
-  if (email) {
-    const borrowed = await borrowSession(email)
-    if (borrowed) return borrowed
+  if (!email) {
+    throw new JwtUnavailable(
+      'The agent account has no email on its profile, so the API cannot act for it.',
+    )
   }
-  throw new JwtUnavailable(
-    email
-      ? 'Could not obtain a token for the agent account. Set SUPABASE_JWT_SECRET, or check that the account still exists.'
-      : 'The agent account has no email on its profile, so the API cannot act for it.',
-  )
+
+  const live = cache.get(userId)
+  if (live && live.expiresAt - Date.now() > CACHE_MARGIN_MS) return live.token
+
+  // One flight at a time per account: a burst of concurrent requests on a
+  // cold instance would otherwise mint a session each, which is the shape
+  // that exhausted the rate limit in the first place.
+  const existing = inflight.get(userId)
+  if (existing) return existing
+
+  const flight = (async () => {
+    const got = await borrowSession(email)
+    if ('token' in got) {
+      cache.set(userId, { token: got.token, expiresAt: got.expiresAt })
+      return got.token
+    }
+    throw new JwtUnavailable(
+      got.why === 'rate-limited'
+        ? `Supabase Auth rate-limited this deployment (${got.at} answered 429), so the API could not get a token for the agent account. Set SUPABASE_JWT_SECRET in the environment and it will stop calling the auth service at all.`
+        : got.why === 'unconfigured'
+          ? 'This deployment has no Supabase configuration, so the API cannot act for the agent account.'
+          : `Could not obtain a token for the agent account (${got.at} answered ${got.status ?? 'an error'}). Set SUPABASE_JWT_SECRET, or check that the account still exists.`,
+    )
+  })().finally(() => inflight.delete(userId))
+
+  inflight.set(userId, flight)
+  return flight
 }
 
 function base(): { url: string; anon: string } | null {

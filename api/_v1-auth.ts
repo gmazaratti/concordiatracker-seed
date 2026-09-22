@@ -21,7 +21,7 @@ export interface Caller {
 }
 
 export interface AuthFailure {
-  status: 401 | 429 | 500
+  status: 401 | 429 | 500 | 503
   message: string
   retryAfter?: number
 }
@@ -45,6 +45,7 @@ export async function rpc<T>(name: string, body: Record<string, unknown>): Promi
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   })
   if (!res.ok) return null
   return (await res.json().catch(() => null)) as T | null
@@ -72,6 +73,7 @@ export async function rpcRaw(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   })
   const parsed = await res.json().catch(() => null)
   return res.ok ? { ok: true, data: parsed } : { ok: false, error: parsed ?? {} }
@@ -122,8 +124,44 @@ export async function authenticate(req: {
   // Hashed here rather than sent to the database as plaintext, so the token
   // never appears in a query log.
   const hash = createHash('sha256').update(token, 'utf8').digest('hex')
-  const rows = await rpc<CheckRow[]>('ct_api_token_check', { p_hash: hash, p_limit: 120 })
-  const row = rows?.[0]
+
+  /*
+   * A LOOKUP THAT FAILED IS NOT A TOKEN THAT IS WRONG.
+   *
+   * This used to call `rpc`, which answers null for a refusal and for a
+   * timeout and for a 500 alike — so any wobble in the database came out of
+   * here as "That token is not valid." on every endpoint at once. That is the
+   * worst possible lie for this particular sentence: it sends someone to
+   * re-mint a credential that was fine, and it looks exactly like a
+   * revocation they did not perform. 503 says "ask again", 401 says "never".
+   *
+   * Same distinction `rpcRaw` exists for, and the same one the ticket list
+   * and the admin queue both needed: loading, failing and empty are three
+   * states, not two.
+   */
+  let rows: CheckRow[] | null = null
+  try {
+    const r = await rpcRaw('ct_api_token_check', { p_hash: hash, p_limit: 120 })
+    if (!r.ok) {
+      return {
+        error: {
+          status: 503,
+          message: 'Could not verify the token right now — the database did not answer. The token itself is probably fine; try again in a moment.',
+          retryAfter: 2,
+        },
+      }
+    }
+    rows = (r.data ?? []) as CheckRow[]
+  } catch {
+    return {
+      error: {
+        status: 503,
+        message: 'Could not reach the database to verify the token. Try again in a moment.',
+        retryAfter: 5,
+      },
+    }
+  }
+  const row = rows[0]
 
   if (!row) {
     // Deliberately the same sentence for "never existed" and "revoked": which

@@ -184,6 +184,110 @@ console.log('\nchoosing a route')
   if (keep.anon) process.env.VITE_SUPABASE_ANON_KEY = keep.anon
 }
 
+/* ── The fallback session is reused, which is what the outage was ───────── */
+{
+  console.log('\nborrowed session: cached, single-flight')
+
+  /*
+   * THE REGRESSION THIS GUARDS. Every admin-scope request used to mint its
+   * own session, so `/auth/v1/verify` — which the auth service rate-limits
+   * per IP — ran once per request. On 2026-09-22 an agent made 107 calls in
+   * 2m26s, that endpoint began answering 429 `over_request_rate_limit`, and
+   * every admin-scope call 503'd behind it. One session per INSTANCE instead
+   * of one per REQUEST is the difference between about one auth call an hour
+   * and a hundred in two minutes, so counting the calls is the assertion.
+   */
+  const keep = {
+    url: process.env.VITE_SUPABASE_URL,
+    svc: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    anon: process.env.VITE_SUPABASE_ANON_KEY,
+    secret: process.env.SUPABASE_JWT_SECRET,
+    fetch: globalThis.fetch,
+  }
+  delete process.env.SUPABASE_JWT_SECRET
+  process.env.VITE_SUPABASE_URL = 'https://example.test'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'svc'
+  process.env.VITE_SUPABASE_ANON_KEY = 'anon'
+
+  const calls = []
+  let verifyStatus = 200
+  globalThis.fetch = async (url) => {
+    const u = String(url)
+    calls.push(u)
+    if (u.includes('generate_link')) {
+      return new Response(JSON.stringify({ hashed_token: 'h' }), { status: 200 })
+    }
+    if (u.includes('/auth/v1/verify')) {
+      if (verifyStatus !== 200) {
+        return new Response(JSON.stringify({ error_code: 'over_request_rate_limit' }), {
+          status: verifyStatus,
+        })
+      }
+      return new Response(
+        JSON.stringify({
+          access_token: 'borrowed.jwt.here',
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+        }),
+        { status: 200 },
+      )
+    }
+    return new Response('', { status: 204 }) // the logout
+  }
+
+  const uid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+  const fresh = (tag) => import(`./_v1-jwt.ts?cachetest=${tag}`)
+
+  const modA = await fresh('a')
+  const first = await modA.actorToken(uid, 'agent@example.com')
+  const gen1 = calls.filter((c) => c.includes('generate_link')).length
+  check('the first call borrows a session', first === 'borrowed.jwt.here' && gen1 === 1, `generate_link x${gen1}`)
+
+  await modA.actorToken(uid, 'agent@example.com')
+  await modA.actorToken(uid, 'agent@example.com')
+  const gen2 = calls.filter((c) => c.includes('generate_link')).length
+  check('two more calls reuse it rather than minting again', gen2 === 1, `generate_link x${gen2}, want 1`)
+
+  check(
+    'the session is revoked with scope=local, never global',
+    calls.some((c) => c.includes('logout?scope=local')) && !calls.some((c) => c.includes('scope=global')),
+  )
+
+  // A cold burst must not mint one session each.
+  const modB = await fresh('b')
+  calls.length = 0
+  await Promise.all(Array.from({ length: 8 }, () => modB.actorToken(uid, 'agent@example.com')))
+  const genBurst = calls.filter((c) => c.includes('generate_link')).length
+  check('eight concurrent cold calls mint ONE session', genBurst === 1, `generate_link x${genBurst}, want 1`)
+
+  // A 429 is retried once, then reported as a rate limit rather than as
+  // "set SUPABASE_JWT_SECRET", which was the misleading half.
+  const modC = await fresh('c')
+  verifyStatus = 429
+  calls.length = 0
+  let err = null
+  try {
+    await modC.actorToken(uid, 'agent@example.com')
+  } catch (e) {
+    err = e
+  }
+  const verifies = calls.filter((c) => c.includes('/auth/v1/verify')).length
+  check('a 429 on verify is retried exactly once', verifies === 2, `verify x${verifies}, want 2`)
+  check(
+    'and the refusal names the rate limit, not the missing secret',
+    !!err && /rate-limited/i.test(String(err.message)) && /429/.test(String(err.message)),
+    err ? String(err.message).slice(0, 130) : 'did not throw',
+  )
+
+  globalThis.fetch = keep.fetch
+  delete process.env.VITE_SUPABASE_URL
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY
+  delete process.env.VITE_SUPABASE_ANON_KEY
+  if (keep.url) process.env.VITE_SUPABASE_URL = keep.url
+  if (keep.svc) process.env.SUPABASE_SERVICE_ROLE_KEY = keep.svc
+  if (keep.anon) process.env.VITE_SUPABASE_ANON_KEY = keep.anon
+  if (keep.secret) process.env.SUPABASE_JWT_SECRET = keep.secret
+}
+
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) FAILED.`)
 // exitCode rather than process.exit(): the dynamic import above leaves the
 // module loader mid-teardown, and exiting hard from inside it aborts on
