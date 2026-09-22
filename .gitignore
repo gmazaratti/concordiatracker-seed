@@ -39,6 +39,10 @@ scripts/*
 !scripts/scrape-outlines.mjs
 !scripts/send-test-email.mjs
 !scripts/stamp-sw.mjs
+!scripts/sync-sections.mjs
+# Kept even though it is a one-off: it is the record of WHICH reviews we
+# were licensed to take and which we refused. This repo is public.
+!scripts/import-cc-reviews.mjs
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/
@@ -63,3 +67,11 @@ android/
 
 # Supabase CLI link state (local only; holds the project ref + pooler creds)
 supabase/
+
+# Third-party data dumps pulled for one-off imports (46MB+). Never committed:
+# the licence covers using the reviews, not redistributing the file.
+.import/
+cc229.json
+od229.json
+st.json
+rv.txt
