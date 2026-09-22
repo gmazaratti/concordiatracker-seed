@@ -1841,6 +1841,28 @@ console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
   check('a personal token is prefixed ct_per_', (await db.query(`select public.ct_api_scope_prefix('me') as p`)).rows[0].p, 'ct_per_')
   check('  and support did not get lost again', (await db.query(`select public.ct_api_scope_prefix('support') as p`)).rows[0].p, 'ct_sup_')
 
+  // ── The table has to accept what the mint function offers ───────────
+  // These disagreed in production: create_api_token said yes to 'admin' and
+  // the CHECK constraint said no, so the console showed a database error on
+  // a button that looked fine. A fourth copy of the same list.
+  const insertScope = async (scope) => {
+    try {
+      await db.query(
+        `insert into public.api_tokens (user_id, scope, name, token_hash, prefix) values ($1, $2, 'probe', 'h', 'p')`,
+        [ADMIN, scope],
+      )
+      return true
+    } catch {
+      return false
+    }
+  }
+  for (const scope of scopes) {
+    // (actual, expected) — this harness is not the boolean-plus-detail kind.
+    check(`the table accepts a "${scope}" token`, await insertScope(scope), true)
+  }
+  check('  and still refuses one that is not on the list', await insertScope('root'), false)
+  await db.exec(`delete from public.api_tokens where name = 'probe'`)
+
   // ── The claim flips the bypass, and only the bypass ──────────────────
   const agentNow = async () => (await db.query('select public.ct_is_agent() as a')).rows[0].a
   const adminWrite = async () => (await db.query('select public.ct_admin_write() as a')).rows[0].a

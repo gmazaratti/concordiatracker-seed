@@ -110,6 +110,20 @@ grant execute on function public.ct_api_admin_scopes() to authenticated, anon;
 grant execute on function public.ct_api_scope_prefix(text) to authenticated, anon;
 grant execute on function public.create_api_token(text, text) to authenticated;
 
+-- THE FOURTH COPY OF THE LIST, and the one that actually refused the write.
+-- `api_tokens` carries a CHECK constraint naming the scopes, added by
+-- support_api.sql and never touched since. create_api_token would have
+-- accepted 'admin' and then the INSERT would have failed with 23514, so the
+-- console would have shown a database error on a button that looked fine.
+-- Pointing the constraint at the same function means widening the list later
+-- is one edit rather than four. A CHECK may call an IMMUTABLE function;
+-- replacing that function does not re-validate existing rows, which is what
+-- we want — a scope that is withdrawn should stop being MINTED, not
+-- retroactively invalidate keys somebody is using.
+alter table public.api_tokens drop constraint if exists api_tokens_scope_valid;
+alter table public.api_tokens add constraint api_tokens_scope_valid
+  check (scope = any (public.ct_api_scopes()));
+
 -- ── The agent claim ─────────────────────────────────────────────────────────
 
 /**

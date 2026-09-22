@@ -50,9 +50,19 @@ alter table public.ticket_messages add constraint msg_role_valid
 -- customer conversations, so it should be revocable on its own without taking
 -- a statistics dashboard down with it.
 alter table public.api_tokens drop constraint if exists api_tokens_scope_check;
+-- The scope list lives in ct_api_scopes() once alfred_admin_scope.sql has
+-- run. Deferring to it means re-running THIS file cannot narrow the list
+-- back and start refusing keys the console offers.
 alter table public.api_tokens drop constraint if exists api_tokens_scope_valid;
-alter table public.api_tokens add constraint api_tokens_scope_valid
-  check (scope in ('owner', 'me', 'support'));
+do $scope$ begin
+  if to_regprocedure('public.ct_api_scopes()') is not null then
+    alter table public.api_tokens add constraint api_tokens_scope_valid
+      check (scope = any (public.ct_api_scopes()));
+  else
+    alter table public.api_tokens add constraint api_tokens_scope_valid
+      check (scope in ('owner', 'me', 'support'));
+  end if;
+end $scope$;
 
 create or replace function public.ct_new_api_token(p_scope text)
 returns text language sql volatile as $$
