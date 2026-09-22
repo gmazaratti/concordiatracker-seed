@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Check, Clock, GraduationCap, Loader2, Search, X } from 'lucide-react'
+import { Check, Clock, GraduationCap, Loader2, Search, SlidersHorizontal, SquarePen, X } from 'lucide-react'
 import { Mascot } from '@/components/Mascot'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { OrgLogo } from '@/features/community/OrgLogo'
@@ -30,6 +30,8 @@ import { ScheduleAccess } from './ScheduleAccess'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
 import { badgeForPerson, type Badge } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
+import { NotesRow } from './NotesRow'
+import { SearchOverlay } from '@/features/community/SearchOverlay'
 
 /** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
  *  inside a component body) — the same shape as `usageState` and `splitByTime`. */
@@ -169,6 +171,9 @@ export function PeoplePanel() {
   // finds strangers; this one finds a conversation you already have, which is
   // a different question and belongs on the list it narrows.
   const [threadQuery, setThreadQuery] = useState('')
+  /** The compose button. Starting a conversation means finding somebody, and
+   *  the overlay that finds people already exists. */
+  const [composing, setComposing] = useState(false)
   const refresh = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
@@ -313,10 +318,61 @@ export function PeoplePanel() {
 
   return (
     <div className="flex min-h-0 flex-col">
+      {/*
+        THE ORDER IS THE REFERENCE'S: search, then notes, then filters, then
+        the list. Search leads because it is what you reach for when you know
+        who you want; the notes row sits under it because it is a glance, not
+        a control; the filters sit directly on top of the thing they narrow.
+      */}
+      <div className="mb-1 flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            size={15}
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-subtle"
+          />
+          <input
+            type="text"
+            value={threadQuery}
+            onChange={(e) => setThreadQuery(e.target.value)}
+            placeholder="Search messages"
+            aria-label="Search your conversations"
+            className="w-full rounded-xl border border-transparent bg-surface-2 py-2 pr-8 pl-9 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+          />
+          {threadQuery && (
+            <button
+              type="button"
+              aria-label="Clear"
+              onClick={() => setThreadQuery('')}
+              className="absolute top-1/2 right-2 grid size-5 -translate-y-1/2 place-items-center rounded text-subtle transition-colors duration-150 hover:text-fg"
+            >
+              <X size={13} aria-hidden />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setComposing(true)}
+          aria-label="New message"
+          className="grid size-9 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
+        >
+          <SquarePen size={19} aria-hidden />
+        </button>
+      </div>
+
+      <NotesRow />
+      {composing && <SearchOverlay onClose={() => setComposing(false)} />}
+
       {/* One scrolling row, edges not cut. Same treatment as the event filter
           chips, because it is the same kind of control. */}
       <div className="-mx-4 mb-3 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max gap-2" role="tablist">
+        <div className="flex w-max items-center gap-2" role="tablist">
+          <span
+            aria-hidden
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-subtle"
+          >
+            <SlidersHorizontal size={15} />
+          </span>
           {PILLS.map((p) => (
             <button
               key={p.id}
@@ -398,38 +454,6 @@ export function PeoplePanel() {
                 have one means the list jumps the first time somebody writes
                 to you, and its absence reads as a panel that has not finished
                 loading rather than one with nothing in it. */}
-            {/* No panel behind it on a phone. The list there is plain page flow, so a
-    full-width sticky band with square corners read as a stray block behind
-    the rounded field. In the desktop two-pane layout it IS a panel header,
-    and keeps its background. */}
-            <div className="sticky top-0 z-10 p-2 lg:border-b lg:border-border lg:bg-surface/95 lg:backdrop-blur-sm">
-                <div className="relative">
-                  <Search
-                    size={14}
-                    aria-hidden
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-subtle"
-                  />
-                  <input
-                    type="text"
-                    value={threadQuery}
-                    onChange={(e) => setThreadQuery(e.target.value)}
-                    placeholder="Search messages"
-                    aria-label="Search your conversations"
-                    className="w-full rounded-lg border border-transparent bg-surface-2 py-1.5 pr-7 pl-8 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-                  />
-                  {threadQuery && (
-                    <button
-                      type="button"
-                      aria-label="Clear"
-                      onClick={() => setThreadQuery('')}
-                      className="absolute top-1/2 right-1.5 grid size-5 -translate-y-1/2 place-items-center rounded text-subtle transition-colors duration-150 hover:text-fg"
-                    >
-                      <X size={12} aria-hidden />
-                    </button>
-                  )}
-                </div>
-            </div>
-
             {accepted.length === 0 && orgThreads.length === 0 ? (
               <div className="lg:p-4">
                 <Empty

@@ -54,7 +54,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   // returning, already-onboarded user never flashes the app before redirecting.
   if (loading || (user && onboardingCompleted === null)) {
     return (
-      <div className="grid h-svh place-items-center bg-canvas">
+      <div className="grid h-[100dvh] place-items-center bg-canvas">
         <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
       </div>
     )
@@ -64,7 +64,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
 
   return (
     <TourProvider>
-    <div className="flex h-svh overflow-hidden bg-canvas">
+    <div className="flex h-[100dvh] overflow-hidden bg-canvas">
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">

@@ -76,7 +76,14 @@ export function CommunityPage() {
    * the top bar covers that case on Feed; Events and Messages, where you are
    * genuinely looking for a thing, keep the field.
    */
-  const showSearch = section !== 'profile' && section !== 'feed'
+  /*
+   * Messages dropped out of this too. It now carries its own field at the top
+   * — the one that narrows the conversations below it, which is the search
+   * you want on that screen — and a second bar above it searching strangers
+   * is the duplicate-control fault this page was rebuilt to remove. Finding
+   * somebody new is the compose button, next to that field.
+   */
+  const showSearch = section === 'events'
 
   return (
     <div className="mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5">

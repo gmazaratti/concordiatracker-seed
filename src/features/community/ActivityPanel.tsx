@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Bell, MessageSquare, X } from 'lucide-react'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
+import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { Mascot } from '@/components/Mascot'
 import { useCommunity } from './useCommunity'
 import type { EventOrg } from '@/data/community'
@@ -12,6 +13,9 @@ import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
 
 const DAY = 86_400_000
+/** Matches ct-panel-right-out. One number, so the CSS and the unmount
+ *  cannot drift into a flash of an already-gone panel. */
+const EXIT_MS = 200
 /** Module level: `react-hooks/purity` bars a clock read in a component body. */
 const nowMs = () => Date.now()
 
@@ -49,7 +53,23 @@ const FILTERS: { id: Filter; label: string }[] = [
  * screen is instead. Everything else is the reference, in our colours.
  */
 export function ActivityPanel({ onClose }: { onClose: () => void }) {
-  const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
+  /*
+   * LEAVING IS AN ANIMATION TOO. Opening slid in and closing simply stopped
+   * existing, which reads as a fault rather than a dismissal. So `close`
+   * marks the panel as leaving, lets the slide run, and unmounts on a TIMER —
+   * not on `animationend`, because the global reduced-motion rule zeroes
+   * every duration and an event at 0ms is a race the panel would sometimes
+   * lose and stay on screen forever.
+   */
+  const reduced = usePrefersReducedMotion()
+  const [leaving, setLeaving] = useState(false)
+  const close = () => {
+    if (leaving) return
+    if (reduced) return onClose()
+    setLeaving(true)
+    setTimeout(onClose, EXIT_MS)
+  }
+  const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(close)
   const { orgs } = useCommunity()
   const { items } = useActivityFeed()
   const [filter, setFilter] = useState<Filter>('all')
@@ -94,8 +114,11 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       {/* Desktop only: the sheet does not cover the page, so there has to be
           something to click past it. On a phone it IS the page. */}
       <div
-        className="fixed inset-0 z-[79] hidden bg-black/50 md:block"
-        onClick={onClose}
+        className={cn(
+          'fixed inset-0 z-[79] hidden bg-black/50 md:block',
+          leaving && 'ct-scrim-out',
+        )}
+        onClick={close}
         aria-hidden
       />
       <div
@@ -106,9 +129,13 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Notifications"
         className={cn(
-          'ct-panel-right fixed z-[80] flex flex-col bg-canvas',
-          // Phone: the whole screen.
-          'inset-0 h-[100dvh]',
+          'fixed z-[80] flex flex-col bg-canvas',
+          leaving ? 'ct-panel-right-out' : 'ct-panel-right',
+          // Phone: the whole screen. `touch-action` allows the list to scroll
+          // and nothing else — a pinch on a notification list only ever
+          // happens by accident, and it leaves the page zoomed with no
+          // obvious way back.
+          'inset-0 h-[100dvh] touch-pan-y',
           // Desktop: anchored to the right edge, its own column.
           'md:inset-y-0 md:left-auto md:h-full md:w-[27rem] md:border-l md:border-border md:shadow-2xl',
         )}
@@ -119,13 +146,13 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-1 px-2 py-2 md:hidden">
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               aria-label="Back"
               className="grid size-9 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
             >
               <ArrowLeft size={22} aria-hidden />
             </button>
-            <h2 className="min-w-0 flex-1 text-[19px] font-bold text-fg">Notifications</h2>
+            <h2 className="min-w-0 flex-1 text-[17px] font-bold text-fg">Notifications</h2>
           </div>
 
           {/* Desktop: the title carries the weight, and the X is the way out. */}
@@ -133,7 +160,7 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
             <h2 className="text-[23px] font-bold text-fg">Notifications</h2>
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               aria-label="Close"
               className="-mt-1 grid size-8 shrink-0 place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
             >
@@ -148,7 +175,7 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'shrink-0 rounded-full px-4 py-1.5 text-[14px] font-medium transition-colors duration-150 md:text-[13px]',
+                  'shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150 md:text-[12.5px]',
                   filter === f.id
                     ? 'bg-fg text-canvas'
                     : 'bg-surface-2 text-fg hover:bg-surface-2/70',
@@ -174,7 +201,7 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
           ) : (
             groups.map((g) => (
               <section key={g.label}>
-                <h3 className="px-4 pt-4 pb-1 text-[17px] font-bold text-fg md:px-6 md:text-[15px]">
+                <h3 className="px-4 pt-4 pb-1 text-[15px] font-bold text-fg md:px-6 md:text-[14px]">
                   {g.label}
                 </h3>
                 <ul>
@@ -340,7 +367,7 @@ function Row({
       <span className="min-w-0 flex-1">
         <Sentence strong={n.title} rest="" age={age} />
         {n.body && (
-          <span className="mt-0.5 block truncate text-[13.5px] text-subtle md:text-[12.5px]">
+          <span className="mt-0.5 block truncate text-[12.5px] text-subtle md:text-[12px]">
             {n.body}
           </span>
         )}
@@ -380,7 +407,7 @@ function Face({
    * state rather than by mutating the node, so the initials actually render.
    */
   const [failed, setFailed] = useState(false)
-  const box = 'size-14 shrink-0 rounded-full md:size-11'
+  const box = 'size-12 shrink-0 rounded-full md:size-11'
   if (src && !failed) {
     return (
       <img
@@ -396,7 +423,7 @@ function Face({
   }
   return (
     <span
-      className={cn(box, 'grid place-items-center text-[15px] font-semibold text-white md:text-[13px]')}
+      className={cn(box, 'grid place-items-center text-[13px] font-semibold text-white md:text-[12.5px]')}
       style={{ backgroundColor: color ?? 'var(--ct-surface-2)' }}
     >
       {(name ?? '?').slice(0, 2).toUpperCase()}
@@ -430,7 +457,7 @@ function Action({
   onClick?: () => void
 }) {
   const cls = cn(
-    'shrink-0 rounded-lg px-4 py-1.5 text-[14px] font-semibold transition-colors duration-150 md:px-3.5 md:text-[12.5px]',
+    'shrink-0 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors duration-150 md:text-[12.5px]',
     accent
       ? 'bg-accent text-accent-contrast hover:bg-accent-hover'
       : 'bg-surface-2 text-fg hover:bg-surface-2/70',
@@ -447,7 +474,7 @@ function Action({
  *  wraps, with the time inline rather than on its own row. */
 function Sentence({ strong, rest, age }: { strong: string; rest: string; age: string }) {
   return (
-    <span className="block text-[15px] leading-snug text-fg md:text-[13.5px]">
+    <span className="block text-[13.5px] leading-snug text-fg md:text-[13px]">
       <span className="font-semibold">{strong}</span>
       {rest ? ` ${rest}` : ''} <span className="text-subtle">{age}</span>
     </span>

@@ -131,7 +131,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="grid min-h-svh place-items-center bg-canvas px-5">
+    <div className="grid min-h-[100dvh] place-items-center bg-canvas px-5">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex justify-center">
           <Logo size="lg" />
