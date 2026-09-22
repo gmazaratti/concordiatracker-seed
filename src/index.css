@@ -418,6 +418,33 @@ html {
   animation: ct-sheet-in 220ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
+/* The notifications sheet, in from the right edge it is anchored to.
+ *
+ * NO FILL MODE, and that is the whole point. An entrance that translates its
+ * own element must not fill: `backwards` and `both` both hold the FROM state
+ * whenever the animation does not run, and the from state here is a panel
+ * parked one full width off the side of the screen. Caught exactly that way —
+ * in a harness that never advanced the animation clock, the panel measured
+ * 432px wide at x=1280 with a stuck translateX(432px). A compositor hiccup, a
+ * throttled tab or an embedded webview would do the same thing to a real
+ * person, and the failure is invisible rather than ugly.
+ *
+ * Unfilled, the element rests on its own styles and the slide is decoration
+ * that is free to not happen. (It also sidesteps the other trap: a filled
+ * transform never clears, and any transform makes an element the containing
+ * block for every fixed descendant it holds.) */
+@keyframes ct-panel-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.ct-panel-right {
+  animation: ct-panel-right 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @keyframes ct-pop-in {
   from {
     opacity: 0;

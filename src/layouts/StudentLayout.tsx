@@ -35,32 +35,20 @@ import { TourOverlay } from '@/features/tour/TourOverlay'
 export function StudentLayout({ children }: { children?: React.ReactNode } = {}) {
   const { user, loading } = useAuth()
   const { onboardingCompleted } = useAppData()
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
 
   /**
-   * Community carries its own search bar, so the app's magnifier stands down
-   * while you are in it.
+   * A PROFILE OWNS THE WHOLE SCREEN, and so does Community.
    *
-   * Two search doors on one screen — an icon in the top bar and a field
-   * directly under it — is the thing that made this tab feel cluttered, and the
-   * one you would reach for there is the one that searches people and clubs,
-   * not the command palette. Everywhere else the palette is still the spine.
+   * The app bar puts the wordmark on the left and your own avatar on the
+   * right. Above a profile that is two of the same face, one of them a control
+   * that goes nowhere useful from here. Above Community it is worse: a second
+   * navigation stacked on a tab that already carries its own search, its own
+   * sections and your own profile, which is the clutter this tab was rebuilt
+   * to remove. Both render what they need themselves.
    */
-  const communitySection = new URLSearchParams(search).get('c') ?? 'feed'
-  const communitySearchOwnsIt =
-    pathname.startsWith('/app/community') &&
-    // Feed has no field of its own any more, so the magnifier comes back —
-    // search still has to be one tap from the landing section.
-    communitySection !== 'feed'
-
-  /**
-   * A PROFILE OWNS THE WHOLE SCREEN. The app bar puts the wordmark on the left
-   * and your own avatar on the right — directly above a page whose entire
-   * subject is that avatar. Two of the same face, one of them a control that
-   * goes nowhere useful from here. The profile renders its own bar instead,
-   * with the handle where the wordmark was.
-   */
-  const profileOwnsTheBar = pathname.startsWith('/@') || communitySection === 'profile'
+  const ownsTheWholeScreen =
+    pathname.startsWith('/@') || pathname.startsWith('/app/community')
 
   // First-login onboarding gate. Wait for the profile to load (null) so a
   // returning, already-onboarded user never flashes the app before redirecting.
@@ -81,11 +69,11 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
-        {!profileOwnsTheBar && (
+        {!ownsTheWholeScreen && (
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
             <Logo />
             <div className="flex shrink-0 items-center gap-1">
-              {!communitySearchOwnsIt && <MobileSearchButton />}
+              <MobileSearchButton />
               <AvatarMenu align="top" compact />
             </div>
           </header>

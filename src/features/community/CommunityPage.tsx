@@ -88,19 +88,22 @@ export function CommunityPage() {
         </div>
       )}
 
-      {/* The bell sits alone above the feed, top right, where every product
-          of this shape puts it — and only on Feed, because notifications are
-          something you open, clear and leave rather than furniture. */}
-      {section === DEFAULT_SECTION && (
-        <div className="mb-1 flex justify-end">
-          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
-        </div>
-      )}
+      {/* Phone: the sections live in the bottom bar, so the bell needs a home
+          of its own up here. It is the only thing on the row — the app's own
+          top bar stands down over Community, so there is nothing to sit
+          beside. */}
+      <div className="mb-1 flex justify-end md:hidden">
+        <ActivityButton count={bell} onOpen={() => setActivity(true)} />
+      </div>
 
-      {/* Desktop only: the phone reaches these from the bottom bar, and two
+      {/* Desktop: the sections, and the bell on the same row at the far end.
+          The phone reaches the sections from the bottom bar, and two
           navigations for one set of destinations is the clutter this whole
           layout exists to avoid. */}
-      <nav className="mb-4 hidden gap-1 border-b border-border md:flex" role="tablist">
+      <nav
+        className="mb-4 hidden items-center gap-1 border-b border-border md:flex"
+        role="tablist"
+      >
         {COMMUNITY_SECTIONS.map((s) => {
           const on = section === s.id
           const badge = s.id === 'messages' ? waiting : 0
@@ -126,6 +129,11 @@ export function CommunityPage() {
             </button>
           )
         })}
+        {/* Not a tab, and not inside the tablist's reading order as one: it
+            opens a sheet rather than switching the pane below. */}
+        <span className="ml-auto pb-1">
+          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
+        </span>
       </nav>
 
       {/* Keyed on the section so the animation replays on every switch, and so

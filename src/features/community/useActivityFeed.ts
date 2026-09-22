@@ -106,7 +106,26 @@ export function useActivityFeed(): ActivityFeed {
       }
     }
 
+    /*
+     * A FOLLOW ARRIVES TWICE. The database trigger writes a notification for
+     * it, and the follow itself shows up in the friend list — and it is the
+     * friend row that carries the Follow-back button, so the stored copy is
+     * the same sentence with nothing to do about it. The panel was showing
+     * both, one under the other.
+     *
+     * Matched on the actor's name because the trigger leaves subject_id null,
+     * and dropped only on a match: an unrecognised follow notification is
+     * still shown rather than silently lost.
+     */
+    const inFriendList = new Set(
+      (friends ?? []).map((f) => (f.name ?? f.handle).trim().toLowerCase()),
+    )
     for (const n of stored) {
+      const dupe =
+        n.kind === 'follow' &&
+        !!n.actor_name &&
+        inFriendList.has(n.actor_name.trim().toLowerCase())
+      if (dupe) continue
       out.push({ kind: 'stored', id: `nt-${n.id}`, at: new Date(n.created_at).getTime(), n })
     }
 
