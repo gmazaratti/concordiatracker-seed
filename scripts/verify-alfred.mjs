@@ -217,8 +217,11 @@ console.log('\nthe line that must hold: publishing needs membership')
     const post = await call('POST', `/api/v1/orgs/${other.handle.slice(1)}/posts`, { media: ['https://x/y.png'] })
     check('  and posting to it is refused', post.status === 403, `got ${post.status}`)
 
+    // There is no claim verb any more, and that is the point: an earlier
+    // version had one guarded by "the org has no team yet", and almost every
+    // seeded organisation has no team, so it was one call to self-grant.
     const claim = await call('POST', `/api/v1/orgs/${other.handle.slice(1)}/claim`)
-    check('  and it cannot be claimed out from under its team', claim.status === 403, `got ${claim.status}`)
+    check('  and there is no way to join it', claim.status === 404, `got ${claim.status}`)
   }
 }
 

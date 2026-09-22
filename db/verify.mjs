@@ -1808,6 +1808,18 @@ console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
     create policy i_read on public.org_invites   for select using (true);
     create or replace function public.ct_hash_api_token(p_token text) returns text
       language sql immutable as $$ select md5(p_token) $$;
+    create or replace function public.admin_create_org(
+      p_name text, p_handle text, p_glyph text, p_color text, p_bio text default '',
+      p_logo text default null, p_banner text default null, p_verified boolean default true)
+    returns uuid language plpgsql security definer as $$
+    declare v uuid;
+    begin
+      if not public.is_admin() then raise exception 'not authorized'; end if;
+      insert into public.organizations (owner_id, handle, name, verified, glyph, color, bio, logo, banner, status)
+        values (null, p_handle, p_name, coalesce(p_verified,false), p_glyph, p_color, p_bio, p_logo, p_banner, 'approved')
+        returning id into v;
+      return v;
+    end $$;
     create or replace function public.org_perm(p_org uuid, p_perm text)
     returns boolean language sql stable security definer as $$
       select exists (select 1 from public.organizations o where o.id = p_org and o.owner_id = auth.uid())
@@ -1948,24 +1960,31 @@ console.log(String.fromCharCode(10) + 'db/alfred_admin_scope.sql')
     blocked || (await db.query(`select count(*)::int as n from public.events where title = 'Gatecrash'`)).rows[0].n === 0,
     true)
 
-  // ── Claiming an org with no team, and refusing one with a team ───────
-  const claimed = (await db.query(`select public.ct_agent_claim_org('${theirs}') as id`)).rows[0].id
-  check('an agent can take an ownerless, teamless org', typeof claimed, 'string')
-  check('  and is then an active owner-member',
-    (await db.query(`select role || ':' || status as r from public.org_members where org_id = '${theirs}' and user_id = '${ADMIN}'`)).rows[0].r,
-    'owner:active')
-  check('  which lets it publish', await canAct(), true)
+  // ── Creating gives membership; nothing else does ─────────────────────
+  // An earlier version had ct_agent_claim_org, guarded by "the org has no
+  // team yet". The acceptance script showed what that meant in practice:
+  // almost every seeded organisation has no team, so the agent could join
+  // @reggiesmtl and publish as a real venue. Membership was one call away
+  // from anything, which made the whole rule decorative. The verb is gone.
+  check('there is no verb for joining an organisation that already exists',
+    (await db.query(`select to_regprocedure('public.ct_agent_claim_org(uuid)') is null as gone`)).rows[0].gone,
+    true)
 
-  await db.exec(`insert into public.organizations (handle, name) values ('@taken', 'Taken')`)
-  const taken = (await db.query(`select id from public.organizations where handle = '@taken'`)).rows[0].id
-  await db.exec(`insert into public.org_members (org_id, user_id, role, status) values ('${taken}', '${MEMBER}', 'owner', 'active')`)
-  let refused = false
-  try {
-    await db.query(`select public.ct_agent_claim_org('${taken}')`)
-  } catch {
-    refused = true
-  }
-  check('an org that already has a team cannot be taken over', refused, true)
+  await db.exec(`insert into public.organizations (handle, name, status) values ('@unclaimed', 'Nobody runs this', 'approved')`)
+  const unclaimed = (await db.query(`select id from public.organizations where handle = '@unclaimed'`)).rows[0].id
+  check('  and a teamless org stays out of reach',
+    (await db.query(`select public.ct_can_act_as_org('${unclaimed}') as a`)).rows[0].a, false)
+
+  const madeId = (await db.query(
+    `select public.ct_agent_create_org('Probe Society', '@probe', 'PS', '#333', '', null, null, false) as id`,
+  )).rows[0].id
+  check('creating one does give membership, in the same statement', typeof madeId, 'string')
+  check('  as an active owner-member',
+    (await db.query(`select role || ':' || status as r from public.org_members where org_id = '${madeId}' and user_id = '${ADMIN}'`)).rows[0].r,
+    'owner:active')
+  check('  which is what lets it publish there',
+    (await db.query(`select public.ct_can_act_as_org('${madeId}') as a`)).rows[0].a, true)
+  check('  and nowhere else', await canAct(), false)
 
   // ── Every agent write leaves a trace ─────────────────────────────────
   await db.query(`select public.ct_agent_audit('agent.test', '${theirs}'::uuid, '{"k":1}'::jsonb)`)

@@ -196,48 +196,54 @@ create policy "org_invites_admin" on public.org_invites for all
   with check (public.ct_admin_write()
               or (org_id is not null and public.org_perm(org_id, 'manage_team')));
 
--- ── Seeding membership on an org that has none ──────────────────────────────
+-- ── Creating an organisation, and joining it in the same breath ────────────
 
 /**
- * Add the caller as the owner-member of an organisation that has no team yet.
+ * Create an organisation and put the caller on its team, atomically.
  *
- * Without this an agent could create an org (an admin act) and then never
- * publish to it, because publishing needs membership and adding membership
- * needs membership. Deliberately bounded: admin only, and only while the org
- * has NOBODY on it, so it can never be used to join a club that already has
- * people running it.
+ * THERE IS DELIBERATELY NO "JOIN AN EXISTING ORG" VERB. An earlier version of
+ * this file had one, guarded only by "the org has no team yet" — and the
+ * acceptance script caught what that actually meant: almost every seeded
+ * organisation has no team, so the agent could self-join @reggiesmtl, or any
+ * other club whose profile we set up, and then publish as it. That makes
+ * "publishing needs membership" decorative, because membership was one call
+ * away for anything.
+ *
+ * So the only membership an agent can give itself is on an organisation it
+ * just created, in the same statement, where there is nobody to displace.
+ * Granting it an EXISTING organisation is a human act: an admin adds the row
+ * from their own browser, where ct_admin_write() is true because a person is
+ * not an agent.
  */
-create or replace function public.ct_agent_claim_org(p_org uuid)
-returns uuid language plpgsql security definer set search_path = public as $$
-declare v_uid uuid := auth.uid(); v_id uuid; v_email text;
+create or replace function public.ct_agent_create_org(
+  p_name text,
+  p_handle text,
+  p_glyph text,
+  p_color text,
+  p_bio text default '',
+  p_logo text default null,
+  p_banner text default null,
+  p_verified boolean default false
+) returns uuid language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v_org uuid; v_email text;
 begin
   if v_uid is null or not public.is_admin() then
     raise exception 'not authorized' using errcode = '42501';
   end if;
-  if not exists (select 1 from public.organizations o where o.id = p_org) then
-    raise exception 'No such organisation.' using errcode = 'P0002';
-  end if;
 
-  select id into v_id from public.org_members
-   where org_id = p_org and user_id = v_uid limit 1;
-  if v_id is not null then
-    update public.org_members set status = 'active', role = 'owner' where id = v_id;
-    return v_id;
-  end if;
-
-  if exists (select 1 from public.org_members m where m.org_id = p_org and coalesce(m.status,'active') = 'active') then
-    raise exception 'That organisation already has a team. Ask one of them to invite you.'
-      using errcode = '42501';
-  end if;
+  v_org := public.admin_create_org(p_name, p_handle, p_glyph, p_color, p_bio, p_logo, p_banner, p_verified);
 
   select email into v_email from auth.users where id = v_uid;
   insert into public.org_members (org_id, user_id, name, email, role, status, joined_at)
-  values (p_org, v_uid, coalesce(split_part(v_email, '@', 1), 'Agent'), v_email, 'owner', 'active', now())
-  returning id into v_id;
-  return v_id;
+  values (v_org, v_uid, coalesce(split_part(v_email, '@', 1), 'Agent'), v_email, 'owner', 'active', now());
+
+  return v_org;
 end;
 $$;
-grant execute on function public.ct_agent_claim_org(uuid) to authenticated;
+grant execute on function public.ct_agent_create_org(text, text, text, text, text, text, text, boolean) to authenticated;
+
+-- Gone, and not replaced. See the note above.
+drop function if exists public.ct_agent_claim_org(uuid);
 
 -- ── Audit ───────────────────────────────────────────────────────────────────
 

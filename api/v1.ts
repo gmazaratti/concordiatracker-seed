@@ -51,7 +51,6 @@ import {
 } from './_v1-support.js'
 import { adminCall, adminIndex } from './_v1-admin.js'
 import {
-  claimOrg,
   createOrg,
   getOrg,
   listOrgs,
@@ -113,7 +112,6 @@ const INDEX = {
       'POST /api/v1/admin/{name}  the non-destructive writes',
       'GET|POST /api/v1/orgs',
       'GET|PATCH /api/v1/orgs/{handle}',
-      'POST /api/v1/orgs/{handle}/claim',
       'POST /api/v1/orgs/{handle}/logo | /banner | /media   (image bytes)',
       'GET|POST /api/v1/orgs/{handle}/events, PATCH /events/{id}',
       'GET|POST /api/v1/orgs/{handle}/posts, DELETE /posts/{id}',
@@ -441,10 +439,6 @@ export default async function handler(req: any, res: any) {
       }
 
       switch (section) {
-        case 'claim':
-          if (M !== 'POST') return void fail(res, 405, 'Claiming is a POST.')
-          return void send(res, await claimOrg(jwt, handle))
-
         case 'logo':
         case 'banner':
           if (M !== 'POST') return void fail(res, 405, 'Uploading an image is a POST.')

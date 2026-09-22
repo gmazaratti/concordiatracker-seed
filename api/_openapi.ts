@@ -1559,7 +1559,9 @@ export const OPENAPI = {
           'Creates an approved organisation and makes this account its owner-member, so it can ' +
           'publish straight away. A real club can be handed the organisation later with an ' +
           'invite of kind "org". Research the branding from the club own public sources before ' +
-          'calling this: name, bio, colour and images are all settable here or by PATCH.',
+          'calling this: name, bio, colour and images are all settable here or by PATCH. ' +
+          'This is the ONLY way an agent gains publishing rights over an organisation; being ' +
+          'added to one that already exists is an action a human admin takes.',
         security: [{ adminToken: [] }],
         requestBody: {
           required: true,
@@ -1635,22 +1637,6 @@ export const OPENAPI = {
           },
         },
         responses: { '200': { description: 'The updated organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
-      },
-    },
-
-    '/api/v1/orgs/{handle}/claim': {
-      post: {
-        operationId: 'claimOrganization',
-        tags: ['Organizations API'],
-        summary: 'Join an organisation that has no team yet',
-        description:
-          'Makes this account the owner-member of an organisation that nobody is on, so it can ' +
-          'publish. Refused once anybody else is on the team.',
-        security: [{ adminToken: [] }],
-        parameters: [
-          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
-        ],
-        responses: { '200': { description: 'The organisation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
       },
     },
 

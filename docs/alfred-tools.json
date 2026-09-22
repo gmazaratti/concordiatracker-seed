@@ -178,22 +178,6 @@
       }
     },
     {
-      "name": "claimOrganization",
-      "description": "POST /api/v1/orgs/{handle}/claim. Join an organisation that has no team yet. Makes this account the owner-member of an organisation that nobody is on, so it can publish. Refused once anybody else is on the team.",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "handle": {
-            "type": "string",
-            "description": "The organisation handle. The @ is optional."
-          }
-        },
-        "required": [
-          "handle"
-        ]
-      }
-    },
-    {
       "name": "createMyAssignment",
       "description": "POST /api/v1/me/assignments. Add an assignment. Needs a title. A course_id is checked against your own courses first, so an assignment cannot be filed against a stranger course. An omitted or null due_at means the date is unknown — it is never invented.",
       "input_schema": {
@@ -256,7 +240,7 @@
     },
     {
       "name": "createOrganization",
-      "description": "POST /api/v1/orgs. Create an organisation and take it on. Creates an approved organisation and makes this account its owner-member, so it can publish straight away. A real club can be handed the organisation later with an invite of kind \"org\". Research the branding from the club own public sources before calling this: name, bio, colour and images are all settable here or by PATCH.",
+      "description": "POST /api/v1/orgs. Create an organisation and take it on. Creates an approved organisation and makes this account its owner-member, so it can publish straight away. A real club can be handed the organisation later with an invite of kind \"org\". Research the branding from the club own public sources before calling this: name, bio, colour and images are all settable here or by PATCH. This is the ONLY way an agent gains publishing rights over an organisation; being added to one that already exists is an action a human admin takes.",
       "input_schema": {
         "type": "object",
         "properties": {

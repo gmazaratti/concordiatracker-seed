@@ -80,7 +80,7 @@ async function requireMember(
     `This token is not on ${org.handle}'s team, and publishing needs membership.`,
     {
       reason: 'not_a_member',
-      hint: `Add the account to ${org.handle} in the organizer portal, or call POST /api/v1/orgs/${org.handle.slice(1)}/claim if the organisation has no team yet.`,
+      hint: `Adding this account to ${org.handle} is a human action, on purpose: an admin does it from their own browser. An agent can only put itself on an organisation it creates.`,
     },
   )
 }
@@ -131,19 +131,20 @@ export async function getOrg(jwt: string, handle: string): Promise<Out> {
 }
 
 /**
- * Create one, then take ownership of it so the same token can publish.
+ * Create one and join it, in a single statement.
  *
- * admin_create_org deliberately makes an OWNERLESS organisation, so that a
- * real club can claim it later. Without the second step the agent would be
- * able to create an org it could never post to, because publishing needs
- * membership and adding membership needs membership.
+ * admin_create_org deliberately makes an OWNERLESS organisation so a real
+ * club can be handed it later, which would leave the agent unable to publish
+ * to something it just made. ct_agent_create_org does both at once. There is
+ * deliberately no way to join an organisation that already exists — see the
+ * note in db/alfred_admin_scope.sql for what that cost when there was.
  */
 export async function createOrg(jwt: string, body: Record<string, unknown>): Promise<Out> {
   const name = str(body.name)
   const handle = str(body.handle)
   if (!name || !handle) return bad(400, 'A name and a handle are required.')
 
-  const made = await rpcAsUser<string>(jwt, 'admin_create_org', {
+  const made = await rpcAsUser<string>(jwt, 'ct_agent_create_org', {
     p_name: name,
     p_handle: norm(handle),
     p_glyph: str(body.glyph) ?? name.slice(0, 2).toUpperCase(),
@@ -156,7 +157,6 @@ export async function createOrg(jwt: string, body: Record<string, unknown>): Pro
   if (!made.ok) return bad(made.status === 403 ? 403 : 400, made.error?.message ?? 'Could not create that organisation.')
 
   const id = typeof made.data === 'string' ? made.data : null
-  if (id) await rpcAsUser(jwt, 'ct_agent_claim_org', { p_org: id })
   await rpcAsUser(jwt, 'ct_agent_audit', {
     p_action: 'agent.org.create',
     p_target: id,
@@ -164,16 +164,6 @@ export async function createOrg(jwt: string, body: Record<string, unknown>): Pro
   })
   const org = await findOrg(jwt, handle)
   return ok({ organization: org, claimed: Boolean(id) }, 201)
-}
-
-/** Join an organisation that has no team yet, so this token can publish to it. */
-export async function claimOrg(jwt: string, handle: string): Promise<Out> {
-  const org = await findOrg(jwt, handle)
-  if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
-  const r = await rpcAsUser<string>(jwt, 'ct_agent_claim_org', { p_org: org.id })
-  if (!r.ok) return bad(403, r.error?.message ?? 'Could not join that organisation.', { reason: 'claim_refused' })
-  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.org.claim', p_target: org.id, p_value: { handle: org.handle } })
-  return ok({ organization: await findOrg(jwt, handle), member_id: r.data })
 }
 
 const PROFILE_FIELDS = ['name', 'bio', 'color', 'glyph', 'email', 'links', 'venue', 'translations', 'logo', 'banner'] as const
