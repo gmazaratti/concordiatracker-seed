@@ -370,10 +370,23 @@ a write-anywhere bypass; the minted token carries a claim that switches that
 bypass off, and the check lives in the row-level security policies, so this is
 not a courtesy the endpoint extends.
 
-Creating an organisation puts the account on its team automatically, so the
-common path needs no extra step. For one that already exists, either add the
-account in the organizer portal or, if nobody is on it yet, call
-`claimOrganization`.
+Creating an organisation puts the account on its team in the same statement,
+so the common path needs no extra step. **There is no way to join one that
+already exists.** That is deliberate and it was learned the hard way: an
+earlier version let an agent join any organisation with no team yet, and
+almost every organisation set up for a club has no team, so it could join a
+real venue's profile and post as it. Being added to an existing organisation
+is a human action.
+
+If Alex wants this account on an existing organisation, he runs one statement
+as an admin:
+
+```sql
+insert into org_members (org_id, user_id, name, email, role, status, joined_at)
+select o.id, u.id, 'Alfred', u.email, 'admin', 'active', now()
+  from organizations o, auth.users u
+ where o.handle = '@thehandle' and u.email = 'alfred@concordiatracker.com';
+```
 
 Three things are not reachable at all: deleting an organisation, removing a
 teammate, and deleting a feature request or comment. Those stay in the console.
