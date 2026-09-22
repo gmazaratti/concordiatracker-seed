@@ -76,7 +76,14 @@ export function ShareSheet({
     if (picked.size === 0 || sending) return
     setSending(true)
     setError(null)
-    const body = [note.trim(), link].filter(Boolean).join('\n')
+    /*
+     * THE CARD IS THE LINK. When an attachment rides along, pasting the URL
+     * as well sent a second, uglier copy of the same thing — and a URL has no
+     * spaces to wrap at, so the bubble grew wider than the phone and dragged
+     * the page sideways. With no attachment the link is all the recipient
+     * gets, so there it stays.
+     */
+    const body = attachment ? note.trim() : [note.trim(), link].filter(Boolean).join('\n')
     const results = await Promise.all([...picked].map((id) => sendMessage(id, body, attachment)))
     setSending(false)
     const failed = results.filter(Boolean)

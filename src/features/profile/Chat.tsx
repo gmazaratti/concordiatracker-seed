@@ -415,7 +415,10 @@ export function Chat({
                         : undefined
                     }
                   >
-                    <p className="text-[15px] leading-[1.35] whitespace-pre-wrap lg:text-[14px]">
+                    {/* `break-words`: a pasted URL has no spaces to break at,
+                        so the bubble grew wider than the phone and dragged the
+                        page sideways with it. */}
+                    <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]">
                       {m.body}
                     </p>
                     {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
@@ -564,34 +567,36 @@ export function Chat({
 
       {attachOpen && (
         <AttachSheet
-          classes={attachables.term.map((c) => ({
-            id: c.id,
-            code: c.code,
-            title: c.title,
-            color: c.color,
-            credits: c.credits,
-          }))}
-          schedules={[
-            { id: 'current', name: 'My current schedule', classes: currentClasses },
-            ...attachables.schedules.map((sc) => ({
-              id: sc.id,
-              name: sc.name,
-              classes: (sc.sections ?? []).map((p) => ({
-                code: p.code,
-                meets: p.section.meetingTimes ?? '',
-                room: p.section.building
-                  ? `${p.section.building} ${p.section.room}`.trim()
-                  : p.section.room || undefined,
-                section: p.section.section,
-              })),
+          source={{
+            classes: attachables.term.map((c) => ({
+              id: c.id,
+              code: c.code,
+              title: c.title,
+              color: c.color,
+              credits: c.credits,
             })),
-          ]}
-          events={attachables.upcoming.map((e) => ({
-            id: e.id,
-            title: e.title,
-            org: e.org.name,
-          }))}
-          record={record}
+            schedules: [
+              { id: 'current', name: 'My current schedule', classes: currentClasses },
+              ...attachables.schedules.map((sc) => ({
+                id: sc.id,
+                name: sc.name,
+                classes: (sc.sections ?? []).map((p) => ({
+                  code: p.code,
+                  meets: p.section.meetingTimes ?? '',
+                  room: p.section.building
+                    ? `${p.section.building} ${p.section.room}`.trim()
+                    : p.section.room || undefined,
+                  section: p.section.section,
+                })),
+              })),
+            ],
+            events: attachables.upcoming.map((e) => ({
+              id: e.id,
+              title: e.title,
+              org: e.org.name,
+            })),
+            record,
+          }}
           onPick={setPending}
           onClose={() => setAttachOpen(false)}
         />

@@ -28,7 +28,6 @@ function PublicProfileSettings() {
   // Each of these is its own disclosure, and each starts closed. "My profile
   // exists" and "here is exactly what I am taking and when" are not the same
   // consent, and neither should ride on the other.
-  const [coursesPub, setCoursesPub] = useState(false)
   const [scheduleFriends, setScheduleFriends] = useState(false)
   const [links, setLinks] = useState<ProfileLinks>({})
   /** Who may start a conversation with you. Enforced on the WRITE, in
@@ -56,7 +55,6 @@ function PublicProfileSettings() {
         } | null
         setPub(!!r?.profile_public)
         setBio(r?.bio ?? '')
-        setCoursesPub(!!r?.courses_public)
         setScheduleFriends(r?.schedule_visibility === 'friends')
         setLinks(cleanLinks(r?.links))
         if (r?.dm_policy === 'mutuals' || r?.dm_policy === 'off') setDm(r.dm_policy)
@@ -97,20 +95,6 @@ function PublicProfileSettings() {
           label="Public profile"
         />
       </Row>
-      <Row
-        label="Show my classes"
-        description="Lists the courses you are taking on your public profile — code, title and term only. Never a grade."
-      >
-        <Switch
-          checked={coursesPub}
-          onChange={(v) => {
-            setCoursesPub(v)
-            write({ courses_public: v })
-          }}
-          label="Show my classes"
-        />
-      </Row>
-
       <Row
         label="Let friends see my schedule"
         description="Friends can see when and where your classes meet, so nobody has to send a screenshot. Times and rooms only, and only people you accepted."

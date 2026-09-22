@@ -47,7 +47,6 @@ export function EditProfileModal({
   const [bio, setBio] = useState('')
   const [links, setLinks] = useState<ProfileLinks>({})
   const [pub, setPub] = useState(false)
-  const [coursesPub, setCoursesPub] = useState(false)
   const [scheduleFriends, setScheduleFriends] = useState(false)
   // Defaults TRUE where the column does, so an unrun migration cannot make a
   // profile look like its owner turned their major off.
@@ -76,7 +75,6 @@ export function EditProfileModal({
         } | null
         setPub(!!r?.profile_public)
         setBio(r?.bio ?? '')
-        setCoursesPub(!!r?.courses_public)
         setScheduleFriends(r?.schedule_visibility === 'friends')
         setProgramPub(r?.program_public !== false)
         setLinks(cleanLinks(r?.links))
@@ -106,7 +104,6 @@ export function EditProfileModal({
     await supabase
       .from('user_profile')
       .update({
-        courses_public: coursesPub,
         program_public: programPub,
         schedule_visibility: scheduleFriends ? 'friends' : 'private',
         links: cleanLinks(links),
@@ -184,22 +181,21 @@ export function EditProfileModal({
                 label="Public profile"
                 body="Off means the page exists only for you."
               />
-              {/* THREE THINGS YOU CAN SHOW, one switch each. They are not
+              {/* TWO THINGS YOU CAN SHOW, one switch each. They are not
                   degrees of the same setting: your major says which building
-                  you are in, your classes say which rooms, and your schedule
-                  says when — and somebody can reasonably want the first
-                  without the third. */}
+                  you are in and your schedule says when you are in it, and
+                  somebody can reasonably want the first without the second.
+
+                  "Show my classes" used to be a third. The class list came
+                  off the profile, and a switch that governs nothing visible
+                  is worse than no switch — `courses_public` stays in the
+                  database, unread, so nothing has to be migrated if the list
+                  ever comes back. */}
               <Toggle
                 checked={programPub}
                 onChange={setProgramPub}
                 label="Show my major"
                 body="The line under your name. Off hides it from everyone."
-              />
-              <Toggle
-                checked={coursesPub}
-                onChange={setCoursesPub}
-                label="Show my classes"
-                body="Code, title and term. Never a grade."
               />
               <Toggle
                 checked={scheduleFriends}

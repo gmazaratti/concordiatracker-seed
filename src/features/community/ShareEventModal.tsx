@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Check, Copy, MessageSquare, Share2 } from 'lucide-react'
 import type { CampusEvent } from '@/data/community'
 import { ModalShell } from '@/command/ModalShell'
+import { ShareSheet } from './ShareSheet'
 
 /** "Share this event" popup — a direct, public link + a copy button. The link
  * (`/e/:id`) is viewable by anyone, no account needed (see `PublicEventPage`). */
 export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
   const url = `${window.location.origin}/e/${event.id}`
 
   function copy() {
@@ -52,22 +53,39 @@ export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClos
           </button>
         </div>
 
-        {/* The link is for people outside the app; this is for people in it.
-            Handing the event over in the URL means it arrives already attached
-            to the message rather than making you find it again in the +. */}
-        <Link
-          to={`/app/community?c=messages&attach=event:${event.id}`}
-          onClick={onClose}
-          className="mt-3 flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 transition-colors duration-150 hover:border-accent"
+        {/*
+          THE WHOLE SEND HAPPENS HERE. This used to navigate to Messages with
+          `?attach=event:id` and leave you to find a conversation — two screens
+          and a search for one action, and if you never picked a thread the
+          attachment quietly evaporated. The share sheet already knows how to
+          pick people and send, so it does both, with the event riding as a
+          real card rather than a pasted URL.
+        */}
+        <button
+          type="button"
+          onClick={() => setSending(true)}
+          className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent"
         >
           <MessageSquare size={15} className="shrink-0 text-accent" aria-hidden />
           <span className="min-w-0 flex-1">
             <span className="block text-[13px] font-medium text-fg">Send to a friend</span>
             <span className="block text-[11.5px] text-subtle">
-              Goes into a message as the live event, not a screenshot.
+              Arrives as the live event, not a screenshot.
             </span>
           </span>
-        </Link>
+        </button>
+
+        {sending && (
+          <ShareSheet
+            title={event.title}
+            link={url}
+            attachment={{ kind: 'event', id: event.id, title: event.title }}
+            onClose={() => {
+              setSending(false)
+              onClose()
+            }}
+          />
+        )}
 
         <div className="mt-4 flex justify-end">
           <button

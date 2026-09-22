@@ -92,7 +92,7 @@ export function ProfileHeader({
   return (
     <header>
       {/* The identity block: avatar left, name + counts right. */}
-      <div className="flex items-start gap-6 sm:gap-10">
+      <div className="flex items-start gap-5 sm:gap-10">
         <Avatar name={name} handle={handle} url={avatarUrl} />
         <div className="min-w-0 flex-1 pt-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -160,19 +160,33 @@ function Counts({
     { kind: 'followers', label: followers === 1 ? 'follower' : 'followers', n: followers },
     { kind: 'following', label: 'following', n: social?.following ?? 0 },
   ]
+  /*
+   * THREE EQUAL COLUMNS, FILLING THE WIDTH. They used to be left-packed on a
+   * `gap-6`, so the row occupied about half the space beside the avatar and
+   * read as cramped next to an 86px face. The reference gives each count a
+   * third of the row and centres it, which is what makes the block feel
+   * deliberate rather than squeezed — and the numbers are what you scan, so
+   * they carry the size.
+   *
+   * On a wide screen the row is left-aligned instead: stretching three counts
+   * across 700px of desktop puts them so far apart they stop reading as a
+   * group.
+   */
   return (
-    <div className="mt-2 flex items-start gap-6">
+    <div className="mt-2.5 flex items-start sm:gap-9">
       {items.map((i) => (
         <button
           key={i.kind}
           type="button"
           onClick={() => onOpen(i.kind)}
-          className="text-left transition-opacity duration-150 active:opacity-60"
+          className="flex-1 text-center transition-opacity duration-150 active:opacity-60 sm:flex-none sm:text-left"
         >
-          <span className="block text-[15px] leading-tight font-semibold text-fg tabular-nums">
+          <span className="block text-[19px] leading-tight font-semibold text-fg tabular-nums sm:text-[17px]">
             {i.n}
           </span>
-          <span className="block text-[12.5px] leading-tight text-muted">{i.label}</span>
+          <span className="block text-[13.5px] leading-tight text-muted sm:text-[13px]">
+            {i.label}
+          </span>
         </button>
       ))}
     </div>
@@ -391,6 +405,11 @@ export function ProfileTabs({
   onChange: (id: string) => void
   tabs: { id: string; label: string; icon: typeof Pencil; count?: number }[]
 }) {
+  /*
+   * THE BAR SITS UNDER THE ICON. It was on top, which reads as the rule that
+   * separates the tabs from the profile above rather than as a marker of
+   * which tab you are on — and every app this borrows from underlines.
+   */
   return (
     <div className="mt-5 flex border-t border-border">
       {tabs.map((t) => {
@@ -405,7 +424,7 @@ export function ProfileTabs({
             aria-label={t.label}
             title={t.label}
             className={cn(
-              '-mt-px flex flex-1 items-center justify-center gap-1.5 border-t-2 py-3 transition-colors duration-150',
+              'flex flex-1 items-center justify-center gap-1.5 border-b-2 py-3 transition-colors duration-150',
               on ? 'border-fg text-fg' : 'border-transparent text-subtle hover:text-muted',
             )}
           >

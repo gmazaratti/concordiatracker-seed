@@ -6,27 +6,28 @@ import {
   Download,
   FileText,
   Loader2,
+  Bell,
   Menu,
   Repeat2,
   ShieldCheck,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
-import { CourseChip } from '@/components/CourseChip'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
 import { communityHref } from '@/features/community/sections'
 import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { cn } from '@/lib/cn'
-import { termRank } from '@/lib/term'
 import { supabase } from '@/lib/supabase'
 import { EditProfileModal } from './EditProfileModal'
 import { ScheduleAccess } from './ScheduleAccess'
-import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
+import { usePublicProfile, type PublicBlueprint, type PublicProfile } from './usePublicProfile'
 import { badgeForPerson } from './badges'
 import { ProfileHeader, ProfileTabs } from './ProfileHeader'
 import { AvatarMenu } from '@/components/AvatarMenu'
+import { ProfileCreateMenu } from './ProfileCreateMenu'
+import { useActivityBadge } from '@/app/usePeopleBadge'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SavedTab } from './SavedTab'
 import { RepostsTab } from '@/features/community/posts/RepostsTab'
@@ -131,7 +132,7 @@ export function ProfileView({
    */
   embedded?: boolean
 }) {
-  const { loading, notFound, profile, courses, blueprints, reload } = usePublicProfile(handle)
+  const { loading, notFound, profile, blueprints, reload } = usePublicProfile(handle)
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   /**
@@ -161,11 +162,20 @@ export function ProfileView({
       {/* The handle where the wordmark was. Instagram's profile bar, and the
           reason the app's own bar stands down on this screen. */}
       {viewer !== 'anon' && (
-        <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-canvas/90 px-4 py-2.5 backdrop-blur-xl md:hidden">
-          <h2 className="flex min-w-0 flex-1 items-center gap-1.5">
+        /*
+         * ONE BAR, three things: create on the left, who you are in the
+         * middle, notifications and the menu on the right — the reference's
+         * arrangement. The bell used to sit on its OWN row above this one,
+         * courtesy of the section wrapper, so the profile opened with two
+         * strips of chrome before a single fact about the person.
+         */
+        <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-canvas/90 px-2 py-2 backdrop-blur-xl md:hidden">
+          {viewer === 'self' ? <ProfileCreateMenu /> : <span className="size-9 shrink-0" />}
+          <h2 className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
             <span className="truncate text-[17px] font-semibold text-fg">{handle}</span>
             {badge && <VerifiedBadge size={15} tone={badge.tone} label={badge.label} />}
           </h2>
+          {viewer === 'self' && <ProfileBell />}
           <AvatarMenu align="top" compact icon={<Menu size={19} aria-hidden />} />
         </div>
       )}
@@ -267,16 +277,6 @@ export function ProfileView({
 
                 {tab === 'saved' && viewer === 'self' && <SavedTab />}
 
-                {/* The class list reads as part of who somebody is, so it sits
-                    with the prose rather than behind a tab of its own. */}
-                {courses.length > 0 && tab === 'outlines' && (
-                  <div className="mt-6 border-t border-border pt-5">
-                    <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                      Classes
-                    </h2>
-                    <CoursesByTerm courses={courses} />
-                  </div>
-                )}
               </>
             )}
           </>
@@ -285,6 +285,27 @@ export function ProfileView({
 
       {editing && <EditProfileModal onClose={() => setEditing(false)} onSaved={reload} />}
     </>
+  )
+}
+
+/** Notifications, in the profile bar. Same address the sidebar's bell and
+ *  the toast use — `?activity=1` opens the panel wherever you are. */
+function ProfileBell() {
+  const count = useActivityBadge()
+  return (
+    <Link
+      to="/app/community?activity=1"
+      aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
+      className="relative grid size-9 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
+    >
+      <Bell size={19} aria-hidden />
+      {count > 0 && (
+        <span
+          className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger ring-2 ring-canvas"
+          aria-hidden
+        />
+      )}
+    </Link>
   )
 }
 
@@ -344,52 +365,6 @@ function useViewer(handle: string): 'self' | 'other' | 'anon' | 'loading' {
   return state
 }
 
-/**
- * Courses grouped by term, newest first.
- *
- * A flat two-column grid of every class anyone ever took reads as a wall: by
- * third year it is thirty identical rows with the term repeated on each one.
- * Grouping puts the term where it belongs — once, as a heading — and makes the
- * shape of someone's degree legible at a glance, which is the only reason to
- * look at this list at all.
- */
-function CoursesByTerm({ courses }: { courses: PublicCourse[] }) {
-  const groups = new Map<string, PublicCourse[]>()
-  for (const c of courses) {
-    const key = c.term || 'Other'
-    const list = groups.get(key)
-    if (list) list.push(c)
-    else groups.set(key, [c])
-  }
-  const terms = [...groups.keys()].sort((a, b) => termRank(b) - termRank(a))
-
-  return (
-    <div className="space-y-4">
-      {terms.map((term) => (
-        <div key={term}>
-          <p className="mb-1.5 flex items-baseline gap-2 text-[11.5px] font-semibold tracking-wide text-subtle uppercase">
-            {term}
-            <span className="font-normal normal-case">
-              {groups.get(term)!.length} class{groups.get(term)!.length === 1 ? '' : 'es'}
-            </span>
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {groups.get(term)!.map((c, i) => (
-              <span
-                key={`${c.code}-${i}`}
-                title={c.title}
-                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-1.5"
-              >
-                <CourseChip code={c.code} color={c.color} />
-                <span className="min-w-0 truncate text-[12.5px] text-muted">{c.title}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function BlueprintRow({ bp }: { bp: PublicBlueprint }) {
   return (

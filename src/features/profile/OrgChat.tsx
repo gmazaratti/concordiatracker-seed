@@ -139,7 +139,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
                 {m.fromOrg && <OrgFace org={org} className="size-6 shrink-0" />}
                 <span
                   className={cn(
-                    'max-w-[78%] rounded-[22px] px-3.5 py-2.5 text-[15px] leading-[1.35] whitespace-pre-wrap lg:text-[14px]',
+                    'max-w-[78%] rounded-[22px] px-3.5 py-2.5 text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]',
                     m.fromOrg
                       ? 'rounded-bl-md bg-surface-2 text-fg'
                       : 'rounded-br-md bg-accent text-accent-contrast',

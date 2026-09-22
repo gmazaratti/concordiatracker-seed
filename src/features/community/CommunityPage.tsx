@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
-import { useActivityBadge } from '@/app/usePeopleBadge'
 import { cn } from '@/lib/cn'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
 import { ProfileView } from '@/features/profile/UserProfilePage'
@@ -10,7 +9,7 @@ import { Mascot } from '@/components/Mascot'
 import { EventsFeed } from './EventsFeed'
 import { FeedSection } from './FeedSection'
 import { CommunityRail } from './CommunityRail'
-import { ActivityButton, ActivityPanel } from './ActivityPanel'
+import { ActivityPanel } from './ActivityPanel'
 import { CommunitySearchBar } from './SearchOverlay'
 import { DEFAULT_SECTION, isCommunitySection, type CommunitySection } from './sections'
 
@@ -39,8 +38,6 @@ export function CommunityPage() {
   const { loaded, uiState, patchUiState } = useUiState()
   const { user } = useAppData()
   const [params, setParams] = useSearchParams()
-  // The bell counts notifications too; the Messages pill deliberately does not.
-  const bell = useActivityBadge()
   // Openable by URL so anything anywhere can point at it — the toast does,
   // and so does the avatar menu.
   const [activity, setActivity] = useState(() => params.get('activity') === '1')
@@ -113,11 +110,9 @@ export function CommunityPage() {
         thing that has to be at the top: a row of rings is a queue you work
         through, and a queue below the fold is a queue nobody works through.
       */}
-      {section === 'profile' && (
-        <div className="mb-2 flex justify-end md:hidden">
-          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
-        </div>
-      )}
+      {/* Nothing here any more on a phone: the profile bar carries the bell
+          itself, beside the create menu, which is where the reference puts it
+          and which stopped this section opening with two rows of chrome. */}
 
       {/* Keyed on the section so the animation replays on every switch, and so
           React tears the old section down rather than reconciling two

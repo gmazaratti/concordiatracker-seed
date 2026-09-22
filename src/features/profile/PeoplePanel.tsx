@@ -446,7 +446,10 @@ export function PeoplePanel() {
           detailOpen && 'hidden lg:flex',
         )}
       >
-        <div className="flex shrink-0 flex-col px-3 pt-2">
+        {/* `pt-4`, not `pt-2`: at two the filter pills sat right against
+            the top of the viewport, which on a desktop browser means they
+            touch the bookmarks bar. */}
+        <div className="flex shrink-0 flex-col px-3 pt-4">
         {/*
           NO NAME ROW. It sat above everything announcing whose inbox this is,
           to the one person who cannot be in any doubt, and pushed every real

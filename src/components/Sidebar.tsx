@@ -177,15 +177,25 @@ export function Sidebar() {
 
       <div className="flex-1" />
 
-      <div className={cn('flex items-center gap-1.5', collapsed && 'flex-col')}>
+      {/*
+        THE TWO ICONS ARE ONE CLUSTER. Adding the bell beside the gear at
+        36px each with a gap between them took ~80px out of a 232px rail and
+        truncated the name to "Alex Degr…". They are 32px now and sit flush
+        against each other — they belong together, they are both "about you
+        rather than about the page", and reading them as one control is
+        honest as well as narrower.
+      */}
+      <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
         <div className={cn('min-w-0', !collapsed && 'flex-1')}>
           {/* Collapsed, the face sits in a 68px rail at the left edge, so the
               menu has to open into the page. Right-anchored it went off the
               side of the screen. */}
           <AvatarMenu align="bottom" compact={collapsed} side={collapsed ? 'left' : 'right'} />
         </div>
-        <NotificationsButton />
-        <SettingsGearButton />
+        <div className={cn('flex shrink-0 items-center', collapsed && 'flex-col')}>
+          <NotificationsButton />
+          <SettingsGearButton />
+        </div>
       </div>
     </aside>
   )
@@ -211,7 +221,7 @@ function NotificationsButton() {
       to="/app/community?activity=1"
       aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
       title="Notifications"
-      className="relative grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+      className="relative grid size-8 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
     >
       <Bell size={17} aria-hidden />
       {count > 0 && (
@@ -233,7 +243,7 @@ function SettingsGearButton() {
       onClick={() => openSettings()}
       aria-label="Open settings"
       title="Settings"
-      className="group grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+      className="group grid size-8 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
     >
       <Settings
         size={18}
