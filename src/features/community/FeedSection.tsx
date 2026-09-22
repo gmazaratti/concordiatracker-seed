@@ -3,6 +3,7 @@ import { Mascot } from '@/components/Mascot'
 import { loadPosts, loadStoryRings, type FeedPost, type StoryRing } from '@/lib/social-posts'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { useMyOrgs } from './useMyOrgs'
+import { mutedOrgs } from './muted-orgs'
 import { StoriesRow } from './stories/StoriesRow'
 import { StoryViewer } from './stories/StoryViewer'
 import { StoryComposer } from './stories/StoryComposer'
@@ -52,6 +53,20 @@ export function FeedSection() {
   }, [refresh])
 
   const myOrgIds = useMemo(() => new Set(myOrgs.map((o) => o.id)), [myOrgs])
+  /*
+   * "Stop suggesting this club" has to actually stop it. Filtered on read
+   * rather than at the query, because the list is per device and the server
+   * has no business knowing it — see muted-orgs.ts.
+   *
+   * It does NOT need to re-run when you mute one: the card removes itself on
+   * the spot, and this keeps it gone from every load after. Adding `refresh`
+   * to the deps to force it would be a dependency the memo never reads.
+   */
+  const shown = useMemo(() => {
+    if (!posts) return posts
+    const muted = mutedOrgs()
+    return muted.size === 0 ? posts : posts.filter((p) => !muted.has(p.orgId))
+  }, [posts])
 
   /** Waits for the fetch, so the spinner is honest about when it is done. */
   const reload = () =>
@@ -69,9 +84,9 @@ export function FeedSection() {
         onCompose={() => setComposing(true)}
       />
 
-      {posts === null ? (
+      {shown === null ? (
         <p className="px-1 py-12 text-center text-[13px] text-subtle">Loading…</p>
-      ) : posts.length === 0 ? (
+      ) : shown.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
           <Mascot mood="resting" size="sm" soft className="text-accent" />
           <p className="text-[13.5px] font-medium text-fg">Nothing posted yet</p>
@@ -81,7 +96,7 @@ export function FeedSection() {
         </div>
       ) : (
         <div>
-          {posts.map((p) => (
+          {shown.map((p) => (
             <PostCard
               key={p.id}
               post={p}

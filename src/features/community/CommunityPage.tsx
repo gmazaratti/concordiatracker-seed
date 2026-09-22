@@ -102,22 +102,22 @@ export function CommunityPage() {
         part of this tab that actually wants the height — was paying for it.
         The phone still reaches them from the bottom bar.
 
-        AND SO HAS THE BELL, on desktop. One control alone on a full-width row
-        bought a band of empty space across the top of every section to hold
-        it, and it was only reachable from inside Social at all. It is in the
-        sidebar footer now, beside settings, on screen everywhere.
+        AND SO HAS THE BELL. One control alone on a full-width row bought a
+        band of empty space across the top of every section to hold it, and
+        it was only reachable from inside Social at all. On desktop it is in
+        the sidebar footer beside settings, on screen everywhere.
 
-        A PHONE HAS NO SIDEBAR, so it keeps the row — where a bell is expected
-        anyway, and where nothing else is competing for the space.
+        A PHONE HAS NO SIDEBAR, so it sits on YOUR OWN PROFILE — the section
+        that is already about you, and the only one with room for it. On the
+        feed it was pushing the stories row down the page, which is the one
+        thing that has to be at the top: a row of rings is a queue you work
+        through, and a queue below the fold is a queue nobody works through.
       */}
-      <div
-        className={cn(
-          'flex justify-end md:hidden',
-          full ? 'shrink-0 px-3 pt-2 sm:px-4' : 'mb-2',
-        )}
-      >
-        <ActivityButton count={bell} onOpen={() => setActivity(true)} />
-      </div>
+      {section === 'profile' && (
+        <div className="mb-2 flex justify-end md:hidden">
+          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
+        </div>
+      )}
 
       {/* Keyed on the section so the animation replays on every switch, and so
           React tears the old section down rather than reconciling two
