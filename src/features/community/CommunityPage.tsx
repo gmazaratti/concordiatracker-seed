@@ -67,10 +67,16 @@ export function CommunityPage() {
     setParams(p)
   }
 
-  // You is a profile, and a profile is its own header — banner, avatar, name.
-  // Stacking a search bar on top of one is how the old version ended up with
-  // two faces and two headers on a 375px screen.
-  const showSearch = section !== 'profile'
+  /*
+   * SEARCH BELONGS TO THE SECTIONS THAT ARE DIRECTORIES.
+   *
+   * You is a profile and carries its own header. Feed is a river — a field
+   * above it invites you to stop scrolling before you have started, which is
+   * why Instagram puts search on a surface of its own. The app's magnifier in
+   * the top bar covers that case on Feed; Events and Messages, where you are
+   * genuinely looking for a thing, keep the field.
+   */
+  const showSearch = section !== 'profile' && section !== 'feed'
 
   return (
     <div className="mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5">
@@ -79,12 +85,15 @@ export function CommunityPage() {
       {showSearch && (
         <div className="mb-3 flex items-center gap-2">
           <CommunitySearchBar className="md:max-w-md" />
-          {/* Landing section only. Notifications are a thing you open, clear
-              and leave — carrying the bell into every section made it read as
-              part of the furniture rather than as something with news in it. */}
-          {section === DEFAULT_SECTION && (
-            <ActivityButton count={bell} onOpen={() => setActivity(true)} />
-          )}
+        </div>
+      )}
+
+      {/* The bell sits alone above the feed, top right, where every product
+          of this shape puts it — and only on Feed, because notifications are
+          something you open, clear and leave rather than furniture. */}
+      {section === DEFAULT_SECTION && (
+        <div className="mb-1 flex justify-end">
+          <ActivityButton count={bell} onOpen={() => setActivity(true)} />
         </div>
       )}
 
@@ -123,9 +132,7 @@ export function CommunityPage() {
           React tears the old section down rather than reconciling two
           different screens into each other. */}
       <div key={section} className="ct-section-in">
-        {section === 'feed' && (
-          <FeedSection requests={waiting} onOpenActivity={() => setActivity(true)} />
-        )}
+        {section === 'feed' && <FeedSection />}
         {section === 'events' && (
           <div className="flex gap-6">
             <div className="min-w-0 flex-1">

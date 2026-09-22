@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/app/providers/auth'
 
 /**
  * The organisations this person can publish as.
@@ -32,15 +33,20 @@ interface Row {
 const COLS = 'id, handle, name, logo, color, glyph, verified'
 
 export function useMyOrgs(): { orgs: PublishableOrg[]; loading: boolean } {
+  // THE SESSION IS ALREADY IN MEMORY. This used to call
+  // `supabase.auth.getUser()`, which is a network round trip, before it could
+  // even start asking which orgs are yours — so "Your story" sat blank for a
+  // beat every time the feed mounted. The provider already holds the user.
+  const { user: authUser } = useAuth()
+  const uid = authUser?.id
   const [orgs, setOrgs] = useState<PublishableOrg[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let alive = true
     void (async () => {
-      const { data: me } = await supabase.auth.getUser()
-      if (!alive) return
-      if (!me.user) {
+      if (!uid) {
+        setOrgs([])
         setLoading(false)
         return
       }
@@ -48,11 +54,11 @@ export function useMyOrgs(): { orgs: PublishableOrg[]; loading: boolean } {
       // "owner of, or a member of" in one filter, and an embedded resource
       // would return orgs with an empty members array as well.
       const [owned, memberOf] = await Promise.all([
-        supabase.from('organizations').select(COLS).eq('owner_id', me.user.id).eq('status', 'approved'),
+        supabase.from('organizations').select(COLS).eq('owner_id', uid).eq('status', 'approved'),
         supabase
           .from('org_members')
           .select(`org:organizations!inner(${COLS})`)
-          .eq('user_id', me.user.id)
+          .eq('user_id', uid)
           .eq('status', 'active')
           .eq('organizations.status', 'approved'),
       ])
@@ -85,7 +91,7 @@ export function useMyOrgs(): { orgs: PublishableOrg[]; loading: boolean } {
     return () => {
       alive = false
     }
-  }, [])
+  }, [uid])
 
   return { orgs, loading }
 }

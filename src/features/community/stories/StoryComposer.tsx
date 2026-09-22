@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import {
   ArrowRight,
   AtSign,
-  Camera,
   Link2,
   Loader2,
   MapPin,
@@ -14,8 +13,9 @@ import {
   Type,
   X,
 } from 'lucide-react'
-import { IMAGE_ACCEPT_ATTR, uploadOrgImage } from '@/lib/imageUpload'
-import { publishStory, type StoryOverlay } from '@/lib/social-posts'
+import { uploadOrgImage } from '@/lib/imageUpload'
+import { publishPost, publishStory, type StoryOverlay } from '@/lib/social-posts'
+import { CameraCapture, type CaptureMode } from './CameraCapture'
 import { cn } from '@/lib/cn'
 import type { PublishableOrg } from '../useMyOrgs'
 import {
@@ -58,6 +58,10 @@ export function StoryComposer({
 }) {
   const [org, setOrg] = useState(orgs[0])
   const [step, setStep] = useState<Step>('pick')
+  /** STORY or POST, chosen on the capture screen the way the reference does
+   *  it — the same photo, two destinations, so asking afterwards would mean
+   *  building the frame before knowing what shape it is. */
+  const [mode, setMode] = useState<CaptureMode>('story')
   const [preview, setPreview] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [overlays, setOverlays] = useState<StoryOverlay[]>([])
@@ -133,14 +137,20 @@ export function StoryComposer({
       const mentions = [
         ...new Set([...mentionsIn(caption), ...overlays.flatMap((o) => mentionsIn(o.text))]),
       ]
-      const err = await publishStory(org.id, {
-        imageUrl: url,
-        caption,
-        overlays: overlays.filter((o) => o.text.trim()),
-        mentions,
-        place,
-        linkUrl: link,
-      })
+      const err =
+        mode === 'post'
+          ? // A post keeps the caption and drops the overlays: text dragged
+            // onto a photo is a story idiom, and a post's caption sits under
+            // the image where it can be read, searched and translated.
+            await publishPost(org.id, caption, [{ url }])
+          : await publishStory(org.id, {
+              imageUrl: url,
+              caption,
+              overlays: overlays.filter((o) => o.text.trim()),
+              mentions,
+              place,
+              linkUrl: link,
+            })
       if (err) {
         setError(err)
         setBusy(false)
@@ -156,6 +166,9 @@ export function StoryComposer({
 
   return createPortal(
     <div className="fixed inset-0 z-[75] flex flex-col bg-canvas" role="dialog" aria-modal="true">
+      {/* The capture screen carries its own chrome over the viewfinder — a
+          second bar above it would sit on top of the photo you are framing. */}
+      {step === 'edit' && (
       <header className="flex items-center gap-2 border-b border-border px-4 py-3">
         <button
           type="button"
@@ -165,12 +178,15 @@ export function StoryComposer({
         >
           <X size={17} aria-hidden />
         </button>
-        <h2 className="flex-1 text-center text-[15px] font-semibold text-fg">Add to story</h2>
+        <h2 className="flex-1 text-center text-[15px] font-semibold text-fg">
+          {mode === 'post' ? 'New post' : 'Add to story'}
+        </h2>
         <span className="size-8" />
       </header>
+      )}
 
       {/* Which club is speaking. Only asked when there is a real choice. */}
-      {orgs.length > 1 && (
+      {step === 'edit' && orgs.length > 1 && (
         <div className="flex gap-2 overflow-x-auto border-b border-border px-4 py-2">
           {orgs.map((o) => (
             <button
@@ -191,7 +207,7 @@ export function StoryComposer({
       )}
 
       {step === 'pick' ? (
-        <PickImage onPick={choose} />
+        <CameraCapture mode={mode} onMode={setMode} onPick={choose} onClose={onClose} />
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-sm px-4 py-4">
@@ -199,7 +215,10 @@ export function StoryComposer({
                 the viewer. */}
             <div
               ref={frame}
-              className="relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black"
+              className={cn(
+                'relative w-full overflow-hidden rounded-2xl bg-black',
+                mode === 'post' ? 'aspect-square' : 'aspect-[9/16]',
+              )}
             >
               {preview && <img src={preview} alt="" className="size-full object-contain" />}
               {overlays.map((o, i) => (
@@ -221,7 +240,11 @@ export function StoryComposer({
               ))}
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            {/* Overlay tools are a STORY idiom. A post's words go in the
+                caption, where they are readable, searchable and translatable —
+                so the toolbar stands down rather than offering something the
+                post will silently discard. */}
+            <div className={cn('mt-3 flex flex-wrap gap-2', mode === 'post' && 'hidden')}>
               <ToolButton icon={Type} label="Add text" onClick={addText} />
               <ToolButton icon={AtSign} label="Mention" onClick={addMention} />
               <ToolButton
@@ -238,7 +261,7 @@ export function StoryComposer({
               />
             </div>
 
-            {active != null && overlays[active] && (
+            {mode === 'story' && active != null && overlays[active] && (
               <TextTools
                 overlay={overlays[active]}
                 onChange={(p) => patch(active, p)}
@@ -312,33 +335,6 @@ export function StoryComposer({
     setOverlays((prev) => [...prev, { ...DEFAULT_OVERLAY, y: 0.6, text: '@' }])
     setActive(overlays.length)
   }
-}
-
-/** Camera roll, plus the camera itself on a phone. */
-function PickImage({ onPick }: { onPick: (f: File) => void }) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-      <div className="mx-auto max-w-sm">
-        <label className="flex aspect-[9/16] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-surface/50 text-center transition-colors duration-150 hover:border-accent">
-          <Camera size={28} className="text-accent" aria-hidden />
-          <span className="text-[14px] font-medium text-fg">Choose a photo</span>
-          <span className="max-w-[70%] text-[12px] leading-relaxed text-subtle">
-            PNG, JPG or WEBP. It is re-encoded before it is uploaded, so nothing
-            hidden in the file — including where it was taken — goes with it.
-          </span>
-          <input
-            type="file"
-            accept={IMAGE_ACCEPT_ATTR}
-            className="sr-only"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) onPick(f)
-            }}
-          />
-        </label>
-      </div>
-    </div>
-  )
 }
 
 function ToolButton({

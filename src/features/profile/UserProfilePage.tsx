@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
-  BookOpen,
+  Bookmark,
   ChevronLeft,
-  ChevronRight,
   Download,
   FileText,
   Loader2,
+  Menu,
   Repeat2,
   ShieldCheck,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { CourseChip } from '@/components/CourseChip'
-import { Switch } from '@/features/settings/controls'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { HANDLE_RE } from '@/features/onboarding/handle'
 import { communityHref } from '@/features/community/sections'
@@ -27,6 +26,9 @@ import { ScheduleAccess } from './ScheduleAccess'
 import { usePublicProfile, type PublicBlueprint, type PublicCourse, type PublicProfile } from './usePublicProfile'
 import { badgeForPerson } from './badges'
 import { ProfileHeader, ProfileTabs } from './ProfileHeader'
+import { AvatarMenu } from '@/components/AvatarMenu'
+import { VerifiedBadge } from '@/features/community/VerifiedBadge'
+import { SavedTab } from './SavedTab'
 import { RepostsTab } from '@/features/community/posts/RepostsTab'
 import { useSupport } from '@/app/providers/support'
 import { useCommunityData } from '@/app/providers/community-data'
@@ -155,7 +157,20 @@ export function ProfileView({
   return (
     <>
       {!embedded && <ProfileMeta handle={handle} profile={profile} />}
-      <div className={cn(!embedded && 'mx-auto w-full max-w-3xl px-5 py-5 sm:px-6')}>
+
+      {/* The handle where the wordmark was. Instagram's profile bar, and the
+          reason the app's own bar stands down on this screen. */}
+      {viewer !== 'anon' && (
+        <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-canvas/90 px-4 py-2.5 backdrop-blur-xl md:hidden">
+          <h2 className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className="truncate text-[17px] font-semibold text-fg">{handle}</span>
+            {badge && <VerifiedBadge size={15} tone={badge.tone} label={badge.label} />}
+          </h2>
+          <AvatarMenu align="top" compact icon={<Menu size={19} aria-hidden />} />
+        </div>
+      )}
+
+      <div className={cn(!embedded && 'mx-auto w-full max-w-3xl px-5 py-5 sm:px-6', embedded && 'pt-4')}>
         {/* Community, not Today. You arrive here from a search or a mention in
             Community, and the app's default landing page is not where you were
             a second ago. */}
@@ -218,7 +233,13 @@ export function ProfileView({
                   tabs={[
                     { id: 'outlines', label: 'Outlines', icon: FileText, count: blueprints.length },
                     { id: 'reposts', label: 'Reposts', icon: Repeat2 },
-                    { id: 'classes', label: 'Classes', icon: BookOpen, count: courses.length },
+                    // SAVED IS YOURS ALONE. It replaces the old Classes tab:
+                    // the class list is a fact about you that belongs with the
+                    // rest of the profile prose, while a bookmark is a private
+                    // list that needs somewhere to live.
+                    ...(viewer === 'self'
+                      ? [{ id: 'saved', label: 'Saved', icon: Bookmark }]
+                      : []),
                   ]}
                 />
 
@@ -244,29 +265,17 @@ export function ProfileView({
                   />
                 )}
 
-                {tab === 'classes' &&
-                  (courses.length > 0 ? (
-                    <div className="pt-4">
-                      <CoursesByTerm courses={courses} />
-                    </div>
-                  ) : (
-                    <TabEmpty>
-                      {!profile.coursesPublic
-                        ? 'This profile keeps its class list private.'
-                        : viewer === 'self'
-                          ? 'Your class list is public but empty. Anything you add shows up here.'
-                          : 'No classes shared.'}
-                    </TabEmpty>
-                  ))}
+                {tab === 'saved' && viewer === 'self' && <SavedTab />}
 
-                {viewer === 'self' && (
-                  <OwnerPrompts
-                    coursesPublic={profile.coursesPublic}
-                    hasCourses={courses.length > 0}
-                    hasBlueprints={blueprints.length > 0}
-                    onEdit={() => setEditing(true)}
-                    onChanged={reload}
-                  />
+                {/* The class list reads as part of who somebody is, so it sits
+                    with the prose rather than behind a tab of its own. */}
+                {courses.length > 0 && tab === 'outlines' && (
+                  <div className="mt-6 border-t border-border pt-5">
+                    <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+                      Classes
+                    </h2>
+                    <CoursesByTerm courses={courses} />
+                  </div>
                 )}
               </>
             )}
@@ -417,142 +426,6 @@ function TabEmpty({ children }: { children: React.ReactNode }) {
     <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[12.5px] leading-relaxed text-subtle">
       {children}
     </p>
-  )
-}
-
-/**
- * What the owner can do about an empty profile.
- *
- * Only ever shown to the person who can act on it. A visitor reading "turn on
- * your class list" would be reading someone else's to-do list.
- */
-function OwnerPrompts({
-  coursesPublic,
-  hasCourses,
-  hasBlueprints,
-  onEdit,
-  onChanged,
-}: {
-  coursesPublic: boolean
-  hasCourses: boolean
-  hasBlueprints: boolean
-  onEdit: () => void
-  onChanged: () => void
-}) {
-  return (
-    <div className="mt-6 space-y-2 border-t border-border pt-5">
-      <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">Fill this out</p>
-
-      {/* A switch, not a link. "Show your classes" is a yes/no you own, and
-          sending someone to a settings panel to flip one boolean — then back
-          here to see what it did — is three screens for one decision. The
-          rows that genuinely need a form still navigate. */}
-      <SwitchRow
-        checked={coursesPublic}
-        title="Show your classes"
-        body="Code, title and term only — never a grade."
-        onChange={(v) => void writeProfile({ courses_public: v }).then(onChanged)}
-      />
-
-      {coursesPublic && !hasCourses && (
-        <PromptRow
-          to="/app/courses"
-          title="Add a class"
-          body="Your class list is public but empty. Anything you add shows up here."
-        />
-      )}
-      {!hasBlueprints && (
-        <PromptRow
-          to="/app/courses/blueprints"
-          title="Upload an outline"
-          body="Share a syllabus and the next student in your section imports it in one click."
-        />
-      )}
-      <PromptRow
-        onClick={onEdit}
-        title="Add your links"
-        body="Instagram, LinkedIn, X or a site — they show under your bio."
-      />
-    </div>
-  )
-}
-
-/** One profile column, written straight. Swallows failures for the same reason
- *  the settings panel does: an unrun migration should cost a toggle, not the
- *  page. */
-async function writeProfile(patch: Record<string, unknown>): Promise<void> {
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) return
-  await supabase.from('user_profile').update(patch).eq('user_id', data.user.id)
-}
-
-/** A "Fill this out" row that IS the setting. Optimistic: the switch moves on
- *  the tap and the page re-reads after the write, so it never sits dead while
- *  a round trip happens. */
-function SwitchRow({
-  checked,
-  title,
-  body,
-  onChange,
-}: {
-  checked: boolean
-  title: string
-  body: string
-  onChange: (next: boolean) => void
-}) {
-  const [on, setOn] = useState(checked)
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5">
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-fg">{title}</span>
-        <span className="block text-[11.5px] leading-relaxed text-subtle">{body}</span>
-      </span>
-      <Switch
-        checked={on}
-        label={title}
-        onChange={(v) => {
-          setOn(v)
-          onChange(v)
-        }}
-      />
-    </div>
-  )
-}
-
-/** One suggestion: a link, or a button that opens the profile editor. */
-function PromptRow({
-  to,
-  onClick,
-  title,
-  body,
-}: {
-  to?: string
-  onClick?: () => void
-  title: string
-  body: string
-}) {
-  const style =
-    'flex w-full items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:border-accent'
-  const inner = (
-    <>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-fg">{title}</span>
-        <span className="block text-[11.5px] leading-relaxed text-subtle">{body}</span>
-      </span>
-      <ChevronRight size={15} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
-    </>
-  )
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={style}>
-        {inner}
-      </button>
-    )
-  }
-  return (
-    <Link to={to as string} className={style}>
-      {inner}
-    </Link>
   )
 }
 

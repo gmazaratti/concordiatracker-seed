@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, MessageCircle, Repeat2, Send, Trash2 } from 'lucide-react'
+import { Bookmark, Heart, MessageCircle, Repeat2, Send, Trash2 } from 'lucide-react'
 import {
   addComment,
   deletePost,
@@ -10,6 +10,7 @@ import {
   type FeedPost,
   type PostComment,
 } from '@/lib/social-posts'
+import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
 import { VerifiedBadge } from '../VerifiedBadge'
 import { ShareSheet } from '../ShareSheet'
@@ -55,7 +56,19 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false)
   const [slide, setSlide] = useState(0)
   const [gone, setGone] = useState(false)
+  const [saved, setSaved] = useState(false)
   const strip = useRef<HTMLDivElement | null>(null)
+
+  // One read per card is acceptable here because a card mounts once; the feed
+  // does not re-ask on scroll. If this ever renders hundreds at a time, hoist
+  // it to a single `savedAmong` for the whole page.
+  useEffect(() => {
+    let alive = true
+    void savedAmong('post', [post.id]).then((set) => alive && setSaved(set.has(post.id)))
+    return () => {
+      alive = false
+    }
+  }, [post.id])
 
   if (gone) return null
 
@@ -85,6 +98,13 @@ export function PostCard({
     onChanged?.()
   }
 
+  const save = async () => {
+    const next = !saved
+    setSaved(next)
+    const now = await toggleSave('post', post.id)
+    if (now !== next) setSaved(now)
+  }
+
   const openComments = () => {
     setShowComments((v) => !v)
     if (!comments) void loadComments(post.id).then(setComments)
@@ -92,7 +112,7 @@ export function PostCard({
 
   return (
     <article className="border-b border-border pb-3">
-      <header className="flex items-center gap-2.5 px-1 py-2.5">
+      <header className="flex items-center gap-2.5 px-3 py-2.5 sm:px-1">
         <Link to={`/app/community/org/${slug}`} className="flex min-w-0 items-center gap-2.5">
           <Avatar post={post} />
           <span className="flex min-w-0 items-center gap-1.5">
@@ -105,7 +125,7 @@ export function PostCard({
       </header>
 
       {/* Media. One image fills; several scroll-snap. */}
-      <div className="relative -mx-1 sm:mx-0">
+      <div className="relative -mx-4 sm:mx-0">
         <div
           ref={strip}
           onScroll={(e) => {
@@ -144,7 +164,7 @@ export function PostCard({
         )}
       </div>
 
-      <div className="flex items-center gap-1 px-1 pt-2">
+      <div className="flex items-center gap-1 px-2 pt-2 sm:px-0">
         <Action
           icon={Heart}
           label={liked ? 'Unlike' : 'Like'}
@@ -165,6 +185,20 @@ export function PostCard({
         />
         <Action icon={Send} label="Send" onClick={() => setSharing(true)} />
         <span className="flex-1" />
+        {/* PRIVATE. A bookmark produces no count and tells the club nothing —
+            that is what separates it from the repost two icons to the left. */}
+        <button
+          type="button"
+          onClick={() => void save()}
+          aria-pressed={saved}
+          aria-label={saved ? 'Remove from saved' : 'Save'}
+          className={cn(
+            'grid size-9 place-items-center rounded-full transition-colors duration-150',
+            saved ? 'text-fg' : 'text-muted hover:text-fg',
+          )}
+        >
+          <Bookmark size={19} className={cn(saved && 'fill-current')} aria-hidden />
+        </button>
         {/* Only the club that published it. A delete button on somebody
             else's post is a support ticket waiting to happen. */}
         {canManage && (
@@ -181,30 +215,39 @@ export function PostCard({
         )}
       </div>
 
-      {post.caption && (
-        <p className="px-1 pt-1.5 text-[13.5px] leading-relaxed text-fg">
-          <Link to={`/app/community/org/${slug}`} className="font-semibold hover:underline">
-            {slug}
-          </Link>{' '}
-          {/* Trimmed in JS, not with `line-clamp`. A clamp sets
-              `display:-webkit-box`, which would pull this span out of the
-              inline flow it shares with the handle above it. */}
-          <span className="whitespace-pre-wrap">
-            {expanded || post.caption.length <= 140
-              ? post.caption
-              : post.caption.slice(0, 140).trimEnd() + '… '}
-          </span>
-          {!expanded && post.caption.length > 140 && (
+      {post.caption &&
+        (expanded ? (
+          <p className="px-3 pt-1.5 text-[13.5px] leading-relaxed whitespace-pre-wrap text-fg sm:px-1">
+            <Link to={`/app/community/org/${slug}`} className="font-semibold hover:underline">
+              {slug}
+            </Link>{' '}
+            {post.caption}
+          </p>
+        ) : (
+          /*
+           * ONE LINE, ALWAYS, with "more" beside it — the reference's shape.
+           * A `line-clamp` cannot do this: it sets `display:-webkit-box`,
+           * which would swallow the "more" button into the clamped box and
+           * hide the very affordance that reveals the rest. A flex row with a
+           * `truncate` child and a `shrink-0` button keeps the button on
+           * screen no matter how long the caption is.
+           */
+          <div className="flex items-baseline gap-1 px-3 pt-1.5 sm:px-1">
+            <p className="min-w-0 flex-1 truncate text-[13.5px] leading-relaxed text-fg">
+              <Link to={`/app/community/org/${slug}`} className="font-semibold hover:underline">
+                {slug}
+              </Link>{' '}
+              {post.caption}
+            </p>
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="text-subtle hover:text-fg"
+              className="shrink-0 text-[13.5px] text-subtle hover:text-fg"
             >
               more
             </button>
-          )}
-        </p>
-      )}
+          </div>
+        ))}
 
       {showComments && (
         <Comments

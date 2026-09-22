@@ -35,7 +35,7 @@ import { TourOverlay } from '@/features/tour/TourOverlay'
 export function StudentLayout({ children }: { children?: React.ReactNode } = {}) {
   const { user, loading } = useAuth()
   const { onboardingCompleted } = useAppData()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
 
   /**
    * Community carries its own search bar, so the app's magnifier stands down
@@ -46,7 +46,21 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
    * one you would reach for there is the one that searches people and clubs,
    * not the command palette. Everywhere else the palette is still the spine.
    */
-  const communitySearchOwnsIt = pathname.startsWith('/app/community')
+  const communitySection = new URLSearchParams(search).get('c') ?? 'feed'
+  const communitySearchOwnsIt =
+    pathname.startsWith('/app/community') &&
+    // Feed has no field of its own any more, so the magnifier comes back —
+    // search still has to be one tap from the landing section.
+    communitySection !== 'feed'
+
+  /**
+   * A PROFILE OWNS THE WHOLE SCREEN. The app bar puts the wordmark on the left
+   * and your own avatar on the right — directly above a page whose entire
+   * subject is that avatar. Two of the same face, one of them a control that
+   * goes nowhere useful from here. The profile renders its own bar instead,
+   * with the handle where the wordmark was.
+   */
+  const profileOwnsTheBar = pathname.startsWith('/@') || communitySection === 'profile'
 
   // First-login onboarding gate. Wait for the profile to load (null) so a
   // returning, already-onboarded user never flashes the app before redirecting.
@@ -67,13 +81,15 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
-        <header className="flex items-center justify-between gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
-          <Logo />
-          <div className="flex shrink-0 items-center gap-1">
-            {!communitySearchOwnsIt && <MobileSearchButton />}
-            <AvatarMenu align="top" compact />
-          </div>
-        </header>
+        {!profileOwnsTheBar && (
+          <header className="flex items-center justify-between gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
+            <Logo />
+            <div className="flex shrink-0 items-center gap-1">
+              {!communitySearchOwnsIt && <MobileSearchButton />}
+              <AvatarMenu align="top" compact />
+            </div>
+          </header>
+        )}
 
         <main className="relative flex-1 overflow-y-auto">
           {/* `children` for the one page that lives at a top-level URL but

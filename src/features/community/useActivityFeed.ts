@@ -74,8 +74,18 @@ export function useActivityFeed(): ActivityFeed {
 
     // Only orgs you follow. An activity feed carrying every event on campus is
     // the events tab with worse sorting.
+    //
+    // ONE ROW PER SERIES. A weekly night is thirty dated occurrences in the
+    // data, and without this the notification list was six identical lines of
+    // "Reggies posted Thirsty Thursdays" — which is one thing that happened,
+    // not six.
+    const seenSeries = new Set<string>()
     for (const e of events) {
       if (!isFollowing(e.org.handle)) continue
+      if (e.seriesId) {
+        if (seenSeries.has(e.seriesId)) continue
+        seenSeries.add(e.seriesId)
+      }
       out.push({
         kind: 'event',
         id: `ev-${e.id}`,

@@ -45,9 +45,16 @@ const FOUNDER_EMAILS = new Set(['alexxdegryse@gmail.com', 'concordiatracker@gmai
 export function AvatarMenu({
   align = 'bottom',
   compact = false,
+  icon,
 }: {
   align?: 'bottom' | 'top'
   compact?: boolean
+  /**
+   * Replaces the avatar on the trigger. The profile page passes a hamburger:
+   * the whole screen is already your face, and a second copy of it in the bar
+   * above reads as a control that goes somewhere, which it does not.
+   */
+  icon?: React.ReactNode
 }) {
   const { user, plan, setPlan } = useAppData()
   const { signOut } = useAuth()
@@ -104,7 +111,9 @@ export function AvatarMenu({
         )}
       >
         <span className="relative size-8 shrink-0">
-          {user.avatarUrl ? (
+          {icon ? (
+            <span className="grid size-8 place-items-center rounded-lg text-fg">{icon}</span>
+          ) : user.avatarUrl ? (
             <img
               src={user.avatarUrl}
               alt=""

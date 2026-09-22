@@ -1,37 +1,50 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, Check, MessageSquare, PartyPopper, Rss, Tag, UserPlus, X } from 'lucide-react'
-import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
+import { ArrowLeft, Bell, MessageSquare, PartyPopper, Tag, UserPlus } from 'lucide-react'
+import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { Mascot } from '@/components/Mascot'
 import { OrgLogo } from './OrgLogo'
 import { useCommunity } from './useCommunity'
+import type { EventOrg } from '@/data/community'
 import { acceptFriend, listFriends, type Friend } from '@/lib/social'
-import { relativeDueLabel } from '@/lib/date'
 import { listNotifications, markNotificationsRead } from '@/lib/notifications'
-import { useActivityFeed } from './useActivityFeed'
-import type { AppNotification as ActivityNotification } from '@/lib/notifications'
+import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
 
+const DAY = 86_400_000
+/** Module level: `react-hooks/purity` bars a clock read in a component body. */
+const nowMs = () => Date.now()
+
+type Filter = 'all' | 'follows' | 'replies' | 'clubs'
+
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'follows', label: 'People' },
+  { id: 'replies', label: 'Replies' },
+  { id: 'clubs', label: 'Clubs' },
+]
+
 /**
- * Notifications, full-screen, from the top right.
+ * Notifications, full screen from the top right.
  *
- * Where Instagram, X and TikTok all put it, and for the same reason: it is a
- * thing you open, clear and leave, so spending a permanent tab slot on it would
- * be paying rent for a room you visit twice a day.
+ * REBUILT TO THE REFERENCE. It used to be one undifferentiated list of bordered
+ * cards, which is a dashboard, not a notification screen. What a notification
+ * screen is, everywhere that has one: a filter row, day GROUPS ("Today", "Last
+ * 7 days"), and borderless rows that are avatar + one sentence + a time, with
+ * the action you would take sitting on the right of the row you would take it
+ * on. Reading it is pattern-matching, and cards defeat that.
  *
- * ONE reverse-chronological list rather than sub-tabs. "An org you follow
- * posted", "somebody asked to connect" and "somebody accepted" are different
- * kinds of news but they are the same question — what happened since I last
- * looked — and splitting them means checking three places to answer it.
+ * THE FILTERS ARE HERE AND THE TABS ARE NOT. Sub-tabs would split "what
+ * happened" into three screens you have to visit in turn; a filter narrows the
+ * one list you are already looking at and leaves All as the default, which is
+ * the question people actually open this with.
  */
 export function ActivityPanel({ onClose }: { onClose: () => void }) {
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
   const { orgs } = useCommunity()
-  // ONE assembler, shared with the Today widget. This panel used to build the
-  // list itself, which is two places for the same question to be answered
-  // differently the first time either gains a source.
   const { items } = useActivityFeed()
+  const [filter, setFilter] = useState<Filter>('all')
   const [tick, setTick] = useState(0)
   const [friends, setFriends] = useState<Friend[] | null>(null)
 
@@ -42,15 +55,9 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       alive = false
     }
   }, [tick])
-  // Accepting or declining re-reads the friend list; the feed itself is read
-  // once on open, which is what "since I last looked" means.
   void friends
 
-  /**
-   * Opening the panel IS reading them. The rows still render from what was
-   * loaded, so the unread dots stay visible for this viewing; they are simply
-   * not new the next time.
-   */
+  /** Opening the panel IS reading them. The dots stay for this viewing. */
   useEffect(() => {
     void (async () => {
       const rows = await listNotifications()
@@ -58,10 +65,16 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
     })()
   }, [])
 
-  const orgByHandle = useMemo(
-    () => new Map(orgs.map((o) => [o.handle, o])),
-    [orgs],
-  )
+  const orgByHandle = useMemo(() => new Map(orgs.map((o) => [o.handle, o])), [orgs])
+
+  const shown = items.filter((it) => {
+    if (filter === 'all') return true
+    if (filter === 'follows') return it.kind === 'request' || it.kind === 'accepted'
+    if (filter === 'clubs') return it.kind === 'event' || (it.kind === 'stored' && it.n.kind === 'org_post')
+    return it.kind === 'stored' && it.n.kind !== 'org_post' && it.n.kind !== 'follow'
+  })
+
+  const groups = groupByAge(shown, nowMs())
 
   return createPortal(
     <div
@@ -70,121 +83,75 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      aria-label="Activity"
-      className="fixed inset-0 z-[80] flex flex-col bg-canvas"
+      aria-label="Notifications"
+      className="fixed inset-0 z-[80] flex h-[100dvh] flex-col bg-canvas"
     >
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
-        <Bell size={17} className="shrink-0 text-accent" aria-hidden />
-        <h2 className="min-w-0 flex-1 font-display text-[17px] font-medium text-fg">Activity</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid size-9 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg active:scale-95"
-        >
-          <X size={18} aria-hidden />
-        </button>
+      <header className="shrink-0 pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center gap-1 px-2 py-2">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Back"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
+          >
+            <ArrowLeft size={19} aria-hidden />
+          </button>
+          <h2 className="min-w-0 flex-1 text-center text-[17px] font-semibold text-fg">
+            Notifications
+          </h2>
+          <span className="size-9 shrink-0" />
+        </div>
+
+        {/* Pills, the shape that reads as "narrows the list below". */}
+        <div className="flex gap-2 overflow-x-auto px-3 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                'shrink-0 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-150',
+                filter === f.id
+                  ? 'bg-fg text-canvas'
+                  : 'bg-surface-2 text-fg hover:bg-surface',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-2xl px-4 py-3">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="mx-auto w-full max-w-2xl">
+          {shown.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-20 text-center">
               <Mascot mood="resting" size="sm" soft className="text-accent" />
-              <p className="text-[13px] font-medium text-fg">Nothing new</p>
-              <p className="max-w-xs text-[12px] leading-relaxed text-subtle">
-                Follow a few clubs and their events land here. So do connection requests.
+              <p className="text-[13.5px] font-medium text-fg">Nothing here</p>
+              <p className="max-w-xs text-[12.5px] leading-relaxed text-subtle">
+                {filter === 'all'
+                  ? 'Follow a few clubs and what they post lands here, along with replies and new followers.'
+                  : 'Nothing under this filter yet.'}
               </p>
             </div>
           ) : (
-            <ul className="space-y-1.5">
-              {items.map((it) => (
-                <li key={it.id}>
-                  {it.kind === 'stored' ? (
-                    <StoredRow n={it.n} onClose={onClose} />
-                  ) : it.kind === 'event' ? (
-                    <Link
-                      to={`/app/community?event=${it.id.slice(3)}`}
-                      onClick={onClose}
-                      className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]"
-                    >
-                      {orgByHandle.get(it.orgHandle) ? (
-                        <OrgLogo
-                          org={orgByHandle.get(it.orgHandle)!}
-                          className="size-9 shrink-0"
-                          rounded="rounded-full"
-                        />
-                      ) : (
-                        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2">
-                          <PartyPopper size={15} className="text-subtle" aria-hidden />
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] text-fg">
-                          <span className="font-medium">{it.orgHandle}</span> posted an event
-                        </span>
-                        <span className="block truncate text-[12px] text-subtle">{it.title}</span>
-                      </span>
-                      <span className="shrink-0 text-[11px] text-subtle">
-                        {relativeDueLabel(new Date(it.at).toISOString())}
-                      </span>
-                    </Link>
-                  ) : it.kind === 'request' ? (
-                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft px-3 py-2.5">
-                      <UserPlus size={16} className="shrink-0 text-accent" aria-hidden />
-                      <Link
-                        to={`/@${it.friend.handle}`}
-                        onClick={onClose}
-                        className="min-w-0 flex-1 text-[13px] text-fg hover:underline"
-                      >
-                        <span className="font-medium">{it.friend.name ?? it.friend.handle}</span>{' '}
-                        followed you
-                      </Link>
-                      <span className="flex shrink-0 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void acceptFriend(it.friend.handle).then(() => setTick((n) => n + 1))
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover active:scale-95"
-                        >
-                          <Check size={12} aria-hidden />
-                          Follow back
-                        </button>
-                      </span>
-                    </div>
-                  ) : it.kind === 'accepted' ? (
-                    <Link
-                      to={`/app/community?c=messages&chat=${it.friend.handle}`}
-                      onClick={onClose}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]"
-                    >
-                      <Rss size={16} className="shrink-0 text-subtle" aria-hidden />
-                      <span className="min-w-0 flex-1 text-[13px] text-fg">
-                        <span className="font-medium">{it.friend.name ?? it.friend.handle}</span>{' '}
-                        is connected with you
-                      </span>
-                      <span className="shrink-0 text-[11px] text-subtle">
-                        {relativeDueLabel(new Date(it.at).toISOString())}
-                      </span>
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/app/community?c=messages"
-                      onClick={onClose}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]"
-                    >
-                      <MessageSquare size={16} className="shrink-0 text-accent" aria-hidden />
-                      <span className="min-w-0 flex-1 text-[13px] text-fg">
-                        {it.count === 1
-                          ? '1 unread message'
-                          : `${it.count} unread messages`}
-                      </span>
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+            groups.map((g) => (
+              <section key={g.label}>
+                <h3 className="px-4 pt-4 pb-1 text-[15px] font-semibold text-fg">{g.label}</h3>
+                <ul>
+                  {g.items.map((it) => (
+                    <li key={it.id}>
+                      <Row
+                        item={it}
+                        orgByHandle={orgByHandle}
+                        onClose={onClose}
+                        onActed={() => setTick((n) => n + 1)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
           )}
         </div>
       </div>
@@ -193,77 +160,199 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
   )
 }
 
-/** The bell, with a dot when there is something to see. Lives in the Community
- *  header on every section, the way it does in the apps this borrows from. */
-export function ActivityButton({
-  count,
-  onOpen,
+/** Today / Last 7 days / Earlier — the grouping every notification screen
+ *  uses, because "3h" and "3h" six rows apart mean different things without
+ *  a heading between them. */
+function groupByAge(items: ActivityItem[], now: number) {
+  const buckets: { label: string; items: ActivityItem[] }[] = [
+    { label: 'Today', items: [] },
+    { label: 'Last 7 days', items: [] },
+    { label: 'Earlier', items: [] },
+  ]
+  for (const it of items) {
+    const age = now - it.at
+    if (age < DAY) buckets[0].items.push(it)
+    else if (age < 7 * DAY) buckets[1].items.push(it)
+    else buckets[2].items.push(it)
+  }
+  return buckets.filter((b) => b.items.length > 0)
+}
+
+/** Relative time in the two characters a notification list uses. */
+function shortAge(at: number, now: number): string {
+  const d = Math.max(0, now - at)
+  if (d < 60_000) return 'now'
+  if (d < 3_600_000) return `${Math.floor(d / 60_000)}m`
+  if (d < DAY) return `${Math.floor(d / 3_600_000)}h`
+  if (d < 7 * DAY) return `${Math.floor(d / DAY)}d`
+  return `${Math.floor(d / (7 * DAY))}w`
+}
+
+/**
+ * One row: a face, one sentence, a time — and the action on the right.
+ *
+ * NO BORDER AND NO CARD. The row IS the unit; giving each one an outline makes
+ * twenty of them read as twenty separate things to deal with rather than a
+ * list to skim.
+ */
+function Row({
+  item,
+  orgByHandle,
+  onClose,
+  onActed,
 }: {
-  count: number
-  onOpen: () => void
+  item: ActivityItem
+  orgByHandle: Map<string, EventOrg>
+  onClose: () => void
+  onActed: () => void
 }) {
+  const age = shortAge(item.at, nowMs())
+  const rowCls =
+    'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-surface-2/60'
+
+  if (item.kind === 'request') {
+    return (
+      <div className={rowCls}>
+        <Face><UserPlus size={16} className="text-accent" aria-hidden /></Face>
+        <Link to={`/@${item.friend.handle}`} onClick={onClose} className="min-w-0 flex-1">
+          <Sentence
+            strong={item.friend.name ?? item.friend.handle}
+            rest="started following you."
+            age={age}
+          />
+        </Link>
+        <button
+          type="button"
+          onClick={() => void acceptFriend(item.friend.handle).then(onActed)}
+          className="shrink-0 rounded-lg bg-accent px-3.5 py-1.5 text-[12.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+        >
+          Follow back
+        </button>
+      </div>
+    )
+  }
+
+  if (item.kind === 'accepted') {
+    return (
+      <Link
+        to={`/app/community?c=messages&chat=${item.friend.handle}`}
+        onClick={onClose}
+        className={rowCls}
+      >
+        <Face><UserPlus size={16} className="text-subtle" aria-hidden /></Face>
+        <span className="min-w-0 flex-1">
+          <Sentence
+            strong={item.friend.name ?? item.friend.handle}
+            rest="follows you back — you are connected."
+            age={age}
+          />
+        </span>
+        <span className="shrink-0 rounded-lg bg-surface-2 px-3.5 py-1.5 text-[12.5px] font-semibold text-fg">
+          Message
+        </span>
+      </Link>
+    )
+  }
+
+  if (item.kind === 'messages') {
+    return (
+      <Link to="/app/community?c=messages" onClick={onClose} className={rowCls}>
+        <Face><MessageSquare size={16} className="text-accent" aria-hidden /></Face>
+        <span className="min-w-0 flex-1">
+          <Sentence
+            strong={item.count === 1 ? '1 unread message' : `${item.count} unread messages`}
+            rest=""
+            age={age}
+          />
+        </span>
+      </Link>
+    )
+  }
+
+  if (item.kind === 'event') {
+    const org = orgByHandle.get(item.orgHandle)
+    return (
+      <Link to={`/app/community?event=${item.id.slice(3)}`} onClick={onClose} className={rowCls}>
+        {org ? (
+          <OrgLogo
+            org={org}
+            className="size-11 shrink-0"
+            rounded="rounded-full"
+          />
+        ) : (
+          <Face><PartyPopper size={16} className="text-subtle" aria-hidden /></Face>
+        )}
+        <span className="min-w-0 flex-1">
+          <Sentence strong={item.sub} rest={`posted ${item.title}`} age={age} />
+        </span>
+      </Link>
+    )
+  }
+
+  // Stored: a club posted, a request moved, somebody replied.
+  const n = item.n
+  const Icon = n.kind === 'request_comment' ? MessageSquare : n.kind === 'org_post' ? Bell : Tag
+  const inner = (
+    <>
+      <Face unread={!n.read_at}>
+        <Icon size={16} className="text-accent" aria-hidden />
+      </Face>
+      <span className="min-w-0 flex-1">
+        <Sentence strong={n.title} rest="" age={age} />
+        {n.body && <span className="mt-0.5 block truncate text-[12.5px] text-subtle">{n.body}</span>}
+      </span>
+      {!n.read_at && <span className="size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
+    </>
+  )
+  return n.link ? (
+    <Link to={n.link} onClick={onClose} className={rowCls}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={rowCls}>{inner}</div>
+  )
+}
+
+function Face({ children, unread }: { children: React.ReactNode; unread?: boolean }) {
+  return (
+    <span
+      className={cn(
+        'grid size-11 shrink-0 place-items-center rounded-full',
+        unread ? 'bg-accent-soft' : 'bg-surface-2',
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** The bolded actor, the rest of the sentence, then the age — one line that
+ *  wraps, with the time inline rather than on its own row. */
+function Sentence({ strong, rest, age }: { strong: string; rest: string; age: string }) {
+  return (
+    <span className="block text-[13.5px] leading-snug text-fg">
+      <span className="font-semibold">{strong}</span>
+      {rest ? ` ${rest}` : ''} <span className="text-subtle">{age}</span>
+    </span>
+  )
+}
+
+/** The bell. Its count is unread notifications plus what is waiting on you. */
+export function ActivityButton({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label={count > 0 ? `Activity, ${count} new` : 'Activity'}
-      className={cn(
-        'relative grid size-9 place-items-center rounded-full border border-border text-muted',
-        'transition-all duration-150 hover:border-accent hover:text-fg active:scale-95',
-      )}
+      aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
+      className="relative grid size-10 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2"
     >
-      <Bell size={16} aria-hidden />
+      <Bell size={20} aria-hidden />
       {count > 0 && (
         <span
-          className="absolute top-1.5 right-1.5 size-2 rounded-full bg-accent ring-2 ring-canvas"
+          className="absolute top-1.5 right-1.5 size-2.5 rounded-full bg-danger ring-2 ring-canvas"
           aria-hidden
         />
       )}
     </button>
-  )
-}
-
-/**
- * A stored notification: a request you care about moved, or somebody replied.
- *
- * Unread is a dot rather than a background wash. These sit in a list beside
- * events and connection requests, and tinting whole rows would make the panel
- * read as two designs stitched together.
- */
-function StoredRow({ n, onClose }: { n: ActivityNotification; onClose: () => void }) {
-  const Icon = n.kind === 'request_comment' ? MessageSquare : Tag
-  const body = (
-    <>
-      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-        <Icon size={15} aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-start gap-1.5">
-          <span className="min-w-0 flex-1 text-[13.5px] leading-snug text-fg">{n.title}</span>
-          {!n.read_at && (
-            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />
-          )}
-        </span>
-        {n.body && (
-          <span className="mt-0.5 block truncate text-[12px] text-subtle">{n.body}</span>
-        )}
-        <span className="mt-0.5 block text-[11.5px] text-subtle">
-          {relativeDueLabel(n.created_at)}
-        </span>
-      </span>
-    </>
-  )
-
-  const cls =
-    'flex items-start gap-3 rounded-xl border border-border bg-surface px-3 py-2.5 transition-colors duration-150 hover:border-accent active:scale-[0.99]'
-
-  // A notification whose link never made it to the row is still worth reading;
-  // it just is not a door.
-  return n.link ? (
-    <Link to={n.link} onClick={onClose} className={cls}>
-      {body}
-    </Link>
-  ) : (
-    <div className={cls}>{body}</div>
   )
 }

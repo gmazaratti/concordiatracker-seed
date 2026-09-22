@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Loader2 } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
@@ -53,6 +54,7 @@ export function EditProfileModal({
   const [programPub, setProgramPub] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [hasBlueprints, setHasBlueprints] = useState(true)
 
   useEffect(() => {
     if (!authUser) return
@@ -79,6 +81,13 @@ export function EditProfileModal({
         setProgramPub(r?.program_public !== false)
         setLinks(cleanLinks(r?.links))
         setLoaded(true)
+      })
+    void supabase
+      .from('shared_blueprints')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', authUser.id)
+      .then(({ count }) => {
+        if (alive) setHasBlueprints((count ?? 0) > 0)
       })
     return () => {
       alive = false
@@ -159,6 +168,14 @@ export function EditProfileModal({
                 ))}
               </div>
             </Field>
+
+            {/* THE PROMPTS LIVE HERE NOW, not on the profile.
+                They were a "Fill this out" block under someone's own profile —
+                which put a to-do list on the page whose whole job is to show
+                what the profile LOOKS LIKE. You cannot judge your own bio with
+                three suggestions stapled under it. This is the screen where
+                you are already changing things. */}
+            <Prompts hasBlueprints={hasBlueprints} onNavigate={onClose} />
 
             <div className="space-y-1 rounded-xl border border-border bg-surface-2/40 p-1">
               <Toggle
@@ -256,5 +273,39 @@ function Toggle({
       </span>
       <Switch checked={checked} onChange={onChange} label={label} />
     </div>
+  )
+}
+
+/**
+ * The two things worth doing next, and only when they are actually undone.
+ *
+ * A suggestion that stays on screen after you have done it stops being a
+ * suggestion and becomes furniture — which is why "upload an outline"
+ * disappears once you have, and there is no row for anything that is already
+ * covered by a field on this form.
+ */
+function Prompts({
+  hasBlueprints,
+  onNavigate,
+}: {
+  hasBlueprints: boolean
+  onNavigate: () => void
+}) {
+  if (hasBlueprints) return null
+  return (
+    <Link
+      to="/app/courses/blueprints"
+      onClick={onNavigate}
+      className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5 transition-colors duration-150 hover:border-accent"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium text-fg">Upload an outline</span>
+        <span className="block text-[11.5px] leading-relaxed text-subtle">
+          Share a syllabus and the next student in your section imports it in one click. It shows
+          on your profile.
+        </span>
+      </span>
+      <ChevronRight size={15} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
+    </Link>
   )
 }
