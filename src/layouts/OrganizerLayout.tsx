@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Inbox, LayoutDashboard, Loader2, LogOut, UserCircle, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, Inbox, LayoutDashboard, Loader2, LogOut, UserCircle, Users, type LucideIcon } from 'lucide-react'
 import type { OrgAccount } from '@/data/teacher'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
@@ -13,6 +13,8 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/organizer', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/organizer/events', label: 'Events', icon: CalendarDays, end: false },
   { to: '/organizer/inbox', label: 'Inbox', icon: Inbox, end: false },
+  // Next to Inbox on purpose: both are somebody else asking for something.
+  { to: '/organizer/collabs', label: 'Collabs', icon: Handshake, end: false },
   { to: '/organizer/insights', label: 'Insights', icon: BarChart3, end: false },
   { to: '/organizer/profile', label: 'Profile', icon: UserCircle, end: false },
   { to: '/organizer/team', label: 'Team', icon: Users, end: false },

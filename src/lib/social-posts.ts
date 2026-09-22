@@ -41,6 +41,24 @@ export function postAspect(media: PostMedia[]): number {
   return Math.min(1.91, Math.max(0.8, first.w / first.h))
 }
 
+/**
+ * A co-author on a post.
+ *
+ * Only ever an ACCEPTED one on the read side: `post_feed` filters to accepted
+ * collaborators whose organisation is still approved, so a pending invite is
+ * never visible on the post and a deactivated club's name comes off the
+ * header without the post going anywhere.
+ */
+export interface Collaborator {
+  orgId: string
+  handle: string
+  name: string
+  logo: string | null
+  color: string | null
+  glyph: string | null
+  verified: boolean
+}
+
 export interface FeedPost {
   id: string
   orgId: string
@@ -58,6 +76,9 @@ export interface FeedPost {
   reposts: number
   iLike: boolean
   iRepost: boolean
+  /** Empty on every post that predates collaboration, which is why nothing
+   *  had to be migrated. */
+  collaborators: Collaborator[]
 }
 
 interface PostRow {
@@ -77,6 +98,7 @@ interface PostRow {
   reposts: number
   i_like: boolean
   i_repost: boolean
+  collaborators: unknown
 }
 
 /** Media is jsonb, so it arrives as `unknown`. Anything that is not a list of
@@ -101,6 +123,28 @@ function toMedia(raw: unknown): PostMedia[] {
   return out
 }
 
+/** jsonb, so it arrives as `unknown`. A row missing the fields the header
+ *  needs is dropped rather than drawn as a nameless avatar. */
+function toCollaborators(raw: unknown): Collaborator[] {
+  if (!Array.isArray(raw)) return []
+  const out: Collaborator[] = []
+  for (const c of raw) {
+    if (!c || typeof c !== 'object') continue
+    const row = c as Record<string, unknown>
+    if (typeof row.org_id !== 'string' || typeof row.handle !== 'string') continue
+    out.push({
+      orgId: row.org_id,
+      handle: row.handle,
+      name: typeof row.name === 'string' ? row.name : row.handle,
+      logo: typeof row.logo === 'string' ? row.logo : null,
+      color: typeof row.color === 'string' ? row.color : null,
+      glyph: typeof row.glyph === 'string' ? row.glyph : null,
+      verified: row.verified === true,
+    })
+  }
+  return out
+}
+
 function toPost(r: PostRow): FeedPost {
   return {
     id: r.id,
@@ -119,6 +163,7 @@ function toPost(r: PostRow): FeedPost {
     reposts: r.reposts ?? 0,
     iLike: !!r.i_like,
     iRepost: !!r.i_repost,
+    collaborators: toCollaborators(r.collaborators),
   }
 }
 
@@ -138,28 +183,44 @@ export async function loadPosts(opts: {
   return (data as PostRow[]).map(toPost)
 }
 
+/**
+ * Publish, and hand back the id.
+ *
+ * It used to return only an error-or-null, which was enough until a post could
+ * carry collaborators: an invite is attached to a POST, so the composer needs
+ * the row it just made. `{ error }` on failure, `{ id }` on success — a
+ * discriminated result rather than a nullable string, so a caller cannot read
+ * the id off a failure.
+ */
 export async function publishPost(
   orgId: string,
   caption: string,
   media: PostMedia[],
-): Promise<string | null> {
+): Promise<{ id: string } | { error: string }> {
   const { data: me } = await supabase.auth.getUser()
-  if (!me.user) return 'You need to be signed in.'
-  if (media.length === 0) return 'Add at least one photo or video.'
-  const { error } = await supabase.from('org_posts').insert({
-    org_id: orgId,
-    author_user: me.user.id,
-    caption: caption.trim(),
-    media,
-  })
+  if (!me.user) return { error: 'You need to be signed in.' }
+  if (media.length === 0) return { error: 'Add at least one photo or video.' }
+  const { data, error } = await supabase
+    .from('org_posts')
+    .insert({
+      org_id: orgId,
+      author_user: me.user.id,
+      caption: caption.trim(),
+      media,
+    })
+    .select('id')
+    .single()
   // 42501 is RLS: the only way to reach it is publishing as an org you do not
   // run, or one that has not been approved yet.
-  if (error) {
-    return error.code === '42501'
-      ? 'Your organisation has to be approved before it can post.'
-      : 'Could not publish that.'
+  if (error || !data) {
+    return {
+      error:
+        error?.code === '42501'
+          ? 'Your organisation has to be approved before it can post.'
+          : 'Could not publish that.',
+    }
   }
-  return null
+  return { id: (data as { id: string }).id }
 }
 
 export async function deletePost(id: string): Promise<boolean> {

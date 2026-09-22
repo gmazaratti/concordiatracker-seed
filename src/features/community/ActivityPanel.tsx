@@ -8,7 +8,9 @@ import { Mascot } from '@/components/Mascot'
 import { useCommunity } from './useCommunity'
 import type { EventOrg } from '@/data/community'
 import { acceptFriend, listFriends, type Friend } from '@/lib/social'
-import { listNotifications, markNotificationsRead } from '@/lib/notifications'
+import { deleteNotifications, listNotifications, markNotificationsRead } from '@/lib/notifications'
+import { dismissActivity, notificationsChanged } from '@/lib/notification-state'
+import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
 
@@ -85,13 +87,45 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
   }, [tick])
   void friends
 
-  /** Opening the panel IS reading them. The dots stay for this viewing. */
+  /**
+   * OPENING THE PANEL CLEARS IT.
+   *
+   * It always marked rows read; what it did not do was tell anything else, so
+   * the bell kept its count until the next visibility change and the panel
+   * looked like it had not registered being opened. `notificationsChanged()`
+   * moves the badge and this list on the same frame.
+   *
+   * The ROWS stay for this viewing — clearing the unread state is not the
+   * same as erasing what happened, and a list that empties itself the instant
+   * you look at it is one you cannot read.
+   */
   useEffect(() => {
     void (async () => {
       const rows = await listNotifications()
-      if (rows.some((r) => !r.read_at)) void markNotificationsRead()
+      if (rows.some((r) => !r.read_at)) {
+        await markNotificationsRead()
+        notificationsChanged()
+      }
     })()
   }, [])
+
+  /**
+   * One row gone, by whichever mechanism owns it.
+   *
+   * A stored notification is a real row and gets a real delete. Everything
+   * else on this list is derived from live state and would be recomputed
+   * straight back, so it is remembered as dismissed per device instead. The
+   * caller does not need to know which; see notification-state.ts.
+   */
+  const dismiss = (it: ActivityItem) => {
+    if (it.kind === 'stored') void deleteNotifications([it.n.id]).then(notificationsChanged)
+    else dismissActivity(it.id)
+  }
+
+  const clearAll = () => {
+    for (const it of items) if (it.kind !== 'stored') dismissActivity(it.id)
+    void deleteNotifications().then(notificationsChanged)
+  }
 
   const orgByHandle = useMemo(() => new Map(orgs.map((o) => [o.handle, o])), [orgs])
   const orgByName = useMemo(() => new Map(orgs.map((o) => [o.name.toLowerCase(), o])), [orgs])
@@ -100,10 +134,18 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
     if (filter === 'all') return true
     if (filter === 'follows') return it.kind === 'request' || it.kind === 'accepted'
     if (filter === 'clubs')
-      return it.kind === 'event' || (it.kind === 'stored' && it.n.kind === 'org_post')
+      // Club-to-club news belongs here too: a collab invite is one
+      // organisation talking to another, not a reply on a feature request.
+      return (
+        it.kind === 'event' ||
+        (it.kind === 'stored' && (it.n.kind === 'org_post' || it.n.kind.startsWith('collab')))
+      )
     return (
       it.kind === 'messages' ||
-      (it.kind === 'stored' && it.n.kind !== 'org_post' && it.n.kind !== 'follow')
+      (it.kind === 'stored' &&
+        it.n.kind !== 'org_post' &&
+        it.n.kind !== 'follow' &&
+        !it.n.kind.startsWith('collab'))
     )
   })
 
@@ -153,11 +195,13 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
               <ArrowLeft size={22} aria-hidden />
             </button>
             <h2 className="min-w-0 flex-1 text-[17px] font-bold text-fg">Notifications</h2>
+            {items.length > 0 && <ClearAll onClear={clearAll} />}
           </div>
 
           {/* Desktop: the title carries the weight, and the X is the way out. */}
           <div className="hidden items-start justify-between px-6 pt-5 pb-1 md:flex">
             <h2 className="text-[23px] font-bold text-fg">Notifications</h2>
+            {items.length > 0 && <ClearAll onClear={clearAll} className="mt-1.5 ml-auto mr-2" />}
             <button
               type="button"
               onClick={close}
@@ -207,13 +251,15 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
                 <ul>
                   {g.items.map((it) => (
                     <li key={it.id}>
-                      <Row
-                        item={it}
-                        orgByHandle={orgByHandle}
-                        orgByName={orgByName}
-                        onClose={onClose}
-                        onActed={() => setTick((n) => n + 1)}
-                      />
+                      <SwipeToDelete label="this notification" onDelete={() => dismiss(it)}>
+                        <Row
+                          item={it}
+                          orgByHandle={orgByHandle}
+                          orgByName={orgByName}
+                          onClose={onClose}
+                          onActed={() => setTick((n) => n + 1)}
+                        />
+                      </SwipeToDelete>
                     </li>
                   ))}
                 </ul>
@@ -224,6 +270,35 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
       </div>
     </>,
     document.body,
+  )
+}
+
+/**
+ * Clear all, behind one confirmation press.
+ *
+ * Not a dialog: the cost of being wrong is a list of things you had already
+ * read, and a modal for that is heavier than the action. Not bare either —
+ * it sits next to the title and a stray tap would empty the screen.
+ */
+function ClearAll({ onClear, className }: { onClear: () => void; className?: string }) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const id = window.setTimeout(() => setArmed(false), 4000)
+    return () => window.clearTimeout(id)
+  }, [armed])
+  return (
+    <button
+      type="button"
+      onClick={() => (armed ? onClear() : setArmed(true))}
+      className={cn(
+        'shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+        armed ? 'bg-danger text-accent-contrast' : 'text-accent hover:bg-surface-2',
+        className,
+      )}
+    >
+      {armed ? 'Clear them?' : 'Clear all'}
+    </button>
   )
 }
 

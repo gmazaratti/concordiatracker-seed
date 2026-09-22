@@ -3,6 +3,7 @@ import { useCommunity } from './useCommunity'
 import { useFollows } from '@/app/providers/follows'
 import { listFriends, unreadCount, type Friend } from '@/lib/social'
 import { listNotifications, type AppNotification } from '@/lib/notifications'
+import { useDismissed, useNotificationTick } from '@/lib/notification-state'
 
 /**
  * Everything that counts as "news" for one student, in one order.
@@ -50,6 +51,10 @@ export function useActivityFeed(): ActivityFeed {
   // Read ONCE. The clock is impure, and a list that re-derives "how long ago"
   // on every render reorders itself while you are reading it.
   const [now] = useState(() => Date.now())
+  /* Deleting a row, or opening the panel, has to move this list and the bell
+     at the same moment — not on the next visibility change. */
+  const tick = useNotificationTick()
+  const dismissed = useDismissed()
 
   useEffect(() => {
     let alive = true
@@ -65,7 +70,7 @@ export function useActivityFeed(): ActivityFeed {
     return () => {
       alive = false
     }
-  }, [])
+  }, [tick])
 
   const orgName = useMemo(() => new Map(orgs.map((o) => [o.handle, o.name])), [orgs])
 
@@ -134,8 +139,17 @@ export function useActivityFeed(): ActivityFeed {
     // conversation you are in the middle of.
     if (dms > 0) out.push({ kind: 'messages', id: 'dm', at: now, count: dms })
 
-    return out.sort((a, b) => b.at - a.at)
-  }, [events, isFollowing, friends, stored, dms, now, orgName])
+    /*
+     * DISMISSED ROWS COME OUT HERE, not at the source.
+     *
+     * A stored notification is deleted for real and never comes back from the
+     * server. The rest of this list is DERIVED — an event an org you follow
+     * posted, a follow you have not returned — so it is recomputed on every
+     * render and "delete" has to mean "remember not to show me this one".
+     * Filtering at the end is what makes both kinds behave the same on screen.
+     */
+    return out.filter((it) => !dismissed.has(it.id)).sort((a, b) => b.at - a.at)
+  }, [events, isFollowing, friends, stored, dms, now, orgName, dismissed])
 
   return { items, unread: stored.filter((n) => !n.read_at).length, loading }
 }

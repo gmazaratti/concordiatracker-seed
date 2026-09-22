@@ -52,6 +52,7 @@ const OnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage')
 const OrganizerHome = lazy(() => import('@/features/organizer/OrganizerHome').then((x) => ({ default: x.OrganizerHome })))
 const OrganizerEvents = lazy(() => import('@/features/organizer/OrganizerEvents').then((x) => ({ default: x.OrganizerEvents })))
 const OrganizerInbox = lazy(() => import('@/features/organizer/OrganizerInbox').then((x) => ({ default: x.OrganizerInbox })))
+const OrganizerCollabs = lazy(() => import('@/features/organizer/OrganizerCollabs').then((x) => ({ default: x.OrganizerCollabs })))
 const OrganizerInsights = lazy(() => import('@/features/organizer/OrganizerInsights').then((x) => ({ default: x.OrganizerInsights })))
 const OrganizerEventEditor = lazy(() => import('@/features/organizer/OrganizerEventEditor').then((x) => ({ default: x.OrganizerEventEditor })))
 const OrgProfileEditor = lazy(() => import('@/features/organizer/OrgProfileEditor').then((x) => ({ default: x.OrgProfileEditor })))
@@ -113,6 +114,7 @@ export function AppRoutes() {
         <Route index element={<OrganizerHome />} />
         <Route path="events" element={<OrganizerEvents />} />
         <Route path="inbox" element={<OrganizerInbox />} />
+        <Route path="collabs" element={<OrganizerCollabs />} />
         <Route path="insights" element={<OrganizerInsights />} />
         <Route path="invite/:token" element={<OrganizerInvitePage />} />
         <Route path="join/:token" element={<OrgMemberInvitePage />} />

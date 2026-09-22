@@ -8,7 +8,7 @@
  * caller can act on, and to record what was published.
  */
 import { asUser, rpcAsUser } from './_v1-jwt.js'
-import { approved, bad, findOrg, norm, ok, requireMember, str, type OrgRow, type Out } from './_v1-orgs.js'
+import { approved, bad, findOrg, norm, ok, requireMember, str, viaOverride, type OrgRow, type Out } from './_v1-orgs.js'
 
 const EVENT_COLS =
   'id,org_id,title,start,mode,location,category,description,image,relevant_to,posted_at,series_id,recurrence,translations,created_at'
@@ -26,7 +26,7 @@ function instant(v: unknown, field: string): string | { error: string } {
   return d.toISOString()
 }
 
-type Gate = { ok: false; out: Out } | { ok: true; org: OrgRow }
+type Gate = { ok: false; out: Out } | { ok: true; org: OrgRow; override: boolean }
 
 async function gate(jwt: string, userId: string, handle: string): Promise<Gate> {
   const org = await findOrg(jwt, handle)
@@ -35,8 +35,18 @@ async function gate(jwt: string, userId: string, handle: string): Promise<Gate> 
   if (member) return { ok: false, out: member }
   const live = approved(org)
   if (live) return { ok: false, out: live }
-  return { ok: true, org }
+  return { ok: true, org, override: await viaOverride(jwt, userId, org) }
 }
+
+/**
+ * Stamp an audit value with how the write got in.
+ *
+ * Only present when it was the platform override, so the log reads as the
+ * exception it is rather than carrying `override: false` on every ordinary
+ * post a club's own officer made.
+ */
+const mark = (g: { override: boolean }, value: Record<string, unknown>) =>
+  g.override ? { ...value, override: true } : value
 
 /* ── Events ───────────────────────────────────────────────────────────────*/
 
@@ -99,7 +109,7 @@ export async function createEvent(
   await rpcAsUser(jwt, 'ct_agent_audit', {
     p_action: 'agent.event.create',
     p_target: g.org.id,
-    p_value: { title, start, event_id: made?.id ?? null },
+    p_value: mark(g, { title, start, event_id: made?.id ?? null }),
   })
   return ok({ event: r.data?.[0] ?? null }, 201)
 }
@@ -136,7 +146,7 @@ export async function patchEvent(
   await rpcAsUser(jwt, 'ct_agent_audit', {
     p_action: 'agent.event.update',
     p_target: g.org.id,
-    p_value: { event_id: id, fields: Object.keys(patch) },
+    p_value: mark(g, { event_id: id, fields: Object.keys(patch) }),
   })
   return ok({ event: r.data[0] })
 }
@@ -189,7 +199,7 @@ export async function createPost(
   await rpcAsUser(jwt, 'ct_agent_audit', {
     p_action: 'agent.post.create',
     p_target: g.org.id,
-    p_value: { post_id: made?.id ?? null, images: media.length },
+    p_value: mark(g, { post_id: made?.id ?? null, images: media.length }),
   })
   return ok({ post: r.data?.[0] ?? null }, 201)
 }
@@ -206,7 +216,7 @@ export async function hidePost(jwt: string, userId: string, handle: string, id: 
   )
   if (!r.ok) return bad(r.status, r.error?.message ?? 'Could not remove that post.')
   if (!r.data?.length) return bad(404, `${norm(handle)} has no post with that id.`)
-  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.post.hide', p_target: g.org.id, p_value: { post_id: id } })
+  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.post.hide', p_target: g.org.id, p_value: mark(g, { post_id: id }) })
   return ok({ hidden: true, post_id: id })
 }
 
@@ -251,7 +261,7 @@ export async function createStory(
   })
   if (!r.ok) return bad(r.status === 403 ? 403 : 400, r.error?.message ?? 'Could not post that story.')
   const made = r.data?.[0] as { id?: string } | undefined
-  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.story.create', p_target: g.org.id, p_value: { story_id: made?.id ?? null } })
+  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.story.create', p_target: g.org.id, p_value: mark(g, { story_id: made?.id ?? null }) })
   return ok({ story: r.data?.[0] ?? null }, 201)
 }
 
@@ -287,7 +297,7 @@ export async function createInvite(
 ): Promise<Out> {
   const org = await findOrg(jwt, handle)
   if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
-  const member = await requireMember(jwt, userId, org)
+  const member = await requireMember(jwt, userId, org, { allowOverride: false })
   if (member) return member
 
   const kind = str(body.kind) ?? 'team'
@@ -378,7 +388,7 @@ export async function listInvites(jwt: string, handle: string, origin: string): 
 export async function revokeInvite(jwt: string, userId: string, handle: string, id: string): Promise<Out> {
   const org = await findOrg(jwt, handle)
   if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
-  const member = await requireMember(jwt, userId, org)
+  const member = await requireMember(jwt, userId, org, { allowOverride: false })
   if (member) return member
 
   const found = await asUser<{ id: string; status: string | null }[]>(

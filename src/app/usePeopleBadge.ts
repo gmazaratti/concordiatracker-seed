@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listFriends, unreadCount } from '@/lib/social'
 import { listNotifications, unreadNotifications } from '@/lib/notifications'
 import { useMessageTick } from '@/lib/message-alerts'
+import { useNotificationTick } from '@/lib/notification-state'
 
 /**
  * How many things are waiting on you from other people.
@@ -85,6 +86,9 @@ export function useUnreadMessages(): number {
 export function useActivityBadge(): number {
   const people = usePeopleBadge()
   const [notes, setNotes] = useState(0)
+  /* Opening the panel marks everything read; the badge has to agree with the
+     screen on the same frame, not after the next poll. */
+  const tick = useNotificationTick()
 
   useEffect(() => {
     let alive = true
@@ -100,7 +104,7 @@ export function useActivityBadge(): number {
       alive = false
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [])
+  }, [tick])
 
   return people + notes
 }

@@ -11,6 +11,7 @@ import {
   Repeat2,
   Send,
   Trash2,
+  Unlink,
   Volume2,
   VolumeX,
 } from 'lucide-react'
@@ -27,12 +28,14 @@ import {
 } from '@/lib/social-posts'
 import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
-import { VerifiedBadge } from '../VerifiedBadge'
 import { ShareSheet } from '../ShareSheet'
 import { ModalShell } from '@/command/ModalShell'
 import { submitTicket } from '@/lib/tickets'
 import { muteOrg } from '../muted-orgs'
 import { PostFollowButton } from './PostFollowButton'
+import { CollabHeader, CollaboratorsSheet } from './CollabHeader'
+import { removeCollaborator } from '@/lib/collab'
+import { useMyOrgs } from '../useMyOrgs'
 import { CommentsSheet } from './CommentsSheet'
 
 /**
@@ -78,7 +81,44 @@ export function PostCard({
   const [gone, setGone] = useState(false)
   const [saved, setSaved] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [showCollabs, setShowCollabs] = useState(false)
   const strip = useRef<HTMLDivElement | null>(null)
+
+  /**
+   * ENDING A COLLABORATION IS SYMMETRIC, and the label says which end you are.
+   *
+   * Either club can undo it (`remove_collaborator` in the SQL enforces that,
+   * and tells the other side) — the publisher takes a name off their post, the
+   * co-author steps off one. Two sentences for one verb, because "Remove
+   * collaborator" on a post that is not yours reads like you are deleting
+   * somebody else's work.
+   *
+   * The entry is absent entirely when the viewer runs neither club, rather
+   * than shown and refused.
+   */
+  const { orgs: myOrgs } = useMyOrgs()
+  const removable = (() => {
+    const collab = post.collaborators[0]
+    if (!collab) return null
+    const mine = new Set(myOrgs.map((o) => o.id))
+    if (mine.has(post.orgId)) {
+      return { orgId: post.orgId, target: collab.orgId, otherName: collab.name, myName: post.orgName }
+    }
+    const asCollab = post.collaborators.find((c) => mine.has(c.orgId))
+    if (asCollab) {
+      return { orgId: asCollab.orgId, target: asCollab.orgId, otherName: post.orgName, myName: asCollab.name }
+    }
+    return null
+  })()
+
+  const unlink = async () => {
+    if (!removable) return
+    await removeCollaborator(post.id, removable.target)
+    // Reload rather than patch the card in place: removing a collaborator
+    // changes whose profiles the post belongs on, and this component only
+    // knows about one of them.
+    onChanged?.()
+  }
 
   /** Scroll by exactly one frame. The strip owns the position — the dots and
    *  the counter read it — so moving it is the only thing to do here. */
@@ -148,13 +188,7 @@ export function PostCard({
         as belonging to something else.
       */}
       <header className="flex items-center gap-2.5 py-2.5 sm:px-1">
-        <Link to={`/app/community/org/${slug}`} className="flex min-w-0 items-center gap-2.5">
-          <Avatar post={post} />
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-[13.5px] font-semibold text-fg">{slug}</span>
-            {post.verified && <VerifiedBadge size={13} />}
-          </span>
-        </Link>
+        <CollabHeader post={post} onOpenSheet={() => setShowCollabs(true)} />
         <span className="shrink-0 text-[12px] text-subtle">· {ago(post.createdAt)}</span>
         <span className="min-w-1 flex-1" />
         {/* Nothing at all once you follow them — see PostFollowButton. */}
@@ -162,11 +196,25 @@ export function PostCard({
         <DropdownMenu
           ariaLabel="Post options"
           items={[
+            ...(removable
+              ? [
+                  {
+                    id: 'uncollab',
+                    label:
+                      removable.orgId === post.orgId
+                        ? `Remove ${removable.otherName}`
+                        : `Leave this post as ${removable.myName}`,
+                    icon: Unlink,
+                    onSelect: () => void unlink(),
+                  },
+                ]
+              : []),
             {
               id: 'report',
               label: 'Report post',
               icon: Flag,
               danger: true,
+              separated: !!removable,
               onSelect: () => setReporting(true),
             },
             {
@@ -326,6 +374,8 @@ export function PostCard({
           </div>
         ))}
 
+      {showCollabs && <CollaboratorsSheet post={post} onClose={() => setShowCollabs(false)} />}
+
       {showComments && (
         <CommentsSheet
           postId={post.id}
@@ -354,28 +404,6 @@ export function PostCard({
   )
 }
 
-function Avatar({ post }: { post: FeedPost }) {
-  if (post.logo) {
-    return (
-      <img
-        src={post.logo}
-        alt=""
-        className="size-8 shrink-0 rounded-full object-cover"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-        }}
-      />
-    )
-  }
-  return (
-    <span
-      className="grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white"
-      style={{ background: post.color ?? '#4b5563' }}
-    >
-      {(post.glyph || post.orgName.slice(0, 2)).toUpperCase()}
-    </span>
-  )
-}
 
 function Action({
   icon: Icon,

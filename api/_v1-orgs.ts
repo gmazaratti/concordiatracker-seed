@@ -8,10 +8,13 @@
  * EARLY with a useful message, because "row-level security" is not an answer
  * anybody can act on.
  *
- * READING IS ADMIN-WIDE, PUBLISHING NEEDS MEMBERSHIP. That split is enforced
- * by RLS via the ct_agent claim, not here. `requireMember` exists only so the
+ * READING IS ADMIN-WIDE, PUBLISHING NEEDS MEMBERSHIP — unless the account
+ * carries the platform-admin override (see db/agent_publish_any.sql). That
+ * split is enforced by RLS, not here. `requireMember` exists only so the
  * refusal says which organisation and what to do about it, one call before
- * the database would have said 42501 with no detail.
+ * the database would have said 42501 with no detail — and it has to agree
+ * with the database about the override, or it refuses a write the database
+ * would have allowed.
  */
 import { asUser, rpcAsUser, uploadAsUser } from './_v1-jwt.js'
 import { readImage } from './_v1-image.js'
@@ -58,16 +61,57 @@ async function findOrg(jwt: string, handle: string): Promise<OrgRow | null> {
 }
 
 /**
+ * Does this account hold the platform-admin publishing override?
+ *
+ * Asked of the DATABASE rather than assumed from the scope, because the
+ * database is what will decide the write — and a client-side guess that says
+ * yes where RLS says no produces a 42501 with no sentence on it, which is the
+ * exact failure this file exists to prevent.
+ *
+ * Cached for a minute per token. A borrowed session is reused for an hour
+ * (see _v1-jwt.ts), so keying on the token alone would mean revoking the flag
+ * took an hour to bite; a minute is short enough to be a real revocation and
+ * long enough that a burst of writes costs one round trip.
+ */
+const OVERRIDE_TTL_MS = 60_000
+const overrideCache = new Map<string, { at: number; value: boolean }>()
+
+async function publishAny(jwt: string): Promise<boolean> {
+  const hit = overrideCache.get(jwt)
+  const now = Date.now()
+  if (hit && now - hit.at < OVERRIDE_TTL_MS) return hit.value
+  const r = await rpcAsUser<boolean>(jwt, 'ct_agent_publish_any', {})
+  // A failure is NOT an override. The stricter answer on an unknown is the
+  // same rule ct_is_agent follows.
+  const value = r.ok && r.data === true
+  overrideCache.set(jwt, { at: now, value })
+  return value
+}
+
+/**
  * The publishing gate, asked before the write rather than after.
  *
  * The database would refuse anyway. This exists so the caller is told that it
  * is not on that organisation's team and how to fix it, instead of a bare
  * permission error that reads like the endpoint is broken.
+ *
+ * Returns null when the write may proceed — by membership, by ownership, or
+ * by the platform-admin override.
  */
 async function requireMember(
   jwt: string,
   userId: string,
   org: OrgRow,
+  /*
+   * TEAM AND INVITES OPT OUT, because the database does too.
+   *
+   * The override reopens CONTENT only — `org_members` and `org_invites` keep
+   * the narrowing, and an org_invite with no org_id mints an organisation and
+   * an account. If this returned null for those, the caller would get a bare
+   * 42501 out of PostgREST instead of a sentence, which is the thing this
+   * function exists to prevent.
+   */
+  opts: { allowOverride?: boolean } = {},
 ): Promise<Out | null> {
   if (org.owner_id === userId) return null
   const r = await asUser<{ id: string }[]>(
@@ -75,14 +119,37 @@ async function requireMember(
     `org_members?org_id=eq.${org.id}&user_id=eq.${userId}&status=eq.active&select=id&limit=1`,
   )
   if (r.data?.length) return null
+  if (opts.allowOverride !== false && (await publishAny(jwt))) return null
+  const teamOnly = opts.allowOverride === false
   return bad(
     403,
-    `This token is not on ${org.handle}'s team, and publishing needs membership.`,
+    teamOnly
+      ? `This token is not on ${org.handle}'s team. Team and invite actions are outside the platform override.`
+      : `This token is not on ${org.handle}'s team, and publishing needs membership.`,
     {
       reason: 'not_a_member',
-      hint: `Adding this account to ${org.handle} is a human action, on purpose: an admin does it from their own browser. An agent can only put itself on an organisation it creates.`,
+      hint: teamOnly
+        ? `Publishing to ${org.handle} works with a platform-admin token; adding a member or sending an invite does not, on purpose — an invite can mint an account, and that stays a human action from a browser.`
+        : `Adding this account to ${org.handle} is a human action, on purpose: an admin does it from their own browser. A platform-admin token can be granted the publish-anywhere override instead — see db/agent_publish_any.sql.`,
     },
   )
+}
+
+/**
+ * Whether the write about to happen is the team's or the platform's.
+ *
+ * Only used to stamp the audit entry. A post on a club's page that the club
+ * did not write is a thing somebody will eventually ask about, and the log is
+ * where that question gets answered.
+ */
+async function viaOverride(jwt: string, userId: string, org: OrgRow): Promise<boolean> {
+  if (org.owner_id === userId) return false
+  const r = await asUser<{ id: string }[]>(
+    jwt,
+    `org_members?org_id=eq.${org.id}&user_id=eq.${userId}&status=eq.active&select=id&limit=1`,
+  )
+  if (r.data?.length) return false
+  return publishAny(jwt)
 }
 
 function approved(org: OrgRow): Out | null {
@@ -178,6 +245,7 @@ export async function patchOrg(
   if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
   const gate = await requireMember(jwt, userId, org)
   if (gate) return gate
+  const override = await viaOverride(jwt, userId, org)
 
   // An allowlist, never a spread: handing a body straight to PostgREST lets a
   // caller set owner_id or status and take an organisation over.
@@ -196,7 +264,7 @@ export async function patchOrg(
   await rpcAsUser(jwt, 'ct_agent_audit', {
     p_action: 'agent.org.update',
     p_target: org.id,
-    p_value: { handle: org.handle, fields: Object.keys(patch) },
+    p_value: { handle: org.handle, fields: Object.keys(patch), ...(override ? { override: true } : {}) },
   })
   return ok({ organization: r.data?.[0] ?? null })
 }
@@ -214,6 +282,7 @@ export async function setOrgImage(
   if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
   const gate = await requireMember(jwt, userId, org)
   if (gate) return gate
+  const override = await viaOverride(jwt, userId, org)
 
   const stored = await storeImage(jwt, userId, raw, contentType, `${org.handle.slice(1)}-${kind}`)
   if ('status' in stored) return stored
@@ -224,7 +293,7 @@ export async function setOrgImage(
     prefer: 'return=representation',
   })
   if (!r.ok) return bad(r.status, r.error?.message ?? `Uploaded, but could not set the ${kind}.`)
-  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: `agent.org.${kind}`, p_target: org.id, p_value: { url: stored.url } })
+  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: `agent.org.${kind}`, p_target: org.id, p_value: { url: stored.url, ...(override ? { override: true } : {}) } })
   return ok({ url: stored.url, organization: r.data?.[0] ?? null })
 }
 
@@ -240,5 +309,5 @@ export async function uploadMedia(
   return ok({ url: stored.url }, 201)
 }
 
-export { approved, bad, findOrg, norm, ok, requireMember, str }
+export { approved, bad, findOrg, norm, ok, publishAny, requireMember, str, viaOverride }
 export type { OrgRow }

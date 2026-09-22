@@ -46,3 +46,18 @@ export async function markNotificationsRead(ids?: string[]): Promise<void> {
 
 export const unreadNotifications = (list: AppNotification[]): number =>
   list.filter((n) => !n.read_at).length
+
+/**
+ * Clear notifications for good.
+ *
+ * `mark_notifications_read` makes the dot go away; this removes the row. Both
+ * exist because they answer different questions — "I have seen it" and "I do
+ * not want it on the list" — and the panel does the first on open and the
+ * second on a swipe.
+ *
+ * No ids clears all of yours. Ownership is decided in the function, so an id
+ * you do not own deletes nothing rather than deleting theirs.
+ */
+export async function deleteNotifications(ids?: string[]): Promise<void> {
+  await supabase.rpc('delete_notifications', { p_ids: ids ?? null })
+}

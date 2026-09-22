@@ -142,7 +142,12 @@ export function StoryComposer({
           ? // A post keeps the caption and drops the overlays: text dragged
             // onto a photo is a story idiom, and a post's caption sits under
             // the image where it can be read, searched and translated.
-            await publishPost(org.id, caption, [{ url }])
+            //
+            // `publishPost` returns the new id now (the composer needs it for
+            // collaborator invites); here only the failure matters.
+            await publishPost(org.id, caption, [{ url }]).then((r) =>
+              'error' in r ? r.error : null,
+            )
           : await publishStory(org.id, {
               imageUrl: url,
               caption,
