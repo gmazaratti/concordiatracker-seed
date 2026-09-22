@@ -102,10 +102,20 @@ export function CommunityPage() {
         part of this tab that actually wants the height — was paying for it.
         The phone still reaches them from the bottom bar.
 
-        What is left up here is the bell, which is not a destination: it opens
-        a sheet and comes back.
+        AND SO HAS THE BELL, on desktop. One control alone on a full-width row
+        bought a band of empty space across the top of every section to hold
+        it, and it was only reachable from inside Social at all. It is in the
+        sidebar footer now, beside settings, on screen everywhere.
+
+        A PHONE HAS NO SIDEBAR, so it keeps the row — where a bell is expected
+        anyway, and where nothing else is competing for the space.
       */}
-      <div className={cn('flex justify-end', full ? 'shrink-0 px-3 pt-2 sm:px-4' : 'mb-2')}>
+      <div
+        className={cn(
+          'flex justify-end md:hidden',
+          full ? 'shrink-0 px-3 pt-2 sm:px-4' : 'mb-2',
+        )}
+      >
         <ActivityButton count={bell} onOpen={() => setActivity(true)} />
       </div>
 

@@ -1,4 +1,5 @@
-import { LifeBuoy, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 import { Mascot } from '@/components/Mascot'
 import { useSupport } from '@/app/providers/support'
 import { STATUS_META, type TicketSummary } from '@/lib/tickets'
@@ -53,8 +54,11 @@ export function SupportThreads({
             onClick={() => onOpen(t.id)}
             className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pr-1 pl-0.5 text-left lg:px-3"
           >
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-              <LifeBuoy size={20} aria-hidden />
+            {/* OUR MARK, not a generic lifebuoy. The person on the other end
+                of this thread is us, and the row should say so the way every
+                other row says who it is from. */}
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-2">
+              <Logo showText={false} className="[&>svg]:size-7" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
@@ -115,12 +119,15 @@ export function SupportConversation({
         >
           ←
         </button>
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
-          <LifeBuoy size={17} aria-hidden />
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2">
+          <Logo showText={false} className="[&>svg]:size-6" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13.5px] font-medium text-fg">{ticket.subject}</p>
-          <p className="flex items-center gap-1.5 truncate text-[11.5px] text-subtle">
+          <p className="truncate text-[13.5px] font-medium text-fg">
+            ConcordiaTracker <span className="font-normal text-subtle">support</span>
+          </p>
+          <p className="truncate text-[12px] text-muted">{ticket.subject}</p>
+          <p className="flex items-center gap-1.5 truncate text-[11px] text-subtle">
             <span className={cn('inline-block size-1.5 rounded-full', meta.dot)} aria-hidden />
             {meta.label} · {ticket.case_id}
           </p>

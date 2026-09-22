@@ -1,11 +1,12 @@
 import { Fragment, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Bell, Inbox, PanelLeftClose, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
 import { useSettings } from '@/app/providers/settings'
 import { useUiState } from '@/app/providers/ui-state'
+import { useActivityBadge } from '@/app/usePeopleBadge'
 import { NavBadge } from './NavBadge'
 import { Logo } from './Logo'
 import { SearchTrigger } from './SearchTrigger'
@@ -183,9 +184,43 @@ export function Sidebar() {
               side of the screen. */}
           <AvatarMenu align="bottom" compact={collapsed} side={collapsed ? 'left' : 'right'} />
         </div>
+        <NotificationsButton />
         <SettingsGearButton />
       </div>
     </aside>
+  )
+}
+
+/**
+ * Notifications, in the footer beside settings.
+ *
+ * It lived alone in Community's page header, which cost that tab a strip of
+ * empty space across the top to hold one control — and it meant the only way
+ * to see a notification was to already be in Community. Down here it sits
+ * with the two other things that are about YOU rather than about the page,
+ * and it is on screen from every destination.
+ *
+ * A LINK, not a button. `?activity=1` is the panel's address, so this, the
+ * toast and the avatar menu all point at the same thing without anyone
+ * hoisting state out of Community.
+ */
+function NotificationsButton() {
+  const count = useActivityBadge()
+  return (
+    <Link
+      to="/app/community?activity=1"
+      aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
+      title="Notifications"
+      className="relative grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+    >
+      <Bell size={17} aria-hidden />
+      {count > 0 && (
+        <span
+          className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger ring-2 ring-canvas"
+          aria-hidden
+        />
+      )}
+    </Link>
   )
 }
 

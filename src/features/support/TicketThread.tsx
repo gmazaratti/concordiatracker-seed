@@ -142,35 +142,45 @@ export function TicketThread({
         </div>
       )}
 
-      <div className="flex items-end gap-2 border-t border-border p-3">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter sends, Shift+Enter makes a new line — chat convention.
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void send()
-            }
-          }}
-          rows={2}
-          placeholder={perspective === 'staff' ? 'Reply to this person…' : 'Write a message…'}
-          aria-label="Your message"
-          className="min-h-[42px] flex-1 resize-y rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => void send()}
-          disabled={!draft.trim() || sending}
-          aria-label="Send message"
-          className="grid size-[42px] shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {sending ? (
-            <Loader2 size={16} className="animate-spin" aria-hidden />
-          ) : (
-            <Send size={16} aria-hidden />
-          )}
-        </button>
+      {/*
+        THE SAME PILL THE DMs USE. This was a two-row rectangle with
+        `resize-y`, which drew the browser's native resize grip — the pair of
+        diagonal lines in the bottom-right corner that looked like a
+        rendering fault. A message box you can drag taller is also the wrong
+        affordance next to one you cannot, and support is a conversation like
+        any other here.
+      */}
+      <div className="flex items-end gap-2 border-t border-border p-2.5">
+        <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter sends, Shift+Enter makes a new line — chat convention.
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                void send()
+              }
+            }}
+            rows={1}
+            placeholder={perspective === 'staff' ? 'Reply to this person…' : 'Write a message…'}
+            aria-label="Your message"
+            className="max-h-28 min-h-[28px] flex-1 resize-none self-center bg-transparent py-1 text-[13.5px] text-fg placeholder:text-subtle focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => void send()}
+            disabled={!draft.trim() || sending}
+            aria-label="Send message"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:bg-transparent disabled:text-subtle"
+          >
+            {sending ? (
+              <Loader2 size={15} className="animate-spin" aria-hidden />
+            ) : (
+              <Send size={15} aria-hidden />
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

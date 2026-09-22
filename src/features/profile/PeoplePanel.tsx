@@ -26,7 +26,6 @@ import {
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/app/providers/auth'
-import { useAppData } from '@/app/providers/app-data'
 import { Avatar, Chat } from './Chat'
 import { OrgChat, OrgFace, type OrgChatTarget } from './OrgChat'
 import { PersonMenu, PersonMenuButton, type PersonTarget } from './PersonMenu'
@@ -40,7 +39,7 @@ import { NotesRow } from './NotesRow'
 import { SearchOverlay } from '@/features/community/SearchOverlay'
 import { MessageFilterSheet } from './MessageFilterSheet'
 import { describeFilters, matchesFilters, type MessageFilterId } from './message-filters'
-import { SupportConversation, SupportPane, SupportThreads } from './SupportThreads'
+import { SupportConversation, SupportPane } from './SupportThreads'
 import { useSupportThreads } from './use-support-threads'
 
 /** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
@@ -160,7 +159,6 @@ type Pill = 'inbox' | 'requests' | 'support'
 
 export function PeoplePanel() {
   const { orgNameByOwner } = useCommunityData()
-  const { user: profile } = useAppData()
   const [params, setParams] = useSearchParams()
   // `?people=requests` so a link can land on the right pill. Read ONCE as an
   // initial value: after that the pills are yours to click and the URL should
@@ -298,23 +296,19 @@ export function PeoplePanel() {
       filters,
     )
   })
-  /* Support is a conversation with us. It is never an organisation and never
-     carries a verification seal, so those two filters exclude it — which is
-     correct, not an oversight. */
-  const shownSupport = support.tickets.filter((t) =>
-    matchesFilters(
-      {
-        kind: 'user',
-        unread: t.has_unread ? 1 : 0,
-        lastFromMe: undefined,
-        lastBody: t.subject,
-        verified: false,
-      },
-      filters,
-    ) && (!q || t.subject.toLowerCase().includes(q) || t.case_id.toLowerCase().includes(q)),
+  /*
+   * SUPPORT LIVES UNDER ITS OWN PILL AND NOWHERE ELSE.
+   *
+   * It was in both, which is the duplicate-surface fault this tab keeps being
+   * rebuilt to remove: the same rows in the list AND behind a filter whose
+   * whole job is to isolate them. Writing to us is a conversation and belongs
+   * in Messages — but it is a conversation with the product rather than with
+   * a classmate, and mixing the two is what made one list read as two.
+   */
+  const shownSupport = support.tickets.filter(
+    (t) => !q || t.subject.toLowerCase().includes(q) || t.case_id.toLowerCase().includes(q),
   )
-  const nothingShown =
-    shownThreads.length === 0 && shownOrgThreads.length === 0 && shownSupport.length === 0
+  const nothingShown = shownThreads.length === 0 && shownOrgThreads.length === 0
   /**
    * WHAT IS WAITING ON YOU, under one relationship.
    *
@@ -361,11 +355,13 @@ export function PeoplePanel() {
     return undefined
   }, [attachParam, events, record])
 
+  /** Opening a ticket keeps you on the Support pill. It used to flip to the
+   *  inbox, which is where the ticket rows used to be and no longer are —
+   *  so the list you came from would have vanished under you. */
   const openTicket = (id: string) => {
     setActive(null)
     setActiveOrg(null)
     setActiveTicket(id)
-    setPill('inbox')
   }
 
   const openOrgChat = (t: Thread) => {
@@ -451,15 +447,12 @@ export function PeoplePanel() {
         )}
       >
         <div className="flex shrink-0 flex-col px-3 pt-2">
-        {/* Desktop only: the reference heads the rail with who you are posting
-            as and the way to start something new. On a phone that row is the
-            bottom bar's job and the compose button rides with the search. */}
-        <div className="order-0 mb-2 hidden items-center gap-1 md:flex">
-          <span className="min-w-0 truncate text-[17px] font-bold text-fg">
-            {profile.handle ?? 'You'}
-          </span>
-          {profile.handle && <PersonSeal handle={profile.handle} userId={meId} size={15} />}
-        </div>
+        {/*
+          NO NAME ROW. It sat above everything announcing whose inbox this is,
+          to the one person who cannot be in any doubt, and pushed every real
+          control down a line to do it. Your handle is on the profile tab, in
+          the sidebar footer, and in the URL.
+        */}
         {/*
           THE ORDER IS THE REFERENCE'S: search, then notes, then filters, then
           the list. Search leads because it is what you reach for when you know
@@ -473,7 +466,7 @@ export function PeoplePanel() {
           ordered per breakpoint rather than duplicated into two trees that
           would drift.
         */}
-        <div className="order-1 mb-1 flex items-center gap-2 md:order-2">
+        <div className="order-2 mb-1 flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search
               size={15}
@@ -509,13 +502,13 @@ export function PeoplePanel() {
           </button>
         </div>
 
-        <div className="order-2 md:order-3">
+        <div className="order-3">
           <NotesRow />
         </div>
 
         {/* One scrolling row, edges not cut. Same treatment as the event filter
             chips, because it is the same kind of control. */}
-        <div className="order-3 -mx-3 mb-3 overflow-x-auto px-3 md:order-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="order-1 -mx-3 mb-2 overflow-x-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max items-center gap-2" role="tablist">
             {/* IT IS A BUTTON NOW. It was a decorative glyph that looked
                 exactly like a control, which is worse than no control. The
@@ -577,7 +570,7 @@ export function PeoplePanel() {
           )}
           {friends !== null && pill === 'inbox' && (
             <>
-              {accepted.length === 0 && orgThreads.length === 0 && support.tickets.length === 0 ? (
+              {accepted.length === 0 && orgThreads.length === 0 ? (
                 <div className="lg:p-4">
                   <Empty
                     title="No conversations yet"
@@ -608,16 +601,6 @@ export function PeoplePanel() {
                 </div>
               ) : (
                 <ul className="divide-y divide-border lg:divide-y-0">
-                  {shownSupport.length > 0 && (
-                    <li className="px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
-                      Support
-                    </li>
-                  )}
-                  <SupportThreads
-                    tickets={shownSupport}
-                    activeId={activeTicket}
-                    onOpen={openTicket}
-                  />
                   {shownOrgThreads.length > 0 && (
                     <li className="px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
                       Clubs
@@ -777,13 +760,10 @@ export function PeoplePanel() {
           {pill === 'support' && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               <SupportPane
-                tickets={support.tickets}
+                tickets={shownSupport}
                 loading={support.loading}
                 activeId={activeTicket}
-                onOpen={(id: string) => {
-                  setActiveTicket(id)
-                  setPill('inbox')
-                }}
+                onOpen={openTicket}
               />
             </div>
           )}
@@ -850,7 +830,7 @@ export function PeoplePanel() {
                 </aside>
               </>
             ) : (
-              accepted.length + support.tickets.length > 0 && (
+              accepted.length > 0 && (
                 /* The reference's empty pane: a mark, a title, one line, and the
                    action. The paragraph that used to live here explained the
                    attachment menu to somebody who had not opened a conversation
