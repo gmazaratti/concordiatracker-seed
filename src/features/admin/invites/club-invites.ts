@@ -19,6 +19,27 @@ export interface ClubInvite {
   signed_in_opens: number
   claimed_at: string | null
   claimed_email: string | null
+  /** 'link' = anyone with it; 'email' / 'user' = sent to one person, and only
+   *  they can accept it (db/direct_invites.sql). */
+  kind?: 'link' | 'email' | 'user'
+  revoked_at?: string | null
+  recipient_name?: string | null
+  recipient_handle?: string | null
+  recipient_avatar?: string | null
+}
+
+/** Who a direct invite goes to. */
+export type Recipient =
+  | { kind: 'link' }
+  | { kind: 'email'; email: string }
+  | { kind: 'user'; user: FoundUser }
+
+export interface FoundUser {
+  user_id: string
+  name: string | null
+  handle: string | null
+  avatar_url: string | null
+  email: string | null
 }
 
 export interface InviteEvent {
@@ -37,6 +58,8 @@ export const UNLIMITED = 1_000_000
 /** "Never expires" is a date far enough away that it never matters. */
 export const NEVER = '2099-12-31T23:59:00.000Z'
 
+export const validEmail = (e: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.trim())
+
 export const isUnlimited = (n: number) => n >= UNLIMITED
 export const neverExpires = (iso: string) => new Date(iso).getFullYear() >= 2099
 
@@ -44,9 +67,10 @@ export function inviteUrl(token: string): string {
   return `${window.location.origin}/join/${token}`
 }
 
-export type InviteState = 'unused' | 'opened' | 'claimed' | 'used-up' | 'expired'
+export type InviteState = 'unused' | 'opened' | 'claimed' | 'used-up' | 'expired' | 'revoked'
 
 export function inviteState(i: ClubInvite, now: number): InviteState {
+  if (i.revoked_at) return 'revoked'
   if (i.use_count >= i.max_uses) return 'used-up'
   if (new Date(i.expires_at).getTime() < now) return 'expired'
   if (i.use_count > 0) return 'claimed'
@@ -78,8 +102,9 @@ export async function createClubInvite(input: {
   expiresAt: string
   color?: string
   bio?: string
-  email?: string
+  recipient?: Recipient
 }): Promise<{ token: string; org_id: string | null }> {
+  const r = input.recipient ?? { kind: 'link' }
   const { data, error } = await supabase.rpc('admin_create_club_invite', {
     p_name: input.name,
     p_handle: input.handle,
@@ -88,7 +113,9 @@ export async function createClubInvite(input: {
     p_expires_at: input.expiresAt,
     p_color: input.color ?? '#5b9cf6',
     p_bio: input.bio ?? '',
-    p_email: input.email ?? null,
+    p_email: r.kind === 'email' ? r.email : null,
+    p_kind: r.kind,
+    p_recipient_user: r.kind === 'user' ? r.user.user_id : null,
   })
   fail(error)
   return data as { token: string; org_id: string | null }
@@ -118,4 +145,33 @@ export function relTime(iso: string, now: number): string {
     [Math.round(abs / 86_400_000), 'day']
   const s = `${unit[0]} ${unit[1]}${unit[0] === 1 ? '' : 's'}`
   return ms >= 0 ? `in ${s}` : `${s} ago`
+}
+
+/** Cancel: the link stops working immediately; the row and its trail stay. */
+export async function revokeClubInvite(token: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_revoke_club_invite', { p_token: token })
+  fail(error)
+}
+
+export async function findUsers(q: string): Promise<FoundUser[]> {
+  const { data, error } = await supabase.rpc('admin_find_users', { p_q: q, p_limit: 8 })
+  if (error) return []
+  return (data as FoundUser[] | null) ?? []
+}
+
+/** Email a direct invite (api/admin.ts → invite-email). True when it went out. */
+export async function sendInviteEmail(token: string): Promise<boolean> {
+  const { data } = await supabase.auth.getSession()
+  const jwt = data.session?.access_token
+  if (!jwt) return false
+  try {
+    const res = await fetch(`/api/admin?action=invite-email&token=${encodeURIComponent(token)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${jwt}` },
+    })
+    const body = (await res.json().catch(() => null)) as { sent?: boolean } | null
+    return !!body?.sent
+  } catch {
+    return false
+  }
 }

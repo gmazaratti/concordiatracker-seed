@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import { Info, PenLine } from 'lucide-react'
+import { Info, Mail, PenLine } from 'lucide-react'
+import { Face } from './InviteRecipient'
 import { CopyChip, ConfirmButton, Pill } from '../admin-ui'
 import { atHandle } from '@/lib/handles'
 import { inviteState, inviteUrl, isUnlimited, neverExpires, relTime, type ClubInvite, type InviteState } from './club-invites'
@@ -10,6 +11,7 @@ const STATE: Record<InviteState, { label: string; tone: string }> = {
   claimed: { label: 'Claimed', tone: 'green' },
   'used-up': { label: 'Used up', tone: 'neutral' },
   expired: { label: 'Expired', tone: 'amber' },
+  revoked: { label: 'Cancelled', tone: 'red' },
 }
 
 /**
@@ -27,12 +29,14 @@ export function InviteRow({
   onInfo,
   onEdit,
   onDelete,
+  onRevoke,
 }: {
   invite: ClubInvite
   now: number
   onInfo: () => void
   onEdit: () => void
   onDelete: () => void
+  onRevoke: () => void
 }) {
   const state = inviteState(i, now)
   const press = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -60,6 +64,9 @@ export function InviteRow({
         <span className="min-w-0 truncate text-[14px] font-semibold text-fg">{i.org_name}</span>
         <Pill tone={STATE[state].tone}>{STATE[state].label}</Pill>
         <span className="text-[11.5px] text-subtle">{i.mode === 'prefilled' ? 'Pre-filled' : 'Self-setup'}</span>
+        {i.kind && i.kind !== 'link' && (
+          <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent">Direct</span>
+        )}
         <span className="flex basis-full flex-wrap items-center gap-x-3 text-[12px] text-muted tabular-nums sm:ml-auto sm:basis-auto">
           <span title="Opens (distinct browser visits)">{i.opens} open{i.opens === 1 ? '' : 's'}</span>
           <span title="Uses">
@@ -74,6 +81,22 @@ export function InviteRow({
           </span>
         </span>
       </div>
+      {/* WHO A DIRECT INVITE WENT TO — the thing you check before cancelling. */}
+      {i.kind === 'user' && (
+        <p className="mt-1.5 flex items-center gap-2 text-[12.5px] text-muted">
+          <span className="text-subtle">To</span>
+          <Face user={{ avatar_url: i.recipient_avatar ?? null, name: i.recipient_name ?? null, handle: i.recipient_handle ?? null }} size={20} />
+          <span className="truncate">
+            {i.recipient_name || 'No name'} {i.recipient_handle && <span className="text-subtle">@{i.recipient_handle}</span>}
+          </span>
+        </p>
+      )}
+      {i.kind === 'email' && (
+        <p className="mt-1.5 flex items-center gap-2 text-[12.5px] text-muted">
+          <Mail size={13} className="text-subtle" aria-hidden />
+          <span className="truncate">To {i.recipient_email}</span>
+        </p>
+      )}
       <p className="mt-0.5 truncate text-[12px] text-subtle">
         {atHandle(i.org_handle)}
         {i.claimed_email ? ` · claimed by ${i.claimed_email}` : ''}
@@ -91,7 +114,14 @@ export function InviteRow({
             <PenLine size={13} aria-hidden />
             Edit
           </button>
-          <ConfirmButton label="Delete" armedLabel="Confirm" danger onConfirm={onDelete} />
+          {/* CANCEL is the obvious action on a pending DIRECT invite: it stops
+              the link working at once and keeps the row and its trail. Delete
+              stays for tidying, but it erases the history too. */}
+          {i.kind && i.kind !== 'link' && (state === 'unused' || state === 'opened') ? (
+            <ConfirmButton label="Cancel invite" armedLabel="Confirm cancel" danger onConfirm={onRevoke} />
+          ) : (
+            <ConfirmButton label="Delete" armedLabel="Confirm" danger onConfirm={onDelete} />
+          )}
         </span>
       </div>
     </li>

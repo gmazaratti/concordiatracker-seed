@@ -22,7 +22,10 @@ export function RoleGlyph({
   className?: string
 }) {
   const Icon = ICONS[role.icon ?? ''] ?? Shield
-  if (bare) return <Icon size={16} aria-hidden />
+  /* `self-center`: beside running text the container takes its baseline from
+     the TEXT (items-baseline) and the icon centres itself on the line. When
+     the icon was the baseline source, the name beside it sat raised. */
+  if (bare) return <Icon size={15} className={cn('shrink-0 self-center', className)} aria-hidden />
   return (
     <span
       className={cn('grid size-9 shrink-0 place-items-center rounded-lg', className)}
@@ -40,7 +43,7 @@ export function RoleChip({ role, className }: { role: RoleLike; className?: stri
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium',
+        'inline-flex items-baseline gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium',
         className,
       )}
       style={{ backgroundColor: `${role.color}1f`, color: role.color }}

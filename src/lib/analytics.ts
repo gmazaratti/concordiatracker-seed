@@ -16,6 +16,8 @@ const VID_KEY = 'ct_vid'
 const SID_KEY = 'ct_sid'
 /** Heartbeat cadence — keeps "live now" honest for someone reading one page. */
 const PING_MS = 60_000
+/** No input for this long and the tab stops counting as in use. */
+const IDLE_MS = 5 * 60_000
 /** Ignore repeat views of the same path inside this window (StrictMode, bounces). */
 const DEDUPE_MS = 2_000
 const LAST_VIEW_KEY = 'ct_last_view'
@@ -180,11 +182,28 @@ export function trackView(pathname: string): void {
  * is actually visible, so a background tab isn't counted as a live visitor.
  */
 export function startHeartbeat(): () => void {
+  /*
+   * VISIBLE IS NOT ACTIVE. A tab left open on a second monitor is visible for
+   * days; pinging on visibility alone turned one open tab into 43 "active"
+   * hours and 1,758 "views" of the calendar (measured on a real session). A
+   * ping now needs a person: some input in the last five minutes.
+   */
+  let lastInput = Date.now()
+  const mark = () => {
+    lastInput = Date.now()
+  }
+  const events = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as const
+  events.forEach((e) => window.addEventListener(e, mark, { passive: true, capture: true }))
   const tick = () => {
-    if (document.visibilityState === 'visible') void send('ping', lastPath || '/')
+    if (document.visibilityState === 'visible' && Date.now() - lastInput < IDLE_MS) {
+      void send('ping', lastPath || '/')
+    }
   }
   const id = window.setInterval(tick, PING_MS)
-  return () => window.clearInterval(id)
+  return () => {
+    window.clearInterval(id)
+    events.forEach((e) => window.removeEventListener(e, mark, { capture: true }))
+  }
 }
 
 /**

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Compass, Loader2 } from 'lucide-react'
+import { ChevronDown, Compass, Loader2 } from 'lucide-react'
+import { AttributionPeople } from './AttributionPeople'
+import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
 import { HEARD_LABELS, HEARD_SOURCES } from '@/features/onboarding/heard-about'
 
@@ -8,6 +10,8 @@ interface Attribution {
   answered: number
   counts: Record<string, number>
   other_details: string[]
+  /** "A friend" answers that named who referred them. */
+  referrals?: number
 }
 
 /** Admin view: where users say they found us (onboarding attribution). Reads the
@@ -16,6 +20,8 @@ export function AttributionTab() {
   const [data, setData] = useState<Attribution | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  // Which answer is opened to show the people behind it.
+  const [open, setOpen] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -69,6 +75,7 @@ export function AttributionTab() {
           <h2 className="text-[15px] font-semibold text-fg">Where people come from</h2>
           <p className="text-[12.5px] text-subtle">
             {answered} of {data.total} users answered the onboarding question
+            {data.referrals ? ` · ${data.referrals} named who referred them` : ''} · internal accounts excluded
           </p>
         </div>
       </div>
@@ -79,18 +86,39 @@ export function AttributionTab() {
         ) : (
           rows.map((r) => {
             const pct = answered > 0 ? Math.round((r.n / answered) * 100) : 0
+            const isOpen = open === r.id
             return (
-              <div key={r.id} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 truncate text-[12.5px] font-medium text-fg">{r.label}</span>
-                <div className="h-5 flex-1 overflow-hidden rounded-md bg-surface-2">
-                  <div
-                    className="h-full rounded-md bg-accent transition-[width] duration-500"
-                    style={{ width: `${(r.n / max) * 100}%` }}
+              <div key={r.id}>
+                {/* EVERY ROW IS A DOOR to who picked it. A bar says how many;
+                    the question worth asking next is always "who?". */}
+                <button
+                  type="button"
+                  onClick={() => setOpen(isOpen ? null : r.id)}
+                  disabled={r.n === 0}
+                  aria-expanded={isOpen}
+                  className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-surface-2/60 disabled:hover:bg-transparent"
+                >
+                  <span className="w-28 shrink-0 truncate text-[12.5px] font-medium text-fg">{r.label}</span>
+                  <div className="h-5 flex-1 overflow-hidden rounded-md bg-surface-2">
+                    <div
+                      className="h-full rounded-md bg-accent transition-[width] duration-500"
+                      style={{ width: `${(r.n / max) * 100}%` }}
+                    />
+                  </div>
+                  <span className="w-16 shrink-0 text-right text-[12px] tabular-nums text-muted">
+                    {r.n} · {pct}%
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={cn('shrink-0 text-subtle transition-transform duration-200', isOpen && 'rotate-180', r.n === 0 && 'invisible')}
+                    aria-hidden
                   />
-                </div>
-                <span className="w-16 shrink-0 text-right text-[12px] tabular-nums text-muted">
-                  {r.n} · {pct}%
-                </span>
+                </button>
+                {isOpen && (
+                  <div className="mt-2 mb-3">
+                    <AttributionPeople source={r.id} />
+                  </div>
+                )}
               </div>
             )
           })

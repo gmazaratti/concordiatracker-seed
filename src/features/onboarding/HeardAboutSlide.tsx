@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { GraduationCap, MoreHorizontal, Search, Users, type LucideIcon } from 'lucide-react'
 import { useUiState } from '@/app/providers/ui-state'
 import { HEARD_SOURCES } from './heard-about'
+import { ReferrerPicker } from './ReferrerPicker'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { Key } from '@/i18n/en'
@@ -87,7 +88,13 @@ export function HeardAboutSlide() {
               type="button"
               disabled={!loaded}
               aria-pressed={active}
-              onClick={() => patchUiState({ heardFrom: active ? undefined : s.id })}
+              onClick={() =>
+                patchUiState({
+                  heardFrom: active ? undefined : s.id,
+                  // A referrer only belongs to "A friend".
+                  ...(s.id !== 'friend' || active ? { heardFromReferrer: undefined } : {}),
+                })
+              }
               className={cn(
                 'flex flex-col items-center gap-2 rounded-xl border p-3.5 text-[12.5px] font-medium transition-colors duration-150',
                 active
@@ -108,6 +115,15 @@ export function HeardAboutSlide() {
           )
         })}
       </div>
+
+      {/* "A friend" → which one. Optional but right there: it is the only
+          way a referral gets credited to the person who made it. */}
+      {selected === 'friend' && (
+        <ReferrerPicker
+          value={uiState.heardFromReferrer}
+          onChange={(h) => patchUiState({ heardFromReferrer: h })}
+        />
+      )}
 
       {/* "Somewhere else" → tell us where (so attribution isn't a dead end). */}
       {selected === 'other' && (

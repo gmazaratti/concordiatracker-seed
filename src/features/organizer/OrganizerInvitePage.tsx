@@ -15,7 +15,9 @@ interface DbInvite {
   org_name: string
   org_handle: string
   recipient_email: string | null
-  status: 'valid' | 'used' | 'expired'
+  status: 'valid' | 'used' | 'expired' | 'revoked'
+  /** 'email' / 'user' = sent to one person; only they can accept. */
+  kind?: 'link' | 'email' | 'user'
   /** 'prefilled' = an admin built the club; 'self' = you set it up. */
   mode?: 'self' | 'prefilled'
   /** Already claimed once: a further use joins that club's team. */
@@ -191,7 +193,13 @@ export function OrganizerInvitePage() {
       note={
         authUser
           ? `You're signed in as ${authUser.email}. Accepting lets you ${what}.`
-          : `Sign in or create an account first — the club will be tied to it. Then you'll ${what}.`
+          : `Sign in or create an account first — the club will be tied to it. Then you'll ${what}.${
+              dbInvite.kind === 'email'
+                ? ' This invite was sent to one email address: sign in with that one.'
+                : dbInvite.kind === 'user'
+                  ? ' This invite was sent to your account: sign in as you.'
+                  : ''
+            }`
       }
       busy={busy}
       err={err}
@@ -323,7 +331,8 @@ function InviteCard({
   )
 }
 
-const REASON: Record<'expired' | 'used' | 'notfound', string> = {
+const REASON: Record<'expired' | 'used' | 'notfound' | 'revoked', string> = {
+  revoked: 'This invitation was cancelled.',
   expired: 'This invitation link has expired.',
   used: 'This invitation link has already been used.',
   notfound: "This invitation link isn't valid.",

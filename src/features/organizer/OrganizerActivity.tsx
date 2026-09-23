@@ -165,7 +165,7 @@ function Row({
             <button
               type="button"
               onClick={() => openMember({ userId: entry.actorUser, name: entry.actorName })}
-              className="inline-flex items-center gap-1 rounded font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+              className="inline-flex items-baseline gap-1 rounded font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
               style={role ? { color: role.color } : undefined}
               title={
                 entry.actorRank === 'admin' && !member

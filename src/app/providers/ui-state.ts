@@ -32,6 +32,8 @@ export interface UiState {
   heardFrom?: string
   /** Free-text detail when heardFrom === 'other' (e.g. "a Discord server"). */
   heardFromDetail?: string
+  /** When heardFrom === 'friend': the @handle (no @) of who referred them. */
+  heardFromReferrer?: string
   /** Distinct local days the user has opened the app (YYYY-MM-DD, capped). Used
    * to gate the feedback survey ("used it for ≥3 unique days"). */
   visitDays?: string[]

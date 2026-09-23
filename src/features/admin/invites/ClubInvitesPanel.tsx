@@ -6,7 +6,7 @@ import { InviteRow } from './InviteRow'
 import { NewInviteModal } from './NewInviteModal'
 import { EditInviteModal } from './EditInviteModal'
 import { InviteInfoModal } from './InviteInfoModal'
-import { deleteClubInvite, listClubInvites, type ClubInvite } from './club-invites'
+import { deleteClubInvite, listClubInvites, revokeClubInvite, type ClubInvite } from './club-invites'
 
 /**
  * Club invites — the one way to bring a club onto the platform.
@@ -58,6 +58,7 @@ export function ClubInvitesPanel() {
               onInfo={() => setInfo(i)}
               onEdit={() => setEditing(i)}
               onDelete={() => void deleteClubInvite(i.token).then(reload)}
+              onRevoke={() => void revokeClubInvite(i.token).then(reload)}
             />
           ))}
         </ul>

@@ -34,8 +34,11 @@ export function VisitsTab({
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Visits" value={String(summary?.visits ?? visits.length)} />
-        <Stat label="Total time" value={duration(summary?.total_seconds ?? 0)} />
-        <Stat label="Avg visit" value={duration(summary?.avg_seconds ?? 0)} />
+        {/* ACTIVE time leads; how long tabs sat open is a different fact and
+            is named as such. The old "Total time" was the open span, which is
+            how a tab left open for a week read as 192 hours on the site. */}
+        <Stat label="Active time" value={duration(summary?.active_seconds ?? summary?.total_seconds ?? 0)} />
+        <Stat label="Avg active / visit" value={duration(summary?.avg_active_seconds ?? summary?.avg_seconds ?? 0)} />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
@@ -43,8 +46,8 @@ export function VisitsTab({
           <thead className="bg-surface-2/60 text-[11px] tracking-wide text-subtle uppercase">
             <tr>
               <th className="px-3 py-2 font-medium">When</th>
-              <th className="px-3 py-2 font-medium">Duration</th>
-              <th className="px-3 py-2 font-medium">Events</th>
+              <th className="px-3 py-2 font-medium">Active</th>
+              <th className="px-3 py-2 font-medium">Views</th>
               <th className="px-3 py-2 font-medium">Source</th>
             </tr>
           </thead>
@@ -85,14 +88,25 @@ export function VisitsTab({
                     )
                   )}
                 </td>
-                <td className="px-3 py-2 tabular-nums text-muted">{duration(v.seconds)}</td>
-                <td className="px-3 py-2 tabular-nums text-muted">{v.events}</td>
+                <td className="px-3 py-2 tabular-nums text-muted">
+                  {duration(v.active_seconds ?? v.seconds)}
+                  {v.active_seconds != null && v.seconds > v.active_seconds * 2 && (
+                    <span className="block text-[10.5px] text-subtle">tab open {duration(v.seconds)}</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 tabular-nums text-muted">{v.views ?? v.events}</td>
                 <td className="px-3 py-2 text-muted">{v.source}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <p className="text-[11.5px] leading-relaxed text-subtle">
+        Active time counts minutes with activity. Before Sep 23, 2026 a visible tab kept reporting
+        even when nobody was using it, so older active times are an upper bound. “Tab open” is how
+        long the browser tab existed.
+      </p>
 
       {direct > 0 && (
         <p className="text-[11.5px] leading-relaxed text-subtle">

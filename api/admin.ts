@@ -260,6 +260,52 @@ export default async function handler(req: any, res: any) {
       return
     }
 
+    if (action === 'invite-email') {
+      // A DIRECT club invite (db/direct_invites.sql), emailed. Everything in
+      // the message is read back from the database by token — never taken
+      // from the request — so what is sent is necessarily what was created,
+      // and a revoked, used or link-only invite cannot be mailed.
+      const token = String(req.query?.token ?? '').trim()
+      if (!/^[0-9a-f]{20,64}$/i.test(token)) {
+        fail(res, 400, 'Which invite? Pass ?token=<invite token>.', { code: 'bad_request' })
+        return
+      }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const rows = await fetch(
+        `${url}/rest/v1/org_invites?token=eq.${token}&select=org_name,org_handle,kind,recipient_email,mode,expires_at,revoked_at,use_count,max_uses`,
+        { headers: svc },
+      ).then((r) => r.json())
+      const inv = Array.isArray(rows) ? rows[0] : null
+      if (!inv) {
+        fail(res, 404, 'No invite with that token.', { code: 'not_found' })
+        return
+      }
+      if (inv.kind === 'link' || !inv.recipient_email || inv.revoked_at || inv.use_count >= inv.max_uses) {
+        res.status(200).json({ sent: false, reason: 'not_sendable' })
+        return
+      }
+      const site = process.env.PUBLIC_SITE_URL ?? 'https://concordiatracker.com'
+      const expires = new Date(inv.expires_at)
+      const sent = await sendEmail({
+        to: String(inv.recipient_email),
+        subject: `You're invited to run ${inv.org_name} on ConcordiaTracker`,
+        heading: `Set up ${inv.org_name}`,
+        paragraphs: [
+          inv.mode === 'prefilled'
+            ? `We've built ${inv.org_name}'s page on ConcordiaTracker for you. Open the invite to review it, change anything, and make it yours.`
+            : `You've been invited to set up ${inv.org_name} (${inv.org_handle}) on ConcordiaTracker — the app Concordia students use for their deadlines, events and clubs.`,
+          `The invite is for you: sign in with this email address (${inv.recipient_email}) to accept it.`,
+        ],
+        button: { label: 'Open the invite', href: `${site}/join/${token}` },
+        facts: expires.getFullYear() < 2099
+          ? [{ label: 'Expires', value: expires.toLocaleDateString('en-CA', { dateStyle: 'long' }) }]
+          : undefined,
+        footnote: 'Not expecting this? You can ignore it — nothing happens unless you accept.',
+      })
+      res.status(200).json({ sent })
+      return
+    }
+
     fail(res, 400, 'Unknown action.', {
       hint: 'stripe-user | stripe-rollup | reconcile | dashboard',
     })

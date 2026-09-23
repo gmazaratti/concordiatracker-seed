@@ -16,8 +16,13 @@ export interface UserSummary {
   visits: number
   /** Sessions with a single event: no measurable length, counted not averaged. */
   visits_unmeasurable: number
+  /** First-to-last event span per tab — how long tabs were OPEN, not used. */
   total_seconds: number
   avg_seconds: number
+  /** Minutes with any activity × 60 (db/visit_accuracy.sql). Absent before
+   *  that migration, hence optional. */
+  active_seconds?: number
+  avg_active_seconds?: number
   events_total: number
   page_views: number
   courses: number
@@ -38,6 +43,10 @@ export interface UserVisit {
   first_path: string | null
   /** Every page of the session, in the order they were first opened. */
   pages?: { path: string; views: number; at: string }[]
+  /** Real page views (heartbeats excluded). */
+  views?: number
+  /** Minutes they were demonstrably there × 60; `seconds` is the tab-open span. */
+  active_seconds?: number
 }
 
 /** One of a user's courses, with how it got there. */

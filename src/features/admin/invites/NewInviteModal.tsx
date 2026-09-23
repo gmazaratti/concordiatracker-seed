@@ -6,7 +6,8 @@ import { ColorPicker } from '@/components/ui/ColorPicker'
 import { useHandleCheck } from '@/features/organizer/onboarding/handle-check'
 import { CopyChip } from '../admin-ui'
 import { UsesField, ExpiryField } from './InviteLimits'
-import { createClubInvite, inviteUrl } from './club-invites'
+import { createClubInvite, inviteUrl, sendInviteEmail, validEmail, type Recipient } from './club-invites'
+import { Face, InviteRecipient } from './InviteRecipient'
 import { cn } from '@/lib/cn'
 
 const INPUT =
@@ -40,19 +41,32 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [made, setMade] = useState<{ token: string; org_id: string | null } | null>(null)
+  const [recipient, setRecipient] = useState<Recipient>({ kind: 'link' })
+  // Person invites stop at a confirmation gate before anything is created.
+  const [confirming, setConfirming] = useState(false)
+  // null = no email attempted (a link invite); true/false = the result.
+  const [emailed, setEmailed] = useState<boolean | null>(null)
 
   const h = (handle.trim() || suggest(name)).replace(/^@+/, '')
   const check = useHandleCheck(h)
   const handleOk = h.length >= 3 && check.kind === 'free'
-  const ready = name.trim().length >= 2 && handleOk && !!mode && !busy
+  const recipientOk =
+    recipient.kind === 'link' ||
+    (recipient.kind === 'email' && validEmail(recipient.email)) ||
+    (recipient.kind === 'user' && !!recipient.user.user_id)
+  const ready = name.trim().length >= 2 && handleOk && !!mode && recipientOk && !busy
 
   async function create() {
     if (!ready || !mode) return
     setBusy(true)
     setErr('')
     try {
-      const res = await createClubInvite({ name: name.trim(), handle: h, mode, maxUses: uses, expiresAt: expires, color, bio })
+      const res = await createClubInvite({ name: name.trim(), handle: h, mode, maxUses: uses, expiresAt: expires, color, bio, recipient })
+      // A direct invite is emailed as soon as it exists; a failure to send
+      // does not undo the invite — it is shown, and the link still works.
+      if (recipient.kind !== 'link') setEmailed(await sendInviteEmail(res.token))
       setMade(res)
+      setConfirming(false)
       onCreated()
     } catch (e) {
       setErr((e as Error).message)
@@ -68,7 +82,12 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
           <CircleCheck size={28} className="text-success" aria-hidden />
           <h2 className="mt-3 text-[18px] font-semibold text-fg">Invite ready</h2>
           <p className="mt-1 text-[13px] text-muted">
-            Send this link to whoever runs {name.trim()}. Opening it walks them from creating an account straight into
+            {recipient.kind === 'link'
+              ? `Send this link to whoever runs ${name.trim()}.`
+              : emailed
+                ? `Emailed to ${recipient.kind === 'email' ? recipient.email : recipient.user.email}${recipient.kind === 'user' ? ', and it is in their notifications' : ''}. Only they can accept it.`
+                : `The invite exists${recipient.kind === 'user' ? ' and is in their notifications' : ''}, but the email did not go out — send them the link below yourself. Only they can accept it.`}{' '}
+            Opening it walks them from signing in straight into
             {mode === 'prefilled' ? ' reviewing the club you built.' : ' the setup wizard.'}
           </p>
           <div className="mt-4 min-w-0">
@@ -165,13 +184,52 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
           </div>
         )}
 
+        <InviteRecipient value={recipient} onChange={setRecipient} />
+
         <UsesField value={uses} onChange={setUses} />
         <ExpiryField value={expires} onChange={setExpires} />
 
         {err && <p className="text-[12.5px] text-danger">{err}</p>}
-        <Button className="w-full" size="lg" onClick={() => void create()} disabled={!ready}>
-          {busy ? 'Creating…' : mode ? 'Create invite link' : 'Choose who sets it up'}
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={() => (recipient.kind === 'user' ? setConfirming(true) : void create())}
+          disabled={!ready}
+        >
+          {busy
+            ? 'Creating…'
+            : !mode
+              ? 'Choose who sets it up'
+              : recipient.kind === 'link'
+                ? 'Create invite link'
+                : recipient.kind === 'email'
+                  ? 'Create & email invite'
+                  : 'Review & send invite'}
         </Button>
+        {confirming && recipient.kind === 'user' && (
+          <ModalShell label="Confirm who you are inviting" onClose={() => setConfirming(false)} widthClass="sm:max-w-sm">
+            <div className="px-5 pt-6 pb-5 text-center">
+              <p className="text-[13px] text-muted">You're inviting</p>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <Face user={recipient.user} size={64} />
+                <span className="text-[17px] font-semibold text-fg">{recipient.user.name || 'No name'}</span>
+                <span className="text-[13px] text-subtle">
+                  {recipient.user.handle ? `@${recipient.user.handle}` : 'no handle'} · {recipient.user.email}
+                </span>
+              </div>
+              <p className="mt-4 text-[13px] text-muted">
+                to run <span className="font-medium text-fg">{name.trim()}</span> — make sure this is the right person.
+                Only they will be able to accept it.
+              </p>
+              <div className="mt-5 flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setConfirming(false)}>Back</Button>
+                <Button className="flex-1" onClick={() => void create()} disabled={busy}>
+                  {busy ? 'Sending…' : 'Send invite'}
+                </Button>
+              </div>
+            </div>
+          </ModalShell>
+        )}
       </div>
     </ModalShell>
   )
