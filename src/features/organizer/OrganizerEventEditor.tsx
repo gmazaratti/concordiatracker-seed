@@ -244,8 +244,7 @@ function EventEditorForm({
               setImage(v)
               touch()
             }}
-            kind="banner"
-            shape="wide"
+            kind="eventBanner"
           />
 
           <Field label="Relevant programs" hint="Comma-separated: drives the opt-in “for your program” tag.">

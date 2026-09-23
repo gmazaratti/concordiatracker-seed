@@ -13,6 +13,7 @@ import { dismissActivity, markedAllRead, notificationsChanged } from '@/lib/noti
 import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 const DAY = 86_400_000
 /** Matches ct-panel-right-out. One number, so the CSS and the unmount
@@ -531,13 +532,9 @@ function Face({
 function Thumb({ src }: { src: string | null }) {
   if (!src) return null
   return (
-    <img
+    <FallbackImg
       src={src}
-      alt=""
       className="size-12 shrink-0 rounded-md object-cover md:size-11"
-      onError={(e) => {
-        e.currentTarget.style.display = 'none'
-      }}
     />
   )
 }

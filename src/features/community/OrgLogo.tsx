@@ -23,8 +23,13 @@ export function OrgLogo({
   /** Initials text-size utility. */
   textClass?: string
 }) {
-  const [failed, setFailed] = useState(false)
-  const showLogo = !!org.logo && !failed
+  /* WHICH url failed, not a boolean. A boolean is set once and never
+     cleared, so an org that got a bad logo URL for one render kept showing
+     initials after a good one replaced it — which is most of the wizard,
+     where the logo changes as you upload. Recording the src means a new one
+     is tried on its own, with no effect to reset anything. */
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const showLogo = !!org.logo && failedSrc !== org.logo
 
   return (
     <span
@@ -41,7 +46,7 @@ export function OrgLogo({
         <CachedImg
           src={org.logo!}
           eager
-          onFailed={() => setFailed(true)}
+          onFailed={() => setFailedSrc(org.logo!)}
           className="absolute inset-0 size-full object-cover"
         />
       ) : (

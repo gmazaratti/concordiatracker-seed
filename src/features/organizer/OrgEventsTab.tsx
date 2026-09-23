@@ -7,6 +7,7 @@ import { CATEGORY_META } from '@/features/community/category'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { Metric } from './OrgStat'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 type View = 'grid' | 'list'
 
@@ -137,14 +138,9 @@ function EventCard({ event, orgColor, past }: { event: ManagedEvent; orgColor: s
           </span>
         )}
         {event.image && (
-          <img
+          <FallbackImg
             src={event.image}
-            alt=""
-            loading="lazy"
             className="absolute inset-0 size-full object-cover"
-            onError={(ev) => {
-              ev.currentTarget.style.display = 'none'
-            }}
           />
         )}
       </div>

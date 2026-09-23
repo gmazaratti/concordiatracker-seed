@@ -140,7 +140,10 @@ export interface TeacherContextValue {
   acceptOrgInvite: (token: string) => Promise<OrgAccount | null>
 
   // Event management (operate on the signed-in organizer's OWN events)
-  createEvent: () => string
+  /** Create an event. Pass `initial` to set fields in the SAME insert —
+   *  creating and then patching is two unordered writes and the patch can
+   *  lose the race. Returns the new id. */
+  createEvent: (initial?: Partial<ManagedEvent>) => string
   updateEvent: (id: string, patch: Partial<ManagedEvent>) => void
   deleteEvent: (id: string) => void
   updateOrgProfile: (patch: Partial<EventOrg>) => void
@@ -154,8 +157,16 @@ export interface TeacherContextValue {
 
   // Team — who can manage the signed-in org's dashboard. Your real org persists
   // members to org_members; demo/seed orgs keep them in memory.
-  /** Invite a teammate → adds a PENDING member with a single-use link; returns it. */
-  inviteOrgMember: (input: { name: string; email: string; role: OrgRole }) => OrgMember
+  /** Invite a teammate → adds a PENDING member with a single-use link; returns it.
+   *  `title` is what they call their job; `role` is what they may do. */
+  inviteOrgMember: (input: {
+    name: string
+    email: string
+    role: OrgRole
+    title?: string
+  }) => OrgMember
+  /** Set YOUR OWN job title in the current org (not a permission). */
+  setMyOrgTitle: (title: string) => void
   /** Accept a teammate invite link → activates the member; resolves true on success. */
   acceptOrgMemberInvite: (token: string) => Promise<boolean>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */

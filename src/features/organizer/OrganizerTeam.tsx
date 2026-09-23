@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { Switch } from '@/features/settings/controls'
 import { cn } from '@/lib/cn'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -202,26 +203,14 @@ function Avatar({ member, hue }: { member: OrgMember; hue: string }) {
       .toUpperCase() || '?'
   // Their snapshot photo, your live Google photo for "You", else tinted initials.
   const photo = member.avatarUrl || (member.isYou ? user.avatarUrl : undefined)
-  if (photo) {
-    return (
-      <img
-        src={photo}
-        alt=""
-        referrerPolicy="no-referrer"
-        className="size-9 shrink-0 rounded-full bg-surface-2 object-cover"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-        }}
-      />
-    )
-  }
   return (
     <span
-      className="grid size-9 shrink-0 place-items-center rounded-full text-[12px] font-semibold text-white"
+      className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full text-[12px] font-semibold text-white"
       style={{ backgroundColor: hue }}
       aria-hidden
     >
       {initials}
+      <FallbackImg src={photo} className="absolute inset-0 size-full object-cover" />
     </span>
   )
 }

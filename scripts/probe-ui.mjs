@@ -32,6 +32,8 @@ if (process.argv.includes('--clean')) {
     const { data: orgs } = await admin.from('organizations').select('id').eq('owner_id', u.id)
     for (const o of orgs ?? []) {
       await admin.from('org_posts').delete().eq('org_id', o.id)
+      await admin.from('events').delete().eq('org_id', o.id)
+      await admin.from('org_activity').delete().eq('org_id', o.id)
       await admin.from('org_members').delete().eq('org_id', o.id)
       await admin.from('organizations').delete().eq('id', o.id)
     }
@@ -108,6 +110,40 @@ if (oErr) throw oErr
 await admin.from('org_members').insert({
   org_id: org.id,
   user_id: uid,
+  role: 'owner',
+  status: 'active',
+})
+
+/*
+ * A SECOND, PENDING CLUB — the one the setup wizard is for.
+ *
+ * `OrgOnboardingGate` only opens for `status === 'pending'`, so the approved
+ * org above can never show it. This one is deliberately BARE (no bio, no
+ * logo, no banner) because that is the state somebody who has just accepted
+ * an invite is actually in.
+ */
+const { data: fresh, error: fErr } = await admin
+  .from('organizations')
+  .insert({
+    owner_id: uid,
+    handle: `@probefresh${rnd}`,
+    name: 'Probe Debate Club',
+    color: '#8fb39a',
+    glyph: 'PD',
+    verified: false,
+    status: 'pending',
+  })
+  .select('id, handle')
+  .single()
+if (fErr) throw fErr
+await admin.from('org_members').insert({
+  // WITH the email: `currentOrg` pins a synthetic "You" and de-duplicates the
+  // real row BY EMAIL, so a row without one shows up twice and every
+  // "is there anybody else here" check reads true.
+  org_id: fresh.id,
+  user_id: uid,
+  email,
+  name: 'Probe Student',
   role: 'owner',
   status: 'active',
 })
@@ -232,6 +268,8 @@ console.log(
       handle: `probe${rnd}`,
       mate: `mate${rnd}`,
       org: org.handle,
+      freshOrg: fresh.handle,
+      freshOrgId: fresh.id,
       postId: post?.id,
       storageKey: `sb-${ref}-auth-token`,
       session: {

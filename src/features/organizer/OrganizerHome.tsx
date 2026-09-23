@@ -1,16 +1,44 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { OrganizerSignIn } from './OrganizerSignIn'
 import { OrganizerOverview } from './OrganizerOverview'
-import { OrgOnboardingGate } from './OrgOnboardingWizard'
+import { OrgOnboardingGate } from './onboarding/OrgOnboarding'
 import { resetOnboarding } from './onboarding-state'
 
-/** `/organizer` — the sign-in door when signed out, the Overview page when signed
- * in. A fresh (pending) org gets the guided onboarding wizard on top; the
- * Overview "Replay setup" button re-runs it anytime (any org status). */
+/**
+ * `/organizer` — the sign-in door when signed out, the Overview when signed in,
+ * with the setup wizard over the top of a club that has not been through it.
+ *
+ * `?org=<id>` NAMES WHICH CLUB, and it has to, because accepting an invite is
+ * a full page load: the in-memory session does not survive it, and an admin
+ * has every organisation in the switcher — so without the id the portal opened
+ * on whichever one sorted first. That is how accepting an invite for a new
+ * club landed on Office of the President.
+ *
+ * IT WAITS FOR THE LIST. `myOrgs` starts empty and fills two queries later, so
+ * anything that decides on `!currentOrg` decides on the first render, before
+ * the answer exists.
+ */
 export function OrganizerHome() {
-  const { currentOrg } = useTeacher()
+  const { currentOrg, myOrgs, orgsLoading, switchOrg } = useTeacher()
+  const [params] = useSearchParams()
+  const wanted = params.get('org')
   const [replay, setReplay] = useState(false)
+
+  useEffect(() => {
+    if (orgsLoading || !wanted || currentOrg?.id === wanted) return
+    if (myOrgs.some((o) => o.id === wanted)) switchOrg(wanted)
+  }, [orgsLoading, wanted, currentOrg, myOrgs, switchOrg])
+
+  if (orgsLoading) {
+    return (
+      <div className="grid min-h-[50vh] place-items-center">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
   if (!currentOrg) return <OrganizerSignIn />
   const org = currentOrg
   return (

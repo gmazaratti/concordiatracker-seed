@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { StoryRing } from '@/lib/social-posts'
 import type { PublishableOrg } from '../useMyOrgs'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 /**
  * The row of rings at the top of the feed.
@@ -113,26 +114,16 @@ function Face({
   color: string | null
   name: string
 }) {
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt=""
-        className="size-full rounded-full object-cover"
-        onError={(e) => {
-          // Hide a dead URL so the branded initials beneath show instead of a
-          // broken frame — the same rule every org image in this app follows.
-          e.currentTarget.style.display = 'none'
-        }}
-      />
-    )
-  }
+  /* The initials are the BASE and the logo sits over them — they used to be
+     the other branch of an `if`, so a dead URL that hid itself left a hole
+     rather than the fallback the comment promised. */
   return (
     <span
-      className="grid size-full place-items-center rounded-full text-[15px] font-semibold text-white"
+      className="relative grid size-full place-items-center overflow-hidden rounded-full text-[15px] font-semibold text-white"
       style={{ background: color ?? '#4b5563' }}
     >
       {(glyph || name.slice(0, 2)).toUpperCase()}
+      <FallbackImg src={logo} className="absolute inset-0 size-full object-cover" />
     </span>
   )
 }

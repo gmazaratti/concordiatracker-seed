@@ -385,6 +385,10 @@ export interface OrgMember {
   inviteToken?: string
   /** True for the current logged-in user — pinned + badged "You" in the team list. */
   isYou?: boolean
+  /** What they call their job ("VP Internal", "Communications"). NOT a
+   *  permission: `role` is the level and has three values, a title has as
+   *  many as there are execs. */
+  title?: string
   /** Per-member permission OVERRIDES (absent key → role default). */
   permissions?: Partial<OrgPermissions>
   /** Snapshot of their profile photo (denormalized — RLS hides other profiles). */

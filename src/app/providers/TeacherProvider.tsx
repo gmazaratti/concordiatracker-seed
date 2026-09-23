@@ -253,7 +253,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       const { data: evRows } = await supabase.from('events').select(EVENT_COLS).in('org_id', ids).order('start')
       const { data: memberRows } = await supabase
         .from('org_members')
-        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,org_id')
+        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,title,org_id')
         .in('org_id', ids)
         .order('created_at')
       if (!active) return
@@ -1000,8 +1000,17 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [sessionId, myOrg, authUser, user.name],
   )
 
-  const createEvent = useCallback(() => {
-    const ev = newManagedEvent()
+  /*
+   * `initial` EXISTS BECAUSE OF A RACE, not for convenience.
+   *
+   * Every write here is fire-and-forget, so "create then immediately patch"
+   * is two requests with no ordering between them: the UPDATE can reach
+   * Postgres first, match no row, and be lost in silence. The onboarding
+   * event step did exactly that and saved a dated draft with no title.
+   * One insert cannot race itself.
+   */
+  const createEvent = useCallback((initial?: Partial<ManagedEvent>) => {
+    const ev = { ...newManagedEvent(), ...initial }
     if (sessionId === SELF_ORG && myOrg) {
       const id = crypto.randomUUID()
       updateCurrentOrg((o) => ({ ...o, events: [{ ...ev, id }, ...o.events] }))
@@ -1094,8 +1103,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   // ── Organizer: team (who can manage the dashboard) — invite-based STUB ─────
   const inviteOrgMember = useCallback(
-    (input: { name: string; email: string; role: OrgRole }) => {
-      const member = newOrgMemberInvite(input)
+    (input: { name: string; email: string; role: OrgRole; title?: string }) => {
+      const member = { ...newOrgMemberInvite(input), title: input.title }
       // For your REAL org, the member is a DB row (uuid id) — the same record the
       // admin console + Team list read back from org_members.
       if (sessionId === SELF_ORG && myOrg) {
@@ -1107,6 +1116,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             name: member.name,
             email: member.email,
             role: member.role,
+            title: member.title ?? null,
             status: 'invited',
             invite_token: member.inviteToken,
           }),
@@ -1117,6 +1127,28 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       return member
     },
     [updateCurrentOrg, sessionId, myOrg, logActivity],
+  )
+
+  /** Record what YOU call your job here ("VP Internal"). A title is not a
+   *  permission — `role` is — so this touches nothing about access. */
+  const setMyOrgTitle = useCallback(
+    (title: string) => {
+      const clean = title.trim()
+      updateCurrentOrg((o) => ({
+        ...o,
+        members: o.members.map((m) => (m.isYou ? { ...m, title: clean || undefined } : m)),
+      }))
+      if (sessionId === SELF_ORG && myOrg && authUser) {
+        fireWrite(
+          supabase
+            .from('org_members')
+            .update({ title: clean || null })
+            .eq('org_id', myOrg.id)
+            .eq('user_id', authUser.id),
+        )
+      }
+    },
+    [updateCurrentOrg, sessionId, myOrg, authUser],
   )
 
   const acceptOrgMemberInvite = useCallback(
@@ -1268,6 +1300,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       isEventNotified,
       revertNotify,
       inviteOrgMember,
+      setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,
       setOrgMemberRole,
@@ -1324,6 +1357,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       isEventNotified,
       revertNotify,
       inviteOrgMember,
+      setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,
       setOrgMemberRole,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check } from 'lucide-react'
+import { Check, Pipette } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 /** A tasteful spread of brand-friendly swatches across the hue wheel + a few
@@ -13,6 +13,27 @@ const PALETTE = [
 ]
 
 const isHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
+
+/**
+ * The screen eyedropper.
+ *
+ * `EyeDropper` is a real browser API (Chromium) and it samples the whole
+ * screen, which is exactly what was asked for: open it and click a pixel of
+ * the logo you just uploaded to take its colour. It is NOT in Firefox or
+ * Safari, so the button is only rendered where it can work — a control that
+ * can only fail is worse than no control, the same call made about the
+ * "Fill from Concordia" button.
+ */
+interface EyeDropperResult {
+  sRGBHex: string
+}
+interface EyeDropperCtor {
+  new (): { open: (opts?: { signal?: AbortSignal }) => Promise<EyeDropperResult> }
+}
+function eyeDropper(): EyeDropperCtor | null {
+  const w = window as unknown as { EyeDropper?: EyeDropperCtor }
+  return w.EyeDropper ?? null
+}
 
 type Pos = { left: number; top: number; above: boolean }
 
@@ -80,6 +101,20 @@ export function ColorPicker({
   function pick(c: string) {
     onChange(c)
     setOpen(false)
+  }
+
+  async function sample() {
+    const Ctor = eyeDropper()
+    if (!Ctor) return
+    // Closed first, so the popover is not sitting on top of the thing you
+    // want to sample — most often the image that was just uploaded.
+    setOpen(false)
+    try {
+      const res = await new Ctor().open()
+      if (isHex(res.sRGBHex)) onChange(res.sRGBHex.toLowerCase())
+    } catch {
+      /* Escape, or a browser that changed its mind. Nothing to report. */
+    }
   }
 
   function onHexInput(raw: string) {
@@ -155,9 +190,26 @@ export function ColorPicker({
                 spellCheck={false}
                 aria-label="Hex colour"
                 placeholder="#5b9cf6"
-                className="w-full rounded-lg border border-border bg-surface-2 px-2 py-1.5 font-mono text-[12px] text-fg focus:border-accent focus:outline-none"
+                className="w-full min-w-0 rounded-lg border border-border bg-surface-2 px-2 py-1.5 font-mono text-[12px] text-fg focus:border-accent focus:outline-none"
               />
+              {eyeDropper() && (
+                <button
+                  type="button"
+                  onClick={() => void sample()}
+                  title="Pick a colour from anywhere on screen"
+                  aria-label="Pick a colour from anywhere on screen"
+                  className="grid size-7 shrink-0 place-items-center rounded-md border border-border-strong text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+                >
+                  <Pipette size={14} aria-hidden />
+                </button>
+              )}
             </div>
+            {eyeDropper() && (
+              <p className="mt-2 text-[11px] leading-snug text-subtle">
+                The pipette samples anywhere on screen — including the logo you
+                just uploaded.
+              </p>
+            )}
           </div>,
           document.body,
         )}

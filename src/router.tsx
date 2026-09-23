@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
@@ -55,7 +55,6 @@ const OrganizerInbox = lazy(() => import('@/features/organizer/OrganizerInbox').
 const OrganizerCollabs = lazy(() => import('@/features/organizer/OrganizerCollabs').then((x) => ({ default: x.OrganizerCollabs })))
 const OrganizerInsights = lazy(() => import('@/features/organizer/OrganizerInsights').then((x) => ({ default: x.OrganizerInsights })))
 const OrganizerEventEditor = lazy(() => import('@/features/organizer/OrganizerEventEditor').then((x) => ({ default: x.OrganizerEventEditor })))
-const OrganizerSetup = lazy(() => import('@/features/organizer/OrganizerSetup').then((x) => ({ default: x.OrganizerSetup })))
 const OrgProfileEditor = lazy(() => import('@/features/organizer/OrgProfileEditor').then((x) => ({ default: x.OrgProfileEditor })))
 const OrganizerTeam = lazy(() => import('@/features/organizer/OrganizerTeam').then((x) => ({ default: x.OrganizerTeam })))
 const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInvitePage').then((x) => ({ default: x.OrganizerInvitePage })))
@@ -121,8 +120,10 @@ export function AppRoutes() {
         <Route path="join/:token" element={<OrgMemberInvitePage />} />
         <Route path="request" element={<TeacherRequestPage role="organizer" />} />
         <Route path="event/:eventId" element={<OrganizerEventEditor />} />
-        {/* Where an accepted invite lands: three questions, then the dashboard. */}
-        <Route path="setup" element={<OrganizerSetup />} />
+        {/* There is ONE onboarding now and it lives over the dashboard, so
+            this old address just goes there — keeping any `?org=` with it,
+            which is what says WHICH club was just accepted. */}
+        <Route path="setup" element={<SetupRedirect />} />
         <Route path="profile" element={<OrgProfileEditor />} />
         <Route path="team" element={<OrganizerTeam />} />
       </Route>
@@ -195,4 +196,12 @@ function RouteFallback() {
       <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
     </div>
   )
+}
+
+/** `/organizer/setup` was the old second onboarding. It is one flow now, on
+ *  the dashboard — so this forwards, query string and all, because `?org=`
+ *  is what names the club an invite just created. */
+function SetupRedirect() {
+  const { search } = useLocation()
+  return <Navigate to={`/organizer${search}`} replace />
 }

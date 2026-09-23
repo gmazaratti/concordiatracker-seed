@@ -139,7 +139,7 @@ export function OrganizerInvitePage() {
     // Carry WHICH org: a platform admin has every organisation in the
     // switcher, so without this the portal opens on whichever sorted first.
     const id = typeof res === 'object' && res.org_id ? res.org_id : null
-    window.location.assign(id ? `/organizer/setup?org=${id}` : '/organizer/setup')
+    window.location.assign(id ? `/organizer?org=${id}` : '/organizer')
   }
 
   return (

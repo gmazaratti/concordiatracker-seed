@@ -180,19 +180,17 @@ function ProfileForm({
         <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <ImageUploadField
             label="Logo"
-            hint="Square · empty = initials"
+            hint="empty = initials"
             value={logo}
             onChange={(v) => { setLogo(v); touch() }}
             kind="logo"
-            shape="square"
           />
           <ImageUploadField
             label="Banner"
-            hint="Wide · empty = brand colour"
+            hint="empty = brand colour"
             value={banner}
             onChange={(v) => { setBanner(v); touch() }}
             kind="banner"
-            shape="wide"
           />
         </div>
 

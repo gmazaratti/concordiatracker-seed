@@ -1,6 +1,7 @@
 import type { CampusEvent } from '@/data/community'
 import { cn } from '@/lib/cn'
 import { CATEGORY_META } from './category'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 type Variant = 'hero' | 'banner' | 'thumb'
 
@@ -61,14 +62,9 @@ export function EventMedia({
 
       {/* Real image, on top: hides itself on error so the branded banner shows. */}
       {event.image && (
-        <img
+        <FallbackImg
           src={event.image}
-          alt=""
-          loading="lazy"
           className="absolute inset-0 size-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
         />
       )}
     </div>

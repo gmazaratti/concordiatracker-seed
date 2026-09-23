@@ -5,6 +5,7 @@ import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { myThreadWithOrg, sendMessageToOrg, type OrgDm } from '@/lib/org-messages'
 import { shortAgo } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { FallbackImg } from '@/components/ui/FallbackImg'
 
 /** Module level so reading the clock is allowed — `react-hooks/purity` bars it
  *  inside a component body. */
@@ -211,27 +212,16 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
 /** The logo, or the brand-coloured initials — the same fallback every other
  *  org surface uses, so a dead URL is never an empty box. */
 export function OrgFace({ org, className }: { org: OrgChatTarget; className?: string }) {
-  if (org.avatar) {
-    return (
-      <img
-        src={org.avatar}
-        alt=""
-        className={cn('shrink-0 rounded-full object-cover', className)}
-        onError={(e) => {
-          e.currentTarget.style.display = 'none'
-        }}
-      />
-    )
-  }
   return (
     <span
       className={cn(
-        'grid shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white',
+        'relative grid shrink-0 place-items-center overflow-hidden rounded-full text-[11px] font-semibold text-white',
         className,
       )}
       style={{ background: org.color ?? '#4b5563' }}
     >
       {(org.glyph || org.name.slice(0, 2)).toUpperCase()}
+      <FallbackImg src={org.avatar} className="absolute inset-0 size-full object-cover" />
     </span>
   )
 }
