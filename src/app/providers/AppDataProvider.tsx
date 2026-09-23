@@ -120,7 +120,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     writePending.current.delete(id)
     writeTimers.current.delete(id)
     if (cols && Object.keys(cols).length) {
-      fireWrite(supabase.from('assignments').update(cols).eq('id', id))
+      fireWrite(supabase.from('assignments').update(cols).eq('id', id), 'That assignment did not save')
     }
   }, [])
 
@@ -264,7 +264,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const updateTask = useCallback(
     (id: string, patch: Partial<CalendarTask>) => {
       updateTasks((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-      fireWrite(supabase.from('todos').update(taskPatchToRow(patch)).eq('id', id))
+      fireWrite(supabase.from('todos').update(taskPatchToRow(patch)).eq('id', id), 'That task did not save')
     },
     [updateTasks],
   )
@@ -278,7 +278,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateTasks((list) =>
         list.filter((t) => t.repeatGroup !== group || (!!t.due && t.due < from)),
       )
-      fireWrite(supabase.rpc('delete_todo_series', { p_group: group, p_from: from }))
+      fireWrite(
+        supabase.rpc('delete_todo_series', { p_group: group, p_from: from }),
+        'That repeat did not end',
+      )
     },
     [updateTasks],
   )
@@ -288,14 +291,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       if (!t) return
       const done = !t.done
       updateTasks((list) => list.map((x) => (x.id === id ? { ...x, done } : x)))
-      fireWrite(supabase.from('todos').update({ done }).eq('id', id))
+      fireWrite(supabase.from('todos').update({ done }).eq('id', id), 'That tick did not save')
     },
     [personalTasks, updateTasks],
   )
   const removeTask = useCallback(
     (id: string) => {
       updateTasks((list) => list.filter((t) => t.id !== id))
-      fireWrite(supabase.from('todos').delete().eq('id', id))
+      fireWrite(supabase.from('todos').delete().eq('id', id), 'That task was not deleted')
     },
     [updateTasks],
   )
@@ -367,7 +370,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       writeTimers.current.delete(id)
       writePending.current.delete(id)
       updateAssessments((list) => list.filter((a) => a.id !== id))
-      fireWrite(supabase.from('assignments').delete().eq('id', id))
+      fireWrite(supabase.from('assignments').delete().eq('id', id), 'That assignment was not deleted')
     },
     [updateAssessments],
   )
@@ -376,7 +379,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     (id: string, color: string) => {
       if (isSampleId(id)) return
       updateCourses((list) => list.map((c) => (c.id === id ? { ...c, color } : c)))
-      fireWrite(supabase.from('courses').update({ color }).eq('id', id))
+      fireWrite(supabase.from('courses').update({ color }).eq('id', id), 'The colour did not save')
     },
     [updateCourses],
   )
@@ -571,7 +574,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       updateCourses((list) => list.filter((c) => c.id !== id))
       updateAssessments((list) => list.filter((a) => a.courseId !== id))
       await supabase.from('assignments').delete().eq('course_id', id)
-      fireWrite(supabase.from('courses').delete().eq('id', id))
+      fireWrite(supabase.from('courses').delete().eq('id', id), 'That course was not deleted')
     },
     [updateCourses, updateAssessments],
   )

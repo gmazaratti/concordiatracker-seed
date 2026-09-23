@@ -47,7 +47,10 @@ export function FollowsProvider({ children }: { children: React.ReactNode }) {
         const next = new Set(prev)
         if (next.has(orgId)) {
           next.delete(orgId)
-          fireWrite(supabase.from('org_follows').delete().eq('user_id', uid).eq('org_id', orgId))
+          fireWrite(
+            supabase.from('org_follows').delete().eq('user_id', uid).eq('org_id', orgId),
+            'Unfollow did not save',
+          )
         } else {
           next.add(orgId)
           fireWrite(

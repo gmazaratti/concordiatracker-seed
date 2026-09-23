@@ -1,451 +1,443 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import {
-  ArrowRight,
-  Award,
+  CalendarDays,
   CalendarPlus,
   Eye,
-  Flame,
+  Images,
   Lock,
-  Rocket,
-  Shapes,
-  Sparkles,
-  Trophy,
   UserPlus,
   Users,
   type LucideIcon,
 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
-import { metricsTotals, type ManagedEvent, type OrgAccount } from '@/data/teacher'
+import { metricsTotals, type ManagedEvent } from '@/data/teacher'
 import { CATEGORY_META, CATEGORY_ORDER } from '@/features/community/category'
-import { Stat, Metric } from './OrgStat'
+import { AreaChart } from '@/features/admin/AreaChart'
+import { Panel } from '@/features/admin/admin-ui'
+import { ymd } from '@/features/calendar/calendar'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
-type Tab = 'reach' | 'events' | 'achievements'
+/**
+ * `/organizer/insights` — the club's reach, laid out like the admin overview.
+ *
+ * WHY IT LOOKS LIKE THAT PAGE. The admin dashboard had already solved this
+ * layout — a row of headline numbers, one large chart with a metric switcher,
+ * supporting panels beside it — and reusing `Panel` and `AreaChart` means the
+ * two cannot drift into two different products. This page used to be a strip
+ * of tabs over stacked lists, which is a filing cabinet, not a picture.
+ *
+ * ── THE HARD PART, AND IT IS NOT THE LAYOUT ─────────────────────────────────
+ * PER-EVENT REACH IS NOT RECORDED FOR A REAL CLUB. There is no `metrics`
+ * column on `events`; `eventRowToManaged` hands every Supabase-backed event
+ * `{views: 0, follows: 0, calendarAdds: 0}`, and only the seeded demo org
+ * carries real numbers. So a beautiful chart here would draw a flat zero line
+ * for every genuine club — which reads as "nobody looked at your event", not
+ * as "we are not measuring this yet". That is the worst kind of wrong: a
+ * confident number that is only an absence.
+ *
+ * So the page leads with what IS true — followers, posts, events, what is
+ * still to come, all counted from real rows — and where reach would be it
+ * SAYS it is not being measured rather than drawing a zero. The chart and the
+ * funnel appear the moment there is anything real to put in them.
+ *
+ * AGGREGATE ONLY, restated on the page. An organizer never learns WHICH
+ * student viewed, followed or saved — the line the whole portal is built on.
+ */
+type Metric = 'views' | 'calendarAdds' | 'follows'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'reach', label: 'Reach' },
-  { id: 'events', label: 'By event' },
-  { id: 'achievements', label: 'Achievements' },
+const METRICS: { id: Metric; label: string }[] = [
+  { id: 'views', label: 'Views' },
+  { id: 'calendarAdds', label: 'Calendar adds' },
+  { id: 'follows', label: 'Event follows' },
 ]
 
-const pct = (part: number, whole: number): string =>
+const compact = (n: number) =>
+  n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}k` : n.toLocaleString()
+
+const rate = (part: number, whole: number) =>
   whole > 0 ? `${Math.round((part / whole) * 100)}%` : '—'
 
-/** `/organizer/insights` — the interactive reach picture: totals, the
- * views → follows → saves funnel with conversion rates, category performance,
- * and a ranked per-event breakdown with save rates. Aggregate-only, stated
- * plainly; bars are single-hue (magnitude), identity is carried by labels. */
+/* A module-level helper, not an expression in the body: `react-hooks/purity`
+   refuses a clock read during render, and rightly — two renders a millisecond
+   apart would disagree about which events are still to come. */
+function countUpcoming(events: ManagedEvent[]): number {
+  const now = Date.now()
+  return events.filter((e) => new Date(e.start).getTime() >= now).length
+}
+
+interface Social {
+  followers: number
+  posts: number
+}
+
 export function OrganizerInsights() {
   const { currentOrg, orgViewerPerms } = useTeacher()
-  const [tab, setTab] = useState<Tab>('reach')
+  const [metric, setMetric] = useState<Metric>('views')
+  const [social, setSocial] = useState<Social | null>(null)
+  const handle = currentOrg?.org.handle ?? ''
+
+  /* THE FOLLOWER COUNT COMES FROM THE DATABASE, not from the provider, which
+     hard-codes `followers: 0` for every real org. `org_follows` is select-own,
+     so a client query would return 1 or 0 and call it the audience — the
+     definer function is the only honest source. */
+  useEffect(() => {
+    if (!handle) return
+    let alive = true
+    void supabase.rpc('org_social', { p_handle: handle }).then(({ data }) => {
+      if (!alive || !data) return
+      const d = data as { followers?: number; posts?: number }
+      setSocial({ followers: d.followers ?? 0, posts: d.posts ?? 0 })
+    })
+    return () => {
+      alive = false
+    }
+  }, [handle])
+
   if (!currentOrg) return <Navigate to="/organizer" replace />
   if (!orgViewerPerms.view_insights) return <Navigate to="/organizer" replace />
 
-  const { events, followers } = currentOrg
+  const { events } = currentOrg
+  const totals = metricsTotals(events)
+  const hasReach = totals.views + totals.calendarAdds + totals.follows > 0
+
+  // A draft with no title is not something anybody attended.
+  const dated = events
+    .filter((e) => e.title.trim())
+    .slice()
+    .sort((a, b) => a.start.localeCompare(b.start))
+  const upcoming = countUpcoming(dated)
+
+  /* `AreaChart` takes an ISO DAY per point, not a timestamp — it builds its
+     axis label with `new Date(`${day}T12:00:00Z`)`, so handing it a full
+     `…T18:00:00.000Z` start produced three "Invalid Date" ticks. `ymd` rather
+     than `slice(0, 10)`: an 11pm event is on the day it is LOCALLY on, which
+     is the same rule Radar's week buckets had to be fixed to. */
+  const points = dated.map((e) => ({
+    day: ymd(new Date(e.start)),
+    value: e.metrics?.[metric] ?? 0,
+  }))
+
+  const best = dated
+    .slice()
+    .sort((a, b) => (b.metrics?.views ?? 0) - (a.metrics?.views ?? 0))
+    .slice(0, 6)
+
+  const byCategory = CATEGORY_ORDER.map((c) => ({
+    id: c,
+    label: CATEGORY_META[c].label,
+    events: dated.filter((e) => e.category === c).length,
+    views: dated
+      .filter((e) => e.category === c)
+      .reduce((n, e) => n + (e.metrics?.views ?? 0), 0),
+  })).filter((r) => r.events > 0)
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-6 sm:px-6">
-      <header className="mb-4">
+      <header className="mb-5">
         <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Insights</h1>
-        <p className="text-[13px] text-subtle">How your events reach students.</p>
+        <p className="text-[13px] text-subtle">
+          How {currentOrg.org.name} reaches students. Counts only — never who.
+        </p>
       </header>
 
-      <div className="mb-5 flex gap-1 border-b border-border">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={cn(
-              'relative px-3.5 py-2.5 text-[13.5px] font-medium transition-colors duration-150',
-              tab === t.id ? 'text-fg' : 'text-subtle hover:text-fg',
-            )}
-          >
-            {t.label}
-            {tab === t.id && (
-              <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent" aria-hidden />
-            )}
-          </button>
-        ))}
+      {/* WHAT IS ACTUALLY KNOWN LEADS. Every one of these four is a row count
+          from a real table, so they are the same number tomorrow whatever we
+          do or do not start measuring. */}
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Headline label="Followers" value={social?.followers ?? null} icon={Users} accent />
+        <Headline label="Posts" value={social?.posts ?? null} icon={Images} />
+        <Headline label="Events published" value={dated.length} icon={CalendarDays} />
+        <Headline label="Still to come" value={upcoming} icon={CalendarPlus} accent />
       </div>
 
-      {tab === 'reach' && <ReachTab followers={followers} events={events} />}
-      {tab === 'events' && <ByEvent events={events} />}
-      {tab === 'achievements' && <Achievements org={currentOrg} />}
-    </div>
-  )
-}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        {hasReach ? (
+          <Panel title="Reach by event" sub="Each point is one event, on its own date">
+            <div className="px-3.5 pt-3">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="font-display text-[26px] leading-none font-semibold text-fg tabular-nums">
+                    {compact(totals[metric])}
+                  </p>
+                  <p className="mt-1 text-[11.5px] text-subtle">
+                    across {dated.length} event{dated.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {METRICS.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMetric(m.id)}
+                      aria-pressed={metric === m.id}
+                      className={cn(
+                        'rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-150',
+                        metric === m.id
+                          ? 'bg-accent-soft text-accent'
+                          : 'text-subtle hover:bg-surface-2 hover:text-fg',
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-function ReachTab({ followers, events }: { followers: number; events: ManagedEvent[] }) {
-  const totals = metricsTotals(events)
-  const noData = totals.views === 0 && totals.follows === 0 && totals.calendarAdds === 0
+            {points.length >= 2 ? (
+              <AreaChart
+                points={points}
+                format={(n) => compact(n)}
+                label={METRICS.find((m) => m.id === metric)?.label ?? ''}
+                height={190}
+                className="mt-2"
+              />
+            ) : (
+              <p className="px-4 py-10 text-center text-[12.5px] text-subtle">
+                {/* Two points is the minimum a line can honestly be drawn from. */}
+                Post a couple of events and this becomes a shape you can read.
+              </p>
+            )}
 
-  return (
-    <div className="flex flex-col gap-7">
-      <div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat icon={UserPlus} label="Followers" value={followers} primary />
-          <Stat icon={CalendarPlus} label="Calendar adds" value={totals.calendarAdds} primary />
-          <Stat icon={Sparkles} label="Event follows" value={totals.follows} primary />
-          <Stat icon={Eye} label="Total views" value={totals.views} />
+            <p className="border-t border-border px-4 py-2.5 text-[11px] leading-snug text-subtle">
+              Plotted per event, not per day — we do not record when each view happened, so a
+              daily line would be invented.
+            </p>
+          </Panel>
+        ) : (
+          <NotMeasuredYet events={dated.length} />
+        )}
+
+        <div className="flex flex-col gap-4">
+          {hasReach && (
+            <Panel title="From seeing it to coming" sub="Where interest drops off">
+              <div className="flex flex-col gap-2.5 p-4">
+                <FunnelRow label="Saw it" value={totals.views} of={totals.views} />
+                <FunnelRow
+                  label="Followed the event"
+                  value={totals.follows}
+                  of={totals.views}
+                  note={rate(totals.follows, totals.views)}
+                />
+                <FunnelRow
+                  label="Added to their calendar"
+                  value={totals.calendarAdds}
+                  of={totals.views}
+                  note={rate(totals.calendarAdds, totals.views)}
+                />
+              </div>
+            </Panel>
+          )}
+
+          <Panel title="What you've published" sub="By month, from your own events">
+            <PublishedByMonth events={dated} />
+          </Panel>
+
+          <Panel title="Privacy" sub="What this page can never show">
+            <p className="flex items-start gap-2 p-4 text-[12px] leading-relaxed text-subtle">
+              <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
+              Totals only. Nobody in this portal — including us — can see which students
+              viewed, followed or saved anything you posted.
+            </p>
+          </Panel>
         </div>
-        <p className="mt-2.5 flex items-start gap-1.5 text-[12px] text-subtle">
-          <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
-          Aggregate numbers only: you never see which students viewed, followed, or added an event.
-        </p>
       </div>
 
-      {noData ? (
-        <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-8 text-center text-[13px] text-subtle">
-          Numbers start counting as students open, follow, and save your events: post one and check
-          back.
-        </p>
-      ) : (
-        <>
-          <SaveRateHero totals={totals} />
-          <Funnel totals={totals} />
-          <CategorySplit events={events} />
-          <BestEvent events={events} />
-        </>
+      {hasReach && (
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Panel title="Best events" sub="By views">
+            <ul className="flex flex-col gap-2.5 p-4">
+              {best.map((e) => (
+                <EventBar key={e.id} event={e} max={best[0]?.metrics?.views ?? 1} />
+              ))}
+            </ul>
+          </Panel>
+
+          <Panel title="By category" sub="Where your reach comes from">
+            {byCategory.length === 0 ? (
+              <p className="px-4 py-8 text-center text-[12.5px] text-subtle">Nothing posted yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-2.5 p-4">
+                {byCategory.map((c) => (
+                  <li key={c.id}>
+                    <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
+                      <span className="min-w-0 truncate text-fg">{c.label}</span>
+                      <span className="shrink-0 text-subtle tabular-nums">
+                        {c.events} event{c.events === 1 ? '' : 's'} · {compact(c.views)}
+                      </span>
+                    </div>
+                    <Bar
+                      value={c.views}
+                      max={Math.max(1, ...byCategory.map((x) => x.views))}
+                      color={CATEGORY_META[c.id].hex}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
       )}
     </div>
   )
 }
 
-/** The headline conversion as a DONUT — the share of viewers who commit the
- * event to their calendar. Single accent hue on a neutral track. */
-function SaveRateHero({ totals }: { totals: { views: number; calendarAdds: number } }) {
-  const rate = totals.views > 0 ? totals.calendarAdds / totals.views : 0
-  const R = 40
-  const C = 2 * Math.PI * R
+/**
+ * The panel that stands where a zero chart would have.
+ *
+ * It names the three numbers that are missing so the page is still an answer
+ * to "how did we do", and it says WHY rather than implying the club did badly.
+ */
+function NotMeasuredYet({ events }: { events: number }) {
   return (
-    <section className="flex flex-wrap items-center gap-5 rounded-xl border border-border bg-surface px-5 py-4">
-      <svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label={`Save rate ${Math.round(rate * 100)} percent`} className="shrink-0 -rotate-90">
-        <circle cx="56" cy="56" r={R} fill="none" strokeWidth="12" className="stroke-surface-2" />
-        <circle
-          cx="56"
-          cy="56"
-          r={R}
-          fill="none"
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={`${Math.max(0.02, rate) * C} ${C}`}
-          className="stroke-accent transition-[stroke-dasharray] duration-500"
-        />
-        <text
-          x="56"
-          y="56"
-          textAnchor="middle"
-          dominantBaseline="central"
-          transform="rotate(90 56 56)"
-          className="fill-[var(--ct-fg)] font-display text-[22px] font-semibold"
-        >
-          {pct(totals.calendarAdds, totals.views)}
-        </text>
-      </svg>
-      <div className="min-w-0 flex-1">
-        <p className="text-[14px] font-semibold text-fg">Save rate</p>
-        <p className="mt-1 max-w-md text-[13px] leading-relaxed text-muted">
-          Of every student who opens one of your events,{' '}
-          <strong className="font-medium text-fg">{pct(totals.calendarAdds, totals.views)} commit
-          it to their calendar</strong>: {totals.calendarAdds.toLocaleString()} saves from{' '}
-          {totals.views.toLocaleString()} views. This is the number to grow.
-        </p>
-      </div>
-    </section>
-  )
-}
-
-/** Views → follows → calendar adds as a funnel: three bars on one scale (views
- * = full width) with the stage-to-stage conversion rates called out. */
-function Funnel({ totals }: { totals: { views: number; follows: number; calendarAdds: number } }) {
-  const stages: { icon: LucideIcon; label: string; value: number; hint: string }[] = [
-    { icon: Eye, label: 'Opened an event', value: totals.views, hint: 'views' },
-    { icon: Sparkles, label: 'Followed one', value: totals.follows, hint: 'event follows' },
-    { icon: CalendarPlus, label: 'Saved it to their calendar', value: totals.calendarAdds, hint: 'calendar adds' },
-  ]
-  const max = Math.max(1, totals.views)
-
-  return (
-    <section>
-      <h2 className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        The funnel: from a view to a saved seat
-      </h2>
-      <p className="mb-3 text-[12.5px] text-subtle">
-        Of everyone who opens your events, {pct(totals.follows, totals.views)} follow one and{' '}
-        <strong className="font-medium text-fg">{pct(totals.calendarAdds, totals.views)} save it
-        to their calendar</strong>: that save rate is your strongest signal.
-      </p>
-      <div className="overflow-hidden rounded-xl border border-border">
-        {stages.map((s, i) => {
-          const Icon = s.icon
-          const width = Math.max(2, Math.round((s.value / max) * 100))
-          const prev = stages[i - 1]
-          return (
-            <div key={s.label} className={cn('px-4 py-3', i > 0 && 'border-t border-border/70')}>
-              {i > 0 && prev && (
-                <p className="mb-1.5 flex items-center gap-1 text-[11px] text-subtle">
-                  <ArrowRight size={11} aria-hidden />
-                  {pct(s.value, prev.value)} of the stage above
-                </p>
-              )}
-              <div className="flex items-center gap-3">
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-accent">
-                  <Icon size={14} aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-[13px] font-medium text-fg">{s.label}</span>
-                    <span className="shrink-0 text-[13px] font-semibold text-fg tabular-nums">
-                      {s.value.toLocaleString()}
-                      <span className="ml-1 font-normal text-subtle">{s.hint}</span>
-                    </span>
-                  </div>
-                  {/* Centered bars → a symmetric funnel silhouette. */}
-                  <div className="mt-1.5 h-2.5 rounded-full bg-surface-2">
-                    <div
-                      className="mx-auto h-full rounded-full bg-accent transition-[width] duration-300"
-                      style={{ width: `${width}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-/** Calendar adds per event category — magnitude bars in one hue; each row is
- * identified by its category icon + name (identity never rides on color). */
-function CategorySplit({ events }: { events: ManagedEvent[] }) {
-  const byCat = CATEGORY_ORDER.map((cat) => {
-    const evs = events.filter((e) => e.category === cat)
-    const adds = evs.reduce((s, e) => s + e.metrics.calendarAdds, 0)
-    const views = evs.reduce((s, e) => s + e.metrics.views, 0)
-    return { cat, count: evs.length, adds, views }
-  }).filter((c) => c.count > 0)
-  if (byCat.length < 2) return null
-  const max = Math.max(1, ...byCat.map((c) => c.adds))
-
-  return (
-    <section>
-      <h2 className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
-        What lands, by category
-      </h2>
-      <p className="mb-3 text-[12.5px] text-subtle">
-        Calendar adds per event category: where your audience actually commits.
-      </p>
-      <ul className="overflow-hidden rounded-xl border border-border">
-        {byCat
-          .sort((a, b) => b.adds - a.adds)
-          .map(({ cat, count, adds, views }, i) => {
-            const meta = CATEGORY_META[cat]
-            const Icon = meta.icon
-            return (
-              <li key={cat} className={cn('flex items-center gap-3 px-4 py-3', i > 0 && 'border-t border-border/70')}>
-                <span
-                  className="grid size-7 shrink-0 place-items-center rounded-lg"
-                  style={{ backgroundColor: `${meta.hex}1f`, color: meta.hex }}
-                  aria-hidden
-                >
-                  <Icon size={14} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-[13px] font-medium text-fg">
-                      {meta.label}
-                      <span className="ml-1.5 text-[11.5px] font-normal text-subtle">
-                        {count} event{count === 1 ? '' : 's'}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[12.5px] text-muted tabular-nums">
-                      <strong className="font-semibold text-fg">{adds.toLocaleString()}</strong> adds
-                      <span className="ml-1.5 text-subtle">· {pct(adds, views)} save rate</span>
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full bg-accent transition-[width] duration-300"
-                      style={{ width: `${Math.max(2, Math.round((adds / max) * 100))}%` }}
-                    />
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-      </ul>
-    </section>
-  )
-}
-
-/** The single best performer by calendar adds — a callout, not a chart. */
-function BestEvent({ events }: { events: ManagedEvent[] }) {
-  const best = [...events].sort((a, b) => b.metrics.calendarAdds - a.metrics.calendarAdds)[0]
-  if (!best || best.metrics.calendarAdds === 0) return null
-  const meta = CATEGORY_META[best.category]
-  return (
-    <section className="flex flex-wrap items-center gap-3 rounded-xl border border-accent/40 bg-accent-soft/40 px-4 py-3.5">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-contrast">
-        <Trophy size={17} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-fg">
-          Your best performer: {best.title.trim() || 'Untitled event'}
-        </p>
-        <p className="text-[12px] text-muted">
-          {best.metrics.calendarAdds.toLocaleString()} calendar adds ·{' '}
-          {pct(best.metrics.calendarAdds, best.metrics.views)} of viewers saved it · {meta.label}.
-          More like this one.
-        </p>
-      </div>
-      <Link
-        to={`/organizer/event/${best.id}`}
-        className="shrink-0 text-[12.5px] font-medium text-accent hover:underline"
-      >
-        Open event
-      </Link>
-    </section>
-  )
-}
-
-interface Achievement {
-  id: string
-  icon: LucideIcon
-  name: string
-  desc: string
-  done: boolean
-  /** Progress toward the goal when locked, e.g. "640 / 1,000". */
-  progress?: string
-}
-
-/** Milestone badges computed from the org's REAL numbers — nothing fabricated.
- * Locked ones show live progress so there's always a next thing to chase. */
-function Achievements({ org }: { org: OrgAccount }) {
-  const totals = metricsTotals(org.events)
-  const bestAdds = Math.max(0, ...org.events.map((e) => e.metrics.calendarAdds))
-  const categories = new Set(org.events.map((e) => e.category)).size
-  const fmtGoal = (v: number, goal: number) => `${Math.min(v, goal).toLocaleString()} / ${goal.toLocaleString()}`
-
-  const list: Achievement[] = [
-    { id: 'first-event', icon: Rocket, name: 'Liftoff', desc: 'Post your first event', done: org.events.length > 0, progress: fmtGoal(org.events.length, 1) },
-    { id: 'five-events', icon: Flame, name: 'Regular', desc: 'Post 5 events', done: org.events.length >= 5, progress: fmtGoal(org.events.length, 5) },
-    { id: 'views-100', icon: Eye, name: 'On the radar', desc: '100 total views', done: totals.views >= 100, progress: fmtGoal(totals.views, 100) },
-    { id: 'views-1000', icon: Eye, name: 'Campus famous', desc: '1,000 total views', done: totals.views >= 1000, progress: fmtGoal(totals.views, 1000) },
-    { id: 'saves-10', icon: CalendarPlus, name: 'Penciled in', desc: '10 calendar saves', done: totals.calendarAdds >= 10, progress: fmtGoal(totals.calendarAdds, 10) },
-    { id: 'full-house', icon: Trophy, name: 'Full house', desc: '100 saves on a single event', done: bestAdds >= 100, progress: fmtGoal(bestAdds, 100) },
-    { id: 'followers-25', icon: UserPlus, name: 'Following', desc: '25 followers', done: org.followers >= 25, progress: fmtGoal(org.followers, 25) },
-    { id: 'followers-100', icon: Sparkles, name: 'A movement', desc: '100 followers', done: org.followers >= 100, progress: fmtGoal(org.followers, 100) },
-    { id: 'variety', icon: Shapes, name: 'Variety pack', desc: 'Events in 3 categories', done: categories >= 3, progress: fmtGoal(categories, 3) },
-    { id: 'squad', icon: Users, name: 'Squad', desc: 'A team of 3+', done: org.members.length >= 3, progress: fmtGoal(org.members.length, 3) },
-  ]
-  const earned = list.filter((a) => a.done).length
-
-  return (
-    <div>
-      <p className="mb-4 flex items-center gap-2 text-[13px] text-muted">
-        <Award size={15} className="text-accent" aria-hidden />
-        <strong className="font-semibold text-fg">{earned}</strong> of {list.length} earned: all
-        from your real numbers.
-      </p>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((a) => {
-          const Icon = a.icon
-          return (
-            <li
-              key={a.id}
-              className={cn(
-                'flex items-center gap-3 rounded-xl border px-3.5 py-3',
-                a.done ? 'border-accent/40 bg-accent-soft/40' : 'border-border bg-surface opacity-80',
-              )}
+    <Panel title="Reach" sub="Not being measured yet">
+      <div className="p-4">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { icon: Eye, label: 'Views' },
+            { icon: CalendarPlus, label: 'Calendar adds' },
+            { icon: UserPlus, label: 'Event follows' },
+          ].map(({ icon: Icon, label }) => (
+            <div
+              key={label}
+              className="rounded-lg border border-dashed border-border bg-surface-2/40 px-3 py-3 text-center"
             >
-              <span
-                className={cn(
-                  'grid size-10 shrink-0 place-items-center rounded-xl',
-                  a.done ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-subtle',
-                )}
-              >
-                <Icon size={18} aria-hidden />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className={cn('text-[13.5px] font-semibold', a.done ? 'text-fg' : 'text-muted')}>
-                  {a.name}
-                </p>
-                <p className="truncate text-[12px] text-subtle">{a.desc}</p>
-                {!a.done && a.progress && (
-                  <p className="mt-0.5 text-[11px] text-subtle tabular-nums">{a.progress}</p>
-                )}
-              </div>
-              {a.done && <Trophy size={14} className="shrink-0 text-accent" aria-hidden />}
-            </li>
-          )
-        })}
-      </ul>
-    </div>
+              <Icon size={14} className="mx-auto text-subtle" aria-hidden />
+              <p className="mt-1.5 font-display text-[18px] leading-none font-semibold text-subtle">
+                —
+              </p>
+              <p className="mt-1 text-[11px] text-subtle">{label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3.5 text-[12.5px] leading-relaxed text-muted">
+          We do not record who opens an event yet, so these would be zero for every club — and a
+          zero here reads as “nobody came”, which is not something we know.
+          {events > 0
+            ? ` Your ${events} published event${events === 1 ? '' : 's'} ${events === 1 ? 'is' : 'are'} live in Community in the meantime.`
+            : ' Publish an event and it goes live in Community in the meantime.'}
+        </p>
+        <p className="mt-2 text-[11.5px] leading-snug text-subtle">
+          When it arrives it will be counts only — never which students.
+        </p>
+      </div>
+    </Panel>
   )
 }
 
-/** Ranked per-event breakdown — adds bar on one scale + a save-rate figure. */
-function ByEvent({ events }: { events: ManagedEvent[] }) {
-  const ranked = [...events].sort((a, b) => b.metrics.calendarAdds - a.metrics.calendarAdds)
-  const maxAdds = Math.max(1, ...events.map((e) => e.metrics.calendarAdds))
-
+/** Events per month, from their own dates. Real data, no estimation. */
+function PublishedByMonth({ events }: { events: ManagedEvent[] }) {
   if (events.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-border/70 bg-surface/40 px-4 py-8 text-center text-[13px] text-subtle">
-        Post an event to start seeing how it performs.
-      </p>
+      <p className="px-4 py-8 text-center text-[12.5px] text-subtle">Nothing published yet.</p>
     )
   }
+  const buckets = new Map<string, number>()
+  for (const e of events) {
+    const d = new Date(e.start)
+    if (Number.isNaN(d.getTime())) continue
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    buckets.set(key, (buckets.get(key) ?? 0) + 1)
+  }
+  const rows = [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-8)
+  const max = Math.max(1, ...rows.map(([, n]) => n))
+  const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit' })
+  return (
+    <ul className="flex flex-col gap-2.5 p-4">
+      {rows.map(([key, n]) => (
+        <li key={key}>
+          <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
+            <span className="text-fg">{fmt.format(new Date(`${key}-01T12:00:00`))}</span>
+            <span className="text-subtle tabular-nums">
+              {n} event{n === 1 ? '' : 's'}
+            </span>
+          </div>
+          <Bar value={n} max={max} />
+        </li>
+      ))}
+    </ul>
+  )
+}
 
+function Headline({
+  label,
+  value,
+  icon: Icon,
+  accent,
+}: {
+  label: string
+  /** `null` while it is still being fetched — never rendered as a zero. */
+  value: number | null
+  icon: LucideIcon
+  accent?: boolean
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface px-3.5 py-3">
+      <p className="flex items-center gap-1.5 text-[11.5px] text-subtle">
+        <Icon size={13} className={accent ? 'text-accent' : ''} aria-hidden />
+        {label}
+      </p>
+      <p className="mt-1 font-display text-[22px] leading-none font-semibold text-fg tabular-nums">
+        {value === null ? <span className="text-subtle">—</span> : compact(value)}
+      </p>
+    </div>
+  )
+}
+
+/** A single-hue bar: magnitude, not identity. Identity is the label. */
+function Bar({ value, max, color }: { value: number; max: number; color?: string }) {
+  const w = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0
+  return (
+    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div
+        className="h-full rounded-full"
+        style={{ width: `${w}%`, backgroundColor: color ?? 'var(--ct-accent)' }}
+      />
+    </div>
+  )
+}
+
+function FunnelRow({
+  label,
+  value,
+  of,
+  note,
+}: {
+  label: string
+  value: number
+  of: number
+  note?: string
+}) {
   return (
     <div>
-      <p className="mb-3 text-[12.5px] text-subtle">
-        Ranked by calendar adds; the save rate is the share of viewers who committed.
-      </p>
-      <ul className="overflow-hidden rounded-xl border border-border">
-        {ranked.map((e, i) => {
-          const cat = CATEGORY_META[e.category]
-          const Icon = cat.icon
-          const title = e.title.trim() || 'Untitled event'
-          const width = Math.max(2, Math.round((e.metrics.calendarAdds / maxAdds) * 100))
-          return (
-            <li key={e.id} className={i > 0 ? 'border-t border-border/70' : undefined}>
-              <Link
-                to={`/organizer/event/${e.id}`}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3.5 py-3 transition-colors duration-150 hover:bg-surface-2/50"
-              >
-                <span
-                  className="grid size-8 shrink-0 place-items-center rounded-lg"
-                  style={{ backgroundColor: `${cat.hex}1f`, color: cat.hex }}
-                  aria-hidden
-                >
-                  <Icon size={15} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-[13.5px] font-medium text-fg">{title}</span>
-                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-muted tabular-nums">
-                      {pct(e.metrics.calendarAdds, e.metrics.views)} save rate
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${width}%` }} />
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-3 text-[12px] text-muted tabular-nums">
-                  <Metric icon={CalendarPlus} value={e.metrics.calendarAdds} title="Calendar adds" />
-                  <Metric icon={UserPlus} value={e.metrics.follows} title="Follows" />
-                  <Metric icon={Eye} value={e.metrics.views} title="Views" muted />
-                </div>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+      <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
+        <span className="min-w-0 truncate text-fg">{label}</span>
+        <span className="shrink-0 text-subtle tabular-nums">
+          {compact(value)}
+          {note && <span className="ml-1.5 text-[11px]">{note}</span>}
+        </span>
+      </div>
+      <Bar value={value} max={of} />
     </div>
+  )
+}
+
+function EventBar({ event, max }: { event: ManagedEvent; max: number }) {
+  const v = event.metrics?.views ?? 0
+  return (
+    <li>
+      <div className="flex items-baseline justify-between gap-2 text-[12.5px]">
+        <span className="min-w-0 truncate text-fg">{event.title}</span>
+        <span className="shrink-0 text-subtle tabular-nums">
+          {compact(v)}
+          <span className="ml-1.5 text-[11px]">
+            {rate(event.metrics?.calendarAdds ?? 0, v)} saved
+          </span>
+        </span>
+      </div>
+      <Bar value={v} max={max} />
+    </li>
   )
 }

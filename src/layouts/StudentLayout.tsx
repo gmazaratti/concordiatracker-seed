@@ -17,6 +17,7 @@ import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
+import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { NotificationToast } from '@/features/community/NotificationToast'
 import { LiveMessages } from '@/features/profile/LiveMessages'
@@ -120,6 +121,8 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       <CommandPalette />
       <QuickActionLayer />
       <SettingsLayer />
+      {/* A background save that failed says so — see lib/write-errors.ts. */}
+      <WriteErrorToast />
       <SupportLayer />
       {/* Mounted on the shell, not in Community: the point is that it finds
           you on whatever page you land on. */}

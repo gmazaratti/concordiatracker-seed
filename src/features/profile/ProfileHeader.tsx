@@ -69,6 +69,13 @@ export function ProfileHeader({
   // Seeded from the last answer so the counts and the Follow button are
   // already right on the first frame of a profile you have opened before.
   const [social, setSocial] = useState<ProfileSocial | null>(() => cachedProfileSocial(handle))
+  // Same reason as `usePublicProfile`: the initialiser above runs once, so
+  // moving between two profiles showed the first one's counts on the second.
+  const [socialFor, setSocialFor] = useState(handle)
+  if (socialFor !== handle) {
+    setSocialFor(handle)
+    setSocial(cachedProfileSocial(handle))
+  }
   const [list, setList] = useState<FollowListKind | null>(null)
   const [notify, setNotify] = useState(false)
   const [busy, setBusy] = useState(false)

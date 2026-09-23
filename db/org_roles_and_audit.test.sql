@@ -194,6 +194,26 @@ begin
   perform pg_temp.want('undo restored the legacy column too',
     (select role from public.org_members where id = m_third), 'member');
 
+  /* A PLATFORM ADMIN on a club they neither own nor belong to. God-mode
+     access is deliberately invisible — no membership row — so rank has to
+     come from `ct_admin_write()` or the permission says yes while the ladder
+     says every role is above them, which is what was reported. */
+  perform set_config('request.jwt.claims',
+    json_build_object('sub',
+      -- A HUMAN admin. Alfred is in `admins` too and is an agent, so
+      -- `ct_admin_write()` is correctly false for it — picking the first row
+      -- blind can land on the one account this is not supposed to lift.
+      (select a.user_id from public.admins a
+        where not exists (select 1 from public.agent_accounts g where g.user_id = a.user_id)
+        limit 1)::text,
+      'role', 'authenticated')::text, true);
+  perform pg_temp.want('an admin outranks a club they do not belong to',
+    (public.ct_org_position(org) = 2147483647)::text, 'true');
+  perform pg_temp.want('and can therefore manage its Member role',
+    public.ct_org_may_manage_role(r_member)::text, 'true');
+  perform pg_temp.want('but the Owner role stays fixed for everybody',
+    public.ct_org_may_manage_role(r_owner)::text, 'false');
+
   -- ── Who may read the log ──────────────────────────────────────────────────
   perform pg_temp.be(third_u);
   perform pg_temp.want('the Member role cannot read the log',

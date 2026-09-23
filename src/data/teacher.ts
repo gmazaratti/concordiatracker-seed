@@ -320,6 +320,9 @@ export interface EventMetrics {
 /** An event an organizer manages — the Community `CampusEvent` fields (minus the
  * org, which is the account's) plus private aggregate metrics. */
 export interface ManagedEvent {
+  /** Optional https link to a maps service. A LINK, never an embed — see
+   *  `db/event_map_link.sql`. */
+  mapUrl?: string
   id: string
   title: string
   /** Other-language versions, e.g. { fr: { title, location, description } }.

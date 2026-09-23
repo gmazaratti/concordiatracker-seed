@@ -144,7 +144,7 @@ export function useCourseBlueprints(course: Course) {
   /** Bump the adoption counter when a blueprint is imported. */
   const recordImport = useCallback((id: string) => {
     setBlueprints((list) => list.map((b) => (b.id === id ? { ...b, imports: b.imports + 1 } : b)))
-    fireWrite(supabase.rpc('increment_blueprint_imports', { p_id: id }))
+    fireWrite(supabase.rpc('increment_blueprint_imports', { p_id: id }), 'The import count did not save')
   }, [])
 
   /** Share this course's outline as a new community blueprint, then reload. */

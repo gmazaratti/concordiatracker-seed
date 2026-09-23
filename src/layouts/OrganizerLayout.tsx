@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, History, Inbox, LayoutDashboard, Loader2, LogOut, ShieldCheck, UserCircle, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, History, Inbox, LayoutDashboard, Loader2, LogOut, Newspaper, ShieldCheck, UserCircle, Users, type LucideIcon } from 'lucide-react'
 import type { OrgAccount } from '@/data/teacher'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { useAppData } from '@/app/providers/app-data'
 import { StatusChip } from './TeacherLayout'
 import { OrgLogo } from '@/features/community/OrgLogo'
+import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { cn } from '@/lib/cn'
 
 const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/organizer', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/organizer/events', label: 'Events', icon: CalendarDays, end: false },
+  // Two kinds of publishing, two places: an event is dated and goes on a
+  // calendar, a post is a moment and goes in a river.
+  { to: '/organizer/feed', label: 'Feed', icon: Newspaper, end: false },
   { to: '/organizer/inbox', label: 'Inbox', icon: Inbox, end: false },
   // Next to Inbox on purpose: both are somebody else asking for something.
   { to: '/organizer/collabs', label: 'Collabs', icon: Handshake, end: false },
@@ -74,6 +78,7 @@ export function OrganizerLayout() {
         </header>
         <main className="flex-1">
           <Outlet />
+          <WriteErrorToast />
         </main>
       </div>
     )
@@ -207,10 +212,19 @@ export function OrganizerLayout() {
 
         <main className="flex-1 overflow-y-auto">
           <Outlet />
+          <WriteErrorToast />
         </main>
 
-        {/* Mobile bottom nav: in-flow (not fixed), same pattern as the student app */}
-        <nav className="flex border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+        {/* MOBILE NAV: A SCROLLING STRIP, NOT SIX EQUAL SLOTS.
+            The student bar divides the width between a fixed handful of
+            DESTINATIONS and truncates the labels to keep its height stable.
+            This is a dashboard's section list and it is now ten items long —
+            at 375px that is 37px each, which ran "Collabs" into "Insights".
+            So each item keeps the width its own label needs and the strip
+            scrolls inside itself; `overflow-x-auto` on the nav means the PAGE
+            still never scrolls sideways, the same answer the Planner tab strip
+            landed on. */}
+        <nav className="flex overflow-x-auto border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] [scrollbar-width:none] md:hidden">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -218,7 +232,7 @@ export function OrganizerLayout() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors duration-150',
+                  'flex shrink-0 flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-medium whitespace-nowrap transition-colors duration-150',
                   isActive ? 'text-accent' : 'text-subtle',
                 )
               }

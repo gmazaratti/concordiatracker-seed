@@ -228,6 +228,24 @@ await admin
   .from('user_follows')
   .upsert([{ follower: ghost, following: uid }], { onConflict: 'follower,following' })
 
+/*
+ * THE MATE IS ALSO ON THE TEAM, with a user_id.
+ *
+ * A member row WITHOUT one can be given a role but can never be told about it
+ * — `set_org_member_role` only notifies `mem.user_id` — and cannot be handed
+ * ownership at all. So the one member the roles screen is driven against is a
+ * real account whose notification bell can be opened afterwards.
+ */
+await admin.from('org_members').insert({
+  org_id: org.id,
+  user_id: mate,
+  email: mateEmail,
+  name: 'Probe Classmate',
+  role: 'member',
+  status: 'active',
+  joined_at: new Date(Date.now() - 86_400_000 * 9).toISOString(),
+})
+
 const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString()
 const { error: msgErr } = await admin.from('messages').insert([
   { sender: mate, recipient: uid, body: 'hey, did you get the COMM 305 outline?', created_at: minutesAgo(90) },
@@ -259,6 +277,32 @@ const session = await fetch(`${URL_}/auth/v1/verify`, {
   body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
 }).then((r) => r.json())
 
+async function sessionFor(who) {
+  const link = await fetch(`${URL_}/auth/v1/admin/generate_link`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ type: 'magiclink', email: who }),
+  }).then((r) => r.json())
+  const out = await fetch(`${URL_}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { apikey: env.VITE_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'magiclink', token_hash: link.hashed_token }),
+  }).then((r) => r.json())
+  return {
+    access_token: out.access_token,
+    refresh_token: out.refresh_token,
+    expires_at: out.expires_at,
+    expires_in: out.expires_in,
+    token_type: 'bearer',
+    user: out.user,
+  }
+}
+const mateSession = await sessionFor(mateEmail)
+
 const ref = new URL(URL_).hostname.split('.')[0]
 console.log(
   JSON.stringify(
@@ -267,6 +311,9 @@ console.log(
       uid,
       handle: `probe${rnd}`,
       mate: `mate${rnd}`,
+      mateEmail,
+      mateUid: mate,
+      orgId: org.id,
       org: org.handle,
       freshOrg: fresh.handle,
       freshOrgId: fresh.id,
@@ -280,6 +327,7 @@ console.log(
         token_type: 'bearer',
         user: session.user,
       },
+      mateSession,
     },
     null,
     0,

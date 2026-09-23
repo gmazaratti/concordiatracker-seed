@@ -5,6 +5,7 @@ import type { Blueprint } from '@/data/blueprints'
 import { CAMPUS_EVENTS, ORGS, type CampusEvent, type EventOrg } from '@/data/community'
 import { term } from '@/data/mock'
 import { supabase, fireWrite } from '@/lib/supabase'
+import { reportWriteError, writeErrorText } from '@/lib/write-errors'
 import { currentCampaign } from '@/lib/analytics'
 import {
   announcementFromRow,
@@ -31,7 +32,7 @@ const SELF_ORG = 'self-org'
 const ORG_COLS =
   'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status, setup_completed_at'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, map_url, posted_at'
 
 /** A `teacher_courses` row (the teacher's persisted managed course + draft outline). */
 interface TeacherCourseRow {
@@ -76,6 +77,42 @@ import { TeacherContext, type TeacherContextValue } from './teacher'
 
 /** In-memory teacher store. Resets on reload (like the rest of the seed). The
  * SINGLE place to swap for a backend — every screen reads through `useTeacher`. */
+/**
+ * Is this field genuinely different, or only spelled differently?
+ *
+ * THE AUDIT LOG IS ONLY USEFUL IF IT IS SHORT. `JSON.stringify` compares KEY
+ * ORDER, and the two sides of a profile save never agree about it: the "before"
+ * comes off the database row and the "after" is rebuilt by the form. So editing
+ * the bio recorded `bio, links, translations`, and an undo then put back four
+ * things you never touched — which is exactly the noise this was reported for.
+ *
+ * `null`, `undefined` and an empty object are all ONE fact: nothing there.
+ * `mergeTranslations` already deletes an empty bundle rather than storing one,
+ * so `{}` and `null` can never mean different things here.
+ *
+ * Canonicalising is for the COMPARISON only. What gets stored is the raw value,
+ * so an undo writes back exactly what was there.
+ */
+function canonical(v: unknown): unknown {
+  if (v === undefined || v === null) return null
+  if (Array.isArray(v)) return v.map(canonical)
+  if (typeof v === 'object') {
+    const src = v as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(src).sort()) {
+      const c = canonical(src[k])
+      if (c === null) continue
+      out[k] = c
+    }
+    return Object.keys(out).length ? out : null
+  }
+  return v
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b))
+}
+
 export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const { user: authUser } = useAuth()
   const { user } = useAppData()
@@ -308,6 +345,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         }
       })
       setMyOrgs(accounts)
+      /* PIN THE CHOSEN ORG THE FIRST TIME THE LIST ARRIVES.
+         `myOrg` falls back to `myOrgs[0]` when nothing is selected, and this
+         list is ordered owned-first — so the moment you hand ownership of the
+         club you are looking at to somebody else, it stops being owned, drops
+         down the list, and the portal silently starts showing a DIFFERENT
+         club's team with no indication it moved. Found by actually clicking
+         the crown. A selection that is still valid is never replaced. */
+      setSelectedOrgId((cur) => (cur && accounts.some((a) => a.id === cur) ? cur : accounts[0].id))
       setOwnedOrgIds(owned)
       setPermsByOrg(perms)
       setOrgsLoading(false)
@@ -512,7 +557,27 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         if (error.message.includes('already have an application')) {
           return "You already have an application waiting — we'll email you when it's reviewed."
         }
-        if (error.code === '23505') return 'That handle is taken. Try another.'
+        if (error.code === '23505') {
+          /*
+           * "TAKEN" AND "NOT FOUND" CAN BOTH BE TRUE, and saying only the
+           * first is what made this read as a broken backend.
+           *
+           * `organizations` is public-read only where `status = 'approved'`,
+           * but the unique index on `handle` does not care about status. So a
+           * handle held by a club that is still awaiting approval answers 404
+           * to a GET and collides on a POST — two different rules over one
+           * column, both working as written.
+           *
+           * The fix is the sentence, not the schema: hiding unapproved clubs
+           * from the public is right, and so is refusing to hand out a handle
+           * one of them already holds.
+           */
+          return (
+            'That handle is already registered — possibly to a club that is still ' +
+            'waiting on approval, which is why you cannot see it. Try another, or ' +
+            'get in touch if it should be yours.'
+          )
+        }
         // A missing RPC means the migration is pending. Say so plainly rather
         // than blaming what they typed.
         if (error.code === 'PGRST202') return 'Applications are not switched on yet. Try again shortly.'
@@ -683,7 +748,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       updateCurrentCourses((courses) =>
         courses.map((c) => (c.courseId === courseId ? { ...c, outline } : c)),
       )
-      if (sessionId === SELF) fireWrite(supabase.from('teacher_courses').update({ outline }).eq('id', courseId))
+      if (sessionId === SELF) fireWrite(
+          supabase.from('teacher_courses').update({ outline }).eq('id', courseId),
+          'The outline did not save',
+        )
     },
     [sessionId, updateCurrentCourses],
   )
@@ -714,7 +782,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       }
       const existing = publishedBlueprintIds.current.get(courseId)
       if (existing) {
-        fireWrite(supabase.from('shared_blueprints').update(row).eq('id', existing))
+        fireWrite(supabase.from('shared_blueprints').update(row).eq('id', existing), 'The blueprint did not save')
       } else {
         const { data } = await supabase
           .from('shared_blueprints')
@@ -778,7 +846,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         ),
       )
       setAbsorbed((prev) => (prev.includes(blueprint.id) ? prev : [...prev, blueprint.id]))
-      if (sessionId === SELF) fireWrite(supabase.from('teacher_courses').update({ outline }).eq('id', courseId))
+      if (sessionId === SELF) fireWrite(
+          supabase.from('teacher_courses').update({ outline }).eq('id', courseId),
+          'The outline did not save',
+        )
       if (tc) await writeVerifiedBlueprint(courseId, tc, teacherName, blueprint.dates)
       persistSelfPublished(courseId, outline)
     },
@@ -840,7 +911,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       setAnnouncements((prev) => prev.filter((a) => a.id !== id))
       if (sessionId !== SELF) return
-      fireWrite(supabase.from('announcements').delete().eq('id', id))
+      fireWrite(supabase.from('announcements').delete().eq('id', id), 'That announcement was not deleted')
     },
     [sessionId],
   )
@@ -1030,16 +1101,34 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [sessionId, myOrg, authUser],
   )
 
-  /** The values a patch is about to overwrite, as the DB names them — which is
-   *  what `revert_org_activity` reads back. Only the keys being changed, so an
-   *  undo restores what was touched and nothing else. */
-  const beforeOf = useCallback(
+  /**
+   * What a patch ACTUALLY changes.
+   *
+   * Editors send their whole form, so a patch says "name, handle, bio, logo,
+   * banner, colour, links" when somebody touched one line of the bio. Logging
+   * that is noise to read and, worse, an Undo that hands back the whole
+   * profile when the person only wanted the sentence.
+   *
+   * So each key is COMPARED first and unchanged ones are dropped. Returns
+   * null when nothing differs, which is the caller's signal not to log at all
+   * — pressing Save without editing should not fill somebody's history.
+   *
+   * Compared with JSON rather than `===` because two of these fields are a
+   * jsonb object (`links`, `translations`) and object identity always differs.
+   */
+  const diffOf = useCallback(
     (source: Record<string, unknown>, patch: Record<string, unknown>) => {
-      const out: Record<string, unknown> = {}
+      const before: Record<string, unknown> = {}
+      const after: Record<string, unknown> = {}
       for (const k of Object.keys(patch)) {
-        if (k in source) out[k] = source[k] ?? null
+        const was = source[k] ?? null
+        const now = patch[k] ?? null
+        if (sameValue(was, now)) continue
+        before[k] = was
+        after[k] = now
       }
-      return out
+      const keys = Object.keys(before)
+      return keys.length ? { before, after, keys } : null
     },
     [],
   )
@@ -1059,7 +1148,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       const id = crypto.randomUUID()
       updateCurrentOrg((o) => ({ ...o, events: [{ ...ev, id }, ...o.events] }))
       // Blank draft (no title) → filtered out of the public feed until saved.
-      fireWrite(supabase.from('events').insert({ id, org_id: myOrg.id, ...managedEventToRow(ev) }))
+      fireWrite(
+        supabase.from('events').insert({ id, org_id: myOrg.id, ...managedEventToRow(ev) }),
+        'The event was not created',
+      )
       logActivity('created an event draft')
       return id
     }
@@ -1076,21 +1168,28 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       if (sessionId === SELF_ORG) {
         void (async () => {
           const { error } = await supabase.from('events').update(managedEventToRow(patch)).eq('id', id)
-          if (error) console.error('event update failed:', error)
+          if (error) reportWriteError('That event did not save', writeErrorText(error))
           refreshCommunity()
         })()
         {
           const was = myOrg?.events.find((e) => e.id === id)
-          logActivity('saved an event', patch.title?.trim() || '', {
-            type: 'event',
-            id,
-            before: was ? beforeOf(was as unknown as Record<string, unknown>, patch) : null,
-            after: patch,
-          })
+          const d = was ? diffOf(was as unknown as Record<string, unknown>, patch) : null
+          if (d) {
+            logActivity('saved an event', d.keys.join(', '), {
+              type: 'event',
+              id,
+              before: d.before,
+              after: d.after,
+            })
+          } else if (!was) {
+            // No prior copy to compare against — still worth a line, just not
+            // an undoable one.
+            logActivity('saved an event', patch.title?.trim() || '')
+          }
         }
       }
     },
-    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, beforeOf],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, diffOf],
   )
 
   const deleteEvent = useCallback(
@@ -1100,7 +1199,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       updateCurrentOrg((o) => ({ ...o, events: o.events.filter((e) => e.id !== id) }))
       if (sessionId === SELF_ORG) {
         void (async () => {
-          await supabase.from('events').delete().eq('id', id)
+          /* THE DELETE WAS NOT EVEN CHECKED. An event removed from the screen
+             and left in the database comes back on the next load looking like
+             the button did nothing — which is how a refused write teaches
+             somebody the product is broken. */
+          const { error } = await supabase.from('events').delete().eq('id', id)
+          if (error) reportWriteError('That event was not deleted', writeErrorText(error))
           refreshCommunity()
         })()
         logActivity('deleted an event', title.trim())
@@ -1118,22 +1222,25 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             .from('organizations')
             .update(orgProfileToRow(patch))
             .eq('id', myOrg.id)
-          if (error) console.error('org profile update failed:', error)
+          if (error) reportWriteError('The profile did not save', writeErrorText(error))
           refreshCommunity()
         })()
-        logActivity(
-          'updated the org profile',
-          Object.keys(patch).join(', '),
-          {
-            type: 'organization',
-            id: myOrg.id,
-            before: beforeOf(myOrg.org as unknown as Record<string, unknown>, patch),
-            after: patch,
-          },
-        )
+        {
+          const d = diffOf(myOrg.org as unknown as Record<string, unknown>, patch)
+          // Nothing actually different → nothing to record. Pressing Save on
+          // an untouched form should not add a line to anybody's history.
+          if (d) {
+            logActivity('updated the org profile', d.keys.join(', '), {
+              type: 'organization',
+              id: myOrg.id,
+              before: d.before,
+              after: d.after,
+            })
+          }
+        }
       }
     },
-    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, beforeOf],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, diffOf],
   )
 
   // Notify followers — STUB. Real delivery is connection-phase; returns the
@@ -1251,7 +1358,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           (m) => m.id === id,
         )
       if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(supabase.from('org_members').delete().eq('id', id))
+        fireWrite(supabase.from('org_members').delete().eq('id', id), 'That teammate was not removed')
       }
       updateCurrentOrg((o) => ({
         ...o,
@@ -1282,7 +1389,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         members: o.members.map((m) => (m.id === id ? { ...m, role, permissions: undefined } : m)),
       }))
       if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(supabase.from('org_members').update({ role, permissions: null }).eq('id', id))
+        fireWrite(
+          supabase.from('org_members').update({ role, permissions: null }).eq('id', id),
+          'That role did not save',
+        )
       }
       logActivity(`made ${target.name} ${role === 'admin' ? 'an admin' : 'a member'}`)
     },
@@ -1302,7 +1412,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         members: o.members.map((m) => (m.id === id ? { ...m, permissions: merged } : m)),
       }))
       if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(supabase.from('org_members').update({ permissions: merged }).eq('id', id))
+        fireWrite(
+          supabase.from('org_members').update({ permissions: merged }).eq('id', id),
+          'Those permissions did not save',
+        )
       }
       logActivity(`updated ${target.name}'s permissions`)
     },

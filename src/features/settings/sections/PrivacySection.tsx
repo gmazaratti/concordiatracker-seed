@@ -34,13 +34,16 @@ function PublicProfileSettings() {
    *  db/social_follow_model.sql — a message that should not have been sent
    *  should not exist, rather than being filtered out of your inbox. */
   const [dm, setDm] = useState<'everyone' | 'mutuals' | 'off'>('everyone')
+  // Clubs you follow may open ONE conversation. Default on; this is the
+  // switch for somebody who wants the events without the messages.
+  const [orgDms, setOrgDms] = useState(true)
 
   useEffect(() => {
     if (!authUser) return
     let active = true
     void supabase
       .from('user_profile')
-      .select('profile_public, bio, courses_public, schedule_visibility, links, dm_policy')
+      .select('profile_public, bio, courses_public, schedule_visibility, links, dm_policy, allow_org_dms')
       .eq('user_id', authUser.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -52,12 +55,14 @@ function PublicProfileSettings() {
           schedule_visibility?: string
           links?: unknown
           dm_policy?: string
+          allow_org_dms?: boolean
         } | null
         setPub(!!r?.profile_public)
         setBio(r?.bio ?? '')
         setScheduleFriends(r?.schedule_visibility === 'friends')
         setLinks(cleanLinks(r?.links))
         if (r?.dm_policy === 'mutuals' || r?.dm_policy === 'off') setDm(r.dm_policy)
+        if (r?.allow_org_dms === false) setOrgDms(false)
       })
     return () => {
       active = false
@@ -126,6 +131,25 @@ function PublicProfileSettings() {
             setDm(v)
             write({ dm_policy: v })
           }}
+        />
+      </Row>
+
+      {/* A SEPARATE SWITCH from "who can message you", because a club is not
+          a person: following one is how you asked to hear from it, and the
+          two decisions genuinely differ. Following is already required before
+          a club can write first — this is for somebody who wants the events
+          without the messages, and does not want to unfollow to get it. */}
+      <Row
+        label="Messages from clubs you follow"
+        description="A club you follow can start one conversation with you. Turn this off and only clubs you have written to first can reach you."
+      >
+        <Switch
+          checked={orgDms}
+          onChange={(v) => {
+            setOrgDms(v)
+            write({ allow_org_dms: v })
+          }}
+          label="Messages from clubs you follow"
         />
       </Row>
 

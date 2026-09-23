@@ -168,7 +168,10 @@ function TeamView({
         ))}
       </ul>
 
-      <ActivityTrail orgId={orgId} real={real} />
+      {/* `roleTick` so the trail re-reads after a role change made ON THIS
+          PAGE — it used to load once and then contradict what you had just
+          done, which reads as the log not working. */}
+      <ActivityTrail orgId={orgId} real={real} tick={roleTick} />
     </div>
   )
 }
@@ -400,7 +403,7 @@ const ACTIVITY_FMT = new Intl.DateTimeFormat('en-US', {
 
 /** The org's audit trail — who did what (events, profile, team), newest first.
  * Real orgs only; the demo world logs nothing. */
-function ActivityTrail({ orgId, real }: { orgId: string; real: boolean }) {
+function ActivityTrail({ orgId, real, tick }: { orgId: string; real: boolean; tick: number }) {
   const [rows, setRows] = useState<ActivityRow[] | null>(null)
 
   useEffect(() => {
@@ -418,7 +421,7 @@ function ActivityTrail({ orgId, real }: { orgId: string; real: boolean }) {
     return () => {
       active = false
     }
-  }, [orgId, real])
+  }, [orgId, real, tick])
 
   if (!real) return null
 

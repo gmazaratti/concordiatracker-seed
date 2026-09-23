@@ -85,3 +85,6 @@ rv.txt
 
 # Throwaway SQL used to probe the live database during a session.
 .tmpsql/
+
+# A live session minted for a throwaway account, served to the browser harness.
+public/__probe-session.json

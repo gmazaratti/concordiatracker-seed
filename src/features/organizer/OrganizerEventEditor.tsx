@@ -14,6 +14,9 @@ import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Segmented } from '@/features/settings/controls'
 import { EventMedia } from '@/features/community/EventMedia'
 import { CATEGORY_META, CATEGORY_ORDER } from '@/features/community/category'
+import { MapLinkField, ProgramChips } from './EventAudience'
+import { CrossPostRow } from './CrossPost'
+import { crossPostEvent } from './cross-post'
 import { cn } from '@/lib/cn'
 
 const field =
@@ -34,6 +37,7 @@ export function OrganizerEventEditor() {
     <EventEditorForm
       key={event.id}
       event={event}
+      orgId={currentOrg.id}
       org={currentOrg.org}
       pending={currentOrg.status === 'pending'}
     />
@@ -42,10 +46,13 @@ export function OrganizerEventEditor() {
 
 function EventEditorForm({
   event,
+  orgId,
   org,
   pending,
 }: {
   event: ManagedEvent
+  /** The club's id. `org` is its public profile and has no id on it. */
+  orgId: string
   org: EventOrg
   pending: boolean
 }) {
@@ -60,7 +67,11 @@ function EventEditorForm({
   const [category, setCategory] = useState<EventCategory>(event.category)
   const [description, setDescription] = useState(event.description)
   const [image, setImage] = useState(event.image ?? '')
-  const [relevant, setRelevant] = useState((event.relevantTo ?? []).join(', '))
+  const [relevant, setRelevant] = useState<string[]>(event.relevantTo ?? [])
+  const [mapUrl, setMapUrl] = useState(event.mapUrl ?? '')
+  /** Cross-post: the same announcement, in the other place it belongs. */
+  const [crossPost, setCrossPost] = useState(false)
+  const [crossErr, setCrossErr] = useState('')
 
   // Which language version is being edited. The base title/location/description
   // above are the English copy; these hold the French one. Only the three
@@ -105,10 +116,8 @@ function EventEditorForm({
       category,
       description: description.trim(),
       image: image.trim() || undefined,
-      relevantTo: relevant
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+      mapUrl: mapUrl.trim(),
+      relevantTo: relevant,
       // Blank French fields are dropped rather than stored, so they fall back to
       // English instead of publishing an empty string.
       translations: mergeTranslations(event.translations, 'fr', {
@@ -118,6 +127,23 @@ function EventEditorForm({
       }),
     })
     setSaved(true)
+
+    /* The post half fires only on a real save, and only once. Ticking the
+       switch on a draft nobody has saved would publish a card about an event
+       that does not exist yet — and a failure here leaves the event saved,
+       because the companion post is not worth losing the work over. */
+    if (crossPost) {
+      setCrossErr('')
+      void crossPostEvent({
+        orgId,
+        eventId: event.id,
+        title: title.trim(),
+        image: image.trim() || undefined,
+      }).then((problem) => {
+        if (problem) setCrossErr('The event saved, but the feed post did not: ' + problem)
+        else setCrossPost(false)
+      })
+    }
   }
 
   // Live preview of the public card (metrics dropped via eventToCommunity).
@@ -247,17 +273,38 @@ function EventEditorForm({
             kind="eventBanner"
           />
 
-          <Field label="Relevant programs" hint="Comma-separated: drives the opt-in “for your program” tag.">
-            <input
+          <MapLinkField
+            value={mapUrl}
+            onChange={(v) => {
+              setMapUrl(v)
+              touch()
+            }}
+          />
+
+          <Field
+            label="Who it's for"
+            hint="Drives the opt-in “for your program” tag. Everyone is the default."
+          >
+            <ProgramChips
               value={relevant}
-              onChange={(e) => {
-                setRelevant(e.target.value)
+              onChange={(v) => {
+                setRelevant(v)
                 touch()
               }}
-              placeholder="e.g. Computer Science, Engineering"
-              className={field}
             />
           </Field>
+
+          <CrossPostRow
+            on={crossPost}
+            onChange={setCrossPost}
+            error={crossErr}
+            blocked={
+              image.trim()
+                ? undefined
+                : 'Add a banner image above first — a post in the feed is a picture.'
+            }
+            title={title}
+          />
 
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <Button onClick={save} disabled={saved}>

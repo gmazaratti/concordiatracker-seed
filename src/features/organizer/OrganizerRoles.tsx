@@ -84,14 +84,14 @@ export function OrganizerRoles() {
           <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
         </div>
       ) : (
-        <ol className="mt-5 flex flex-col">
+        <ol className="mt-5 flex flex-col gap-2">
           {roles.map((r, i) => {
             const managed = r.position < mine && !r.isOwner
             const prev = roles[i - 1]
             // The line that says "everything under here is yours".
             const showYouAre = prev && prev.position >= mine && r.position < mine
             return (
-              <li key={r.id}>
+              <li key={r.id} className="flex flex-col">
                 {showYouAre && <YouAreHere />}
                 <RoleRow role={r} managed={managed} onEdit={() => setEditing(r)} onChanged={refresh} />
               </li>
@@ -118,7 +118,7 @@ export function OrganizerRoles() {
 
 function YouAreHere() {
   return (
-    <div className="my-1 flex items-center gap-2" aria-hidden>
+    <div className="mb-2 flex items-center gap-2" aria-hidden>
       <span className="h-px flex-1 bg-accent/40" />
       <span className="text-[11px] font-medium tracking-wide text-accent uppercase">
         You rank here

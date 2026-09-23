@@ -487,6 +487,7 @@ export interface EventRow {
   /** Both optional: appended by the caller only once the migration is in. */
   series_id?: string | null
   recurrence?: string | null
+  map_url?: string | null
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
@@ -546,6 +547,7 @@ export function eventRowToManaged(r: EventRow): ManagedEvent {
     description: r.description ?? '',
     image: r.image ?? undefined,
     relevantTo: r.relevant_to && r.relevant_to.length ? r.relevant_to : undefined,
+    mapUrl: r.map_url ?? undefined,
     postedDaysAgo: Math.max(0, Math.round((Date.now() - new Date(r.posted_at).getTime()) / DAY_MS)),
     metrics: { views: 0, follows: 0, calendarAdds: 0 },
   }
@@ -594,6 +596,7 @@ export function managedEventToRow(patch: Partial<ManagedEvent>): Record<string, 
   if ('description' in patch) row.description = patch.description
   if ('image' in patch) row.image = patch.image ?? null
   if ('relevantTo' in patch) row.relevant_to = patch.relevantTo ?? []
+  if ('mapUrl' in patch) row.map_url = patch.mapUrl || null
   if ('translations' in patch) row.translations = patch.translations ?? {}
   return row
 }

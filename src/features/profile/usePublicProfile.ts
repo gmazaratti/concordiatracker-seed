@@ -116,16 +116,28 @@ export function usePublicProfile(handle: string): PublicProfileState {
     setTick((n) => n + 1)
   }, [handle])
   const key = handle.trim().toLowerCase()
-  const [state, setState] = useState<Loaded>(
-    () =>
-      cache.get(key) ?? {
-        loading: true,
-        notFound: false,
-        profile: null,
-        courses: [],
-        blueprints: [],
-      },
-  )
+  const empty: Loaded = {
+    loading: true,
+    notFound: false,
+    profile: null,
+    courses: [],
+    blueprints: [],
+  }
+  const [state, setState] = useState<Loaded>(() => cache.get(key) ?? empty)
+
+  /*
+   * ADJUSTED DURING RENDER, because a `useState` initialiser runs ONCE — with
+   * whatever handle the hook first saw. Navigating from one profile to
+   * another kept the previous person on screen until the fetch landed, which
+   * is both wrong and the opposite of what the cache is for. Tracking which
+   * handle the state belongs to is the same fix the image fallbacks and the
+   * onboarding gate needed: record the subject, not just the verdict.
+   */
+  const [forKey, setForKey] = useState(key)
+  if (forKey !== key) {
+    setForKey(key)
+    setState(cache.get(key) ?? empty)
+  }
 
   useEffect(() => {
     let active = true

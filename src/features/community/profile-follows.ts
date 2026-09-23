@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { isFollowing, listFriends, requestFriend, unfollowUser } from '@/lib/social'
 
 /**
  * Following PEOPLE — real and persisted, unlike the org-follow stub.
@@ -42,14 +43,47 @@ export async function followStats(handle: string): Promise<FollowStats | null> {
   return row ?? null
 }
 
-/** Returns the resulting state (true = now following). */
+/**
+ * Returns the resulting state (true = now following).
+ *
+ * THIS USED TO CALL A FUNCTION THAT DOES NOT EXIST. `toggle_profile_follow`
+ * and `my_followed_profiles` live in `db/profile_follows.sql`, over a
+ * `profile_follows` table — and that migration was never applied: the table is
+ * absent from the database entirely, so both RPCs answered 404 and the button
+ * did nothing, silently, in production. Found by hooking `fetch` on a real
+ * page load rather than by reading the console.
+ *
+ * The follow graph that IS live is `user_follows`, and `src/lib/social.ts`
+ * already speaks it. So this is repointed rather than reimplemented — two
+ * implementations of one relationship is how they came to disagree in the
+ * first place, and the second one had simply never run.
+ */
 export async function toggleFollowPerson(handle: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc('toggle_profile_follow', { p_handle: handle })
-  if (error) throw error
-  return data === true
+  const following = await isFollowing(handle)
+  if (following) {
+    // `unfollowUser` answers with a boolean; `requestFriend` with a sentence
+    // or null. They are not the same shape, so neither is treated as if it is.
+    if (!(await unfollowUser(handle))) throw new Error('Could not unfollow that account.')
+    return false
+  }
+  const problem = await requestFriend(handle)
+  if (problem) throw new Error(problem)
+  return true
 }
 
-/** The people the signed-in student follows. */
+/**
+ * The people the signed-in student follows.
+ *
+ * `my_friends()` is the follow graph and returns four states; the two that
+ * mean "there is a follow row pointing from me at them" are `following` (one
+ * way) and `accepted` (they followed back). `pending` is the other direction
+ * and `request` is somebody who only wrote to you, so neither belongs here.
+ *
+ * NO FOLLOWER COUNT. That row does not carry one, and fetching it per person
+ * would be one request each for a sidebar list. `PersonRow` already prints the
+ * count only when it is above zero, so leaving it at zero omits the line
+ * rather than showing a number we did not look up.
+ */
 export function useFollowedPeople(): {
   people: PublicPerson[]
   loading: boolean
@@ -62,9 +96,19 @@ export function useFollowedPeople(): {
   useEffect(() => {
     let active = true
     void (async () => {
-      const { data } = await supabase.rpc('my_followed_profiles')
+      const rows = await listFriends()
       if (!active) return
-      setPeople((data ?? []) as PublicPerson[])
+      setPeople(
+        rows
+          .filter((f) => f.status === 'following' || f.status === 'accepted')
+          .map((f) => ({
+            handle: f.handle,
+            name: f.name,
+            avatar_url: f.avatar_url,
+            program: f.program,
+            follower_count: 0,
+          })),
+      )
       setLoading(false)
     })()
     return () => {

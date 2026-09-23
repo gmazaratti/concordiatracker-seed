@@ -214,3 +214,67 @@ export async function myThreadWithOrg(orgId: string): Promise<OrgDm[]> {
     readAt: m.read_at,
   }))
 }
+
+/* ── A club writing first ──────────────────────────────────────────────────
+ *
+ * Guarded on BOTH sides in the database: the person must follow the club, and
+ * must not have switched club messages off. Either rule alone leaves a hole —
+ * followers-only means unfollowing is the only way to stop it, an opt-out
+ * alone is off for everybody who never finds the setting. See
+ * `db/org_message_first.sql`.
+ */
+
+export interface DmCandidate {
+  userId: string
+  name: string
+  handle: string | null
+  avatarUrl: string | null
+}
+
+/** The club's followers who are open to being messaged. Searchable, because a
+ *  club with four hundred followers needs a box rather than a list. */
+export async function orgDmCandidates(orgId: string, q = ''): Promise<DmCandidate[]> {
+  const { data, error } = await supabase.rpc('org_dm_candidates', { p_org: orgId, p_q: q })
+  if (error) throw new Error(error.message)
+  type Row = { user_id: string; name: string | null; handle: string | null; avatar_url: string | null }
+  return ((data ?? []) as Row[]).map((r) => ({
+    userId: r.user_id,
+    name: r.name ?? 'Someone',
+    handle: r.handle,
+    avatarUrl: r.avatar_url,
+  }))
+}
+
+/** Start a conversation. The refusal reason travels in the error DETAIL, so
+ *  `orgRefusal` can say WHICH rule stopped it rather than "that did not
+ *  work" — a message nobody can act on. */
+export async function sendOrgDm(orgId: string, to: string, body: string): Promise<void> {
+  const { error } = await supabase.rpc('send_org_dm', {
+    p_org: orgId,
+    p_to: to,
+    p_body: body,
+  })
+  if (error) {
+    const reason = (error as { details?: string }).details ?? null
+    throw new Error(orgDmRefusal(reason) || error.message)
+  }
+}
+
+export function orgDmRefusal(reason: string | null): string {
+  switch (reason) {
+    case 'not_a_follower':
+      return 'You can only start a conversation with somebody who follows your club.'
+    case 'opted_out':
+      return 'They have turned off messages from clubs.'
+    case 'awaiting_reply':
+      return 'You have already written to them. They have to answer before you can send another.'
+    case 'blocked':
+      return 'You cannot message this person.'
+    case 'not_your_org':
+      return 'You are not on this club’s team.'
+    case 'rate_limited':
+      return 'This club has sent a lot of messages today. Try again tomorrow.'
+    default:
+      return ''
+  }
+}

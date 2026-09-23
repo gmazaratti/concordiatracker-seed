@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Inbox, Loader2, SendHorizonal } from 'lucide-react'
+import { ArrowLeft, Inbox, Loader2, PenSquare, Search, SendHorizonal } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { PersonAvatar } from '@/features/community/PersonAvatar'
 import { Mascot } from '@/components/Mascot'
@@ -13,6 +13,7 @@ import {
   type OrgMessage,
   type OrgThread,
 } from '@/lib/org-messages'
+import { NewOrgMessage } from './NewOrgMessage'
 import { cn } from '@/lib/cn'
 
 /** Module level: `react-hooks/purity` bars a clock read in a component body. */
@@ -31,10 +32,12 @@ const ago = (iso: string) => shortAgo(iso, Date.now())
  * up unable to resolve a complaint — but which volunteer it was is the club's
  * business, not something the student needs in order to read a reply.
  *
- * REPLIES ONLY. There is deliberately no "new message" button: a club cannot
- * open a conversation with a student who has not written to it, and the
- * database refuses it (`ct_org_may_reply`). An organisation that can cold-
- * message every account on the service is the thing this whole model avoids.
+ * IT CAN NOW WRITE FIRST — TO ITS OWN FOLLOWERS, AND ONLY ONCE. An account
+ * students are told to trust, able to cold-message anybody, is the thing this
+ * model exists to avoid; so a club may open a conversation only with somebody
+ * who follows it and has left club messages on, and only one message until
+ * they answer. All three rules live in `send_org_dm`, not here — a picker that
+ * shows the right people is a convenience, not a control.
  */
 export function OrganizerInbox() {
   const { currentOrg } = useTeacher()
@@ -43,6 +46,8 @@ export function OrganizerInbox() {
   const [failed, setFailed] = useState(false)
   const [active, setActive] = useState<OrgThread | null>(null)
   const [tick, setTick] = useState(0)
+  const [q, setQ] = useState('')
+  const [composing, setComposing] = useState(false)
   const refresh = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
@@ -58,6 +63,15 @@ export function OrganizerInbox() {
 
   if (!currentOrg) return null
 
+  const needle = q.trim().toLowerCase()
+  const shown = (threads ?? []).filter(
+    (t) =>
+      !needle ||
+      (t.name ?? '').toLowerCase().includes(needle) ||
+      (t.handle ?? '').toLowerCase().includes(needle) ||
+      (t.lastBody ?? '').toLowerCase().includes(needle),
+  )
+
   const open = (t: OrgThread) => {
     setActive(t)
     void markOrgThreadRead(orgId, t.other).then(refresh)
@@ -65,12 +79,25 @@ export function OrganizerInbox() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-6 sm:px-6">
-      <header className="mb-4">
-        <h1 className="font-display text-[22px] font-semibold text-fg">Inbox</h1>
-        <p className="mt-0.5 text-[13px] text-subtle">
-          Messages students have sent {currentOrg.org.name} — including replies to your stories.
-          Anyone on the team can answer, and the reply goes out as the club.
-        </p>
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[22px] font-semibold text-fg">Inbox</h1>
+          <p className="mt-0.5 text-[13px] text-subtle">
+            Messages students have sent {currentOrg.org.name} — including replies to your stories.
+            Anyone on the team can answer, and the reply goes out as the club.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setComposing(true)
+            setActive(null)
+          }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+        >
+          <PenSquare size={15} aria-hidden />
+          New message
+        </button>
       </header>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface lg:flex lg:h-[min(70vh,640px)]">
@@ -80,6 +107,23 @@ export function OrganizerInbox() {
             active && 'hidden lg:block',
           )}
         >
+          {/* Scoped to the list it filters, which is the same rule the
+              student inbox follows: a control lives in the section it acts
+              on. Client-side, because a club's inbox is tens of rows, not
+              thousands, and a round trip per keystroke buys nothing. */}
+          <div className="border-b border-border p-2.5">
+            <label className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5">
+              <Search size={13} className="shrink-0 text-subtle" aria-hidden />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search messages"
+                aria-label="Search messages"
+                className="w-full min-w-0 bg-transparent text-[13px] text-fg placeholder:text-subtle focus:outline-none"
+              />
+            </label>
+          </div>
+
           {failed ? (
             <div className="p-6 text-center">
               <p className="text-[13px] text-subtle">Could not load the inbox.</p>
@@ -104,7 +148,12 @@ export function OrganizerInbox() {
             </div>
           ) : (
             <ul className="divide-y divide-border lg:divide-y-0">
-              {threads.map((t) => (
+              {shown.length === 0 && (
+                <li className="px-4 py-8 text-center text-[13px] text-subtle">
+                  Nothing matches “{q}”.
+                </li>
+              )}
+              {shown.map((t) => (
                 <li key={t.other}>
                   <button
                     type="button"
@@ -149,7 +198,30 @@ export function OrganizerInbox() {
           )}
         </aside>
 
-        {active ? (
+        {composing ? (
+          <div className="flex-1">
+            <NewOrgMessage
+              orgId={orgId}
+              onCancel={() => setComposing(false)}
+              onSent={(userId) => {
+                setComposing(false)
+                refresh()
+                // Drop straight into the thread that now exists, rather than
+                // leaving somebody wondering whether it sent.
+                setActive({
+                  other: userId,
+                  name: null,
+                  handle: null,
+                  avatar: null,
+                  lastBody: '',
+                  lastAt: null,
+                  lastFromOrg: true,
+                  unread: 0,
+                } as OrgThread)
+              }}
+            />
+          </div>
+        ) : active ? (
           <Conversation
             orgId={orgId}
             thread={active}
