@@ -42,6 +42,8 @@ export const TUTORIALS = {
       'Add a logo, banner and bio. The preview is exactly what students see.',
       'Optionally draft a first event and invite your team. Skip anything and come back later.',
     ],
+    video: '/tutorials/org-onboarding.mp4',
+    poster: '/tutorials/org-onboarding.jpg',
   },
   'first-post': {
     title: 'Publishing your first event',

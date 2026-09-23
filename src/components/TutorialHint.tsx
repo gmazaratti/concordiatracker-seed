@@ -52,7 +52,9 @@ function TutorialDialog({ t, onClose }: { t: Tutorial; onClose: () => void }) {
   // started on purpose.
   const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
   return (
-    <ModalShell label={t.title} onClose={onClose} widthClass="sm:max-w-md">
+    // A screen recording is a desktop-sized picture, so the dialog widens to
+    // show it at a readable size; step-only walkthroughs stay narrow.
+    <ModalShell label={t.title} onClose={onClose} widthClass={t.video ? 'sm:max-w-2xl' : 'sm:max-w-md'}>
       <div className="px-5 pt-6 pb-5">
         {t.video ? (
           <video
@@ -63,6 +65,7 @@ function TutorialDialog({ t, onClose }: { t: Tutorial; onClose: () => void }) {
             playsInline
             autoPlay={!reduced}
             controls={reduced}
+            preload="metadata"
             className="mb-4 w-full rounded-xl border border-border bg-black"
           />
         ) : null}
