@@ -28,7 +28,8 @@ const SELF = 'self'
 /** Session sentinel: managing your OWN real organization. */
 const SELF_ORG = 'self-org'
 
-const ORG_COLS = 'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status'
+const ORG_COLS =
+  'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status, setup_completed_at'
 const EVENT_COLS =
   'id, org_id, title, start, mode, location, category, description, image, relevant_to, posted_at'
 
@@ -289,6 +290,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           id: row.id,
           email: isOwner ? email : '',
           status: row.status === 'approved' ? 'approved' : 'pending',
+          /* SETUP IS NOT APPROVAL. The wizard used to open on
+             `status === 'pending'`, so a club handed over through an invite —
+             which is already approved — could never see it. */
+          setupDone: !!(row as { setup_completed_at?: string | null }).setup_completed_at,
           org: orgFromRow(row),
           events: eventsByOrg.get(row.id) ?? [],
           followers: 0,

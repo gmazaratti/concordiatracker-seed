@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { fireWrite, supabase } from '@/lib/supabase'
 import { OrganizerSignIn } from './OrganizerSignIn'
 import { OrganizerOverview } from './OrganizerOverview'
 import { OrgOnboardingGate } from './onboarding/OrgOnboarding'
@@ -46,6 +47,9 @@ export function OrganizerHome() {
       <OrganizerOverview
         onReplaySetup={() => {
           resetOnboarding(org.id)
+          // Re-opened in the database as well, so a reload mid-replay does not
+          // slam it shut — `replay` alone is session state.
+          fireWrite(supabase.rpc('reset_org_setup', { p_org: org.id }))
           setReplay(true)
         }}
       />

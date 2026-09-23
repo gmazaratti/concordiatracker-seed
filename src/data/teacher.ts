@@ -399,6 +399,10 @@ export interface OrgAccount {
   id: string
   email: string
   status: TeacherStatus
+  /** Whether the setup wizard has been finished or skipped for this club.
+   *  A separate fact from `status`: a club can be approved and unset-up, and a
+   *  handoff makes an established club unset-up again for its new holder. */
+  setupDone?: boolean
   /** The org profile the organizer edits — feeds the student org profile page. */
   org: EventOrg
   events: ManagedEvent[]

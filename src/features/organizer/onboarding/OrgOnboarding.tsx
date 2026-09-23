@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fireWrite, supabase } from '@/lib/supabase'
 import { createPortal } from 'react-dom'
 import {
   ArrowLeft,
@@ -60,14 +61,21 @@ export function OrgOnboardingGate({
   replay?: boolean
   onReplayDone?: () => void
 }) {
-  /* WHICH club was dismissed, not a boolean.
-     A `useState(() => …)` initialiser runs ONCE, with whatever club was
-     current when this mounted — so switching to a freshly-accepted club left
-     the answer computed against the previous one and the wizard never opened.
+  /* WHICH club was dismissed, not a boolean — a `useState(() => …)`
+     initialiser runs ONCE, with whatever club was current when this mounted.
      Deriving it every render from the club in hand is the same fix the image
-     fallbacks needed: record the subject, not the verdict. */
+     fallbacks needed: record the subject, not the verdict.
+
+     AND THE SOURCE OF TRUTH IS THE DATABASE, not the club's approval status.
+     This used to read `org.status !== 'pending'`, which is a different fact
+     entirely: an invite that hands over an EXISTING club gives you one that is
+     already approved, so the wizard could never open on that path. It is
+     `organizations.setup_completed_at` now, which also means skipping survives
+     a reload instead of living in a Set that empties. An ABSENT value (a demo
+     or seeded account, which has no row) counts as done: a missing fact should
+     never force a wizard on somebody. */
   const [dismissed, setDismissed] = useState<string | null>(null)
-  const done = dismissed === org.id || onboarded.has(org.id) || org.status !== 'pending'
+  const done = dismissed === org.id || onboarded.has(org.id) || (org.setupDone ?? true)
   if (done && !replay) return null
   return (
     <OrgOnboarding
@@ -80,6 +88,11 @@ export function OrgOnboardingGate({
         onboarded.add(org.id)
         stepByOrg.delete(org.id)
         setDismissed(org.id)
+        /* Written down, so closing it means closed — on this device and the
+           next one. `fireWrite`, NOT `void`: a PostgREST builder is lazy and
+           only sends its request when something subscribes to it, so `void
+           supabase.rpc(…)` is a call that never happens. */
+        fireWrite(supabase.rpc('mark_org_setup_done', { p_org: org.id }))
         onReplayDone?.()
       }}
     />
