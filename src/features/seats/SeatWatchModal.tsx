@@ -152,7 +152,7 @@ export function SeatWatchModal({
 
   return (
     <ModalShell label="Watch for a seat" onClose={onClose} widthClass="sm:max-w-lg" scroll={false}>
-      <div className="flex h-[min(78vh,620px)] flex-col">
+      <div className="flex h-[min(78vh,620px)] flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <div className="border-b border-border p-4">
           <h2 className="font-display text-[17px] font-semibold text-fg">Watch for a seat</h2>
           <p className="mt-0.5 text-[12.5px] text-subtle">

@@ -51,7 +51,7 @@ export function WhatsNewModal() {
         </ol>
 
         {/* Cross-link → the requests board (the listen → build → proof loop). */}
-        <div className="shrink-0 border-t border-border bg-surface-2/40 px-6 py-4">
+        <div className="shrink-0 border-t border-border bg-surface-2/40 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
           <Link
             to="/app/requests?tab=requests"
             onClick={closeHistory}

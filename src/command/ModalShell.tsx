@@ -148,7 +148,13 @@ export function ModalShell({
          a material, and it forces the whole page behind the dialog to
          re-composite for nothing. Dimming further does the same job and is
          unambiguous. */
-      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-4 sm:pb-4"
+      /* NO BOTTOM PADDING ON A PHONE. It used to hold the sheet clear of the
+         home indicator, which left a strip of dead black under the composer
+         — and the composer is the one thing that should sit at the very edge
+         of the screen. The sheet runs to the bottom now and the INSET MOVES
+         INSIDE, onto whatever the sheet's last row is, so the controls are
+         still reachable and the surface is continuous. */
+      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4"
       onMouseDown={onClose}
     >
       <div
@@ -197,7 +203,9 @@ export function ModalShell({
             rounded corners (the outer box owns the radius + overflow-hidden).
             When `scroll` is false the child owns its own layout instead. */}
         {scroll ? (
-          <div className="max-h-[85vh] overflow-y-auto">{children}</div>
+          <div className="max-h-[85vh] overflow-y-auto pb-[env(safe-area-inset-bottom)] sm:pb-0">
+            {children}
+          </div>
         ) : (
           children
         )}

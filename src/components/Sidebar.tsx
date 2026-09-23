@@ -185,18 +185,31 @@ export function Sidebar() {
         rather than about the page", and reading them as one control is
         honest as well as narrower.
       */}
-      <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>
-        <div className={cn('min-w-0', !collapsed && 'flex-1')}>
+      {collapsed ? (
+        <div className="flex flex-col items-center gap-1">
           {/* Collapsed, the face sits in a 68px rail at the left edge, so the
               menu has to open into the page. Right-anchored it went off the
               side of the screen. */}
-          <AvatarMenu align="bottom" compact={collapsed} side={collapsed ? 'left' : 'right'} />
+          <AvatarMenu align="bottom" compact side="left" />
+          <div className="flex flex-col items-center">
+            <NotificationsBell />
+            <SettingsGearButton />
+          </div>
         </div>
-        <div className={cn('flex shrink-0 items-center', collapsed && 'flex-col')}>
-          <NotificationsBell />
-          <SettingsGearButton />
-        </div>
-      </div>
+      ) : (
+        /* Expanded, the menu IS the rail unfolding, so it owns this whole
+           block — the icons are handed to it as siblings of the trigger so
+           the panel can span the sidebar rather than the name. */
+        <AvatarMenu
+          variant="sidebar"
+          actions={
+            <>
+              <NotificationsBell />
+              <SettingsGearButton />
+            </>
+          }
+        />
+      )}
     </aside>
   )
 }

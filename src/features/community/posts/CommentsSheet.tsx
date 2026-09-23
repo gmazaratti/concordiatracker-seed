@@ -1,177 +1,204 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
-import { Send } from 'lucide-react'
+import { X } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
-import { PersonAvatar } from '../PersonAvatar'
-import { addComment, loadComments, type PostComment } from '@/lib/social-posts'
-import { cn } from '@/lib/cn'
+import { useComments } from '@/lib/comments'
+import { postAspect, type FeedPost } from '@/lib/social-posts'
+import { VerifiedBadge } from '../VerifiedBadge'
+import { CommentThread } from './CommentThread'
+
+const slugOf = (h: string) => h.replace(/^@/, '')
 
 /**
- * Comments, as a sheet.
+ * Comments — a bottom sheet on a phone, the post itself on a desktop.
  *
- * WHY NOT INLINE. They used to expand under the post, which pushes every
- * card below it down the page — so opening comments moves the thing you were
- * reading, and closing them moves it back. On a phone that is the whole
- * screen rearranging itself around a tap. A sheet leaves the feed exactly
- * where it was.
+ * TWO SHELLS, ONE THREAD. On a phone the picture is already on screen behind
+ * the sheet, so the sheet is only the conversation. On a desktop the feed
+ * column is 470px in the middle of a 1440px window and the post is small, so
+ * opening comments is the moment to show it properly: the media on the left at
+ * the size it was made for, the conversation in a column beside it. That is
+ * the reference's layout and it is the right one for the same reason.
  *
- * It rides on `ModalShell`, which already slides up from the bottom edge on
- * a phone, can be flicked away, traps focus and closes on Escape.
- *
- * THE QUICK EMOJI ROW IS ONE TAP TO A COMMENT, not a reaction — this product
- * has no reaction model and inventing one here would put a count nobody else
- * can see next to counts everybody can. It simply drops the character into
- * the field, which is what the reference does too.
+ * `useComments` owns the list for both. The old version handed the card's copy
+ * in as an initial value and refetched only when it was null, so a post whose
+ * comments were empty when you first opened it showed an empty thread forever
+ * — including the comment you had just written.
  */
-const QUICK = ['❤️', '🙌', '🔥', '👏', '😢', '😍', '😮', '😂']
-
 export function CommentsSheet({
-  postId,
-  initial,
+  post,
   onCount,
   onClose,
 }: {
-  postId: string
-  /** What the card already loaded, so the sheet opens with content rather
-   *  than a spinner it does not need. */
-  initial: PostComment[] | null
+  post: FeedPost
   onCount: (n: number) => void
   onClose: () => void
 }) {
-  const [rows, setRows] = useState<PostComment[] | null>(initial)
-  const [body, setBody] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { comments, add, like, pin, hide } = useComments(post.id)
+  const desktop = useIsDesktop()
 
+  // The card's badge follows the thread rather than being told a number by
+  // whoever wrote last — one source, so they cannot disagree.
+  const seen = useRef<number | null>(null)
   useEffect(() => {
-    if (rows !== null) return
-    let alive = true
-    void loadComments(postId)
-      .then((r) => alive && setRows(r))
-      .catch(() => alive && setRows([]))
-    return () => {
-      alive = false
-    }
-  }, [postId, rows])
+    if (!comments) return
+    if (seen.current === comments.length) return
+    seen.current = comments.length
+    onCount(comments.length)
+  }, [comments, onCount])
 
-  const submit = async () => {
-    const text = body.trim()
-    if (!text || busy) return
-    setBusy(true)
-    const err = await addComment(postId, text)
-    setBusy(false)
-    if (err) {
-      setError(err)
-      return
-    }
-    setBody('')
-    setError(null)
-    // Re-read rather than invent the row: the server stamps the id and the
-    // time, and a locally-made comment jumps when the list next refreshes.
-    const fresh = await loadComments(postId)
-    setRows(fresh)
-    onCount(fresh.length)
+  const thread = (
+    <CommentThread
+      post={post}
+      comments={comments}
+      liftComposer={!desktop}
+      onAdd={add}
+      onLike={(id) => void like(id)}
+      onPin={(id, p) => void pin(id, p)}
+      onHide={(id) => void hide(id)}
+    />
+  )
+
+  if (!desktop) {
+    return (
+      <ModalShell label="Comments" onClose={onClose} widthClass="sm:max-w-md" scroll={false}>
+        <div className="flex h-[72vh] flex-col sm:h-[68vh]">
+          <header className="shrink-0 border-b border-border/70 pb-2.5 text-center">
+            <h2 className="text-[14px] font-semibold text-fg">Comments</h2>
+          </header>
+          {thread}
+        </div>
+      </ModalShell>
+    )
   }
 
-  return (
-    <ModalShell label="Comments" onClose={onClose} widthClass="sm:max-w-md" scroll={false}>
-      <div className="flex h-[72vh] flex-col sm:h-[68vh]">
-        <header className="shrink-0 border-b border-border/70 pb-2.5 text-center">
-          <h2 className="text-[14px] font-semibold text-fg">Comments</h2>
-        </header>
+  return <PostDetailModal post={post} onClose={onClose} thread={thread} />
+}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-          {rows === null ? (
-            <p className="py-8 text-center text-[12.5px] text-subtle">Loading…</p>
-          ) : rows.length === 0 ? (
-            <div className="py-14 text-center">
-              <p className="text-[15px] font-medium text-fg">No comments yet</p>
-              <p className="mt-1 text-[13px] text-subtle">Start the conversation.</p>
-            </div>
-          ) : (
-            <ul className="space-y-3.5">
-              {rows.map((c) => (
-                <li key={c.id} className="flex gap-3">
-                  <Link to={`/@${c.handle}`} className="shrink-0">
-                    <PersonAvatar
-                      person={{ handle: c.handle, name: c.name, avatar_url: c.avatarUrl }}
-                      className="size-8"
-                    />
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] leading-snug text-fg">
-                      <Link to={`/@${c.handle}`} className="font-semibold hover:underline">
-                        {c.handle}
-                      </Link>{' '}
-                      <span className="text-subtle">{ago(c.createdAt)}</span>
-                    </p>
-                    <p className="mt-0.5 text-[14px] leading-snug whitespace-pre-wrap text-fg">
-                      {c.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+/**
+ * The desktop post view: media left, conversation right.
+ *
+ * NOT `ModalShell`. That one is a single column that becomes a bottom sheet
+ * under `sm`, and this is a wide two-pane dialog that only ever exists above
+ * `lg` — bending one into the other would have meant a shell with a mode flag
+ * and two layouts inside it.
+ */
+function PostDetailModal({
+  post,
+  onClose,
+  thread,
+}: {
+  post: FeedPost
+  onClose: () => void
+  thread: React.ReactNode
+}) {
+  const slug = slugOf(post.handle)
+  const first = post.media[0]
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return createPortal(
+    <div
+      className="ct-animate-fade fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+      onMouseDown={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Post"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute top-4 right-5 grid size-9 place-items-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+      >
+        <X size={24} aria-hidden />
+      </button>
+
+      <div
+        onMouseDown={(e) => e.stopPropagation()}
+        className="ct-animate-pop flex h-[min(88vh,880px)] w-full max-w-[1100px] overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
+      >
+        {/* Left: the media at the size it was made for. Black behind it, so a
+            portrait poster letterboxes rather than sitting on a panel that
+            looks like a mistake. */}
+        <div className="hidden min-w-0 flex-1 items-center justify-center bg-black lg:flex">
+          {first &&
+            (first.kind === 'video' ? (
+              <video
+                src={first.url}
+                controls
+                playsInline
+                className="max-h-full max-w-full"
+                style={{ aspectRatio: postAspect(post.media) }}
+              />
+            ) : (
+              <img src={first.url} alt="" className="max-h-full max-w-full object-contain" />
+            ))}
         </div>
 
-        {error && <p className="px-4 pb-1 text-[11.5px] text-warning">{error}</p>}
-
-        <div className="shrink-0 border-t border-border/70 px-3 pt-2 pb-3">
-          <div className="-mx-1 mb-2 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {QUICK.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setBody((b) => b + e)}
-                aria-label={`Add ${e}`}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-[19px] transition-transform duration-150 hover:bg-surface-2 active:scale-90"
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-end gap-2 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
-            <input
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void submit()}
-              placeholder="Add a comment…"
-              maxLength={1000}
-              aria-label="Add a comment"
-              className="min-w-0 flex-1 self-center bg-transparent py-1.5 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
-            />
-            {/* Grows in with the first character — same rule as the DM composer. */}
-            <button
-              type="button"
-              onClick={() => void submit()}
-              disabled={!body.trim() || busy}
-              tabIndex={body.trim() ? 0 : -1}
-              aria-label="Post comment"
-              className={cn(
-                'grid h-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-accent-contrast',
-                'transition-[width,opacity,transform] duration-200 ease-out hover:bg-accent-hover',
-                body.trim() ? 'w-8 scale-100 opacity-100' : 'pointer-events-none w-0 scale-75 opacity-0',
+        {/* Right: who posted it, then the conversation — with the description
+            as its first row, which is where CommentThread puts it. */}
+        <div className="flex w-full flex-col lg:w-[420px] lg:shrink-0 lg:border-l lg:border-border">
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-border px-4 py-3">
+            <Link to={`/app/community/org/${slug}`} onClick={onClose} className="shrink-0">
+              {post.logo ? (
+                <img src={post.logo} alt="" className="size-8 rounded-full bg-surface-2 object-cover" />
+              ) : (
+                <span
+                  className="grid size-8 place-items-center rounded-full text-[11px] font-semibold text-white"
+                  style={{ background: post.color ?? '#4b5563' }}
+                >
+                  {(post.glyph || post.orgName.slice(0, 2)).toUpperCase()}
+                </span>
               )}
-            >
-              <Send size={15} className="translate-x-px" aria-hidden />
-            </button>
-          </div>
+            </Link>
+            <span className="min-w-0 flex-1">
+              <Link
+                to={`/app/community/org/${slug}`}
+                onClick={onClose}
+                className="flex items-center gap-1.5"
+              >
+                <span className="truncate text-[13.5px] font-semibold text-fg">{slug}</span>
+                {post.verified && <VerifiedBadge size={13} />}
+              </Link>
+              <span className="block truncate text-[12px] text-subtle">{post.orgName}</span>
+            </span>
+          </header>
+          {thread}
         </div>
       </div>
-    </ModalShell>
+    </div>,
+    document.body,
   )
 }
 
-const MINUTE = 60_000
-const HOUR = 3_600_000
-const DAY = 86_400_000
-/** Module level: a clock read in a component body trips `react-hooks/purity`. */
-function ago(iso: string): string {
-  const d = Math.max(0, Date.now() - new Date(iso).getTime())
-  if (d < MINUTE) return 'now'
-  if (d < HOUR) return `${Math.floor(d / MINUTE)}m`
-  if (d < DAY) return `${Math.floor(d / HOUR)}h`
-  if (d < 7 * DAY) return `${Math.floor(d / DAY)}d`
-  return `${Math.floor(d / (7 * DAY))}w`
+/**
+ * Above `lg`, because that is where the two-pane layout has room — the media
+ * pane alone wants 600px and the column beside it 420px.
+ *
+ * A hook rather than a CSS breakpoint: the two shells are different DOM, not
+ * different styling on the same DOM, so the choice has to happen in render.
+ */
+function useIsDesktop(): boolean {
+  const [wide, setWide] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(QUERY).matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(QUERY)
+    const on = (e: MediaQueryListEvent) => setWide(e.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return wide
 }
+
+const QUERY = '(min-width: 1024px)'

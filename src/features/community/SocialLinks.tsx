@@ -1,15 +1,5 @@
-import { ExternalLink, Globe } from 'lucide-react'
-import type { OrgLinks } from '@/data/community'
-import { SOCIAL_FIELDS } from './social'
-
-/** Bare host (no `www.`) for the "opens {site} in a new tab" warning. */
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return 'an external site'
-  }
-}
+import { Globe } from 'lucide-react'
+import type { SocialKey } from '@/data/community'
 
 /* Brand glyphs as inline SVGs — lucide removed its brand icons (trademark). */
 
@@ -50,7 +40,7 @@ function TiktokIcon({ size = 16 }: { size?: number }) {
 }
 
 /** Render the right brand glyph for a link field. */
-export function SocialFieldIcon({ field, size = 16 }: { field: keyof OrgLinks; size?: number }) {
+export function SocialFieldIcon({ field, size = 16 }: { field: SocialKey; size?: number }) {
   switch (field) {
     case 'instagram':
       return <InstagramIcon size={size} />
@@ -63,44 +53,4 @@ export function SocialFieldIcon({ field, size = 16 }: { field: keyof OrgLinks; s
     default:
       return <Globe size={size} aria-hidden />
   }
-}
-
-/** Icon-link buttons for an org's set links — rendered on the public profile.
- * Only links that exist render, so an org with one link shows one button. */
-export function SocialLinks({ links, className }: { links?: OrgLinks; className?: string }) {
-  if (!links) return null
-  const items = SOCIAL_FIELDS.filter((f) => links[f.key]?.trim())
-  if (items.length === 0) return null
-
-  return (
-    <div className={className}>
-      {items.map((f) => {
-        const href = links[f.key] as string
-        return (
-          <a
-            key={f.key}
-            href={href}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label={`${f.label}: opens in a new tab`}
-            className="group relative grid size-9 place-items-center rounded-lg border border-border bg-surface text-muted transition-colors duration-150 hover:border-border-strong hover:text-fg"
-          >
-            <SocialFieldIcon field={f.key} size={16} />
-            <span
-              role="tooltip"
-              className="pointer-events-none absolute bottom-full right-0 z-30 mb-2 hidden w-max max-w-[230px] rounded-lg border border-border bg-surface px-2.5 py-1.5 text-left shadow-xl group-hover:block group-focus-visible:block"
-            >
-              <span className="flex items-center gap-1 text-[12px] font-medium text-fg">
-                {f.label}
-                <ExternalLink size={11} aria-hidden />
-              </span>
-              <span className="mt-0.5 block text-[11px] leading-snug text-subtle">
-                External link: opens {hostOf(href)} in a new tab.
-              </span>
-            </span>
-          </a>
-        )
-      })}
-    </div>
-  )
 }

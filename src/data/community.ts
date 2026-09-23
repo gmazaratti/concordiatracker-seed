@@ -24,6 +24,10 @@ export type EventCategory = 'clubs' | 'career' | 'academic' | 'official' | 'nigh
 
 /** Optional outbound links shown on the org profile (only the ones that are set
  * render). `website` is a generic custom link (homepage, Linktree, etc.). */
+/** The five link slots. Named separately from `OrgLinks` because that object
+ *  also carries the titles map, and `keyof OrgLinks` would then include it. */
+export type SocialKey = 'website' | 'instagram' | 'x' | 'linkedin' | 'tiktok'
+
 export interface OrgLinks {
   website?: string
   instagram?: string
@@ -33,6 +37,16 @@ export interface OrgLinks {
    *  than their LinkedIn, and dropping it into "website" would have hidden it
    *  behind a globe icon nobody recognises. */
   tiktok?: string
+  /**
+   * What each link is CALLED, set by the club.
+   *
+   * A sibling map rather than turning every field into `{url, title}`: this
+   * column is jsonb, every row already holds bare strings, and a new key is
+   * free where a new shape would need a migration and a reader that copes
+   * with both forever. A missing title falls back to the host, which is what
+   * the profile showed before any of them existed.
+   */
+  titles?: Partial<Record<SocialKey, string>>
 }
 
 export interface EventOrg {

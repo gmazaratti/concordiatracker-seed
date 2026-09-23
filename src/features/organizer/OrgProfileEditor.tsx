@@ -5,14 +5,15 @@ import type { Lang } from '@/i18n/i18n'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowLeft, Check, ExternalLink } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
-import { orgSlug, type EventOrg, type OrgLinks } from '@/data/community'
+import { orgSlug, type EventOrg, type OrgLinks, type SocialKey } from '@/data/community'
 import { Button } from '@/components/ui/Button'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { ImageUploadField } from '@/components/ui/ImageUploadField'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
-import { SocialLinks, SocialFieldIcon } from '@/features/community/SocialLinks'
-import { SOCIAL_FIELDS } from '@/features/community/social'
+import { SocialFieldIcon } from '@/features/community/SocialLinks'
+import { ProfileLinksRow } from '@/features/community/ProfileLinksRow'
+import { SOCIAL_FIELDS, orgProfileLinks } from '@/features/community/social'
 import { cn } from '@/lib/cn'
 
 const field =
@@ -54,16 +55,30 @@ function ProfileForm({
   function touch() {
     setSaved(false)
   }
-  function setLink(key: keyof OrgLinks, val: string) {
+  function setLink(key: SocialKey, val: string) {
     setLinks((prev) => ({ ...prev, [key]: val }))
+    touch()
+  }
+  /** The title is stored in a sibling map, so a club that never sets one has
+   *  a links object identical to the one it has always had. */
+  function setTitle(key: SocialKey, val: string) {
+    setLinks((prev) => ({ ...prev, titles: { ...prev.titles, [key]: val } }))
     touch()
   }
   function cleanLinks(): OrgLinks {
     const out: OrgLinks = {}
+    const titles: NonNullable<OrgLinks['titles']> = {}
     for (const f of SOCIAL_FIELDS) {
       const v = links[f.key]?.trim()
-      if (v) out[f.key] = v
+      if (!v) continue
+      out[f.key] = v
+      // A title with no link behind it is dropped with it — and a blank one
+      // is dropped outright rather than stored as "", so the profile falls
+      // back to the host instead of rendering an empty hyperlink.
+      const t = links.titles?.[f.key]?.trim()
+      if (t) titles[f.key] = t
     }
+    if (Object.keys(titles).length > 0) out.titles = titles
     return out
   }
   function onSave() {
@@ -123,7 +138,9 @@ function ProfileForm({
           </div>
           <p className="text-[12px] text-subtle">{handle || '@handle'}</p>
           {bio.trim() && <p className="mt-1.5 text-[13px] whitespace-pre-line text-muted">{bio}</p>}
-          <SocialLinks links={preview.links} className="mt-2.5 flex flex-wrap gap-2" />
+          {/* The same row the public profile draws, so a title typed below
+              shows up here in the words students will read. */}
+          <ProfileLinksRow links={orgProfileLinks(preview.links)} />
         </div>
       </div>
 
@@ -199,6 +216,20 @@ function ProfileForm({
                     className="w-full bg-transparent py-2 text-[13px] text-fg placeholder:text-subtle focus:outline-none"
                   />
                 </div>
+                {/* WHAT THE LINK IS CALLED, shown only once there is a link to
+                    call something: an empty title box above an empty URL box
+                    is two empty boxes asking the same question. Left blank,
+                    the profile shows the host. */}
+                {links[f.key]?.trim() && (
+                  <input
+                    value={links.titles?.[f.key] ?? ''}
+                    onChange={(e) => setTitle(f.key, e.target.value)}
+                    maxLength={40}
+                    placeholder={`Link title — e.g. "${f.titleHint}"`}
+                    aria-label={`${f.label} — title`}
+                    className="mt-1.5 w-full rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+                  />
+                )}
               </Field>
             ))}
           </div>

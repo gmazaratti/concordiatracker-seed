@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Clock, Grid3x3, ImagePlus, MapPin, MessageSquare, Phone, Repeat2 } from 'lucide-react'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { CalendarDays, Clock, Grid3x3, ImagePlus, MapPin, MessageSquare, Phone, Repeat2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { supabase } from '@/lib/supabase'
 import { loadPosts, type FeedPost } from '@/lib/social-posts'
 import { ProfileTabs } from '@/features/profile/ProfileHeader'
-import { isRelevantTo, postedAgoLabel, type CampusEvent, type EventOrg, type OrgLinks } from '@/data/community'
+import { isRelevantTo, postedAgoLabel, type CampusEvent, type EventOrg } from '@/data/community'
 import { startOfToday } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { EventTile } from './EventTile'
@@ -14,7 +14,9 @@ import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { VerifiedBadge } from './VerifiedBadge'
 import { ContactButton } from './ContactButton'
-import { SocialLinks } from './SocialLinks'
+import { BackButton } from '@/components/BackButton'
+import { ProfileLinksRow } from './ProfileLinksRow'
+import { orgProfileLinks } from './social'
 import { useEventActions } from './useEventActions'
 import { useCommunity } from './useCommunity'
 import { useMyOrgs } from './useMyOrgs'
@@ -229,14 +231,10 @@ function OrgProfileBody({
   }, [tab, orgId, refresh])
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
-      <Link
-        to="/app/community"
-        className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-      >
-        <ArrowLeft size={16} aria-hidden />
-        Community
-      </Link>
+    <div className="ct-page-in mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+      {/* Back, not a link to Community: a link pushes a fresh feed at the top
+          of the list, and you came here from somewhere partway down it. */}
+      <BackButton fallback="/app/community" label="Community" showLabel className="mb-3" />
 
       {/*
         THE SAME SHAPE A STUDENT'S PROFILE HAS, plus a banner.
@@ -300,6 +298,11 @@ function OrgProfileBody({
             </p>
           )}
 
+          {/* Under the description, where the reference puts it — and on the
+              same column, so the line can never be wider than the bio it
+              belongs to. */}
+          <ProfileLinksRow links={orgProfileLinks(org.links)} />
+
           {org.venue && <VenueBlock venue={org.venue} />}
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -322,9 +325,10 @@ function OrgProfileBody({
         </div>
       </div>
 
-      {/* Divider: the social links sit ON it, right-aligned: the line ends,
-          then the buttons, then a short segment continues to the right edge. */}
-      <LinksDivider links={org.links} />
+      {/* A plain rule now. The links used to sit ON this line, which put them
+          a full screen below the bio they belong to and gave a club with four
+          of them a strip of icon squares to be scrolled past. */}
+      <div className="mt-5 border-t border-border" />
 
       <ProfileTabs
         active={tab}
@@ -441,22 +445,6 @@ function Count({ n, label, plural = true }: { n: number; label: string; plural?:
         {plural && n !== 1 ? 's' : ''}
       </span>
     </span>
-  )
-}
-
-/** The section divider with the org's social links embedded on the right: a long
- * line, the link buttons, then a short segment continuing to the right edge. With
- * no links it's just a plain full-width rule (so it never looks broken). */
-function LinksDivider({ links }: { links?: OrgLinks }) {
-  const hasLinks = !!links && Object.values(links).some((v) => v && v.trim())
-  if (!hasLinks) return <div className="mt-5 border-t border-border" />
-
-  return (
-    <div className="mt-5 flex items-center gap-3">
-      <span className="h-px flex-1 bg-border" aria-hidden />
-      <SocialLinks links={links} className="flex items-center gap-2" />
-      <span className="h-px w-12 shrink-0 bg-border" aria-hidden />
-    </div>
   )
 }
 

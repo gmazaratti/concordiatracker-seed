@@ -1,5 +1,7 @@
+import { useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
+import { useScrollMemory } from '@/app/hooks/useScrollMemory'
 import { MessageToast } from '@/features/profile/MessageToast'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/app/providers/auth'
@@ -43,6 +45,10 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   // outside /app, so the login screen and a public profile keep their
   // own titles.
   useAppTitle()
+  /* THE ONE SCROLLER IN THE APP, so this is the one place that can remember
+     where each page was left. */
+  const scroller = useRef<HTMLElement>(null)
+  useScrollMemory(scroller)
 
   /**
    * A PROFILE OWNS THE WHOLE SCREEN, and so does Community.
@@ -91,7 +97,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
             one you happen to be on. */}
         <MessageToast />
 
-        <main className="relative flex-1 overflow-y-auto">
+        <main ref={scroller} className="relative flex-1 overflow-y-auto">
           {/* `children` for the one page that lives at a top-level URL but
               still belongs inside the app: a public profile at /@handle, which
               a signed-in student should see with their sidebar rather than as

@@ -147,7 +147,8 @@ export function FeedSection() {
 
       {watching && (
         <StoryViewer
-          ring={watching}
+          rings={rings}
+          startOrgId={watching.orgId}
           onClose={() => setWatching(null)}
           onSeen={() => setRefresh((n) => n + 1)}
         />

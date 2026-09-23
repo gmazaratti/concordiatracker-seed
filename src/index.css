@@ -1627,3 +1627,30 @@ html[data-reduce-motion] .ct-navrow-right {
     animation: ct-pop-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
+
+/* A page arriving from the right — a profile opened from a feed.
+ *
+ * PHONE ONLY. On a phone a profile REPLACES the screen you were on, so it is
+ * a place you moved to and the movement is worth showing: instant replacement
+ * reads as the app redrawing rather than as you going somewhere. On a desktop
+ * the sidebar, the rail and half the page do not change, so sliding the
+ * content column in from the right would be animating a swap, not a journey.
+ *
+ * `backwards`, per the rule on .ct-section-in: a `both` fill would leave a
+ * settled identity transform on a wrapper, and any transform makes an element
+ * the containing block for every `position: fixed` descendant. */
+@keyframes ct-page-in {
+  from {
+    opacity: 0.6;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 767px) {
+  .ct-page-in {
+    animation: ct-page-in 280ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+  }
+}

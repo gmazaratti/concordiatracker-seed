@@ -52,7 +52,7 @@ export function SupportModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalShell label="Support" onClose={onClose} widthClass="sm:max-w-lg" scroll={false}>
-      <div className="flex h-[min(78vh,620px)] flex-col">
+      <div className="flex h-[min(78vh,620px)] flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <header className="flex items-center gap-2 border-b border-border px-4 py-3">
           {view.mode !== 'list' && (
             <button

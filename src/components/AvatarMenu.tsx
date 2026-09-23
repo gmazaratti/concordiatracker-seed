@@ -47,6 +47,8 @@ export function AvatarMenu({
   align = 'bottom',
   compact = false,
   side = 'right',
+  variant = 'popover',
+  actions,
   icon,
 }: {
   align?: 'bottom' | 'top'
@@ -60,6 +62,17 @@ export function AvatarMenu({
    * the screen. Same trigger, opposite answer, so the caller states it.
    */
   side?: 'left' | 'right'
+  /**
+   * HOW IT OPENS. `popover` is a floating card (the mobile bar, a collapsed
+   * rail, the profile page). `sidebar` is the desktop rail: the menu is not a
+   * card at all there, it is the rail itself unfolding — full width, sharing
+   * the sidebar's background, growing upward out of the profile block.
+   */
+  variant?: 'popover' | 'sidebar'
+  /** Rendered beside the trigger in `sidebar` mode (the bell and the gear), so
+   *  the panel can be a sibling of the whole footer row rather than of the
+   *  name alone — which is what made it a narrow floating card. */
+  actions?: React.ReactNode
   /**
    * Replaces the avatar on the trigger. The profile page passes a hamburger:
    * the whole screen is already your face, and a second copy of it in the bar
@@ -113,76 +126,8 @@ export function AvatarMenu({
     }
   }, [open])
 
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Account menu"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'flex shrink-0 items-center gap-2.5 rounded-lg text-left transition-colors duration-150 hover:bg-surface-2',
-          compact ? 'p-0.5' : 'w-full p-1.5',
-        )}
-      >
-        <span className="relative size-8 shrink-0">
-          {icon ? (
-            <span className="grid size-8 place-items-center rounded-lg text-fg">{icon}</span>
-          ) : user.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="size-8 rounded-full bg-surface-2 object-cover"
-            />
-          ) : (
-            <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-              {user.initials}
-            </span>
-          )}
-          {/* Persistent unseen-update cue on the always-visible profile avatar
-           * (both the mobile top bar and the desktop sidebar footer), so it never
-           * shifts layout. The "What's new" menu item below is its destination. */}
-          {showIndicator && (
-            <span
-              className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-accent ring-2 ring-canvas"
-              aria-hidden
-            />
-          )}
-        </span>
-        {!compact && (
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1">
-              <span className="truncate text-[13px] font-medium text-fg">{user.name}</span>
-              {badge && <VerifiedBadge size={13} tone={badge.tone} label={badge.label} />}
-            </span>
-            {/* The role where the plan usually goes. Someone who runs a club
-                reads "Organizer" the same way the founder reads "Founder" —
-                it is the most useful thing to say about that account, and the
-                plan is in Settings. */}
-            {badge ? (
-              <span className="block truncate text-[11px] font-medium text-accent">
-                {badge.role}
-              </span>
-            ) : (
-              <span className="block truncate text-[11px] text-subtle">
-                {plan === 'free' ? 'Free plan' : 'Semester pass'}
-              </span>
-            )}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            'ct-animate-pop absolute z-40 rounded-xl border border-border bg-surface p-1.5 shadow-2xl',
-            compact ? cn('w-60', side === 'left' ? 'left-0' : 'right-0') : 'right-0 left-0',
-            align === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2',
-          )}
-        >
+  const items = (
+    <>
           {/* Your own profile, first. It is the page every other social
               action starts from, and until now the only way to reach it was to
               already know your own handle and type the URL. */}
@@ -300,6 +245,125 @@ export function AvatarMenu({
             <LogOut size={16} aria-hidden />
             {t('nav.signOut')}
           </button>
+    </>
+  )
+
+  const trigger = (
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Account menu"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'flex shrink-0 items-center gap-2.5 rounded-lg text-left transition-colors duration-150 hover:bg-surface-2',
+          compact ? 'p-0.5' : 'w-full p-1.5',
+        )}
+      >
+        <span className="relative size-8 shrink-0">
+          {icon ? (
+            <span className="grid size-8 place-items-center rounded-lg text-fg">{icon}</span>
+          ) : user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-8 rounded-full bg-surface-2 object-cover"
+            />
+          ) : (
+            <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
+              {user.initials}
+            </span>
+          )}
+          {/* Persistent unseen-update cue on the always-visible profile avatar
+           * (both the mobile top bar and the desktop sidebar footer), so it never
+           * shifts layout. The "What's new" menu item below is its destination. */}
+          {showIndicator && (
+            <span
+              className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-accent ring-2 ring-canvas"
+              aria-hidden
+            />
+          )}
+        </span>
+        {!compact && (
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1">
+              <span className="truncate text-[13px] font-medium text-fg">{user.name}</span>
+              {badge && <VerifiedBadge size={13} tone={badge.tone} label={badge.label} />}
+            </span>
+            {/* The role where the plan usually goes. Someone who runs a club
+                reads "Organizer" the same way the founder reads "Founder" —
+                it is the most useful thing to say about that account, and the
+                plan is in Settings. */}
+            {badge ? (
+              <span className="block truncate text-[11px] font-medium text-accent">
+                {badge.role}
+              </span>
+            ) : (
+              <span className="block truncate text-[11px] text-subtle">
+                {plan === 'free' ? 'Free plan' : 'Semester pass'}
+              </span>
+            )}
+          </span>
+        )}
+      </button>
+  )
+
+  /*
+   * THE SIDEBAR IS NOT A POPOVER.
+   *
+   * Opened from the rail, the menu used to be a 166px card floating over the
+   * page on a drop shadow — the width of the name block it hung from, not of
+   * the sidebar, which is what made it read as detached. Here it is part of
+   * the rail: it bleeds past the aside's padding to both edges, sits on the
+   * rail's own surface, and grows upward IN FLOW out of the profile block,
+   * which is pinned to the bottom. A notch above the name marks where the
+   * rail ends and the menu begins.
+   *
+   * It scrolls rather than overflowing: on a short window the menu is taller
+   * than the space above the footer, and a rail that spills off the top of
+   * the screen loses its last items with no way to reach them.
+   */
+  if (variant === 'sidebar') {
+    return (
+      <div ref={ref} className="flex flex-col">
+        {open && (
+          <div
+            role="menu"
+            className="ct-panel-up -mx-3 mb-1 max-h-[min(58vh,430px)] overflow-y-auto border-y border-border bg-surface/70 p-1.5"
+          >
+            {items}
+          </div>
+        )}
+        {/* The notch: a short bar over the name, present only while the menu
+            is, so the profile block reads as the lip the panel came out of. */}
+        {open && (
+          <span
+            className="mx-auto mb-1 block h-1 w-8 rounded-full bg-border-strong"
+            aria-hidden
+          />
+        )}
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">{trigger}</div>
+          {actions && <div className="flex shrink-0 items-center">{actions}</div>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      {trigger}
+      {open && (
+        <div
+          role="menu"
+          className={cn(
+            'ct-animate-pop absolute z-40 rounded-xl border border-border bg-surface p-1.5 shadow-2xl',
+            compact ? cn('w-60', side === 'left' ? 'left-0' : 'right-0') : 'right-0 left-0',
+            align === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2',
+          )}
+        >
+          {items}
         </div>
       )}
     </div>

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Bell, BellRing, GraduationCap, LifeBuoy, Link2, Pencil, Share2 } from 'lucide-react'
+import { Bell, BellRing, GraduationCap, LifeBuoy, Pencil, Share2 } from 'lucide-react'
 import { CachedImg } from '@/components/ui/CachedImg'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
-import { SocialFieldIcon } from '@/features/community/SocialLinks'
+import { ProfileLinksRow } from '@/features/community/ProfileLinksRow'
+import { personProfileLinks } from '@/features/community/social'
 import { badgeForPerson } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
-import { linkHref, type ProfileLinks } from '@/lib/social'
+import { type ProfileLinks } from '@/lib/social'
 import {
   cachedProfileSocial,
   dmMessage,
@@ -130,7 +131,7 @@ export function ProfileHeader({
             {bio}
           </p>
         )}
-        {isPublic && <LinkRow links={links} />}
+        {isPublic && <ProfileLinksRow links={personProfileLinks(links)} />}
         <Mutuals social={social} />
       </div>
 
@@ -237,43 +238,6 @@ function Mutuals({ social }: { social: ProfileSocial | null }) {
   )
 }
 
-function LinkRow({ links }: { links: ProfileLinks }) {
-  const website = links.website
-  const socials = (['instagram', 'x', 'linkedin'] as const).filter((k) => links[k])
-  if (!website && socials.length === 0) return null
-  return (
-    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-      {website && (
-        <a
-          href={linkHref('website', website) ?? '#'}
-          target="_blank"
-          rel="noreferrer noopener nofollow ugc"
-          className="inline-flex items-center gap-1 text-[13px] font-medium text-info hover:underline"
-        >
-          <Link2 size={13} aria-hidden />
-          {website.replace(/^https?:\/\//i, '').replace(/\/+$/, '')}
-        </a>
-      )}
-      {socials.map((k) => {
-        const href = linkHref(k, links[k] as string)
-        if (!href) return null
-        return (
-          <a
-            key={k}
-            href={href}
-            target="_blank"
-            rel="noreferrer noopener nofollow ugc"
-            aria-label={`${k} — opens in a new tab`}
-            title={k}
-            className="grid size-6 place-items-center rounded-lg border border-border text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            <SocialFieldIcon field={k} size={12} />
-          </a>
-        )
-      })}
-    </div>
-  )
-}
 
 /** One row of equal-width flat buttons, the way Instagram sets them. */
 function Actions({

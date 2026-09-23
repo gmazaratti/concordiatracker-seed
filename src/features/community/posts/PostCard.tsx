@@ -18,14 +18,13 @@ import {
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
 import {
   deletePost,
-  loadComments,
   postAspect,
   togglePostLike,
   toggleRepost,
   type FeedPost,
-  type PostComment,
   type PostMedia,
 } from '@/lib/social-posts'
+import { landingFrame } from './carousel'
 import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
 import { ShareSheet } from '../ShareSheet'
@@ -73,7 +72,6 @@ export function PostCard({
   const [reposted, setReposted] = useState(post.iRepost)
   const [reposts, setReposts] = useState(post.reposts)
   const [showComments, setShowComments] = useState(false)
-  const [comments, setComments] = useState<PostComment[] | null>(null)
   const [count, setCount] = useState(post.comments)
   const [sharing, setSharing] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -128,6 +126,93 @@ export function PostCard({
     el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' })
   }
 
+  /** Go to a frame by index — what a dot does. */
+  const seek = (i: number) => {
+    const el = strip.current
+    if (!el) return
+    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
+  }
+
+  /*
+   * CLICK AND DRAG THE PICTURE, on a pointer.
+   *
+   * MOUSE ONLY. A finger already drags this — it is a scroll container — and
+   * taking the touch gesture over would replace the platform's momentum and
+   * rubber-banding with ours, worse, and break the vertical scroll that
+   * starts on a photo.
+   *
+   * SNAPPING IS SUSPENDED WHILE THE BUTTON IS DOWN. `snap-mandatory` fights a
+   * scrollLeft written every frame — the strip yanks back to the nearest
+   * frame mid-drag — so the snap is turned off for the drag and restored on
+   * release, which is also the frame we choose a destination on.
+   */
+  const drag = useRef<{
+    x: number
+    left: number
+    moved: boolean
+    lastX: number
+    lastT: number
+    vx: number
+  } | null>(null)
+  const dragged = useRef(false)
+
+  const onDragDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse' || post.media.length < 2) return
+    const el = strip.current
+    if (!el) return
+    drag.current = {
+      x: e.clientX,
+      left: el.scrollLeft,
+      moved: false,
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      vx: 0,
+    }
+  }
+
+  const onDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    const el = strip.current
+    if (!d || !el) return
+    const dx = e.clientX - d.x
+    if (!d.moved) {
+      if (Math.abs(dx) < 4) return
+      d.moved = true
+      el.style.scrollSnapType = 'none'
+      el.style.cursor = 'grabbing'
+      try {
+        el.setPointerCapture(e.pointerId)
+      } catch {
+        // A pointer the browser has already forgotten; the drag still works.
+      }
+    }
+    el.scrollLeft = d.left - dx
+    const dt = e.timeStamp - d.lastT
+    if (dt > 0) d.vx = ((e.clientX - d.lastX) / dt) * 1000
+    d.lastX = e.clientX
+    d.lastT = e.timeStamp
+  }
+
+  const onDragUp = () => {
+    const d = drag.current
+    const el = strip.current
+    drag.current = null
+    if (!d || !el) return
+    el.style.scrollSnapType = ''
+    el.style.cursor = ''
+    if (!d.moved) return
+    dragged.current = true
+    const w = Math.max(1, el.clientWidth)
+    const i = landingFrame({
+      startLeft: d.left,
+      scrollLeft: el.scrollLeft,
+      width: w,
+      velocity: d.vx,
+      count: post.media.length,
+    })
+    el.scrollTo({ left: i * w, behavior: 'smooth' })
+  }
+
   // One read per card is acceptable here because a card mounts once; the feed
   // does not re-ask on scroll. If this ever renders hundreds at a time, hoist
   // it to a single `savedAmong` for the whole page.
@@ -174,10 +259,9 @@ export function PostCard({
     if (now !== next) setSaved(now)
   }
 
-  const openComments = () => {
-    setShowComments(true)
-    if (!comments) void loadComments(post.id).then(setComments)
-  }
+  /* The sheet owns the list now (see lib/comments.ts) — the card held a
+     private copy, which is what made a reopened thread look empty. */
+  const openComments = () => setShowComments(true)
 
   return (
     <article className="border-b border-border pb-3">
@@ -235,6 +319,19 @@ export function PostCard({
       <div className="group/media relative -mx-4 sm:mx-0">
         <div
           ref={strip}
+          onPointerDown={onDragDown}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragUp}
+          onPointerCancel={onDragUp}
+          // A drag across a photo must not read as a click on whatever is
+          // under the mouse when it stops.
+          onClickCapture={(e) => {
+            if (!dragged.current) return
+            dragged.current = false
+            e.stopPropagation()
+            e.preventDefault()
+          }}
+          onDragStart={(e) => e.preventDefault()}
           onScroll={(e) => {
             const el = e.currentTarget
             setSlide(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)))
@@ -245,7 +342,10 @@ export function PostCard({
              slide's real dimensions and applies to the whole strip, so a
              carousel does not resize under your thumb as you swipe. */
           style={{ aspectRatio: postAspect(post.media) }}
-          className="flex snap-x snap-mandatory overflow-x-auto rounded-none sm:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className={cn(
+            'flex snap-x snap-mandatory overflow-x-auto rounded-none sm:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            post.media.length > 1 && '[@media(hover:hover)]:cursor-grab',
+          )}
         >
           {post.media.map((m, i) => (
             <Slide key={i} media={m} active={slide === i} eager={i === 0} />
@@ -274,17 +374,7 @@ export function PostCard({
             <span className="absolute top-2.5 right-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white tabular-nums">
               {slide + 1}/{post.media.length}
             </span>
-            <span className="mt-2 flex justify-center gap-1.5">
-              {post.media.map((_, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    'size-1.5 rounded-full transition-colors duration-150',
-                    i === slide ? 'bg-accent' : 'bg-border-strong',
-                  )}
-                />
-              ))}
-            </span>
+            <Dots count={post.media.length} active={slide} onSeek={seek} />
           </>
         )}
       </div>
@@ -357,9 +447,23 @@ export function PostCard({
            * `truncate` child and a `shrink-0` button keeps the button on
            * screen no matter how long the caption is.
            */
-          <div className="flex items-baseline gap-1 px-3 pt-1.5 sm:px-1">
+          /*
+           * THE WHOLE LINE OPENS IT, not just the word "more".
+           * A one-line caption with a 34px target at the end of it is a
+           * target you aim at; the text itself is the obvious thing to tap
+           * and was doing nothing. The handle stays a real link, so tapping
+           * the name still goes to the club — the caption around it expands.
+           */
+          <div
+            onClick={() => setExpanded(true)}
+            className="flex cursor-pointer items-baseline gap-1 px-3 pt-1.5 sm:px-1"
+          >
             <p className="min-w-0 flex-1 truncate text-[13.5px] leading-relaxed text-fg">
-              <Link to={`/app/community/org/${slug}`} className="font-semibold hover:underline">
+              <Link
+                to={`/app/community/org/${slug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-semibold hover:underline"
+              >
                 {slug}
               </Link>{' '}
               {post.caption}
@@ -377,12 +481,7 @@ export function PostCard({
       {showCollabs && <CollaboratorsSheet post={post} onClose={() => setShowCollabs(false)} />}
 
       {showComments && (
-        <CommentsSheet
-          postId={post.id}
-          initial={comments}
-          onCount={setCount}
-          onClose={() => setShowComments(false)}
-        />
+        <CommentsSheet post={post} onCount={setCount} onClose={() => setShowComments(false)} />
       )}
 
       {reporting && (
@@ -436,6 +535,91 @@ function Action({
       <Icon size={19} className={cn(filled && 'fill-current')} aria-hidden />
       {count != null && count > 0 && <span>{count}</span>}
     </button>
+  )
+}
+
+/**
+ * The slide dots — a control, not a readout.
+ *
+ * They looked exactly like this before and did nothing, which is the worst
+ * version: a row of marks in the shape of a control that ignores a tap. Each
+ * one is a button now, and dragging ALONG the row scrubs between frames the
+ * way a phone's page dots do.
+ *
+ * A HORIZONTAL LOCK, so a vertical swipe that happens to begin on the dots is
+ * still the page scrolling — the same rule the week grid and the due rows
+ * follow. The row is only 6px of ink, so each dot carries a 16px tall target
+ * around it.
+ */
+function Dots({
+  count,
+  active,
+  onSeek,
+}: {
+  count: number
+  active: number
+  onSeek: (i: number) => void
+}) {
+  const row = useRef<HTMLDivElement>(null)
+  const scrub = useRef<{ x: number; y: number; on: boolean } | null>(null)
+
+  const at = (clientX: number): number => {
+    const el = row.current
+    if (!el) return active
+    const r = el.getBoundingClientRect()
+    const t = (clientX - r.left) / Math.max(1, r.width)
+    return Math.min(count - 1, Math.max(0, Math.floor(t * count)))
+  }
+
+  return (
+    <div
+      ref={row}
+      className="mt-2 flex touch-pan-y justify-center gap-1.5"
+      onPointerDown={(e) => {
+        scrub.current = { x: e.clientX, y: e.clientY, on: false }
+      }}
+      onPointerMove={(e) => {
+        const s = scrub.current
+        if (!s) return
+        if (!s.on) {
+          const dx = Math.abs(e.clientX - s.x)
+          const dy = Math.abs(e.clientY - s.y)
+          if (dx < 6 || dx <= dy) return
+          s.on = true
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {
+            // Fine — the scrub just ends when the pointer leaves the row.
+          }
+        }
+        const i = at(e.clientX)
+        if (i !== active) onSeek(i)
+      }}
+      onPointerUp={() => {
+        scrub.current = null
+      }}
+      onPointerCancel={() => {
+        scrub.current = null
+      }}
+    >
+      {Array.from({ length: count }, (_, i) => (
+        <button
+          key={i}
+          type="button"
+          aria-label={`Go to image ${i + 1}`}
+          aria-current={i === active}
+          onClick={() => onSeek(i)}
+          className="grid h-4 w-3 place-items-center"
+        >
+          <span
+            className={cn(
+              'size-1.5 rounded-full transition-colors duration-150',
+              i === active ? 'bg-accent' : 'bg-border-strong',
+            )}
+          />
+        </button>
+      ))}
+    </div>
   )
 }
 

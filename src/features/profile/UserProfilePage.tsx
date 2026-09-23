@@ -17,6 +17,7 @@ import { HANDLE_RE } from '@/features/onboarding/handle'
 import { communityHref } from '@/features/community/sections'
 import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
+import { BackButton } from '@/components/BackButton'
 import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
 import { EditProfileModal } from './EditProfileModal'
@@ -167,7 +168,10 @@ export function ProfileView({
   }
 
   return (
-    <>
+    // A profile REPLACES the screen on a phone, so it arrives from the right
+    // rather than appearing. Embedded (Community -> You) it is a tab, not a
+    // journey, so it does not.
+    <div className={cn(!embedded && 'ct-page-in')}>
       {!embedded && <ProfileMeta handle={handle} profile={profile} />}
 
       {/* The handle where the wordmark was. Instagram's profile bar, and the
@@ -181,7 +185,15 @@ export function ProfileView({
          * strips of chrome before a single fact about the person.
          */
         <div className="sticky top-0 z-20 flex items-center gap-1 border-b border-border bg-canvas/90 px-2 py-2 backdrop-blur-xl md:hidden">
-          {viewer === 'self' ? <ProfileCreateMenu /> : <span className="size-9 shrink-0" />}
+          {/* Somebody else's profile had NO way back on a phone — the left
+              slot was an empty spacer, and the app bar stands down on this
+              screen. Your own keeps the create menu; you did not travel to
+              get here. */}
+          {viewer === 'self' ? (
+            <ProfileCreateMenu />
+          ) : (
+            <BackButton fallback="/app/community" className="size-9 justify-center" />
+          )}
           <h2 className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
             <span className="truncate text-[17px] font-semibold text-fg">{handle}</span>
             {badge && <VerifiedBadge size={15} tone={badge.tone} label={badge.label} />}
@@ -293,7 +305,7 @@ export function ProfileView({
       </div>
 
       {editing && <EditProfileModal onClose={() => setEditing(false)} onSaved={reload} />}
-    </>
+    </div>
   )
 }
 

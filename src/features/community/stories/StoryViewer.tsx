@@ -59,16 +59,30 @@ const now = () => Date.now()
  * one person's DMs is a reply the club loses when they graduate.
  */
 export function StoryViewer({
-  ring,
+  rings,
+  startOrgId,
   onClose,
   onSeen,
 }: {
-  ring: StoryRing
+  /**
+   * THE WHOLE ROW, not one club's reel.
+   *
+   * A reel that closes when a club runs out makes you tap back into the row
+   * for every account, which is the opposite of what the format is for. The
+   * viewer walks the row the way it is ordered on screen and only closes
+   * after the last story of the last club.
+   */
+  rings: StoryRing[]
+  startOrgId: string
   onClose: () => void
   /** Told when a story is marked seen so the row can drop its gradient. */
   onSeen?: () => void
 }) {
   const reduced = usePrefersReducedMotion()
+  const [ringIndex, setRingIndex] = useState(() =>
+    Math.max(0, rings.findIndex((r) => r.orgId === startOrgId)),
+  )
+  const ring = rings[ringIndex] ?? rings[0]
   const [stories, setStories] = useState<Story[] | null>(null)
   const [i, setI] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -86,9 +100,11 @@ export function StoryViewer({
   const { isFollowing, toggleFollow } = useFollows()
   const navigate = useNavigate()
 
+  const orgId = ring?.orgId
   useEffect(() => {
+    if (!orgId) return
     let alive = true
-    void loadStoryReel(ring.orgId).then((rows) => {
+    void loadStoryReel(orgId).then((rows) => {
       if (!alive) return
       setStories(rows)
       // Start on the first unwatched one, the way a reel resumes.
@@ -98,20 +114,39 @@ export function StoryViewer({
     return () => {
       alive = false
     }
-  }, [ring.orgId])
+  }, [orgId])
 
   const story = stories?.[i]
 
   const next = useCallback(() => {
-    setI((n) => {
-      if (!stories) return n
-      if (n + 1 >= stories.length) {
-        onClose()
-        return n
-      }
-      return n + 1
-    })
-  }, [stories, onClose])
+    if (!stories) return
+    if (i + 1 < stories.length) {
+      setI(i + 1)
+      return
+    }
+    // End of this club's reel: on to the next one in the row, and only close
+    // after the last.
+    if (ringIndex + 1 < rings.length) {
+      setStories(null)
+      setI(0)
+      setRingIndex(ringIndex + 1)
+      return
+    }
+    onClose()
+  }, [stories, i, ringIndex, rings.length, onClose])
+
+  /** Back past the first story steps into the previous club's LAST one. */
+  const prev = useCallback(() => {
+    if (i > 0) {
+      setI(i - 1)
+      return
+    }
+    if (ringIndex > 0) {
+      setStories(null)
+      setI(0)
+      setRingIndex(ringIndex - 1)
+    }
+  }, [i, ringIndex])
 
   /*
    * Reset the per-story controls DURING RENDER, tracking which story they were
@@ -133,31 +168,56 @@ export function StoryViewer({
     void markStorySeen(story.id).then(() => onSeen?.())
   }, [story, onSeen])
 
-  // The advance. Paused while you hold the screen or type a reply, because
-  // losing a story mid-sentence is the single most annoying thing this
-  // interaction can do.
+  /*
+   * THE ADVANCE, AND IT RESUMES RATHER THAN RESTARTS.
+   *
+   * The old timer was `setTimeout(next, SEGMENT_MS)` in an effect that
+   * depended on `paused`, so every pause threw the timer away and every
+   * release started a fresh five seconds — hold for four seconds and you got
+   * nine. `left` carries what is actually remaining, and the bar is driven
+   * from the same number, so what you see and what happens are one thing.
+   */
+  const [left, setLeft] = useState(SEGMENT_MS)
+  const startedAt = useRef(0)
+
+  // A new story resets the clock. During render, tracked by id, for the same
+  // reason the controls above are — an effect here renders twice.
+  const [timedFor, setTimedFor] = useState<string | null>(null)
+  if (story && timedFor !== story.id) {
+    setTimedFor(story.id)
+    setLeft(SEGMENT_MS)
+  }
+
   useEffect(() => {
     if (!story || paused) return
-    timer.current = window.setTimeout(next, SEGMENT_MS)
+    startedAt.current = Date.now()
+    timer.current = window.setTimeout(next, left)
     return () => {
       if (timer.current) window.clearTimeout(timer.current)
+      // Bank what was left, so the next run picks up where this one stopped.
+      // Guarded above zero: a cleanup that fires after the timeout already
+      // ran would otherwise store a negative and the next story would skip.
+      setLeft((ms) => Math.max(0, ms - (Date.now() - startedAt.current)))
     }
+    // `left` is deliberately NOT a dependency: it is written by this effect's
+    // own cleanup, and depending on it would restart the timer every tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story, paused, next])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowRight') next()
-      if (e.key === 'ArrowLeft') setI((n) => Math.max(0, n - 1))
+      if (e.key === 'ArrowLeft') prev()
     }
     document.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
+    const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prev
+      document.body.style.overflow = overflow
     }
-  }, [onClose, next])
+  }, [onClose, next, prev])
 
   const send = async () => {
     const body = reply.trim()
@@ -272,6 +332,14 @@ export function StoryViewer({
       <div className="flex gap-[3px] px-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
         {(stories ?? [{ id: 'x' } as Story]).map((s, n) => (
           <span key={s.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
+            {/*
+              HOLDING FREEZES THE BAR WHERE IT IS. It used to jump to full on
+              pause, which reads as "finished" — the exact opposite of what
+              holding the screen means — and then restarted from zero on
+              release. `animation-play-state` stops it mid-sweep instead, and
+              the duration is what is LEFT rather than the full segment, so the
+              bar and the timer are the same number.
+            */}
             <span
               className={cn(
                 'block h-full bg-white',
@@ -279,11 +347,14 @@ export function StoryViewer({
                 // Under reduced motion the bar is simply full for the story
                 // you are on: a timer you cannot see is better than one that
                 // snaps to the end and implies it already finished.
-                n === i && (reduced || paused ? 'w-full' : 'ct-story-progress'),
+                n === i && (reduced ? 'w-full' : 'ct-story-progress'),
               )}
               style={
-                n === i && !reduced && !paused
-                  ? { animationDuration: `${SEGMENT_MS}ms` }
+                n === i && !reduced
+                  ? {
+                      animationDuration: `${left}ms`,
+                      animationPlayState: paused ? 'paused' : 'running',
+                    }
                   : undefined
               }
             />
@@ -418,7 +489,7 @@ export function StoryViewer({
             <button
               type="button"
               aria-label="Previous"
-              onClick={() => setI((n) => Math.max(0, n - 1))}
+              onClick={prev}
               className="absolute inset-y-0 left-0 w-1/3"
             />
             <button type="button" aria-label="Next" onClick={next} className="absolute inset-y-0 right-0 w-1/3" />

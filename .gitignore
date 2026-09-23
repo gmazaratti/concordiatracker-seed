@@ -44,6 +44,9 @@ scripts/*
 # Kept even though it is a one-off: it is the record of WHICH reviews we
 # were licensed to take and which we refused. This repo is public.
 !scripts/import-cc-reviews.mjs
+# The UI verification harness: a throwaway account + org to look at a signed-in
+# screen with. Reads .env.local (ignored) and sweeps after itself.
+!scripts/probe-ui.mjs
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/
@@ -77,3 +80,4 @@ od229.json
 st.json
 rv.txt
 .message-filters.test.tmp.mjs
+.probe*
