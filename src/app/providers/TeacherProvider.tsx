@@ -86,6 +86,15 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const [myCourses, setMyCourses] = useState<TeacherCourse[]>([])
   // Every org the logged-in user can manage: owned + member-of + (all, if admin).
   const [myOrgs, setMyOrgs] = useState<OrgAccount[]>([])
+  /*
+   * STILL FETCHING, which is not the same as "has none".
+   *
+   * `myOrgs` starts empty and fills a couple of queries later, so any screen
+   * that redirected on `!currentOrg` bounced on its FIRST render — before the
+   * answer existed. That is what sent somebody who had just accepted an
+   * invite back to the sign-in card.
+   */
+  const [orgsLoading, setOrgsLoading] = useState(true)
   // Which of myOrgs the user actually OWNS — drives pinning "You" as owner in the
   // team, and hiding an admin from OTHER orgs' team lists (only their own team
   // shows them).
@@ -182,9 +191,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           setMyOrgs([])
           setOwnedOrgIds(new Set())
           setPermsByOrg({})
+          setOrgsLoading(false)
         }
         return
       }
+      if (active) setOrgsLoading(true)
       const email = authUser.email ?? ''
       // Admin can manage every org (the switcher lists them all).
       const { data: adminFlag } = await supabase.rpc('is_admin')
@@ -234,6 +245,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         setMyOrgs([])
         setOwnedOrgIds(new Set())
         setPermsByOrg({})
+        setOrgsLoading(false)
         return
       }
 
@@ -286,6 +298,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       setMyOrgs(accounts)
       setOwnedOrgIds(owned)
       setPermsByOrg(perms)
+      setOrgsLoading(false)
     })()
     return () => {
       active = false
@@ -1235,6 +1248,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       orgs,
       myOrg,
       myOrgs,
+      orgsLoading,
       switchOrg,
       createOrg,
       signInSelfOrg,
@@ -1292,6 +1306,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       orgs,
       myOrg,
       myOrgs,
+      orgsLoading,
       switchOrg,
       createOrg,
       signInSelfOrg,

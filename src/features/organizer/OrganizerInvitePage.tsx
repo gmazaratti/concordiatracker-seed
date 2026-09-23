@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, Check, Loader2, MailCheck } from 'lucide-react'
+import { AlertTriangle, CalendarDays, CircleCheck, Loader2, MailCheck } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { supabase, fireWrite } from '@/lib/supabase'
@@ -136,7 +136,10 @@ export function OrganizerInvitePage() {
      * and a dashboard full of empty panels is a worse first screen than three
      * questions.
      */
-    window.location.assign('/organizer/setup')
+    // Carry WHICH org: a platform admin has every organisation in the
+    // switcher, so without this the portal opens on whichever sorted first.
+    const id = typeof res === 'object' && res.org_id ? res.org_id : null
+    window.location.assign(id ? `/organizer/setup?org=${id}` : '/organizer/setup')
   }
 
   return (
@@ -209,11 +212,12 @@ function InviteCard({
         </Button>
         {success ? (
           <>
-            {/* A REAL ICON. It was the character "✓", which renders in the
-                font's own weight and sits off the baseline — next to lucide
-                strokes everywhere else it reads as a typo. */}
-            <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success">
-              <Check size={14} className="mt-px shrink-0" aria-hidden />
+            {/* A STATUS GLYPH, not a tick. The character "✓" rendered in the
+                font's own weight and sat off the baseline; a bare `Check` then
+                read as a stray mark beside the sentence. `CircleCheck` is the
+                shape this app uses everywhere else for "that worked". */}
+            <p className="mt-2 flex items-start gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success">
+              <CircleCheck size={15} className="mt-px shrink-0" aria-hidden />
               <span>{success}</span>
             </p>
             {onForce && (

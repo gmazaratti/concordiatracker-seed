@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, PartyPopper } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { Button } from '@/components/ui/Button'
 import { ColorPicker } from '@/components/ui/ColorPicker'
@@ -34,13 +34,50 @@ const STEPS = ['Your club', 'How it looks', 'Ready'] as const
  * mid-setup comes back to a club that already has its name and its colour.
  */
 export function OrganizerSetup() {
-  const { currentOrg, updateOrgProfile } = useTeacher()
+  const { currentOrg, myOrgs, orgsLoading, switchOrg, signInSelfOrg, updateOrgProfile } =
+    useTeacher()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const [step, setStep] = useState(0)
+  const wanted = params.get('org')
 
-  // No org on this account: there is nothing to set up, and the sign-in
-  // screen is a better answer than an empty form.
-  if (!currentOrg) return <Navigate to="/organizer" replace />
+  /*
+   * ENTER THE PORTAL, rather than bouncing to the door.
+   *
+   * Arriving here means an invite was just accepted, so asking "continue as
+   * …?" is asking a question that has already been answered — and the old
+   * redirect fired on the FIRST render anyway, before the org list had
+   * loaded, so it always bounced.
+   *
+   * `?org=` is the club that was just accepted. An admin has EVERY org in
+   * `myOrgs`, so without it the portal opened on whichever one sorted first —
+   * which is how accepting an invite landed on Office of the President.
+   */
+  useEffect(() => {
+    if (orgsLoading || myOrgs.length === 0) return
+    if (wanted && myOrgs.some((o) => o.id === wanted)) {
+      if (currentOrg?.id !== wanted) switchOrg(wanted)
+      return
+    }
+    if (!currentOrg) signInSelfOrg()
+  }, [orgsLoading, myOrgs, wanted, currentOrg, switchOrg, signInSelfOrg])
+
+  if (orgsLoading) {
+    return (
+      <div className="grid min-h-[50vh] place-items-center">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
+      </div>
+    )
+  }
+  // Genuinely none — not "not yet". The sign-in screen is the right answer.
+  if (!currentOrg) {
+    if (myOrgs.length === 0) return <Navigate to="/organizer" replace />
+    return (
+      <div className="grid min-h-[50vh] place-items-center">
+        <Loader2 className="size-6 animate-spin text-accent" aria-label="Opening" />
+      </div>
+    )
+  }
   const org = currentOrg.org
 
   const done = () => navigate('/organizer', { replace: true })

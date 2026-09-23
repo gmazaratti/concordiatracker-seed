@@ -103,6 +103,10 @@ export interface TeacherContextValue {
   myOrg: OrgAccount | null
   /** Every org you can manage (owned + member-of + all-if-admin) — the switcher. */
   myOrgs: OrgAccount[]
+  /** True until the org list has been fetched. `myOrgs.length === 0` on its
+   *  own cannot tell "none" from "not yet", and a screen that redirects on
+   *  the difference bounces on its first render. */
+  orgsLoading: boolean
   /** Switch the active org by id (enters the SELF_ORG management session). */
   switchOrg: (id: string) => void
   /** Create your own organization (persisted to `organizations`, owned by you).
