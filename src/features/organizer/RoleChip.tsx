@@ -1,35 +1,9 @@
-import {
-  CalendarDays,
-  Crown,
-  Megaphone,
-  Pencil,
-  Shield,
-  Star,
-  User,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react'
+import { Shield } from 'lucide-react'
+import { ROLE_ICONS } from './role-icons'
 import { cn } from '@/lib/cn'
 
-/**
- * A role, wherever one is shown.
- *
- * THE ICON MAP IS EXPLICIT rather than a dynamic lookup into all of lucide.
- * That library is a thousand components; pulling it in by name to render a
- * badge would put the whole thing in the bundle for eight glyphs. It also
- * means a stored name nobody recognises falls back to a shield instead of
- * throwing — a role with a renamed icon should still be a role.
- */
-const ICONS: Record<string, LucideIcon> = {
-  Shield,
-  Crown,
-  User,
-  Megaphone,
-  CalendarDays,
-  Pencil,
-  Star,
-  Wrench,
-}
+/** A role, wherever one is shown. The icon map lives in role-icons.ts. */
+const ICONS = ROLE_ICONS
 
 interface RoleLike {
   name?: string

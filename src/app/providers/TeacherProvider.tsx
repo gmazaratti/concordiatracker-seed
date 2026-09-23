@@ -21,6 +21,7 @@ import {
   type OrgRow,
 } from '@/lib/supabase-adapters'
 import { useAuth } from './auth'
+import { ALL_MY_PERMS, loadMyOrgPerms, type MyOrgPerms } from '@/lib/org-roles'
 import { useAppData } from './app-data'
 import { useCommunityData } from './community-data'
 
@@ -32,7 +33,7 @@ const SELF_ORG = 'self-org'
 const ORG_COLS =
   'id, owner_id, handle, name, verified, glyph, color, logo, banner, bio, links, status, setup_completed_at'
 const EVENT_COLS =
-  'id, org_id, title, start, mode, location, category, description, image, relevant_to, map_url, posted_at'
+  'id, org_id, title, start, mode, location, category, description, image, relevant_to, map_url, posted_at, is_draft, drafted_by, last_edited_by, last_edited_at'
 
 /** A `teacher_courses` row (the teacher's persisted managed course + draft outline). */
 interface TeacherCourseRow {
@@ -133,6 +134,10 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
    * invite back to the sign-in card.
    */
   const [orgsLoading, setOrgsLoading] = useState(true)
+  /* WHOSE clubs are loaded. When auth resolves there is one render where the
+     user exists and the query has not started, and the flag alone reads
+     "done" — which redirected every reloaded deep link to the portal door. */
+  const [loadedFor, setLoadedFor] = useState<string | null | undefined>(undefined)
   // Which of myOrgs the user actually OWNS — drives pinning "You" as owner in the
   // team, and hiding an admin from OTHER orgs' team lists (only their own team
   // shows them).
@@ -140,7 +145,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   // Effective permissions PER org (owner / admin-access → all; member → their set).
   const [permsByOrg, setPermsByOrg] = useState<Record<string, OrgPermissions>>({})
   // Which org the switcher currently has active (null → the first in the list).
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null)
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() => readPortal().org)
   // Which events have had "Notify followers" fired — once-only unless reverted.
   // SWAPPABLE STUB: in-memory (resets on reload); real once-only enforcement is a
   // backend concern, but the UX (persists across re-entering the event) is real.
@@ -164,7 +169,15 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const [orgInvites, setOrgInvites] = useState<OrgInvite[]>(() =>
     SEED_ORG_INVITES.map((i) => ({ ...i })),
   )
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  /*
+   * WHICH PORTAL YOU ENTERED, REMEMBERED FOR THE TAB. It was memory only, so a
+   * reload of any deep link (`/organizer/roles`) came back signed out of the
+   * portal and rendered an empty shell with "Exit" in it — the same screen
+   * signing out produced. This is only a choice between screens; who you are
+   * is still the Supabase session, so there is nothing here worth protecting.
+   */
+  const [sessionId, setSessionId] = useState<string | null>(() => readPortal().session)
+  useEffect(() => writePortal({ session: sessionId, org: selectedOrgId }), [sessionId, selectedOrgId])
   // Announcements are loaded from the `announcements` table (Phase 9).
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
 
@@ -237,6 +250,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           setOwnedOrgIds(new Set())
           setPermsByOrg({})
           setOrgsLoading(false)
+          setLoadedFor(null)
         }
         return
       }
@@ -291,6 +305,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         setOwnedOrgIds(new Set())
         setPermsByOrg({})
         setOrgsLoading(false)
+        setLoadedFor(authUser?.id ?? null)
         return
       }
 
@@ -298,7 +313,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       const { data: evRows } = await supabase.from('events').select(EVENT_COLS).in('org_id', ids).order('start')
       const { data: memberRows } = await supabase
         .from('org_members')
-        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,title,role_id,org_id')
+        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,title,role_id,org_id,user_id')
         .in('org_id', ids)
         .order('created_at')
       if (!active) return
@@ -356,6 +371,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       setOwnedOrgIds(owned)
       setPermsByOrg(perms)
       setOrgsLoading(false)
+        setLoadedFor(authUser?.id ?? null)
     })()
     return () => {
       active = false
@@ -367,6 +383,22 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     () => myOrgs.find((o) => o.id === selectedOrgId) ?? myOrgs[0] ?? null,
     [myOrgs, selectedOrgId],
   )
+
+  // What the signed-in person may do in the club on screen, from the same
+  // function every write policy asks. Keyed by org so switching clubs never
+  // briefly shows the previous club's powers.
+  const [livePerms, setLivePerms] = useState<Record<string, MyOrgPerms>>({})
+  const myOrgId = myOrg?.id
+  useEffect(() => {
+    if (!myOrgId) return
+    let alive = true
+    void loadMyOrgPerms(myOrgId).then((p) => {
+      if (alive && p) setLivePerms((prev) => ({ ...prev, [myOrgId]: p }))
+    })
+    return () => {
+      alive = false
+    }
+  }, [myOrgId, orgTick])
 
   const [absorbedBlueprintIds, setAbsorbed] = useState<string[]>([])
 
@@ -389,26 +421,30 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       // ADMIN (not owner/member), you never appear in its team list — your own
       // ConcordiaTracker team is the only place you show up.
       if (!ownedOrgIds.has(myOrg.id)) return myOrg
+      // Pin "You" once — drop any org_members row that IS you, matched by
+      // account as well as by email: a row with no email (the handoff path
+      // writes one) otherwise shows up again as a nameless second owner.
+      const you = (authUser?.email ?? '').toLowerCase()
+      const isMe = (m: OrgMember) =>
+        (!!authUser && m.userId === authUser.id) || (!!you && (m.email ?? '').toLowerCase() === you)
+      const mine = myOrg.members.find(isMe)
       const owner: OrgMember = {
-        id: 'owner-self',
+        id: mine?.id ?? 'owner-self',
         name: user.name,
         email: authUser?.email ?? user.email,
         role: 'owner',
         status: 'active',
-        joinedDaysAgo: 0,
+        joinedDaysAgo: mine?.joinedDaysAgo ?? 0,
+        joinedAt: mine?.joinedAt,
+        roleId: mine?.roleId,
+        avatarUrl: mine?.avatarUrl,
+        title: mine?.title,
         isYou: true,
+        userId: authUser?.id,
       }
-      // Pin "You" once — drop any org_members row for the signed-in email (a
-      // co-owner grant row would otherwise show as a duplicate of the pin).
-      const you = (authUser?.email ?? '').toLowerCase()
       return {
         ...myOrg,
-        members: [
-          owner,
-          ...myOrg.members.filter(
-            (m) => m.id !== 'owner-self' && (m.email ?? '').toLowerCase() !== you,
-          ),
-        ],
+        members: [owner, ...myOrg.members.filter((m) => m.id !== 'owner-self' && !isMe(m))],
       }
     }
     return orgs.find((o) => o.id === sessionId) ?? null
@@ -1143,7 +1179,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
    * One insert cannot race itself.
    */
   const createEvent = useCallback((initial?: Partial<ManagedEvent>) => {
-    const ev = { ...newManagedEvent(), ...initial }
+    // EVERY NEW EVENT STARTS AS A DRAFT: private to the team until somebody
+    // who can post events publishes it. It used to be a public row with an
+    // empty title, hidden only by a client-side filter.
+    // Who started it is stamped by the database too; setting it here means
+    // the editor can say "you" before the next reload rather than "a teammate".
+    const ev = { ...newManagedEvent(), isDraft: true, draftedBy: authUser?.id, lastEditedBy: authUser?.id, ...initial }
     if (sessionId === SELF_ORG && myOrg) {
       const id = crypto.randomUUID()
       updateCurrentOrg((o) => ({ ...o, events: [{ ...ev, id }, ...o.events] }))
@@ -1152,12 +1193,12 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         supabase.from('events').insert({ id, org_id: myOrg.id, ...managedEventToRow(ev) }),
         'The event was not created',
       )
-      logActivity('created an event draft')
+      logActivity('started an event draft')
       return id
     }
     updateCurrentOrg((o) => ({ ...o, events: [ev, ...o.events] }))
     return ev.id
-  }, [sessionId, myOrg, updateCurrentOrg, logActivity])
+  }, [sessionId, myOrg, updateCurrentOrg, logActivity, authUser])
 
   const updateEvent = useCallback(
     (id: string, patch: Partial<ManagedEvent>) => {
@@ -1271,8 +1312,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   // ── Organizer: team (who can manage the dashboard) — invite-based STUB ─────
   const inviteOrgMember = useCallback(
-    (input: { name: string; email: string; role: OrgRole; title?: string }) => {
-      const member = { ...newOrgMemberInvite(input), title: input.title }
+    (input: { name: string; email: string; role: OrgRole; title?: string; roleId?: string }) => {
+      const member = { ...newOrgMemberInvite(input), title: input.title, roleId: input.roleId }
       // For your REAL org, the member is a DB row (uuid id) — the same record the
       // admin console + Team list read back from org_members.
       if (sessionId === SELF_ORG && myOrg) {
@@ -1284,6 +1325,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
             name: member.name,
             email: member.email,
             role: member.role,
+            // The team table refuses an invite to a role at or above the
+            // person sending it (db/org_member_guard.sql).
+            role_id: input.roleId ?? null,
             title: member.title ?? null,
             status: 'invited',
             invite_token: member.inviteToken,
@@ -1373,54 +1417,6 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
   )
 
-  // Promote / demote a teammate (admin ↔ member). Owners are immutable; the UI
-  // hides the control for them too.
-  const setOrgMemberRole = useCallback(
-    (id: string, role: OrgRole) => {
-      if (role === 'owner') return
-      const target =
-        (sessionId === SELF_ORG ? myOrg : orgs.find((o) => o.id === sessionId))?.members.find(
-          (m) => m.id === id,
-        )
-      if (!target || target.role === 'owner') return
-      // Switching role preset clears per-member overrides (role defaults apply).
-      updateCurrentOrg((o) => ({
-        ...o,
-        members: o.members.map((m) => (m.id === id ? { ...m, role, permissions: undefined } : m)),
-      }))
-      if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(
-          supabase.from('org_members').update({ role, permissions: null }).eq('id', id),
-          'That role did not save',
-        )
-      }
-      logActivity(`made ${target.name} ${role === 'admin' ? 'an admin' : 'a member'}`)
-    },
-    [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
-  )
-
-  // Toggle a single permission for a teammate (stored as an override on top of
-  // their role's defaults; RLS reads the same jsonb via org_perm()).
-  const setOrgMemberPerms = useCallback(
-    (id: string, patch: Partial<OrgPermissions>) => {
-      const org = sessionId === SELF_ORG ? myOrg : orgs.find((o) => o.id === sessionId)
-      const target = org?.members.find((m) => m.id === id)
-      if (!target || target.role === 'owner') return
-      const merged = { ...(target.permissions ?? {}), ...patch }
-      updateCurrentOrg((o) => ({
-        ...o,
-        members: o.members.map((m) => (m.id === id ? { ...m, permissions: merged } : m)),
-      }))
-      if (sessionId === SELF_ORG && myOrg) {
-        fireWrite(
-          supabase.from('org_members').update({ permissions: merged }).eq('id', id),
-          'Those permissions did not save',
-        )
-      }
-      logActivity(`updated ${target.name}'s permissions`)
-    },
-    [updateCurrentOrg, sessionId, myOrg, orgs, logActivity],
-  )
 
   const value = useMemo<TeacherContextValue>(
     () => ({
@@ -1454,7 +1450,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       orgs,
       myOrg,
       myOrgs,
-      orgsLoading,
+      orgsLoading: orgsLoading || loadedFor !== (authUser?.id ?? null),
       switchOrg,
       createOrg,
       signInSelfOrg,
@@ -1478,10 +1474,13 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,
-      setOrgMemberRole,
-      setOrgMemberPerms,
       orgViewerPerms:
-        sessionId === SELF_ORG && myOrg ? permsByOrg[myOrg.id] ?? ALL_ORG_PERMS : ALL_ORG_PERMS,
+        sessionId === SELF_ORG && myOrg
+          ? livePerms[myOrg.id]
+            ? legacyPerms(livePerms[myOrg.id])
+            : permsByOrg[myOrg.id] ?? ALL_ORG_PERMS
+          : ALL_ORG_PERMS,
+      orgPerms: sessionId === SELF_ORG && myOrg ? livePerms[myOrg.id] ?? null : ALL_MY_PERMS,
       communityOrgs,
       communityEvents,
     }),
@@ -1515,6 +1514,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       myOrg,
       myOrgs,
       orgsLoading,
+      loadedFor,
+      authUser,
       switchOrg,
       createOrg,
       signInSelfOrg,
@@ -1536,9 +1537,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,
-      setOrgMemberRole,
-      setOrgMemberPerms,
       permsByOrg,
+      livePerms,
       sessionId,
       communityOrgs,
       communityEvents,
@@ -1546,4 +1546,34 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   )
 
   return <TeacherContext value={value}>{children}</TeacherContext>
+}
+
+/** The four keys the older screens gate on, read off the real role. */
+function legacyPerms(p: MyOrgPerms): OrgPermissions {
+  return {
+    manage_events: p.event_create || p.event_update || p.draft_content,
+    edit_profile: p.profile_edit,
+    view_insights: p.view_insights,
+    manage_team: p.manage_team,
+  }
+}
+
+const PORTAL_KEY = 'ct_portal_session'
+
+function readPortal(): { session: string | null; org: string | null } {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(PORTAL_KEY) ?? 'null') as { session?: string; org?: string } | null
+    return { session: v?.session ?? null, org: v?.org ?? null }
+  } catch {
+    return { session: null, org: null }
+  }
+}
+
+function writePortal(v: { session: string | null; org: string | null }) {
+  try {
+    if (v.session) sessionStorage.setItem(PORTAL_KEY, JSON.stringify(v))
+    else sessionStorage.removeItem(PORTAL_KEY)
+  } catch {
+    /* private mode: the portal simply is not remembered */
+  }
 }

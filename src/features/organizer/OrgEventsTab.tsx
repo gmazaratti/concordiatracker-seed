@@ -30,8 +30,12 @@ export function OrgEventsTab({
   const sorted = [...events].sort(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   )
-  const upcoming = sorted.filter((e) => new Date(e.start).getTime() >= now)
-  const past = sorted.filter((e) => new Date(e.start).getTime() < now).reverse()
+  // Drafts are their own shelf: private to the team, and not "upcoming" in
+  // any sense a student would recognise until somebody publishes them.
+  const drafts = sorted.filter((e) => e.isDraft)
+  const live = sorted.filter((e) => !e.isDraft)
+  const upcoming = live.filter((e) => new Date(e.start).getTime() >= now)
+  const past = live.filter((e) => new Date(e.start).getTime() < now).reverse()
 
   return (
     <div>
@@ -62,6 +66,9 @@ export function OrgEventsTab({
         )
       ) : (
         <div className="flex flex-col gap-6">
+          {drafts.length > 0 && (
+            <Section title="Drafts" count={drafts.length} events={drafts} view={view} orgColor={orgColor} />
+          )}
           <Section title="Upcoming" count={upcoming.length} events={upcoming} view={view} orgColor={orgColor} emptyLabel="No upcoming events: post one to reach students." />
           {past.length > 0 && (
             <Section title="Past" count={past.length} events={past} view={view} orgColor={orgColor} />
@@ -132,9 +139,9 @@ function EventCard({ event, orgColor, past }: { event: ManagedEvent; orgColor: s
         <span className="absolute top-2.5 left-2.5 grid size-7 place-items-center rounded-md bg-white/20 text-white backdrop-blur-sm">
           <Icon size={15} />
         </span>
-        {past && (
-          <span className="absolute top-2.5 right-2.5 rounded-full bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white">
-            Past
+        {(past || event.isDraft) && (
+          <span className="absolute top-2.5 right-2.5 z-10 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
+            {event.isDraft ? 'Draft' : 'Past'}
           </span>
         )}
         {event.image && (
@@ -178,9 +185,14 @@ function EventRow({ event, past }: { event: ManagedEvent; past: boolean }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-[14px] font-medium text-fg">{title}</span>
-            {past && (
-              <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-subtle">
-                Past
+            {(past || event.isDraft) && (
+              <span
+                className={cn(
+                  'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                  event.isDraft ? 'bg-warning/15 text-warning' : 'bg-surface-2 text-subtle',
+                )}
+              >
+                {event.isDraft ? 'Draft' : 'Past'}
               </span>
             )}
           </div>

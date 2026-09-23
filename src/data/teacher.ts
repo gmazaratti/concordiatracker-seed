@@ -337,6 +337,11 @@ export interface ManagedEvent {
   relevantTo?: string[]
   postedDaysAgo: number
   metrics: EventMetrics
+  /** Private to the team until somebody who can post events publishes it. */
+  isDraft?: boolean
+  draftedBy?: string
+  lastEditedBy?: string
+  lastEditedAt?: string
 }
 
 /** Who can manage an org's dashboard. Owners can't be removed; members are
@@ -398,6 +403,10 @@ export interface OrgMember {
   permissions?: Partial<OrgPermissions>
   /** Snapshot of their profile photo (denormalized — RLS hides other profiles). */
   avatarUrl?: string
+  /** Their account, once they have accepted. Absent while only invited. */
+  userId?: string
+  /** When they joined, for "on the team since". */
+  joinedAt?: string
 }
 
 export interface OrgAccount {
@@ -597,9 +606,9 @@ export const SEED_ORGS: OrgAccount[] = [
     events: seededEvents('@hackconcordia', HACK_METRICS),
     followers: 1240,
     members: [
-      { id: 'm-hack-1', name: 'Priya Nair', email: 'team@hackconcordia.org', role: 'owner', status: 'active', joinedDaysAgo: 240 },
-      { id: 'm-hack-2', name: 'Marc Tremblay', email: 'marc@hackconcordia.org', role: 'admin', status: 'active', joinedDaysAgo: 96 },
-      { id: 'm-hack-3', name: 'Wei Chen', email: 'wei@hackconcordia.org', role: 'member', status: 'active', joinedDaysAgo: 28 },
+      { id: 'm-hack-1', userId: 'demo-priya', name: 'Priya Nair', email: 'team@hackconcordia.org', role: 'owner', status: 'active', joinedDaysAgo: 240 },
+      { id: 'm-hack-2', userId: 'demo-marc', name: 'Marc Tremblay', email: 'marc@hackconcordia.org', role: 'admin', status: 'active', joinedDaysAgo: 96 },
+      { id: 'm-hack-3', userId: 'demo-wei', name: 'Wei Chen', email: 'wei@hackconcordia.org', role: 'member', status: 'active', joinedDaysAgo: 28 },
     ],
   },
   {
@@ -610,7 +619,7 @@ export const SEED_ORGS: OrgAccount[] = [
     events: seededEvents('@conu.outdoors', {}),
     followers: 318,
     members: [
-      { id: 'm-out-1', name: 'Sophie Gagnon', email: 'outdoors@cua.concordia.ca', role: 'owner', status: 'active', joinedDaysAgo: 60 },
+      { id: 'm-out-1', userId: 'demo-sophie', name: 'Sophie Gagnon', email: 'outdoors@cua.concordia.ca', role: 'owner', status: 'active', joinedDaysAgo: 60 },
     ],
   },
 ]

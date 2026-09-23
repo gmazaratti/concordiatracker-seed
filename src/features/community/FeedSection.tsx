@@ -10,11 +10,7 @@ import { StoriesRow } from './stories/StoriesRow'
 import { StoryViewer } from './stories/StoryViewer'
 import { StoryComposer } from './stories/StoryComposer'
 import { PostCard } from './posts/PostCard'
-import { EventTile } from './EventTile'
-import { useCommunity } from './useCommunity'
-import { useEventActions } from './useEventActions'
-import { isRelevantTo, type CampusEvent } from '@/data/community'
-import { useAppData } from '@/app/providers/app-data'
+import { PostComposer } from './posts/PostComposer'
 import { markSeen, orderFeed, seenIds, subscribeSeen } from '@/lib/seen-feed'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -37,11 +33,15 @@ import { cn } from '@/lib/cn'
  *     composing lives — the club's own profile and the organizer portal — not
  *     at the top of everyone's reading surface.
  *
- * WHAT IS LEFT is what clubs put out — posts AND the events they published —
- * in the order it reached you. Events appear here as well as on their own tab
- * because a club announcing something should not have to post twice for it to
- * be seen, and the tabs still differ in the way that matters: this is ordered
- * by when it was PUBLISHED, Events by when it STARTS.
+ *   • EVENTS. They were in this river for a while, as event cards between the
+ *     posts, and they made it worse at both jobs: a club's weekly night became
+ *     a wall of identical cards, and the feed stopped being the place for the
+ *     moments a club shares. Events have their own tab, ordered by when they
+ *     START; this is ordered by when something was POSTED. A club that wants
+ *     an event in the feed cross-posts it, which makes a real post that links
+ *     the event.
+ *
+ * WHAT IS LEFT is what clubs post, in the order it reached you.
  *
  * UNSEEN FIRST, AND NOTHING IS EVER REMOVED. What you have already scrolled
  * past moves below a line that says so; it does not disappear, because a feed
@@ -53,7 +53,8 @@ export function FeedSection() {
   const [rings, setRings] = useState<StoryRing[]>([])
   const [posts, setPosts] = useState<FeedPost[] | null>(null)
   const [watching, setWatching] = useState<StoryRing | null>(null)
-  const [composing, setComposing] = useState(false)
+  /** The capture screen offers STORY and POST; each has its own composer. */
+  const [composing, setComposing] = useState<'story' | 'post' | null>(null)
   const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
@@ -111,35 +112,13 @@ export function FeedSection() {
     return muted.size === 0 ? posts : posts.filter((p) => !muted.has(p.orgId))
   }, [posts])
 
-  /*
-   * POSTS AND EVENTS, IN ONE RIVER.
-   *
-   * An event carries `postedDaysAgo` rather than a timestamp, so it is turned
-   * into one here: the feed's whole ordering is "when did this reach me", and
-   * two different units cannot be interleaved.
-   */
-  const { events } = useCommunity()
-  const { user } = useAppData()
-  const eventActions = useEventActions()
-  const entries = useMemo<FeedEntry[] | null>(() => {
-    if (shown === null) return null
-    const muted = mutedOrgs()
-    const fromEvents: FeedEntry[] = events
-      .filter((e) => !muted.has(e.org.handle))
-      .map((e) => ({
-        kind: 'event' as const,
-        id: `event:${e.id}`,
-        at: postedAtOf(e),
-        event: e,
-      }))
-    const fromPosts: FeedEntry[] = shown.map((p) => ({
-      kind: 'post' as const,
-      id: `post:${p.id}`,
-      at: p.publishAt ?? p.createdAt,
-      post: p,
-    }))
-    return [...fromPosts, ...fromEvents]
-  }, [shown, events])
+  const entries = useMemo<FeedEntry[] | null>(
+    () =>
+      shown === null
+        ? null
+        : shown.map((p) => ({ id: `post:${p.id}`, at: p.publishAt ?? p.createdAt, post: p })),
+    [shown],
+  )
 
   /* Re-order when something is marked seen, but NOT while you are looking at
      it: the split is computed once per visit so a card cannot slide out from
@@ -169,7 +148,7 @@ export function FeedSection() {
           rings={rings}
           myOrgs={myOrgs}
           onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
-          onCompose={() => setComposing(true)}
+          onCompose={() => setComposing('story')}
         />
       )}
 
@@ -195,9 +174,6 @@ export function FeedSection() {
               entry={e}
               myOrgIds={myOrgIds}
               onChanged={() => setRefresh((n) => n + 1)}
-              program={user.program}
-              school={user.school}
-              actions={eventActions}
             />
           ))}
 
@@ -214,9 +190,6 @@ export function FeedSection() {
               seen
               myOrgIds={myOrgIds}
               onChanged={() => setRefresh((n) => n + 1)}
-              program={user.program}
-              school={user.school}
-              actions={eventActions}
             />
           ))}
         </div>
@@ -230,10 +203,18 @@ export function FeedSection() {
           onSeen={() => setRefresh((n) => n + 1)}
         />
       )}
-      {composing && myOrgs.length > 0 && (
+      {composing === 'story' && myOrgs.length > 0 && (
         <StoryComposer
           orgs={myOrgs}
-          onClose={() => setComposing(false)}
+          onClose={() => setComposing(null)}
+          onPosted={() => setRefresh((n) => n + 1)}
+          onSwitchToPost={() => setComposing('post')}
+        />
+      )}
+      {composing === 'post' && myOrgs.length > 0 && (
+        <PostComposer
+          orgs={myOrgs}
+          onClose={() => setComposing(null)}
           onPosted={() => setRefresh((n) => n + 1)}
         />
       )}
@@ -242,21 +223,8 @@ export function FeedSection() {
 }
 
 
-/**
- * When an event reached the feed.
- *
- * Module level because a clock read in a component body trips
- * `react-hooks/purity` — the same reason `usageState` and the Today
- * upcoming/past split live outside their components.
- */
-function postedAtOf(e: CampusEvent): string {
-  return new Date(Date.now() - (e.postedDaysAgo ?? 0) * 86_400_000).toISOString()
-}
-
-/** One thing in the river: something a club posted, or something it published. */
-type FeedEntry =
-  | { kind: 'post'; id: string; at: string; post: FeedPost }
-  | { kind: 'event'; id: string; at: string; event: CampusEvent }
+/** One thing in the river. Posts only — see the header for why. */
+type FeedEntry = { id: string; at: string; post: FeedPost }
 
 /**
  * A card, plus the bit that decides it has been read.
@@ -273,17 +241,11 @@ function FeedItem({
   seen = false,
   myOrgIds,
   onChanged,
-  program,
-  school,
-  actions,
 }: {
   entry: FeedEntry
   seen?: boolean
   myOrgIds: Set<string>
   onChanged: () => void
-  program?: string
-  school?: string
-  actions: ReturnType<typeof useEventActions>
 }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -312,24 +274,11 @@ function FeedItem({
 
   return (
     <div ref={ref} className={cn(seen && 'opacity-[0.92]')}>
-      {entry.kind === 'post' ? (
-        <PostCard
-          post={entry.post}
-          canManage={myOrgIds.has(entry.post.orgId)}
-          onChanged={onChanged}
-        />
-      ) : (
-        <div className="px-3 py-2 sm:px-0">
-          <EventTile
-            event={entry.event}
-            view="card"
-            relevant={isRelevantTo(entry.event, program ?? '', school ?? '')}
-            added={actions.isAdded(entry.event)}
-            onOpen={() => actions.openEvent(entry.event.id)}
-            onAdd={() => actions.add(entry.event)}
-          />
-        </div>
-      )}
+      <PostCard
+        post={entry.post}
+        canManage={myOrgIds.has(entry.post.orgId)}
+        onChanged={onChanged}
+      />
     </div>
   )
 }

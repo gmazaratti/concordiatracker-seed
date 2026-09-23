@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { formatFull } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { useMemberPanel } from './member-panel/member-panel'
 
 /**
  * `/organizer/activity` — who did what, and how to put it back.
@@ -112,6 +113,7 @@ export function OrganizerActivity() {
 }
 
 function Row({ entry, onChanged }: { entry: ActivityEntry; onChanged: () => void }) {
+  const { openMember } = useMemberPanel()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const undone = !!entry.revertedAt
@@ -126,7 +128,18 @@ function Row({ entry, onChanged }: { entry: ActivityEntry; onChanged: () => void
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] text-fg">
-          <span className="font-medium">{entry.actorName}</span> {entry.action}
+          {entry.actorUser ? (
+            <button
+              type="button"
+              onClick={() => openMember({ userId: entry.actorUser, name: entry.actorName })}
+              className="font-medium hover:underline"
+            >
+              {entry.actorName}
+            </button>
+          ) : (
+            <span className="font-medium">{entry.actorName}</span>
+          )}{' '}
+          {entry.action}
           {undone && <span className="ml-1.5 text-[11.5px] text-subtle">· undone</span>}
         </p>
         {entry.detail && (

@@ -488,6 +488,10 @@ export interface EventRow {
   series_id?: string | null
   recurrence?: string | null
   map_url?: string | null
+  is_draft?: boolean | null
+  drafted_by?: string | null
+  last_edited_by?: string | null
+  last_edited_at?: string | null
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
@@ -550,6 +554,10 @@ export function eventRowToManaged(r: EventRow): ManagedEvent {
     mapUrl: r.map_url ?? undefined,
     postedDaysAgo: Math.max(0, Math.round((Date.now() - new Date(r.posted_at).getTime()) / DAY_MS)),
     metrics: { views: 0, follows: 0, calendarAdds: 0 },
+    isDraft: !!r.is_draft,
+    draftedBy: r.drafted_by ?? undefined,
+    lastEditedBy: r.last_edited_by ?? undefined,
+    lastEditedAt: r.last_edited_at ?? undefined,
   }
 }
 
@@ -566,6 +574,7 @@ export interface OrgMemberRow {
   avatar_url?: string | null
   title?: string | null
   role_id?: string | null
+  user_id?: string | null
 }
 export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
   return {
@@ -582,6 +591,8 @@ export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
     avatarUrl: r.avatar_url ?? undefined,
     title: r.title ?? undefined,
     roleId: r.role_id ?? undefined,
+    userId: r.user_id ?? undefined,
+    joinedAt: r.joined_at ?? undefined,
   }
 }
 
@@ -598,6 +609,7 @@ export function managedEventToRow(patch: Partial<ManagedEvent>): Record<string, 
   if ('relevantTo' in patch) row.relevant_to = patch.relevantTo ?? []
   if ('mapUrl' in patch) row.map_url = patch.mapUrl || null
   if ('translations' in patch) row.translations = patch.translations ?? {}
+  if ('isDraft' in patch) row.is_draft = !!patch.isDraft
   return row
 }
 

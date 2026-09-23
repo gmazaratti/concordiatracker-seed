@@ -324,8 +324,10 @@ export function PostCard({
         <CollabHeader post={post} onOpenSheet={() => setShowCollabs(true)} />
         <span className="shrink-0 text-[12px] text-subtle">· {ago(post.createdAt)}</span>
         <span className="min-w-1 flex-1" />
-        {/* Nothing at all once you follow them — see PostFollowButton. */}
-        <PostFollowButton handle={post.handle} />
+        {/* Nothing at all once you follow them — see PostFollowButton — and
+            nothing on a post your own club made: following yourself is not
+            an action anybody is looking for. */}
+        {!canManage && <PostFollowButton handle={post.handle} />}
         <DropdownMenu
           ariaLabel="Post options"
           items={[

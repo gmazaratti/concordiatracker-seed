@@ -32,11 +32,14 @@ export function CameraCapture({
   onMode,
   onPick,
   onClose,
+  canPost = true,
 }: {
   mode: CaptureMode
   onMode: (m: CaptureMode) => void
   onPick: (file: File) => void
   onClose: () => void
+  /** Whether POST is offered beside STORY. */
+  canPost?: boolean
 }) {
   const video = useRef<HTMLVideoElement | null>(null)
   const stream = useRef<MediaStream | null>(null)
@@ -89,12 +92,28 @@ export function CameraCapture({
     }
   }, [facing, stop])
 
+  /**
+   * Keep ONLY what was inside the 9:16 viewfinder.
+   *
+   * The sensor frame is wider than the viewfinder (a phone camera streams
+   * 4:3 or 16:9), and the viewfinder shows it `object-cover` — cropped. The
+   * old shutter saved the whole sensor frame, so the photo that posted had
+   * more on its sides than anything the person was looking at. This is the
+   * same centred cover crop the <video> element applies.
+   */
   const shoot = () => {
     const v = video.current
     if (!v || !v.videoWidth) return
+    const vw = v.videoWidth
+    const vh = v.videoHeight
+    const ratio = 9 / 16
+    const sw = vw / vh > ratio ? vh * ratio : vw
+    const sh = vw / vh > ratio ? vh : vw / ratio
+    const sx = (vw - sw) / 2
+    const sy = (vh - sh) / 2
     const c = document.createElement('canvas')
-    c.width = v.videoWidth
-    c.height = v.videoHeight
+    c.width = Math.round(sw)
+    c.height = Math.round(sh)
     const ctx = c.getContext('2d')
     if (!ctx) return
     // The front camera is shown mirrored (that is what people expect of a
@@ -104,7 +123,7 @@ export function CameraCapture({
       ctx.translate(c.width, 0)
       ctx.scale(-1, 1)
     }
-    ctx.drawImage(v, 0, 0)
+    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height)
     c.toBlob((blob) => {
       if (!blob) return
       stop()
@@ -134,7 +153,14 @@ export function CameraCapture({
         </button>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 items-center justify-center px-2 [container-type:size]">
+      {/* THE VIEWFINDER IS THE STORY'S FRAME — 9:16 — so framing a shot and
+          seeing it posted are the same rectangle. Sized from the container
+          (see StoryComposer's FRAME_FIT) so a narrow phone keeps the ratio. */}
+      <div
+        className="relative overflow-hidden rounded-[22px] bg-neutral-900"
+        style={{ width: 'min(100cqw, calc(100cqh * 9 / 16))', aspectRatio: '9 / 16' }}
+      >
         {denied ? (
           <div className="grid size-full place-items-center px-8 text-center">
             <div>
@@ -154,6 +180,7 @@ export function CameraCapture({
             )}
           />
         )}
+      </div>
       </div>
 
       {/* Shutter row: gallery left, shutter centre. */}
@@ -193,7 +220,7 @@ export function CameraCapture({
 
       {/* POST | STORY, where the reference puts it. */}
       <div className="flex items-center justify-center gap-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        {(['post', 'story'] as CaptureMode[]).map((m) => (
+        {(canPost ? (['post', 'story'] as CaptureMode[]) : (['story'] as CaptureMode[])).map((m) => (
           <button
             key={m}
             type="button"

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, History, Inbox, LayoutDashboard, Loader2, LogOut, Newspaper, ShieldCheck, UserCircle, Users, type LucideIcon } from 'lucide-react'
 import type { OrgAccount } from '@/data/teacher'
 import { useTeacher } from '@/app/providers/teacher'
@@ -8,6 +8,8 @@ import { useAppData } from '@/app/providers/app-data'
 import { StatusChip } from './TeacherLayout'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { WriteErrorToast } from '@/components/WriteErrorToast'
+import { MemberPanelProvider } from '@/features/organizer/member-panel/MemberPanelProvider'
+import { OrgBell } from '@/features/organizer/OrgNotifications'
 import { cn } from '@/lib/cn'
 
 const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
@@ -34,8 +36,16 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
  * the invite/join/request pages) it falls back to a slim top-bar chrome.
  */
 export function OrganizerLayout() {
-  const { currentOrg, myOrgs, switchOrg, signOut, isDemoSession, orgViewerPerms } = useTeacher()
+  const { currentOrg, myOrgs, switchOrg, signOut: endSession, isDemoSession, orgViewerPerms, orgsLoading } = useTeacher()
   const { loading } = useAuth()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  // Leaving the portal lands on its door, not on whatever page you were on —
+  // which without a session is an empty shell.
+  const signOut = () => {
+    endSession()
+    navigate('/organizer', { replace: true })
+  }
   const { user } = useAppData()
   // Sidebar honours your permissions: no Insights without view_insights, no
   // Profile editor without edit_profile (RLS enforces the same server-side).
@@ -49,7 +59,11 @@ export function OrganizerLayout() {
     return true
   })
 
-  if (loading) {
+  // Pages that make sense without a club: the door itself, and the links
+  // people are sent (an invite, a team invite, the access request).
+  const openPath = pathname === '/organizer' || pathname === '/organizer/' || /^\/organizer\/(invite|join|request|setup)(\/|$)/.test(pathname)
+
+  if (loading || (!currentOrg && !openPath && orgsLoading)) {
     return (
       <div className="grid h-svh place-items-center bg-canvas">
         <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
@@ -59,6 +73,8 @@ export function OrganizerLayout() {
 
   // Signed out → slim chrome (sign-in, invite-accept, join, request pages).
   if (!currentOrg) {
+    // Anything else needs a club; without one it rendered an empty shell.
+    if (!openPath) return <Navigate to="/organizer" replace />
     return (
       <div className="flex min-h-svh flex-col bg-canvas">
         <header className="border-b border-border bg-surface/40">
@@ -85,13 +101,19 @@ export function OrganizerLayout() {
   }
 
   return (
+    <MemberPanelProvider>
     <div className="flex h-svh overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
         {/* Org identity + switcher + status, grouped above a divider that clearly
             separates it from the nav below. */}
         <div className="mb-3 border-b border-border pb-3">
-          <OrgSwitcher orgs={myOrgs} current={currentOrg} onSwitch={switchOrg} />
+          <div className="flex items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <OrgSwitcher orgs={myOrgs} current={currentOrg} onSwitch={switchOrg} />
+            </div>
+            <OrgBell orgId={currentOrg.id} />
+          </div>
           <div className="mt-1.5 px-2">
             <StatusChip status={currentOrg.status} />
           </div>
@@ -172,14 +194,14 @@ export function OrganizerLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <OrgLogo org={currentOrg.org} className="size-8" rounded="rounded-lg" textClass="text-[12px]" />
-            <div className="min-w-0">
-              <p className="truncate text-[13.5px] font-semibold text-fg">{currentOrg.org.name}</p>
-            </div>
+          {/* The same switcher as the desktop rail: somebody who runs two
+              clubs used to have to sign in to each separately on a phone. */}
+          <div className="min-w-0 flex-1">
+            <OrgSwitcher orgs={myOrgs} current={currentOrg} onSwitch={switchOrg} compact />
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <StatusChip status={currentOrg.status} />
+            <OrgBell orgId={currentOrg.id} />
             <button
               type="button"
               onClick={signOut}
@@ -244,6 +266,7 @@ export function OrganizerLayout() {
         </nav>
       </div>
     </div>
+    </MemberPanelProvider>
   )
 }
 
@@ -254,10 +277,13 @@ function OrgSwitcher({
   orgs,
   current,
   onSwitch,
+  compact,
 }: {
   orgs: OrgAccount[]
   current: OrgAccount
   onSwitch: (id: string) => void
+  /** The phone's top bar: a smaller face, and a menu as wide as the screen. */
+  compact?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -288,14 +314,22 @@ function OrgSwitcher({
         aria-haspopup={multi ? 'menu' : undefined}
         aria-expanded={multi ? open : undefined}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors duration-150',
+          'flex w-full items-center gap-2.5 rounded-xl text-left transition-colors duration-150',
+          compact ? '-ml-1 px-1 py-1' : 'px-2 py-2',
           multi ? 'hover:bg-surface-2' : 'cursor-default',
         )}
       >
-        <OrgLogo org={current.org} className="size-10" rounded="rounded-xl" textClass="text-[14px]" />
+        <OrgLogo
+          org={current.org}
+          className={compact ? 'size-8' : 'size-10'}
+          rounded={compact ? 'rounded-lg' : 'rounded-xl'}
+          textClass={compact ? 'text-[12px]' : 'text-[14px]'}
+        />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-fg">{current.org.name}</p>
-          <p className="truncate text-[11.5px] text-subtle">{current.org.handle}</p>
+          <p className={cn('truncate font-semibold text-fg', compact ? 'text-[13.5px]' : 'text-[14px]')}>{current.org.name}</p>
+          <p className={cn('truncate text-subtle', compact ? 'text-[11px]' : 'text-[11.5px]')}>
+            {compact && multi ? `${orgs.length} clubs · tap to switch` : current.org.handle}
+          </p>
         </div>
         {multi && <ChevronsUpDown size={15} className="shrink-0 text-subtle" aria-hidden />}
       </button>
@@ -303,7 +337,10 @@ function OrgSwitcher({
       {open && multi && (
         <div
           role="menu"
-          className="ct-animate-pop absolute inset-x-0 top-full z-40 mt-1 max-h-[19rem] overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-2xl"
+          className={cn(
+            'ct-animate-pop absolute top-full z-40 mt-1 max-h-[19rem] overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-2xl',
+            compact ? 'left-0 w-[calc(100vw-2rem)] max-w-sm' : 'inset-x-0',
+          )}
         >
           <p className="px-2 py-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">
             Switch organization

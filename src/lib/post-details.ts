@@ -94,6 +94,7 @@ export async function listOrgEvents(orgId: string): Promise<OrgEventOption[]> {
     .from('events')
     .select('id, title, start')
     .eq('org_id', orgId)
+    .eq('is_draft', false)
     .not('title', 'is', null)
     .neq('title', '')
     .order('start', { ascending: false })

@@ -1,320 +1,161 @@
-import { Link, useNavigate } from 'react-router-dom'
-import {
-  CalendarPlus,
-  CheckCircle2,
-  ChevronRight,
-  Circle,
-  ExternalLink,
-  Plus,
-  RotateCcw,
-  Sparkles,
-  UserCog,
-  UserPlus,
-  Users,
-  type LucideIcon,
-} from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { CalendarDays, ExternalLink, Heart, MessageCircle, Newspaper, Plus, RotateCcw, UserCog, UserPlus, Users } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
-import { metricsTotals, type ManagedEvent } from '@/data/teacher'
 import { orgSlug } from '@/data/community'
-import { formatDueDateTime, startOfToday } from '@/lib/date'
-import { CATEGORY_META } from '@/features/community/category'
-import { Stat } from './OrgStat'
-import { cn } from '@/lib/cn'
+import { startOfToday } from '@/lib/date'
+import { Panel } from '@/features/admin/admin-ui'
+import { Segmented } from '@/features/settings/controls'
+import { ActionCard, SeeAll, SetupChecklist, UpcomingRow, type SetupStep } from './overview/OverviewParts'
+import { GrowthPanel, KpiCard } from './overview/OverviewCharts'
+import { TopPosts } from './overview/TopPosts'
+import { delta, sum, useOrgSeries, type SeriesKey } from './overview/use-org-series'
 
-/** `/organizer` — the comprehensive at-a-glance page: setup checklist (new orgs),
- * reach stats, quick-action cards, and an upcoming preview. Everything else lives
- * on its own sidebar destination (Events / Insights / Profile / Team). */
+type Range = '7' | '30' | '90'
+
+/**
+ * `/organizer` — how the club is doing, drawn.
+ *
+ * The admin overview's shape on purpose: numbers with their trend first, one
+ * chart you can re-point at a metric, and the lists that explain them beside
+ * it. Every figure is a count of real rows on real days (follows, posts,
+ * likes, comments, published events) — a real club has no view tracking, and
+ * a chart of estimates would be the most confident-looking wrong thing on
+ * the portal.
+ *
+ * Setup and quick actions stay, below the numbers once a club is running and
+ * above them while it is still getting set up.
+ */
 export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => void }) {
   const { currentOrg, createEvent, orgViewerPerms: perms } = useTeacher()
   const navigate = useNavigate()
+  const [range, setRange] = useState<Range>('30')
+  const days = Number(range)
+  const { current, previous } = useOrgSeries(currentOrg?.id, days)
   if (!currentOrg) return null
 
-  const { org, events, members, followers, status } = currentOrg
+  const { org, events, members, status } = currentOrg
   const pending = status === 'pending'
-  const totals = metricsTotals(events)
   const now = startOfToday().getTime()
-  const upcoming = [...events]
+  const live = events.filter((e) => !e.isDraft)
+  const upcoming = live
     .filter((e) => new Date(e.start).getTime() >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-    .slice(0, 3)
+    .slice(0, 4)
 
   function newEvent() {
-    const id = createEvent()
-    navigate(`/organizer/event/${id}`)
+    navigate(`/organizer/event/${createEvent()}`)
   }
 
   const steps: SetupStep[] = [
     { done: !!org.bio?.trim(), label: 'Complete your profile', hint: 'Add a bio, logo, and links', to: '/organizer/profile' },
-    { done: events.length > 0, label: 'Post your first event', hint: 'Reach students in Community', onClick: newEvent },
+    { done: live.length > 0, label: 'Post your first event', hint: 'Reach students in Community', onClick: newEvent },
     { done: members.length > 1, label: 'Invite your team', hint: 'Share the dashboard with co-organizers', to: '/organizer/team' },
   ]
   const setupDone = steps.every((s) => s.done)
+  const spark = (k: SeriesKey) => (current ?? []).map((r) => ({ day: r.day, value: r[k] }))
+  const followers = current?.at(-1)?.followers ?? 0
+  const period = `vs previous ${days} days`
+
+  const actions = (
+    <section>
+      <h2 className="mb-3 text-[11px] font-semibold tracking-wide text-subtle uppercase">Quick actions</h2>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {perms.manage_events && <ActionCard icon={Plus} label="New event" sub="Starts as a draft" onClick={newEvent} accent />}
+        {perms.edit_profile && <ActionCard icon={UserCog} label="Edit profile" sub="Bio, logo, links" to="/organizer/profile" />}
+        {perms.manage_team && <ActionCard icon={Users} label="Invite team" sub="Share the dashboard" to="/organizer/team" />}
+        {status === 'approved' ? (
+          <ActionCard icon={ExternalLink} label="Public profile" sub="See what students see" to={`/app/community/org/${orgSlug(org)}`} />
+        ) : (
+          <ActionCard icon={ExternalLink} label="Public profile" sub="Live after approval" disabled />
+        )}
+      </div>
+    </section>
+  )
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-6 sm:px-6">
+    <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-6">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Overview</h1>
-          <p className="text-[13px] text-subtle">How {org.name} is doing, at a glance.</p>
+          <p className="text-[13px] text-subtle">How {org.name} is doing.</p>
         </div>
-        {onReplaySetup && (
-          <button
-            type="button"
-            onClick={onReplaySetup}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <RotateCcw size={13} aria-hidden />
-            Replay setup
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <Segmented
+            ariaLabel="Time range"
+            value={range}
+            onChange={setRange}
+            options={[
+              { value: '7', label: '7 days' },
+              { value: '30', label: '30 days' },
+              { value: '90', label: '90 days' },
+            ]}
+          />
+          {onReplaySetup && (
+            <button
+              type="button"
+              onClick={onReplaySetup}
+              title="Replay setup"
+              aria-label="Replay setup"
+              className="grid size-8 place-items-center rounded-lg border border-border text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            >
+              <RotateCcw size={14} aria-hidden />
+            </button>
+          )}
+        </div>
       </header>
 
       {pending && (
         <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
-          {/* Says what happens NEXT and who does it. "Pending" on its own is a
-              dead end: nobody knows whether to wait, email someone, or give
-              up — and the club that gives up is the one you spent the
-              outreach on. The email is real (api/admin.ts → org-approved). */}
-          <strong className="font-semibold">Waiting on us, not on you.</strong> Set up your profile
-          and draft your events now — nothing is lost. We check new organizations by hand, and
-          you'll get an email the moment yours is approved; everything you've drafted goes live
-          in the Community feed at that point.
+          <strong className="font-semibold">Waiting on us, not on you.</strong> Set up your profile and
+          draft your events now — nothing is lost. We check new organizations by hand, and you'll get
+          an email the moment yours is approved; everything you've published goes live then.
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         {!setupDone && <SetupChecklist steps={steps} />}
+        {!setupDone && actions}
 
-        {/* Reach at a glance → Insights has the full story */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[11px] font-semibold tracking-wide text-subtle uppercase">At a glance</h2>
-            {perms.view_insights && <SeeAll to="/organizer/insights" label="Full insights" />}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Stat icon={UserPlus} label="Followers" value={followers} primary />
-            <Stat icon={CalendarPlus} label="Calendar adds" value={totals.calendarAdds} primary />
-            <Stat icon={Sparkles} label="Event follows" value={totals.follows} primary />
-          </div>
-        </section>
-
-        {/* Quick actions */}
-        <section>
-          <h2 className="mb-3 text-[11px] font-semibold tracking-wide text-subtle uppercase">Quick actions</h2>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {perms.manage_events && (
-              <ActionCard icon={Plus} label="New event" sub="Post to Community" onClick={newEvent} accent />
-            )}
-            {perms.edit_profile && (
-              <ActionCard icon={UserCog} label="Edit profile" sub="Bio, logo, links" to="/organizer/profile" />
-            )}
-            {perms.manage_team && (
-              <ActionCard icon={Users} label="Invite team" sub="Share the dashboard" to="/organizer/team" />
-            )}
-            {status === 'approved' ? (
-              <ActionCard
-                icon={ExternalLink}
-                label="Public profile"
-                sub="See what students see"
-                to={`/app/community/org/${orgSlug(org)}`}
-              />
-            ) : (
-              <ActionCard
-                icon={ExternalLink}
-                label="Public profile"
-                sub="Live after approval"
-                disabled
-              />
-            )}
-          </div>
-        </section>
-
-        {/* Upcoming preview → Events is the full list */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
-            {events.length > 0 && <SeeAll to="/organizer/events" label="All events" />}
-          </div>
-          {upcoming.length === 0 ? (
-            <button
-              type="button"
-              onClick={newEvent}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-8 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
-            >
-              <Plus size={16} aria-hidden />
-              {events.length === 0 ? 'Create your first event' : 'No upcoming events: post one'}
-            </button>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {upcoming.map((e) => (
-                <UpcomingRow key={e.id} event={e} />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </div>
-  )
-}
-
-function SeeAll({ to, label }: { to: string; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="inline-flex items-center gap-0.5 text-[12.5px] font-medium text-accent hover:underline"
-    >
-      {label} <ChevronRight size={14} aria-hidden />
-    </Link>
-  )
-}
-
-function ActionCard({
-  icon: Icon,
-  label,
-  sub,
-  to,
-  onClick,
-  accent,
-  disabled,
-}: {
-  icon: LucideIcon
-  label: string
-  sub: string
-  to?: string
-  onClick?: () => void
-  accent?: boolean
-  disabled?: boolean
-}) {
-  const inner = (
-    <>
-      <span
-        className={cn(
-          'grid size-9 shrink-0 place-items-center rounded-lg',
-          accent ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-muted',
-        )}
-      >
-        <Icon size={17} aria-hidden />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[13.5px] font-medium text-fg">{label}</span>
-        <span className="block truncate text-[11.5px] text-subtle">{sub}</span>
-      </span>
-    </>
-  )
-  const cls = cn(
-    'flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 text-left transition-colors duration-150',
-    disabled ? 'opacity-50' : 'hover:border-border-strong hover:bg-surface-2',
-  )
-  if (disabled) return <div className={cls}>{inner}</div>
-  if (to)
-    return (
-      <Link to={to} className={cls}>
-        {inner}
-      </Link>
-    )
-  return (
-    <button type="button" onClick={onClick} className={cls}>
-      {inner}
-    </button>
-  )
-}
-
-interface SetupStep {
-  done: boolean
-  label: string
-  hint: string
-  to?: string
-  onClick?: () => void
-}
-
-function SetupChecklist({ steps }: { steps: SetupStep[] }) {
-  const doneCount = steps.filter((s) => s.done).length
-  const cls =
-    'flex items-center gap-2.5 border-t border-border px-4 py-2.5 transition-colors duration-150'
-  return (
-    <section className="overflow-hidden rounded-xl border border-border bg-surface">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
-          <Sparkles size={16} aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-fg">Get set up</p>
-          <p className="text-[12px] text-subtle">
-            {doneCount} of {steps.length} done
-          </p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <KpiCard icon={UserPlus} label="Followers" value={followers} sub={`+${sum(current, 'newFollowers')} in ${days} days`} change={delta(sum(current, 'newFollowers'), sum(previous, 'newFollowers'))} points={current?.map((r) => ({ day: r.day, value: r.followers })) ?? []} />
+          <KpiCard icon={Heart} label="Likes" value={sum(current, 'likes')} sub={period} change={delta(sum(current, 'likes'), sum(previous, 'likes'))} points={spark('likes')} />
+          <KpiCard icon={MessageCircle} label="Comments" value={sum(current, 'comments')} sub={period} change={delta(sum(current, 'comments'), sum(previous, 'comments'))} points={spark('comments')} />
+          <KpiCard icon={Newspaper} label="Posts" value={sum(current, 'posts')} sub={period} change={delta(sum(current, 'posts'), sum(previous, 'posts'))} points={spark('posts')} />
         </div>
-      </div>
-      <ul>
-        {steps.map((s) => {
-          const inner = (
-            <>
-              {s.done ? (
-                <CheckCircle2 size={18} className="shrink-0 text-accent" aria-hidden />
-              ) : (
-                <Circle size={18} className="shrink-0 text-border-strong" aria-hidden />
-              )}
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    'block text-[13px] font-medium',
-                    s.done ? 'text-subtle line-through' : 'text-fg',
-                  )}
-                >
-                  {s.label}
-                </span>
-                {!s.done && <span className="block truncate text-[11px] text-subtle">{s.hint}</span>}
-              </span>
-              {!s.done && <ChevronRight size={15} className="shrink-0 text-subtle" aria-hidden />}
-            </>
-          )
-          return (
-            <li key={s.label}>
-              {s.done ? (
-                <div className={cls}>{inner}</div>
-              ) : s.to ? (
-                <Link to={s.to} className={cn(cls, 'hover:bg-surface-2/50')}>
-                  {inner}
-                </Link>
-              ) : (
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <GrowthPanel rows={current} days={days} />
+          <div className="flex min-w-0 flex-col gap-5">
+            <Panel
+              title="Coming up"
+              sub={upcoming.length ? `${upcoming.length} next` : 'Nothing scheduled'}
+              action={live.length > 0 ? <SeeAll to="/organizer/events" label="All events" /> : undefined}
+            >
+              {upcoming.length === 0 ? (
                 <button
                   type="button"
-                  onClick={s.onClick}
-                  className={cn(cls, 'w-full text-left hover:bg-surface-2/50')}
+                  onClick={newEvent}
+                  disabled={!perms.manage_events}
+                  className="m-4 flex w-[calc(100%-2rem)] items-center justify-center gap-1.5 rounded-xl border border-dashed border-border-strong px-4 py-6 text-[13px] font-medium text-muted transition-colors hover:border-accent/50 hover:text-accent disabled:opacity-50"
                 >
-                  {inner}
+                  <CalendarDays size={16} aria-hidden />
+                  Plan the next one
                 </button>
+              ) : (
+                <ul className="flex flex-col gap-2 p-3">
+                  {upcoming.map((e) => (
+                    <UpcomingRow key={e.id} event={e} />
+                  ))}
+                </ul>
               )}
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
-function UpcomingRow({ event }: { event: ManagedEvent }) {
-  const cat = CATEGORY_META[event.category]
-  const Icon = cat.icon
-  const title = event.title.trim() || 'Untitled event'
-  return (
-    <li>
-      <Link
-        to={`/organizer/event/${event.id}`}
-        className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
-      >
-        <span
-          className="grid size-8 shrink-0 place-items-center rounded-lg"
-          style={{ backgroundColor: `${cat.hex}1f`, color: cat.hex }}
-          aria-hidden
-        >
-          <Icon size={15} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-[14px] font-medium text-fg">{title}</span>
-          <p className="truncate text-[12px] text-subtle">{formatDueDateTime(event.start)}</p>
+            </Panel>
+            <TopPosts orgId={currentOrg.id} org={org} />
+          </div>
         </div>
-        <ChevronRight size={16} className="shrink-0 text-subtle" aria-hidden />
-      </Link>
-    </li>
+
+        {setupDone && actions}
+      </div>
+    </div>
   )
 }

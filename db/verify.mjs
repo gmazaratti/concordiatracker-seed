@@ -1383,9 +1383,11 @@ await db.exec(`create or replace function public.is_admin() returns boolean
 
 {
 // ── db/community_reggies.sql ────────────────────────────────────────────────
-// The weekly night is generated in SQL from now(), so the thing worth testing
-// is not "does the DDL apply" but "are these really Thursdays, are they all
-// in the future, and does running it twice give you sixty of them".
+// The weekly night is generated in SQL from now() — by
+// `roll_reggies_series()` in db/reggies_next_three.sql, which keeps exactly
+// the NEXT THREE so the club does not flood every list it appears in. The
+// thing worth testing is "are these really Thursdays, all in the future, a
+// week apart, and does running either file again still give you three".
 console.log('\ndb/community_reggies.sql')
 await db.exec(`
   create table if not exists public.organizations (
@@ -1408,13 +1410,14 @@ await db.exec(`
   on conflict (handle) do nothing;
 `)
 await db.exec(migration('community_reggies.sql'))
-console.log('  ok    DDL applies')
+console.log('  ok    DDL applies (and the series call is a no-op before the function exists)')
+await db.exec(migration('reggies_next_three.sql'))
 
 const thursdays = async () =>
   (await db.query(`select start from public.events
                     where series_id = 'reggies-thirsty-thursdays' order by start`)).rows
 
-check('thirty occurrences', (await thursdays()).length, 30)
+check('three occurrences', (await thursdays()).length, 3)
 check('  every one is a Thursday',
   (await db.query(`select count(*)::int n from public.events
                     where series_id = 'reggies-thirsty-thursdays'
@@ -1445,7 +1448,9 @@ check('  and that week is seven days',
 // whole reason this file can be run again in March without leaving a page of
 // dates in the past.
 await db.exec(migration('community_reggies.sql'))
-check('running it twice still gives thirty', (await thursdays()).length, 30)
+check('re-running the seed still gives three', (await thursdays()).length, 3)
+await db.exec(migration('reggies_next_three.sql'))
+check('  and so does re-running the roller', (await thursdays()).length, 3)
 
 check('the venue is on the org',
   (await db.query(`select venue->>'phone' p from public.organizations where handle = '@reggiesmtl'`)).rows[0].p,

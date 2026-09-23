@@ -101,6 +101,8 @@ export interface Message {
   attachment: Attachment | null
   created_at: string
   read_at: string | null
+  /** The message this one quotes, in the same conversation. */
+  reply_to?: string | null
 }
 
 /**
@@ -195,6 +197,7 @@ export async function sendMessage(
   recipient: string,
   body: string,
   attachment?: Attachment,
+  replyTo?: string | null,
 ): Promise<string | null> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return 'You need to be signed in.'
@@ -203,6 +206,8 @@ export async function sendMessage(
     recipient,
     body: body.trim(),
     attachment: attachment ?? null,
+    // Only sent when there is one, so a send never depends on the column.
+    ...(replyTo ? { reply_to: replyTo } : {}),
   })
   if (!error) return null
   // 42501 is the insert policy. It can now mean several different things —

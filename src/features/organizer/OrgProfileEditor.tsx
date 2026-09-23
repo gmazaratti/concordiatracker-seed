@@ -1,3 +1,4 @@
+import { ProfilePreview } from './onboarding/ProfilePreview'
 import { useState } from 'react'
 import { LangTabs } from '@/components/LangTabs'
 import { mergeTranslations } from '@/lib/localized'
@@ -9,13 +10,9 @@ import { orgSlug, type EventOrg, type OrgLinks, type SocialKey } from '@/data/co
 import { Button } from '@/components/ui/Button'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { ImageUploadField } from '@/components/ui/ImageUploadField'
-import { OrgLogo } from '@/features/community/OrgLogo'
-import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SocialFieldIcon } from '@/features/community/SocialLinks'
-import { ProfileLinksRow } from '@/features/community/ProfileLinksRow'
-import { SOCIAL_FIELDS, orgProfileLinks } from '@/features/community/social'
+import { SOCIAL_FIELDS } from '@/features/community/social'
 import { BioField } from '@/components/ui/BioField'
-import { RichBio } from '@/components/RichBio'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -123,26 +120,12 @@ function ProfileForm({
       <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">Org profile</h1>
       <p className="text-[13px] text-subtle">This is what students see on your Community profile.</p>
 
-      {/* Live preview header */}
-      <div className="mt-5 overflow-hidden rounded-2xl border border-border bg-surface">
-        <div
-          className="h-24 w-full bg-cover bg-center"
-          style={banner.trim() ? { backgroundImage: `url(${banner.trim()})` } : { backgroundColor: color }}
-        />
-        <div className="px-4 pb-4">
-          <div className="-mt-8 flex items-end gap-3">
-            <OrgLogo org={preview} className="size-16 ring-4 ring-surface" rounded="rounded-full" textClass="text-[20px]" />
-          </div>
-          <div className="mt-2 flex items-center gap-1.5">
-            <h2 className="font-display text-[18px] font-semibold text-fg">{name || 'Your org'}</h2>
-            {approved && <VerifiedBadge size={15} />}
-          </div>
-          <p className="text-[12px] text-subtle">{handle || '@handle'}</p>
-          <RichBio text={bio} className="mt-1.5 text-[13px] text-muted" />
-          {/* The same row the public profile draws, so a title typed below
-              shows up here in the words students will read. */}
-          <ProfileLinksRow links={orgProfileLinks(preview.links)} />
-        </div>
+      {/* THE REAL HEADER, AT THE REAL WIDTH. This used to be a hand-drawn
+          copy with a fixed 96px banner, so its shape never matched the page
+          students see. ProfilePreview mounts the public header component at
+          the profile column's own width and scales it down to fit. */}
+      <div className="mt-5">
+        <ProfilePreview org={preview} />
       </div>
 
       {/* Fields */}

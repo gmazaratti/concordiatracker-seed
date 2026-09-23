@@ -484,7 +484,7 @@ export function StoryViewer({
                between frames — advancing used to be an instant cut, which is
                what made it feel snappy in the bad sense. */
             key={story.id}
-            className="ct-story-in relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden"
+            className="ct-story-in relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden [container-type:inline-size]"
           >
             <img
               src={story.imageUrl}
@@ -501,7 +501,9 @@ export function StoryViewer({
               <span
                 key={n}
                 className={cn(
-                  'pointer-events-none absolute max-w-[82%] -translate-x-1/2 -translate-y-1/2 text-center text-[22px] leading-tight break-words whitespace-pre-wrap sm:text-[28px]',
+                  // Sized as a fraction of the FRAME's width, like the composer, so text
+                  // covers the same part of the photo on every screen.
+                  'pointer-events-none absolute max-w-[82%] -translate-x-1/2 -translate-y-1/2 text-center text-[6.6cqw] leading-tight break-words whitespace-pre-wrap',
                   fontClass(o.font),
                   animClass(o.anim),
                   o.chip && 'rounded-lg bg-black/55 px-3 py-1.5 backdrop-blur-sm',

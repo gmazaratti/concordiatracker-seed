@@ -1,3 +1,4 @@
+import { demoDeletePost, demoDiscardDraftById, demoDrafts, demoSaveDraft, isDemoContentId, isDemoOrgId } from './demo-org'
 import { supabase } from './supabase'
 import { missingColumn } from './pg-errors'
 import type { PostDetailsValue } from './post-details'
@@ -225,6 +226,7 @@ export async function publishPost(
   caption: string,
   media: PostMedia[],
   details?: PostDetailsValue,
+  opts?: { draft?: boolean },
 ): Promise<{ id: string } | { error: string }> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return { error: 'You need to be signed in.' }
@@ -235,6 +237,9 @@ export async function publishPost(
     caption: caption.trim(),
     media,
   }
+  // Only sent when true, so a deployment without the drafts migration can
+  // still publish normally.
+  if (opts?.draft) row.is_draft = true
   if (details) {
     // Only what was actually set. Writing every default would mean a
     // deployment without the migration fails on a column it does not have,
@@ -261,20 +266,125 @@ export async function publishPost(
       .select('id')
       .single())
   }
-  // 42501 is RLS: the only way to reach it is publishing as an org you do not
-  // run, or one that has not been approved yet.
+  // 42501 is RLS. Publishing needs "publish to the feed" AND an approved
+  // club; saving a draft needs neither, so the refusal says which way out.
   if (error || !data) {
     return {
       error:
         error?.code === '42501'
-          ? 'Your organisation has to be approved before it can post.'
+          ? opts?.draft
+            ? 'Your role cannot start drafts for this club.'
+            : 'You cannot publish to the feed for this club. Save it as a draft and someone who can will post it.'
           : 'Could not publish that.',
     }
   }
   return { id: (data as { id: string }).id }
 }
 
+/* ── Drafts ──────────────────────────────────────────────────────────────── */
+
+export interface PostDraft {
+  id: string
+  caption: string
+  media: PostMedia[]
+  createdAt: string
+  authorUser: string | null
+  authorName: string | null
+  lastEditedBy: string | null
+  lastEditedName: string | null
+  lastEditedAt: string | null
+  details: PostDetailsValue
+}
+
+export async function loadPostDrafts(orgId: string): Promise<PostDraft[]> {
+  if (isDemoOrgId(orgId)) return [...demoDrafts(orgId)]
+  const { data, error } = await supabase.rpc('org_post_drafts', { p_org: orgId })
+  if (error) throw new Error(error.message)
+  type Row = {
+    id: string
+    caption: string | null
+    media: PostMedia[] | null
+    created_at: string
+    author_user: string | null
+    author_name: string | null
+    last_edited_by: string | null
+    last_edited_name: string | null
+    last_edited_at: string | null
+    audience: string | null
+    place: string | null
+    place_url: string | null
+    event_id: string | null
+    hide_likes: boolean | null
+    hide_shares: boolean | null
+  }
+  return ((data ?? []) as Row[]).map((r) => ({
+    id: r.id,
+    caption: r.caption ?? '',
+    media: r.media ?? [],
+    createdAt: r.created_at,
+    authorUser: r.author_user,
+    authorName: r.author_name,
+    lastEditedBy: r.last_edited_by,
+    lastEditedName: r.last_edited_name,
+    lastEditedAt: r.last_edited_at,
+    details: {
+      audience: r.audience === 'followers' ? 'followers' : 'everyone',
+      place: r.place ?? '',
+      placeUrl: r.place_url ?? '',
+      eventId: r.event_id,
+      publishAt: null,
+      hideLikes: !!r.hide_likes,
+      hideShares: !!r.hide_shares,
+    },
+  }))
+}
+
+/** Save changes to a draft; with `publish`, it goes out in the same write. */
+export async function saveDraftPost(
+  id: string,
+  caption: string,
+  media: PostMedia[],
+  details: PostDetailsValue,
+  publish: boolean,
+): Promise<string | null> {
+  if (isDemoContentId(id)) {
+    demoSaveDraft(id, caption, media, publish)
+    return null
+  }
+  const patch: Record<string, unknown> = {
+    caption: caption.trim(),
+    media,
+    audience: details.audience,
+    place: details.place.trim() || null,
+    place_url: details.placeUrl.trim() || null,
+    event_id: details.eventId,
+    hide_likes: details.hideLikes,
+    hide_shares: details.hideShares,
+  }
+  if (publish) patch.is_draft = false
+  const { error } = await supabase.from('org_posts').update(patch).eq('id', id)
+  if (!error) return null
+  return error.code === '42501'
+    ? publish
+      ? 'Only someone who can publish to the feed can post a draft.'
+      : "You cannot edit this club's drafts."
+    : error.message
+}
+
+export async function discardDraftPost(id: string): Promise<boolean> {
+  if (isDemoContentId(id)) {
+    demoDiscardDraftById(id)
+    return true
+  }
+  const { error } = await supabase.from('org_posts').update({ deleted: true }).eq('id', id)
+  return !error
+}
+
 export async function deletePost(id: string): Promise<boolean> {
+  if (isDemoContentId(id)) {
+    demoDeletePost(id)
+    return true
+  }
   const { error } = await supabase.from('org_posts').update({ deleted: true }).eq('id', id)
   return !error
 }
@@ -282,6 +392,7 @@ export async function deletePost(id: string): Promise<boolean> {
 /** Returns the new state, or null if the write was refused. Optimistic
  *  callers put the heart back when this comes back null. */
 export async function togglePostLike(postId: string, like: boolean): Promise<boolean | null> {
+  if (isDemoContentId(postId)) return like
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return null
   if (like) {
@@ -362,6 +473,8 @@ export async function toggleRepost(
   targetId: string,
   asOrg?: string,
 ): Promise<boolean> {
+  // The sandbox has nothing to repost into; say it did not happen.
+  if (isDemoContentId(targetId)) return false
   const { data, error } = await supabase.rpc('toggle_repost', {
     p_kind: kind,
     p_target: targetId,

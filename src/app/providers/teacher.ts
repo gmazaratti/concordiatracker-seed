@@ -1,3 +1,4 @@
+import type { MyOrgPerms } from '@/lib/org-roles'
 import { createContext, useContext } from 'react'
 import type { Announcement } from '@/data/announcements'
 import type { Blueprint } from '@/data/blueprints'
@@ -164,6 +165,9 @@ export interface TeacherContextValue {
     email: string
     role: OrgRole
     title?: string
+    /** A custom role. When set it is what they get; `role` is kept in step
+     *  for the older readers of the legacy column. */
+    roleId?: string
   }) => OrgMember
   /** Set YOUR OWN job title in the current org (not a permission). */
   setMyOrgTitle: (title: string) => void
@@ -174,12 +178,12 @@ export interface TeacherContextValue {
   acceptOrgMemberInvite: (token: string) => Promise<boolean>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */
   removeOrgMember: (id: string) => void
-  /** Promote/demote a teammate (admin ↔ member). Owners are immutable. */
-  setOrgMemberRole: (id: string, role: OrgRole) => void
-  /** Toggle per-member permission overrides (Discord-style). Owners immutable. */
-  setOrgMemberPerms: (id: string, patch: Partial<OrgPermissions>) => void
-  /** What the SIGNED-IN user may do in the current org (owner/demo → all). */
+  /** What the SIGNED-IN user may do in the current org (owner/demo → all),
+   *  in the four legacy keys the older screens read. Derived from `orgPerms`
+   *  once that has loaded, so a custom role is gated like the database gates it. */
   orgViewerPerms: OrgPermissions
+  /** Every key, from `my_org_perms`. Null until it has loaded. */
+  orgPerms: MyOrgPerms | null
 
   // Supply pipe → the student Community (approved orgs only)
   communityOrgs: EventOrg[]

@@ -1,3 +1,4 @@
+import { demoDmCandidates, demoMarkRead, demoOrgMessages, demoOrgThreads, demoReply, isDemoOrgId } from './demo-org'
 import { supabase } from './supabase'
 import type { Attachment } from './social'
 
@@ -76,6 +77,11 @@ export async function replyAsOrg(
   toUserId: string,
   body: string,
 ): Promise<string | null> {
+  if (isDemoOrgId(orgId)) {
+    if (!body.trim()) return 'Write something first.'
+    demoReply(orgId, toUserId, body.trim())
+    return null
+  }
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return 'You need to be signed in.'
   const text = body.trim()
@@ -107,6 +113,7 @@ export interface OrgThread {
 }
 
 export async function orgThreads(orgId: string): Promise<OrgThread[]> {
+  if (isDemoOrgId(orgId)) return demoOrgThreads(orgId)
   const { data, error } = await supabase.rpc('org_threads', { p_org: orgId })
   if (error || !Array.isArray(data)) return []
   return (
@@ -143,6 +150,7 @@ export interface OrgMessage {
 }
 
 export async function orgThreadMessages(orgId: string, other: string): Promise<OrgMessage[]> {
+  if (isDemoOrgId(orgId)) return demoOrgMessages(orgId, other)
   const { data, error } = await supabase.rpc('org_thread_messages', {
     p_org: orgId,
     p_other: other,
@@ -168,6 +176,7 @@ export async function orgThreadMessages(orgId: string, other: string): Promise<O
 }
 
 export async function markOrgThreadRead(orgId: string, other: string): Promise<void> {
+  if (isDemoOrgId(orgId)) return demoMarkRead(orgId, other)
   await supabase.rpc('mark_org_thread_read', { p_org: orgId, p_other: other })
 }
 
@@ -234,6 +243,7 @@ export interface DmCandidate {
 /** The club's followers who are open to being messaged. Searchable, because a
  *  club with four hundred followers needs a box rather than a list. */
 export async function orgDmCandidates(orgId: string, q = ''): Promise<DmCandidate[]> {
+  if (isDemoOrgId(orgId)) return demoDmCandidates(q)
   const { data, error } = await supabase.rpc('org_dm_candidates', { p_org: orgId, p_q: q })
   if (error) throw new Error(error.message)
   type Row = { user_id: string; name: string | null; handle: string | null; avatar_url: string | null }
@@ -249,6 +259,7 @@ export async function orgDmCandidates(orgId: string, q = ''): Promise<DmCandidat
  *  `orgRefusal` can say WHICH rule stopped it rather than "that did not
  *  work" — a message nobody can act on. */
 export async function sendOrgDm(orgId: string, to: string, body: string): Promise<void> {
+  if (isDemoOrgId(orgId)) return
   const { error } = await supabase.rpc('send_org_dm', {
     p_org: orgId,
     p_to: to,

@@ -1,3 +1,4 @@
+import { isDemoContentId } from './demo-org'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
@@ -75,6 +76,8 @@ const toComment = (c: Row): PostComment => ({
 })
 
 export async function fetchComments(postId: string): Promise<PostComment[]> {
+  // A sandbox post: nobody has commented, and the database has never seen it.
+  if (isDemoContentId(postId)) return []
   const { data, error } = await supabase.rpc('post_comment_list', { p_post: postId })
   if (error || !Array.isArray(data)) return []
   return (data as Row[]).map(toComment)
@@ -145,6 +148,7 @@ export function useComments(postId: string, enabled = true): {
 
   const add = useCallback(
     async (body: string, parentId?: string | null): Promise<string | null> => {
+      if (isDemoContentId(postId)) return 'This is the demo: comments are not saved here.'
       const { data: me } = await supabase.auth.getUser()
       if (!me.user) return 'You need to be signed in.'
       const text = body.trim()

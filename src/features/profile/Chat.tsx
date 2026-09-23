@@ -1,14 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CachedImg } from '@/components/ui/CachedImg'
-import {
-  Check,
-  CheckCheck,
-  ChevronLeft,
-  Palette,
-  Plus,
-  Send,
-} from 'lucide-react'
+import { ChevronLeft, Eye, Palette, Plus, Reply, Send, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
 import { useSettings } from '@/app/providers/settings'
@@ -27,12 +20,17 @@ import {
   type Friend,
   type Message,
 } from '@/lib/social'
-import { AttachmentEmbed } from './AttachmentEmbed'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initialsOf } from '@/lib/initials'
 import { AttachSheet } from './AttachSheet'
 import { setOpenThread } from '@/lib/message-toast'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
+import { Switch } from '@/features/settings/controls'
+import { seenLabel } from '@/lib/message-extras'
+import { useChatExtras } from './chat/useChatExtras'
+import { MessageRow, type Quote } from './chat/MessageRow'
+import { MessageMenu } from './chat/MessageMenu'
+import { MessageInfo, ReportDialog } from './chat/MessageDialogs'
 import { cn } from '@/lib/cn'
 
 /**
@@ -89,6 +87,13 @@ export function Chat({
   const [attachOpen, setAttachOpen] = useState(false)
   const [themeOpen, setThemeOpen] = useState(false)
   const [theyType, setTheyType] = useState(false)
+  const [replyTo, setReplyTo] = useState<Message | null>(null)
+  const [menu, setMenu] = useState<{ m: Message; x: number; y: number } | null>(null)
+  const [info, setInfo] = useState<Message | null>(null)
+  const [reporting, setReporting] = useState<Message | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [receiptsOpen, setReceiptsOpen] = useState(false)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const typingSentAt = useRef(0)
 
@@ -227,10 +232,11 @@ export function Chat({
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!body.trim() && !pending) return
-    const msg = await sendMessage(friend.user_id, body || ' ', pending ?? undefined)
+    const msg = await sendMessage(friend.user_id, body || ' ', pending ?? undefined, replyTo?.id)
     if (msg) return setError(msg)
     setBody('')
     setPending(null)
+    setReplyTo(null)
     setError(null)
     setTick((n) => n + 1)
   }
@@ -247,6 +253,10 @@ export function Chat({
   // Built by the same hook the export sheet uses, so what you send and what
   // you print cannot drift apart.
   const record = useRecordSnapshot()
+  const extras = useChatExtras(friend.user_id, rows, me)
+  const otherName = friend.name ?? `@${friend.handle}`
+  // The newest message YOU sent: the one that carries "Seen ..." underneath.
+  const lastMine = [...(rows ?? [])].reverse().find((r) => r.sender === me)?.id
 
   /** This term, in the shape a sent schedule carries. */
   const currentClasses = useMemo(
@@ -297,6 +307,34 @@ export function Chat({
             {badge && <VerifiedBadge size={14} tone={badge.tone} label={badge.label} />}
           </Link>
           <p className="truncate text-[11.5px] text-subtle">@{friend.handle}</p>
+        </div>
+
+        {/* Read receipts, per conversation. RECIPROCAL: they show only when
+            both of you have them on, so turning yours off also hides theirs
+            from you - the trade that stops it being a one-way tracker. */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setReceiptsOpen((o) => !o)}
+            aria-label="Read receipts"
+            aria-expanded={receiptsOpen}
+            title="Read receipts"
+            className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <Eye size={15} aria-hidden />
+          </button>
+          {receiptsOpen && (
+            <div className="ct-animate-pop absolute top-full right-0 z-30 mt-1.5 w-[236px] rounded-xl border border-border bg-surface p-3 shadow-2xl">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[13px] font-medium text-fg">Read receipts</span>
+                <Switch checked={extras.receipts.mine} onChange={extras.setMine} label="Read receipts in this chat" />
+              </div>
+              <p className="mt-1.5 text-[11.5px] leading-snug text-subtle">
+                Just this chat. They only show when you both have them on. Turn yours off and you
+                won&apos;t see theirs either.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="relative shrink-0">
@@ -370,7 +408,6 @@ export function Chat({
            * of, and the run reads as starting from nowhere.
            */
           const endsRun = next?.sender !== m.sender
-          const last = i === (rows ?? []).length - 1
           return (
             <ErrorBoundary
               key={m.id}
@@ -388,75 +425,30 @@ export function Chat({
                   <span className="h-px flex-1 bg-border" />
                 </div>
               )}
-            <div
-              className={cn(
-                'ct-msg-in flex items-end gap-2',
-                mine ? 'justify-end' : 'justify-start',
-                grouped ? 'mt-1' : 'mt-2.5',
-              )}
-            >
-              {!mine && (
+            <MessageRow
+              m={m}
+              mine={mine}
+              grouped={grouped}
+              avatar={
                 <span className={cn('shrink-0', !endsRun && 'invisible')}>
                   <Avatar friend={friend} size={26} />
                 </span>
-              )}
-              <div className="max-w-[78%]">
-                {/* A card sent on its own carries no bubble. An attachment
-                    inside a coloured pill draws a ring around the card and
-                    reads as a mistake — iMessage does the same with a link
-                    preview, for the same reason. */}
-                {m.body.trim() ? (
-                  <div
-                    className={cn(
-                      /*
-                       * SIZED TO THE REFERENCE, which means bigger than it
-                       * was. 12.5px is a caption; a message is prose you read
-                       * one-handed, and every messenger a student uses sets
-                       * it around 15. The radius went up with it — a 22px
-                       * corner on a 40px-tall bubble is the shape people read
-                       * as a message, and 16px read as a card.
-                       */
-                      'rounded-[22px] px-3.5 py-2.5',
-                      mine
-                        ? 'rounded-br-md bg-accent text-accent-contrast'
-                        : 'rounded-bl-md border border-border bg-surface-2 text-fg',
-                    )}
-                    style={
-                      mine && theme.bubble
-                        ? { backgroundColor: theme.bubble, color: theme.bubbleText }
-                        : undefined
-                    }
-                  >
-                    {/* `break-words`: a pasted URL has no spaces to break at,
-                        so the bubble grew wider than the phone and dragged the
-                        page sideways with it. */}
-                    <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]">
-                      {m.body}
-                    </p>
-                    {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
-                  </div>
-                ) : (
-                  m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} bare />
-                )}
-                {/* Receipts on YOUR last message only. A tick under every line
-                    is clutter, and under theirs it is meaningless. */}
-                {mine && last && (
-                  <p className="mt-0.5 flex items-center justify-end gap-1 text-[10.5px] text-subtle">
-                    {m.read_at ? (
-                      <>
-                        <CheckCheck size={11} aria-hidden />
-                        Read
-                      </>
-                    ) : (
-                      <>
-                        <Check size={11} aria-hidden />
-                        Sent
-                      </>
-                    )}
-                  </p>
-                )}
-              </div>
-            </div>
+              }
+              quote={quoteOf(m, rows ?? [], me, otherName)}
+              reactions={extras.byMessage.get(m.id) ?? []}
+              me={me}
+              tick={mine && extras.receipts.shared ? { read: extras.readAt[m.id] ?? null } : null}
+              footer={
+                mine && extras.receipts.shared && m.id === lastMine
+                  ? extras.readAt[m.id]
+                    ? seenLabel(extras.readAt[m.id], now)
+                    : 'Sent'
+                  : null
+              }
+              bubbleStyle={mine && theme.bubble ? { backgroundColor: theme.bubble, color: theme.bubbleText } : undefined}
+              onMenu={(x, y) => setMenu({ m, x, y })}
+              onReact={(e) => extras.react(m.id, e)}
+            />
             </Fragment>
             </ErrorBoundary>
           )
@@ -489,6 +481,20 @@ export function Chat({
         scrolled the page as well as the list.
       */}
       <form onSubmit={submit} className="shrink-0 border-t border-border/70 p-2.5">
+        {replyTo && (
+          <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border-l-2 border-accent bg-surface-2 px-2.5 py-1.5">
+            <Reply size={14} className="shrink-0 text-accent" aria-hidden />
+            <span className="min-w-0 flex-1 text-[12px]">
+              <span className="block font-medium text-fg">Replying to {replyTo.sender === me ? 'yourself' : otherName}</span>
+              <span className="block truncate text-subtle">{replyTo.body.trim() || 'An attachment'}</span>
+            </span>
+            <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="grid size-6 place-items-center rounded-full text-subtle hover:text-fg">
+              <X size={14} aria-hidden />
+            </button>
+          </div>
+        )}
+        {notice && <p className="mb-2 text-[12px] text-subtle">{notice}</p>}
+        {extras.error && <p className="mb-2 text-[12px] text-warning">{extras.error}</p>}
         {pending && (
           <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1.5">
             <span className="min-w-0 flex-1 truncate text-[11.5px] text-fg">
@@ -532,6 +538,7 @@ export function Chat({
               tap target at the thumb's end of the bar. */}
           <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
             <textarea
+              ref={inputRef}
               value={body}
               onChange={(e) => {
                 setBody(e.target.value)
@@ -614,8 +621,57 @@ export function Chat({
           onClose={() => setAttachOpen(false)}
         />
       )}
+
+      {menu && (
+        <MessageMenu
+          x={menu.x}
+          y={menu.y}
+          mine={extras.byMessage.get(menu.m.id)?.find((r) => r.userId === me)?.emoji ?? null}
+          onClose={() => setMenu(null)}
+          onReact={(e) => extras.react(menu.m.id, e)}
+          onReply={() => {
+            setReplyTo(menu.m)
+            inputRef.current?.focus()
+          }}
+          onInfo={() => setInfo(menu.m)}
+          onCopy={menu.m.body.trim() ? () => void navigator.clipboard?.writeText(menu.m.body) : undefined}
+          onReport={menu.m.sender !== me ? () => setReporting(menu.m) : undefined}
+        />
+      )}
+      {info && (
+        <MessageInfo
+          message={info}
+          mine={info.sender === me}
+          otherName={otherName}
+          readAt={extras.readAt[info.id]}
+          shared={extras.receipts.shared}
+          reactions={extras.byMessage.get(info.id) ?? []}
+          me={me}
+          onClose={() => setInfo(null)}
+        />
+      )}
+      {reporting && (
+        <ReportDialog
+          message={reporting}
+          from={{ name: friend.name, handle: friend.handle }}
+          onClose={() => setReporting(null)}
+          onDone={(caseId) => {
+            setReporting(null)
+            setNotice(`Reported${caseId ? ` (${caseId})` : ''}. Thanks, we will look at it.`)
+          }}
+        />
+      )}
     </div>
   )
+}
+
+/** What a reply quotes, found in the loaded thread. A quote older than what
+ *  is loaded still says it is a reply rather than silently dropping it. */
+function quoteOf(m: Message, rows: Message[], me: string | null, otherName: string): Quote | 'missing' | null {
+  if (!m.reply_to) return null
+  const q = rows.find((r) => r.id === m.reply_to)
+  if (!q) return 'missing'
+  return { who: q.sender === me ? 'You' : otherName, text: q.body.trim() || 'an attachment' }
 }
 
 export function Avatar({ friend, size = 32 }: { friend: Friend; size?: number }) {

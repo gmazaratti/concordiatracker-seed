@@ -36,7 +36,9 @@ export function CommunityProvider({ children }: { children: React.ReactNode }) {
       ])
       const [{ data: orgRows }, { data: evRows }] = await Promise.all([
         supabase.from('organizations').select(ORG_COLS + orgExtra + orgVenue),
-        supabase.from('events').select(EVENT_COLS + evExtra + evSeries),
+        // The team's read policy returns its own drafts too; a draft is not
+        // something the student side of the same account should see.
+        supabase.from('events').select(EVENT_COLS + evExtra + evSeries).eq('is_draft', false),
       ])
       if (!active) return
       const orgById = new Map<string, EventOrg>()

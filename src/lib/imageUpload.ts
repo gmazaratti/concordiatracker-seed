@@ -50,6 +50,31 @@ export async function uploadOrgImage(file: File, kind: ImageKind): Promise<strin
   return supabase.storage.from('org-media').getPublicUrl(path).data.publicUrl
 }
 
+/**
+ * Upload a photo the post editor has ALREADY drawn through a canvas.
+ *
+ * Re-encoding it again would cost quality for nothing: the pixels in this
+ * blob were produced by our own canvas from decoded image data, so it carries
+ * no EXIF, no embedded payload and nothing but a raster — the same guarantee
+ * `uploadOrgImage` buys by redrawing. The type is checked anyway, so this
+ * cannot be used as a side door for an arbitrary file.
+ */
+export async function uploadRenderedImage(blob: Blob, kind: ImageKind): Promise<string> {
+  const { data: auth } = await supabase.auth.getUser()
+  const uid = auth.user?.id
+  if (!uid) throw new Error('Please sign in first.')
+  if (blob.type !== 'image/webp') throw new Error('That photo was not prepared correctly. Try again.')
+  if (blob.size > MAX_INPUT_BYTES) throw new Error('That photo came out too large. Try a smaller one.')
+  const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.webp`
+  const { error } = await supabase.storage.from('org-media').upload(path, blob, {
+    contentType: 'image/webp',
+    cacheControl: '31536000',
+    upsert: false,
+  })
+  if (error) throw new Error(error.message)
+  return supabase.storage.from('org-media').getPublicUrl(path).data.publicUrl
+}
+
 async function reencodeToWebp(file: File, maxDim: number): Promise<Blob> {
   const source = await loadImage(file)
   const w0 = 'width' in source ? source.width : 0

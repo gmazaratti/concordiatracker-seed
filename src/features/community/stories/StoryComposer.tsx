@@ -1,86 +1,79 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  ArrowRight,
-  AtSign,
-  Link2,
-  Loader2,
-  MapPin,
-  Palette,
-  Sparkles,
-  Square,
-  Trash2,
-  Type,
-  X,
-} from 'lucide-react'
-import { uploadOrgImage } from '@/lib/imageUpload'
-import { publishPost, publishStory, type StoryOverlay } from '@/lib/social-posts'
-import { CameraCapture, type CaptureMode } from './CameraCapture'
+import { AlertTriangle, ArrowRight, AtSign, ChevronDown, Link2, Loader2, MapPin, SmilePlus, Star, X } from 'lucide-react'
+import { uploadRenderedImage } from '@/lib/imageUpload'
+import { publishStory, type StoryOverlay } from '@/lib/social-posts'
+import { OrgLogo } from '../OrgLogo'
+import { CameraCapture } from './CameraCapture'
+import { StoryTextTools } from './StoryTextTools'
+import { renderPhoto } from '../posts/compose/render-photo'
+import { NO_ADJUST } from '../posts/compose/photo-edit'
 import { cn } from '@/lib/cn'
 import type { PublishableOrg } from '../useMyOrgs'
-import {
-  DEFAULT_OVERLAY,
-  STORY_ANIMS,
-  STORY_COLORS,
-  STORY_FONTS,
-  animClass,
-  fontClass,
-  mentionsIn,
-} from './story-text'
+import type { EventOrg } from '@/data/community'
+import { DEFAULT_OVERLAY, animClass, fontClass, mentionsIn } from './story-text'
 
-type Step = 'pick' | 'edit'
+const STORY_RATIO = 9 / 16
+/** The largest 9:16 box inside the size container around it. */
+const FRAME_FIT: React.CSSProperties = { width: 'min(100cqw, calc(100cqh * 9 / 16))', aspectRatio: '9 / 16' }
 
 /**
- * Post a story.
+ * Post a story — laid out like the reference: the photo nearly full-screen,
+ * the tools down its right edge, the caption on the photo, and who it goes to
+ * along the bottom.
  *
- * THE FRAME IS THE TRUTH. Text is positioned by DRAGGING it on the same 9:16
- * frame the viewer draws, and stored as a fraction of that frame — so what the
- * club sees while placing a caption is where it lands on every screen. An
- * absolute pixel offset would have been simpler and would have moved the text
- * off somebody's face on a different phone.
+ * WHAT YOU FRAME IS WHAT POSTS. Three rectangles used to disagree: the camera
+ * viewfinder filled the screen, the captured frame was the camera's whole
+ * sensor, and the viewer letterboxed whatever it was sent. Now the viewfinder
+ * IS the 9:16 frame, the shutter keeps only what was visible in it, and the
+ * story is drawn to exactly 9:16 before it uploads — so the viewer's "fit"
+ * and "fill" are the same picture.
  *
- * WHAT IS DELIBERATELY NOT HERE: close friends (there is no close-friends
- * list, and a button that silently does nothing is worse than no button) and
- * music (we have no licence to any). Both were named as cuts in the brief.
+ * TEXT: the Aa button, or tap anywhere on the photo and it starts there. Drag
+ * to move it. Dragging the PHOTO (not the text) moves it inside the frame.
  *
- * THE IMAGE IS RE-ENCODED BEFORE IT LEAVES THE BROWSER — `uploadOrgImage`
- * redraws it through a canvas, which destroys any embedded payload and strips
- * EXIF, so a story never ships the GPS coordinates of whoever took the photo.
+ * WHAT IS NOT HERE, and why: music (we have no licence to any) and a working
+ * Close Friends (there is no close-friends list yet — the pill is shown,
+ * marked Soon, rather than pretending).
  */
 export function StoryComposer({
   orgs,
   onClose,
   onPosted,
+  onSwitchToPost,
 }: {
   orgs: PublishableOrg[]
   onClose: () => void
   onPosted: () => void
+  onSwitchToPost?: () => void
 }) {
   const [org, setOrg] = useState(orgs[0])
-  const [step, setStep] = useState<Step>('pick')
-  /** STORY or POST, chosen on the capture screen the way the reference does
-   *  it — the same photo, two destinations, so asking afterwards would mean
-   *  building the frame before knowing what shape it is. */
-  const [mode, setMode] = useState<CaptureMode>('story')
-  const [preview, setPreview] = useState<string | null>(null)
-  const [file, setFile] = useState<File | null>(null)
+  const [photo, setPhoto] = useState<{ src: string; w: number; h: number } | null>(null)
+  const [pan, setPan] = useState({ x: 0.5, y: 0.5 })
   const [overlays, setOverlays] = useState<StoryOverlay[]>([])
   const [active, setActive] = useState<number | null>(null)
   const [caption, setCaption] = useState('')
   const [place, setPlace] = useState('')
   const [link, setLink] = useState('')
-  const [showPlace, setShowPlace] = useState(false)
-  const [showLink, setShowLink] = useState(false)
+  const [sheet, setSheet] = useState<null | 'stickers' | 'place' | 'link'>(null)
+  const [more, setMore] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const frame = useRef<HTMLDivElement | null>(null)
-
-  // The object URL is revoked when it is replaced or the composer closes;
-  // leaking one per photo adds up fast on a phone.
-  useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview])
+  const photoRef = useRef(photo)
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    photoRef.current = photo
+  }, [photo])
+  // Released when replaced below, and on the way out — not from an effect on
+  // `photo`, which in development runs its cleanup straight after mounting
+  // and revokes the URL the <img> is about to load (a black preview).
+  useEffect(() => () => {
+    if (photoRef.current?.src.startsWith('blob:')) URL.revokeObjectURL(photoRef.current.src)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose()
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -88,36 +81,85 @@ export function StoryComposer({
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [onClose])
+  }, [onClose, busy])
 
   const choose = (f: File) => {
-    if (preview) URL.revokeObjectURL(preview)
-    setFile(f)
-    setPreview(URL.createObjectURL(f))
-    setStep('edit')
+    setError(null)
+    const src = URL.createObjectURL(f)
+    const img = new Image()
+    img.onload = () => {
+      if (photo?.src.startsWith('blob:')) URL.revokeObjectURL(photo.src)
+      setPhoto({ src, w: img.naturalWidth, h: img.naturalHeight })
+      setPan({ x: 0.5, y: 0.5 })
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(src)
+      setError(
+        /\.(heic|heif)$/i.test(f.name)
+          ? `${f.name}: HEIC photos cannot be opened in this browser. Export it as JPG and try again.`
+          : `${f.name} could not be opened.`,
+      )
+    }
+    img.src = src
   }
 
-  const addText = () => {
-    setOverlays((prev) => [...prev, { ...DEFAULT_OVERLAY, text: 'Tap to edit' }])
+  const addText = (x = 0.5, y = 0.4) => {
+    setOverlays((prev) => [...prev, { ...DEFAULT_OVERLAY, x, y, text: '' }])
     setActive(overlays.length)
+    setSheet(null)
   }
-
+  const addSticker = (text: string) => {
+    setOverlays((prev) => [...prev, { ...DEFAULT_OVERLAY, y: 0.62, text }])
+    setActive(overlays.length)
+    setSheet(null)
+  }
   const patch = (i: number, p: Partial<StoryOverlay>) =>
     setOverlays((prev) => prev.map((o, n) => (n === i ? { ...o, ...p } : o)))
 
-  /** Drag by pointer, in FRACTIONS of the frame. Pointer capture so the text
-   *  keeps following once the finger leaves the box it started in. */
-  const startDrag = (e: React.PointerEvent, i: number) => {
+  /** One pointer model for the photo: a tap adds text there, a drag pans. */
+  const onPhotoPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!photo || (e.target as HTMLElement).dataset.overlay) return
+    const box = e.currentTarget.getBoundingClientRect()
+    const start = { x: e.clientX, y: e.clientY, pan }
+    const imgRatio = photo.w / photo.h
+    const overX = imgRatio > STORY_RATIO ? box.height * imgRatio - box.width : 0
+    const overY = imgRatio > STORY_RATIO ? 0 : box.width / imgRatio - box.height
+    let moved = false
+    capture(e.currentTarget, e.pointerId)
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - start.x
+      const dy = ev.clientY - start.y
+      if (!moved && Math.hypot(dx, dy) < 6) return
+      moved = true
+      const clamp = (v: number) => Math.min(1, Math.max(0, v))
+      setPan({
+        x: overX > 0 ? clamp(start.pan.x - dx / overX) : 0.5,
+        y: overY > 0 ? clamp(start.pan.y - dy / overY) : 0.5,
+      })
+    }
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      if (!moved) {
+        if (active != null) setActive(null)
+        else addText((ev.clientX - box.left) / box.width, (ev.clientY - box.top) / box.height)
+      }
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const dragText = (e: React.PointerEvent, i: number) => {
+    e.stopPropagation()
     const box = frame.current?.getBoundingClientRect()
     if (!box) return
     setActive(i)
-    e.currentTarget.setPointerCapture(e.pointerId)
-    const move = (ev: PointerEvent) => {
+    capture(e.currentTarget as HTMLElement, e.pointerId)
+    const move = (ev: PointerEvent) =>
       patch(i, {
         x: Math.min(1, Math.max(0, (ev.clientX - box.left) / box.width)),
         y: Math.min(1, Math.max(0, (ev.clientY - box.top) / box.height)),
       })
-    }
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
@@ -127,40 +169,16 @@ export function StoryComposer({
   }
 
   const post = async () => {
-    if (!file || busy) return
+    if (!photo || busy) return
     setBusy(true)
     setError(null)
     try {
-      const url = await uploadOrgImage(file, 'story')
-      // Handles come from the captions AND from the description, because a
-      // club writing "@jmsb" in either place means the same thing.
-      const mentions = [
-        ...new Set([...mentionsIn(caption), ...overlays.flatMap((o) => mentionsIn(o.text))]),
-      ]
-      const err =
-        mode === 'post'
-          ? // A post keeps the caption and drops the overlays: text dragged
-            // onto a photo is a story idiom, and a post's caption sits under
-            // the image where it can be read, searched and translated.
-            //
-            // `publishPost` returns the new id now (the composer needs it for
-            // collaborator invites); here only the failure matters.
-            await publishPost(org.id, caption, [{ url }]).then((r) =>
-              'error' in r ? r.error : null,
-            )
-          : await publishStory(org.id, {
-              imageUrl: url,
-              caption,
-              overlays: overlays.filter((o) => o.text.trim()),
-              mentions,
-              place,
-              linkUrl: link,
-            })
-      if (err) {
-        setError(err)
-        setBusy(false)
-        return
-      }
+      const r = await renderPhoto({ src: photo.src, ratio: STORY_RATIO, panX: pan.x, panY: pan.y, adjust: NO_ADJUST, texts: [], longEdge: 1600 })
+      const url = await uploadRenderedImage(r.blob, 'story')
+      const kept = overlays.filter((o) => o.text.trim())
+      const mentions = [...new Set([...mentionsIn(caption), ...kept.flatMap((o) => mentionsIn(o.text))])]
+      const err = await publishStory(org.id, { imageUrl: url, caption, overlays: kept, mentions, place, linkUrl: link })
+      if (err) throw new Error(err)
       onPosted()
       onClose()
     } catch (e) {
@@ -169,305 +187,214 @@ export function StoryComposer({
     }
   }
 
+  const activeOverlay = active != null ? overlays[active] : undefined
+
   return createPortal(
-    <div className="fixed inset-0 z-[75] flex flex-col bg-canvas" role="dialog" aria-modal="true">
-      {/* The capture screen carries its own chrome over the viewfinder — a
-          second bar above it would sit on top of the photo you are framing. */}
-      {step === 'edit' && (
-      <header className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid size-8 place-items-center rounded-full bg-surface-2 text-fg"
-        >
-          <X size={17} aria-hidden />
-        </button>
-        <h2 className="flex-1 text-center text-[15px] font-semibold text-fg">
-          {mode === 'post' ? 'New post' : 'Add to story'}
-        </h2>
-        <span className="size-8" />
-      </header>
-      )}
-
-      {/* Which club is speaking. Only asked when there is a real choice. */}
-      {step === 'edit' && orgs.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto border-b border-border px-4 py-2">
-          {orgs.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              onClick={() => setOrg(o)}
-              className={cn(
-                'shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-                o.id === org.id
-                  ? 'border-accent bg-accent-soft text-accent'
-                  : 'border-border text-muted hover:text-fg',
-              )}
-            >
-              {o.handle.replace(/^@/, '')}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {step === 'pick' ? (
-        <CameraCapture mode={mode} onMode={setMode} onPick={choose} onClose={onClose} />
+    <div className="fixed inset-0 z-[75] flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label="New story">
+      {!photo ? (
+        <CameraCapture mode="story" onMode={(m) => m === 'post' && onSwitchToPost?.()} canPost={!!onSwitchToPost} onPick={choose} onClose={onClose} />
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-sm px-4 py-4">
-            {/* 9:16, the shape a story is, so nothing shifts between here and
-                the viewer. */}
+        <>
+          {orgs.length > 1 && (
+            <div className="flex shrink-0 gap-2 overflow-x-auto px-3 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-2 [scrollbar-width:none]">
+              {orgs.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setOrg(o)}
+                  className={cn(
+                    'shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+                    o.id === org.id ? 'border-accent bg-accent/20 text-white' : 'border-white/20 text-white/70 hover:text-white',
+                  )}
+                >
+                  {o.handle.replace(/^@/, '')}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* A SIZE CONTAINER, so the frame can be the largest 9:16 that
+              fits. `h-full` + `max-w-full` + an aspect ratio loses the ratio
+              the moment the screen is narrower than the height allows — the
+              browser keeps the height and clamps the width — which on a phone
+              made the preview 0.49 wide instead of 0.5625, a different
+              picture from the one that posts. */}
+          <div className={cn('flex min-h-0 flex-1 items-center justify-center px-2 [container-type:size]', orgs.length <= 1 && 'pt-[calc(0.5rem+env(safe-area-inset-top))]')}>
             <div
               ref={frame}
-              className={cn(
-                'relative w-full overflow-hidden rounded-2xl bg-black',
-                mode === 'post' ? 'aspect-square' : 'aspect-[9/16]',
-              )}
+              onPointerDown={onPhotoPointerDown}
+              className="relative overflow-hidden rounded-[22px] bg-neutral-900 [container-type:inline-size] touch-none select-none"
+              style={FRAME_FIT}
             >
-              {preview && <img src={preview} alt="" className="size-full object-contain" />}
+              <img
+                src={photo.src}
+                alt=""
+                draggable={false}
+                className="size-full object-cover"
+                style={{ objectPosition: `${pan.x * 100}% ${pan.y * 100}%` }}
+              />
+
               {overlays.map((o, i) => (
                 <span
                   key={i}
-                  onPointerDown={(e) => startDrag(e, i)}
-                  onClick={() => setActive(i)}
+                  data-overlay="1"
+                  onPointerDown={(e) => dragText(e, i)}
                   className={cn(
-                    'absolute max-w-[82%] -translate-x-1/2 -translate-y-1/2 cursor-move touch-none text-center text-[20px] leading-tight break-words whitespace-pre-wrap select-none',
+                    'absolute max-w-[82%] -translate-x-1/2 -translate-y-1/2 cursor-move text-center text-[6.6cqw] leading-tight break-words whitespace-pre-wrap',
                     fontClass(o.font),
                     animClass(o.anim),
                     o.chip && 'rounded-lg bg-black/55 px-2.5 py-1',
-                    active === i && 'ring-2 ring-accent ring-offset-1 ring-offset-black/40',
+                    active === i && 'outline-2 outline-offset-4 outline-white/80 outline-dashed',
                   )}
                   style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, color: o.color }}
                 >
-                  {o.text || ' '}
+                  {o.text || (active === i ? ' ' : 'Tap to type')}
                 </span>
               ))}
-            </div>
 
-            {/* Overlay tools are a STORY idiom. A post's words go in the
-                caption, where they are readable, searchable and translatable —
-                so the toolbar stands down rather than offering something the
-                post will silently discard. */}
-            <div className={cn('mt-3 flex flex-wrap gap-2', mode === 'post' && 'hidden')}>
-              <ToolButton icon={Type} label="Add text" onClick={addText} />
-              <ToolButton icon={AtSign} label="Mention" onClick={addMention} />
-              <ToolButton
-                icon={MapPin}
-                label="Location"
-                on={showPlace}
-                onClick={() => setShowPlace((v) => !v)}
-              />
-              <ToolButton
-                icon={Link2}
-                label="Link"
-                on={showLink}
-                onClick={() => setShowLink((v) => !v)}
-              />
-            </div>
-
-            {mode === 'story' && active != null && overlays[active] && (
-              <TextTools
-                overlay={overlays[active]}
-                onChange={(p) => patch(active, p)}
-                onRemove={() => {
-                  setOverlays((prev) => prev.filter((_, n) => n !== active))
-                  setActive(null)
-                }}
-              />
-            )}
-
-            {showPlace && (
-              <Field
-                icon={MapPin}
-                value={place}
-                onChange={setPlace}
-                placeholder="Hall Building, H-920"
-                label="Location"
-              />
-            )}
-            {showLink && (
-              <Field
-                icon={Link2}
-                value={link}
-                onChange={setLink}
-                placeholder="https://…"
-                label="Link"
-              />
-            )}
-
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={2}
-              maxLength={500}
-              placeholder="Add a caption…"
-              className="mt-3 w-full resize-none rounded-xl border border-border bg-surface px-3 py-2.5 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-            />
-
-            {error && <p className="mt-2 text-[12px] text-warning">{error}</p>}
-
-            <div className="mt-3 flex items-center gap-2 pb-[env(safe-area-inset-bottom)]">
               <button
                 type="button"
-                onClick={() => setStep('pick')}
-                className="rounded-full border border-border px-4 py-2.5 text-[13px] text-muted transition-colors duration-150 hover:text-fg"
+                onClick={onClose}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label="Close"
+                className="absolute top-3 left-3 grid size-11 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm"
               >
-                Change photo
+                <X size={24} aria-hidden />
               </button>
-              <span className="flex-1" />
-              <button
-                type="button"
-                onClick={() => void post()}
-                disabled={busy}
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
-              >
-                {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
-                {org.handle.replace(/^@/, '')}
-                <ArrowRight size={15} aria-hidden />
-              </button>
+
+              {/* The rail, down the right edge where the reference has it. */}
+              <div className="absolute top-3 right-3 flex flex-col items-center gap-3" onPointerDown={(e) => e.stopPropagation()}>
+                <RailButton label="Add text" onClick={() => addText()}>
+                  <span className="text-[22px] leading-none font-semibold">Aa</span>
+                </RailButton>
+                <RailButton label="Stickers" on={sheet === 'stickers'} onClick={() => setSheet(sheet === 'stickers' ? null : 'stickers')}>
+                  <SmilePlus size={24} aria-hidden />
+                </RailButton>
+                <RailButton label="More" on={more} onClick={() => setMore((v) => !v)} small>
+                  <ChevronDown size={20} className={cn('transition-transform', more && 'rotate-180')} aria-hidden />
+                </RailButton>
+                {more && (
+                  <>
+                    <RailButton label="Location" on={!!place} onClick={() => setSheet('place')}>
+                      <MapPin size={22} aria-hidden />
+                    </RailButton>
+                    <RailButton label="Link" on={!!link} onClick={() => setSheet('link')}>
+                      <Link2 size={22} aria-hidden />
+                    </RailButton>
+                  </>
+                )}
+              </div>
+
+              {sheet === 'stickers' && (
+                <div className="absolute top-3 right-[4.25rem] w-48 rounded-2xl bg-black/80 p-1.5 backdrop-blur-md" onPointerDown={(e) => e.stopPropagation()}>
+                  <SheetItem icon={AtSign} label="Mention a club" onClick={() => addSticker('@')} />
+                  <SheetItem icon={MapPin} label="Location" onClick={() => setSheet('place')} />
+                  <SheetItem icon={Link2} label="Link" onClick={() => setSheet('link')} />
+                </div>
+              )}
+
+              {/* The caption lives ON the photo, bottom-left, as in the reference. */}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pt-10 pb-4" onPointerDown={(e) => e.stopPropagation()}>
+                {(place || link) && (
+                  <p className="mb-1 truncate text-[12px] text-white/80">
+                    {place && <span className="mr-2">📍 {place}</span>}
+                    {link && <span>🔗 {link.replace(/^https?:\/\//, '')}</span>}
+                  </p>
+                )}
+                <input
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  maxLength={500}
+                  placeholder="Add a caption..."
+                  className="w-full bg-transparent text-[15px] font-medium text-white placeholder:text-white/85 focus:outline-none"
+                />
+              </div>
             </div>
           </div>
-        </div>
+
+          {activeOverlay && active != null && (
+            <StoryTextTools
+              overlay={activeOverlay}
+              onChange={(p) => patch(active, p)}
+              onRemove={() => {
+                setOverlays((prev) => prev.filter((_, n) => n !== active))
+                setActive(null)
+              }}
+              onDone={() => {
+                if (!activeOverlay.text.trim()) setOverlays((prev) => prev.filter((_, n) => n !== active))
+                setActive(null)
+              }}
+            />
+          )}
+
+          {(sheet === 'place' || sheet === 'link') && (
+            <div className="flex shrink-0 items-center gap-2 px-3 pt-2">
+              {sheet === 'place' ? <MapPin size={16} className="shrink-0 text-white/70" aria-hidden /> : <Link2 size={16} className="shrink-0 text-white/70" aria-hidden />}
+              <input
+                autoFocus
+                value={sheet === 'place' ? place : link}
+                onChange={(e) => (sheet === 'place' ? setPlace(e.target.value) : setLink(e.target.value))}
+                onKeyDown={(e) => e.key === 'Enter' && setSheet(null)}
+                placeholder={sheet === 'place' ? 'Hall Building, H-920' : 'https://…'}
+                className="min-w-0 flex-1 rounded-full bg-white/10 px-3.5 py-2 text-[14px] text-white placeholder:text-white/50 focus:outline-none"
+              />
+              <button type="button" onClick={() => setSheet(null)} className="rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold text-black">
+                Done
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="mx-3 mt-2 flex items-start gap-2 rounded-xl bg-danger/25 px-3 py-2 text-[12.5px] text-white">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
+              {error}
+            </p>
+          )}
+
+          {/* Who it goes to, and go. */}
+          <div className="flex shrink-0 items-center gap-2 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <span className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white/12 px-2 py-2">
+              <OrgLogo org={faceOf(org)} className="size-9 ring-2 ring-white" rounded="rounded-full" textClass="text-[11px]" />
+              <span className="min-w-0 flex-1 truncate text-center text-[15px] font-medium">Your story</span>
+            </span>
+            <span
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white/12 px-2 py-2 opacity-60"
+              title="There is no close-friends list yet."
+            >
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-white">
+                <Star size={16} className="fill-current" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 truncate text-center text-[15px] font-medium">
+                Close Friends <span className="ml-0.5 rounded bg-white/15 px-1 text-[10px] font-semibold tracking-wide uppercase">Soon</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void post()}
+              disabled={busy}
+              aria-label={`Share to ${org.handle}'s story`}
+              className="grid size-[52px] shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-60"
+            >
+              {busy ? <Loader2 size={20} className="animate-spin" aria-hidden /> : <ArrowRight size={24} aria-hidden />}
+            </button>
+          </div>
+        </>
       )}
     </div>,
     document.body,
   )
-
-  /** A mention is text on the image, so it is a text overlay that starts with
-   *  an @ rather than a separate kind of thing to store and draw. */
-  function addMention() {
-    setOverlays((prev) => [...prev, { ...DEFAULT_OVERLAY, y: 0.6, text: '@' }])
-    setActive(overlays.length)
-  }
 }
 
-function ToolButton({
-  icon: Icon,
+function RailButton({
   label,
   on,
+  small,
   onClick,
+  children,
 }: {
-  icon: typeof Type
   label: string
   on?: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-        on ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-fg',
-      )}
-    >
-      <Icon size={13} aria-hidden />
-      {label}
-    </button>
-  )
-}
-
-/** Everything about the selected caption, in one strip under the frame. */
-function TextTools({
-  overlay,
-  onChange,
-  onRemove,
-}: {
-  overlay: StoryOverlay
-  onChange: (p: Partial<StoryOverlay>) => void
-  onRemove: () => void
-}) {
-  return (
-    <div className="mt-3 space-y-3 rounded-xl border border-border bg-surface p-3">
-      <textarea
-        value={overlay.text}
-        onChange={(e) => onChange({ text: e.target.value })}
-        rows={2}
-        maxLength={140}
-        placeholder="Your text. Type @handle to tag a club."
-        className="w-full resize-none rounded-lg border border-border bg-canvas px-2.5 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-      />
-
-      <Row icon={Type} label="Font">
-        {STORY_FONTS.map((f) => (
-          <Chip key={f.id} on={overlay.font === f.id} onClick={() => onChange({ font: f.id })}>
-            <span className={f.className}>{f.label}</span>
-          </Chip>
-        ))}
-      </Row>
-
-      <Row icon={Palette} label="Colour">
-        {STORY_COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => onChange({ color: c })}
-            aria-label={c}
-            aria-pressed={overlay.color === c}
-            className={cn(
-              'size-6 shrink-0 rounded-full border transition-transform duration-150',
-              overlay.color === c ? 'scale-110 border-accent' : 'border-border',
-            )}
-            style={{ background: c }}
-          />
-        ))}
-      </Row>
-
-      <Row icon={Sparkles} label="Animation">
-        {STORY_ANIMS.map((a) => (
-          <Chip key={a.id} on={overlay.anim === a.id} onClick={() => onChange({ anim: a.id })}>
-            {a.label}
-          </Chip>
-        ))}
-      </Row>
-
-      <div className="flex items-center gap-2">
-        <Chip on={overlay.chip} onClick={() => onChange({ chip: !overlay.chip })}>
-          <Square size={11} className="mr-1 inline" aria-hidden />
-          Backdrop
-        </Chip>
-        <span className="flex-1" />
-        <button
-          type="button"
-          onClick={onRemove}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] text-muted transition-colors duration-150 hover:border-danger hover:text-danger"
-        >
-          <Trash2 size={12} aria-hidden />
-          Remove
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function Row({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: typeof Type
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon size={13} className="shrink-0 text-subtle" aria-hidden />
-      <span className="sr-only">{label}</span>
-      <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function Chip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean
+  small?: boolean
   onClick: () => void
   children: React.ReactNode
 }) {
@@ -475,10 +402,13 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       aria-pressed={on}
       className={cn(
-        'shrink-0 rounded-full border px-2.5 py-1 text-[12px] transition-colors duration-150',
-        on ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-fg',
+        'grid place-items-center rounded-full text-white backdrop-blur-sm transition-colors',
+        small ? 'h-8 w-12' : 'size-12',
+        on ? 'bg-white text-black' : 'bg-black/55 hover:bg-black/70',
       )}
     >
       {children}
@@ -486,29 +416,35 @@ function Chip({
   )
 }
 
-function Field({
-  icon: Icon,
-  value,
-  onChange,
-  placeholder,
-  label,
-}: {
-  icon: typeof MapPin
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  label: string
-}) {
+function SheetItem({ icon: Icon, label, onClick }: { icon: typeof MapPin; label: string; onClick: () => void }) {
   return (
-    <label className="mt-3 flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5">
-      <Icon size={14} className="shrink-0 text-subtle" aria-hidden />
-      <span className="sr-only">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent text-[13px] text-fg placeholder:text-subtle focus:outline-none"
-      />
-    </label>
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13.5px] text-white hover:bg-white/10">
+      <Icon size={16} aria-hidden />
+      {label}
+    </button>
   )
+}
+
+/** Just enough of an org for its logo tile. */
+function faceOf(o: PublishableOrg): EventOrg {
+  return {
+    name: o.name,
+    handle: o.handle,
+    verified: o.verified,
+    glyph: o.glyph ?? o.name.slice(0, 2).toUpperCase(),
+    color: o.color ?? '#4b5563',
+    logo: o.logo ?? undefined,
+  } as EventOrg
+}
+
+/** Pointer capture throws for a pointer the browser does not know (a
+ *  synthetic event, or one already released) — and a throw here aborts the
+ *  handler before it listens for the release. Capture is a nicety; the
+ *  window listeners do the work either way. */
+function capture(el: HTMLElement, id: number) {
+  try {
+    el.setPointerCapture(id)
+  } catch {
+    /* fine: the window listeners below still see the release */
+  }
 }

@@ -13,11 +13,15 @@
 -- aggregate-only / connection-phase. Team membership (org_members) is later.
 -- ============================================================================
 
--- organizations: owner can create + remove their own org.
+-- organizations: owner can create their own org.
+-- There is deliberately NO delete policy. An owner deleting a club cascades
+-- into twelve tables with no undo; deletion is done by ConcordiaTracker on
+-- request. See db/org_delete_lockdown.sql, which also adds the trigger that
+-- refuses it through SECURITY DEFINER paths. Re-running this file must not
+-- bring the policy back, so it is dropped here and never re-created.
 drop policy if exists "orgs_owner_insert" on public.organizations;
 drop policy if exists "orgs_owner_delete" on public.organizations;
 create policy "orgs_owner_insert" on public.organizations for insert with check (auth.uid() = owner_id);
-create policy "orgs_owner_delete" on public.organizations for delete using (auth.uid() = owner_id);
 
 -- events: full write for the owner of the event's org (insert/update/delete).
 drop policy if exists "events_owner_write" on public.events;

@@ -62,38 +62,19 @@ on conflict (handle) do update set
   venue    = excluded.venue;
 
 -- ── Thirsty Thursdays ────────────────────────────────────────────────────────
--- Thirty real Thursdays rather than one row wearing the word "weekly": the
--- calendar has to be able to add a specific night, and a student looking at
--- the profile is asking "which Thursdays", not "does this repeat".
---
--- Anchored on `now()`, so re-running this months from now rolls the series
--- forward instead of leaving a page of dates in the past. Deleting first is
--- what makes that safe.
---
--- The door time is 8 PM. The END is the bar's published Thursday close (2 AM),
--- NOT the 3 AM that was half-remembered — the venue's own hours are the better
--- source, and a closing time we invented is exactly the kind of small
--- confident wrongness this product is built to avoid.
-delete from public.events where series_id = 'reggies-thirsty-thursdays';
-
-insert into public.events (org_id, title, start, mode, location, category, description, posted_at, series_id, recurrence)
-select
-  o.id,
-  'Thirsty Thursdays',
-  -- The next Thursday at 20:00 America/Toronto, then weekly.
-  ((date_trunc('week', (now() at time zone 'America/Toronto')::date)::date
-      + 3
-      + (case when extract(isodow from (now() at time zone 'America/Toronto')::date) > 4 then 7 else 0 end)
-      + (n * 7)) + time '20:00') at time zone 'America/Toronto',
-  'in-person',
-  'Reggies · Hall building mezzanine',
-  'nightlife',
-  'The weekly night at Reggies: cheap pints, a full room and whoever is around. Doors from 8 PM until close — the bar runs to 2 AM on a Thursday. Student ID at the door; 18+.',
-  now() - interval '2 days',
-  'reggies-thirsty-thursdays',
-  'Every Thursday'
-from public.organizations o, generate_series(0, 29) as n
-where o.handle = '@reggiesmtl';
+-- Maintained by db/reggies_next_three.sql — `roll_reggies_series()` keeps
+-- exactly the next three Thursdays and runs daily. This file used to insert
+-- thirty, which flooded every list the club appears in; generating them here
+-- as well would put the flood back every time this file is re-run.
+-- A DO block, not `select ... where exists`: Postgres resolves a function
+-- name when it PARSES the statement, so the WHERE never gets a chance and a
+-- project without the function fails on this line.
+do $$
+begin
+  if to_regprocedure('public.roll_reggies_series()') is not null then
+    perform public.roll_reggies_series();
+  end if;
+end $$;
 
 -- ── Concordia Game Dev: Student Game Dev Summit ──────────────────────────────
 -- The date is the one the club publishes. If that is in the past relative to

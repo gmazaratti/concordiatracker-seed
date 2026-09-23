@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { demoActivity, demoAssignRole, demoDeleteRole, demoRoleIdFor, demoRoles, demoSaveRole, isDemoOrgId } from './demo-org'
 
 /**
  * Roles, the hierarchy, and the audit log — the client half.
@@ -18,6 +19,7 @@ export type OrgPermKey =
   | 'post_delete'
   | 'event_create'
   | 'event_update'
+  | 'draft_content'
   | 'profile_edit'
   | 'handle_change'
   | 'roles_grant'
@@ -43,6 +45,7 @@ export const ORG_PERMS: PermMeta[] = [
   { key: 'post_delete', label: 'Delete posts', hint: 'Take one down.', group: 'Posts' },
   { key: 'event_create', label: 'Post events', hint: 'Add an event to Community.', group: 'Events' },
   { key: 'event_update', label: 'Update events', hint: 'Change the time, place or description.', group: 'Events' },
+  { key: 'draft_content', label: 'Start drafts', hint: 'Write posts and events as drafts. Someone who can publish reviews them and puts them out.', group: 'Posts' },
   { key: 'profile_edit', label: 'Edit the profile', hint: 'Name, bio, logo, banner, colour, links.', group: 'The club' },
   { key: 'handle_change', label: 'Change the handle', hint: 'Your address. Every link anybody has shared points at it.', group: 'The club' },
   { key: 'view_insights', label: 'View insights', hint: 'The aggregate reach numbers.', group: 'The club' },
@@ -98,6 +101,7 @@ const COLS =
   'id, org_id, name, color, icon, position, permissions, can_view_activity, is_owner, system_key'
 
 export async function loadOrgRoles(orgId: string): Promise<OrgRoleDef[]> {
+  if (isDemoOrgId(orgId)) return demoRoles(orgId)
   const { data, error } = await supabase
     .from('org_roles')
     .select(COLS)
@@ -117,6 +121,7 @@ export interface RoleDraft {
 }
 
 export async function createOrgRole(orgId: string, d: RoleDraft): Promise<OrgRoleDef> {
+  if (isDemoOrgId(orgId)) return demoSaveRole(orgId, { ...d, isOwner: false, systemKey: null })
   const { data, error } = await supabase.rpc('create_org_role', {
     p_org: orgId,
     p_name: d.name,
@@ -131,6 +136,12 @@ export async function createOrgRole(orgId: string, d: RoleDraft): Promise<OrgRol
 }
 
 export async function updateOrgRole(roleId: string, d: RoleDraft): Promise<OrgRoleDef> {
+  // Demo role ids are `<orgId>:<name>`; a real one is a bare uuid.
+  const demoOrg = roleId.includes(':') ? roleId.split(':')[0] : null
+  if (demoOrg) {
+    const was = demoRoles(demoOrg).find((r) => r.id === roleId)
+    return demoSaveRole(demoOrg, { ...d, id: roleId, isOwner: !!was?.isOwner, systemKey: was?.systemKey ?? null })
+  }
   const { data, error } = await supabase.rpc('update_org_role', {
     p_role: roleId,
     p_name: d.name,
@@ -145,11 +156,13 @@ export async function updateOrgRole(roleId: string, d: RoleDraft): Promise<OrgRo
 }
 
 export async function deleteOrgRole(roleId: string): Promise<void> {
+  if (roleId.includes(':')) return demoDeleteRole(roleId.split(':')[0], roleId)
   const { error } = await supabase.rpc('delete_org_role', { p_role: roleId })
   if (error) throw new Error(error.message)
 }
 
 export async function setMemberRole(memberId: string, roleId: string): Promise<void> {
+  if (roleId.includes(':')) return demoAssignRole(memberId, roleId)
   const { error } = await supabase.rpc('set_org_member_role', {
     p_member: memberId,
     p_role: roleId,
@@ -162,6 +175,7 @@ export async function transferOwnership(
   memberId: string,
   stepDown: boolean,
 ): Promise<void> {
+  if (isDemoOrgId(orgId)) return demoAssignRole(memberId, `${orgId}:owner`)
   const { error } = await supabase.rpc('transfer_org_ownership', {
     p_org: orgId,
     p_member: memberId,
@@ -174,9 +188,49 @@ export async function transferOwnership(
  *  "strictly below mine" is one comparison everywhere rather than a special
  *  case repeated at each call site. */
 export async function myPosition(orgId: string): Promise<number> {
+  // The demo is somebody looking around as the club's owner.
+  if (isDemoOrgId(orgId)) return 2147483647
   const { data, error } = await supabase.rpc('ct_org_position', { p_org: orgId })
   if (error) return -1
   return typeof data === 'number' ? data : -1
+}
+
+/** The role a member holds. Demo members carry no role id, so theirs comes
+ *  from the sandbox; a real row always has one (a trigger fills it). */
+export function roleIdOf(
+  member: { id: string; role: string; roleId?: string },
+  orgId: string,
+  roles?: OrgRoleDef[] | null,
+): string | undefined {
+  if (isDemoOrgId(orgId)) return demoRoleIdFor(orgId, member.role, member.id)
+  // An owner by `owner_id` alone has no member row and so no role id; the
+  // legacy column still says what they are.
+  return member.roleId ?? roles?.find((r) => r.systemKey === member.role)?.id
+}
+
+/* ── What the signed-in person may do ─────────────────────────────────────── */
+
+/** Every key, straight from `org_perm` — the function every write policy
+ *  asks — plus the two things that are not permission keys. */
+export type MyOrgPerms = Record<OrgPermKey, boolean> & {
+  view_activity: boolean
+  is_owner: boolean
+  position: number
+}
+
+/** Looking around the demo as its owner. */
+export const ALL_MY_PERMS: MyOrgPerms = {
+  ...(Object.fromEntries(ORG_PERMS.map((p) => [p.key, true])) as Record<OrgPermKey, boolean>),
+  view_activity: true,
+  is_owner: true,
+  position: 2147483647,
+}
+
+export async function loadMyOrgPerms(orgId: string): Promise<MyOrgPerms | null> {
+  if (isDemoOrgId(orgId)) return ALL_MY_PERMS
+  const { data, error } = await supabase.rpc('my_org_perms', { p_org: orgId })
+  if (error || !data) return null
+  return data as MyOrgPerms
 }
 
 /* ── The audit log ─────────────────────────────────────────────────────────── */
@@ -197,6 +251,7 @@ export interface ActivityEntry {
 }
 
 export async function loadActivity(orgId: string, limit = 150): Promise<ActivityEntry[]> {
+  if (isDemoOrgId(orgId)) return demoActivity()
   const { data, error } = await supabase.rpc('org_activity_feed', {
     p_org: orgId,
     p_limit: limit,
@@ -238,6 +293,7 @@ export interface ActivityActor {
 }
 
 export async function loadActivityActors(orgId: string): Promise<ActivityActor[]> {
+  if (isDemoOrgId(orgId)) return []
   const { data, error } = await supabase.rpc('org_activity_actors', { p_org: orgId })
   if (error) return []
   type Row = { actor_user: string; actor_name: string | null; actions: number; last_at: string }
@@ -270,3 +326,107 @@ export async function revertAllFrom(
   if (error) throw new Error(error.message)
   return typeof data === 'number' ? data : 0
 }
+
+/* ── One teammate's recent actions (the member panel) ─────────────────────── */
+
+export interface MemberAction {
+  id: string
+  createdAt: string
+  action: string
+  detail: string
+  revertedAt: string | null
+}
+
+/** Same gate as the Activity tab, so a role that cannot read the log cannot
+ *  read it one person at a time. */
+export async function loadMemberActivity(
+  orgId: string,
+  actorUser: string,
+  limit = 5,
+  offset = 0,
+): Promise<MemberAction[]> {
+  if (isDemoOrgId(orgId)) {
+    return demoActivity()
+      .filter((a) => a.actorUser === actorUser)
+      .slice(offset, offset + limit)
+      .map((a) => ({ id: a.id, createdAt: a.createdAt, action: a.action, detail: a.detail, revertedAt: null }))
+  }
+  const { data, error } = await supabase.rpc('org_member_activity', {
+    p_org: orgId,
+    p_actor: actorUser,
+    p_limit: limit,
+    p_offset: offset,
+  })
+  if (error) throw new Error(error.message)
+  type Row = { id: string; created_at: string; action: string; detail: string | null; reverted_at: string | null }
+  return ((data ?? []) as Row[]).map((r) => ({
+    id: r.id,
+    createdAt: r.created_at,
+    action: r.action,
+    detail: r.detail ?? '',
+    revertedAt: r.reverted_at,
+  }))
+}
+
+/* ── Presets ──────────────────────────────────────────────────────────────── */
+
+export interface RolePreset {
+  id: string
+  name: string
+  color: string
+  icon: string
+  /** Where it sits. A preset at or above your own level is shown but cannot
+   *  be added — the server would refuse it, and the list says so first. */
+  position: number
+  permissions: OrgPerms
+  canViewActivity: boolean
+  blurb: string
+}
+
+/**
+ * The jobs a student club actually has, each with the permissions it needs
+ * and no more. Deleting the club is not among them and cannot be: no
+ * permission key expresses it (see db/org_delete_lockdown.sql).
+ */
+export const ROLE_PRESETS: RolePreset[] = [
+  {
+    id: 'president', name: 'President', color: '#e8b84b', icon: 'Star', position: 90, canViewActivity: true,
+    blurb: 'Runs the club: every permission, including the handle and the team.',
+    permissions: { post_create: true, post_feed: true, post_edit: true, post_delete: true, event_create: true, event_update: true, draft_content: true, profile_edit: true, handle_change: true, view_insights: true, manage_team: true, roles_grant: true },
+  },
+  {
+    id: 'vp', name: 'Vice-President', color: '#f59e0b', icon: 'Shield', position: 80, canViewActivity: true,
+    blurb: 'Everything the president can do, except change the handle.',
+    permissions: { post_create: true, post_feed: true, post_edit: true, post_delete: true, event_create: true, event_update: true, draft_content: true, profile_edit: true, view_insights: true, manage_team: true, roles_grant: true },
+  },
+  {
+    id: 'marketing', name: 'Marketing', color: '#ff7ab6', icon: 'Megaphone', position: 40, canViewActivity: false,
+    blurb: 'Posts, the profile and the numbers. Not events or the team.',
+    permissions: { post_create: true, post_feed: true, post_edit: true, draft_content: true, profile_edit: true, view_insights: true },
+  },
+  {
+    id: 'events', name: 'Events coordinator', color: '#7ad3ff', icon: 'CalendarDays', position: 38, canViewActivity: false,
+    blurb: 'Posts and updates events, and sees how they did.',
+    permissions: { event_create: true, event_update: true, draft_content: true, view_insights: true },
+  },
+  {
+    id: 'social', name: 'Social media', color: '#c084fc', icon: 'Camera', position: 35, canViewActivity: false,
+    blurb: 'Posts and stories, including taking one down.',
+    permissions: { post_create: true, post_feed: true, post_edit: true, post_delete: true, draft_content: true },
+  },
+  {
+    id: 'secretary', name: 'Secretary', color: '#94a3b8', icon: 'ClipboardList', position: 32, canViewActivity: true,
+    blurb: 'Keeps the team list and the calendar straight.',
+    permissions: { event_update: true, draft_content: true, manage_team: true },
+  },
+  {
+    id: 'treasurer', name: 'Treasurer', color: '#34d399', icon: 'Wallet', position: 30, canViewActivity: true,
+    blurb: 'Reads the numbers and the log. Drafts only.',
+    permissions: { view_insights: true, draft_content: true },
+  },
+  {
+    id: 'intern', name: 'Intern', color: '#9ca3af', icon: 'GraduationCap', position: 5, canViewActivity: false,
+    blurb: 'Writes drafts. Somebody who can publish reviews them and posts them.',
+    permissions: { draft_content: true },
+  },
+]

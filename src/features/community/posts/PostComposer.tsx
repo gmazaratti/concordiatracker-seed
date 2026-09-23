@@ -1,60 +1,73 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ImagePlus, Loader2, Play, Search, UserPlus, X } from 'lucide-react'
-import { MEDIA_ACCEPT_ATTR, uploadOrgImageSized, uploadOrgVideo } from '@/lib/imageUpload'
-import { publishPost, type PostMedia } from '@/lib/social-posts'
-import { collabMessage, inviteCollaborator, searchOrgsToInvite, type OrgOption } from '@/lib/collab'
+import { uploadOrgVideo, uploadRenderedImage } from '@/lib/imageUpload'
+import { publishPost, saveDraftPost, type PostDraft, type PostMedia } from '@/lib/social-posts'
+import { collabMessage, inviteCollaborator, type OrgOption } from '@/lib/collab'
 import { EMPTY_DETAILS, type PostDetailsValue } from '@/lib/post-details'
-import { PostDetails } from './PostDetails'
-import { cn } from '@/lib/cn'
+import { isDemoOrgId, demoAddPost, demoSaveDraft } from '@/lib/demo-org'
 import type { PublishableOrg } from '../useMyOrgs'
+import { PickStep, MAX_ITEMS } from './compose/PickStep'
+import { EditStep } from './compose/EditStep'
+import { ShareStep } from './compose/ShareStep'
+import { itemFromFile, itemFromStored, release, type ComposeItem } from './compose/items'
+import { combine, isIdentity, presetAdjust, ratioFor, type AspectId } from './compose/photo-edit'
+import { renderPhoto } from './compose/render-photo'
 
-const MAX = 10
+type Step = 'pick' | 'edit' | 'share'
 
 /**
- * Publish a post as an organisation.
+ * Make a post: choose, edit, share — three screens, not one.
  *
- * IMAGES UPLOAD AS YOU ADD THEM, not on Publish. Uploading ten photos the
- * moment somebody presses the button means the button appears to hang, and a
- * failure at that point loses the caption they just wrote. This way each
- * thumbnail either appears or says why, and Publish is a single cheap insert.
+ * THIS REPLACED A SINGLE SHEET that uploaded each file the moment it was
+ * picked and piled the caption, the settings and the collaborators underneath
+ * the thumbnails. Two things were wrong with that beyond the layout: a pick
+ * that failed to upload looked like nothing had happened, and there was no way
+ * to change the photo itself. Now the photos live in memory until Share, and
+ * everything done to them on screen 2 is baked into the file that uploads.
  *
- * SINGLE IMAGE OR SLIDESHOW IS NOT A MODE. Add one picture and it is a post;
- * add more and it is a carousel. Asking which one up front is a question the
- * answer to which is already visible on screen.
- *
- * NEITHER IS VIDEO. One picker takes both, the file decides which upload path
- * it goes down, and a clip sits in the feed alongside the photographs. A
- * "video post" mode would be a second composer that asks you to categorise
- * your own file before it will let you choose it.
- *
- * COLLABORATORS ARE COLLECTED HERE AND INVITED AFTER PUBLISH, because an
- * invite is attached to a post and there is no post until you press Share.
- * Until then they are chips you can take off; afterwards they are pending
- * invites, and the post is already out — it does not wait on an answer.
+ * `draft` opens an existing draft on the last screen, so the person who
+ * finishes a post somebody else started lands where the decisions are.
+ * `canPublish = false` is a role that may draft but not publish.
  */
 export function PostComposer({
   orgs,
   onClose,
   onPosted,
+  onSwitchToStory,
+  canPublish = true,
+  draft,
 }: {
   orgs: PublishableOrg[]
   onClose: () => void
   onPosted: () => void
+  onSwitchToStory?: () => void
+  canPublish?: boolean
+  draft?: PostDraft
 }) {
   const [org, setOrg] = useState(orgs[0])
-  const [media, setMedia] = useState<PostMedia[]>([])
-  const [caption, setCaption] = useState('')
-  const [uploading, setUploading] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [details, setDetails] = useState<PostDetailsValue>(EMPTY_DETAILS)
-  /** Who to ask, once there is something to ask about. */
+  const [step, setStep] = useState<Step>(draft ? 'share' : 'pick')
+  const [items, setItems] = useState<ComposeItem[]>(() => (draft ? draft.media.map(itemFromStored) : []))
+  const [selected, setSelected] = useState<string[]>(() => items.map((i) => i.key))
+  const [focusKey, setFocusKey] = useState<string | null>(() => items[0]?.key ?? null)
+  const [multi, setMulti] = useState(false)
+  const [aspect, setAspect] = useState<AspectId>(draft ? 'original' : 'square')
+  const [caption, setCaption] = useState(draft?.caption ?? '')
+  const [details, setDetails] = useState<PostDetailsValue>(draft?.details ?? EMPTY_DETAILS)
   const [invitees, setInvitees] = useState<OrgOption[]>([])
   const [picking, setPicking] = useState(false)
+  const [busy, setBusy] = useState<'share' | 'draft' | null>(null)
+  const [progress, setProgress] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Object URLs are released when the composer goes, not per render.
+  const itemsRef = useRef(items)
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+  useEffect(() => () => release(itemsRef.current), [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && busy === null && onClose()
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -62,357 +75,208 @@ export function PostComposer({
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [onClose])
+  }, [onClose, busy])
 
-  const add = async (files: FileList) => {
-    const room = MAX - media.length
-    const chosen = [...files].slice(0, Math.max(0, room))
-    if (chosen.length === 0) return
+  const chosen = useMemo(
+    () => selected.map((k) => items.find((i) => i.key === k)).filter((i): i is ComposeItem => !!i),
+    [selected, items],
+  )
+  const focus = items.find((i) => i.key === focusKey) ?? chosen[0] ?? null
+  const ratio = ratioFor(aspect, chosen[0] ?? focus)
+
+  const addFiles = async (files: File[]) => {
     setError(null)
-    setUploading((n) => n + chosen.length)
-    for (const f of chosen) {
+    const problems: string[] = []
+    const added: ComposeItem[] = []
+    for (const f of files) {
       try {
-        // The file says what it is; nobody is asked to declare it.
-        const item = f.type.startsWith('video/')
-          ? await uploadOrgVideo(f)
-          : await uploadOrgImageSized(f, 'post')
-        setMedia((prev) => [...prev, item])
+        added.push(await itemFromFile(f))
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'One file could not be uploaded.')
-      } finally {
-        setUploading((n) => Math.max(0, n - 1))
+        problems.push(e instanceof Error ? e.message : `${f.name} could not be opened.`)
       }
     }
+    if (problems.length) setError(problems.join(' '))
+    if (!added.length) return
+    setItems((prev) => [...added, ...prev])
+    setFocusKey(added[0].key)
+    setSelected((prev) => {
+      if (!multi) return [added[0].key]
+      const room = MAX_ITEMS - prev.length
+      return [...prev, ...added.slice(0, Math.max(0, room)).map((a) => a.key)]
+    })
   }
 
-  const publish = async () => {
-    if (busy || media.length === 0) return
-    setBusy(true)
-    const made = await publishPost(org.id, caption, media, details)
-    if ('error' in made) {
-      setBusy(false)
-      setError(made.error)
-      return
+  const toggle = (key: string) => {
+    setFocusKey(key)
+    setSelected((prev) => {
+      if (!multi) return [key]
+      if (prev.includes(key)) return prev.length === 1 ? prev : prev.filter((k) => k !== key)
+      if (prev.length >= MAX_ITEMS) {
+        setError(`A post holds up to ${MAX_ITEMS} photos.`)
+        return prev
+      }
+      return [...prev, key]
+    })
+  }
+
+  const patch = (key: string, p: Partial<ComposeItem>) =>
+    setItems((prev) => prev.map((i) => (i.key === key ? { ...i, ...p } : i)))
+
+  /** Draw and upload what is on screen. Throws with a readable message. */
+  const prepare = async (): Promise<PostMedia[]> => {
+    const out: PostMedia[] = []
+    for (const [n, it] of chosen.entries()) {
+      setProgress(chosen.length > 1 ? `Preparing ${n + 1} of ${chosen.length}…` : 'Preparing your post…')
+      if (it.kind === 'video') {
+        out.push(it.stored ?? (await uploadOrgVideo(it.file!)))
+        continue
+      }
+      const adjust = combine(presetAdjust(it.filter), it.slider)
+      const untouched =
+        it.stored && isIdentity(adjust) && it.texts.length === 0 && it.panX === 0.5 && it.panY === 0.5 &&
+        Math.abs(ratio - it.w / it.h) < 0.01
+      if (untouched && it.stored) {
+        out.push(it.stored)
+        continue
+      }
+      const r = await renderPhoto({ src: it.src, ratio, panX: it.panX, panY: it.panY, adjust, texts: it.texts })
+      const url = await uploadRenderedImage(r.blob, 'post')
+      out.push({ url, w: r.w, h: r.h })
     }
-    /*
-     * THE POST IS ALREADY OUT. An invite that fails does not un-publish it and
-     * must not read as if it did — the caption, the photos and the timing are
-     * all correct either way. So a refusal is reported by name and the
-     * composer still closes; re-inviting is one action on the post.
-     */
-    const failed: string[] = []
-    for (const o of invitees) {
-      const r = await inviteCollaborator(made.id, o.id)
-      if (r !== 'ok') failed.push(`${o.handle}: ${collabMessage(r)}`)
-    }
-    setBusy(false)
-    if (failed.length > 0) {
-      setError(`Posted. Could not invite ${failed.join(' · ')}`)
+    return out
+  }
+
+  const finish = async (mode: 'share' | 'draft') => {
+    if (busy || chosen.length === 0) return
+    setBusy(mode)
+    setError(null)
+    try {
+      // The demo org is a sandbox: nothing leaves this browser.
+      if (isDemoOrgId(org.id)) {
+        const media = chosen.map((c) => ({ url: c.src, w: c.w, h: c.h }))
+        // Picking up a draft updates THAT draft (and posts it on Share)
+        // rather than leaving the old one behind next to a new copy.
+        if (draft) demoSaveDraft(draft.id, caption, media, mode === 'share')
+        else demoAddPost(org.id, { caption, media, draft: mode === 'draft' })
+        onPosted()
+        onClose()
+        return
+      }
+      const media = await prepare()
+      setProgress(mode === 'draft' ? 'Saving the draft…' : 'Posting…')
+      let postId: string | null = null
+      if (draft) {
+        const err = await saveDraftPost(draft.id, caption, media, details, mode === 'share')
+        if (err) throw new Error(err)
+        postId = draft.id
+      } else {
+        const made = await publishPost(org.id, caption, media, details, { draft: mode === 'draft' })
+        if ('error' in made) throw new Error(made.error)
+        postId = made.id
+      }
+      // Collaborators are asked once the post is OUT; a draft is nobody's news.
+      const failed: string[] = []
+      if (mode === 'share' && postId) {
+        for (const o of invitees) {
+          const r = await inviteCollaborator(postId, o.id)
+          if (r !== 'ok') failed.push(`${o.handle}: ${collabMessage(r)}`)
+        }
+      }
       onPosted()
-      return
+      if (failed.length) {
+        setError(`Posted. Could not invite ${failed.join(' · ')}`)
+        setBusy(null)
+        setProgress(null)
+        return
+      }
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not post that. Nothing was published.')
+      setBusy(null)
+      setProgress(null)
     }
-    onPosted()
-    onClose()
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[75] flex items-end justify-center sm:items-center">
-      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60" />
-      <div className="relative flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-border bg-surface sm:max-w-lg sm:rounded-2xl">
-        <span className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-border-strong sm:hidden" />
-        <header className="flex items-center gap-2 px-4 pt-3 pb-2">
-          <h2 className="flex-1 text-[15px] font-semibold text-fg">New post</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid size-7 place-items-center rounded-lg text-subtle hover:text-fg"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        </header>
-
-        {orgs.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto px-4 pb-2">
-            {orgs.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                onClick={() => setOrg(o)}
-                className={cn(
-                  'shrink-0 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-                  o.id === org.id
-                    ? 'border-accent bg-accent-soft text-accent'
-                    : 'border-border text-muted hover:text-fg',
-                )}
-              >
-                {o.handle.replace(/^@/, '')}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {media.map((m, i) => (
-              <div key={m.url} className="relative aspect-square overflow-hidden rounded-lg bg-black">
-                {m.kind === 'video' ? (
-                  <>
-                    {/* Muted, no controls: this is a thumbnail, not a player.
-                        The first frame is all it has to say. */}
-                    <video src={m.url} muted playsInline preload="metadata" className="size-full object-cover" />
-                    <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/85">
-                      <Play size={18} className="fill-current" aria-hidden />
-                    </span>
-                  </>
-                ) : (
-                  <img src={m.url} alt="" className="size-full object-cover" />
-                )}
-                <button
-                  type="button"
-                  aria-label="Remove"
-                  onClick={() => setMedia((prev) => prev.filter((_, n) => n !== i))}
-                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/60 text-white"
-                >
-                  <X size={11} aria-hidden />
-                </button>
-                {/* The order is the slideshow order, so it has to be visible
-                    while you are still choosing. */}
-                {media.length > 1 && (
-                  <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] font-medium text-white tabular-nums">
-                    {i + 1}
-                  </span>
-                )}
-              </div>
-            ))}
-            {Array.from({ length: uploading }).map((_, i) => (
-              <div key={`u-${i}`} className="ct-shimmer aspect-square rounded-lg" />
-            ))}
-            {media.length + uploading < MAX && (
-              <label className="grid aspect-square cursor-pointer place-items-center rounded-lg border-2 border-dashed border-border text-subtle transition-colors duration-150 hover:border-accent hover:text-accent">
-                <ImagePlus size={20} aria-hidden />
-                <span className="sr-only">Add photos or video</span>
-                <input
-                  type="file"
-                  multiple
-                  accept={MEDIA_ACCEPT_ATTR}
-                  className="sr-only"
-                  onChange={(e) => {
-                    if (e.target.files) void add(e.target.files)
-                    e.target.value = ''
-                  }}
-                />
-              </label>
-            )}
-          </div>
-
-          <textarea
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={4}
-            maxLength={2200}
-            placeholder="Write a caption…"
-            className="mt-3 w-full resize-none rounded-xl border border-border bg-canvas px-3 py-2.5 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-          />
-
-          <PostDetails
-            orgId={org.id}
-            caption={caption}
-            value={details}
-            onChange={(patch) => setDetails((d) => ({ ...d, ...patch }))}
-            onError={setError}
-          />
-
-          <CollabPicker
+    <div className="fixed inset-0 z-[75] flex items-stretch justify-center bg-black/70 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="New post">
+      {/* A phone-shaped panel on a desktop: these three screens were drawn
+          for one column, and stretching them across 1440px would put the
+          photo in one corner and Share in another. */}
+      <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-canvas sm:h-[min(880px,calc(100dvh-2rem))] sm:max-w-[470px] sm:rounded-2xl sm:border sm:border-border">
+        {step === 'pick' && (
+          <PickStep
+            orgs={orgs}
             org={org}
+            onOrg={setOrg}
+            items={items}
+            selected={selected}
+            focus={focus}
+            multi={multi}
+            aspect={aspect}
+            ratio={ratio}
+            error={error}
+            onFiles={(f) => void addFiles(f)}
+            onToggle={toggle}
+            onMulti={() => {
+              setMulti((m) => !m)
+              // Leaving multi-select keeps the one in focus, as the reference does.
+              if (multi && focusKey) setSelected([focusKey])
+            }}
+            onAspect={setAspect}
+            onClose={onClose}
+            onNext={() => {
+              setError(null)
+              setStep('edit')
+            }}
+            onSwitchToStory={onSwitchToStory}
+          />
+        )}
+        {step === 'edit' && (
+          <EditStep
+            items={chosen}
+            ratio={ratio}
+            aspect={aspect}
+            onAspect={setAspect}
+            onChange={patch}
+            onBack={() => setStep('pick')}
+            onAddMore={() => {
+              setMulti(true)
+              setStep('pick')
+            }}
+            onNext={() => setStep('share')}
+          />
+        )}
+        {step === 'share' && (
+          <ShareStep
+            org={org}
+            items={chosen}
+            ratio={ratio}
+            caption={caption}
+            onCaption={setCaption}
+            details={details}
+            onDetails={(p) => setDetails((d) => ({ ...d, ...p }))}
             invitees={invitees}
-            open={picking}
-            onOpen={() => setPicking(true)}
-            onClose={() => setPicking(false)}
-            onAdd={(o) => {
+            pickingCollab={picking}
+            onCollabOpen={() => setPicking(true)}
+            onCollabClose={() => setPicking(false)}
+            onCollabAdd={(o) => {
               setInvitees((prev) => (prev.some((x) => x.id === o.id) ? prev : [...prev, o]))
               setPicking(false)
             }}
-            onRemove={(id) => setInvitees((prev) => prev.filter((x) => x.id !== id))}
+            onCollabRemove={(id) => setInvitees((prev) => prev.filter((x) => x.id !== id))}
+            canPublish={canPublish}
+            editingDraft={!!draft}
+            busy={busy}
+            progress={progress}
+            error={error}
+            onError={setError}
+            onBack={() => setStep('edit')}
+            onShare={() => void finish('share')}
+            onSaveDraft={() => void finish('draft')}
           />
-          {error && <p className="mt-2 text-[12px] text-warning">{error}</p>}
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-border px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <span className="flex-1 text-[11.5px] text-subtle">
-            Posting as {org.handle.replace(/^@/, '')} · {media.length}/{MAX}
-          </span>
-          <button
-            type="button"
-            onClick={() => void publish()}
-            disabled={busy || media.length === 0 || uploading > 0}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-60"
-          >
-            {busy && <Loader2 size={14} className="animate-spin" aria-hidden />}
-            Share
-          </button>
-        </div>
+        )}
       </div>
     </div>,
     document.body,
-  )
-}
-
-/**
- * "Invite collaborator" and the search behind it.
- *
- * AN INLINE PANEL, NOT A SECOND SHEET. The composer is already a bottom sheet
- * on a phone; stacking another one over it means two grabbers, two dismiss
- * gestures and a back stack for choosing one name. It expands in place and
- * collapses when you pick.
- *
- * WHAT IT SHOWS: logo, handle, name — the three things that tell two clubs
- * with similar names apart. An empty query lists approved organisations
- * alphabetically rather than nothing, because most people are looking for one
- * of a handful they already work with and should not have to guess its
- * spelling to see it.
- *
- * EVERY ROW HERE IS "PENDING". Nothing is sent until the post exists, and the
- * chip says so — a club that has not been asked yet must not read as one that
- * has said yes.
- */
-function CollabPicker({
-  org,
-  invitees,
-  open,
-  onOpen,
-  onClose,
-  onAdd,
-  onRemove,
-}: {
-  org: PublishableOrg
-  invitees: OrgOption[]
-  open: boolean
-  onOpen: () => void
-  onClose: () => void
-  onAdd: (o: OrgOption) => void
-  onRemove: (id: string) => void
-}) {
-  const [q, setQ] = useState('')
-  const [rows, setRows] = useState<OrgOption[] | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    let alive = true
-    // Debounced, and the setState lives in the timer rather than the effect
-    // body — react-hooks/set-state-in-effect, the same shape SearchOverlay uses.
-    const id = window.setTimeout(
-      () => {
-        void searchOrgsToInvite(q, org.id).then((r) => alive && setRows(r))
-      },
-      q ? 200 : 0,
-    )
-    return () => {
-      alive = false
-      window.clearTimeout(id)
-    }
-  }, [q, open, org.id])
-
-  const already = new Set(invitees.map((i) => i.id))
-
-  return (
-    <div className="mt-3">
-      {invitees.length > 0 && (
-        <ul className="mb-2 flex flex-wrap gap-1.5">
-          {invitees.map((o) => (
-            <li
-              key={o.id}
-              className="flex items-center gap-1.5 rounded-full bg-surface-2 py-1 pr-1 pl-2.5 text-[12px] text-fg"
-            >
-              <span className="font-medium">{o.handle.replace(/^@/, '')}</span>
-              <span className="text-subtle">· pending</span>
-              <button
-                type="button"
-                onClick={() => onRemove(o.id)}
-                aria-label={`Do not invite ${o.handle}`}
-                className="grid size-5 place-items-center rounded-full text-subtle transition-colors duration-150 hover:bg-surface hover:text-fg"
-              >
-                <X size={12} aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {!open ? (
-        <button
-          type="button"
-          onClick={onOpen}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-        >
-          <UserPlus size={14} aria-hidden />
-          Invite collaborator
-        </button>
-      ) : (
-        <div className="rounded-xl border border-border bg-canvas p-2">
-          <div className="relative">
-            <Search
-              size={14}
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-subtle"
-            />
-            <input
-              autoFocus
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search clubs by name or handle"
-              aria-label="Search organisations to invite"
-              className="w-full rounded-lg bg-surface-2 py-2 pr-8 pl-8 text-[13px] text-fg placeholder:text-subtle focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute top-1/2 right-1.5 grid size-6 -translate-y-1/2 place-items-center rounded-full text-subtle hover:text-fg"
-            >
-              <X size={13} aria-hidden />
-            </button>
-          </div>
-          <ul className="mt-1 max-h-56 overflow-y-auto">
-            {rows === null ? (
-              <li className="px-2 py-4 text-center text-[12.5px] text-subtle">Loading…</li>
-            ) : rows.length === 0 ? (
-              <li className="px-2 py-4 text-center text-[12.5px] text-subtle">
-                {q.trim() ? `No club matching “${q.trim()}”.` : 'No other approved clubs yet.'}
-              </li>
-            ) : (
-              rows.map((o) => (
-                <li key={o.id}>
-                  <button
-                    type="button"
-                    disabled={already.has(o.id)}
-                    onClick={() => onAdd(o)}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-2 text-left transition-colors duration-150 hover:bg-surface-2 disabled:opacity-40"
-                  >
-                    {o.logo ? (
-                      <img src={o.logo} alt="" className="size-8 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <span
-                        className="grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white"
-                        style={{ background: o.color ?? '#4b5563' }}
-                      >
-                        {(o.glyph || o.name.slice(0, 2)).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-medium text-fg">
-                        {o.handle.replace(/^@/, '')}
-                      </span>
-                      <span className="block truncate text-[11.5px] text-subtle">{o.name}</span>
-                    </span>
-                    {already.has(o.id) && <span className="text-[11.5px] text-subtle">Added</span>}
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
   )
 }

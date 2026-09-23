@@ -5,6 +5,7 @@ import type { Lang } from '@/i18n/i18n'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Bell, CalendarPlus, Check, Eye, Lock, RotateCcw, Trash2, UserPlus } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
+import { useAuth } from '@/app/providers/auth'
 import { eventToCommunity, type EventMetrics, type ManagedEvent } from '@/data/teacher'
 import type { EventCategory, EventOrg } from '@/data/community'
 import { Button } from '@/components/ui/Button'
@@ -56,7 +57,16 @@ function EventEditorForm({
   org: EventOrg
   pending: boolean
 }) {
-  const { updateEvent, deleteEvent, notifyFollowers, isEventNotified, revertNotify } = useTeacher()
+  const { updateEvent, deleteEvent, notifyFollowers, isEventNotified, revertNotify, orgPerms, currentOrg } = useTeacher()
+  const draft = !!event.isDraft
+  // Writing a draft and putting it out are two permissions: an Intern can
+  // start the event, somebody who can post events publishes it.
+  const canPublish = !!orgPerms && (orgPerms.is_owner || orgPerms.event_create)
+  const { user: me } = useAuth()
+  const nameOf = (uid?: string) => {
+    if (uid && uid === me?.id) return 'you'
+    return (uid && currentOrg?.members.find((x) => x.userId === uid)?.name) || 'a teammate'
+  }
   const navigate = useNavigate()
   const notified = isEventNotified(event.id)
 
@@ -107,8 +117,9 @@ function EventEditorForm({
     navigate('/organizer/events')
   }
 
-  function save() {
+  function save(publish = false) {
     updateEvent(event.id, {
+      ...(publish ? { isDraft: false } : {}),
       title: title.trim(),
       start,
       mode,
@@ -132,7 +143,7 @@ function EventEditorForm({
        switch on a draft nobody has saved would publish a card about an event
        that does not exist yet — and a failure here leaves the event saved,
        because the companion post is not worth losing the work over. */
-    if (crossPost) {
+    if (crossPost && (!draft || publish)) {
       setCrossErr('')
       void crossPostEvent({
         orgId,
@@ -165,7 +176,18 @@ function EventEditorForm({
       <h1 className="font-display text-[22px] leading-tight font-semibold text-fg">
         {title.trim() || 'Untitled event'}
       </h1>
-      <p className="text-[13px] text-subtle">Edit the event students see in Community.</p>
+      <p className="text-[13px] text-subtle">
+        {draft ? 'A draft: only your team can see it.' : 'Edit the event students see in Community.'}
+      </p>
+      {draft && (
+        <p className="mt-3 rounded-xl border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[12.5px] text-warning">
+          Draft · started by {nameOf(event.draftedBy)}
+          {event.lastEditedBy && event.lastEditedBy !== event.draftedBy ? `, last edited by ${nameOf(event.lastEditedBy)}` : ''}.{' '}
+          {canPublish
+            ? 'Anyone who can write drafts can keep editing it; publish it when it is ready.'
+            : 'Anyone who can write drafts can keep editing it. Somebody who can post events publishes it.'}
+        </p>
+      )}
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
         {/* Form */}
@@ -294,7 +316,7 @@ function EventEditorForm({
             />
           </Field>
 
-          <CrossPostRow
+          {!draft && <CrossPostRow
             on={crossPost}
             onChange={setCrossPost}
             error={crossErr}
@@ -304,19 +326,33 @@ function EventEditorForm({
                 : 'Add a banner image above first — a post in the feed is a picture.'
             }
             title={title}
-          />
+          />}
 
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <Button onClick={save} disabled={saved}>
+            <Button variant={draft ? 'outline' : 'primary'} onClick={() => save()} disabled={saved}>
               {saved ? (
                 <>
                   <Check size={15} aria-hidden /> Saved
                 </>
+              ) : draft ? (
+                'Save draft'
               ) : (
                 'Save changes'
               )}
             </Button>
-            {notified ? (
+            {draft ? (
+              canPublish && (
+                // A club still waiting on approval can publish: the event
+                // goes live the moment the club does, as it always has.
+                <Button
+                  disabled={!title.trim()}
+                  title={!title.trim() ? 'Give it a title first' : pending ? 'Goes live once your club is approved' : undefined}
+                  onClick={() => save(true)}
+                >
+                  Publish
+                </Button>
+              )
+            ) : notified ? (
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-[12px] font-medium text-success">
                   <Check size={14} aria-hidden />
