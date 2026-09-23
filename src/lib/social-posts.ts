@@ -710,6 +710,41 @@ export async function publishStory(
 }
 
 export async function deleteStory(id: string): Promise<boolean> {
-  const { error } = await supabase.from('org_stories').delete().eq('id', id)
-  return !error
+  // A function, not a plain delete: RLS makes a refused delete look like a
+  // success (it deletes nothing, no error), and a read-back cannot see drafts.
+  const { data, error } = await supabase.rpc('delete_story', { p_story: id })
+  return !error && data === true
+}
+
+/**
+ * Take a live story off the ring without losing it (db/story_drafts.sql).
+ * Returns an error sentence, or null.
+ */
+export async function storyToDraft(id: string): Promise<string | null> {
+  const { error } = await supabase.rpc('story_to_draft', { p_story: id })
+  return error ? error.message : null
+}
+
+/** Post a story draft again, with a fresh 24/48/72 hours from now. */
+export async function publishStoryDraft(id: string, hours: 24 | 48 | 72): Promise<string | null> {
+  const { error } = await supabase.rpc('publish_story_draft', { p_story: id, p_hours: hours })
+  return error ? error.message : null
+}
+
+export interface StoryDraft {
+  id: string
+  imageUrl: string
+  caption: string | null
+  createdAt: string
+}
+
+export async function loadStoryDrafts(orgId: string): Promise<StoryDraft[]> {
+  const { data, error } = await supabase.rpc('org_story_drafts', { p_org: orgId })
+  if (error) return []
+  return ((data ?? []) as { id: string; image_url: string; caption: string | null; created_at: string }[]).map((r) => ({
+    id: r.id,
+    imageUrl: r.image_url,
+    caption: r.caption,
+    createdAt: r.created_at,
+  }))
 }

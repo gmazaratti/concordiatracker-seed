@@ -12,6 +12,8 @@ import {
   Pause,
   Play,
   Send,
+  Trash2,
+  Undo2,
   X,
 } from 'lucide-react'
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
@@ -19,9 +21,12 @@ import { useFollows } from '@/app/providers/follows'
 import { muteOrg } from '../muted-orgs'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { sendMessageToOrg } from '@/lib/org-messages'
+import { useMyOrgs } from '../useMyOrgs'
 import {
+  deleteStory,
   loadStoryReel,
   markStorySeen,
+  storyToDraft,
   type Story,
   type StoryRing,
 } from '@/lib/social-posts'
@@ -99,6 +104,12 @@ export function StoryViewer({
   const touch = useRef<{ x: number; y: number; id: number; moved: boolean } | null>(null)
   const { isFollowing, toggleFollow } = useFollows()
   const navigate = useNavigate()
+  // The club's own team can take a story down or back to drafts. The database
+  // checks the same thing (ct_can_act_as_org + post_create); this only
+  // decides whether the menu offers it.
+  const { orgs: myOrgs } = useMyOrgs()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [manageErr, setManageErr] = useState<string | null>(null)
 
   const orgId = ring?.orgId
   useEffect(() => {
@@ -117,6 +128,25 @@ export function StoryViewer({
   }, [orgId])
 
   const story = stories?.[i]
+  const canManage = !!ring && myOrgs.some((o) => o.id === ring.orgId)
+
+  /** A story left the reel (deleted or drafted): show the next one, or move
+   *  on to the next club when this was the last, and refresh the row. */
+  const dropCurrent = () => {
+    if (!stories) return
+    const rest = stories.filter((_, n) => n !== i)
+    onSeen?.()
+    if (rest.length > 0) {
+      setStories(rest)
+      setI(Math.min(i, rest.length - 1))
+    } else if (ringIndex + 1 < rings.length) {
+      setStories(null)
+      setI(0)
+      setRingIndex(ringIndex + 1)
+    } else {
+      onClose()
+    }
+  }
 
   const next = useCallback(() => {
     if (!stories) return
@@ -426,6 +456,29 @@ export function StoryViewer({
               icon: paused ? Play : Pause,
               onSelect: () => setPaused((v) => !v),
             },
+            ...(canManage && story
+              ? [
+                  {
+                    id: 'draft',
+                    label: 'Send back to drafts',
+                    icon: Undo2,
+                    onSelect: () => {
+                      setManageErr(null)
+                      void storyToDraft(story.id).then((err) => (err ? setManageErr(err) : dropCurrent()))
+                    },
+                  },
+                  {
+                    id: 'delete',
+                    label: 'Delete story',
+                    icon: Trash2,
+                    danger: true,
+                    onSelect: () => {
+                      setPaused(true)
+                      setConfirmDelete(true)
+                    },
+                  },
+                ]
+              : []),
             {
               id: 'mute',
               label: `Stop suggesting ${ring.handle.replace(/^@/, '')}`,
@@ -635,6 +688,62 @@ export function StoryViewer({
             setPaused(false)
           }}
         />
+      )}
+
+      {manageErr && (
+        <p role="alert" className="absolute inset-x-3 top-16 z-20 rounded-xl bg-danger/85 px-3 py-2 text-[13px] text-white">
+          {manageErr}
+        </p>
+      )}
+
+      {/* Deleting is final — a story has no trash — so it asks once, and
+          offers the reversible alternative right beside it. */}
+      {confirmDelete && story && (
+        <div
+          className="absolute inset-0 z-20 flex items-end justify-center bg-black/60 sm:items-center"
+          onClick={() => {
+            setConfirmDelete(false)
+            setPaused(false)
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Delete this story?"
+            onClick={(e) => e.stopPropagation()}
+            className="ct-animate-pop m-3 w-full max-w-sm rounded-2xl bg-neutral-900 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-white sm:pb-4"
+          >
+            <p className="text-[15px] font-semibold">Delete this story?</p>
+            <p className="mt-1 text-[13px] text-white/70">
+              It disappears for everyone and cannot be brought back. Sending it back to drafts keeps it instead.
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => {
+                  const id = story.id
+                  setConfirmDelete(false)
+                  setManageErr(null)
+                  void deleteStory(id).then((ok) => (ok ? dropCurrent() : setManageErr('That story could not be deleted.')))
+                }}
+                className="rounded-xl bg-danger px-4 py-3 text-[14.5px] font-semibold text-white"
+              >
+                Delete story
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDelete(false)
+                  setPaused(false)
+                }}
+                className="rounded-xl py-2.5 text-[13.5px] text-white/70 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>,
     document.body,

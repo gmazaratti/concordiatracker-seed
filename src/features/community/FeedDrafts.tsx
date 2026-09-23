@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { FilePenLine } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
-import { loadPostDrafts, type PostDraft } from '@/lib/social-posts'
+import { loadPostDrafts, loadStoryDrafts, type PostDraft, type StoryDraft } from '@/lib/social-posts'
+import { StoryDraftRow } from './StoryDraftRow'
 import { loadMyOrgPerms } from '@/lib/org-roles'
 import { PostDrafts } from '@/features/organizer/feed/PostDrafts'
 import { PostComposer } from './posts/PostComposer'
@@ -10,6 +11,8 @@ import type { PublishableOrg } from './useMyOrgs'
 interface OrgDrafts {
   org: PublishableOrg
   drafts: PostDraft[]
+  /** Stories sent back to drafts from the viewer's menu. */
+  stories: StoryDraft[]
   canPublish: boolean
 }
 
@@ -42,13 +45,14 @@ export function FeedDrafts({
     let alive = true
     void Promise.all(
       orgs.map(async (org) => {
-        const [drafts, perms] = await Promise.all([
+        const [drafts, stories, perms] = await Promise.all([
           loadPostDrafts(org.id).catch(() => [] as PostDraft[]),
+          loadStoryDrafts(org.id),
           loadMyOrgPerms(org.id),
         ])
-        return { org, drafts, canPublish: !!perms && (perms.is_owner || perms.post_feed) }
+        return { org, drafts, stories, canPublish: !!perms && (perms.is_owner || perms.post_feed) }
       }),
-    ).then((g) => alive && setGroups(g.filter((x) => x.drafts.length > 0)))
+    ).then((g) => alive && setGroups(g.filter((x) => x.drafts.length + x.stories.length > 0)))
     return () => {
       alive = false
     }
@@ -56,7 +60,7 @@ export function FeedDrafts({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids, refreshKey, tick])
 
-  const total = groups.reduce((n, g) => n + g.drafts.length, 0)
+  const total = groups.reduce((n, g) => n + g.drafts.length + g.stories.length, 0)
   const changed = () => {
     setTick((t) => t + 1)
     onChanged()
@@ -87,6 +91,17 @@ export function FeedDrafts({
                   {groups.length > 1 && (
                     <p className="mb-1.5 text-[12px] font-medium text-muted">{g.org.name}</p>
                   )}
+                  {g.stories.length > 0 && (
+                    <>
+                      <p className="mt-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">Stories</p>
+                      <ul className="mb-3 divide-y divide-border">
+                        {g.stories.map((d) => (
+                          <StoryDraftRow key={d.id} draft={d} onChanged={changed} />
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {g.drafts.length > 0 && (
                   <PostDrafts
                     drafts={g.drafts}
                     canPublish={g.canPublish}
@@ -96,6 +111,7 @@ export function FeedDrafts({
                     }}
                     onChanged={changed}
                   />
+                  )}
                 </div>
               ))
             )}

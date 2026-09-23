@@ -57,10 +57,13 @@ export function OrgOnboardingGate({
   org,
   replay = false,
   onReplayDone,
+  onClosed,
 }: {
   org: OrgAccount
   replay?: boolean
   onReplayDone?: () => void
+  /** Setup was finished or skipped — the page behind may now render. */
+  onClosed?: () => void
 }) {
   /* WHICH club was dismissed, not a boolean — a `useState(() => …)`
      initialiser runs ONCE, with whatever club was current when this mounted.
@@ -95,6 +98,7 @@ export function OrgOnboardingGate({
            supabase.rpc(…)` is a call that never happens. */
         fireWrite(supabase.rpc('mark_org_setup_done', { p_org: org.id }))
         onReplayDone?.()
+        onClosed?.()
       }}
     />
   )
@@ -244,7 +248,11 @@ function OrgOnboarding({
   }
 
   return createPortal(
-    <div className="ct-animate-fade fixed inset-0 z-[80] flex bg-canvas">
+    // OPAQUE FROM THE FIRST FRAME. The fade used to be on this layer, so for
+    // its first frames the page underneath showed straight through — the
+    // dashboard "flashed" before setup. Only the contents fade now.
+    <div className="fixed inset-0 z-[80] bg-canvas">
+    <div className="ct-animate-fade relative isolate flex size-full">
       {/* Grid as a background layer, not on this container: its radial mask
           applies to every descendant and would hold the whole wizard at ≤50%
           opacity. */}
@@ -435,6 +443,7 @@ function OrgOnboarding({
           )}
         </div>
       </div>
+    </div>
     </div>,
     document.body,
   )

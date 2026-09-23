@@ -7,7 +7,7 @@ import { fireWrite, supabase } from '@/lib/supabase'
 import { OrganizerSignIn } from './OrganizerSignIn'
 import { OrganizerOverview } from './OrganizerOverview'
 import { OrgOnboardingGate } from './onboarding/OrgOnboarding'
-import { resetOnboarding } from './onboarding-state'
+import { onboarded, resetOnboarding } from './onboarding-state'
 
 /**
  * `/organizer` — the sign-in door when signed out, the Overview when signed in,
@@ -29,6 +29,7 @@ export function OrganizerHome() {
   const [params] = useSearchParams()
   const wanted = params.get('org')
   const [replay, setReplay] = useState(false)
+  const [closedFor, setClosedFor] = useState<string | null>(null)
 
   useEffect(() => {
     if (orgsLoading || !wanted || currentOrg?.id === wanted) return
@@ -44,9 +45,16 @@ export function OrganizerHome() {
   }
   if (!currentOrg) return <OrganizerSignIn />
   const org = currentOrg
+  const onTeam = ownedOrgIds.has(org.id) || org.members.some((m) => !!authUser && m.userId === authUser.id)
+  /* SETUP FIRST, THE DASHBOARD AFTER. While a club's setup is pending the
+     overview is not rendered at all, so there is nothing behind the wizard to
+     show through while it appears — that was the flash of the dashboard
+     before onboarding. It mounts the moment setup is finished or skipped. */
+  const setupPending =
+    onTeam && closedFor !== org.id && !onboarded.has(org.id) && !(org.setupDone ?? true)
   return (
     <>
-      <OrganizerOverview
+      {!setupPending && <OrganizerOverview
         onReplaySetup={() => {
           resetOnboarding(org.id)
           // Re-opened in the database as well, so a reload mid-replay does not
@@ -54,12 +62,17 @@ export function OrganizerHome() {
           fireWrite(supabase.rpc('reset_org_setup', { p_org: org.id }))
           setReplay(true)
         }}
-      />
+      />}
       {/* ONLY FOR THE TEAM. A platform admin can open any club, including one
           built for somebody else and not yet claimed — its setup wizard is
           for whoever claims it, not for the admin filling it in. */}
-      {(ownedOrgIds.has(org.id) || org.members.some((m) => !!authUser && m.userId === authUser.id) || replay) && (
-        <OrgOnboardingGate org={org} replay={replay} onReplayDone={() => setReplay(false)} />
+      {(onTeam || replay) && (
+        <OrgOnboardingGate
+          org={org}
+          replay={replay}
+          onReplayDone={() => setReplay(false)}
+          onClosed={() => setClosedFor(org.id)}
+        />
       )}
     </>
   )
