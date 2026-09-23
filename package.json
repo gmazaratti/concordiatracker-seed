@@ -51,7 +51,8 @@
     "alfred:tools": "node scripts/alfred-tools.mjs",
     "smoke:support": "node scripts/smoke-support.mjs",
     "test:msgfilters": "node src/features/profile/message-filters.test.mjs",
-    "test:crop": "node src/lib/image-crop.test.mjs"
+    "test:crop": "node src/lib/image-crop.test.mjs",
+    "db:roles": "npx supabase db query --linked -f db/org_roles_and_audit.test.sql"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

@@ -483,7 +483,34 @@ begin
   select id into admin_role from public.org_roles where org_id = p_org and system_key = 'admin';
 
   update public.org_members set role_id = owner_role, role = 'owner' where id = p_member;
+
+  /* `ct_guard_org_status` PINS `owner_id` for every non-admin caller and does
+     it silently — the update succeeds and changes nothing. That guard exists
+     so ownership can only move through a verb that meant to move it, and this
+     is one, so it opts in the same way `accept_org_invite` does.
+     Transaction-local, so it cannot leak into anything else. */
+  /* THE HANDOVER MUST NOT LOCK OUT THE PERSON MAKING IT.
+     Ownership is `organizations.owner_id` OR an owner-role membership, and the
+     original owner is very often only the former — `owner_id` with no row in
+     `org_members` at all. Moving the column would then take away everything
+     they had, which is the opposite of what "there can be more than one owner"
+     is for. So they are given a real owner-role membership first, unless they
+     are deliberately stepping down. */
+  if not p_step_down and me is not null then
+    insert into public.org_members (org_id, user_id, name, email, role, status, joined_at, role_id)
+    select p_org, me,
+           coalesce((select name from public.user_profile where user_id = me), 'Owner'),
+           coalesce((select email from auth.users where id = me), ''),
+           'owner', 'active', now(), owner_role
+     where not exists (select 1 from public.org_members x
+                        where x.org_id = p_org and x.user_id = me);
+    update public.org_members set role_id = owner_role, role = 'owner'
+     where org_id = p_org and user_id = me;
+  end if;
+
+  perform set_config('ct.org_claim', '1', true);
   update public.organizations set owner_id = mem.user_id where id = p_org;
+  perform set_config('ct.org_claim', '', true);
 
   if p_step_down then
     update public.org_members set role_id = admin_role, role = 'admin'
@@ -535,7 +562,9 @@ declare
   me uuid := auth.uid();
   nm text;
   em text;
-  id uuid;
+  -- NOT `id`: a plpgsql variable sharing a name with a column in the same
+  -- statement is ambiguous, and Postgres refuses the call with 42702.
+  new_id uuid;
 begin
   if p_org is null then return null; end if;
   select coalesce(p.name, ''), coalesce(p.email, '')
@@ -544,9 +573,12 @@ begin
   insert into public.org_activity (org_id, actor_user, actor_name, actor_email,
                                    action, detail, entity_type, entity_id, before, after)
   values (p_org, me, coalesce(nullif(nm,''), 'Someone'), coalesce(em, ''),
-          p_action, p_detail, p_entity_type, p_entity_id, p_before, p_after)
-  returning public.org_activity.id into id;
-  return id;
+          -- `detail` is NOT NULL on this table and most entries have nothing
+          -- extra to say, so an empty string is the value rather than a
+          -- constraint violation on the log of everything else going right.
+          p_action, coalesce(p_detail, ''), p_entity_type, p_entity_id, p_before, p_after)
+  returning org_activity.id into new_id;
+  return new_id;
 end $$;
 
 grant execute on function public.ct_org_log(uuid, text, text, text, text, jsonb, jsonb)
@@ -618,7 +650,7 @@ begin
   elsif a.entity_type = 'event' then
     update public.events e
        set title       = coalesce(a.before->>'title', e.title),
-           start       = coalesce((a.before->>'start')::timestamptz, e.start),
+           "start"     = coalesce((a.before->>'start')::timestamptz, e."start"),
            location    = case when a.before ? 'location' then a.before->>'location' else e.location end,
            mode        = coalesce(a.before->>'mode', e.mode),
            category    = coalesce(a.before->>'category', e.category),
@@ -635,8 +667,20 @@ begin
     what := 'the post';
 
   elsif a.entity_type = 'member_role' then
+    /* BOTH COLUMNS, or they drift. `set_org_member_role` keeps the legacy
+       `role` in step with `role_id` because older policies and the admin
+       console still read it; an undo that restored only one of them would
+       leave a member whose two answers to "are they an admin" disagree —
+       which is the exact failure the legacy column is kept in step to avoid. */
     update public.org_members m
-       set role_id = nullif(a.before->>'role_id','')::uuid
+       set role_id = nullif(a.before->>'role_id','')::uuid,
+           role = coalesce(
+             (select case when r.is_owner then 'owner'
+                          when r.position >= 50 then 'admin'
+                          else 'member' end
+                from public.org_roles r
+               where r.id = nullif(a.before->>'role_id','')::uuid),
+             m.role)
      where m.id = a.entity_id::uuid;
     what := 'the role change';
 
@@ -806,3 +850,37 @@ grant execute on function public.org_activity_actors(uuid) to authenticated;
 --   select count(*) from org_members where role_id is null;               -- 0
 --   select org_id, count(*) from org_roles where system_key is not null
 --    group by org_id having count(*) <> 3;                                -- no rows
+
+-- ── A member row always has a role ──────────────────────────────────────────
+--
+-- The backfill covered everybody who existed; this covers everybody who
+-- arrives. Members are inserted from several places — the invite accept, the
+-- teammate link, the admin console, a handoff — and expecting each of them to
+-- remember `role_id` is how one of them ends up not doing it. `org_perm` does
+-- fall back to the legacy `role` column, so a missing one was never a lockout;
+-- it just meant the Team page showed somebody as having "No role", which reads
+-- as broken.
+create or replace function public.ct_default_member_role()
+returns trigger language plpgsql security definer set search_path to 'public' as $$
+begin
+  if new.role_id is null then
+    select r.id into new.role_id
+      from public.org_roles r
+     where r.org_id = new.org_id
+       and r.system_key = case when new.role in ('owner','admin','member')
+                               then new.role else 'member' end;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_default_member_role on public.org_members;
+create trigger trg_default_member_role before insert on public.org_members
+  for each row execute function public.ct_default_member_role();
+
+-- And anybody already sitting without one.
+update public.org_members m
+   set role_id = r.id
+  from public.org_roles r
+ where r.org_id = m.org_id
+   and r.system_key = case when m.role in ('owner','admin','member') then m.role else 'member' end
+   and m.role_id is null;

@@ -82,3 +82,6 @@ rv.txt
 .message-filters.test.tmp.mjs
 .probe*
 .tmp-*
+
+# Throwaway SQL used to probe the live database during a session.
+.tmpsql/

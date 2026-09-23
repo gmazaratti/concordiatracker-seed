@@ -167,6 +167,9 @@ export interface TeacherContextValue {
   }) => OrgMember
   /** Set YOUR OWN job title in the current org (not a permission). */
   setMyOrgTitle: (title: string) => void
+  /** Re-read every org from the database. For changes made through their own
+   *  RPCs (roles, ownership), which this provider cannot see happen. */
+  refreshOrgs: () => void
   /** Accept a teammate invite link → activates the member; resolves true on success. */
   acceptOrgMemberInvite: (token: string) => Promise<boolean>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */

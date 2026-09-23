@@ -180,6 +180,13 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     }
   }, [authUser])
 
+  /* A counter the org load watches, so anything that changes a club from
+     OUTSIDE this provider — a role granted through its own RPC, ownership
+     moved — can ask for the list again instead of leaving the screen showing
+     what was true a moment ago. */
+  const [orgTick, setOrgTick] = useState(0)
+  const refreshOrgs = useCallback(() => setOrgTick((t) => t + 1), [])
+
   // Load every org the signed-in user can manage: ones they OWN, ones they're an
   // ACTIVE MEMBER of (shared dashboards via org_members), and — if they're a
   // platform admin — ALL orgs. Events + members are batched with `.in(...)`, so
@@ -254,7 +261,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       const { data: evRows } = await supabase.from('events').select(EVENT_COLS).in('org_id', ids).order('start')
       const { data: memberRows } = await supabase
         .from('org_members')
-        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,title,org_id')
+        .select('id,name,email,role,status,invite_token,joined_at,permissions,avatar_url,title,role_id,org_id')
         .in('org_id', ids)
         .order('created_at')
       if (!active) return
@@ -308,7 +315,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false
     }
-  }, [authUser])
+  }, [authUser, orgTick])
 
   // The org the switcher currently has active (first if none picked).
   const myOrg = useMemo<OrgAccount | null>(
@@ -1305,6 +1312,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       isEventNotified,
       revertNotify,
       inviteOrgMember,
+      refreshOrgs,
       setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,
@@ -1362,6 +1370,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       isEventNotified,
       revertNotify,
       inviteOrgMember,
+      refreshOrgs,
       setMyOrgTitle,
       acceptOrgMemberInvite,
       removeOrgMember,

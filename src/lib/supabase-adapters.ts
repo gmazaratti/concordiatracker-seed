@@ -563,6 +563,7 @@ export interface OrgMemberRow {
   permissions?: Partial<OrgPermissions> | null
   avatar_url?: string | null
   title?: string | null
+  role_id?: string | null
 }
 export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
   return {
@@ -578,6 +579,7 @@ export function orgMemberFromRow(r: OrgMemberRow): OrgMember {
     permissions: r.permissions ?? undefined,
     avatarUrl: r.avatar_url ?? undefined,
     title: r.title ?? undefined,
+    roleId: r.role_id ?? undefined,
   }
 }
 

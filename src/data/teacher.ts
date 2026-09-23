@@ -385,6 +385,8 @@ export interface OrgMember {
   inviteToken?: string
   /** True for the current logged-in user — pinned + badged "You" in the team list. */
   isYou?: boolean
+  /** Which custom role they hold. The permission level; `title` is the words. */
+  roleId?: string
   /** What they call their job ("VP Internal", "Communications"). NOT a
    *  permission: `role` is the level and has three values, a title has as
    *  many as there are execs. */

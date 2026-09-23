@@ -57,6 +57,8 @@ const OrganizerInsights = lazy(() => import('@/features/organizer/OrganizerInsig
 const OrganizerEventEditor = lazy(() => import('@/features/organizer/OrganizerEventEditor').then((x) => ({ default: x.OrganizerEventEditor })))
 const OrgProfileEditor = lazy(() => import('@/features/organizer/OrgProfileEditor').then((x) => ({ default: x.OrgProfileEditor })))
 const OrganizerTeam = lazy(() => import('@/features/organizer/OrganizerTeam').then((x) => ({ default: x.OrganizerTeam })))
+const OrganizerRoles = lazy(() => import('@/features/organizer/OrganizerRoles').then((x) => ({ default: x.OrganizerRoles })))
+const OrganizerActivity = lazy(() => import('@/features/organizer/OrganizerActivity').then((x) => ({ default: x.OrganizerActivity })))
 const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInvitePage').then((x) => ({ default: x.OrganizerInvitePage })))
 const OrgMemberInvitePage = lazy(() => import('@/features/organizer/OrgMemberInvitePage').then((x) => ({ default: x.OrgMemberInvitePage })))
 const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({ default: x.LegalPage })))
@@ -126,6 +128,8 @@ export function AppRoutes() {
         <Route path="setup" element={<SetupRedirect />} />
         <Route path="profile" element={<OrgProfileEditor />} />
         <Route path="team" element={<OrganizerTeam />} />
+        <Route path="roles" element={<OrganizerRoles />} />
+        <Route path="activity" element={<OrganizerActivity />} />
       </Route>
 
       {/*

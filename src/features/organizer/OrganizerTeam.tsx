@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/Select'
 import { Switch } from '@/features/settings/controls'
 import { cn } from '@/lib/cn'
 import { FallbackImg } from '@/components/ui/FallbackImg'
+import { loadOrgRoles, myPosition, type OrgRoleDef } from '@/lib/org-roles'
+import { MemberRoleControl } from './MemberRoleControl'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -72,6 +74,11 @@ function TeamView({
   const [email, setEmail] = useState('')
   const [role, setRoleState] = useState<OrgRole>('member')
   const [lastToken, setLastToken] = useState<string | null>(null)
+  // Roles + my rank, fetched once for the whole list. `roleTick` re-reads
+  // after a grant, so the chips say what the database now says.
+  const [roleTick, setRoleTick] = useState(0)
+  const roleCtx = useRoleContext(orgId, roleTick)
+  const { refreshOrgs } = useTeacher()
 
   function send() {
     if (!name.trim() || !email.trim()) return
@@ -142,6 +149,21 @@ function TeamView({
             onRemove={() => remove(m.id)}
             onRole={(r) => setRole(m.id, r)}
             onPerm={(key, val) => setPerms(m.id, { [key]: val })}
+            roleControl={
+              <MemberRoleControl
+                member={m}
+                roles={roleCtx.roles}
+                myPosition={roleCtx.mine}
+                orgId={orgId}
+                onChanged={() => {
+                  setRoleTick((t) => t + 1)
+                  // The member list lives in the provider, and the grant went
+                  // straight to the database — without this the row keeps
+                  // showing the role they had a second ago.
+                  refreshOrgs()
+                }}
+              />
+            }
           />
         ))}
       </ul>
@@ -215,6 +237,28 @@ function Avatar({ member, hue }: { member: OrgMember; hue: string }) {
   )
 }
 
+/** The club's roles + where the signed-in person ranks. Loaded here and
+ *  handed down, so one fetch serves every row instead of one per member. */
+function useRoleContext(orgId: string, tick: number) {
+  const [roles, setRoles] = useState<OrgRoleDef[]>([])
+  const [mine, setMine] = useState(-1)
+  useEffect(() => {
+    if (!orgId) return
+    let alive = true
+    void Promise.all([loadOrgRoles(orgId), myPosition(orgId)])
+      .then(([r, p]) => {
+        if (!alive) return
+        setRoles(r)
+        setMine(p)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [orgId, tick])
+  return { roles, mine }
+}
+
 function MemberRow({
   member,
   hue,
@@ -222,6 +266,7 @@ function MemberRow({
   onRemove,
   onRole,
   onPerm,
+  roleControl,
 }: {
   member: OrgMember
   hue: string
@@ -229,6 +274,8 @@ function MemberRow({
   onRemove: () => void
   onRole: (role: OrgRole) => void
   onPerm: (key: (typeof ORG_PERMS)[number]['key'], value: boolean) => void
+  /** The custom-role picker; rendered here so the row keeps owning its layout. */
+  roleControl?: React.ReactNode
 }) {
   const invited = member.status === 'invited'
   const locked = member.role === 'owner'
@@ -262,6 +309,7 @@ function MemberRow({
         <span className="shrink-0 text-[11px] text-subtle">
           {invited ? 'Awaiting acceptance' : joinedLabel(member.joinedDaysAgo)}
         </span>
+        {roleControl}
         {/* Permissions (Discord-style): owners hold everything, immutably */}
         {canManage && !locked && (
           <button

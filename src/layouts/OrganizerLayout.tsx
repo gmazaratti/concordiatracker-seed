@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, Inbox, LayoutDashboard, Loader2, LogOut, UserCircle, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, CalendarDays, Check, ChevronsUpDown, FlaskConical, Handshake, History, Inbox, LayoutDashboard, Loader2, LogOut, ShieldCheck, UserCircle, Users, type LucideIcon } from 'lucide-react'
 import type { OrgAccount } from '@/data/teacher'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
@@ -18,6 +18,9 @@ const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
   { to: '/organizer/insights', label: 'Insights', icon: BarChart3, end: false },
   { to: '/organizer/profile', label: 'Profile', icon: UserCircle, end: false },
   { to: '/organizer/team', label: 'Team', icon: Users, end: false },
+  // Next to Team because they are one job: who is here, and what they may do.
+  { to: '/organizer/roles', label: 'Roles', icon: ShieldCheck, end: false },
+  { to: '/organizer/activity', label: 'Activity', icon: History, end: false },
 ]
 
 /**
@@ -35,6 +38,10 @@ export function OrganizerLayout() {
   const nav = NAV.filter((item) => {
     if (item.to === '/organizer/insights') return orgViewerPerms.view_insights
     if (item.to === '/organizer/profile') return orgViewerPerms.edit_profile
+    // Roles is for people who can hand them out. Activity has its own
+    // per-role switch, checked server-side, so the tab stays and the page
+    // says plainly when it is not for you.
+    if (item.to === '/organizer/roles') return orgViewerPerms.manage_team
     return true
   })
 
