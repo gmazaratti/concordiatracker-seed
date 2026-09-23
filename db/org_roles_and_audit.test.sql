@@ -212,6 +212,26 @@ begin
   perform pg_temp.want('a handoff re-opened setup',
     (select (setup_completed_at is null)::text from public.organizations where id = org), 'true');
 
+  /* THE BULK RUN ITSELF, not just its refusal. Two more edits by one person,
+     then undo their whole window and check both went back. */
+  perform pg_temp.be(admin_u);
+  update public.events set title = 'Changed once' where id = ev;
+  perform public.ct_org_log(org, 'edited the event', null, 'event', ev::text,
+                            jsonb_build_object('title', 'Original'), null);
+  update public.organizations set bio = 'Changed too' where id = org;
+  perform public.ct_org_log(org, 'edited the profile', null, 'organization', org::text,
+                            jsonb_build_object('bio', 'before'), null);
+  -- Asserted as "at least the two just made" rather than an exact number:
+  -- the count also includes anything else this test left revertible, and a
+  -- check that breaks when a case is added above it is a check nobody trusts.
+  perform pg_temp.want('bulk undo put back at least the two edits',
+    (public.revert_org_activity_bulk(org, admin_u, now() - interval '1 hour', now()) >= 2)::text,
+    'true');
+  perform pg_temp.want('the event went back',
+    (select title from public.events where id = ev), 'Original');
+  perform pg_temp.want('and so did the bio',
+    (select bio from public.organizations where id = org), 'before');
+
   perform pg_temp.be(third_u);
   perform pg_temp.want('a non-owner cannot bulk-undo',
     pg_temp.refused(format(
