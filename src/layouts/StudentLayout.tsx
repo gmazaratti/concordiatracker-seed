@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
 import { useScrollMemory } from '@/app/hooks/useScrollMemory'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MessageToast } from '@/features/profile/MessageToast'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/app/providers/auth'
@@ -102,7 +103,13 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
               still belongs inside the app: a public profile at /@handle, which
               a signed-in student should see with their sidebar rather than as
               a stranger's page. */}
-          {children ?? <Outlet />}
+          {/* THE LAST LINE OF DEFENCE. A render that throws anywhere under
+              here used to unmount the ENTIRE app — no sidebar, no tabs, no way
+              back, just a grey screen you had to restart out of. Now the shell
+              survives and the screen says so. */}
+          <ErrorBoundary variant="page" resetKey={pathname}>
+            {children ?? <Outlet />}
+          </ErrorBoundary>
         </main>
 
         {/* In-flow at the bottom of the column (not fixed) so content fills exactly

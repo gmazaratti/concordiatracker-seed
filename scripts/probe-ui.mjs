@@ -35,6 +35,8 @@ if (process.argv.includes('--clean')) {
       await admin.from('org_members').delete().eq('org_id', o.id)
       await admin.from('organizations').delete().eq('id', o.id)
     }
+    await admin.from('messages').delete().or(`sender.eq.${u.id},recipient.eq.${u.id}`)
+    await admin.from('user_follows').delete().or(`follower.eq.${u.id},following.eq.${u.id}`)
     await admin.from('user_profile').delete().eq('user_id', u.id)
     await admin.auth.admin.deleteUser(u.id)
     n++
@@ -126,6 +128,53 @@ const { data: post } = await admin
   .select('id')
   .single()
 
+/*
+ * A SECOND PERSON AND A REAL CONVERSATION.
+ *
+ * A thread list with nothing in it cannot show whether opening a thread works,
+ * which is the one thing most message bugs are about. Mutual follows, because
+ * that is what "connected" means since the follow model replaced friendships.
+ */
+const mateEmail = `${PREFIX}mate-${rnd}@example.com`
+const { data: madeMate, error: mErr } = await admin.auth.admin.createUser({
+  email: mateEmail,
+  password: 'Probe-' + rnd + '!9B',
+  email_confirm: true,
+})
+if (mErr) throw mErr
+const mate = madeMate.user.id
+
+const { error: mpErr } = await admin.from('user_profile').upsert(
+  {
+    user_id: mate,
+    email: mateEmail,
+    name: 'Probe Classmate',
+    handle: `mate${rnd}`,
+    is_internal: true,
+    onboarding_completed: true,
+    profile_public: true,
+    bio: 'Also a probe. Exists so there is somebody to talk to.',
+  },
+  { onConflict: 'user_id' },
+)
+if (mpErr) throw mpErr
+
+await admin.from('user_follows').upsert(
+  [
+    { follower: uid, following: mate },
+    { follower: mate, following: uid },
+  ],
+  { onConflict: 'follower,following' },
+)
+
+const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString()
+const { error: msgErr } = await admin.from('messages').insert([
+  { sender: mate, recipient: uid, body: 'hey, did you get the COMM 305 outline?', created_at: minutesAgo(90) },
+  { sender: uid, recipient: mate, body: 'yeah it went up this morning', created_at: minutesAgo(80) },
+  { sender: mate, recipient: uid, body: 'is the midterm still on the 25th?', created_at: minutesAgo(6) },
+])
+if (msgErr) throw msgErr
+
 // A session, minted without a password prompt: generate_link makes the token,
 // verify redeems it. Nothing is emailed.
 const link = await fetch(`${URL_}/auth/v1/admin/generate_link`, {
@@ -156,6 +205,7 @@ console.log(
       email,
       uid,
       handle: `probe${rnd}`,
+      mate: `mate${rnd}`,
       org: org.handle,
       postId: post?.id,
       storageKey: `sb-${ref}-auth-token`,

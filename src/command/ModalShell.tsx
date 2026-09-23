@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useVisualViewport } from '@/app/hooks/useVisualViewport'
 import { cn } from '@/lib/cn'
 
 const FOCUSABLE =
@@ -28,6 +29,17 @@ export function ModalShell({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const restoreRef = useRef<Element | null>(null)
+  /*
+   * PINNED TO WHAT IS ON SCREEN, not to the layout viewport.
+   *
+   * Focusing the composer made iOS scroll the visual viewport, which took the
+   * page — and this fixed overlay with it — up and out of frame. Sizing the
+   * overlay to `visualViewport` instead means it always covers exactly the
+   * visible area: the background cannot appear to move because it is behind a
+   * surface that did not, and the sheet's own flex layout leaves the composer
+   * at the visible bottom with no separate transform to keep in step.
+   */
+  const vp = useVisualViewport()
   const dragRef = useRef<{ y: number; t: number; last: number; v: number } | null>(null)
 
   /**
@@ -154,7 +166,13 @@ export function ModalShell({
          of the screen. The sheet runs to the bottom now and the INSET MOVES
          INSIDE, onto whatever the sheet's last row is, so the controls are
          still reachable and the surface is continuous. */
-      className="ct-animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4"
+      className={cn(
+        'ct-animate-fade fixed left-0 z-50 flex w-full items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4',
+        // Until the first measurement, plain CSS — so a browser with no
+        // visualViewport (and the first paint everywhere) is unchanged.
+        !vp.ready && 'inset-0',
+      )}
+      style={vp.ready ? { top: vp.top, height: vp.height } : undefined}
       onMouseDown={onClose}
     >
       <div
@@ -167,7 +185,10 @@ export function ModalShell({
           // On a phone this IS a bottom sheet, so it comes up from the
           // bottom rather than scaling out of its own centre. Above `sm` the
           // class reverts to the pop — see index.css.
-          'ct-sheet-in relative w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
+          // `max-h-full`: the overlay is only as tall as the visible area, so
+          // a sheet asking for 72vh of the LAYOUT viewport would overflow it
+          // the moment the keyboard is up.
+          'ct-sheet-in relative max-h-full w-full overflow-hidden rounded-t-2xl border border-border bg-surface shadow-2xl outline-none sm:rounded-2xl',
           widthClass,
         )}
         onMouseDown={(e) => e.stopPropagation()}

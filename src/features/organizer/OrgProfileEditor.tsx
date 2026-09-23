@@ -14,7 +14,8 @@ import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { SocialFieldIcon } from '@/features/community/SocialLinks'
 import { ProfileLinksRow } from '@/features/community/ProfileLinksRow'
 import { SOCIAL_FIELDS, orgProfileLinks } from '@/features/community/social'
-import { cn } from '@/lib/cn'
+import { BioField } from '@/components/ui/BioField'
+import { RichBio } from '@/components/RichBio'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -137,7 +138,7 @@ function ProfileForm({
             {approved && <VerifiedBadge size={15} />}
           </div>
           <p className="text-[12px] text-subtle">{handle || '@handle'}</p>
-          {bio.trim() && <p className="mt-1.5 text-[13px] whitespace-pre-line text-muted">{bio}</p>}
+          <RichBio text={bio} className="mt-1.5 text-[13px] text-muted" />
           {/* The same row the public profile draws, so a title typed below
               shows up here in the words students will read. */}
           <ProfileLinksRow links={orgProfileLinks(preview.links)} />
@@ -163,16 +164,16 @@ function ProfileForm({
             filled={frBio.trim() ? ['fr'] : []}
             hint={lang === 'fr' ? 'Leave this blank and French readers see the English bio.' : undefined}
           />
-          <textarea
+          <BioField
             value={lang === 'fr' ? frBio : bio}
-            onChange={(e) => {
-              if (lang === 'fr') setFrBio(e.target.value)
-              else setBio(e.target.value)
+            onChange={(next) => {
+              if (lang === 'fr') setFrBio(next)
+              else setBio(next)
               touch()
             }}
             rows={3}
+            maxLength={600}
             placeholder={lang === 'fr' ? 'Une courte description de votre organisation.' : 'A short description of your org.'}
-            className={cn(field, 'resize-none')}
           />
         </Field>
 

@@ -4,7 +4,7 @@ import { Heart, Pin, Send, Trash2 } from 'lucide-react'
 import { PersonAvatar } from '../PersonAvatar'
 import { buildThreads, type CommentThread as Thread, type PostComment } from '@/lib/comments'
 import type { FeedPost } from '@/lib/social-posts'
-import { useKeyboardInset } from '@/app/hooks/useKeyboardInset'
+import { useVisualViewport } from '@/app/hooks/useVisualViewport'
 import { cn } from '@/lib/cn'
 
 const QUICK = ['❤️', '🙌', '🔥', '👏', '😢', '😍', '😮', '😂']
@@ -189,7 +189,9 @@ export function CommentThread({
   const [busy, setBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<PostComment | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
-  const inset = useKeyboardInset(liftComposer)
+  // Only to decide whether the home-indicator inset is needed: the keyboard is
+  // covering it when it is up. The position itself is the overlay's job now.
+  const { keyboard } = useVisualViewport(liftComposer)
 
   const submit = async () => {
     const text = body.trim()
@@ -255,26 +257,22 @@ export function CommentThread({
       )}
 
       {/*
-        THE COMPOSER IS THE ONLY THING THAT MOVES.
-        Translated by the measured keyboard height rather than letting the
-        browser reflow — see useKeyboardInset for why iOS leaves us no choice.
-        The transition matches the keyboard's own easing closely enough that
-        it reads as one movement; it is removed at rest so nothing is left
-        with a settled transform (a transformed ancestor becomes the containing
-        block for every fixed descendant — the bug that made the chat a sliver).
+        NOTHING IS TRANSLATED HERE ANY MORE, and that is the fix.
+        The composer used to be pushed up by the measured keyboard height while
+        the sheet itself stayed the size of the layout viewport — so iOS also
+        scrolled the visual viewport to reveal the input, and the whole page
+        went up and out of frame behind it. ModalShell now pins the overlay to
+        `visualViewport`, so the sheet IS the visible area: this row sits at its
+        bottom edge on its own and the list above it shrinks, which is the
+        behaviour the translation was imitating.
       */}
       <div
-        style={
-          inset > 0
-            ? { transform: `translateY(-${inset}px)`, transition: 'transform 180ms ease-out' }
-            : undefined
-        }
         className={cn(
           'shrink-0 border-t border-border/70 bg-surface px-3 pt-2',
-          // The sheet runs to the bottom of the screen now, so the inset lives
+          // The sheet runs to the bottom of the screen, so the inset lives
           // here — and goes away while the keyboard is up, because the home
           // indicator is behind the keyboard.
-          inset > 0 ? 'pb-2' : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3',
+          keyboard > 0 ? 'pb-2' : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3',
         )}
       >
         {replyTo && (

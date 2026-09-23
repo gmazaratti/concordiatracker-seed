@@ -4,7 +4,7 @@
  * timeline never runs a smooth scroll, and scroll offsets read across a timer
  * do not agree with the ones written inside the gesture).
  */
-import { landingFrame, project } from './carousel.ts'
+import { landingFrame, project, springSettled, springStep } from './carousel.ts'
 
 let failed = 0
 function check(name, ok, detail = '') {
@@ -70,6 +70,51 @@ console.log('\nThe ends')
 check('cannot go before the first frame', at(0, -80, 4000) === 0)
 check('cannot go past the last frame', at(2, 80, -4000, 3) === 2)
 check('a single-image post has nowhere to go', at(0, 300, -4000, 1) === 0)
+
+console.log('\nThe spring')
+// Run it the way a browser would: 60fps until it settles or gives up.
+function run(from, to, v0, opts = {}) {
+  let s = { x: from, v: v0 }
+  const path = [s.x]
+  for (let i = 0; i < 600; i++) {
+    s = springStep(s, to, 1 / 60, opts.response, opts.damping)
+    path.push(s.x)
+    if (springSettled(s, to)) break
+  }
+  return { s, path, frames: path.length }
+}
+
+const still = run(0, 390, 0)
+check('a spring at rest reaches its target', Math.abs(still.s.x - 390) < 0.5)
+check(
+  'and gets there in about a third of a second',
+  still.frames > 8 && still.frames < 45,
+  `${still.frames} frames`,
+)
+check(
+  'it OVERSHOOTS on the way — the point of the whole thing',
+  Math.max(...still.path) > 390,
+  `max ${Math.max(...still.path).toFixed(1)}`,
+)
+check('and comes back rather than staying past it', still.s.x <= 390.5)
+
+// The handover: a flick already moving toward the target must not slow down
+// first, which is exactly what a from-zero ease does.
+const flicked = run(0, 390, 900)
+check('a flick toward the target starts fast', flicked.path[1] > still.path[1])
+check('and still lands on it', Math.abs(flicked.s.x - 390) < 0.5)
+
+const critical = run(0, 390, 0, { damping: 1 })
+check('damping 1 does not overshoot', Math.max(...critical.path) <= 390.5)
+
+check(
+  'a dropped frame does not blow it up',
+  Number.isFinite(springStep({ x: 0, v: 0 }, 390, 0.032).x),
+)
+check('settled is false while it is still moving', !springSettled({ x: 390, v: 400 }, 390))
+check('settled is false while it is still far away', !springSettled({ x: 100, v: 0 }, 390))
+check('settled is true when it is there and stopped', springSettled({ x: 390.2, v: 3 }, 390))
+
 
 console.log(failed === 0 ? '\ncarousel: all checks passed' : `\ncarousel: ${failed} FAILED`)
 process.exit(failed === 0 ? 0 : 1)

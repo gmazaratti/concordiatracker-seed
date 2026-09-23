@@ -4,11 +4,12 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
+  Clock,
   EyeOff,
   Flag,
   Heart,
+  MapPin,
   MessageCircle,
-  Repeat2,
   Send,
   Trash2,
   Unlink,
@@ -24,7 +25,9 @@ import {
   type FeedPost,
   type PostMedia,
 } from '@/lib/social-posts'
-import { landingFrame } from './carousel'
+import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
+import { landingFrame, springSettled, springStep, type SpringState } from './carousel'
+import { RepostGlyph } from './RepostGlyph'
 import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
 import { ShareSheet } from '../ShareSheet'
@@ -123,15 +126,58 @@ export function PostCard({
   const step = (dir: -1 | 1) => {
     const el = strip.current
     if (!el) return
-    el.scrollBy({ left: dir * el.clientWidth, behavior: 'smooth' })
+    const w = Math.max(1, el.clientWidth)
+    settle(Math.round(el.scrollLeft / w) + dir, 0)
   }
 
   /** Go to a frame by index — what a dot does. */
-  const seek = (i: number) => {
+  const seek = (i: number) => settle(i, 0)
+
+  /*
+   * THE LANDING, ON A SPRING.
+   *
+   * `behavior: 'smooth'` decelerates to an exact stop, which reads as the
+   * photo being put in place rather than coming to rest — and after a drag,
+   * where the finger had real velocity, the handover to it is a visible snap.
+   * A spring takes the release velocity as its own, overshoots a little and
+   * settles, so the gesture and the animation are one movement.
+   *
+   * SNAP IS OFF FOR THE DURATION, for the same reason it is off during the
+   * drag: `snap-mandatory` fights a `scrollLeft` written every frame and would
+   * cancel the overshoot the moment it appeared.
+   */
+  const reduced = usePrefersReducedMotion()
+  const anim = useRef(0)
+  const settle = (index: number, velocity: number) => {
     const el = strip.current
     if (!el) return
-    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
+    cancelAnimationFrame(anim.current)
+    const w = Math.max(1, el.clientWidth)
+    const target = Math.max(0, Math.min(post.media.length - 1, index)) * w
+    if (reduced) {
+      el.scrollLeft = target
+      return
+    }
+    el.style.scrollSnapType = 'none'
+    let state: SpringState = { x: el.scrollLeft, v: velocity }
+    let last = performance.now()
+    const frame = (now: number) => {
+      // Clamped: a backgrounded tab hands back a gap of seconds, and a spring
+      // integrated over one of those explodes.
+      const dt = Math.min(0.032, Math.max(0.001, (now - last) / 1000))
+      last = now
+      state = springStep(state, target, dt)
+      el.scrollLeft = state.x
+      if (springSettled(state, target)) {
+        el.scrollLeft = target
+        el.style.scrollSnapType = ''
+        return
+      }
+      anim.current = requestAnimationFrame(frame)
+    }
+    anim.current = requestAnimationFrame(frame)
   }
+  useEffect(() => () => cancelAnimationFrame(anim.current), [])
 
   /*
    * CLICK AND DRAG THE PICTURE, on a pointer.
@@ -210,7 +256,10 @@ export function PostCard({
       velocity: d.vx,
       count: post.media.length,
     })
-    el.scrollTo({ left: i * w, behavior: 'smooth' })
+    // The flick's own velocity, handed to the spring so the landing continues
+    // the gesture instead of restarting from nothing. Negated: a pointer
+    // moving left scrolls the strip right.
+    settle(i, -d.vx)
   }
 
   // One read per card is acceptable here because a card mounts once; the feed
@@ -379,11 +428,44 @@ export function PostCard({
         )}
       </div>
 
+      {/* WHERE, AND WHEN IT GOES OUT — the two facts a caption should not have
+          to carry. The schedule tag only ever renders for the team that wrote
+          it: `post_feed` filters a queued post out for everybody else. */}
+      {(post.place || post.publishAt) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 pt-1.5 sm:px-1">
+          {post.place &&
+            (post.placeUrl ? (
+              <a
+                href={post.placeUrl}
+                target="_blank"
+                rel="noreferrer noopener nofollow ugc"
+                className="inline-flex min-w-0 items-center gap-1 text-[12.5px] text-info hover:underline"
+              >
+                <MapPin size={12} className="shrink-0" aria-hidden />
+                <span className="truncate">{post.place}</span>
+              </a>
+            ) : (
+              <span className="inline-flex min-w-0 items-center gap-1 text-[12.5px] text-subtle">
+                <MapPin size={12} className="shrink-0" aria-hidden />
+                <span className="truncate">{post.place}</span>
+              </span>
+            ))}
+          {post.publishAt && new Date(post.publishAt) > new Date(post.createdAt) && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-subtle">
+              <Clock size={11} aria-hidden />
+              Scheduled
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-1 px-2 pt-2 sm:px-0">
         <Action
           icon={Heart}
           label={liked ? 'Unlike' : 'Like'}
-          count={likes}
+          // HIDDEN, NOT UNCOUNTED. The club asked for the number not to be
+          // shown; the like still happened and still counts for them.
+          count={post.hideLikes ? undefined : likes}
           on={liked}
           onColor="text-[#ff3b5c]"
           filled={liked}
@@ -391,9 +473,9 @@ export function PostCard({
         />
         <Action icon={MessageCircle} label="Comments" count={count} onClick={openComments} />
         <Action
-          icon={Repeat2}
+          icon={RepostGlyph}
           label={reposted ? 'Undo repost' : 'Repost'}
-          count={reposts}
+          count={post.hideShares ? undefined : reposts}
           on={reposted}
           onColor="text-success"
           onClick={() => void repost()}
@@ -513,7 +595,7 @@ function Action({
   filled,
   onClick,
 }: {
-  icon: typeof Heart
+  icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
   count?: number
   on?: boolean

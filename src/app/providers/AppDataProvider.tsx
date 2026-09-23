@@ -14,6 +14,7 @@ import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
 import { supabase, fireWrite } from '@/lib/supabase'
 import { usePersisted } from '@/lib/persisted'
+import { missingColumn } from '@/lib/pg-errors'
 import {
   assessmentFromRow,
   assessmentPatchToRow,
@@ -41,19 +42,6 @@ import type {
   Grade,
 } from '@/data/types'
 
-/**
- * "That column does not exist yet" — for an INSERT.
- *
- * MEASURED, not guessed: PostgREST refuses an unknown column from its own
- * schema cache with **PGRST204**, before Postgres is ever asked, so a write
- * guard that only looks for 42703 never fires. (42703 is what you get back
- * from a SELECT of an unknown column, which is why `optionalCols` is right to
- * check it.) Both are accepted here because the cache can also be stale in
- * the other direction right after a migration.
- */
-function missingColumn(error: { code?: string } | null): boolean {
-  return error?.code === 'PGRST204' || error?.code === '42703'
-}
 
 // Stable empty refs so a signed-out / loading state doesn't churn consumers.
 const NO_COURSES: Course[] = []

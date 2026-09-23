@@ -93,7 +93,17 @@ export function Sidebar() {
 
       {!collapsed && <SearchTrigger className="mb-2" />}
 
-      <nav className="flex flex-col gap-1">
+      {/*
+        THE NAV YIELDS, SO THE ACCOUNT CARD CANNOT BE PUSHED OUT.
+        It had no `min-h-0` and no scroll, so at a short window — or any zoom
+        level that makes one — the destinations kept their full height and
+        shoved the profile block, the bell and the gear off the bottom of a
+        rail that clips its overflow. With the avatar menu open (which grows
+        the footer) that happened at ordinary sizes, and it read as the menu
+        covering the account card. A flex child only shrinks below its content
+        when it is told it may.
+      */}
+      <nav className="flex min-h-0 flex-col gap-1 overflow-y-auto">
         {STUDENT_NAV.map(({ to, labelKey, icon: Icon, end }) => (
           <Fragment key={to}>
           <NavLink
@@ -175,7 +185,7 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="flex-1" />
+      <div className="min-h-0 flex-1 shrink" />
 
       {/*
         THE TWO ICONS ARE ONE CLUSTER. Adding the bell beside the gear at

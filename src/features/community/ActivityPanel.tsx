@@ -9,7 +9,7 @@ import { useCommunity } from './useCommunity'
 import type { EventOrg } from '@/data/community'
 import { acceptFriend, listFriends, type Friend } from '@/lib/social'
 import { deleteNotifications, listNotifications, markNotificationsRead } from '@/lib/notifications'
-import { dismissActivity, notificationsChanged } from '@/lib/notification-state'
+import { dismissActivity, markedAllRead, notificationsChanged } from '@/lib/notification-state'
 import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
@@ -99,15 +99,26 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
    * same as erasing what happened, and a list that empties itself the instant
    * you look at it is one you cannot read.
    */
+  /**
+   * How many are unread RIGHT NOW, so the bulk action can be absent when it
+   * would do nothing. Opening clears them, so this is normally 0 — and it is
+   * not always: one can arrive while the panel is open.
+   */
+  const [unread, setUnread] = useState(0)
   useEffect(() => {
     void (async () => {
       const rows = await listNotifications()
-      if (rows.some((r) => !r.read_at)) {
+      const n = rows.filter((r) => !r.read_at).length
+      setUnread(n)
+      if (n > 0) {
         await markNotificationsRead()
-        notificationsChanged()
+        setUnread(0)
+        // `markedAllRead`, not `notificationsChanged`: the bell drops to zero
+        // on this frame instead of after its own fetch comes back.
+        markedAllRead()
       }
     })()
-  }, [])
+  }, [tick])
 
   /**
    * One row gone, by whichever mechanism owns it.
@@ -122,9 +133,21 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
     else dismissActivity(it.id)
   }
 
-  const clearAll = () => {
-    for (const it of items) if (it.kind !== 'stored') dismissActivity(it.id)
-    void deleteNotifications().then(notificationsChanged)
+  /**
+   * MARK ALL AS READ — which is not "clear all", and the difference matters.
+   *
+   * This button used to DELETE every notification behind one confirmation
+   * press. The thing people want from it is the badge to stop nagging, and
+   * paying for that with the list itself is a bad trade: a notification you
+   * have read is still the only record that the thing happened.
+   *
+   * Nothing is removed, so there is nothing to undo. Deleting one row is
+   * still possible — by swiping it, deliberately, one at a time.
+   */
+  const markAllRead = () => {
+    setUnread(0)
+    markedAllRead()
+    void markNotificationsRead()
   }
 
   const orgByHandle = useMemo(() => new Map(orgs.map((o) => [o.handle, o])), [orgs])
@@ -195,13 +218,13 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
               <ArrowLeft size={22} aria-hidden />
             </button>
             <h2 className="min-w-0 flex-1 text-[17px] font-bold text-fg">Notifications</h2>
-            {items.length > 0 && <ClearAll onClear={clearAll} />}
+            {unread > 0 && <MarkAllRead onMark={markAllRead} />}
           </div>
 
           {/* Desktop: the title carries the weight, and the X is the way out. */}
           <div className="hidden items-start justify-between px-6 pt-5 pb-1 md:flex">
             <h2 className="text-[23px] font-bold text-fg">Notifications</h2>
-            {items.length > 0 && <ClearAll onClear={clearAll} className="mt-1.5 ml-auto mr-2" />}
+            {unread > 0 && <MarkAllRead onMark={markAllRead} className="mt-1.5 ml-auto mr-2" />}
             <button
               type="button"
               onClick={close}
@@ -274,30 +297,28 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Clear all, behind one confirmation press.
+ * Mark all as read.
  *
- * Not a dialog: the cost of being wrong is a list of things you had already
- * read, and a modal for that is heavier than the action. Not bare either —
- * it sits next to the title and a stray tap would empty the screen.
+ * NO CONFIRMATION, because there is nothing to be sorry about: the rows stay,
+ * only the unread state goes. The confirmation the old destructive version
+ * needed was itself the tell that the action was the wrong one — an arming
+ * tap on the control people reach for most is friction paid every time to
+ * guard against a mistake that should not have been possible.
+ *
+ * It only appears when something IS unread; a button that would do nothing is
+ * a button that makes you wonder whether it worked.
  */
-function ClearAll({ onClear, className }: { onClear: () => void; className?: string }) {
-  const [armed, setArmed] = useState(false)
-  useEffect(() => {
-    if (!armed) return
-    const id = window.setTimeout(() => setArmed(false), 4000)
-    return () => window.clearTimeout(id)
-  }, [armed])
+function MarkAllRead({ onMark, className }: { onMark: () => void; className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => (armed ? onClear() : setArmed(true))}
+      onClick={onMark}
       className={cn(
-        'shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-        armed ? 'bg-danger text-accent-contrast' : 'text-accent hover:bg-surface-2',
+        'shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-accent transition-colors duration-150 hover:bg-surface-2',
         className,
       )}
     >
-      {armed ? 'Clear them?' : 'Clear all'}
+      Mark all as read
     </button>
   )
 }

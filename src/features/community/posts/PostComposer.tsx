@@ -4,6 +4,8 @@ import { ImagePlus, Loader2, Play, Search, UserPlus, X } from 'lucide-react'
 import { MEDIA_ACCEPT_ATTR, uploadOrgImageSized, uploadOrgVideo } from '@/lib/imageUpload'
 import { publishPost, type PostMedia } from '@/lib/social-posts'
 import { collabMessage, inviteCollaborator, searchOrgsToInvite, type OrgOption } from '@/lib/collab'
+import { EMPTY_DETAILS, type PostDetailsValue } from '@/lib/post-details'
+import { PostDetails } from './PostDetails'
 import { cn } from '@/lib/cn'
 import type { PublishableOrg } from '../useMyOrgs'
 
@@ -46,6 +48,7 @@ export function PostComposer({
   const [uploading, setUploading] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [details, setDetails] = useState<PostDetailsValue>(EMPTY_DETAILS)
   /** Who to ask, once there is something to ask about. */
   const [invitees, setInvitees] = useState<OrgOption[]>([])
   const [picking, setPicking] = useState(false)
@@ -85,7 +88,7 @@ export function PostComposer({
   const publish = async () => {
     if (busy || media.length === 0) return
     setBusy(true)
-    const made = await publishPost(org.id, caption, media)
+    const made = await publishPost(org.id, caption, media, details)
     if ('error' in made) {
       setBusy(false)
       setError(made.error)
@@ -210,6 +213,14 @@ export function PostComposer({
             maxLength={2200}
             placeholder="Write a caption…"
             className="mt-3 w-full resize-none rounded-xl border border-border bg-canvas px-3 py-2.5 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+          />
+
+          <PostDetails
+            orgId={org.id}
+            caption={caption}
+            value={details}
+            onChange={(patch) => setDetails((d) => ({ ...d, ...patch }))}
+            onError={setError}
           />
 
           <CollabPicker

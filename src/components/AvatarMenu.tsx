@@ -326,11 +326,14 @@ export function AvatarMenu({
    */
   if (variant === 'sidebar') {
     return (
-      <div ref={ref} className="flex flex-col">
+      // `shrink-0` on the whole block: it is the footer, and the nav above it
+      // is what gives way when the rail runs out of room. Without it the
+      // account card was the thing that got squeezed off the bottom.
+      <div ref={ref} className="flex shrink-0 flex-col">
         {open && (
           <div
             role="menu"
-            className="ct-panel-up -mx-3 mb-1 max-h-[min(58vh,430px)] overflow-y-auto border-y border-border bg-surface/70 p-1.5"
+            className="ct-panel-up -mx-3 mb-1 min-h-0 max-h-[min(58vh,430px)] shrink overflow-y-auto border-y border-border bg-surface/70 p-1.5"
           >
             {items}
           </div>

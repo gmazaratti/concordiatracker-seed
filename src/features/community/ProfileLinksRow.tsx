@@ -78,36 +78,44 @@ export function ProfileLinksRow({
 function LinksSheet({ links, onClose }: { links: ProfileLink[]; onClose: () => void }) {
   return (
     <ModalShell label="Links" onClose={onClose} widthClass="sm:max-w-sm">
-      <h2 className="mb-1 text-[15px] font-semibold text-fg">Links</h2>
-      <ul className="-mx-1">
-        {links.map((l) => (
-          <li key={l.kind}>
-            <a
-              href={l.href}
-              target="_blank"
-              rel="noreferrer noopener nofollow ugc"
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-xl px-1 py-3 transition-colors duration-150 hover:bg-surface-2"
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted">
-                <Glyph kind={l.kind} size={16} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-medium text-fg">{l.label}</span>
-                {/* The host under the title, because a title the club wrote
-                    says nothing about where it goes — and where it goes is
-                    the one thing worth knowing before you tap. Skipped when
-                    the label already IS the host: the same string twice reads
-                    as a rendering fault. */}
-                {l.label !== hostOf(l.href) && (
-                  <span className="block truncate text-[12px] text-subtle">{hostOf(l.href)}</span>
-                )}
-              </span>
-              <ChevronRight size={16} className="shrink-0 text-subtle" aria-hidden />
-            </a>
-          </li>
-        ))}
-      </ul>
+      {/* PADDED HERE, not by the shell. The shell's scroll wrapper has no
+          padding of its own, so content starting at y=0 was clipped by the
+          sheet's own rounded corner — which is what cut the top off the title.
+          And the list used to bleed with `-mx-1`, making it wider than the
+          scroller: one axis set to `auto` makes the other `auto` too, so that
+          negative margin was the side scrollbar. */}
+      <div className="px-4 pt-4 pb-3">
+        <h2 className="mb-1 text-[15px] font-semibold text-fg">Links</h2>
+        <ul>
+          {links.map((l) => (
+            <li key={l.kind}>
+              <a
+                href={l.href}
+                target="_blank"
+                rel="noreferrer noopener nofollow ugc"
+                onClick={onClose}
+                className="flex items-center gap-3 rounded-xl px-1 py-3 transition-colors duration-150 hover:bg-surface-2"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-2 text-muted">
+                  <Glyph kind={l.kind} size={16} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-medium text-fg">{l.label}</span>
+                  {/* The host under the title, because a title the club wrote
+                      says nothing about where it goes — and where it goes is
+                      the one thing worth knowing before you tap. Skipped when
+                      the label already IS the host: the same string twice reads
+                      as a rendering fault. */}
+                  {l.label !== hostOf(l.href) && (
+                    <span className="block truncate text-[12px] text-subtle">{hostOf(l.href)}</span>
+                  )}
+                </span>
+                <ChevronRight size={16} className="shrink-0 text-subtle" aria-hidden />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
     </ModalShell>
   )
 }

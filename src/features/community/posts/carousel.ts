@@ -48,3 +48,50 @@ export function landingFrame({ startLeft, scrollLeft, width, velocity, count }: 
   i = Math.max(from - 1, Math.min(from + 1, i))
   return Math.max(0, Math.min(count - 1, i))
 }
+
+/* ── Settling ─────────────────────────────────────────────────────────────── */
+
+/**
+ * A spring, stepped one frame at a time.
+ *
+ * `behavior: 'smooth'` eases to a stop and reads as a snap: the strip arrives
+ * at exactly the target and halts, which is the one thing a physical object
+ * does not do. A spring carries the velocity of the flick through the landing
+ * and overshoots slightly before settling, which is what makes a carousel feel
+ * thrown rather than assigned.
+ *
+ * APPLE'S TWO PARAMETERS, not mass/stiffness/damping. `response` is roughly
+ * how long it takes to get there; `damping` below 1 is how much it overshoots
+ * (1.0 is critically damped, no bounce). 0.4s / 0.78 is the "move something
+ * the user threw" pair from the fluid-interfaces talk.
+ */
+export interface SpringState {
+  x: number
+  v: number
+}
+
+export const SPRING_RESPONSE = 0.4
+export const SPRING_DAMPING = 0.78
+
+/**
+ * Semi-implicit Euler, which is stable at the step sizes a browser produces
+ * where the explicit form diverges on a dropped frame. `dt` is seconds and is
+ * clamped by the caller for the same reason.
+ */
+export function springStep(
+  s: SpringState,
+  target: number,
+  dt: number,
+  response = SPRING_RESPONSE,
+  damping = SPRING_DAMPING,
+): SpringState {
+  const w = (2 * Math.PI) / response
+  const a = -(w * w) * (s.x - target) - 2 * damping * w * s.v
+  const v = s.v + a * dt
+  return { x: s.x + v * dt, v }
+}
+
+/** Near enough, and slow enough, that another frame would not be visible. */
+export function springSettled(s: SpringState, target: number): boolean {
+  return Math.abs(s.x - target) < 0.5 && Math.abs(s.v) < 25
+}

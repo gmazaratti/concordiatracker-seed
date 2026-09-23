@@ -15,6 +15,7 @@ import { FollowButton } from './FollowButton'
 import { VerifiedBadge } from './VerifiedBadge'
 import { ContactButton } from './ContactButton'
 import { BackButton } from '@/components/BackButton'
+import { RichBio } from '@/components/RichBio'
 import { ProfileLinksRow } from './ProfileLinksRow'
 import { orgProfileLinks } from './social'
 import { useEventActions } from './useEventActions'
@@ -293,9 +294,10 @@ function OrgProfileBody({
           </div>
 
           {org.bio && (
-            <p className="mt-3 max-w-xl text-[13.5px] leading-relaxed whitespace-pre-line text-fg/90">
-              {org.bio}
-            </p>
+            <RichBio
+              text={org.bio}
+              className="mt-3 max-w-xl text-[13.5px] leading-relaxed text-fg/90"
+            />
           )}
 
           {/* Under the description, where the reference puts it — and on the

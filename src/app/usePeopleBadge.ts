@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { listFriends, unreadCount } from '@/lib/social'
 import { listNotifications, unreadNotifications } from '@/lib/notifications'
 import { useMessageTick } from '@/lib/message-alerts'
-import { useNotificationTick } from '@/lib/notification-state'
+import { unreadHintValue, useNotificationTick } from '@/lib/notification-state'
 
 /**
  * How many things are waiting on you from other people.
@@ -106,5 +106,9 @@ export function useActivityBadge(): number {
     }
   }, [tick])
 
-  return people + notes
+  // The hint wins while it stands: marking everything read is a round trip,
+  // and the dot must go the moment the count is zero rather than when the
+  // network agrees.
+  const hint = unreadHintValue()
+  return people + (hint ?? notes)
 }

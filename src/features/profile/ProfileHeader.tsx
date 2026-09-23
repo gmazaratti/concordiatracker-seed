@@ -15,6 +15,7 @@ import {
   type ProfileSocial,
 } from '@/lib/social-graph'
 import { FollowListPage, type FollowListKind } from './FollowListPage'
+import { RichBio } from '@/components/RichBio'
 import { cn } from '@/lib/cn'
 
 /**
@@ -126,10 +127,10 @@ export function ProfileHeader({
             {program}
           </p>
         )}
+        {/* Links in a bio are live — see RichBio for why the format is plain
+            text and why only http(s) ever becomes an anchor. */}
         {isPublic && bio && (
-          <p className="mt-1 max-w-xl text-[13.5px] leading-relaxed whitespace-pre-line text-fg">
-            {bio}
-          </p>
+          <RichBio text={bio} className="mt-1 max-w-xl text-[13.5px] leading-relaxed text-fg" />
         )}
         {isPublic && <ProfileLinksRow links={personProfileLinks(links)} />}
         <Mutuals social={social} />

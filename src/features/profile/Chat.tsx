@@ -28,6 +28,8 @@ import {
   type Message,
 } from '@/lib/social'
 import { AttachmentEmbed } from './AttachmentEmbed'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { initialsOf } from '@/lib/initials'
 import { AttachSheet } from './AttachSheet'
 import { setOpenThread } from '@/lib/message-toast'
 import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
@@ -253,7 +255,10 @@ export function Chat({
         .filter((c) => c.code.trim())
         .map((c) => ({
           code: c.code,
-          meets: c.meetingTimes,
+          // `?? ''` because the column is nullable and a Course built in
+          // memory can lack it — and an `undefined` written into the jsonb is
+          // a message that CRASHES the reader (see MiniWeek).
+          meets: c.meetingTimes ?? '',
           room: c.location || undefined,
           section: c.section || undefined,
         })),
@@ -367,7 +372,13 @@ export function Chat({
           const endsRun = next?.sender !== m.sender
           const last = i === (rows ?? []).length - 1
           return (
-            <Fragment key={m.id}>
+            <ErrorBoundary
+              key={m.id}
+              resetKey={m.id}
+              label="This message couldn't be displayed"
+              className={cn(mine ? 'ml-auto max-w-[78%]' : 'mr-auto max-w-[78%]')}
+            >
+            <Fragment>
               {divider.id === m.id && (
                 <div className="flex items-center gap-3 py-2" role="separator">
                   <span className="h-px flex-1 bg-border" />
@@ -447,6 +458,7 @@ export function Chat({
               </div>
             </div>
             </Fragment>
+            </ErrorBoundary>
           )
         })}
 
@@ -631,7 +643,7 @@ export function Avatar({ friend, size = 32 }: { friend: Friend; size?: number })
       className="grid shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-muted"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
-      {(friend.name ?? friend.handle).slice(0, 2).toUpperCase()}
+      {initialsOf(friend.name, friend.handle)}
     </span>
   )
 }

@@ -7,6 +7,7 @@ import { useAuth } from '@/app/providers/auth'
 import { Switch } from '@/features/settings/controls'
 import { supabase } from '@/lib/supabase'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
+import { BioField } from '@/components/ui/BioField'
 
 /**
  * Edit your profile, on your profile.
@@ -138,14 +139,13 @@ export function EditProfileModal({
               />
             </Field>
 
-            <Field label="Bio" hint="A line or two. 280 characters.">
-              <textarea
+            <Field label="Bio" hint="A line or two. Select some words to link them.">
+              <BioField
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={setBio}
                 maxLength={280}
                 rows={3}
                 placeholder="A line or two about you…"
-                className="w-full resize-none rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg outline-none transition-colors placeholder:text-subtle focus:border-accent"
               />
             </Field>
 

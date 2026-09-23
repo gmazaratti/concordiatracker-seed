@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CachedImg } from '@/components/ui/CachedImg'
+import { initialsOf } from '@/lib/initials'
 import { cn } from '@/lib/cn'
 import type { PublicPerson } from './profile-follows'
 
@@ -18,15 +19,9 @@ export function PersonAvatar({
   className?: string
 }) {
   const [broken, setBroken] = useState(false)
-  const initials =
-    (person.name ?? person.handle)
-      .trim()
-      .split(/\s+/)
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || '?'
+  // Shared, and null-safe: a profile with neither a name nor a handle used to
+  // throw here and take the whole tree down with it.
+  const initials = initialsOf(person.name, person.handle)
 
   /*
    * A FACE MUST NOT BLINK. `CachedImg` paints a picture this session has

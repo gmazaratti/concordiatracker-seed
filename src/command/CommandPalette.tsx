@@ -111,11 +111,11 @@ function CommandPaletteDialog() {
         items: indexed(results).filter((r) => r.cmd.group === label),
       })).filter((s) => s.items.length)
 
-  const vv = useVisualViewport(true)
+  const vp = useVisualViewport(true)
 
   // `sm` is 640px in this project's Tailwind config; the inline height must
   // only ever apply where the keyboard actually overlays the page.
-  const mobile = vv.height > 0 && window.innerWidth < 640
+  const mobile = vp.height > 0 && window.innerWidth < 640
 
   return (
     /*
@@ -131,7 +131,7 @@ function CommandPaletteDialog() {
       Desktop is untouched: the inline height only applies under `sm`.
     */
     <div
-      style={mobile ? { top: vv.offsetTop, height: vv.height } : undefined}
+      style={mobile ? { top: vp.top, height: vp.height } : undefined}
       className="ct-animate-fade fixed inset-x-0 z-50 flex items-end justify-center bg-black/55 p-0 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm max-sm:bottom-auto sm:inset-0 sm:items-start sm:p-4 sm:pt-[12vh] sm:pb-4"
       onMouseDown={closePalette}
     >

@@ -246,7 +246,10 @@ function MiniWeek({ classes }: { classes: SharedClass[] }) {
   const blocks = useMemo(() => {
     const out: { day: number; top: number; h: number; code: string }[] = []
     for (const c of classes) {
-      for (const m of c.meets.split(/[;\n]/)) {
+      // `?? ''`: an online class has no meeting pattern, and a schedule sent
+      // from a Course built in memory could carry the field as undefined.
+      // Neither is a reason for the whole conversation to stop rendering.
+      for (const m of (c.meets ?? '').split(/[;\n]/)) {
         const match = /(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/.exec(m)
         if (!match) continue
         const from = Number(match[1]) * 60 + Number(match[2])

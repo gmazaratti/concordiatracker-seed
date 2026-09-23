@@ -62,7 +62,9 @@ export function CommentsSheet({
   if (!desktop) {
     return (
       <ModalShell label="Comments" onClose={onClose} widthClass="sm:max-w-md" scroll={false}>
-        <div className="flex h-[72vh] flex-col sm:h-[68vh]">
+        {/* `max-h-full`: the overlay is sized to the VISIBLE area, so with the
+            keyboard up 72vh of the layout viewport would overflow it. */}
+        <div className="flex h-[72vh] max-h-full flex-col sm:h-[68vh]">
           <header className="shrink-0 border-b border-border/70 pb-2.5 text-center">
             <h2 className="text-[14px] font-semibold text-fg">Comments</h2>
           </header>

@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import { missingColumn } from './pg-errors'
+import type { PostDetailsValue } from './post-details'
 
 /**
  * Posts, reposts and stories — the read/write surface for the publishing half
@@ -79,6 +81,18 @@ export interface FeedPost {
   /** Empty on every post that predates collaboration, which is why nothing
    *  had to be migrated. */
   collaborators: Collaborator[]
+  /** Where it is, as the club typed it. */
+  place: string | null
+  /** A link under that name. Only ever http(s) — see readMapLink. */
+  placeUrl: string | null
+  /** The event this post is about, when it is about one. */
+  eventId: string | null
+  /** Set and in the future only for the team that wrote it: everybody else is
+   *  filtered out in `post_feed`, so on the feed this is only ever a label. */
+  publishAt: string | null
+  /** The club would rather not show the number. The count is still counted. */
+  hideLikes: boolean
+  hideShares: boolean
 }
 
 interface PostRow {
@@ -99,6 +113,14 @@ interface PostRow {
   i_like: boolean
   i_repost: boolean
   collaborators: unknown
+  // Absent until db/post_details.sql runs, which is why every read of them
+  // below tolerates undefined rather than assuming the column.
+  place?: string | null
+  place_url?: string | null
+  event_id?: string | null
+  publish_at?: string | null
+  hide_likes?: boolean | null
+  hide_shares?: boolean | null
 }
 
 /** Media is jsonb, so it arrives as `unknown`. Anything that is not a list of
@@ -164,6 +186,12 @@ function toPost(r: PostRow): FeedPost {
     iLike: !!r.i_like,
     iRepost: !!r.i_repost,
     collaborators: toCollaborators(r.collaborators),
+    place: r.place ?? null,
+    placeUrl: r.place_url ?? null,
+    eventId: r.event_id ?? null,
+    publishAt: r.publish_at ?? null,
+    hideLikes: !!r.hide_likes,
+    hideShares: !!r.hide_shares,
   }
 }
 
@@ -196,20 +224,43 @@ export async function publishPost(
   orgId: string,
   caption: string,
   media: PostMedia[],
+  details?: PostDetailsValue,
 ): Promise<{ id: string } | { error: string }> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return { error: 'You need to be signed in.' }
   if (media.length === 0) return { error: 'Add at least one photo or video.' }
-  const { data, error } = await supabase
-    .from('org_posts')
-    .insert({
-      org_id: orgId,
-      author_user: me.user.id,
-      caption: caption.trim(),
-      media,
-    })
-    .select('id')
-    .single()
+  const row: Record<string, unknown> = {
+    org_id: orgId,
+    author_user: me.user.id,
+    caption: caption.trim(),
+    media,
+  }
+  if (details) {
+    // Only what was actually set. Writing every default would mean a
+    // deployment without the migration fails on a column it does not have,
+    // for settings nobody touched.
+    if (details.audience !== 'everyone') row.audience = details.audience
+    if (details.place.trim()) row.place = details.place.trim()
+    if (details.placeUrl.trim()) row.place_url = details.placeUrl.trim()
+    if (details.eventId) row.event_id = details.eventId
+    if (details.publishAt) row.publish_at = details.publishAt
+    if (details.hideLikes) row.hide_likes = true
+    if (details.hideShares) row.hide_shares = true
+  }
+  let { data, error } = await supabase.from('org_posts').insert(row).select('id').single()
+  /*
+   * THE POST MATTERS MORE THAN ITS SETTINGS. If the migration has not run,
+   * PostgREST refuses the whole insert over an unknown column (PGRST204) —
+   * which would mean a club that opened the details sheet cannot post at all.
+   * Retry with just the post; the settings are lost, the announcement is not.
+   */
+  if (error && missingColumn(error)) {
+    ;({ data, error } = await supabase
+      .from('org_posts')
+      .insert({ org_id: orgId, author_user: me.user.id, caption: caption.trim(), media })
+      .select('id')
+      .single())
+  }
   // 42501 is RLS: the only way to reach it is publishing as an org you do not
   // run, or one that has not been approved yet.
   if (error || !data) {

@@ -92,6 +92,31 @@ export function restoreDismissed(): void {
 /** Bumped when anything about the notification set changes: opened, cleared,
  *  a row deleted. Whatever is counting re-reads. */
 export function notificationsChanged(): void {
+  unreadHint = null
+  emit()
+}
+
+/*
+ * THE BADGE MUST NOT LAG THE SCREEN.
+ *
+ * Marking everything read is a round trip, and the bell was re-counting by
+ * fetching — so the red dot sat there for as long as the request took after
+ * the panel had already said there was nothing. A count the user can see is
+ * wrong is worse than a slow one.
+ *
+ * The hint is what we KNOW locally, used until a real read replaces it. It is
+ * deliberately not a cache of the count: only zero is ever asserted this way,
+ * because "none left" is the one thing marking-all-read tells us for certain.
+ */
+let unreadHint: number | null = null
+
+export function unreadHintValue(): number | null {
+  return unreadHint
+}
+
+/** Everything is read, as of now. The bell drops to zero on this frame. */
+export function markedAllRead(): void {
+  unreadHint = 0
   emit()
 }
 
