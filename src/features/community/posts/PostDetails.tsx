@@ -312,7 +312,7 @@ function Row({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 py-3 text-left transition-colors duration-150 hover:bg-surface-2/40"
+      className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-3 text-left transition-colors duration-150 hover:bg-surface-2/60 active:bg-surface-2 focus-visible:outline-2 focus-visible:outline-accent"
     >
       <Icon size={18} className="shrink-0 text-subtle" aria-hidden />
       <span className="min-w-0 flex-1">

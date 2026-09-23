@@ -55,6 +55,7 @@ export function StoryComposer({
   const [caption, setCaption] = useState('')
   const [place, setPlace] = useState('')
   const [link, setLink] = useState('')
+  const [hours, setHours] = useState(24)
   const [sheet, setSheet] = useState<null | 'stickers' | 'place' | 'link'>(null)
   const [more, setMore] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -73,7 +74,7 @@ export function StoryComposer({
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && !busy && onClose()
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -177,7 +178,7 @@ export function StoryComposer({
       const url = await uploadRenderedImage(r.blob, 'story')
       const kept = overlays.filter((o) => o.text.trim())
       const mentions = [...new Set([...mentionsIn(caption), ...kept.flatMap((o) => mentionsIn(o.text))])]
-      const err = await publishStory(org.id, { imageUrl: url, caption, overlays: kept, mentions, place, linkUrl: link })
+      const err = await publishStory(org.id, { imageUrl: url, caption, overlays: kept, mentions, place, linkUrl: link, hours })
       if (err) throw new Error(err)
       onPosted()
       onClose()
@@ -351,6 +352,31 @@ export function StoryComposer({
             </p>
           )}
 
+          {/* HOW LONG IT LASTS. On the last screen, beside Share, because it
+              is a decision about publishing rather than about the picture.
+              24 hours is the default a story has always had. (Later: over
+              24h becomes an enterprise option — deliberately not gated yet.) */}
+          <div className="flex shrink-0 items-center gap-2 px-3 pt-3" role="radiogroup" aria-label="How long the story lasts">
+            <span className="shrink-0 text-[12.5px] text-white/70">Lasts</span>
+            <div className="flex min-w-0 flex-1 gap-1 rounded-full bg-white/10 p-1">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d.hours}
+                  type="button"
+                  role="radio"
+                  aria-checked={hours === d.hours}
+                  onClick={() => setHours(d.hours)}
+                  className={cn(
+                    'min-w-0 flex-1 rounded-full py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+                    hours === d.hours ? 'bg-white text-black' : 'text-white/80 hover:bg-white/10',
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Who it goes to, and go. */}
           <div className="flex shrink-0 items-center gap-2 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <span className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white/12 px-2 py-2">
@@ -384,6 +410,13 @@ export function StoryComposer({
     document.body,
   )
 }
+
+const DURATIONS = [
+  { hours: 12, label: '12h' },
+  { hours: 24, label: '24h' },
+  { hours: 48, label: '2 days' },
+  { hours: 72, label: '3 days' },
+]
 
 function RailButton({
   label,

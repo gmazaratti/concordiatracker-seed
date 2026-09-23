@@ -16,6 +16,7 @@ import {
 import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton } from '../admin-ui'
 import { OrgInvitesPanel } from './OrgInvitesPanel'
 import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
+import { TestClubPanel } from './TestClubPanel'
 import { OutreachPanel } from './OutreachPanel'
 import { OrgApplicationsPanel } from './OrgApplicationsPanel'
 import { useNavigate } from 'react-router-dom'
@@ -111,6 +112,10 @@ export function PortalsTab() {
 
       {/* Invites: kept visible so you can see who's opened a link (before signup). */}
       <OrgInvitesPanel />
+
+      {/* Self-serve: a throwaway club to walk the organizer flow as a fresh
+          account, without minting a real invite for anyone. */}
+      <TestClubPanel />
 
       {/* Creating a fresh org is rare → tucked behind a toggle so it doesn't
           dominate the tab. */}

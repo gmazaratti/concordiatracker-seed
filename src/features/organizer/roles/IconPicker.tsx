@@ -103,7 +103,7 @@ export function IconPicker({
             role="dialog"
             aria-label="Choose an icon"
             onKeyDown={key}
-            className="ct-animate-pop fixed z-[90] w-[268px] rounded-xl border border-border bg-surface p-2 shadow-2xl"
+            className="ct-animate-pop fixed z-[200] w-[268px] rounded-xl border border-border bg-surface p-2 shadow-2xl"
             style={{ top: pos.top, left: pos.left }}
           >
             <div className="grid grid-cols-6 gap-1">

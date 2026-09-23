@@ -50,7 +50,11 @@ export function ProfilePreview({ org }: { org: EventOrg }) {
     const inner = innerRef.current
     if (!box || !inner) return
     const measure = () => {
-      const avail = box.clientWidth
+      // The CONTENT width, not clientWidth: clientWidth includes the box's
+      // own padding, so the header was scaled for 24px more room than it had
+      // and sat nudged right, its banner running under the card's edge.
+      const cs = getComputedStyle(box)
+      const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
       const rendered = pageWidth()
       setWidth(rendered)
       // Only ever shrink. Blowing a 335px phone layout up to fill a desktop
@@ -72,17 +76,9 @@ export function ProfilePreview({ org }: { org: EventOrg }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-canvas">
-      <div className="flex items-center gap-2 border-b border-border bg-surface px-3 py-2">
-        <span className="flex gap-1" aria-hidden>
-          {['#ff5f57', '#febc2e', '#28c840'].map((c) => (
-            <span key={c} className="size-2 rounded-full" style={{ backgroundColor: c }} />
-          ))}
-        </span>
-        <span className="truncate font-mono text-[10.5px] text-subtle">
-          concordiatracker.com/app/community/org/{org.handle.replace(/^@/, '')}
-        </span>
-      </div>
-
+      {/* NO BROWSER CHROME. The traffic lights and a URL bar said "this is a
+          desktop browser" on a phone, where it is not — the preview is the
+          profile as it lays out on THIS device, and nothing else. */}
       <div ref={boxRef} className="px-3 py-3" style={height ? { height: height + 24 } : undefined}>
         <div
           inert

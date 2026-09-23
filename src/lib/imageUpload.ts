@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { EXT, encodeCanvas, isEncodedType } from './canvas-encode'
 
 /** Input types we accept (a GIF is flattened to a static WEBP on re-encode). */
 const ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
@@ -38,11 +39,14 @@ export async function uploadOrgImage(file: File, kind: ImageKind): Promise<strin
   if (file.size > MAX_INPUT_BYTES) throw new Error('That image is too large (8 MB max).')
 
   // Cap dimensions (keeps files small) + re-encode to a clean raster WEBP.
-  const blob = await reencodeToWebp(file, MAX_DIM[kind] ?? 1024)
+  // A logo keeps transparency when WebP is unavailable; everything else
+  // falls back to JPEG, which stays under the bucket's 4 MB.
+  const blob = await reencodeToWebp(file, MAX_DIM[kind] ?? 1024, kind === 'logo' ? 'image/png' : 'image/jpeg')
+  const type = isEncodedType(blob.type) ? blob.type : 'image/jpeg'
 
-  const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.webp`
+  const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.${EXT[type]}`
   const { error } = await supabase.storage.from('org-media').upload(path, blob, {
-    contentType: 'image/webp',
+    contentType: type,
     cacheControl: '31536000',
     upsert: false,
   })
@@ -63,11 +67,13 @@ export async function uploadRenderedImage(blob: Blob, kind: ImageKind): Promise<
   const { data: auth } = await supabase.auth.getUser()
   const uid = auth.user?.id
   if (!uid) throw new Error('Please sign in first.')
-  if (blob.type !== 'image/webp') throw new Error('That photo was not prepared correctly. Try again.')
-  if (blob.size > MAX_INPUT_BYTES) throw new Error('That photo came out too large. Try a smaller one.')
-  const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.webp`
+  // Only the types our own canvas encoder produces. Still a guard: this is
+  // not a side door for an arbitrary file.
+  if (!isEncodedType(blob.type)) throw new Error('That photo was not prepared correctly. Try again.')
+  if (blob.size > 4 * 1024 * 1024) throw new Error('That photo came out too large. Try a smaller one.')
+  const path = `${uid}/${kind}-${crypto.randomUUID().slice(0, 8)}.${EXT[blob.type]}`
   const { error } = await supabase.storage.from('org-media').upload(path, blob, {
-    contentType: 'image/webp',
+    contentType: blob.type,
     cacheControl: '31536000',
     upsert: false,
   })
@@ -75,7 +81,7 @@ export async function uploadRenderedImage(blob: Blob, kind: ImageKind): Promise<
   return supabase.storage.from('org-media').getPublicUrl(path).data.publicUrl
 }
 
-async function reencodeToWebp(file: File, maxDim: number): Promise<Blob> {
+async function reencodeToWebp(file: File, maxDim: number, fallback: 'image/jpeg' | 'image/png'): Promise<Blob> {
   const source = await loadImage(file)
   const w0 = 'width' in source ? source.width : 0
   const h0 = 'height' in source ? source.height : 0
@@ -91,9 +97,7 @@ async function reencodeToWebp(file: File, maxDim: number): Promise<Blob> {
   if (!ctx) throw new Error('Could not process the image on this device.')
   ctx.drawImage(source, 0, 0, w, h)
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85))
-  if (!blob) throw new Error('Could not process the image.')
-  return blob
+  return encodeCanvas(canvas, 0.85, fallback)
 }
 
 /** Decode via createImageBitmap when available (fast, off-thread), else an <img>. */

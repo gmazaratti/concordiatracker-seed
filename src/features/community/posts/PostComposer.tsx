@@ -67,7 +67,11 @@ export function PostComposer({
   useEffect(() => () => release(itemsRef.current), [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && busy === null && onClose()
+    /* `defaultPrevented`: a sheet opened from the details screen (Link an
+       event, Add location…) handles Escape itself and marks it handled. Without
+       this check the same keypress ALSO closed the whole composer, throwing
+       away the post being written. */
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && busy === null && onClose()
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'

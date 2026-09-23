@@ -1,36 +1,29 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { CachedImg } from '@/components/ui/CachedImg'
-import { ChevronLeft, Eye, Palette, Plus, Reply, Send, X } from 'lucide-react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
 import { useSettings } from '@/app/providers/settings'
-import { supabase } from '@/lib/supabase'
-import { listSchedules, type SavedSchedule } from '@/lib/schedules'
-import { useCommunity } from '@/features/community/useCommunity'
-import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { badgeForPerson } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
-import { CHAT_THEMES, chatTheme } from './chat-themes'
+import { chatTheme } from './chat-themes'
 import {
-  listMessages,
-  markRead,
   sendMessage,
   type Attachment,
   type Friend,
   type Message,
 } from '@/lib/social'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { initialsOf } from '@/lib/initials'
 import { AttachSheet } from './AttachSheet'
-import { setOpenThread } from '@/lib/message-toast'
-import { useRecordSnapshot } from '@/features/planner/useRecordSnapshot'
-import { Switch } from '@/features/settings/controls'
+import { useAttachSource } from './chat/useAttachSource'
+import { useChatThread } from './chat/useChatThread'
 import { seenLabel } from '@/lib/message-extras'
 import { useChatExtras } from './chat/useChatExtras'
-import { MessageRow, type Quote } from './chat/MessageRow'
+import { MessageRow } from './chat/MessageRow'
 import { MessageMenu } from './chat/MessageMenu'
 import { MessageInfo, ReportDialog } from './chat/MessageDialogs'
+import { ChatHeader } from './chat/ChatHeader'
+import { ChatComposer } from './chat/ChatComposer'
+import { Avatar } from './chat/ChatAvatar'
+import { quoteOf } from './chat/chat-helpers'
 import { cn } from '@/lib/cn'
 
 /**
@@ -72,30 +65,21 @@ export function Chat({
   initialAttachment?: Attachment
   className?: string
 }) {
-  const { courses, plan } = useAppData()
+  const { plan } = useAppData()
   const { uiState, patchUiState } = useUiState()
   const { openSettings } = useSettings()
-  const { events } = useCommunity()
 
-  const [rows, setRows] = useState<Message[] | null>(null)
   const [body, setBody] = useState('')
   const [pending, setPending] = useState<Attachment | null>(initialAttachment ?? null)
   const [error, setError] = useState<string | null>(null)
-  const [tick, setTick] = useState(0)
-  const [schedules, setSchedules] = useState<SavedSchedule[]>([])
-  const [me, setMe] = useState<string | null>(null)
   const [attachOpen, setAttachOpen] = useState(false)
-  const [themeOpen, setThemeOpen] = useState(false)
-  const [theyType, setTheyType] = useState(false)
   const [replyTo, setReplyTo] = useState<Message | null>(null)
   const [menu, setMenu] = useState<{ m: Message; x: number; y: number } | null>(null)
   const [info, setInfo] = useState<Message | null>(null)
   const [reporting, setReporting] = useState<Message | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [receiptsOpen, setReceiptsOpen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
-  const typingSentAt = useRef(0)
 
   const theme = chatTheme(uiState.chatThemes?.[friend.user_id])
   /** An attachment with no words is a message too, which is why this is not
@@ -105,77 +89,7 @@ export function Chat({
   const { orgNameByOwner } = useCommunityData()
   const badge = badgeForPerson(friend.handle, orgNameByOwner[friend.user_id])
 
-  /**
-   * While this conversation is on screen, its messages do not raise the
-   * in-app banner. A banner for a message you are watching arrive is noise,
-   * and it covers the top of the thread you are reading.
-   */
-  useEffect(() => {
-    setOpenThread(friend.user_id)
-    return () => setOpenThread(null)
-  }, [friend.user_id])
-
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      const [msgs, saved, auth] = await Promise.all([
-        listMessages(friend.user_id),
-        listSchedules(),
-        supabase.auth.getUser(),
-      ])
-      if (!alive) return
-      setRows(msgs)
-      setSchedules(saved)
-      setMe(auth.data.user?.id ?? null)
-      void markRead(friend.user_id)
-    })()
-    return () => {
-      alive = false
-    }
-  }, [friend.user_id, tick])
-
-  /**
-   * New messages, and whether they are typing.
-   *
-   * Postgres changes give us the message; a broadcast gives us the typing,
-   * because "someone is typing" is worth nothing a second later and has no
-   * business being a row in a table. The channel name is the ORDERED pair, so
-   * both sides land in the same room without either having to be the host.
-   */
-  useEffect(() => {
-    if (!me) return
-    const pair = [me, friend.user_id].sort().join('_')
-    let clear: ReturnType<typeof setTimeout> | undefined
-
-    const channel = supabase
-      .channel(`chat_${pair}`)
-      .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        if ((payload as { from?: string })?.from !== friend.user_id) return
-        setTheyType(true)
-        clearTimeout(clear)
-        // Self-clearing: a "stopped typing" event that never arrives (a closed
-        // tab, a dropped connection) would leave the bubble up forever.
-        clear = setTimeout(() => setTheyType(false), 4000)
-      })
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const row = payload.new as Message
-          const mine = row.sender === me && row.recipient === friend.user_id
-          const theirs = row.sender === friend.user_id && row.recipient === me
-          if (!mine && !theirs) return
-          setTheyType(false)
-          setTick((n) => n + 1)
-        },
-      )
-      .subscribe()
-
-    return () => {
-      clearTimeout(clear)
-      void supabase.removeChannel(channel)
-    }
-  }, [me, friend.user_id])
+  const { rows, schedules, me, theyType, reload, announceTyping } = useChatThread(friend.user_id)
 
   useEffect(() => {
     /*
@@ -216,21 +130,7 @@ export function Chat({
     setDivider({ friend: friend.user_id, id: at && rows[0]?.id !== at ? at : null })
   }
 
-  function announceTyping() {
-    if (!me) return
-    // Throttled: one ping every two seconds is enough to hold a bubble open,
-    // and a broadcast per keystroke is a lot of traffic for a dot animation.
-    const now = Date.now()
-    if (now - typingSentAt.current < 2000) return
-    typingSentAt.current = now
-    const pair = [me, friend.user_id].sort().join('_')
-    void supabase
-      .channel(`chat_${pair}`)
-      .send({ type: 'broadcast', event: 'typing', payload: { from: me } })
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit() {
     if (!body.trim() && !pending) return
     const msg = await sendMessage(friend.user_id, body || ' ', pending ?? undefined, replyTo?.id)
     if (msg) return setError(msg)
@@ -238,7 +138,7 @@ export function Chat({
     setPending(null)
     setReplyTo(null)
     setError(null)
-    setTick((n) => n + 1)
+    reload()
   }
 
   /**
@@ -250,139 +150,33 @@ export function Chat({
    */
   const [now] = useState(() => Date.now())
 
-  // Built by the same hook the export sheet uses, so what you send and what
-  // you print cannot drift apart.
-  const record = useRecordSnapshot()
   const extras = useChatExtras(friend.user_id, rows, me)
   const otherName = friend.name ?? `@${friend.handle}`
   // The newest message YOU sent: the one that carries "Seen ..." underneath.
   const lastMine = [...(rows ?? [])].reverse().find((r) => r.sender === me)?.id
 
-  /** This term, in the shape a sent schedule carries. */
-  const currentClasses = useMemo(
-    () =>
-      courses
-        .filter((c) => c.code.trim())
-        .map((c) => ({
-          code: c.code,
-          // `?? ''` because the column is nullable and a Course built in
-          // memory can lack it — and an `undefined` written into the jsonb is
-          // a message that CRASHES the reader (see MiniWeek).
-          meets: c.meetingTimes ?? '',
-          room: c.location || undefined,
-          section: c.section || undefined,
-        })),
-    [courses],
-  )
-  const attachables = useMemo(() => {
-    const term = courses.filter((c) => c.code.trim())
-    const upcoming = events.filter((e) => new Date(e.start).getTime() > now).slice(0, 6)
-    return { term, schedules, upcoming }
-  }, [courses, schedules, events, now])
+  const attachSource = useAttachSource(schedules)
 
   return (
     <div
-      className={cn('flex min-h-0 flex-1 flex-col', className)}
+      /* `min-w-0`: on a phone this column sits in a ROW flex overlay, and a
+         flex item's minimum width is its content — so one long name widened
+         the whole conversation past the screen and took the header's icons
+         and the composer's send button out of frame with it. */
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col', className)}
       style={theme.bg ? { backgroundColor: theme.bg } : undefined}
     >
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-border/70 px-3 py-2.5">
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back to conversations"
-            className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-fg transition-colors duration-150 hover:bg-surface-2 lg:hidden"
-          >
-            <ChevronLeft size={22} aria-hidden />
-          </button>
-        )}
-        <Avatar friend={friend} size={34} />
-        <div className="min-w-0 flex-1">
-          <Link
-            to={`/@${friend.handle}`}
-            className="flex items-center gap-1 text-[13.5px] font-medium text-fg hover:underline"
-          >
-            <span className="truncate">{friend.name ?? friend.handle}</span>
-            {badge && <VerifiedBadge size={14} tone={badge.tone} label={badge.label} />}
-          </Link>
-          <p className="truncate text-[11.5px] text-subtle">@{friend.handle}</p>
-        </div>
-
-        {/* Read receipts, per conversation. RECIPROCAL: they show only when
-            both of you have them on, so turning yours off also hides theirs
-            from you - the trade that stops it being a one-way tracker. */}
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setReceiptsOpen((o) => !o)}
-            aria-label="Read receipts"
-            aria-expanded={receiptsOpen}
-            title="Read receipts"
-            className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <Eye size={15} aria-hidden />
-          </button>
-          {receiptsOpen && (
-            <div className="ct-animate-pop absolute top-full right-0 z-30 mt-1.5 w-[236px] rounded-xl border border-border bg-surface p-3 shadow-2xl">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[13px] font-medium text-fg">Read receipts</span>
-                <Switch checked={extras.receipts.mine} onChange={extras.setMine} label="Read receipts in this chat" />
-              </div>
-              <p className="mt-1.5 text-[11.5px] leading-snug text-subtle">
-                Just this chat. They only show when you both have them on. Turn yours off and you
-                won&apos;t see theirs either.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => (pro ? setThemeOpen((o) => !o) : openSettings('billing'))}
-            aria-label="Chat colours"
-            title={pro ? 'Chat colours' : 'Chat colours come with the Semester pass'}
-            className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-          >
-            <Palette size={15} aria-hidden />
-          </button>
-          {themeOpen && (
-            <div className="ct-animate-pop absolute top-full right-0 z-30 mt-1.5 w-[212px] rounded-xl border border-border bg-surface p-2.5 shadow-2xl">
-              <p className="mb-2 px-0.5 text-[11px] text-subtle">
-                Just for you — they see their own.
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {CHAT_THEMES.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      patchUiState({
-                        chatThemes: { ...uiState.chatThemes, [friend.user_id]: t.id },
-                      })
-                      setThemeOpen(false)
-                    }}
-                    aria-label={t.label}
-                    title={t.label}
-                    className={cn(
-                      'h-11 overflow-hidden rounded-lg border transition-transform duration-150 hover:scale-105',
-                      theme.id === t.id ? 'border-accent' : 'border-border',
-                    )}
-                    style={{ backgroundColor: t.bg || 'var(--ct-canvas)' }}
-                  >
-                    <span
-                      className="mx-auto mt-4 block h-3 w-8 rounded-full"
-                      style={{ backgroundColor: t.bubble || 'var(--ct-accent)' }}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
+      <ChatHeader
+        friend={friend}
+        badge={badge}
+        onBack={onBack}
+        receipts={extras.receipts.mine}
+        onReceipts={extras.setMine}
+        theme={theme}
+        pro={pro}
+        onTheme={(id) => patchUiState({ chatThemes: { ...uiState.chatThemes, [friend.user_id]: id } })}
+        onUpgrade={() => openSettings('billing')}
+      />
       {/* ── Messages ───────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
         {rows === null && <p className="text-[12px] text-subtle">Loading…</p>}
@@ -473,150 +267,30 @@ export function Chat({
         <div ref={endRef} />
       </div>
 
-      {/* ── Composer ───────────────────────────────────────────────────── */}
-      {/*
-        PINNED. `shrink-0` inside a column whose middle is the only thing that
-        scrolls — so a long conversation can never push the box off the bottom
-        of the screen, which it used to do on desktop because `scrollIntoView`
-        scrolled the page as well as the list.
-      */}
-      <form onSubmit={submit} className="shrink-0 border-t border-border/70 p-2.5">
-        {replyTo && (
-          <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border-l-2 border-accent bg-surface-2 px-2.5 py-1.5">
-            <Reply size={14} className="shrink-0 text-accent" aria-hidden />
-            <span className="min-w-0 flex-1 text-[12px]">
-              <span className="block font-medium text-fg">Replying to {replyTo.sender === me ? 'yourself' : otherName}</span>
-              <span className="block truncate text-subtle">{replyTo.body.trim() || 'An attachment'}</span>
-            </span>
-            <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="grid size-6 place-items-center rounded-full text-subtle hover:text-fg">
-              <X size={14} aria-hidden />
-            </button>
-          </div>
-        )}
-        {notice && <p className="mb-2 text-[12px] text-subtle">{notice}</p>}
-        {extras.error && <p className="mb-2 text-[12px] text-warning">{extras.error}</p>}
-        {pending && (
-          <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1.5">
-            <span className="min-w-0 flex-1 truncate text-[11.5px] text-fg">
-              {describe(pending)}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPending(null)}
-              className="text-[11px] text-subtle hover:text-fg"
-            >
-              Remove
-            </button>
-          </div>
-        )}
-
-        <div className="flex items-end gap-2">
-          {/*
-            THE SAME HEIGHT AS THE FIELD BESIDE IT. At size-9 against a 42px
-            pill and `items-end`, this sat three pixels low — the kind of
-            thing you see before you can name it. It also lost its `relative`
-            wrapper: nothing is anchored to it any more now that the picker
-            is a sheet.
-          */}
-          <button
-            type="button"
-            onClick={() => setAttachOpen(true)}
-            aria-label="Send something"
-            aria-expanded={attachOpen}
-            className={cn(
-              'grid size-[42px] shrink-0 place-items-center rounded-full border border-border text-muted transition-all duration-200 hover:border-accent hover:text-fg',
-              attachOpen && 'rotate-45 border-accent text-accent',
-            )}
-          >
-            <Plus size={18} aria-hidden />
-          </button>
-
-          {/* ONE PILL holding the text and the send, the shape every
-              messenger a student already uses puts here. The button inside it
-              rather than beside it is what makes the row read as a single
-              field instead of three controls in a line, and it keeps the
-              tap target at the thumb's end of the bar. */}
-          <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
-            <textarea
-              ref={inputRef}
-              value={body}
-              onChange={(e) => {
-                setBody(e.target.value)
-                announceTyping()
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  void submit(e as unknown as React.FormEvent)
-                }
-              }}
-              rows={1}
-              placeholder={`Message ${friend.name ?? friend.handle}`}
-              className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
-            />
-            {/*
-              THE SEND ARRIVES WITH THE FIRST CHARACTER. A permanently
-              present, permanently disabled button is a control that spends
-              most of its life saying no — so it grows in from nothing when
-              there is something to send. Width AND scale animate, so the
-              field reflows smoothly instead of the button popping over it.
-
-              `disabled` stays for the keyboard: the animation hides it, and
-              hiding is not the same as disabling.
-            */}
-            <button
-              type="submit"
-              aria-label="Send"
-              disabled={!canSend}
-              tabIndex={canSend ? 0 : -1}
-              className={cn(
-                'grid h-8 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-accent-contrast',
-                'transition-[width,opacity,transform] duration-200 ease-out hover:bg-accent-hover',
-                canSend ? 'w-8 scale-100 opacity-100' : 'pointer-events-none w-0 scale-75 opacity-0',
-              )}
-            >
-              {/* Nudged right by a pixel: the paper plane's bounding box is
-                  centred but its ink is not, so a mathematically centred
-                  glyph reads as sitting left. */}
-              <Send size={15} className="translate-x-px" aria-hidden />
-            </button>
-          </div>
-        </div>
-        {error && <p className="mt-1.5 text-[11.5px] text-warning">{error}</p>}
-      </form>
-
+      <ChatComposer
+        ref={inputRef}
+        body={body}
+        onBody={(v) => {
+          setBody(v)
+          announceTyping()
+        }}
+        onSubmit={() => void submit()}
+        placeholder={`Message ${friend.name ?? friend.handle}`}
+        canSend={canSend}
+        attachOpen={attachOpen}
+        onAttach={() => setAttachOpen(true)}
+        pending={pending}
+        onClearPending={() => setPending(null)}
+        replyTo={replyTo}
+        replyName={replyTo?.sender === me ? 'yourself' : otherName}
+        onClearReply={() => setReplyTo(null)}
+        notice={notice}
+        warning={extras.error}
+        error={error}
+      />
       {attachOpen && (
         <AttachSheet
-          source={{
-            classes: attachables.term.map((c) => ({
-              id: c.id,
-              code: c.code,
-              title: c.title,
-              color: c.color,
-              credits: c.credits,
-            })),
-            schedules: [
-              { id: 'current', name: 'My current schedule', classes: currentClasses },
-              ...attachables.schedules.map((sc) => ({
-                id: sc.id,
-                name: sc.name,
-                classes: (sc.sections ?? []).map((p) => ({
-                  code: p.code,
-                  meets: p.section.meetingTimes ?? '',
-                  room: p.section.building
-                    ? `${p.section.building} ${p.section.room}`.trim()
-                    : p.section.room || undefined,
-                  section: p.section.section,
-                })),
-              })),
-            ],
-            events: attachables.upcoming.map((e) => ({
-              id: e.id,
-              title: e.title,
-              org: e.org.name,
-            })),
-            record,
-          }}
+          source={attachSource}
           onPick={setPending}
           onClose={() => setAttachOpen(false)}
         />
@@ -665,53 +339,4 @@ export function Chat({
   )
 }
 
-/** What a reply quotes, found in the loaded thread. A quote older than what
- *  is loaded still says it is a reply rather than silently dropping it. */
-function quoteOf(m: Message, rows: Message[], me: string | null, otherName: string): Quote | 'missing' | null {
-  if (!m.reply_to) return null
-  const q = rows.find((r) => r.id === m.reply_to)
-  if (!q) return 'missing'
-  return { who: q.sender === me ? 'You' : otherName, text: q.body.trim() || 'an attachment' }
-}
-
-export function Avatar({ friend, size = 32 }: { friend: Friend; size?: number }) {
-  /*
-   * A dead avatar URL used to hide the element, which left a hole the row's
-   * layout had already reserved. Falling back to the initials tile — the same
-   * one every other surface uses — fills it, and `CachedImg` means a face this
-   * session has already seen is painted on the first frame instead of fading
-   * in again on every remount of the list.
-   */
-  const [broken, setBroken] = useState(false)
-  if (friend.avatar_url && !broken) {
-    return (
-      <CachedImg
-        src={friend.avatar_url}
-        eager
-        onFailed={() => setBroken(true)}
-        style={{ width: size, height: size }}
-        className="shrink-0 rounded-full object-cover"
-      />
-    )
-  }
-  return (
-    <span
-      className="grid shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-muted"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
-    >
-      {initialsOf(friend.name, friend.handle)}
-    </span>
-  )
-}
-
-
-
-
-function describe(a: Attachment): string {
-  if (a.kind === 'schedule') return `Schedule · ${a.name}`
-  if (a.kind === 'course') return `Class · ${a.code}`
-  if (a.kind === 'event') return `Event · ${a.title}`
-  if (a.kind === 'record') return `Record · ${a.snapshot.credits} credits`
-  if (a.kind === 'schedule_request') return 'Schedule request'
-  return `Outline · ${a.code}`
-}
+export { Avatar }

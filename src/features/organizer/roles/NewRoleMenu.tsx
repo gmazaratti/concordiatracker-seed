@@ -69,7 +69,7 @@ export function NewRoleMenu({
           <div
             ref={pop}
             role="menu"
-            className="ct-animate-pop fixed z-[90] max-h-[min(30rem,calc(100dvh-6rem))] w-[300px] overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-2xl"
+            className="ct-animate-pop fixed z-[200] max-h-[min(30rem,calc(100dvh-6rem))] w-[300px] overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-2xl"
             style={{ top: pos.top, left: pos.left }}
           >
             <button

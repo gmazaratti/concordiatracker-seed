@@ -110,7 +110,7 @@ export function BioField({
             <div
               role="menu"
               style={{ left: Math.min(menu.x, window.innerWidth - 180), top: menu.y }}
-              className="fixed z-[81] rounded-xl border border-border bg-surface p-1 shadow-2xl"
+              className="fixed z-[200] rounded-xl border border-border bg-surface p-1 shadow-2xl"
             >
               <button
                 type="button"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search, UserPlus, X } from 'lucide-react'
 import { searchOrgsToInvite, type OrgOption } from '@/lib/collab'
 import type { PublishableOrg } from '../../useMyOrgs'
@@ -59,9 +59,15 @@ export function CollabPicker({
   }, [q, open, org.id])
 
   const already = new Set(invitees.map((i) => i.id))
+  // It opens INLINE, at the bottom of a scrolling sheet — on a phone that is
+  // below the fold, so a tap looked like it did nothing. Bring it into view.
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (open) box.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
 
   return (
-    <div className="mt-3">
+    <div ref={box} className="mt-3 scroll-mb-4">
       {invitees.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-1.5">
           {invitees.map((o) => (

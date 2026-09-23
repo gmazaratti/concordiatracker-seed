@@ -23,7 +23,8 @@ import { OrgApplyForm } from './OrgApplyForm'
  * review queue.
  */
 export function OrganizerSignIn() {
-  const { myOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
+  const { myOrg, myOrgs, ownedOrgIds, switchOrg, signInSelfOrg, signInDemoOrg } = useTeacher()
+  const [showAll, setShowAll] = useState(false)
   const { user: authUser, signInWithGoogle, signInWithApple } = useAuth()
   const [path, setPath] = useState<'choose' | 'invite' | 'apply'>('choose')
   const [code, setCode] = useState('')
@@ -105,9 +106,43 @@ export function OrganizerSignIn() {
           </>
         ) : myOrg ? (
           <>
-            <Button size="lg" className="w-full" onClick={signInSelfOrg}>
-              Continue as {myOrg.org.name}
-            </Button>
+            {/* ONE BUTTON PER CLUB. There used to be a single "Continue as"
+                naming whichever club sorted first, so somebody running two
+                clubs could only reach the second through the switcher once
+                inside. "Yours" = owned or on the team; a platform admin can
+                reach every club, which is not the same as running them, so
+                those stay behind the switcher. */}
+            {(() => {
+              const mine = myOrgs.filter(
+                (o) => ownedOrgIds.has(o.id) || o.members.some((m) => !!m.userId && m.userId === authUser.id),
+              )
+              const list = mine.length ? mine : [myOrg]
+              const shown = showAll ? list : list.slice(0, 5)
+              return (
+                <div className="flex flex-col gap-2">
+                  {shown.map((o, i) => (
+                    <Button
+                      key={o.id}
+                      size="lg"
+                      variant={i === 0 ? undefined : 'outline'}
+                      className="w-full"
+                      onClick={() => switchOrg(o.id)}
+                    >
+                      <span className="truncate">Continue as {o.org.name}</span>
+                    </Button>
+                  ))}
+                  {list.length > shown.length && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAll(true)}
+                      className="rounded-lg py-1 text-[12.5px] font-medium text-accent hover:underline"
+                    >
+                      Show {list.length - shown.length} more
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
             <p className="mt-2 text-center text-[12px] text-subtle">Signed in as {authUser.email}</p>
           </>
         ) : (

@@ -48,7 +48,7 @@ export function ShareSheet({
     void listFriends().then((rows) => {
       if (alive) setPeople(rows.filter((f) => f.status === 'accepted'))
     })
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && onClose()
     document.addEventListener('keydown', onKey)
     return () => {
       alive = false

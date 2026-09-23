@@ -211,7 +211,7 @@ export function Select({
                 ? { bottom: window.innerHeight - pos.top }
                 : { top: pos.top }),
             }}
-            className="ct-animate-pop z-[60] max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl"
+            className="ct-animate-pop z-[210] max-h-72 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-2xl"
           >
             {searchable && (
               // Typing goes through the TRIGGER, which keeps focus (the

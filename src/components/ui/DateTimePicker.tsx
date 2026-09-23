@@ -173,7 +173,7 @@ export function DateTimePicker({
             aria-label={ariaLabel}
             onKeyDown={onPopKeyDown}
             style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom }}
-            className="ct-animate-pop z-[55] w-[296px] rounded-xl border border-border bg-surface p-3 shadow-2xl"
+            className="ct-animate-pop z-[200] w-[296px] rounded-xl border border-border bg-surface p-3 shadow-2xl"
           >
             {/* Month nav */}
             <div className="mb-1.5 flex items-center justify-between">

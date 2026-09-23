@@ -80,7 +80,7 @@ export function InfoHint({ label, children }: { label: string; children: React.R
               left: pos.left,
               ...(pos.above ? { bottom: window.innerHeight - pos.top } : { top: pos.top }),
             }}
-            className="ct-animate-pop z-[60] w-[270px] rounded-xl border border-border bg-surface p-3 text-[12px] leading-relaxed text-muted shadow-2xl"
+            className="ct-animate-pop z-[200] w-[270px] rounded-xl border border-border bg-surface p-3 text-[12px] leading-relaxed text-muted shadow-2xl"
           >
             {children}
           </div>,

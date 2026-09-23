@@ -156,7 +156,7 @@ export function DropdownMenu({
             aria-label={ariaLabel}
             onKeyDown={onMenuKeyDown}
             style={{ position: 'fixed', right: pos.right, top: pos.top, bottom: pos.bottom }}
-            className="ct-animate-pop z-[70] min-w-[180px] rounded-lg border border-border bg-surface p-1 shadow-2xl"
+            className="ct-animate-pop z-[200] min-w-[180px] rounded-lg border border-border bg-surface p-1 shadow-2xl"
           >
             {items.map((it, i) => (
               <div key={it.id}>

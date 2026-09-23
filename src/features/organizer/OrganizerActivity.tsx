@@ -11,9 +11,15 @@ import {
 } from '@/lib/org-roles'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
+import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { formatFull } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { useMemberPanel } from './member-panel/member-panel'
+import { MemberAvatar } from './MemberAvatar'
+import { RoleGlyph } from './RoleChip'
+import { useOrgRoles } from './use-org-roles'
+import { roleIdOf, type OrgRoleDef } from '@/lib/org-roles'
+import type { OrgMember } from '@/data/teacher'
 
 /**
  * `/organizer/activity` — who did what, and how to put it back.
@@ -37,6 +43,7 @@ export function OrganizerActivity() {
   const [err, setErr] = useState('')
   const [tick, setTick] = useState(0)
   const [bulk, setBulk] = useState(false)
+  const { roles } = useOrgRoles(orgId || undefined)
 
   useEffect(() => {
     if (!orgId) return
@@ -103,16 +110,29 @@ export function OrganizerActivity() {
         </p>
       ) : (
         <ol className="mt-5 flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
-          {rows.map((r) => (
-            <Row key={r.id} entry={r} onChanged={refresh} />
-          ))}
+          {rows.map((r) => {
+            const member = currentOrg.members.find((m) => !!r.actorUser && m.userId === r.actorUser)
+            const role = member ? roles?.find((x) => x.id === roleIdOf(member, orgId, roles)) : undefined
+            return <Row key={r.id} entry={r} member={member} role={role} onChanged={refresh} />
+          })}
         </ol>
       )}
     </div>
   )
 }
 
-function Row({ entry, onChanged }: { entry: ActivityEntry; onChanged: () => void }) {
+function Row({
+  entry,
+  member,
+  role,
+  onChanged,
+}: {
+  entry: ActivityEntry
+  /** Who did it, when they are still on the team: their face and role. */
+  member?: OrgMember
+  role?: OrgRoleDef
+  onChanged: () => void
+}) {
   const { openMember } = useMemberPanel()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -120,20 +140,22 @@ function Row({ entry, onChanged }: { entry: ActivityEntry; onChanged: () => void
 
   return (
     <li className={cn('flex items-start gap-3 px-3.5 py-3', undone && 'opacity-60')}>
-      <span
-        className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold text-muted"
-        aria-hidden
-      >
-        {initials(entry.actorName)}
-      </span>
+      <MemberAvatar
+        member={member ?? { name: entry.actorName, email: entry.actorEmail }}
+        className="mt-0.5 size-8"
+        textClass="text-[11px]"
+      />
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] text-fg">
           {entry.actorUser ? (
             <button
               type="button"
               onClick={() => openMember({ userId: entry.actorUser, name: entry.actorName })}
-              className="font-medium hover:underline"
+              className="inline-flex items-center gap-1 rounded font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+              style={role ? { color: role.color } : undefined}
+              title={role ? `${entry.actorName} · ${role.name}` : entry.actorName}
             >
+              {role && <RoleGlyph role={role} bare />}
               {entry.actorName}
             </button>
           ) : (
@@ -170,19 +192,6 @@ function Row({ entry, onChanged }: { entry: ActivityEntry; onChanged: () => void
   )
 }
 
-function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .map((w) => w[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || '?'
-  )
-}
-
 /* ── Undo everything one person did ───────────────────────────────────────── */
 
 /**
@@ -204,8 +213,11 @@ function BulkRevert({
   onDone: () => void
 }) {
   const [who, setWho] = useState(actors[0]?.actorUser ?? '')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
+  // Instants, not bare dates: the custom picker (a native date input on iOS
+  // has a minimum width that ran past the card) carries a time too, which is
+  // also the more precise answer to "since when".
+  const [from, setFrom] = useState<string | null>(null)
+  const [to, setTo] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -236,7 +248,7 @@ function BulkRevert({
       </p>
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <label className="block">
+        <label className="block min-w-0">
           <span className="mb-1 block text-[12px] font-medium text-muted">Who</span>
           <Select
             value={who}
@@ -248,24 +260,14 @@ function BulkRevert({
             }))}
           />
         </label>
-        <label className="block">
+        <div className="min-w-0">
           <span className="mb-1 block text-[12px] font-medium text-muted">From</span>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg focus:border-accent focus:outline-none"
-          />
-        </label>
-        <label className="block">
+          <DateTimePicker value={from} onChange={setFrom} ariaLabel="From" clearable />
+        </div>
+        <div className="min-w-0">
           <span className="mb-1 block text-[12px] font-medium text-muted">To</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg focus:border-accent focus:outline-none"
-          />
-        </label>
+          <DateTimePicker value={to} onChange={setTo} ariaLabel="To" clearable />
+        </div>
       </div>
 
       <p className="mt-3 flex items-start gap-2 rounded-xl bg-danger/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-danger">
@@ -300,8 +302,8 @@ function BulkRevert({
             void revertAllFrom(
               orgId,
               who,
-              from ? new Date(`${from}T00:00:00`).toISOString() : null,
-              to ? new Date(`${to}T23:59:59`).toISOString() : null,
+              from,
+              to,
             )
               .then(setDone)
               .catch((e: unknown) => setErr(e instanceof Error ? e.message : 'Could not undo.'))

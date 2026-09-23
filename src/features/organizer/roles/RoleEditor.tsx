@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Switch } from '@/features/settings/controls'
 import { IconPicker } from './IconPicker'
+import { LevelLadder } from './LevelLadder'
 import { cn } from '@/lib/cn'
 
 const GROUPS = ['Posts', 'Events', 'The club', 'People'] as const
@@ -31,6 +32,7 @@ export function RoleEditor({
   onCancelNew,
   onDelete,
   onNameChange,
+  others,
 }: {
   orgId: string
   /** Null while creating. */
@@ -44,6 +46,8 @@ export function RoleEditor({
   onDelete: () => void
   /** So the left rail can show a role being created under its new name. */
   onNameChange?: (name: string) => void
+  /** The club's other roles, for the ladder. */
+  others: OrgRoleDef[]
 }) {
   const [name, setName] = useState(seed.name)
   const [color, setColor] = useState(seed.color)
@@ -62,7 +66,6 @@ export function RoleEditor({
         ? 'no-perm'
         : null
   const ro = lock !== null
-  const top = Math.max(1, Math.min(mine - 1, 99))
   const draft: RoleDraft = { name: name.trim(), color, icon, position, permissions: perms, canViewActivity: seesLog }
   const dirty =
     !role ||
@@ -129,27 +132,24 @@ export function RoleEditor({
         )}
       </div>
 
-      <label className="mt-4 block">
-        <span className="mb-1 flex items-baseline justify-between text-[12px] font-medium text-muted">
-          <span>
-            Level <span className="font-normal text-subtle">— higher outranks lower</span>
-          </span>
-          <span className="text-subtle tabular-nums">{position}</span>
+      <div className="mt-4">
+        <span className="mb-1.5 block text-[12px] font-medium text-muted">
+          Rank <span className="font-normal text-subtle">— higher outranks lower</span>
         </span>
-        <input
-          type="range"
-          className="ct-range w-full"
-          min={1}
-          max={Math.max(top, role?.position ?? 1)}
-          value={position}
+        <LevelLadder
+          others={others}
+          name={name}
+          color={color}
+          icon={icon}
+          position={position}
+          mine={mine}
           disabled={ro}
-          onChange={(e) => setPosition(Math.min(top, Number(e.target.value)))}
-          aria-label="Role level"
+          onChange={setPosition}
         />
-        <span className="mt-1 block text-[11.5px] text-subtle">
-          People on this role can hand out roles below this number, and nothing above it.
+        <span className="mt-1.5 block text-[11.5px] text-subtle">
+          People on this role can hand out roles below it, and nothing above it.
         </span>
-      </label>
+      </div>
 
       <div className="mt-5 flex flex-col gap-4">
         {GROUPS.map((g) => (

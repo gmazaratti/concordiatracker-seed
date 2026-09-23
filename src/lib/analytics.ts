@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { isNative } from './native'
 
 /**
  * First-party, anonymous traffic tracking. No cookies, no third-party script, no
@@ -17,6 +18,7 @@ const SID_KEY = 'ct_sid'
 const PING_MS = 60_000
 /** Ignore repeat views of the same path inside this window (StrictMode, bounces). */
 const DEDUPE_MS = 2_000
+const LAST_VIEW_KEY = 'ct_last_view'
 
 function rid(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 20)
@@ -113,7 +115,20 @@ const isMobile = () =>
 let lastPath = ''
 let lastAt = 0
 
+/*
+ * ONLY THE REAL SITE COUNTS. The dev server and every preview points at the
+ * production database, so a morning of `npm run dev` reloads — and every
+ * throwaway test account — used to land in the same table the dashboard
+ * reads, as page views from somebody who does not exist.
+ */
+const COUNTS =
+  import.meta.env.PROD &&
+  typeof location !== 'undefined' &&
+  // The native shell ALSO serves from localhost — and that is real traffic.
+  (isNative() || !/^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname))
+
 async function send(kind: 'view' | 'ping', path: string): Promise<void> {
+  if (!COUNTS) return
   try {
     const { data } = await supabase.auth.getSession()
     await supabase.from('site_events').insert({
@@ -135,9 +150,28 @@ async function send(kind: 'view' | 'ping', path: string): Promise<void> {
 export function trackView(pathname: string): void {
   const path = normalizePath(pathname)
   const now = Date.now()
-  if (path === lastPath && now - lastAt < DEDUPE_MS) return
+  /*
+   * THE LAST VIEW SURVIVES A RELOAD. Held only in memory, the dedupe reset on
+   * every page load — so a page that reloaded itself (an auth return, a
+   * service-worker update, somebody mashing refresh) recorded one view per
+   * load, 0.7s apart. That is the "/app ×6 in five seconds" pattern in
+   * site_events. Kept in sessionStorage, the same path inside the window is
+   * one view however many times the document starts over.
+   */
+  let prev = { p: lastPath, t: lastAt }
+  try {
+    prev = JSON.parse(sessionStorage.getItem(LAST_VIEW_KEY) ?? 'null') ?? prev
+  } catch {
+    /* storage unavailable — fall back to memory */
+  }
+  if (path === prev.p && now - prev.t < DEDUPE_MS) return
   lastPath = path
   lastAt = now
+  try {
+    sessionStorage.setItem(LAST_VIEW_KEY, JSON.stringify({ p: path, t: now }))
+  } catch {
+    /* ignore */
+  }
   void send('view', path)
 }
 

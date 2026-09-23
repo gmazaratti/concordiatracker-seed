@@ -97,8 +97,11 @@ function ReleaseEntry({
 
       {/* Release content */}
       <div className={cn('min-w-0 flex-1', last ? 'pb-0' : 'pb-8')}>
+        {release.hero && <HeroPanel release={release} />}
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h3 className="font-display text-[18px] leading-tight font-medium text-fg">{release.name}</h3>
+          <h3 className={cn('font-display text-[18px] leading-tight font-medium text-fg', release.hero && 'sr-only')}>
+            {release.name}
+          </h3>
           <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted">
             v{release.version}
           </span>
@@ -139,5 +142,55 @@ function ReleaseEntry({
         </div>
       </div>
     </li>
+  )
+}
+
+/**
+ * The shape a MAJOR release gets.
+ *
+ * Deliberately different in kind, not just louder: a version number set large
+ * enough to be the headline, a tagline in place of a list, and four
+ * highlights in a grid. The counts are derived from the change list below it,
+ * so the panel can never claim more than the release contains.
+ */
+function HeroPanel({ release }: { release: Release }) {
+  const hero = release.hero!
+  const count = (k: ReleaseChangeKind) => release.changes.filter((c) => c.kind === k).length
+  const stats = [
+    { n: count('new'), label: 'new' },
+    { n: count('improved'), label: 'improved' },
+    { n: count('fixed'), label: 'fixed' },
+  ].filter((x) => x.n > 0)
+  return (
+    <div className="relative mb-5 overflow-hidden rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/20 via-accent-soft to-surface p-5 sm:p-6">
+      <div className="ct-grid-plain pointer-events-none absolute inset-0 opacity-30" aria-hidden />
+      <div className="relative">
+        <p className="text-[11px] font-semibold tracking-[0.2em] text-accent uppercase">Major release</p>
+        <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
+          <span className="font-display text-[44px] leading-none font-semibold tracking-tight text-fg tabular-nums sm:text-[56px]">
+            {release.version.replace(/\.0$/, '')}
+          </span>
+          <span className="pb-1.5 font-display text-[19px] leading-tight font-medium text-fg sm:text-[22px]">
+            {release.name}
+          </span>
+        </div>
+        <p className="mt-3 max-w-prose text-[13.5px] leading-relaxed text-muted">{hero.tagline}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {stats.map((s) => (
+            <span key={s.label} className="rounded-full bg-surface/70 px-2.5 py-1 text-[12px] text-muted backdrop-blur">
+              <span className="font-semibold text-fg tabular-nums">{s.n}</span> {s.label}
+            </span>
+          ))}
+        </div>
+        <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
+          {hero.highlights.map((h) => (
+            <li key={h.title} className="rounded-xl border border-border/70 bg-surface/80 p-3 backdrop-blur">
+              <p className="text-[13px] font-semibold text-fg">{h.title}</p>
+              <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{h.text}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   )
 }

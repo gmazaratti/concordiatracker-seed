@@ -104,6 +104,9 @@ export interface TeacherContextValue {
   myOrg: OrgAccount | null
   /** Every org you can manage (owned + member-of + all-if-admin) — the switcher. */
   myOrgs: OrgAccount[]
+  /** Clubs this account OWNS. For an admin `myOrgs` is every club on the
+   *  platform, so this is how a screen tells "yours" from "reachable". */
+  ownedOrgIds: Set<string>
   /** True until the org list has been fetched. `myOrgs.length === 0` on its
    *  own cannot tell "none" from "not yet", and a screen that redirects on
    *  the difference bounces on its first render. */

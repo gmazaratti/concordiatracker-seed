@@ -21,10 +21,50 @@ export interface Release {
   /** Release date, `YYYY-MM-DD`. */
   date: string
   changes: ReleaseChange[]
+  /**
+   * A release big enough to need a different shape. Present only on the
+   * rare one — if every release had a hero, none would. The history renders
+   * it as a full-width panel; the counts beside it are computed from
+   * `changes`, never typed, so the panel cannot claim more than the list.
+   */
+  hero?: {
+    tagline: string
+    highlights: { title: string; text: string }[]
+  }
 }
 
 /** Newest first — index 0 is the current release. */
 export const RELEASES: Release[] = [
+  {
+    version: '2.0.0',
+    name: 'The organizer portal, rebuilt',
+    date: '2026-09-23',
+    hero: {
+      tagline:
+        'Clubs can now run their whole presence here: a team with real roles, drafts nobody sees until they are ready, an inbox, analytics, and a history of every change that can be undone.',
+      highlights: [
+        { title: 'Roles, your way', text: 'Custom roles with their own permissions and a clear rank. Nobody can hand out more than they have.' },
+        { title: 'Undo anything', text: 'Every change to the club is logged with who made it, and most can be put back in one press.' },
+        { title: 'Draft first', text: 'Posts and events start private. Publish when they are right, not when you pressed save.' },
+        { title: 'Stories that last', text: 'Choose 12 hours, a day, two days or three before a story disappears.' },
+      ],
+    },
+    changes: [
+      { kind: 'new', text: 'Custom roles for club teams, each with its own permissions, colour and icon, and a ranked ladder that decides who can manage whom.' },
+      { kind: 'new', text: 'An activity log for every club, with names, faces and role colours. Most changes can be undone, one at a time or everything a person did in a date range.' },
+      { kind: 'new', text: 'Drafts for posts and events. A new event starts private, and your feed shows a Drafts pill when you have any waiting.' },
+      { kind: 'new', text: 'Story length: 12 hours, 24 hours, 2 days or 3 days.' },
+      { kind: 'new', text: 'A member panel for each teammate: their role, how long they have been on the team, and what they have done recently.' },
+      { kind: 'new', text: 'An overview for clubs with followers, posts and events over time.' },
+      { kind: 'new', text: 'Tap a photo while making a post to see it full screen, exactly as it will be posted.' },
+      { kind: 'improved', text: 'Deleting a post can be undone for a few seconds.' },
+      { kind: 'improved', text: 'If you run more than one club, the organizer sign-in offers each of them.' },
+      { kind: 'improved', text: 'Conversations fit a phone properly, even with a very long name at the top.' },
+      { kind: 'fixed', text: 'Photos taken on an iPhone failed with "That photo was not prepared correctly". They upload now.' },
+      { kind: 'fixed', text: 'Link an event, Add location and the other post options opened behind the post instead of in front of it.' },
+      { kind: 'fixed', text: 'The role picker in a teammate’s panel did not open.' },
+    ],
+  },
   {
     version: '1.32.0',
     name: 'Clubs have an inbox',

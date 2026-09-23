@@ -1,3 +1,4 @@
+import { EXT, encodeCanvas, isEncodedType } from '@/lib/canvas-encode'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -237,21 +238,24 @@ export function ImageCropper({
     ctx.scale(t.scale.x, t.scale.y)
     ctx.drawImage(img, -src.w / 2, -src.h / 2)
 
-    const blob = await new Promise<Blob | null>((res) =>
-      canvas.toBlob(res, 'image/webp', 0.92),
-    )
-    if (!blob) {
-      setErr('Could not process the image.')
+    let blob: Blob
+    try {
+      // PNG fallback, not JPEG: this is also the logo path, which may be
+      // transparent. The upload re-encodes it to the final format anyway.
+      blob = await encodeCanvas(canvas, 0.92, 'image/png')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not process the image.')
       return
     }
-    onDone(new File([blob], `${kind}.webp`, { type: 'image/webp' }))
+    const type = isEncodedType(blob.type) ? blob.type : 'image/png'
+    onDone(new File([blob], `${kind}.${EXT[type]}`, { type }))
   }
 
   const t = img ? transformSteps(src, frame, view) : null
   const zoomPct = Math.round(view.zoom * 100)
 
   return createPortal(
-    <div className="ct-animate-fade fixed inset-0 z-[90] flex items-end justify-center bg-black/75 p-0 sm:items-center sm:p-4">
+    <div className="ct-animate-fade fixed inset-0 z-[110] flex items-end justify-center bg-black/75 p-0 sm:items-center sm:p-4">
       <div
         ref={dialogRef}
         role="dialog"

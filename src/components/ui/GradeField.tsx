@@ -132,7 +132,7 @@ export function GradeField({
             id={id}
             role="listbox"
             style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.max(pos.width, 96) }}
-            className="z-[60] max-h-64 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
+            className="z-[200] max-h-64 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-lg"
           >
             {GRADE_LETTERS.map((letter) => (
               <li key={letter}>

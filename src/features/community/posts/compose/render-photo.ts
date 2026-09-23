@@ -1,3 +1,4 @@
+import { encodeCanvas } from '@/lib/canvas-encode'
 import {
   TEXT_SCALE,
   applyAdjust,
@@ -77,8 +78,7 @@ export async function renderPhoto(input: RenderInput): Promise<{ blob: Blob; w: 
   }
   for (const t of input.texts) drawText(ctx, t, w, h)
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.9))
-  if (!blob) throw new Error('Could not process the photo.')
+  const blob = await encodeCanvas(canvas, 0.9)
   return { blob, w, h }
 }
 

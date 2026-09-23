@@ -167,8 +167,13 @@ function Row({
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <CopyChip value={outreachUrl(l)} title="Copy the link" />
+      {/* The link TRUNCATES inside its chip rather than setting the row's
+          width: a flex item's minimum is its content, so a long URL used to
+          push the whole row past the panel. */}
+      <div className="flex w-full min-w-0 items-center gap-1.5 sm:w-auto sm:max-w-[340px]">
+        <span className="min-w-0 flex-1">
+          <CopyChip value={outreachUrl(l)} title="Copy the link" />
+        </span>
         {!l.sent_at ? (
           <button
             type="button"

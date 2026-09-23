@@ -46,7 +46,7 @@ export function CopyChip({ value, title }: { value: string; title?: string }) {
         if (timer.current) clearTimeout(timer.current)
         timer.current = setTimeout(() => setCopied(false), 1200)
       }}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-[11px] text-muted transition-colors duration-150 hover:text-fg"
+      className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md border border-border bg-surface-2 px-2 py-1 font-mono text-[11px] text-muted transition-colors duration-150 hover:text-fg"
     >
       <span className="truncate">{value}</span>
       {copied ? (

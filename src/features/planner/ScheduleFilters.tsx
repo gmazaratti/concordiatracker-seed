@@ -111,7 +111,7 @@ export function ScheduleFilters({
           <div
             ref={popRef}
             style={{ position: 'fixed', top: pos.top, right: pos.right }}
-            className="z-[60] max-h-[70vh] w-[310px] overflow-y-auto rounded-xl border border-border bg-surface p-3 shadow-lg"
+            className="z-[200] max-h-[70vh] w-[310px] overflow-y-auto rounded-xl border border-border bg-surface p-3 shadow-lg"
           >
             {/* Term moved to the toolbar, beside the schedule's name. It is
                 the first decision on the page and everything else is scoped by

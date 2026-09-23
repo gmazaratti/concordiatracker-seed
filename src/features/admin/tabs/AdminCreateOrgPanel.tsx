@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Button } from '@/components/ui/Button'
 import { Panel, CopyChip } from '../admin-ui'
+import { useHandleCheck } from '@/features/organizer/onboarding/handle-check'
 
 const INPUT =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -24,7 +25,12 @@ export function AdminCreateOrgPanel() {
   const [link, setLink] = useState<{ url: string; token: string } | null>(null)
 
   const suggested = suggestHandle(name)
-  const canCreate = name.trim().length >= 2 && !busy
+  /* ASKED OF THE DATABASE BEFORE CREATING. `admin_create_org` only checks
+     uniqueness, so a handle with a hyphen or a reserved word used to create a
+     club whose setup wizard then refused its own handle on the handle step —
+     which is how "create and set up" became impossible to finish. */
+  const check = useHandleCheck(handle.trim() || suggested)
+  const canCreate = name.trim().length >= 2 && !busy && check.kind !== 'taken' && check.kind !== 'checking'
 
   async function createAndHandoff() {
     if (!canCreate) return
@@ -84,6 +90,8 @@ export function AdminCreateOrgPanel() {
           </Field>
           <Field label="Handle">
             <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder={suggested || '@jmma'} className={INPUT} />
+            {check.kind === 'taken' && <span className="mt-1 block text-[11.5px] text-danger">{check.why}</span>}
+            {check.kind === 'free' && <span className="mt-1 block text-[11.5px] text-success">Available</span>}
           </Field>
         </div>
         <Field label="Bio">

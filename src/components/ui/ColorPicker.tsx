@@ -154,7 +154,7 @@ export function ColorPicker({
               left: pos.left,
               ...(pos.above ? { bottom: window.innerHeight - pos.top } : { top: pos.top }),
             }}
-            className="ct-animate-pop z-[60] w-[228px] rounded-xl border border-border bg-surface p-3 shadow-2xl"
+            className="ct-animate-pop z-[200] w-[228px] rounded-xl border border-border bg-surface p-3 shadow-2xl"
           >
             <div className="grid grid-cols-6 gap-1.5">
               {PALETTE.map((c) => {

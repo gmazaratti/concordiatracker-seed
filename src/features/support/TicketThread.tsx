@@ -92,7 +92,7 @@ export function TicketThread({
   }
 
   return (
-    <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
+    <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', className)}>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages === null ? (
           <div className="grid place-items-center py-10">

@@ -2,11 +2,16 @@ import { useRef, useState } from 'react'
 import { ArrowRight, Crop, Plus, SlidersHorizontal, Sparkles, Type, X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { PhotoFrame } from './PhotoFrame'
+import { FullPreview } from './FullPreview'
 import { AdjustPanel, CropPanel, FilterStrip, TextPanel } from './EditTools'
 import type { AspectId, PhotoText } from './photo-edit'
 import type { ComposeItem } from './items'
 
 type Tool = 'text' | 'filter' | 'adjust' | 'crop'
+
+/** One slide, and the space either side that lets the first and last centre. */
+const SLIDE = 'min(84%, 420px)'
+const EDGE = 'calc((100% - min(84%, 420px)) / 2 - 0.75rem)'
 
 /**
  * Screen 2 of 3: make each photo look right.
@@ -42,6 +47,7 @@ export function EditStep({
   const [index, setIndex] = useState(0)
   const [tool, setTool] = useState<Tool | null>(null)
   const [activeText, setActiveText] = useState<number | null>(null)
+  const [viewing, setViewing] = useState<number | null>(null)
   const strip = useRef<HTMLDivElement>(null)
   const current = items[Math.min(index, items.length - 1)]
   const isImage = current?.kind === 'image'
@@ -116,13 +122,31 @@ export function EditStep({
   const onScroll = () => {
     const el = strip.current
     if (!el) return
-    const slide = el.firstElementChild as HTMLElement | null
-    if (!slide) return
-    const n = Math.round(el.scrollLeft / slide.offsetWidth)
+    // The slide whose centre is nearest the strip's centre. Dividing
+    // scrollLeft by a slide width ignored the gap and the edge spacers, so the
+    // counter drifted a photo behind by the end of a long post.
+    const mid = el.scrollLeft + el.clientWidth / 2
+    const slides = [...el.querySelectorAll<HTMLElement>('[data-slide]')]
+    if (!slides.length) return
+    let n = 0
+    let best = Infinity
+    slides.forEach((sl, i) => {
+      const d = Math.abs(sl.offsetLeft + sl.offsetWidth / 2 - mid)
+      if (d < best) {
+        best = d
+        n = i
+      }
+    })
     if (n !== index) {
       setIndex(n)
       setActiveText(null)
     }
+  }
+
+  const scrollToSlide = (i: number) => {
+    const el = strip.current
+    const sl = el?.querySelectorAll<HTMLElement>('[data-slide]')[i]
+    if (el && sl) el.scrollTo({ left: sl.offsetLeft + sl.offsetWidth / 2 - el.clientWidth / 2, behavior: 'smooth' })
   }
 
   if (!current) return null
@@ -150,28 +174,47 @@ export function EditStep({
           ref={strip}
           onScroll={onScroll}
           className={cn(
-            'flex snap-x snap-mandatory gap-3 px-[8%] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            // Snap to CENTRE, glide between. The edge spacers are sized from the
+            // same min() as the slide, so the first and last photo can sit in
+            // the middle too — a percentage padding beside a capped slide
+            // centred nothing once the cap applied.
+            'flex snap-x snap-mandatory gap-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             tool === 'crop' ? 'overflow-hidden' : 'overflow-x-auto',
           )}
         >
+          <div className="shrink-0" style={{ width: EDGE }} aria-hidden />
           {items.map((it, i) => (
             <div
               key={it.key}
-              className="w-[84%] max-w-[420px] shrink-0 snap-center"
+              data-slide
+              className="shrink-0 snap-center snap-always"
+              style={{ width: SLIDE }}
               onPointerDown={i === index ? startPan : undefined}
             >
               <PhotoFrame
                 item={it}
                 ratio={ratio}
-                className={cn('rounded-2xl', tool === 'crop' && i === index && 'cursor-grab ring-2 ring-accent')}
-                onTap={i === index && tool !== 'crop' ? addText : undefined}
+                className={cn(
+                  'rounded-2xl transition-opacity duration-200',
+                  i !== index && 'opacity-60',
+                  tool === 'crop' && i === index && 'cursor-grab ring-2 ring-accent',
+                )}
+                onTap={
+                  tool === 'crop'
+                    ? undefined
+                    : i !== index
+                      ? () => scrollToSlide(i)
+                      : tool === 'text'
+                        ? addText
+                        : () => setViewing(i)
+                }
                 onTextPointerDown={i === index && tool !== 'crop' ? dragText : undefined}
                 activeText={i === index ? activeText : null}
-                showTextHint={i === index && tool !== 'crop'}
+                showTextHint={i === index && tool === 'text' && !text}
               />
             </div>
           ))}
-          <div className="w-[8%] shrink-0" aria-hidden />
+          <div className="shrink-0" style={{ width: EDGE }} aria-hidden />
         </div>
       </div>
 
@@ -212,6 +255,19 @@ export function EditStep({
         <ToolButton icon={SlidersHorizontal} label="Adjust" on={tool === 'adjust'} disabled={!isImage} onClick={() => setTool(tool === 'adjust' ? null : 'adjust')} />
         <ToolButton icon={Crop} label="Crop" on={tool === 'crop'} onClick={() => setTool(tool === 'crop' ? null : 'crop')} />
       </div>
+
+      {viewing != null && items[viewing] && (
+        <FullPreview
+          items={items}
+          at={viewing}
+          ratio={ratio}
+          onMove={(i) => {
+            setViewing(i)
+            scrollToSlide(i)
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
 
       <div className="flex items-center justify-between px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <button

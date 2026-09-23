@@ -80,6 +80,16 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false)
   const [slide, setSlide] = useState(0)
   const [gone, setGone] = useState(false)
+  /*
+   * DELETING IS UNDOABLE FOR SIX SECONDS. The card becomes a bar saying so;
+   * the delete is only sent when the time runs out — or when the card
+   * unmounts, so navigating away commits it rather than quietly keeping a
+   * post somebody asked to take down.
+   */
+  const [pendingDelete, setPendingDelete] = useState(false)
+  const [deleteErr, setDeleteErr] = useState('')
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const commitDelete = useRef<(() => void) | null>(null)
   const [saved, setSaved] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [showCollabs, setShowCollabs] = useState(false)
@@ -273,7 +283,45 @@ export function PostCard({
     }
   }, [post.id])
 
+  useEffect(() => () => commitDelete.current?.(), [])
+
+  const startDelete = () => {
+    setDeleteErr('')
+    setPendingDelete(true)
+    const commit = () => {
+      commitDelete.current = null
+      if (deleteTimer.current) clearTimeout(deleteTimer.current)
+      void deletePost(post.id).then((ok) => {
+        if (ok) {
+          setGone(true)
+          onChanged?.()
+        } else {
+          setPendingDelete(false)
+          setDeleteErr('That post could not be deleted. Try again.')
+        }
+      })
+    }
+    commitDelete.current = commit
+    deleteTimer.current = setTimeout(commit, 6000)
+  }
+  const undoDelete = () => {
+    if (deleteTimer.current) clearTimeout(deleteTimer.current)
+    commitDelete.current = null
+    setPendingDelete(false)
+  }
+
   if (gone) return null
+  if (pendingDelete) {
+    return (
+      <div role="status" className="mx-4 flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-[13px] text-muted sm:mx-0">
+        <Trash2 size={15} className="shrink-0 text-subtle" aria-hidden />
+        <span className="flex-1">Post deleted</span>
+        <button type="button" onClick={undoDelete} className="rounded-full px-3 py-1 text-[13px] font-semibold text-accent hover:bg-accent-soft">
+          Undo
+        </button>
+      </div>
+    )
+  }
 
   const slug = post.handle.replace(/^@/, '')
   const link = `${window.location.origin}/app/community/org/${slug}`
@@ -314,6 +362,11 @@ export function PostCard({
 
   return (
     <article className="border-b border-border pb-3">
+      {deleteErr && (
+        <p role="alert" className="mx-4 mb-2 rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] text-danger sm:mx-0">
+          {deleteErr}
+        </p>
+      )}
       {/*
         NO EXTRA INSET. The feed column already pads by 16px and the media
         deliberately escapes it with `-mx-4`; adding another `px-3` here put
@@ -503,9 +556,7 @@ export function PostCard({
         {canManage && (
           <button
             type="button"
-            onClick={() => {
-              void deletePost(post.id).then((ok) => ok && setGone(true))
-            }}
+            onClick={startDelete}
             aria-label="Delete post"
             className="grid size-9 place-items-center rounded-full text-subtle transition-colors duration-150 hover:text-danger"
           >

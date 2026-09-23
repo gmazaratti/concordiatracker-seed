@@ -143,6 +143,7 @@ export function OrganizerRoles() {
                 }}
                 onDelete={() => role && setDeleting(role)}
                 onNameChange={creating ? setDraftName : undefined}
+                others={roles.filter((r) => r.id !== role?.id)}
               />
             )}
           </section>

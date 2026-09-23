@@ -167,7 +167,7 @@ export function ModalShell({
          INSIDE, onto whatever the sheet's last row is, so the controls are
          still reachable and the surface is continuous. */
       className={cn(
-        'ct-animate-fade fixed left-0 z-50 flex w-full items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4',
+        'ct-animate-fade fixed left-0 z-[100] flex w-full items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4',
         // Until the first measurement, plain CSS — so a browser with no
         // visualViewport (and the first paint everywhere) is unchanged.
         !vp.ready && 'inset-0',

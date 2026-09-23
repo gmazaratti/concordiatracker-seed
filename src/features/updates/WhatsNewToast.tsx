@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Megaphone, X } from 'lucide-react'
+import { RELEASES } from '@/data/releases'
 import { useUpdates } from '@/app/providers/updates'
 import { completePrompt, usePromptSlot } from '@/app/first-run'
 
@@ -28,6 +29,8 @@ export function WhatsNewToast() {
   }, [slot, dismissToast])
 
   if (!slot) return null
+  const latest = RELEASES[0]
+  const major = latest?.version === currentVersion && latest.hero ? latest.name : null
 
   return (
     <div
@@ -44,10 +47,20 @@ export function WhatsNewToast() {
           <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
             <Megaphone size={15} aria-hidden />
           </span>
-          <span className="min-w-0 text-[13px] text-fg">
-            New in <span className="font-semibold">v{currentVersion}</span>
-            <span className="text-muted">: see what's changed</span>
-          </span>
+          {/* A major release says so: the same toast, but naming the release
+              rather than just its number, because "v2.0" alone reads like
+              every other update. */}
+          {major ? (
+            <span className="min-w-0 text-[13px] text-fg">
+              <span className="font-semibold">Version {currentVersion.replace(/\.0$/, '')}</span>
+              <span className="text-muted">: {major}. See everything that changed</span>
+            </span>
+          ) : (
+            <span className="min-w-0 text-[13px] text-fg">
+              New in <span className="font-semibold">v{currentVersion}</span>
+              <span className="text-muted">: see what's changed</span>
+            </span>
+          )}
         </button>
         <button
           type="button"

@@ -11,6 +11,7 @@ import { StoryViewer } from './stories/StoryViewer'
 import { StoryComposer } from './stories/StoryComposer'
 import { PostCard } from './posts/PostCard'
 import { PostComposer } from './posts/PostComposer'
+import { FeedDrafts } from './FeedDrafts'
 import { markSeen, orderFeed, seenIds, subscribeSeen } from '@/lib/seen-feed'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -150,6 +151,12 @@ export function FeedSection() {
           onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
           onCompose={() => setComposing('story')}
         />
+      )}
+
+      {myOrgs.length > 0 && (
+        <div className="flex">
+          <FeedDrafts orgs={myOrgs} refreshKey={refresh} onChanged={() => setRefresh((n) => n + 1)} />
+        </div>
       )}
 
       {ordered === null ? (

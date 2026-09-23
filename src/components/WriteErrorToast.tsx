@@ -26,7 +26,7 @@ export function WriteErrorToast() {
     <div
       role="alert"
       aria-live="assertive"
-      className="ct-animate-pop fixed right-4 bottom-20 z-[95] flex max-w-[min(22rem,calc(100vw-2rem))] items-start gap-2.5 rounded-xl border border-danger/50 bg-surface px-3.5 py-3 shadow-2xl md:bottom-4"
+      className="ct-animate-pop fixed right-4 bottom-20 z-[130] flex max-w-[min(22rem,calc(100vw-2rem))] items-start gap-2.5 rounded-xl border border-danger/50 bg-surface px-3.5 py-3 shadow-2xl md:bottom-4"
     >
       <AlertTriangle size={16} className="mt-0.5 shrink-0 text-danger" aria-hidden />
       <div className="min-w-0 flex-1">
