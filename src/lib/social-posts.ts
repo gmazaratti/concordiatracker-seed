@@ -682,14 +682,14 @@ export async function publishStory(
     mentions?: string[]
     place?: string
     linkUrl?: string
-    /** 12–72. The database refuses anything outside that range
+    /** 24, 48 or 72. The database refuses anything outside that range
      *  (db/story_duration.sql), so this is a choice, not a trust. */
     hours?: number
   },
 ): Promise<string | null> {
   const { data: me } = await supabase.auth.getUser()
   if (!me.user) return 'You need to be signed in.'
-  const hours = Math.min(72, Math.max(12, story.hours ?? 24))
+  const hours = Math.min(72, Math.max(24, story.hours ?? 24))
   const { error } = await supabase.from('org_stories').insert({
     expires_at: new Date(Date.now() + hours * 3600_000).toISOString(),
     org_id: orgId,

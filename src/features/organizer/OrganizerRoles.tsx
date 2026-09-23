@@ -9,6 +9,7 @@ import { RoleMembers } from './roles/RoleMembers'
 import { NewRoleMenu } from './roles/NewRoleMenu'
 import { DeleteRoleDialog } from './roles/DeleteRoleDialog'
 import { cn } from '@/lib/cn'
+import { TutorialHint } from '@/components/TutorialHint'
 
 /**
  * `/organizer/roles` — three rails: the roles, one role's permissions, and the
@@ -72,6 +73,7 @@ export function OrganizerRoles() {
             What each person on your team may do. You can change any role below your own — never
             your own, and never one above it.
           </p>
+          <TutorialHint id="roles" className="mt-2.5" />
         </div>
         {roles && (
           <NewRoleMenu

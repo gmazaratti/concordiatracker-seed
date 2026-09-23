@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, ArrowRight, AtSign, ChevronDown, Link2, Loader2, MapPin, SmilePlus, Star, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, AtSign, ChevronDown, Link2, Loader2, MapPin, SmilePlus, X } from 'lucide-react'
 import { uploadRenderedImage } from '@/lib/imageUpload'
 import { publishStory, type StoryOverlay } from '@/lib/social-posts'
 import { OrgLogo } from '../OrgLogo'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn'
 import type { PublishableOrg } from '../useMyOrgs'
 import type { EventOrg } from '@/data/community'
 import { DEFAULT_OVERLAY, animClass, fontClass, mentionsIn } from './story-text'
+import { TutorialHint } from '@/components/TutorialHint'
 
 const STORY_RATIO = 9 / 16
 /** The largest 9:16 box inside the size container around it. */
@@ -55,7 +56,8 @@ export function StoryComposer({
   const [caption, setCaption] = useState('')
   const [place, setPlace] = useState('')
   const [link, setLink] = useState('')
-  const [hours, setHours] = useState(24)
+  // null = the duration prompt is closed. It opens when you tap send.
+  const [asking, setAsking] = useState(false)
   const [sheet, setSheet] = useState<null | 'stickers' | 'place' | 'link'>(null)
   const [more, setMore] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -169,8 +171,9 @@ export function StoryComposer({
     window.addEventListener('pointerup', up)
   }
 
-  const post = async () => {
+  const post = async (hours: number) => {
     if (!photo || busy) return
+    setAsking(false)
     setBusy(true)
     setError(null)
     try {
@@ -352,58 +355,66 @@ export function StoryComposer({
             </p>
           )}
 
-          {/* HOW LONG IT LASTS. On the last screen, beside Share, because it
-              is a decision about publishing rather than about the picture.
-              24 hours is the default a story has always had. (Later: over
-              24h becomes an enterprise option — deliberately not gated yet.) */}
-          <div className="flex shrink-0 items-center gap-2 px-3 pt-3" role="radiogroup" aria-label="How long the story lasts">
-            <span className="shrink-0 text-[12.5px] text-white/70">Lasts</span>
-            <div className="flex min-w-0 flex-1 gap-1 rounded-full bg-white/10 p-1">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d.hours}
-                  type="button"
-                  role="radio"
-                  aria-checked={hours === d.hours}
-                  onClick={() => setHours(d.hours)}
-                  className={cn(
-                    'min-w-0 flex-1 rounded-full py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-                    hours === d.hours ? 'bg-white text-black' : 'text-white/80 hover:bg-white/10',
-                  )}
-                >
-                  {d.label}
-                </button>
-              ))}
+          {/* THE SHARE ROW, edge to edge: who it goes to on the left, go on
+              the right. Hidden entirely while a text overlay is being edited —
+              one task per screen state, and that state's task is the text. */}
+          {!activeOverlay && (
+            <div className="flex shrink-0 items-center gap-2 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <span className="flex min-w-0 items-center gap-2.5 rounded-full bg-white/12 py-1.5 pr-4 pl-1.5">
+                <OrgLogo org={faceOf(org)} className="size-9 ring-2 ring-white" rounded="rounded-full" textClass="text-[11px]" />
+                <span className="min-w-0 truncate text-[15px] font-medium">Your story</span>
+              </span>
+              <TutorialHint id="first-story" variant="icon" className="ml-auto size-10 text-white/80 hover:bg-white/10 hover:text-white" />
+              <button
+                type="button"
+                onClick={() => setAsking(true)}
+                disabled={busy}
+                aria-label={`Share to ${org.handle}'s story`}
+                className="grid size-[52px] shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-60"
+              >
+                {busy ? <Loader2 size={20} className="animate-spin" aria-hidden /> : <ArrowRight size={24} aria-hidden />}
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* Who it goes to, and go. */}
-          <div className="flex shrink-0 items-center gap-2 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-            <span className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white/12 px-2 py-2">
-              <OrgLogo org={faceOf(org)} className="size-9 ring-2 ring-white" rounded="rounded-full" textClass="text-[11px]" />
-              <span className="min-w-0 flex-1 truncate text-center text-[15px] font-medium">Your story</span>
-            </span>
-            <span
-              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white/12 px-2 py-2 opacity-60"
-              title="There is no close-friends list yet."
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success text-white">
-                <Star size={16} className="fill-current" aria-hidden />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-center text-[15px] font-medium">
-                Close Friends <span className="ml-0.5 rounded bg-white/15 px-1 text-[10px] font-semibold tracking-wide uppercase">Soon</span>
-              </span>
-            </span>
-            <button
-              type="button"
-              onClick={() => void post()}
-              disabled={busy}
-              aria-label={`Share to ${org.handle}'s story`}
-              className="grid size-[52px] shrink-0 place-items-center rounded-full bg-accent text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-60"
-            >
-              {busy ? <Loader2 size={20} className="animate-spin" aria-hidden /> : <ArrowRight size={24} aria-hidden />}
-            </button>
-          </div>
+          {/* HOW LONG IT LASTS — asked AFTER you tap send, because it is a
+              decision about publishing, not about the picture, and it kept the
+              editing screen one row shorter. Only the three offered lengths;
+              the database refuses anything else (db/story_duration.sql).
+              LATER, NOT NOW: over 24h becomes an enterprise option. */}
+          {asking && (
+            <div className="absolute inset-0 z-10 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setAsking(false)}>
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="How long should the story last"
+                onClick={(e) => e.stopPropagation()}
+                className="ct-animate-pop m-3 w-full max-w-sm rounded-2xl bg-neutral-900 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4"
+              >
+                <p className="text-[15px] font-semibold">How long would you like the story to last?</p>
+                <div className="mt-3 flex flex-col gap-2">
+                  {DURATIONS.map((d) => (
+                    <button
+                      key={d.hours}
+                      type="button"
+                      autoFocus={d.hours === 24}
+                      onClick={() => void post(d.hours)}
+                      className={cn(
+                        'flex items-center justify-between rounded-xl px-4 py-3 text-left text-[14.5px] font-medium transition-colors',
+                        d.hours === 24 ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/15',
+                      )}
+                    >
+                      {d.label}
+                      {d.hours === 24 && <span className="text-[12px] font-normal text-black/60">Default</span>}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setAsking(false)} className="mt-2 w-full rounded-xl py-2.5 text-[13.5px] text-white/70 hover:text-white">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>,
@@ -412,10 +423,9 @@ export function StoryComposer({
 }
 
 const DURATIONS = [
-  { hours: 12, label: '12h' },
-  { hours: 24, label: '24h' },
-  { hours: 48, label: '2 days' },
-  { hours: 72, label: '3 days' },
+  { hours: 24, label: '24 hours' },
+  { hours: 48, label: '48 hours' },
+  { hours: 72, label: '72 hours' },
 ]
 
 function RailButton({

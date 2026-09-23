@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { useAuth } from '@/app/providers/auth'
 import { useTeacher } from '@/app/providers/teacher'
 import { fireWrite, supabase } from '@/lib/supabase'
 import { OrganizerSignIn } from './OrganizerSignIn'
@@ -23,7 +24,8 @@ import { resetOnboarding } from './onboarding-state'
  * the answer exists.
  */
 export function OrganizerHome() {
-  const { currentOrg, myOrgs, orgsLoading, switchOrg } = useTeacher()
+  const { currentOrg, myOrgs, orgsLoading, switchOrg, ownedOrgIds } = useTeacher()
+  const { user: authUser } = useAuth()
   const [params] = useSearchParams()
   const wanted = params.get('org')
   const [replay, setReplay] = useState(false)
@@ -53,7 +55,12 @@ export function OrganizerHome() {
           setReplay(true)
         }}
       />
-      <OrgOnboardingGate org={org} replay={replay} onReplayDone={() => setReplay(false)} />
+      {/* ONLY FOR THE TEAM. A platform admin can open any club, including one
+          built for somebody else and not yet claimed — its setup wizard is
+          for whoever claims it, not for the admin filling it in. */}
+      {(ownedOrgIds.has(org.id) || org.members.some((m) => !!authUser && m.userId === authUser.id) || replay) && (
+        <OrgOnboardingGate org={org} replay={replay} onReplayDone={() => setReplay(false)} />
+      )}
     </>
   )
 }

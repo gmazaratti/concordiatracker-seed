@@ -6,12 +6,20 @@ import { useAuth } from '@/app/providers/auth'
 import { supabase, fireWrite } from '@/lib/supabase'
 import { expiresInLabel, inviteStatus, maskEmail, type InviteStatus } from '@/data/teacher'
 import { Button } from '@/components/ui/Button'
+import { AppleGlyph } from '@/components/AppleGlyph'
+import { GoogleGlyph } from '@/components/GoogleGlyph'
+import { rememberReturn } from '@/lib/auth-intent'
+import { TutorialHint } from '@/components/TutorialHint'
 
 interface DbInvite {
   org_name: string
   org_handle: string
   recipient_email: string | null
   status: 'valid' | 'used' | 'expired'
+  /** 'prefilled' = an admin built the club; 'self' = you set it up. */
+  mode?: 'self' | 'prefilled'
+  /** Already claimed once: a further use joins that club's team. */
+  claimed?: boolean
 }
 
 /** Accept an ORGANIZER invitation. Real invites (org_invites table) are
@@ -23,7 +31,7 @@ export function OrganizerInvitePage() {
   const { token } = useParams()
   const navigate = useNavigate()
   const { getOrgInvite, acceptOrgInvite } = useTeacher()
-  const { user: authUser, signInWithGoogle } = useAuth()
+  const { user: authUser, signInWithGoogle, signInWithApple } = useAuth()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [dryRun, setDryRun] = useState(false)
@@ -43,7 +51,13 @@ export function OrganizerInvitePage() {
     const key = authUser?.id ?? 'anon'
     if (openedFor.current.has(key)) return
     openedFor.current.add(key)
-    fireWrite(supabase.rpc('record_org_invite_open', { p_token: token }))
+    let visitor: string | null = null
+    try {
+      visitor = localStorage.getItem('ct_vid')
+    } catch {
+      /* no storage: the open is still recorded, just not per browser */
+    }
+    fireWrite(supabase.rpc('record_org_invite_open', { p_token: token, p_visitor: visitor }))
   }, [token, legacy, dbInvite, authUser?.id])
 
   useEffect(() => {
@@ -142,14 +156,42 @@ export function OrganizerInvitePage() {
     window.location.assign(id ? `/organizer?org=${id}` : '/organizer')
   }
 
+  /*
+   * EVERY SIGN-IN ROUTE COMES BACK HERE. Each one ends somewhere fixed (OAuth
+   * on /app, the email form on /app), so the path is recorded first and
+   * AuthIntentRedirect returns to it once a session exists. Without this a
+   * new account landed in the student app and the invite was gone.
+   */
+  const here = `/join/${token}`
+  const viaGoogle = () => {
+    rememberReturn(here)
+    void signInWithGoogle()
+  }
+  const viaApple = () => {
+    rememberReturn(here)
+    void signInWithApple()
+  }
+  const viaEmail = () => {
+    rememberReturn(here)
+    navigate('/app')
+  }
+
+  const mode = dbInvite.mode ?? 'self'
+  const joining = !!dbInvite.claimed
+  const what = joining
+    ? `join ${dbInvite.org_name}'s team`
+    : mode === 'prefilled'
+      ? `take over ${dbInvite.org_name}: we've set up its profile, and you review and edit everything before it's yours`
+      : `set up ${dbInvite.org_name} from scratch — your profile, first event and team`
+
   return (
     <InviteCard
       orgName={dbInvite.org_name}
       orgHandle={dbInvite.org_handle}
       note={
         authUser
-          ? `You're signed in as ${authUser.email}: accepting sets up ${dbInvite.org_name}'s dashboard on this account. The link is single-use.`
-          : 'Sign in with your Google account first: your org dashboard will be tied to it. The link is single-use.'
+          ? `You're signed in as ${authUser.email}. Accepting lets you ${what}.`
+          : `Sign in or create an account first — the club will be tied to it. Then you'll ${what}.`
       }
       busy={busy}
       err={err}
@@ -158,8 +200,16 @@ export function OrganizerInvitePage() {
           ? 'Link verified — admin test run. Nothing was consumed; this exact link still works for the recipient.'
           : undefined
       }
-      cta={authUser ? 'Accept & set up my dashboard' : 'Sign in with Google to continue'}
-      onAccept={authUser ? () => void accept(false) : () => void signInWithGoogle()}
+      cta={joining ? 'Join the team' : mode === 'prefilled' ? 'Review & take over' : 'Start setting up'}
+      onAccept={() => void accept(false)}
+      signIn={authUser ? undefined : { google: viaGoogle, apple: viaApple, email: viaEmail }}
+      footnote={
+        joining
+          ? 'You will join as a Member. The owner can change your role.'
+          : mode === 'prefilled'
+            ? 'A short guided review follows — change anything before students see it.'
+            : "You'll start as pending approval: a guided setup walks you through your profile, first event, and team."
+      }
       onForce={dryRun ? () => void accept(true) : undefined}
     />
   )
@@ -175,6 +225,8 @@ function InviteCard({
   cta,
   onAccept,
   onForce,
+  signIn,
+  footnote,
 }: {
   orgName: string
   orgHandle: string
@@ -186,6 +238,9 @@ function InviteCard({
   onAccept: () => void
   /** Present only after a dry run, for the admin who meant it. */
   onForce?: () => void
+  /** Signed out: every way in, each of which comes back to this page. */
+  signIn?: { google: () => void; apple: () => void; email: () => void }
+  footnote?: string
 }) {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col px-5 py-16">
@@ -201,15 +256,36 @@ function InviteCard({
           <strong className="text-fg">{orgName}</strong>{' '}
           <span className="text-subtle">({orgHandle})</span> on ConcordiaTracker.
         </p>
+        <TutorialHint id="invite-accept" className="mt-3" />
 
         <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface-2/50 px-3.5 py-3">
           <MailCheck size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <p className="text-[12px] leading-relaxed text-subtle">{note}</p>
         </div>
 
-        <Button className="mt-4 w-full" onClick={onAccept} disabled={busy || !!success}>
-          {busy ? 'Setting up…' : cta}
-        </Button>
+        {signIn ? (
+          <div className="mt-4 flex flex-col gap-2">
+            <Button size="lg" className="w-full" onClick={signIn.google}>
+              <GoogleGlyph />
+              Continue with Google
+            </Button>
+            <Button size="lg" variant="outline" className="w-full" onClick={signIn.apple}>
+              <AppleGlyph />
+              Continue with Apple
+            </Button>
+            <button
+              type="button"
+              onClick={signIn.email}
+              className="rounded-lg py-2 text-[13px] font-medium text-accent hover:underline"
+            >
+              Use email instead — sign in or create an account
+            </button>
+          </div>
+        ) : (
+          <Button className="mt-4 w-full" onClick={onAccept} disabled={busy || !!success}>
+            {busy ? 'Setting up…' : cta}
+          </Button>
+        )}
         {success ? (
           <>
             {/* A STATUS GLYPH, not a tick. The character "✓" rendered in the
@@ -238,8 +314,8 @@ function InviteCard({
           <p className="mt-2 text-center text-[12px] text-danger">{err}</p>
         ) : (
           <p className="mt-2 text-center text-[11px] text-subtle">
-            You'll start as <span className="text-warning">pending approval</span>: a guided setup
-            walks you through your profile, first event, and team.
+            {footnote ??
+              "You'll start as pending approval: a guided setup walks you through your profile, first event, and team."}
           </p>
         )}
       </div>

@@ -8,6 +8,9 @@
 
 export type ReleaseChangeKind = 'new' | 'improved' | 'fixed'
 
+export type HeroIcon =
+  | 'feed' | 'events' | 'clubs' | 'posts' | 'stories' | 'scan' | 'dm' | 'support' | 'integrations'
+
 export interface ReleaseChange {
   kind: ReleaseChangeKind
   text: string
@@ -28,8 +31,11 @@ export interface Release {
    * `changes`, never typed, so the panel cannot claim more than the list.
    */
   hero?: {
+    /** The one-line headline under the big version number. */
+    headline: string
     tagline: string
-    highlights: { title: string; text: string }[]
+    /** `icon` is a key the What's New panel maps to a glyph. */
+    highlights: { title: string; text: string; icon?: HeroIcon }[]
   }
 }
 
@@ -37,32 +43,37 @@ export interface Release {
 export const RELEASES: Release[] = [
   {
     version: '2.0.0',
-    name: 'The organizer portal, rebuilt',
+    name: 'ConcordiaTracker 2.0',
     date: '2026-09-23',
     hero: {
+      headline: 'Your whole campus, in one app.',
       tagline:
-        'Clubs can now run their whole presence here: a team with real roles, drafts nobody sees until they are ready, an inbox, analytics, and a history of every change that can be undone.',
+        'Version two is the biggest thing we have shipped. Your deadlines were always here — now the clubs, the events and the people around them are too, in the same place, on your phone.',
       highlights: [
-        { title: 'Roles, your way', text: 'Custom roles with their own permissions and a clear rank. Nobody can hand out more than they have.' },
-        { title: 'Undo anything', text: 'Every change to the club is logged with who made it, and most can be put back in one press.' },
-        { title: 'Draft first', text: 'Posts and events start private. Publish when they are right, not when you pressed save.' },
-        { title: 'Stories that last', text: 'Choose 12 hours, a day, two days or three before a story disappears.' },
+        { icon: 'feed', title: 'A social feed', text: 'Posts from the clubs you follow, newest first, with what you have not seen at the top.' },
+        { icon: 'events', title: 'An Events tab', text: 'Everything happening on campus, filtered by what you care about. One tap adds it to your calendar.' },
+        { icon: 'clubs', title: 'Clubs, for real', text: 'Every club gets a profile, a team with roles, and a portal to run it all — onboarding takes minutes.' },
+        { icon: 'posts', title: 'Posts', text: 'Photo and video posts with captions, comments, reposts, collaborations between clubs and linked events.' },
+        { icon: 'stories', title: 'Stories', text: 'Text on a photo that disappears on its own — after 24, 48 or 72 hours, your choice.' },
+        { icon: 'scan', title: 'Syllabus scans, twice as fast', text: 'Drop an outline and your dates and weights arrive in seconds.' },
+        { icon: 'dm', title: 'Direct messages', text: 'Message classmates and clubs. Send a schedule, a class or an event as a card, not a screenshot.' },
+        { icon: 'support', title: 'Support, in your inbox', text: 'Write to us from Messages and get the answer in the same thread — and by email.' },
+        { icon: 'integrations', title: 'New integrations', text: 'Moodle deadlines sync on their own, your calendar subscribes from Google, Apple or Outlook, and Sign in with Apple.' },
       ],
     },
     changes: [
-      { kind: 'new', text: 'Custom roles for club teams, each with its own permissions, colour and icon, and a ranked ladder that decides who can manage whom.' },
-      { kind: 'new', text: 'An activity log for every club, with names, faces and role colours. Most changes can be undone, one at a time or everything a person did in a date range.' },
-      { kind: 'new', text: 'Drafts for posts and events. A new event starts private, and your feed shows a Drafts pill when you have any waiting.' },
-      { kind: 'new', text: 'Story length: 12 hours, 24 hours, 2 days or 3 days.' },
-      { kind: 'new', text: 'A member panel for each teammate: their role, how long they have been on the team, and what they have done recently.' },
-      { kind: 'new', text: 'An overview for clubs with followers, posts and events over time.' },
-      { kind: 'new', text: 'Tap a photo while making a post to see it full screen, exactly as it will be posted.' },
+      { kind: 'new', text: 'A social feed of posts from the clubs you follow, ordered so what you have not seen comes first.' },
+      { kind: 'new', text: 'An Events tab for everything happening on campus, with one-tap add to calendar.' },
+      { kind: 'new', text: 'Club profiles and the organizer portal: onboarding, a team with custom roles, drafts, analytics, and an activity log you can undo.' },
+      { kind: 'new', text: 'Photo and video posts, comments, reposts, and posts two clubs publish together.' },
+      { kind: 'new', text: 'Stories that last 24, 48 or 72 hours.' },
+      { kind: 'new', text: 'Direct messages with classmates and clubs, with schedules, classes and events sent as cards.' },
+      { kind: 'new', text: 'Support conversations live in your Messages inbox.' },
+      { kind: 'improved', text: 'Syllabus scans are about twice as fast.' },
+      { kind: 'improved', text: 'Moodle sync, calendar subscriptions (Google, Apple, Outlook) and Sign in with Apple.' },
       { kind: 'improved', text: 'Deleting a post can be undone for a few seconds.' },
-      { kind: 'improved', text: 'If you run more than one club, the organizer sign-in offers each of them.' },
-      { kind: 'improved', text: 'Conversations fit a phone properly, even with a very long name at the top.' },
       { kind: 'fixed', text: 'Photos taken on an iPhone failed with "That photo was not prepared correctly". They upload now.' },
-      { kind: 'fixed', text: 'Link an event, Add location and the other post options opened behind the post instead of in front of it.' },
-      { kind: 'fixed', text: 'The role picker in a teammate’s panel did not open.' },
+      { kind: 'fixed', text: 'Opening a club invite on a new account now leads straight into setup instead of stopping at sign-in.' },
     ],
   },
   {

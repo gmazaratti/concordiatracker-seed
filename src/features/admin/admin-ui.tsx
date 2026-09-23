@@ -19,9 +19,11 @@ export function Panel({
     // min-content width becomes the column's floor, and a panel full of long
     // unbroken text pushes its neighbour to nothing.
     <section className="min-w-0 rounded-xl border border-border bg-surface">
-      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="min-w-0">
-          <h2 className="text-[14px] font-semibold text-fg">{title}</h2>
+      {/* WRAPS on a phone: the actions drop under the title instead of
+          squeezing it into a column of single words. */}
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-3">
+        <div className="min-w-0 flex-1 basis-40">
+          <h2 className="text-[16px] font-bold tracking-tight text-fg">{title}</h2>
           {sub && <p className="mt-0.5 text-[12px] text-subtle">{sub}</p>}
         </div>
         {action}

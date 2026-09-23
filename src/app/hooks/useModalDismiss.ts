@@ -42,6 +42,9 @@ export function useModalDismiss<T extends HTMLElement>(onClose: () => void) {
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault()
+      // React events bubble through portals to the PARENT dialog, so without
+      // this Escape in a dialog opened from a dialog closed both.
+      e.stopPropagation()
       onClose()
       return
     }

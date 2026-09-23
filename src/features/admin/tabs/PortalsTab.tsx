@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { BadgeCheck, CalendarDays, ChevronDown, FileText, Megaphone, Plus, Users, X } from 'lucide-react'
+import { BadgeCheck, CalendarDays, ChevronDown, FileText, Megaphone, Users } from 'lucide-react'
 import {
   adminDeleteOrg,
   adminListOrgMembers,
@@ -14,10 +14,8 @@ import {
   type PortalTeacher,
 } from '../admin-data'
 import { ConfirmButton, EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton } from '../admin-ui'
-import { OrgInvitesPanel } from './OrgInvitesPanel'
-import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
-import { TestClubPanel } from './TestClubPanel'
 import { OutreachPanel } from './OutreachPanel'
+import { ClubInvitesPanel } from '../invites/ClubInvitesPanel'
 import { OrgApplicationsPanel } from './OrgApplicationsPanel'
 import { useNavigate } from 'react-router-dom'
 import { useTeacher } from '@/app/providers/teacher'
@@ -29,7 +27,6 @@ export function PortalsTab() {
   const orgLoader = useCallback(() => adminListPortalOrgs(), [])
   const teachers = useAdminList<PortalTeacher>(teacherLoader)
   const orgs = useAdminList<PortalOrg>(orgLoader)
-  const [showCreate, setShowCreate] = useState(false)
   const { switchOrg } = useTeacher()
   const navigate = useNavigate()
 
@@ -66,10 +63,9 @@ export function PortalsTab() {
         <RefreshButton onClick={reloadAll} busy={teachers.loading || orgs.loading} />
       </header>
 
-      {/* FIRST, because during an outreach wave this is the screen you open:
-          what went out, what was opened, what converted. The lists below are
-          what you do about it. */}
-      <OutreachPanel />
+      {/* FIRST: the one way a club arrives. New invite → a link → they sign
+          in and land in setup. Every invite ever made is listed here. */}
+      <ClubInvitesPanel />
 
       {/* Directly under the links, because these are what the links produce. */}
       <OrgApplicationsPanel />
@@ -110,40 +106,16 @@ export function PortalsTab() {
         </Panel>
       </div>
 
-      {/* Invites: kept visible so you can see who's opened a link (before signup). */}
-      <OrgInvitesPanel />
-
-      {/* Self-serve: a throwaway club to walk the organizer flow as a fresh
-          account, without minting a real invite for anyone. */}
-      <TestClubPanel />
-
-      {/* Creating a fresh org is rare → tucked behind a toggle so it doesn't
-          dominate the tab. */}
-      {showCreate ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[13px] font-semibold text-fg">Create a new organization</h2>
-            <button
-              type="button"
-              onClick={() => setShowCreate(false)}
-              className="inline-flex items-center gap-1 text-[12px] text-subtle transition-colors hover:text-fg"
-            >
-              <X size={13} aria-hidden />
-              Hide
-            </button>
-          </div>
-          <AdminCreateOrgPanel />
+      {/* The older campaign links (utm-tagged links to the portal door). Kept
+          because their numbers are real history; new clubs use invites above. */}
+      <details className="group rounded-xl border border-border bg-surface">
+        <summary className="cursor-pointer list-none px-4 py-3 text-[13px] font-semibold text-muted hover:text-fg">
+          Campaign links <span className="font-normal text-subtle">· older outreach tracking</span>
+        </summary>
+        <div className="border-t border-border p-2">
+          <OutreachPanel />
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong px-4 py-3 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-        >
-          <Plus size={15} aria-hidden />
-          Create a new organization (ownerless + handoff link)
-        </button>
-      )}
+      </details>
     </div>
   )
 }
@@ -208,58 +180,58 @@ function OrgRow({
     }
   }
 
+  /*
+   * THREE ROWS, each with one job, so nothing is pushed off the right edge:
+   * who it is (and its state), how to reach it, and what you can do. The old
+   * single flex row clipped Delete at desktop widths and wrapped into a
+   * tangle on a phone.
+   */
   return (
     <li>
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-        {/* THE ROW IS THE DOOR. Admin access to every club already exists in
-            the database; the only thing missing was a way in from the list you
-            are already looking at. `manage` switches the active org and lands
-            on its dashboard. */}
+      <div className="px-4 py-3.5">
         <button
           type="button"
           onClick={() => onManage(o.id)}
-          className="min-w-0 flex-1 rounded-lg px-1 py-0.5 text-left transition-colors duration-150 hover:bg-surface-2"
+          className="-mx-1 flex w-[calc(100%+0.5rem)] min-w-0 flex-col rounded-lg px-1 py-0.5 text-left transition-colors duration-150 hover:bg-surface-2"
         >
-          <div className="flex items-center gap-2">
-            <span className="truncate text-[13px] font-medium text-fg">{o.name}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-[14px] font-semibold text-fg">{o.name}</span>
             {o.verified && <BadgeCheck size={14} className="shrink-0 text-info" aria-label="Verified" />}
             <Pill tone={banned ? 'red' : o.status === 'approved' ? 'green' : 'amber'}>{o.status}</Pill>
-          </div>
-          {/* `atHandle`: organisations store the handle WITH its @, so the
-              literal prefix here rendered "@@reggiesmtl". */}
+          </span>
+          {/* `atHandle`: organisations store the handle WITH its @. */}
           <span className="truncate text-[12px] text-subtle">
             {atHandle(o.handle)}
             {o.owner_email ? ` · ${o.owner_email}` : ''}
           </span>
         </button>
-        <div className="flex items-center gap-4 text-[12px] text-subtle">
-          <span title="Events" className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden />{o.event_count}</span>
-          <span title="Followers" className="inline-flex items-center gap-1"><Users size={13} aria-hidden />{o.follower_count}</span>
-        </div>
-        {/* Wraps: Approve + Ban + Delete + the member toggle is four controls,
-            which overflow a phone on one line. */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Manual gate: a freshly-invited org stays pending until approved here. */}
-          {o.status === 'pending' && (
-            <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
-              className="rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50">
-              Approve
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="flex items-center gap-4 text-[12px] text-subtle">
+            <span title="Events" className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden />{o.event_count}</span>
+            <span title="Followers" className="inline-flex items-center gap-1"><Users size={13} aria-hidden />{o.follower_count}</span>
+            <button type="button" onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers}
+              className="inline-flex items-center gap-1 rounded-lg py-1 text-[12px] text-muted hover:text-fg">
+              {o.member_count} member{o.member_count === 1 ? '' : 's'}
+              <ChevronDown size={14} className={cn('transition-transform duration-200', showMembers && 'rotate-180')} aria-hidden />
             </button>
-          )}
-          {banned ? (
-            <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
-              className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg disabled:opacity-50">
-              Unban
-            </button>
-          ) : (
-            <ConfirmButton label="Ban" armedLabel="Confirm ban" danger disabled={busy} onConfirm={() => run(() => adminSetOrgStatus(o.id, 'banned'))} />
-          )}
-          <ConfirmButton label="Delete" armedLabel="Confirm delete" danger disabled={busy} onConfirm={() => run(() => adminDeleteOrg(o.id))} />
-          <button type="button" onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] text-muted hover:text-fg">
-            {o.member_count} member{o.member_count === 1 ? '' : 's'}
-            <ChevronDown size={14} className={cn('transition-transform duration-200', showMembers && 'rotate-180')} aria-hidden />
-          </button>
+          </span>
+          <span className="ml-auto flex flex-wrap items-center gap-2">
+            {o.status === 'pending' && (
+              <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
+                className="rounded-lg bg-accent px-2.5 py-1.5 text-[12px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50">
+                Approve
+              </button>
+            )}
+            {banned ? (
+              <button type="button" disabled={busy} onClick={() => run(() => adminSetOrgStatus(o.id, 'approved'))}
+                className="rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg disabled:opacity-50">
+                Unban
+              </button>
+            ) : (
+              <ConfirmButton label="Ban" armedLabel="Confirm ban" danger disabled={busy} onConfirm={() => run(() => adminSetOrgStatus(o.id, 'banned'))} />
+            )}
+            <ConfirmButton label="Delete" armedLabel="Confirm delete" danger disabled={busy} onConfirm={() => run(() => adminDeleteOrg(o.id))} />
+          </span>
         </div>
       </div>
       {showMembers && <OrgMembers orgId={o.id} onChanged={onChanged} />}

@@ -19,7 +19,7 @@ const noop = () => undefined
  *
  * WHAT IT IS: the student shell — the sidebar with its tabs, your name and the
  * settings button, the stories bar, the phone's top and bottom bars — around
- * the real `PostCard`, with made-up clubs' posts above and below yours so the
+ * the real `PostCard` — yours first, made-up clubs' posts below it so the
  * thing scrolls like a feed instead of ending after two cards. Asking "how does
  * this look" of a column that holds only your own posts answers a question
  * nobody will ever see.
@@ -56,9 +56,10 @@ export function FeedPreview({
   }, [onClose])
 
   const filler = useMemo(() => demoFillerPosts(), [])
-  // Somebody else's first, then yours, then more: the feed does not start
-  // with you, and it does not end with you either.
-  const feed = useMemo(() => [...filler.slice(0, 2), ...posts, ...filler.slice(2)], [filler, posts])
+  // YOURS FIRST, then other clubs' posts below it to compare against. It is
+  // opened to look at one post; making somebody scroll past two strangers to
+  // find it answered the question with the wrong thing on screen.
+  const feed = useMemo(() => [...posts, ...filler], [filler, posts])
   const rings = useMemo<StoryRing[]>(() => {
     const at = new Date().toISOString()
     const ring = (p: Pick<FeedPost, 'orgId' | 'handle' | 'orgName' | 'logo' | 'color' | 'glyph'>, unseen: number): StoryRing => ({

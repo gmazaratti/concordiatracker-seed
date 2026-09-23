@@ -14,6 +14,7 @@ import { HANDLE_RE, useHandleCheck } from './handle'
 import type { ProgramSelection } from '@/components/ui/ProgramPicker'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
+import { TutorialHint } from '@/components/TutorialHint'
 
 // 4 setup steps + 6 intro steps.
 // Setup: name, handle, major, theme. Intro: welcome, heard-about, add-courses,
@@ -248,7 +249,10 @@ export function OnboardingPage() {
             ) : step === STEP_MOODLE ? (
               <MoodleStep onConnected={() => setMoodleDone(true)} />
             ) : step === STEP_COURSE ? (
-              <AddCourses onAdded={() => setAddedCourse(true)} concordia={atConcordia} />
+              <>
+                <TutorialHint id="add-course" className="mb-3" />
+                <AddCourses onAdded={() => setAddedCourse(true)} concordia={atConcordia} />
+              </>
             ) : step === STEP_HOW ? (
               <HowItWorksSlide />
             ) : step === STEP_COMMUNITY ? (

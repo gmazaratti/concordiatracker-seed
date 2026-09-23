@@ -25,6 +25,7 @@ import {
 } from '@/lib/post-details'
 import { formatDueDateTime } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { TutorialHint } from '@/components/TutorialHint'
 
 /**
  * Everything about a post that is not its pictures or its words.
@@ -200,9 +201,10 @@ export function PostDetails({
               placeholder="H 920, or the atrium"
               className="mt-1 w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
-            <label className="mt-3 block text-[12px] font-medium text-subtle">
-              Map link (optional)
-            </label>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <label className="block text-[12px] font-medium text-subtle">Map link (optional)</label>
+              <TutorialHint id="map-link" variant="icon" />
+            </div>
             <input
               value={value.placeUrl}
               onChange={(e) => onChange({ placeUrl: e.target.value })}

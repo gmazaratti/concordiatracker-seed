@@ -248,6 +248,11 @@ export interface ActivityEntry {
   revertedAt: string | null
   /** Worked out by the server, so an Undo we offer is one it will accept. */
   canRevert: boolean
+  /** The actor's own profile photo — present even when they are not on the
+   *  team list (the platform admin; an owner with no member row). */
+  actorAvatar?: string | null
+  /** 'owner' / 'admin' (acted as the platform) / null = read the team list. */
+  actorRank?: 'owner' | 'admin' | null
 }
 
 export async function loadActivity(orgId: string, limit = 150): Promise<ActivityEntry[]> {
@@ -269,8 +274,12 @@ export async function loadActivity(orgId: string, limit = 150): Promise<Activity
     entity_id: string | null
     reverted_at: string | null
     can_revert: boolean
+    actor_avatar?: string | null
+    actor_rank?: 'owner' | 'admin' | null
   }
   return ((data ?? []) as Row[]).map((r) => ({
+    actorAvatar: r.actor_avatar ?? null,
+    actorRank: r.actor_rank ?? null,
     id: r.id,
     createdAt: r.created_at,
     actorUser: r.actor_user,

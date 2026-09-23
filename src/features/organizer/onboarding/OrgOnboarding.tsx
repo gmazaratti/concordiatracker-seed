@@ -29,6 +29,7 @@ import {
   RoleGate,
   TeamStep,
 } from './steps'
+import { TutorialHint } from '@/components/TutorialHint'
 
 /**
  * Setting a club up: ONE flow, five steps, and a question before them.
@@ -388,8 +389,18 @@ function OrgOnboarding({
                   setColor={setColor}
                 />
               )}
-              {s.id === 'event' && <EventStep org={org} onCreated={() => undefined} />}
-              {s.id === 'team' && <TeamStep org={org} />}
+              {s.id === 'event' && (
+                <>
+                  <TutorialHint id="first-post" className="mb-3" />
+                  <EventStep org={org} onCreated={() => undefined} />
+                </>
+              )}
+              {s.id === 'team' && (
+                <>
+                  <TutorialHint id="roles" className="mb-3" />
+                  <TeamStep org={org} />
+                </>
+              )}
               {last && <NextUp approved={org.status === 'approved'} />}
 
               <div className="mt-7 flex flex-wrap items-center gap-3">

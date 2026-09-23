@@ -52,8 +52,8 @@ export function WhatsNewToast() {
               every other update. */}
           {major ? (
             <span className="min-w-0 text-[13px] text-fg">
-              <span className="font-semibold">Version {currentVersion.replace(/\.0$/, '')}</span>
-              <span className="text-muted">: {major}. See everything that changed</span>
+              <span className="font-semibold">{major} is here.</span>
+              <span className="text-muted"> See what's new</span>
             </span>
           ) : (
             <span className="min-w-0 text-[13px] text-fg">

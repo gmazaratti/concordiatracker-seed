@@ -20,6 +20,7 @@ import { RoleGlyph } from './RoleChip'
 import { useOrgRoles } from './use-org-roles'
 import { roleIdOf, type OrgRoleDef } from '@/lib/org-roles'
 import type { OrgMember } from '@/data/teacher'
+import { TutorialHint } from '@/components/TutorialHint'
 
 /**
  * `/organizer/activity` — who did what, and how to put it back.
@@ -81,6 +82,7 @@ export function OrganizerActivity() {
             Everything anybody on the team has done here, newest first. Owners always see this;
             every other role has a switch on it.
           </p>
+          <TutorialHint id="activity" className="mt-2.5" />
         </div>
         {actors.length > 0 && (
           <Button size="sm" variant="outline" onClick={() => setBulk((b) => !b)}>
@@ -112,7 +114,15 @@ export function OrganizerActivity() {
         <ol className="mt-5 flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
           {rows.map((r) => {
             const member = currentOrg.members.find((m) => !!r.actorUser && m.userId === r.actorUser)
-            const role = member ? roles?.find((x) => x.id === roleIdOf(member, orgId, roles)) : undefined
+            // Somebody who acted WITHOUT a team row — the owner on record, or
+            // the platform admin — still has a rank: the top one. Reading only
+            // the team list is why the founder's own entries came out as grey
+            // initials with no role.
+            const role = member
+              ? roles?.find((x) => x.id === roleIdOf(member, orgId, roles))
+              : r.actorRank
+                ? roles?.find((x) => x.isOwner)
+                : undefined
             return <Row key={r.id} entry={r} member={member} role={role} onChanged={refresh} />
           })}
         </ol>
@@ -141,7 +151,11 @@ function Row({
   return (
     <li className={cn('flex items-start gap-3 px-3.5 py-3', undone && 'opacity-60')}>
       <MemberAvatar
-        member={member ?? { name: entry.actorName, email: entry.actorEmail }}
+        member={
+          member
+            ? { ...member, avatarUrl: member.avatarUrl || entry.actorAvatar || undefined }
+            : { name: entry.actorName, email: entry.actorEmail, avatarUrl: entry.actorAvatar || undefined }
+        }
         className="mt-0.5 size-8"
         textClass="text-[11px]"
       />
@@ -153,7 +167,13 @@ function Row({
               onClick={() => openMember({ userId: entry.actorUser, name: entry.actorName })}
               className="inline-flex items-center gap-1 rounded font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-accent"
               style={role ? { color: role.color } : undefined}
-              title={role ? `${entry.actorName} · ${role.name}` : entry.actorName}
+              title={
+                entry.actorRank === 'admin' && !member
+                  ? `${entry.actorName} · Platform admin (owner rights)`
+                  : role
+                    ? `${entry.actorName} · ${role.name}`
+                    : entry.actorName
+              }
             >
               {role && <RoleGlyph role={role} bare />}
               {entry.actorName}
