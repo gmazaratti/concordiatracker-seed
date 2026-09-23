@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useUiState } from '@/app/providers/ui-state'
 import { useAppData } from '@/app/providers/app-data'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { cn } from '@/lib/cn'
 import { PeoplePanel } from '@/features/profile/PeoplePanel'
 import { ProfileView } from '@/features/profile/UserProfilePage'
@@ -125,6 +126,15 @@ export function CommunityPage() {
           React tears the old section down rather than reconciling two
           different screens into each other. */}
       <div key={section} className={cn('ct-section-in', full && 'flex min-h-0 flex-1 flex-col')}>
+        {/*
+          ONE SECTION AT A TIME, and this is the containment the first boundary
+          did not give. The page-level one wraps `<main>`, so a throw in
+          Messages replaced the whole of Community — tab bar included — and
+          every other section showed the same error until a reload. `resetKey`
+          is the section, so switching tabs clears it: an error in one screen
+          must not follow you to the next.
+        */}
+        <ErrorBoundary variant="page" resetKey={section}>
         {section === 'feed' && <FeedSection />}
         {section === 'events' && (
           <div className="flex gap-6">
@@ -136,6 +146,7 @@ export function CommunityPage() {
         )}
         {section === 'messages' && <PeoplePanel />}
         {section === 'profile' && <YouSection handle={user.handle} />}
+        </ErrorBoundary>
       </div>
 
       {activity && (

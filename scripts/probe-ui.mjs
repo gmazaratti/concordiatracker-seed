@@ -167,6 +167,31 @@ await admin.from('user_follows').upsert(
   { onConflict: 'follower,following' },
 )
 
+/*
+ * A THIRD PERSON WITH NO HANDLE, because that is real data and it is what
+ * took the Social section down: `user_profile.handle` is nullable (it is
+ * chosen during onboarding), and a handle-less follower lands in
+ * `my_friends()` where every comparison did `.toLowerCase()` on it.
+ */
+const ghostEmail = `${PREFIX}ghost-${rnd}@example.com`
+const { data: madeGhost, error: gErr } = await admin.auth.admin.createUser({
+  email: ghostEmail,
+  password: 'Probe-' + rnd + '!9C',
+  email_confirm: true,
+})
+if (gErr) throw gErr
+const ghost = madeGhost.user.id
+const { error: gpErr } = await admin.from('user_profile').upsert(
+  { user_id: ghost, email: ghostEmail, name: 'Halfway Signup', handle: null, is_internal: true },
+  { onConflict: 'user_id' },
+)
+if (gpErr) throw gpErr
+// They follow you; you have not followed back. That is `pending`, and it is
+// enough to put them in the list the panel filters.
+await admin
+  .from('user_follows')
+  .upsert([{ follower: ghost, following: uid }], { onConflict: 'follower,following' })
+
 const minutesAgo = (n) => new Date(Date.now() - n * 60_000).toISOString()
 const { error: msgErr } = await admin.from('messages').insert([
   { sender: mate, recipient: uid, body: 'hey, did you get the COMM 305 outline?', created_at: minutesAgo(90) },

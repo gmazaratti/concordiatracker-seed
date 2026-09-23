@@ -55,6 +55,7 @@ const OrganizerInbox = lazy(() => import('@/features/organizer/OrganizerInbox').
 const OrganizerCollabs = lazy(() => import('@/features/organizer/OrganizerCollabs').then((x) => ({ default: x.OrganizerCollabs })))
 const OrganizerInsights = lazy(() => import('@/features/organizer/OrganizerInsights').then((x) => ({ default: x.OrganizerInsights })))
 const OrganizerEventEditor = lazy(() => import('@/features/organizer/OrganizerEventEditor').then((x) => ({ default: x.OrganizerEventEditor })))
+const OrganizerSetup = lazy(() => import('@/features/organizer/OrganizerSetup').then((x) => ({ default: x.OrganizerSetup })))
 const OrgProfileEditor = lazy(() => import('@/features/organizer/OrgProfileEditor').then((x) => ({ default: x.OrgProfileEditor })))
 const OrganizerTeam = lazy(() => import('@/features/organizer/OrganizerTeam').then((x) => ({ default: x.OrganizerTeam })))
 const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInvitePage').then((x) => ({ default: x.OrganizerInvitePage })))
@@ -120,6 +121,8 @@ export function AppRoutes() {
         <Route path="join/:token" element={<OrgMemberInvitePage />} />
         <Route path="request" element={<TeacherRequestPage role="organizer" />} />
         <Route path="event/:eventId" element={<OrganizerEventEditor />} />
+        {/* Where an accepted invite lands: three questions, then the dashboard. */}
+        <Route path="setup" element={<OrganizerSetup />} />
         <Route path="profile" element={<OrgProfileEditor />} />
         <Route path="team" element={<OrganizerTeam />} />
       </Route>

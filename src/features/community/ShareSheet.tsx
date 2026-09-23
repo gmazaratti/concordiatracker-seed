@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Check, Link2, Search, X } from 'lucide-react'
 import { listFriends, sendMessage, type Attachment, type Friend } from '@/lib/social'
 import { PersonAvatar } from './PersonAvatar'
+import { matchesQuery } from '@/lib/handles'
 import { cn } from '@/lib/cn'
 
 /**
@@ -60,7 +61,7 @@ export function ShareSheet({
     const all = people ?? []
     if (!term) return all
     return all.filter(
-      (p) => p.handle.toLowerCase().includes(term) || (p.name ?? '').toLowerCase().includes(term),
+      (p) => matchesQuery(term, p.handle, p.name),
     )
   }, [people, q])
 

@@ -1,4 +1,5 @@
 import { CalendarDays, MessageSquare, Newspaper, UserRound, type LucideIcon } from 'lucide-react'
+import { lc } from '@/lib/handles'
 
 /**
  * Community's own destinations. Three.
@@ -84,6 +85,6 @@ export function activityHref(search?: string): string {
  *  standalone page and Community's own tab. */
 export function onOwnProfile(pathname: string, search: string, handle?: string): boolean {
   if (!handle) return false
-  if (pathname.toLowerCase() === `/@${handle.toLowerCase()}`) return true
+  if (lc(pathname) === `/@${lc(handle)}`) return true
   return pathname.startsWith('/app/community') && new URLSearchParams(search).get('c') === 'profile'
 }

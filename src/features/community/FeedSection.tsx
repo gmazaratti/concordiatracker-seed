@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Mascot } from '@/components/Mascot'
 import { loadPosts, loadStoryRings, type FeedPost, type StoryRing } from '@/lib/social-posts'
 import { PullToRefresh } from '@/components/PullToRefresh'
@@ -10,6 +10,14 @@ import { StoriesRow } from './stories/StoriesRow'
 import { StoryViewer } from './stories/StoryViewer'
 import { StoryComposer } from './stories/StoryComposer'
 import { PostCard } from './posts/PostCard'
+import { EventTile } from './EventTile'
+import { useCommunity } from './useCommunity'
+import { useEventActions } from './useEventActions'
+import { isRelevantTo, type CampusEvent } from '@/data/community'
+import { useAppData } from '@/app/providers/app-data'
+import { markSeen, orderFeed, seenIds, subscribeSeen } from '@/lib/seen-feed'
+import { Check } from 'lucide-react'
+import { cn } from '@/lib/cn'
 
 /**
  * Feed — stories along the top, then what clubs have posted.
@@ -29,9 +37,16 @@ import { PostCard } from './posts/PostCard'
  *     composing lives — the club's own profile and the organizer portal — not
  *     at the top of everyone's reading surface.
  *
- * WHAT IS LEFT is one thing: accounts you follow, in the order they published.
- * That is the whole reason a feed feels different from a directory, and Events
- * (sorted by when things START, filtered by category) is the directory.
+ * WHAT IS LEFT is what clubs put out — posts AND the events they published —
+ * in the order it reached you. Events appear here as well as on their own tab
+ * because a club announcing something should not have to post twice for it to
+ * be seen, and the tabs still differ in the way that matters: this is ordered
+ * by when it was PUBLISHED, Events by when it STARTS.
+ *
+ * UNSEEN FIRST, AND NOTHING IS EVER REMOVED. What you have already scrolled
+ * past moves below a line that says so; it does not disappear, because a feed
+ * that empties itself is the complaint this ordering exists to answer. See
+ * lib/seen-feed.ts for why "seen" is per device.
  */
 export function FeedSection() {
   const { orgs: myOrgs } = useMyOrgs()
@@ -96,6 +111,46 @@ export function FeedSection() {
     return muted.size === 0 ? posts : posts.filter((p) => !muted.has(p.orgId))
   }, [posts])
 
+  /*
+   * POSTS AND EVENTS, IN ONE RIVER.
+   *
+   * An event carries `postedDaysAgo` rather than a timestamp, so it is turned
+   * into one here: the feed's whole ordering is "when did this reach me", and
+   * two different units cannot be interleaved.
+   */
+  const { events } = useCommunity()
+  const { user } = useAppData()
+  const eventActions = useEventActions()
+  const entries = useMemo<FeedEntry[] | null>(() => {
+    if (shown === null) return null
+    const muted = mutedOrgs()
+    const fromEvents: FeedEntry[] = events
+      .filter((e) => !muted.has(e.org.handle))
+      .map((e) => ({
+        kind: 'event' as const,
+        id: `event:${e.id}`,
+        at: postedAtOf(e),
+        event: e,
+      }))
+    const fromPosts: FeedEntry[] = shown.map((p) => ({
+      kind: 'post' as const,
+      id: `post:${p.id}`,
+      at: p.publishAt ?? p.createdAt,
+      post: p,
+    }))
+    return [...fromPosts, ...fromEvents]
+  }, [shown, events])
+
+  /* Re-order when something is marked seen, but NOT while you are looking at
+     it: the split is computed once per visit so a card cannot slide out from
+     under the thumb that just scrolled it into view. */
+  const [seenAtMount] = useState(() => seenIds())
+  useEffect(() => subscribeSeen(() => undefined), [])
+  const ordered = useMemo(
+    () => (entries ? orderFeed(entries, seenAtMount) : null),
+    [entries, seenAtMount],
+  )
+
   /** Waits for the fetch, so the spinner is honest about when it is done. */
   const reload = () =>
     Promise.all([
@@ -118,13 +173,13 @@ export function FeedSection() {
         />
       )}
 
-      {shown === null ? (
+      {ordered === null ? (
         /* The shape of the thing that is coming, not the word "Loading".
            The feed used to paint its text as soon as the rows landed and then
            leave a grey hole where each picture was going, so the page arrived
            in two stages and moved between them. */
         <PostSkeleton count={2} />
-      ) : shown.length === 0 ? (
+      ) : ordered.unseen.length + ordered.seen.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
           <Mascot mood="resting" size="sm" soft className="text-accent" />
           <p className="text-[13.5px] font-medium text-fg">Nothing posted yet</p>
@@ -134,12 +189,34 @@ export function FeedSection() {
         </div>
       ) : (
         <div>
-          {shown.map((p) => (
-            <PostCard
-              key={p.id}
-              post={p}
-              canManage={myOrgIds.has(p.orgId)}
+          {ordered.unseen.map((e) => (
+            <FeedItem
+              key={e.id}
+              entry={e}
+              myOrgIds={myOrgIds}
               onChanged={() => setRefresh((n) => n + 1)}
+              program={user.program}
+              school={user.school}
+              actions={eventActions}
+            />
+          ))}
+
+          {/* THE LINE, and it only means anything if it is honest: it is drawn
+              where the unseen run out, so it is absent on a first visit (when
+              everything is new) and absent when there is nothing under it. */}
+          {ordered.unseen.length > 0 && ordered.seen.length > 0 && <CaughtUp />}
+          {ordered.unseen.length === 0 && ordered.seen.length > 0 && <CaughtUp />}
+
+          {ordered.seen.map((e) => (
+            <FeedItem
+              key={e.id}
+              entry={e}
+              seen
+              myOrgIds={myOrgIds}
+              onChanged={() => setRefresh((n) => n + 1)}
+              program={user.program}
+              school={user.school}
+              actions={eventActions}
             />
           ))}
         </div>
@@ -161,5 +238,114 @@ export function FeedSection() {
         />
       )}
     </PullToRefresh>
+  )
+}
+
+
+/**
+ * When an event reached the feed.
+ *
+ * Module level because a clock read in a component body trips
+ * `react-hooks/purity` — the same reason `usageState` and the Today
+ * upcoming/past split live outside their components.
+ */
+function postedAtOf(e: CampusEvent): string {
+  return new Date(Date.now() - (e.postedDaysAgo ?? 0) * 86_400_000).toISOString()
+}
+
+/** One thing in the river: something a club posted, or something it published. */
+type FeedEntry =
+  | { kind: 'post'; id: string; at: string; post: FeedPost }
+  | { kind: 'event'; id: string; at: string; event: CampusEvent }
+
+/**
+ * A card, plus the bit that decides it has been read.
+ *
+ * SEEN MEANS "IT WAS ON SCREEN AND YOU STAYED", not "it rendered". A card
+ * scrolled past at speed is not read, and marking it would bury it before you
+ * had a chance — so it needs half of itself visible for a second before it
+ * counts. The observer is disconnected the moment it fires: there is nothing
+ * to watch after that, and the alternative is one live observer per card for
+ * as long as the feed is open.
+ */
+function FeedItem({
+  entry,
+  seen = false,
+  myOrgIds,
+  onChanged,
+  program,
+  school,
+  actions,
+}: {
+  entry: FeedEntry
+  seen?: boolean
+  myOrgIds: Set<string>
+  onChanged: () => void
+  program?: string
+  school?: string
+  actions: ReturnType<typeof useEventActions>
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || seen) return
+    let timer = 0
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          timer = window.setTimeout(() => {
+            markSeen(entry.id)
+            io.disconnect()
+          }, 1000)
+        } else {
+          window.clearTimeout(timer)
+        }
+      },
+      { threshold: 0.5 },
+    )
+    io.observe(el)
+    return () => {
+      window.clearTimeout(timer)
+      io.disconnect()
+    }
+  }, [entry.id, seen])
+
+  return (
+    <div ref={ref} className={cn(seen && 'opacity-[0.92]')}>
+      {entry.kind === 'post' ? (
+        <PostCard
+          post={entry.post}
+          canManage={myOrgIds.has(entry.post.orgId)}
+          onChanged={onChanged}
+        />
+      ) : (
+        <div className="px-3 py-2 sm:px-0">
+          <EventTile
+            event={entry.event}
+            view="card"
+            relevant={isRelevantTo(entry.event, program ?? '', school ?? '')}
+            added={actions.isAdded(entry.event)}
+            onOpen={() => actions.openEvent(entry.event.id)}
+            onAdd={() => actions.add(entry.event)}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The end of what is new. Below it is everything you have already read. */
+function CaughtUp() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-6">
+      <span className="h-px flex-1 bg-border" aria-hidden />
+      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-subtle">
+        <span className="grid size-5 place-items-center rounded-full bg-success/15 text-success">
+          <Check size={12} aria-hidden />
+        </span>
+        You're all caught up
+      </span>
+      <span className="h-px flex-1 bg-border" aria-hidden />
+    </div>
   )
 }

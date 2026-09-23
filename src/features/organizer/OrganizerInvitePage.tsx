@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, Loader2, MailCheck } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Loader2, MailCheck } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { supabase, fireWrite } from '@/lib/supabase'
@@ -102,24 +102,41 @@ export function OrganizerInvitePage() {
     return <InviteError reason={REASON[dbInvite.status]} />
 
   // ── Real invite ────────────────────────────────────────────────────────────
-  async function accept() {
+  /**
+   * `force` is the admin's way through their own safety net.
+   *
+   * An admin accept is a DRY RUN by default so that opening a club's link to
+   * check it does not burn it. That is right, and it is also why the button
+   * looked dead to the founder: it verified the link and stopped. Forcing is
+   * a second, deliberate press that says set it up on this account — and it
+   * consumes the link, which the button says out loud.
+   */
+  async function accept(force = false) {
     setErr('')
     setBusy(true)
-    const { data, error } = await supabase.rpc('accept_org_invite', { p_token: token })
+    const { data, error } = await supabase.rpc('accept_org_invite', {
+      p_token: token,
+      p_force: force,
+    })
     if (error || data == null) {
       setBusy(false)
       setErr(error?.message ?? "Couldn't accept this invite.")
       return
     }
-    // v3 returns jsonb; admin accepts are DRY RUNS (validated, nothing consumed).
     const res = data as { org_id?: string | null; dry_run?: boolean } | string
     if (typeof res === 'object' && res.dry_run) {
       setBusy(false)
       setDryRun(true)
       return
     }
-    // Full reload so the provider picks up the org, then onboarding/dashboard.
-    window.location.assign('/organizer')
+    /*
+     * A FULL LOAD, not a navigate: the org lives in a provider that read its
+     * data before this account had one. And it lands on SETUP rather than the
+     * dashboard — a club that has just accepted has a name and nothing else,
+     * and a dashboard full of empty panels is a worse first screen than three
+     * questions.
+     */
+    window.location.assign('/organizer/setup')
   }
 
   return (
@@ -135,11 +152,12 @@ export function OrganizerInvitePage() {
       err={err}
       success={
         dryRun
-          ? 'Link verified ✓: admin test run. Nothing was consumed or changed; this exact link still works for the recipient.'
+          ? 'Link verified — admin test run. Nothing was consumed; this exact link still works for the recipient.'
           : undefined
       }
       cta={authUser ? 'Accept & set up my dashboard' : 'Sign in with Google to continue'}
-      onAccept={authUser ? accept : () => void signInWithGoogle()}
+      onAccept={authUser ? () => void accept(false) : () => void signInWithGoogle()}
+      onForce={dryRun ? () => void accept(true) : undefined}
     />
   )
 }
@@ -153,6 +171,7 @@ function InviteCard({
   success,
   cta,
   onAccept,
+  onForce,
 }: {
   orgName: string
   orgHandle: string
@@ -162,6 +181,8 @@ function InviteCard({
   success?: string
   cta: string
   onAccept: () => void
+  /** Present only after a dry run, for the admin who meant it. */
+  onForce?: () => void
 }) {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col px-5 py-16">
@@ -187,9 +208,28 @@ function InviteCard({
           {busy ? 'Setting up…' : cta}
         </Button>
         {success ? (
-          <p className="mt-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-center text-[12px] text-success">
-            {success}
-          </p>
+          <>
+            {/* A REAL ICON. It was the character "✓", which renders in the
+                font's own weight and sits off the baseline — next to lucide
+                strokes everywhere else it reads as a typo. */}
+            <p className="mt-2 flex items-start gap-1.5 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success">
+              <Check size={14} className="mt-px shrink-0" aria-hidden />
+              <span>{success}</span>
+            </p>
+            {onForce && (
+              <button
+                type="button"
+                onClick={onForce}
+                disabled={busy}
+                className="mt-2 w-full rounded-lg border border-border px-3 py-2 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              >
+                Set it up on this account anyway
+                <span className="mt-0.5 block text-[11px] font-normal text-subtle">
+                  Walks the real flow. This uses the link up.
+                </span>
+              </button>
+            )}
+          </>
         ) : err ? (
           <p className="mt-2 text-center text-[12px] text-danger">{err}</p>
         ) : (

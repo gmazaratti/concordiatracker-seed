@@ -1654,3 +1654,27 @@ html[data-reduce-motion] .ct-navrow-right {
     animation: ct-page-in 280ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
   }
 }
+
+/* A story arriving.
+ *
+ * Advancing used to be an instant swap, which reads as a cut rather than as
+ * turning a page — the reel felt snappy in the bad sense. A short fade with a
+ * whisper of scale is what every reel does, and it is short enough (180ms)
+ * that holding the next-tap does not feel gated behind it.
+ *
+ * `backwards`, per the rule on .ct-section-in: a `both` fill leaves a settled
+ * identity transform, and any transform makes an element the containing block
+ * for every fixed descendant. */
+@keyframes ct-story-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ct-story-in {
+  animation: ct-story-in 180ms cubic-bezier(0.32, 0.72, 0, 1) backwards;
+}

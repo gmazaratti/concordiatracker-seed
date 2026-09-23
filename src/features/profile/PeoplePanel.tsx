@@ -44,6 +44,7 @@ import { MessageFilterSheet } from './MessageFilterSheet'
 import { describeFilters, matchesFilters, type MessageFilterId } from './message-filters'
 import { SupportConversation, SupportPane } from './SupportThreads'
 import { useSupportThreads } from './use-support-threads'
+import { matchesQuery, sameHandle } from '@/lib/handles'
 
 /** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
  *  inside a component body) — the same shape as `usageState` and `splitByTime`. */
@@ -232,7 +233,7 @@ export function PeoplePanel() {
   const [opened, setOpened] = useState<string | null>(null)
   if (wanted && friends && opened !== wanted) {
     setOpened(wanted)
-    const found = friends.find((f) => f.handle.toLowerCase() === wanted.toLowerCase())
+    const found = friends.find((f) => sameHandle(f.handle, wanted))
     if (found) setActive(found)
   }
 
@@ -256,7 +257,7 @@ export function PeoplePanel() {
   const [strangerFor, setStrangerFor] = useState<string | null>(null)
   useEffect(() => {
     if (!wanted || !friends || strangerFor === wanted) return
-    if (friends.some((f) => f.handle.toLowerCase() === wanted.toLowerCase())) return
+    if (friends.some((f) => sameHandle(f.handle, wanted))) return
     let alive = true
     void lookupPerson(wanted).then((person) => {
       if (!alive) return
@@ -335,8 +336,7 @@ export function PeoplePanel() {
    * does not exist.
    */
   const shownThreads = accepted.filter((f) => {
-    if (q && !(f.handle.toLowerCase().includes(q) || (f.name ?? '').toLowerCase().includes(q)))
-      return false
+    if (!matchesQuery(q, f.handle, f.name)) return false
     const t = byOther.get(f.user_id)
     return matchesFilters(
       {
@@ -350,8 +350,7 @@ export function PeoplePanel() {
     )
   })
   const shownOrgThreads = orgThreads.filter((t) => {
-    const name = `${t.other_name ?? ''} ${t.other_handle ?? ''}`.toLowerCase()
-    if (q && !name.includes(q)) return false
+    if (!matchesQuery(q, t.other_name, t.other_handle)) return false
     return matchesFilters(
       {
         kind: 'org',
@@ -375,13 +374,13 @@ export function PeoplePanel() {
    * a classmate, and mixing the two is what made one list read as two.
    */
   const shownSupport = support.tickets.filter(
-    (t) => !q || t.subject.toLowerCase().includes(q) || t.case_id.toLowerCase().includes(q),
+    (t) => matchesQuery(q, t.subject, t.case_id),
   )
   const nothingShown = shownThreads.length === 0 && shownOrgThreads.length === 0
   /** Search results minus anybody already on the list above, so the same
    *  person never appears twice under two headings. */
   const newPeople = peopleHits.filter(
-    (person) => !shownThreads.some((f) => f.handle.toLowerCase() === person.handle.toLowerCase()),
+    (person) => !shownThreads.some((f) => sameHandle(f.handle, person.handle)),
   )
   const showPeople = q.length > 0 && newPeople.length > 0
   /**

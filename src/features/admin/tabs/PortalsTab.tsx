@@ -18,6 +18,9 @@ import { OrgInvitesPanel } from './OrgInvitesPanel'
 import { AdminCreateOrgPanel } from './AdminCreateOrgPanel'
 import { OutreachPanel } from './OutreachPanel'
 import { OrgApplicationsPanel } from './OrgApplicationsPanel'
+import { useNavigate } from 'react-router-dom'
+import { useTeacher } from '@/app/providers/teacher'
+import { atHandle } from '@/lib/handles'
 import { cn } from '@/lib/cn'
 
 export function PortalsTab() {
@@ -26,6 +29,21 @@ export function PortalsTab() {
   const teachers = useAdminList<PortalTeacher>(teacherLoader)
   const orgs = useAdminList<PortalOrg>(orgLoader)
   const [showCreate, setShowCreate] = useState(false)
+  const { switchOrg } = useTeacher()
+  const navigate = useNavigate()
+
+  /**
+   * Open a club's portal as the platform.
+   *
+   * `switchOrg` makes it the active organisation and every management path
+   * targets it; the admin is NOT added to its team to make that work — the
+   * access comes from `is_admin()` in the database, so it leaves no trace on
+   * the club's member list. See db/god_mode_invisible.sql.
+   */
+  const manage = (id: string) => {
+    switchOrg(id)
+    navigate('/organizer')
+  }
 
   const reloadAll = () => {
     teachers.reload()
@@ -68,7 +86,7 @@ export function PortalsTab() {
           ) : (
             <ul className="divide-y divide-border">
               {orgs.items.map((o) => (
-                <OrgRow key={o.id} o={o} onChanged={orgs.reload} />
+                <OrgRow key={o.id} o={o} onChanged={orgs.reload} onManage={manage} />
               ))}
             </ul>
           )}
@@ -162,7 +180,15 @@ function TeacherRow({ t, onChanged }: { t: PortalTeacher; onChanged: () => void 
   )
 }
 
-function OrgRow({ o, onChanged }: { o: PortalOrg; onChanged: () => void }) {
+function OrgRow({
+  o,
+  onChanged,
+  onManage,
+}: {
+  o: PortalOrg
+  onChanged: () => void
+  onManage: (id: string) => void
+}) {
   const [busy, setBusy] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
   const banned = o.status === 'banned'
@@ -180,14 +206,27 @@ function OrgRow({ o, onChanged }: { o: PortalOrg; onChanged: () => void }) {
   return (
     <li>
       <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
-        <div className="min-w-0 flex-1">
+        {/* THE ROW IS THE DOOR. Admin access to every club already exists in
+            the database; the only thing missing was a way in from the list you
+            are already looking at. `manage` switches the active org and lands
+            on its dashboard. */}
+        <button
+          type="button"
+          onClick={() => onManage(o.id)}
+          className="min-w-0 flex-1 rounded-lg px-1 py-0.5 text-left transition-colors duration-150 hover:bg-surface-2"
+        >
           <div className="flex items-center gap-2">
             <span className="truncate text-[13px] font-medium text-fg">{o.name}</span>
             {o.verified && <BadgeCheck size={14} className="shrink-0 text-info" aria-label="Verified" />}
             <Pill tone={banned ? 'red' : o.status === 'approved' ? 'green' : 'amber'}>{o.status}</Pill>
           </div>
-          <span className="truncate text-[12px] text-subtle">@{o.handle}{o.owner_email ? ` · ${o.owner_email}` : ''}</span>
-        </div>
+          {/* `atHandle`: organisations store the handle WITH its @, so the
+              literal prefix here rendered "@@reggiesmtl". */}
+          <span className="truncate text-[12px] text-subtle">
+            {atHandle(o.handle)}
+            {o.owner_email ? ` · ${o.owner_email}` : ''}
+          </span>
+        </button>
         <div className="flex items-center gap-4 text-[12px] text-subtle">
           <span title="Events" className="inline-flex items-center gap-1"><CalendarDays size={13} aria-hidden />{o.event_count}</span>
           <span title="Followers" className="inline-flex items-center gap-1"><Users size={13} aria-hidden />{o.follower_count}</span>

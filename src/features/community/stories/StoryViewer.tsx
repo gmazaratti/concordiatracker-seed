@@ -301,9 +301,20 @@ export function StoryViewer({
     void markStorySeen(story.id, nextLiked)
   }
 
+  /*
+   * ONE COLUMN WIDTH FOR THE WHOLE REEL.
+   *
+   * The frame is 9:16 and centred; the header and the reply bar ran the full
+   * width of the screen, so on a desktop the "Send message…" field was a
+   * 1400px bar under a 400px photo. Instagram keeps all three the same width
+   * because they are one card, and this is that width in one place rather
+   * than three copies of the same calc.
+   */
+  const COLUMN = 'mx-auto w-full max-w-[min(100%,calc((100vh-13rem)*9/16))]'
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex flex-col bg-black"
+      className="ct-animate-fade fixed inset-0 z-[70] flex flex-col bg-black"
       role="dialog"
       aria-modal="true"
       onPointerDown={down}
@@ -329,7 +340,7 @@ export function StoryViewer({
       }}
     >
       {/* Segments. One per story, filled behind you, timing the current one. */}
-      <div className="flex gap-[3px] px-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
+      <div className={cn('flex gap-[3px] px-2 pt-[calc(0.5rem+env(safe-area-inset-top))]', COLUMN)}>
         {(stories ?? [{ id: 'x' } as Story]).map((s, n) => (
           <span key={s.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
             {/*
@@ -363,7 +374,7 @@ export function StoryViewer({
       </div>
 
       {/* Who, and when. */}
-      <div className="flex items-center gap-2.5 px-3 py-3">
+      <div className={cn('flex items-center gap-2.5 px-3 py-3', COLUMN)}>
         <Link
           to={`/app/community/org/${ring.handle.replace(/^@/, '')}`}
           onClick={onClose}
@@ -457,8 +468,24 @@ export function StoryViewer({
         on a bare black slab.
       */}
       <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        {/*
+          THE CLUBS EITHER SIDE, on a wide screen.
+          A reel on a desktop is a tall card in the middle of a black field,
+          and without the neighbours there is nothing to say that tapping the
+          right side goes anywhere — the peek IS the affordance, which is why
+          the reference has it. Hidden under `lg`, where the card already fills
+          the screen and a card behind it would only be in the way.
+        */}
+        <Peek ring={rings[ringIndex - 1]} side="left" onOpen={prev} />
+        <Peek ring={rings[ringIndex + 1]} side="right" onOpen={next} />
         {story ? (
-          <div className="relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden">
+          <div
+            /* Keyed on the story so a new one fades in rather than swapping
+               between frames — advancing used to be an instant cut, which is
+               what made it feel snappy in the bad sense. */
+            key={story.id}
+            className="ct-story-in relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden"
+          >
             <img
               src={story.imageUrl}
               alt=""
@@ -536,7 +563,12 @@ export function StoryViewer({
       {/* Reply, like, share — the three things you can do to a story.
           `touch-auto` puts native touch behaviour back for the field: the
           gesture layer above owns the picture, not the keyboard. */}
-      <div className="flex touch-auto items-center gap-2 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div
+        className={cn(
+          'flex touch-auto items-center gap-2 px-3 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]',
+          COLUMN,
+        )}
+      >
         <input
           ref={replyRef}
           value={reply}
@@ -604,5 +636,62 @@ export function StoryViewer({
       )}
     </div>,
     document.body,
+  )
+}
+
+/**
+ * A neighbouring club's reel, shown small at the edge.
+ *
+ * It is DECORATION PLUS A SHORTCUT, not a control you are expected to find:
+ * the tap zones on the story itself already move between reels, and this says
+ * what is on the other side of them. Absent when there is no neighbour rather
+ * than rendered empty, so the middle of the reel is never off-centre for a
+ * card that is not there.
+ */
+function Peek({
+  ring,
+  side,
+  onOpen,
+}: {
+  ring: StoryRing | undefined
+  side: 'left' | 'right'
+  onOpen: () => void
+}) {
+  if (!ring) return null
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${side === 'left' ? 'Previous' : 'Next'}: ${ring.name}`}
+      className={cn(
+        'absolute top-1/2 hidden w-[14vw] max-w-[180px] -translate-y-1/2 overflow-hidden rounded-xl',
+        'opacity-60 transition-opacity duration-200 hover:opacity-90 lg:block',
+        side === 'left' ? 'right-[calc(50%+((100vh-13rem)*9/16/2)+16px)]' : 'left-[calc(50%+((100vh-13rem)*9/16/2)+16px)]',
+      )}
+    >
+      <span className="relative block aspect-[9/16] bg-surface-2">
+        {ring.cover && (
+          <img src={ring.cover} alt="" className="absolute inset-0 size-full object-cover" />
+        )}
+        {/* Dimmed and captioned, so the peek reads as a neighbour rather than
+            as a second story competing with the one you are watching. */}
+        <span className="absolute inset-0 bg-black/45" />
+        <span className="absolute inset-x-2 bottom-2 flex flex-col items-center gap-1">
+          {ring.logo ? (
+            <img src={ring.logo} alt="" className="size-8 rounded-full object-cover" />
+          ) : (
+            <span
+              className="grid size-8 place-items-center rounded-full text-[11px] font-semibold text-white"
+              style={{ background: ring.color ?? '#4b5563' }}
+            >
+              {(ring.glyph || ring.name.slice(0, 2)).toUpperCase()}
+            </span>
+          )}
+          <span className="w-full truncate text-center text-[11px] font-medium text-white">
+            {ring.handle.replace(/^@/, '')}
+          </span>
+        </span>
+      </span>
+    </button>
   )
 }

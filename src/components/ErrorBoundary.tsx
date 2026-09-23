@@ -37,9 +37,9 @@ export class ErrorBoundary extends Component<
     label?: string
     className?: string
   },
-  { error: Error | null }
+  { error: Error | null; where: string }
 > {
-  state: { error: Error | null } = { error: null }
+  state: { error: Error | null; where: string } = { error: null, where: '' }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
@@ -47,13 +47,19 @@ export class ErrorBoundary extends Component<
 
   componentDidUpdate(prev: { resetKey?: string | number }) {
     if (this.state.error && prev.resetKey !== this.props.resetKey) {
-      this.setState({ error: null })
+      this.setState({ error: null, where: '' })
     }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Kept out of the UI but in the console, where a developer looking at a
-    // report can see which component stack produced it.
+    /*
+     * THE MESSAGE ALONE IS NOT ENOUGH TO ACT ON. "Cannot read properties of
+     * null (reading 'toLowerCase')" says what happened and nothing about
+     * where, and a bug report carrying only that costs an afternoon of
+     * guessing. The first few frames of the component stack name the screen,
+     * which is the half that makes it findable.
+     */
+    this.setState({ where: topFrames(info.componentStack) })
     console.error('[ErrorBoundary]', error, info.componentStack)
   }
 
@@ -63,6 +69,7 @@ export class ErrorBoundary extends Component<
 
     const { variant = 'inline', label, className } = this.props
     const detail = `${error.name}: ${error.message}`
+    const where = this.state.where
 
     if (variant === 'page') {
       return (
@@ -86,7 +93,7 @@ export class ErrorBoundary extends Component<
               <RotateCcw size={14} aria-hidden />
               Try again
             </button>
-            <Detail detail={detail} />
+            <Detail detail={detail} where={where} />
           </div>
         </div>
       )
@@ -103,19 +110,42 @@ export class ErrorBoundary extends Component<
           <AlertTriangle size={13} className="shrink-0 text-warning" aria-hidden />
           {label ?? "This couldn't be displayed"}
         </p>
-        <Detail detail={detail} />
+        <Detail detail={detail} where={where} />
       </div>
     )
   }
 }
 
-function Detail({ detail }: { detail: string }) {
+function Detail({ detail, where }: { detail: string; where: string }) {
   return (
     <details className="mt-1.5 text-left">
       <summary className="cursor-pointer list-none text-[11.5px] text-subtle underline-offset-2 hover:underline">
         Details
       </summary>
       <p className="mt-1 font-mono text-[11px] leading-snug break-words text-muted">{detail}</p>
+      {where && (
+        <p className="mt-1 font-mono text-[11px] leading-snug break-words text-subtle">
+          in {where}
+        </p>
+      )}
     </details>
   )
+}
+
+/**
+ * The first few named components of the stack.
+ *
+ * React formats it one frame per line as "at Name (file)"; the file half is a
+ * bundled path that means nothing to a reader, and after three or four frames
+ * it is all shell. Three names is enough to say which screen.
+ */
+function topFrames(stack: string | null | undefined, count = 3): string {
+  if (!stack) return ''
+  const names: string[] = []
+  for (const line of stack.split(/\r?\n/)) {
+    const m = /^\s*(?:at|in)\s+([A-Za-z0-9_$.]+)/.exec(line)
+    if (m && m[1] && !names.includes(m[1])) names.push(m[1])
+    if (names.length >= count) break
+  }
+  return names.join(' ‹ ')
 }

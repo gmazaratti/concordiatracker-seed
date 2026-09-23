@@ -18,6 +18,7 @@ import { communityHref } from '@/features/community/sections'
 import { Mascot } from '@/components/Mascot'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { BackButton } from '@/components/BackButton'
+import { sameHandle } from '@/lib/handles'
 import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
 import { EditProfileModal } from './EditProfileModal'
@@ -163,7 +164,7 @@ export function ProfileView({
    * which breaks sharing, the canonical tag and anybody's ability to tell whose
    * page they are looking at. `replace` so Back leaves the alias behind.
    */
-  if (!embedded && profile && profile.handle.toLowerCase() !== handle.toLowerCase()) {
+  if (!embedded && profile && profile.handle && !sameHandle(profile.handle, handle)) {
     return <Navigate to={`/@${profile.handle}`} replace />
   }
 
@@ -356,7 +357,7 @@ function useViewer(handle: string): 'self' | 'other' | 'anon' | 'loading' {
         .maybeSingle()
       if (!alive) return
       const mine = (row as { handle?: string } | null)?.handle ?? ''
-      setState(mine.toLowerCase() === handle.toLowerCase() ? 'self' : 'other')
+      setState(sameHandle(mine, handle) ? 'self' : 'other')
     })()
     return () => {
       alive = false

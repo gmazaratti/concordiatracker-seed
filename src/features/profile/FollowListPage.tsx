@@ -8,6 +8,7 @@ import { useFollows } from '@/app/providers/follows'
 import { OrgLogo } from '@/features/community/OrgLogo'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { badgeForPerson } from './badges'
+import { matchesQuery } from '@/lib/handles'
 import { cn } from '@/lib/cn'
 
 export type FollowListKind = 'followers' | 'following' | 'orgs'
@@ -172,7 +173,7 @@ function PeopleList({
   const term = q.trim().toLowerCase()
   const shown = term
     ? rows.filter(
-        (r) => r.handle.toLowerCase().includes(term) || (r.name ?? '').toLowerCase().includes(term),
+        (r) => matchesQuery(term, r.handle, r.name),
       )
     : rows
 
