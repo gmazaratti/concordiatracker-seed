@@ -996,20 +996,52 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   // Per-org audit trail ("who did what" on the Team page). Real orgs only —
   // demo sessions log nothing.
+  /*
+   * THROUGH THE RPC, NOT A DIRECT INSERT.
+   *
+   * `org_activity` has no insert policy any more, on purpose: an audit log
+   * whose `actor_name` is a string the caller supplies is worth nothing,
+   * because the one field that has to be trustworthy is the one anybody can
+   * set. `ct_org_log` derives the actor from `auth.uid()`.
+   *
+   * `entity` is what makes an entry UNDOABLE. Passing the state BEFORE the
+   * change is the whole mechanism — an action recorded as a sentence can be
+   * read, and only one recorded as a diff can be put back.
+   */
   const logActivity = useCallback(
-    (action: string, detail = '') => {
+    (
+      action: string,
+      detail = '',
+      entity?: { type: string; id: string; before?: unknown; after?: unknown },
+    ) => {
       if (sessionId !== SELF_ORG || !myOrg || !authUser) return
       fireWrite(
-        supabase.from('org_activity').insert({
-          org_id: myOrg.id,
-          actor_name: user.name,
-          actor_email: authUser.email ?? '',
-          action,
-          detail,
+        supabase.rpc('ct_org_log', {
+          p_org: myOrg.id,
+          p_action: action,
+          p_detail: detail,
+          p_entity_type: entity?.type ?? null,
+          p_entity_id: entity?.id ?? null,
+          p_before: entity?.before ?? null,
+          p_after: entity?.after ?? null,
         }),
       )
     },
-    [sessionId, myOrg, authUser, user.name],
+    [sessionId, myOrg, authUser],
+  )
+
+  /** The values a patch is about to overwrite, as the DB names them — which is
+   *  what `revert_org_activity` reads back. Only the keys being changed, so an
+   *  undo restores what was touched and nothing else. */
+  const beforeOf = useCallback(
+    (source: Record<string, unknown>, patch: Record<string, unknown>) => {
+      const out: Record<string, unknown> = {}
+      for (const k of Object.keys(patch)) {
+        if (k in source) out[k] = source[k] ?? null
+      }
+      return out
+    },
+    [],
   )
 
   /*
@@ -1047,10 +1079,18 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('event update failed:', error)
           refreshCommunity()
         })()
-        logActivity('saved an event', patch.title?.trim() || '')
+        {
+          const was = myOrg?.events.find((e) => e.id === id)
+          logActivity('saved an event', patch.title?.trim() || '', {
+            type: 'event',
+            id,
+            before: was ? beforeOf(was as unknown as Record<string, unknown>, patch) : null,
+            after: patch,
+          })
+        }
       }
     },
-    [sessionId, updateCurrentOrg, refreshCommunity, logActivity],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, beforeOf],
   )
 
   const deleteEvent = useCallback(
@@ -1081,10 +1121,19 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           if (error) console.error('org profile update failed:', error)
           refreshCommunity()
         })()
-        logActivity('updated the org profile')
+        logActivity(
+          'updated the org profile',
+          Object.keys(patch).join(', '),
+          {
+            type: 'organization',
+            id: myOrg.id,
+            before: beforeOf(myOrg.org as unknown as Record<string, unknown>, patch),
+            after: patch,
+          },
+        )
       }
     },
-    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity],
+    [sessionId, myOrg, updateCurrentOrg, refreshCommunity, logActivity, beforeOf],
   )
 
   // Notify followers — STUB. Real delivery is connection-phase; returns the
