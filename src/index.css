@@ -976,6 +976,37 @@ html[data-reduce-motion] *::after {
   }
 }
 
+/* ── Sign-in panel flow lines (FlowPaths) ───────────────────────────────────
+   Paths carry pathLength="1", so these values are fractions of each curve:
+   the visible stroke grows from 30% to 100% of the path while its offset
+   sweeps it along and back (framer's pathLength + pathOffset), and the
+   opacity pulses between half and full of the path's own stroke-opacity.
+   The gap is 2 so a second dash never appears on the same curve. Duration
+   and delay are set per path inline. Under reduced motion the global rule
+   collapses the duration, leaving still lines. */
+.ct-flow {
+  animation-name: ct-flow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes ct-flow {
+  0% {
+    stroke-dasharray: 0.3 2;
+    stroke-dashoffset: 0;
+    opacity: 0.5;
+  }
+  50% {
+    stroke-dasharray: 0.65 2;
+    stroke-dashoffset: -1;
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 1 2;
+    stroke-dashoffset: 0;
+    opacity: 0.5;
+  }
+}
+
 /* ── Printing a schedule ────────────────────────────────────────────────────
    The export is "put it on the fridge", so the printed page should be the
    timetable and nothing else: no sidebar, no bottom nav, no toolbar. Colours

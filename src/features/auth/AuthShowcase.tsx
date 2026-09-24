@@ -2,6 +2,7 @@ import { CalendarClock, RefreshCw, TrendingUp } from 'lucide-react'
 import { CourseChip } from '@/components/CourseChip'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
+import { FlowPaths } from './FlowPaths'
 
 /**
  * The right-hand panel of the sign-in screen: three small status cards drawn
@@ -11,8 +12,9 @@ import { cn } from '@/lib/cn'
  * `strip` is the phone form: the same headline and the same cards, laid out
  * as a row that scrolls sideways above the form instead of a tall panel.
  *
- * One soft sage glow sits behind the cards, from the accent-soft token. No
- * other colour is introduced: the course chip uses the class palette the app
+ * Behind the desktop panel's content, FlowPaths draws animated sage flow
+ * lines; the phone strip keeps one soft accent-soft glow. No other colour is
+ * introduced: the course chip uses the class palette the app
  * already has, and everything else is theme tokens, so the panel follows the
  * viewer's light or dark theme like the rest of the site.
  */
@@ -81,11 +83,11 @@ export function AuthShowcase({ strip = false }: { strip?: boolean }) {
       aria-label={t('auth.showcaseTitle')}
       className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface p-10 xl:p-12"
     >
+      <FlowPaths />
       <h2 className="relative max-w-[18ch] font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.02em] text-fg xl:text-[34px]">
         {t('auth.showcaseTitle')}
       </h2>
       <div className="relative flex flex-1 items-center justify-center">
-        <Glow className="top-1/2 left-1/2 h-72 w-80" />
         <div className="relative flex w-full max-w-[340px] flex-col gap-3">
           <div className="-translate-x-6">{cards[0]}</div>
           <div className="translate-x-8">{cards[1]}</div>

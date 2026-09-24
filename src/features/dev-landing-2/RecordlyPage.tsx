@@ -54,8 +54,16 @@ export function RecordlyPage() {
         <section className="relative overflow-hidden px-5 pt-[112px] pb-16 sm:pt-[140px] lg:pb-24">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 lg:flex-row lg:items-center lg:gap-10">
             <div className="w-full lg:w-[46%] lg:flex-none">
-              <p className="text-[12px] font-medium tracking-[0.22em] text-[#9b9b9b] uppercase">{t('landing.eyebrow')}</p>
-              <h1 className="mt-5 text-[40px] leading-[1.04] font-bold tracking-[-0.045em] md:text-[62px]">
+              {/* Optically aligned: the "S" of the headline starts 0.03125em into
+                  its box (Hanken Grotesk's side bearing) while the eyebrow's "F"
+                  starts 0.94px into its own, so the eyebrow is nudged by the
+                  difference, computed from the headline's own clamp so it holds
+                  at every width. Measured with canvas text metrics. */}
+              <p className="pl-[calc(0.03125*clamp(2.5rem,5vw,4.5rem)_-_0.94px)] text-[12px] font-medium tracking-[0.22em] text-[#9b9b9b] uppercase">
+                {t('landing.eyebrow')}
+              </p>
+              {/* The main landing page's hero headline, class for class. */}
+              <h1 className="mt-5 font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] font-medium tracking-[-0.022em] text-fg">
                 {t('landing.heroTitle')} <span className="text-accent">{t('landing.heroTitleAccent')}.</span>
               </h1>
               <p className="mt-6 max-w-md text-[17px] leading-[1.45] text-[#9b9b9b] md:text-[18px]">{t('landing.heroBody')}</p>
@@ -119,7 +127,7 @@ export function RecordlyPage() {
           <RecordlyFaq />
 
           {/* The main page's closing section, in the same place: after the FAQ. */}
-          <section className="-mx-4 mt-16 border-t border-border/60 px-5 pt-20 pb-10 sm:py-36 md:mt-32">
+          <section className="-mx-4 mt-16 border-t border-border/60 px-5 pt-20 pb-10 sm:pt-36 sm:pb-16 md:mt-32">
             <div className="mx-auto grid w-full max-w-[1080px] items-end gap-10 lg:grid-cols-[1.2fr_0.8fr]">
               <h2 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.04] font-medium text-white">
                 {t('landing.ctaHeadingA')}

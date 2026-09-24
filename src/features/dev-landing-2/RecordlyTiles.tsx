@@ -29,7 +29,7 @@ const PHONE: Record<number, string> = {
 
 export function RecordlyTiles() {
   return (
-    <div className="mx-auto mt-14 grid w-full max-w-[1080px] grid-cols-2 gap-3 max-sm:items-start sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mx-auto mt-14 grid w-full max-w-[1080px] grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {TILES.map(({ icon: Icon, title, body }, i) => {
         const banner = i === 0
         const visual = i === 3
