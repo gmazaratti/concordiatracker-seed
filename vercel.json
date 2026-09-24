@@ -46,6 +46,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/dev/landing/2",
+      "destination": "/index.html"
+    },
+    {
       "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|reset-password|concordia-gpa-calculator|concordia-syllabus-tracker)",
       "destination": "/index.html"
     },

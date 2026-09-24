@@ -66,6 +66,7 @@ const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({
 const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((x) => ({ default: x.ResetPasswordPage })))
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
 const DevLandingPage = lazy(() => import('@/features/dev-landing/DevLandingPage').then((x) => ({ default: x.DevLandingPage })))
+const RecordlyPage = lazy(() => import('@/features/dev-landing-2/RecordlyPage').then((x) => ({ default: x.RecordlyPage })))
 const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then((x) => ({ default: x.DevLoginPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
@@ -192,6 +193,8 @@ export function AppRoutes() {
       {/* Hidden design drafts: not linked from the live site, noindex while
           mounted, and disallowed in robots.txt. */}
       <Route path="/dev/landing" element={<DevLandingPage />} />
+      {/* 1:1 Recordly layout + motion comp. Hidden, noindex, linked from nowhere. */}
+      <Route path="/dev/landing/2" element={<RecordlyPage />} />
       <Route path="/dev/login" element={<DevLoginPage />} />
 
       {/* Public user profile: concordiatracker.com/@handle (anyone can view).
