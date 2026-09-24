@@ -27,7 +27,20 @@ export function LangTextToggle({ className }: { className?: string }) {
         className,
       )}
     >
-      <span lang={lang}>{lang}</span>
+      {/* Both codes share one grid cell so the control is the width of the
+          wider one in either language: the thing you just pressed stays put. */}
+      <span className="grid">
+        {LANGS.map((l) => (
+          <span
+            key={l.id}
+            lang={l.id}
+            aria-hidden={l.id !== lang || undefined}
+            className={cn('col-start-1 row-start-1', l.id !== lang && 'invisible')}
+          >
+            {l.id}
+          </span>
+        ))}
+      </span>
       <ChevronDown
         size={14}
         className={cn('transition-transform duration-200', lang === 'fr' && 'rotate-180')}

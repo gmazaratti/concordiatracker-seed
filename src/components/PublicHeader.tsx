@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/Button'
 import { LangToggle } from '@/components/LangToggle'
 import { LangSwitch } from '@/components/LangSwitch'
 import { LangTextToggle } from '@/components/LangTextToggle'
-import { useT } from '@/i18n/i18n'
+import { useI18n } from '@/i18n/i18n'
+import { en, type Key } from '@/i18n/en'
+import { fr } from '@/i18n/fr'
 import { cn } from '@/lib/cn'
 
 type Anchor = { href: string; label: string }
@@ -30,6 +32,7 @@ export function PublicHeader({
   height,
   lang = 'toggle',
   docs = true,
+  cta = 'app',
 }: {
   /** In-page sections. Defaults to the landing page's How it works + Pricing. */
   anchors?: Anchor[]
@@ -37,8 +40,11 @@ export function PublicHeader({
   height?: number
   lang?: 'toggle' | 'pill' | 'text'
   docs?: boolean
+  /** `app` = Open the app (the live site); `account` = Sign in / Sign Up. */
+  cta?: 'app' | 'account'
 }) {
-  const t = useT()
+  const { t } = useI18n()
+  const ctaKey: Key = cta === 'account' ? 'landing.signInUp' : 'landing.ctaPrimary'
   const sections = anchors ?? [
     { href: '#how', label: t('landing.howItWorks') },
     { href: '#pricing', label: t('landing.pricing') },
@@ -61,7 +67,11 @@ export function PublicHeader({
             leaves a line box around it, which is what sat the logo and the
             button a few pixels off the row's centre. */}
         <Link to="/" aria-label="ConcordiaTracker home" className="flex items-center">
-          <Logo />
+          {/* With the longer Sign in / Sign Up button, a phone cannot fit the
+              wordmark, the language toggle and a button sized for the French
+              label (about 443px needed, 350 available at 390), so below sm
+              the mark stands alone. The link's aria-label still names it. */}
+          <Logo className={cta === 'account' ? 'max-sm:[&>span]:hidden' : undefined} />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {sections.map((s) => (
@@ -98,10 +108,36 @@ export function PublicHeader({
             <LangToggle className="mr-1" />
           )}
           <Link to="/app" className="flex">
-            <Button size="sm">{t('landing.ctaPrimary')}</Button>
+            <Button size="sm">
+              <SameWidth labels={[en[ctaKey], fr[ctaKey] ?? en[ctaKey]]} shown={t(ctaKey)} />
+            </Button>
           </Link>
         </nav>
       </div>
     </header>
+  )
+}
+
+/**
+ * A label that is always as wide as the widest of its translations. Every
+ * version sits in the same grid cell and only the current one is visible, so
+ * switching language cannot resize the button, and nothing beside it (the
+ * language toggle that was just pressed) moves. Measured from the real text
+ * rather than a pixel width, so a font or copy change cannot outgrow it.
+ */
+function SameWidth({ labels, shown }: { labels: string[]; shown: string }) {
+  return (
+    <span className="grid justify-items-center">
+      {labels.map((l, i) => (
+        <span
+          key={i}
+          aria-hidden={l !== shown || undefined}
+          className={cn('col-start-1 row-start-1 whitespace-nowrap', l !== shown && 'invisible')}
+        >
+          {l}
+        </span>
+      ))}
+      {!labels.includes(shown) && <span className="col-start-1 row-start-1">{shown}</span>}
+    </span>
   )
 }

@@ -221,6 +221,8 @@ export const fr: Partial<Record<Key, string>> = {
   'settings.pushNotifications': 'Notifications push',
   'settings.thisMonth': 'Ce mois-ci',
 
+  'landing.signInUp': 'Connexion / Inscription',
+  'landing.freeToStart': 'Gratuit pour commencer.',
   'landing.noSignup': 'Aucune inscription: accédez directement à une session de démonstration réelle.',
   'landing.featuresHeading': 'Trois choses que la plupart des outils ratent.',
   'landing.featuresEyebrow': 'Pourquoi c’est différent',

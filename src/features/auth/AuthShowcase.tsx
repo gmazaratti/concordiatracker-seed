@@ -1,8 +1,10 @@
+import { useRef } from 'react'
 import { CalendarClock, RefreshCw, TrendingUp } from 'lucide-react'
 import { CourseChip } from '@/components/CourseChip'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { FlowPaths } from './FlowPaths'
+import { useCardFloat } from './useCardFloat'
 
 /**
  * The right-hand panel of the sign-in screen: three small status cards drawn
@@ -12,7 +14,8 @@ import { FlowPaths } from './FlowPaths'
  * `strip` is the phone form: the same headline and the same cards, laid out
  * as a row that scrolls sideways above the form instead of a tall panel.
  *
- * Behind the desktop panel's content, FlowPaths draws animated sage flow
+ * On the desktop panel the cards float (useCardFloat) and, behind them,
+ * FlowPaths draws animated sage flow
  * lines; the phone strip keeps one soft accent-soft glow. No other colour is
  * introduced: the course chip uses the class palette the app
  * already has, and everything else is theme tokens, so the panel follows the
@@ -20,6 +23,10 @@ import { FlowPaths } from './FlowPaths'
  */
 export function AuthShowcase({ strip = false }: { strip?: boolean }) {
   const t = useT()
+  const panelRef = useRef<HTMLElement>(null)
+  const headRef = useRef<HTMLHeadingElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  useCardFloat(panelRef, headRef, listRef)
 
   const cards = [
     <div key="due" className={card}>
@@ -80,18 +87,27 @@ export function AuthShowcase({ strip = false }: { strip?: boolean }) {
 
   return (
     <section
+      ref={panelRef}
       aria-label={t('auth.showcaseTitle')}
       className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface p-10 xl:p-12"
     >
       <FlowPaths />
-      <h2 className="relative max-w-[18ch] font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.02em] text-fg xl:text-[34px]">
+      <h2 ref={headRef} className="relative max-w-[18ch] font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.02em] text-fg xl:text-[34px]">
         {t('auth.showcaseTitle')}
       </h2>
       <div className="relative flex flex-1 items-center justify-center">
-        <div className="relative flex w-full max-w-[340px] flex-col gap-3">
-          <div className="-translate-x-6">{cards[0]}</div>
-          <div className="translate-x-8">{cards[1]}</div>
-          <div className="-translate-x-2">{cards[2]}</div>
+        <div ref={listRef} className="relative flex w-full max-w-[340px] flex-col gap-3">
+          {/* The outer div carries the float (written by useCardFloat), the
+              inner one the resting stagger, so the two never overwrite. */}
+          <div className="will-change-transform">
+            <div className="-translate-x-6">{cards[0]}</div>
+          </div>
+          <div className="will-change-transform">
+            <div className="translate-x-8">{cards[1]}</div>
+          </div>
+          <div className="will-change-transform">
+            <div className="-translate-x-2">{cards[2]}</div>
+          </div>
         </div>
       </div>
     </section>

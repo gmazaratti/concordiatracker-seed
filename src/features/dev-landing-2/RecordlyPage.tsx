@@ -42,6 +42,7 @@ export function RecordlyPage() {
         fixed
         lang="text"
         docs={false}
+        cta="account"
         height={HEADER_H}
         anchors={[
           { href: '#features', label: 'Features' },
@@ -70,7 +71,7 @@ export function RecordlyPage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link to="/app" className="w-full sm:w-auto">
                   <Button size="lg" className="group w-full sm:w-auto">
-                    {t('landing.openDemo')}
+                    {t('landing.ctaPrimary')}
                     <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
                   </Button>
                 </Link>
@@ -80,7 +81,7 @@ export function RecordlyPage() {
                   </Button>
                 </a>
               </div>
-              <p className="mt-4 text-[12.5px] text-[#8b8b8b]">{t('landing.noSignup')}</p>
+              <p className="mt-4 text-[12.5px] text-[#8b8b8b]">{t('landing.freeToStart')}</p>
             </div>
 
             {/* The real Today screen, live: AppPreview is the actual Today layout
@@ -138,7 +139,7 @@ export function RecordlyPage() {
                 <p className="max-w-sm text-[15px] leading-relaxed text-[#9b9b9b]">{t('landing.ctaBody')}</p>
                 <Link to="/app" className="mt-6 inline-block">
                   <Button size="lg" className="group">
-                    {t('landing.openDemo')}
+                    {t('landing.ctaPrimary')}
                     <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-0.5" />
                   </Button>
                 </Link>

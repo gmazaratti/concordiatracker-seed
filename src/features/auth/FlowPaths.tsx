@@ -27,7 +27,12 @@ const COUNT = 36
 
 function paths(position: 1 | -1) {
   return Array.from({ length: COUNT }, (_, i) => {
-    const x = (n: number) => n - i * 5 * position
+    // The mirrored group steps from 1, not 0. At i = 0 the reference formula
+    // gives BOTH groups the identical curve (the shift is i * 5 * position,
+    // zero either way), so one of the 72 lines was always drawn exactly on top
+    // of another and read as missing.
+    const k = position === 1 ? i : i + 1
+    const x = (n: number) => n - k * 5 * position
     const d =
       `M${-x(380)} ${-(189 + i * 6)}` +
       `C${-x(380)} ${-(189 + i * 6)} ${-x(312)} ${216 - i * 6} ${x(152)} ${343 - i * 6}` +

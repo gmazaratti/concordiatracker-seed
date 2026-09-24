@@ -214,6 +214,8 @@ export const en = {
   'settings.pushNotifications': 'Push notifications',
   'settings.thisMonth': 'This month',
 
+  'landing.signInUp': 'Sign in / Sign Up',
+  'landing.freeToStart': 'Free to start.',
   'landing.noSignup': 'No sign-up: jump straight into a real demo term.',
   'landing.featuresHeading': 'Three things most trackers get wrong.',
   'landing.featuresEyebrow': 'Why it’s different',

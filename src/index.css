@@ -977,13 +977,20 @@ html[data-reduce-motion] *::after {
 }
 
 /* ── Sign-in panel flow lines (FlowPaths) ───────────────────────────────────
-   Paths carry pathLength="1", so these values are fractions of each curve:
-   the visible stroke grows from 30% to 100% of the path while its offset
-   sweeps it along and back (framer's pathLength + pathOffset), and the
-   opacity pulses between half and full of the path's own stroke-opacity.
-   The gap is 2 so a second dash never appears on the same curve. Duration
-   and delay are set per path inline. Under reduced motion the global rule
-   collapses the duration, leaving still lines. */
+   Paths carry pathLength="1", so these values are fractions of each curve.
+   THE DASH PATTERN SUMS TO EXACTLY 1 (dash L, gap 1 - L), and the offset
+   travels a whole period, 0 to -1. That makes the loop seamless: the frame at
+   100% is pixel-identical to the frame at 0%, so there is no snap when it
+   repeats. And because the pattern repeats every path length, some part of
+   every curve is always drawn: a line never blanks out.
+
+   The previous version used a gap of 2 with the offset swinging 0, -1, 0 and
+   the dash growing 0.3 to 1. That had two defects, which were the reported
+   bugs: at the 50% keyframe the dash started exactly at the END of the path
+   (offset -1), so every line vanished for part of its cycle, and the loop
+   jumped from a fully drawn line (100%) to a 30% one (0%), a visible snap on
+   whichever lines happened to wrap at that moment. Under reduced motion the
+   global rule collapses the duration and the lines sit still. */
 .ct-flow {
   animation-name: ct-flow;
   animation-timing-function: linear;
@@ -991,20 +998,59 @@ html[data-reduce-motion] *::after {
 }
 @keyframes ct-flow {
   0% {
-    stroke-dasharray: 0.3 2;
+    stroke-dasharray: 0.45 0.55;
     stroke-dashoffset: 0;
-    opacity: 0.5;
+    opacity: 0.55;
   }
   50% {
-    stroke-dasharray: 0.65 2;
-    stroke-dashoffset: -1;
+    stroke-dasharray: 0.8 0.2;
+    stroke-dashoffset: -0.5;
     opacity: 1;
   }
   100% {
-    stroke-dasharray: 1 2;
-    stroke-dashoffset: 0;
-    opacity: 0.5;
+    stroke-dasharray: 0.45 0.55;
+    stroke-dashoffset: -1;
+    opacity: 0.55;
   }
+}
+
+/* ── Sign-in entrance ───────────────────────────────────────────────────────
+   Pure CSS and `backwards` fill: the element's own resting style is fully
+   visible, and the keyframe only applies before and during the animation. So
+   nothing can be left invisible if an animation never runs, and after it ends
+   no transform lingers (a lingering one would make the element a containing
+   block for fixed descendants, and would fight `active:scale` on buttons).
+   Each element sets its own --ct-in-delay to follow the visual order. */
+.ct-auth-in {
+  animation: ct-fade-slide-in 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--ct-in-delay, 0ms) backwards;
+}
+.ct-auth-panel-in {
+  animation: ct-slide-right-in 780ms cubic-bezier(0.22, 1, 0.36, 1) var(--ct-in-delay, 300ms) backwards;
+}
+@keyframes ct-fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes ct-slide-right-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+/* The global reduced-motion block zeroes DURATIONS, not delays, and with a
+   backwards fill a delayed element would sit invisible until its delay ran
+   out. So these are switched off outright. */
+@media (prefers-reduced-motion: reduce) {
+  .ct-auth-in,
+  .ct-auth-panel-in {
+    animation: none;
+  }
+}
+html[data-reduce-motion] .ct-auth-in,
+html[data-reduce-motion] .ct-auth-panel-in {
+  animation: none;
 }
 
 /* ── Printing a schedule ────────────────────────────────────────────────────

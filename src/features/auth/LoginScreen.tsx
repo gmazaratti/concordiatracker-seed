@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '@/i18n/i18n'
 import { useAuth } from '@/app/providers/auth'
@@ -8,6 +8,7 @@ import { checkSignup, readAttempts, recordAttempt, waitLabel } from '@/lib/signu
 import { authReturn, explainAuthError, oauthProblem } from '@/lib/auth-return'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
 import { AuthShowcase } from './AuthShowcase'
+import { Rise } from './Rise'
 import { GoogleGlyph } from '@/components/GoogleGlyph'
 import { AppleGlyph } from '@/components/AppleGlyph'
 
@@ -43,6 +44,13 @@ export function LoginScreen() {
   const { signInWithGoogle, signInWithApple, signInWithPassword, signUpWithPassword } = useAuth()
   const t = useT()
   const [email, setEmail] = useState('')
+  // True for the first load's entrance only (see Rise). 1.8s covers the last
+  // step, 900ms of delay plus its 620ms animation.
+  const [intro, setIntro] = useState(true)
+  useEffect(() => {
+    const id = window.setTimeout(() => setIntro(false), 1800)
+    return () => window.clearTimeout(id)
+  }, [])
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(() => {
     if (!authReturn.error) return null
@@ -162,51 +170,63 @@ export function LoginScreen() {
   return (
     <div className="min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
       {/* Phone: the showcase is a short strip ABOVE the form, same content. */}
-      <div className="lg:hidden">
+      <Rise at={100} on={intro} className="lg:hidden">
         <AuthShowcase strip />
-      </div>
+      </Rise>
 
       <main className="flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
         <div className="w-full max-w-[400px]">
-          <Logo className="mb-10" />
+          <Rise at={100} on={intro} className="mb-10">
+            <Logo />
+          </Rise>
 
           {mode === 'reset' ? (
             <ForgotPasswordForm initialEmail={email} onBack={() => switchMode('signin')} bare fieldClass={field} />
           ) : (
             <>
-              <h1 className="font-display text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-fg sm:text-[40px]">
-                {creating ? t('auth.createAccount') : t('auth.heroTitle')}
-              </h1>
-              <p className="mt-3 text-[14px] leading-relaxed whitespace-nowrap text-muted">
-                {creating ? t('auth.startTracking') : t('auth.heroSub')}
-              </p>
+              <Rise at={150} on={intro}>
+                <h1 className="font-display text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-fg sm:text-[40px]">
+                  {creating ? t('auth.createAccount') : t('auth.heroTitle')}
+                </h1>
+              </Rise>
+              <Rise at={200} on={intro}>
+                <p className="mt-3 text-[14px] leading-relaxed whitespace-nowrap text-muted">
+                  {creating ? t('auth.startTracking') : t('auth.heroSub')}
+                </p>
+              </Rise>
 
               {/* The two modes as one segmented control: the active one is the
                   filled pill, the other plain text. It only switches the mode
                   the screen already had (create mode keeps its terms gate). */}
-              <div role="group" aria-label={t('auth.modeLabel')} className="mt-6 grid grid-cols-2 rounded-full border border-border bg-surface p-1">
-                {(['signin', 'signup'] as const).map((m) => {
-                  const active = mode === m
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => !active && switchMode(m)}
-                      className={
-                        active
-                          ? 'h-9 rounded-full border border-border bg-canvas text-[13.5px] font-semibold text-fg shadow-sm transition-transform duration-150 active:scale-[0.98]'
-                          : 'h-9 rounded-full border border-transparent text-[13.5px] font-medium text-muted transition-[color,transform] duration-150 hover:text-fg active:scale-[0.98]'
-                      }
-                    >
-                      {m === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
-                    </button>
-                  )
-                })}
-              </div>
+              <Rise at={300} on={intro} className="mt-6">
+                <div
+                  role="group"
+                  aria-label={t('auth.modeLabel')}
+                  className="grid grid-cols-2 rounded-full border border-border bg-surface p-1"
+                >
+                  {(['signin', 'signup'] as const).map((m) => {
+                    const active = mode === m
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => !active && switchMode(m)}
+                        className={
+                          active
+                            ? 'h-9 rounded-full border border-border bg-canvas text-[13.5px] font-semibold text-fg shadow-sm transition-transform duration-150 active:scale-[0.98]'
+                            : 'h-9 rounded-full border border-transparent text-[13.5px] font-medium text-muted transition-[color,transform] duration-150 hover:text-fg active:scale-[0.98]'
+                        }
+                      >
+                        {m === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
+                      </button>
+                    )
+                  })}
+                </div>
+              </Rise>
 
               <form onSubmit={handlePassword} className="mt-6 flex flex-col gap-4">
-                <div>
+                <Rise at={400} on={intro}>
                   <label htmlFor="auth-email" className={label}>
                     {t('auth.email')}
                   </label>
@@ -219,9 +239,9 @@ export function LoginScreen() {
                     placeholder="you@example.com"
                     className={field}
                   />
-                </div>
+                </Rise>
 
-                <div>
+                <Rise at={450} on={intro}>
                   <label htmlFor="auth-password" className={label}>
                     {t('auth.password')}
                   </label>
@@ -246,39 +266,50 @@ export function LoginScreen() {
                     </button>
                   </div>
                   {creating && <span className="mt-1.5 block text-[12px] text-subtle">{t('auth.passwordHint')}</span>}
-                </div>
+                </Rise>
 
-                {!creating && (
-                  <div>
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted">
-                        <input
-                          type="checkbox"
-                          checked={keep}
-                          onChange={(e) => setKeep(e.target.checked)}
-                          className="size-4 shrink-0 accent-[var(--ct-accent)]"
-                        />
-                        {t('auth.keepSignedIn')}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => switchMode('reset')}
-                        className="rounded text-[13px] font-medium text-fg underline decoration-border-strong underline-offset-4 transition-colors hover:decoration-fg"
-                      >
-                        {t('auth.resetPassword')}
-                      </button>
+                {/* A persistent wrapper, so switching mode does not remount it
+                    and replay its entrance; empty:hidden keeps the form's gap
+                    honest in create mode, where it has no content. */}
+                <Rise at={500} on={intro} className="empty:hidden">
+                  {!creating && (
+                    <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted">
+                          <input
+                            type="checkbox"
+                            checked={keep}
+                            onChange={(e) => setKeep(e.target.checked)}
+                            className="size-4 shrink-0 accent-[var(--ct-accent)]"
+                          />
+                          {t('auth.keepSignedIn')}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => switchMode('reset')}
+                          className="rounded text-[13px] font-medium text-fg underline decoration-border-strong underline-offset-4 transition-colors hover:decoration-fg"
+                        >
+                          {t('auth.resetPassword')}
+                        </button>
+                      </div>
+                      {!keep && <p className="mt-2 text-[12px] text-subtle">{t('auth.keepSignedInOff')}</p>}
                     </div>
-                    {!keep && <p className="mt-2 text-[12px] text-subtle">{t('auth.keepSignedInOff')}</p>}
-                  </div>
-                )}
+                  )}
+                </Rise>
 
                 {error && (
-                  <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[12.5px] text-danger">
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[12.5px] text-danger"
+                  >
                     {error}
                   </p>
                 )}
                 {sentTo && (
-                  <p role="status" className="rounded-xl border border-success/30 bg-success/10 px-3.5 py-2.5 text-[12.5px] text-fg">
+                  <p
+                    role="status"
+                    className="rounded-xl border border-success/30 bg-success/10 px-3.5 py-2.5 text-[12.5px] text-fg"
+                  >
                     {t('auth.checkEmail')}
                   </p>
                 )}
@@ -311,51 +342,60 @@ export function LoginScreen() {
                   </label>
                 )}
 
-                <Button type="submit" size="lg" disabled={busy || blocked} className="mt-1 w-full rounded-full">
-                  {busy
-                    ? creating
-                      ? t('auth.creating')
-                      : t('auth.signingIn')
-                    : creating
-                      ? t('auth.createAccount')
-                      : t('auth.signIn')}
-                </Button>
+                <Rise at={600} on={intro} className="mt-1">
+                  <Button type="submit" size="lg" disabled={busy || blocked} className="w-full rounded-full">
+                    {busy
+                      ? creating
+                        ? t('auth.creating')
+                        : t('auth.signingIn')
+                      : creating
+                        ? t('auth.createAccount')
+                        : t('auth.signIn')}
+                  </Button>
+                </Rise>
               </form>
 
-              <div className="my-6 flex items-center gap-3 text-[12px] text-subtle">
+              <Rise at={700} on={intro} className="my-6 flex items-center gap-3 text-[12px] text-subtle">
                 <span className="h-px flex-1 bg-border" aria-hidden />
                 {t('auth.orContinue')}
                 <span className="h-px flex-1 bg-border" aria-hidden />
-              </div>
+              </Rise>
 
               {/* Full width, one under the other, with the official marks: the
                   whole sentence fits, so it is the visible label too. */}
               <div className="flex flex-col gap-3">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => void handleOAuth('Google')}
-                  className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
-                >
-                  <GoogleGlyph />
-                  {t('auth.signInGoogle')}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => void handleOAuth('Apple')}
-                  className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
-                >
-                  <AppleGlyph />
-                  {t('auth.signInApple')}
-                </Button>
+                <Rise at={800} on={intro}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => void handleOAuth('Google')}
+                    className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
+                  >
+                    <GoogleGlyph />
+                    {t('auth.signInGoogle')}
+                  </Button>
+                </Rise>
+                <Rise at={900} on={intro}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => void handleOAuth('Apple')}
+                    className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
+                  >
+                    <AppleGlyph />
+                    {t('auth.signInApple')}
+                  </Button>
+                </Rise>
               </div>
             </>
           )}
         </div>
       </main>
 
-      <div className="sticky top-4 hidden h-[calc(100dvh-2rem)] lg:block">
+      {/* Slides in from the right at 300ms, pure CSS. The flow lines live
+          INSIDE this panel, so they arrive with it on the first frame rather
+          than after it. */}
+      <div className="ct-auth-panel-in sticky top-4 hidden h-[calc(100dvh-2rem)] lg:block">
         <AuthShowcase />
       </div>
     </div>
