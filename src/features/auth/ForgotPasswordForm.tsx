@@ -19,7 +19,19 @@ const RESEND_AFTER_S = 60
  * an account. The only error shown is one the person can act on (a malformed
  * address, or the server refusing because of its own rate limit).
  */
-export function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+export function ForgotPasswordForm({
+  initialEmail,
+  onBack,
+  bare = false,
+  fieldClass,
+}: {
+  initialEmail: string
+  onBack: () => void
+  /** No card around it: the sign-in screen's left column is already the frame. */
+  bare?: boolean
+  /** The caller's input style, so the field matches the form it replaced. */
+  fieldClass?: string
+}) {
   const t = useT()
   const { sendPasswordReset } = useAuth()
   const [email, setEmail] = useState(initialEmail)
@@ -49,9 +61,19 @@ export function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: str
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-6">
-      <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">{t('auth.resetTitle')}</h1>
-      <p className="mt-1 text-[13px] text-subtle">{t('auth.resetIntro')}</p>
+    <div className={bare ? '' : 'rounded-2xl border border-border bg-surface p-6'}>
+      <h1
+        className={
+          bare
+            ? 'font-display text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-fg'
+            : 'font-display text-[20px] leading-tight font-semibold text-fg'
+        }
+      >
+        {t('auth.resetTitle')}
+      </h1>
+      <p className={bare ? 'mt-3 text-[14px] leading-relaxed text-muted' : 'mt-1 text-[13px] text-subtle'}>
+        {t('auth.resetIntro')}
+      </p>
 
       <form onSubmit={submit} className="mt-5 flex flex-col gap-2.5">
         <label className="block">
@@ -63,7 +85,7 @@ export function ForgotPasswordForm({ initialEmail, onBack }: { initialEmail: str
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className={field}
+            className={fieldClass ?? field}
           />
         </label>
 
