@@ -52,7 +52,7 @@ export function RecordlyPage() {
 
       <main>
         {/* ---- Hero: copy left, the real Today screen right ---- */}
-        <section className="relative overflow-hidden px-5 pt-[112px] pb-16 sm:pt-[140px] lg:pb-24">
+        <section className="relative overflow-hidden px-5 pt-[112px] pb-10 sm:pt-[140px] lg:pb-10">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 lg:flex-row lg:items-center lg:gap-10">
             <div className="w-full lg:w-[46%] lg:flex-none">
               {/* Optically aligned: the "S" of the headline starts 0.03125em into
@@ -104,8 +104,11 @@ export function RecordlyPage() {
           <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-40 bg-gradient-to-r from-transparent to-canvas lg:block" aria-hidden />
         </section>
 
-        {/* Everything after the hero, on one solid layer. */}
-        <div className="relative z-10 bg-canvas px-4 pt-[80px] pb-16 md:pt-[117px]">
+        {/* Everything after the hero, on one solid layer. The top padding is
+            small on purpose: "Built by fellow students" is the next thing on
+            the page and should show in the first screen on a laptop, not
+            wait under a band of empty space. */}
+        <div className="relative z-10 bg-canvas px-4 pt-6 pb-16 md:pt-4">
           <div className="text-center">
             <p className="text-[18px] text-[#8b8b8b] md:text-[20px]">Built by fellow students</p>
             <p className="mt-2 flex items-center justify-center gap-2.5 text-[26px] font-bold tracking-[-0.03em] text-[#9b9b9b] md:text-[30px]">
