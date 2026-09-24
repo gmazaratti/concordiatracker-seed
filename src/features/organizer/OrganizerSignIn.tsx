@@ -158,7 +158,7 @@ export function OrganizerSignIn() {
               <Door
                 icon={<ClipboardList size={15} className="shrink-0 text-accent" aria-hidden />}
                 title="Apply to list my club"
-                sub="Six questions. Dashboard straight away, live once we approve you."
+                sub="A few questions. Dashboard straight away, live once we approve you."
                 onClick={() => setPath('apply')}
               />
             </div>

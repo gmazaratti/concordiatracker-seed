@@ -183,10 +183,10 @@ export const PAGES = {
         p: 'ConcordiaTracker is a web app that puts every deadline, grade, and GPA calculation for all of your Concordia courses in one place. You add your courses once, and the app tracks what is due, what each item is worth, and where your grade actually stands.',
       },
       {
-        p: 'It runs in the browser and installs as an app on phones and desktops. There is nothing to download and no extension. You sign in with Google or an email address, and your data syncs across your devices.',
+        p: 'It runs in the browser and installs as an app on phones and desktops. There is nothing to download and no extension. You sign in with Google, Apple, or an email address, and your data syncs across your devices.',
       },
       {
-        p: 'ConcordiaTracker is an independent project. It is **not affiliated with Concordia University**, and it does not connect to Moodle, eConcordia, or your student record.',
+        p: 'ConcordiaTracker is an independent project. It is **not affiliated with Concordia University**. It never connects to eConcordia or your student record. It can read your Moodle calendar, but only if you choose to paste in the calendar link Moodle gives you: see [Connect Moodle](/docs/moodle-sync).',
       },
 
       { h2: 'How it works' },
@@ -194,7 +194,10 @@ export const PAGES = {
         p: 'A course outline lists what is due, when, and how much it is worth. ConcordiaTracker gets that information into your account in one of three ways: importing a shared outline another student or professor already uploaded, reading a syllabus PDF for you, or letting you type it in.',
       },
       {
-        p: 'From there everything else follows automatically. Deadlines appear on Today and the calendar, and as you enter grades the app computes your standing in each course and your GPA on Concordia’s 4.30 scale.',
+        p: 'From there everything else follows automatically. Deadlines appear on Today and the calendar, and as you enter grades the app computes your standing in each course and your GPA on Concordia’s 4.30 scale. If you connect Moodle, dated Moodle events join your calendar too and are checked again every night.',
+      },
+      {
+        p: 'Beyond your own courses, the **Community** tab is where student clubs and organizations publish events and posts, and the **Planner** is where you look ahead to next term.',
       },
 
       { h2: 'Start here' },
@@ -241,7 +244,7 @@ export const PAGES = {
 
       { h2: '1. Sign in' },
       {
-        p: 'Go to [concordiatracker.com](/) and choose **Open app**. You can sign in with Google or create an account with an email and password. There is no charge to create an account and no card required.',
+        p: 'Go to [concordiatracker.com](/) and choose **Open app**. You can sign in with Google or Apple, or create an account with an email and password. There is no charge to create an account and no card required.',
       },
 
       { h2: '2. Set up your profile' },
@@ -285,16 +288,31 @@ export const PAGES = {
     title: 'FAQ',
     section: 'Getting started',
     description:
-      'Common questions about ConcordiaTracker: whether it connects to Moodle, how the GPA scale works, what is free, and who can see your data.',
+      'Common questions about ConcordiaTracker: how Moodle sync works, how the GPA scale works, what is free, how clubs join, and who can see your data.',
     blocks: [
       { h2: 'Is it affiliated with Concordia University?' },
       {
         p: 'No. ConcordiaTracker is an independent project built for Concordia students. It has no connection to the university, and the university does not endorse or supply it.',
       },
 
-      { h2: 'Does it connect to Moodle or eConcordia?' },
+      { h2: 'Does it connect to Moodle?' },
       {
-        p: 'No. There is no integration with Moodle, eConcordia, or your student record, and the app never asks for those credentials. Course information gets in through a shared outline, a syllabus you upload, or manual entry.',
+        p: 'Yes, one way, and only if you set it up. In Moodle you copy your calendar link (Calendar, then Export, then **Get calendar URL**) and paste it into **Settings → Moodle**. From then on, dated Moodle events are pulled into your calendar and checked again every night, and a date your professor moves shows the old and new date side by side. It never needs your Moodle password, and it cannot read your grades or submissions. See [Connect Moodle](/docs/moodle-sync).',
+      },
+
+      { h2: 'Does it connect to eConcordia or my student record?' },
+      {
+        p: 'No. eConcordia has no equivalent calendar link, and there is no connection to your student record or the Student Centre. The app never asks for those credentials. Course information otherwise gets in through a shared outline, a syllabus you upload, or manual entry.',
+      },
+
+      { h2: 'What is in the Community tab?' },
+      {
+        p: 'Events and posts published by Concordia student clubs and organizations. You follow the clubs you care about, add their events to your calendar in one tap, and react to posts. Students do not publish there: only approved organizations do. See [Community](/docs/community).',
+      },
+
+      { h2: 'How does my club get listed?' },
+      {
+        p: 'Apply at [concordiatracker.com/organizer/apply](/organizer/apply). You sign in first, answer a few questions, and your organizer dashboard opens straight away. The club stays **pending**, and nothing reaches students until an administrator approves it. See [Setting up your organization](/docs/organizer-setup).',
       },
 
       { h2: 'Which GPA scale does it use?' },
@@ -304,7 +322,7 @@ export const PAGES = {
 
       { h2: 'Is it free?' },
       {
-        p: 'The core is free: unlimited courses, deadline tracking, grade entry, the calendar, and the grade-needed calculator. GPA projection and unlimited blueprint imports are part of the Semester pass. See [Plans](/docs/plans).',
+        p: 'The core is free: unlimited courses, deadline tracking, grade entry, the calendar, Moodle sync, Community, the grade-needed calculator, and 5 syllabus scans a month. The Semester pass adds GPA projection, the calendar feed for Google or Apple, term cost estimates, more themes, more seat watches, and no monthly scan cap. See [Plans](/docs/plans).',
       },
 
       { h2: 'Do I need to install anything?' },
@@ -382,7 +400,7 @@ export const PAGES = {
 
       { h2: 'If you have an account' },
       {
-        p: 'Open **profile menu → Support** in the app. You get a list of your tickets, and replies from us land there with a badge. It is the best route, because your account details come attached and there is nothing to look up.',
+        p: 'Open **profile menu → Support** in the app to write to us. Your tickets and our replies also live in **Community → Messages → Support**, beside your other conversations. It is the best route, because your account details come attached and there is nothing to look up.',
       },
       { p: 'You can also jump straight there: [open support in the app](/app?support=1).' },
 
@@ -545,12 +563,10 @@ export const PAGES = {
 
       { h2: 'Contributing' },
       {
-        p: 'Once you have a course set up, you can share your outline back so the next student in your section does not have to. Contributing earns theme credits. Only the outline is shared: never your grades, and never your name unless you choose a public handle.',
+        p: 'Once you have a course set up, you can share your outline back so the next student in your section does not have to. Only the outline is shared: never your grades, and never your name unless you choose a public handle.',
       },
-
-      { h2: 'Limits' },
       {
-        p: 'The free plan includes one blueprint import. The Semester pass includes unlimited imports. Uploading a syllabus and manual entry are unrestricted on both plans.',
+        p: 'Some outlines come from the university itself: for online courses, the outline eConcordia publishes is imported and marked as coming from the course outline, with a link to the PDF so you can check it.',
       },
     ],
   },
@@ -570,9 +586,12 @@ export const PAGES = {
         ol: [
           'From Courses, choose **Add a course → Upload a syllabus**.',
           'Drop in the PDF. Most Concordia syllabi are a direct download from Moodle or the department site.',
-          'Watch the extraction: the assessments appear as they are found.',
+          'Wait a few seconds while it is read.',
           'Review the result, then confirm to add them to the course.',
         ],
+      },
+      {
+        p: 'If that course code is already in your list for the same term, the items are added to it rather than creating a second copy of the course, and only details you have left blank are filled in.',
       },
 
       { h2: 'What it extracts' },
@@ -582,18 +601,21 @@ export const PAGES = {
       {
         p: 'It works best on a syllabus with a grade-composition table, which is the standard format for most Concordia courses. A syllabus that describes weighting only in prose will produce a thinner result.',
       },
+      {
+        p: 'Dates are never invented. An item the outline gives no date for (a final set by the Examinations Office, say) arrives undated and is highlighted so you can add the date later or mark it as not needing one.',
+      },
 
       { h2: 'Always check the result' },
       {
         note: 'Extraction is automated and it is not perfect. Check the dates and weights before you rely on them: particularly that the weights total 100%. Anything that looks wrong can be edited directly.',
       },
       {
-        p: 'Imported dates are marked **unverified** until other students in your section confirm them. See [Provenance](/docs/provenance).',
+        p: 'Dates read from a syllabus you uploaded are marked **unverified**, because a single upload has nothing to cross-check it against. See [Provenance](/docs/provenance).',
       },
 
       { h2: 'Limits' },
       {
-        p: 'Syllabus uploads are rate-limited on the free plan, with the allowance resetting monthly; your current usage is shown in Settings → Usage. The Semester pass raises the limit. This is a cost control on the processing, not a paywall on the feature: the free allowance covers a normal course load.',
+        p: 'Free accounts get **5 syllabus scans a month**, resetting on the 1st; a scan that fails is not counted. The Semester pass removes the monthly cap. Every plan also has a short-term ceiling of 10 scans an hour, which only exists to stop abuse. Your current usage is shown in Settings → Usage.',
       },
     ],
   },
@@ -631,15 +653,9 @@ export const PAGES = {
         p: 'On course pages, in the calendar, and in the assessment editor. Today hides them by default to keep the list calm, showing only a quiet marker on unverified dates; you can turn full badges on in **Customize Today**.',
       },
 
-      { h2: 'Peer date corrections' },
+      { h2: 'When Moodle disagrees' },
       {
-        p: 'When classmates in your section move a date that you also have: a midterm pushed back a week, say: the app surfaces it as a suggestion showing the raw numbers: how many students changed it, out of how many in the section, and what they changed it to.',
-      },
-      {
-        note: 'Nothing changes automatically. You see **“5 of 6 classmates moved this”** and decide. A single voice reads as weak on purpose; a clear majority reads as strong. The app never invents a consensus it does not have.',
-      },
-      {
-        p: 'Accepting a correction updates your date and marks it confirmed. Dismissing it leaves your assessment untouched.',
+        p: 'If you have connected Moodle and a Moodle deadline matches an assessment in one of your courses but on a different day, the course shows both dates side by side and you choose which to keep. Nothing changes automatically. See [Connect Moodle](/docs/moodle-sync).',
       },
     ],
   },
@@ -757,23 +773,27 @@ export const PAGES = {
 
       { h2: 'The due list' },
       {
-        p: 'The centre of the screen, grouped into Overdue, This week, and Coming up. Each row shows the title, the course, the kind of assessment, and when it is due: with overdue and same-day items coloured, and everything else deliberately calm.',
+        p: 'The heart of the screen, grouped into Overdue, This week, Coming up, and No date yet. Each row shows the title, the course, the kind of assessment, and when it is due: with overdue and same-day items coloured, and everything else deliberately calm.',
       },
-      { p: 'Tapping the circle on a row marks it done. It moves to a **Completed today** section with an undo, so a mis-tap costs nothing.' },
+      {
+        p: 'Alongside your course assessments it lists the personal tasks you have added, and, if you have connected Moodle, Moodle deadlines that do not already match an assessment in one of your courses. A Moodle item that does match is shown once, as the assessment, since that is the one carrying the weight and the grade.',
+      },
+      { p: 'Tapping the circle on a row marks it done. It moves to a **Completed today** section with an undo, so a mis-tap costs nothing. On a phone you can also swipe a row: right to mark it done, left for its actions.' },
+      { p: '**Add task** at the top of the list adds a personal task without leaving Today.' },
 
       { h2: 'Row actions' },
       {
         p: 'The menu on each row opens the full editor for that item: due date and time, status, grade, and notes: or jumps to it inside its course, or deletes it. Deleting is undoable from the toast that follows.',
       },
 
-      { h2: 'At a glance' },
+      { h2: 'Widgets' },
       {
-        p: 'The side panel holds the numbers: how far into the term you are, how much of today is done, your term GPA, what is overdue, what is due this week, what is next, and how many courses and credits you are carrying.',
+        p: 'Around the due list sit up to five widgets you choose, such as your term at a glance, your next class, the SGW to Loyola shuttle timetable, seat watch, or a focus timer. The due list itself can be moved but never removed.',
       },
 
       { h2: 'Customize Today' },
       {
-        p: 'The **Customize** control tunes the list to how you read:',
+        p: 'The **Customize** control is where you add, remove and reorder widgets, and it tunes the list to how you read:',
       },
       {
         ul: [
@@ -909,7 +929,8 @@ export const PAGES = {
       { h2: 'What happens next' },
       {
         ul: [
-          'Your Moodle deadlines appear in **Calendar**, on the *My calendar* layer, beside your own.',
+          'Your Moodle deadlines appear in **Calendar** on their own *Moodle* layer, which you can switch off, and on **Today** when they do not already match an assessment in one of your courses.',
+          'The Moodle feed also names your courses, so the app can offer to add any class it sees that is not in your list yet. Nothing is added unless you tick it.',
           'They are re-checked **every night**, and **Sync now** in Settings forces a check immediately.',
           'Only items still ahead of you are imported. Work you have already finished is left in Moodle.',
         ],
@@ -974,13 +995,14 @@ export const PAGES = {
         p: 'The calendar shows your deadlines next to the university’s own dates, so you can see a midterm landing in the same week as a withdrawal deadline.',
       },
 
-      { h2: 'Two layers' },
+      { h2: 'Layers' },
       {
-        p: 'Content comes from two independent layers, each toggleable in the side panel:',
+        p: 'Content comes from independent layers, each toggleable in the side panel:',
       },
       {
         ul: [
           '**My calendar**: your assignment deadlines and any personal tasks you add.',
+          '**Moodle**: deadlines synced from your Moodle calendar. It appears once you have [connected Moodle](/docs/moodle-sync) and something has synced.',
           '**Concordia**: the official academic calendar: term boundaries, exam periods, reading weeks, closures, and registration deadlines.',
         ],
       },
@@ -1000,7 +1022,7 @@ export const PAGES = {
 
       { h2: 'Personal tasks' },
       {
-        p: 'Open any day to see everything on it and add a task with its own date and time: study blocks, a group meeting, anything that is not a graded deadline. Tasks live on the My calendar layer and can be checked off or deleted.',
+        p: 'Open any day to see everything on it and add a task with its own date and time: study blocks, a group meeting, anything that is not a graded deadline. A task can carry a note, a checklist you tick off in place, and a repeat (every day, every weekday, or every week). Tasks live on the My calendar layer and also show on Today.',
       },
 
       { h2: 'Adding campus events' },
@@ -1014,13 +1036,18 @@ export const PAGES = {
     title: 'Notifications',
     section: 'Planning your term',
     description:
-      'How ConcordiaTracker reminders and push notifications work, and how to enable or turn them off.',
+      'How ConcordiaTracker notifications work: the in-app notification list, and push notifications for reminders and seat alerts.',
     blocks: [
       {
-        p: 'ConcordiaTracker can send push notifications so a deadline reaches you without your having to open the app.',
+        p: 'There are two kinds: a notification list inside the app, and push notifications that reach you when the app is closed.',
       },
 
-      { h2: 'Turning them on' },
+      { h2: 'In the app' },
+      {
+        p: 'The bell (beside the settings gear on a computer, on your profile on a phone, and in the profile menu) opens your notifications: new followers, new posts from clubs you follow, replies and status changes on feedback you posted, and, if you help run a club, invitations and role changes on its team. A short banner also points to anything new when you open the app. **Mark all as read** clears the badge without deleting anything; swipe a single notification to remove it.',
+      },
+
+      { h2: 'Push: turning it on' },
       {
         p: 'Enable notifications in Settings → General. Your browser or phone will ask for permission: that prompt is the operating system’s, and the app cannot send anything until you accept it.',
       },
@@ -1028,10 +1055,11 @@ export const PAGES = {
         note: 'On iPhone, web push requires the app to be **installed to the Home Screen** first. Open the site in Safari, tap Share, then **Add to Home Screen**, and enable notifications from there.',
       },
 
-      { h2: 'What gets sent' },
+      { h2: 'What gets pushed' },
       {
         ul: [
-          'Reminders you set on a specific assessment',
+          'Reminders you set on a specific assessment or a campus event',
+          'A seat opening in a section you are watching',
           'A warning before a free trial ends and a card is charged',
         ],
       },
@@ -1399,7 +1427,7 @@ export const PAGES = {
         ],
       },
       {
-        note: 'An admin token still cannot publish as an organisation it does not belong to. That is enforced by the database rather than by the endpoint: the token carries a claim that removes an admin’s usual write-anywhere bypass, so being on the team is the only route in. Deleting an organisation, a teammate or a post is not reachable through the API at all, and every write an admin token makes is recorded in the audit log.',
+        note: 'An admin token can publish content on behalf of any organisation, and every write it makes is recorded in the audit log, marked as made on the club’s behalf when the account is not on that club’s team. What it cannot do is enforced by the database rather than by the endpoint: it cannot add itself to an existing club’s team, and deleting an organisation or removing a teammate is not reachable through the API at all.',
       },
       {
         note: 'A token is shown once, when it is created, and cannot be retrieved afterwards. Only its SHA-256 hash is stored, so a database dump is not a set of live credentials. If you lose one, the answer is to revoke it and make another. Revoking takes effect immediately.',
@@ -1500,37 +1528,56 @@ export const PAGES = {
     title: 'Community',
     section: 'Community',
     description:
-      'Community is a feed of Concordia campus events from student organizations, with follows, program relevance, and one-tap calendar adds.',
+      'Community is where Concordia student clubs and organizations publish events, posts and stories, and where you follow them, message people, and keep your profile.',
     blocks: [
       {
-        p: 'Community answers a different question from the rest of the app: what is happening around you that is not your own coursework. It is an events feed, not a social network: there are no posts, comments, or friend requests.',
+        p: 'Community answers a different question from the rest of the app: what is happening around you that is not your own coursework. It has four sections: **Feed**, **Events**, **Messages**, and **You**.',
+      },
+      {
+        note: 'Only approved organizations publish here. Students follow, react, comment and message, but there is no student posting: it is a campus noticeboard with a conversation attached, not a place to broadcast yourself.',
       },
 
-      { h2: 'The events feed' },
+      { h2: 'Feed' },
       {
-        p: 'Events are published by student organizations and university offices. Each shows its host, category, date and time, whether it is in person or online, and where.',
+        p: 'The Feed is everything organizations have published, newest first, with the clubs you follow leading. It mixes their **posts** (a picture, a set of pictures, or a short video, with a caption) and their **events**. Stories from clubs sit in a row at the top and disappear after one to three days.',
       },
       {
-        p: 'Filter by category, or switch on **For my program** to show only events relevant to what you study: matched against the program on your profile, so keeping that accurate makes the filter better.',
-      },
-
-      { h2: 'Event pages' },
-      {
-        p: 'Opening an event shows the full description, location, and host. From there you can add it to your calendar, set a reminder, or share it. Shared links open a public page that **anyone can view without an account**.',
+        p: 'On a post you can like it, comment (and reply to a comment), repost it to your profile, or send it to someone. Anything you have already scrolled past moves below a **You are all caught up** line on that device, so the new things are always first; nothing is removed.',
       },
 
-      { h2: 'Organizations' },
+      { h2: 'Events' },
       {
-        p: 'Every host has a profile with its bio, links, upcoming and past events. A blue seal marks a verified organization: an account confirmed as genuinely representing that group.',
+        p: 'Events lists the same events by when they **start**, grouped into this week and later. Each shows its host, category, date and time, whether it is in person or online, and where. Filter by category, or switch on **For my program** to show only events tagged for what you study, matched against the program on your profile.',
       },
-      { p: 'Following an organization keeps its events in view and can notify you when it posts. Manage who you follow from the Following list in the Community header.' },
+      {
+        p: 'Opening an event shows the full description, location, and host. From there you can add it to your calendar in one tap (it lands on your personal layer), set a reminder, or share it. Shared links open a public page that **anyone can view without an account**.',
+      },
 
-      { h2: 'Finding people' },
+      { h2: 'Clubs and organizations' },
       {
-        p: 'Search covers both organizations and students. Only **public** profiles appear: yours is private until you turn it on in Settings → Privacy, and a private profile is genuinely unsearchable rather than merely hidden.',
+        p: 'Every organization has a profile with its bio, links, events, posts, and reposts. A blue seal marks a verified organization: an account confirmed as genuinely representing that group. Following one puts its posts and events first in your Feed, and you get a notification when it publishes a new post.',
       },
       {
-        note: 'Follower counts are public. Follower **lists** are not, and cannot be retrieved: nobody can enumerate who follows whom.',
+        p: 'You can also message a club from its profile, and its team answers from their organizer inbox. A club can only start a conversation with you if you follow it and have not switched club messages off.',
+      },
+      {
+        p: 'Running a club? Apply at [concordiatracker.com/organizer/apply](/organizer/apply). See [Setting up your organization](/docs/organizer-setup).',
+      },
+
+      { h2: 'People and messages' },
+      {
+        p: 'You follow people the same way you follow clubs. When two people follow each other they are connected, which is what lets you send each other messages freely and, if you choose, share your class schedule. Someone you are not connected to can send you one first message, without links, which you can answer or ignore. Settings let you limit who can message you.',
+      },
+      {
+        p: 'Messages also holds your conversations with clubs and your support tickets, each in its own filter.',
+      },
+
+      { h2: 'Your profile' },
+      {
+        p: '**You** is your own profile, exactly as others see it, with an edit button. Your profile is **private by default**: until you make it public in Settings → Privacy, it does not appear in search.',
+      },
+      {
+        note: 'Follower and following **counts and lists** can be opened from a profile. Your grades are never on your profile or anywhere else another person can see.',
       },
     ],
   },
@@ -1544,7 +1591,7 @@ export const PAGES = {
       'What is free in ConcordiaTracker and what the Semester pass adds, with prices in Canadian dollars.',
     blocks: [
       {
-        p: 'Most of ConcordiaTracker is free forever. The paid tier covers projection and unlimited imports.',
+        p: 'Most of ConcordiaTracker is free forever. The paid tier covers projection, your deadlines in an outside calendar, and a few extras.',
       },
 
       { h2: 'What each plan includes' },
@@ -1554,11 +1601,16 @@ export const PAGES = {
           rows: [
             ['Courses tracked', 'Unlimited', 'Unlimited'],
             ['Deadline tracking and calendar', 'Yes', 'Yes'],
+            ['Moodle sync', 'Yes', 'Yes'],
+            ['Community and messages', 'Yes', 'Yes'],
             ['Grade entry and course standing', 'Yes', 'Yes'],
             ['Grade-needed calculator', 'Yes', 'Yes'],
-            ['Syllabus uploads', 'Rate-limited monthly', 'Raised limit'],
-            ['Blueprint imports', '1', 'Unlimited'],
-            ['GPA projection (what-if)', '—', 'Yes'],
+            ['Syllabus scans', '5 a month', 'No monthly cap'],
+            ['Seat watches at once', '1', '25'],
+            ['GPA projection (what-if)', 'No', 'Yes'],
+            ['Calendar feed for Google, Apple or Outlook', 'No', 'Yes'],
+            ['Term cost estimates (Planner)', 'No', 'Yes'],
+            ['Themes', 'Dark and Light', 'Every theme, including a custom colour'],
           ],
         },
       },
@@ -1579,7 +1631,7 @@ export const PAGES = {
 
       { h2: 'Free trial' },
       {
-        p: 'Every plan starts with a **7-day free trial**. A card is required to start it, nothing is charged until the trial ends, and cancelling before then costs nothing.',
+        p: 'Every plan starts with a **3-day free trial**. A card is required to start it, nothing is charged until the trial ends, and cancelling before then costs nothing.',
       },
       { p: 'We send a notification before the trial ends and the first charge is taken, so it is never a surprise.' },
 
@@ -1652,25 +1704,31 @@ export const PAGES = {
       'ConcordiaTracker settings: themes, language, notifications, account details, and usage.',
     blocks: [
       {
-        p: 'Settings opens as a panel over whatever you are doing, from the gear beside your profile or the profile menu. Five sections.',
+        p: 'Settings opens as a panel over whatever you are doing, from the gear beside your profile or the profile menu.',
       },
 
       { h2: 'General' },
       {
-        p: 'Themes, language, notifications, and update notes.',
+        p: 'Themes, language, push notifications, motion, and update notes.',
       },
       {
-        p: 'There are **four themes**: Refined Dark, Concordia Maroon, Light, and Purple Dark. Choosing one animates the change outward from the swatch you clicked. Language is English or French, and switching updates the whole interface including dates.',
+        p: '**Dark** and **Light** are free. The Semester pass adds Concordia Maroon, Purple Dark, Light Rose, and a custom theme built from a colour you pick; a locked theme can be tried on for two minutes before you decide. Language is English or French, and switching updates the whole interface including dates.',
       },
 
       { h2: 'Account' },
       {
-        p: 'Display name, handle, school or faculty, and program. Program feeds the relevance filter in Community. Deleting your account is also here, and it is permanent.',
+        p: 'Display name, handle, school or faculty, and program, plus the sign-in methods on your account (Google, Apple, email). Program feeds the relevance filter in Community. Deleting your account is also here, and it is permanent.',
       },
+
+      { h2: 'Calendar sync' },
+      { p: 'The private calendar feed for Google, Apple or Outlook. See [Google and Apple Calendar](/docs/calendar-sync).' },
+
+      { h2: 'Moodle' },
+      { p: 'Connect, re-sync or disconnect your Moodle calendar. See [Connect Moodle](/docs/moodle-sync).' },
 
       { h2: 'Privacy' },
       {
-        p: 'The public profile switch and links to the legal documents and your data rights. See [Privacy](/docs/privacy).',
+        p: 'The public profile switch, who can message you, whether clubs you follow can message you first, schedule sharing, and links to the legal documents and your data rights. See [Privacy](/docs/privacy).',
       },
 
       { h2: 'Billing' },
@@ -1678,7 +1736,7 @@ export const PAGES = {
 
       { h2: 'Usage' },
       {
-        p: 'What you have used this month against your plan’s limits: syllabus uploads, blueprint imports, and which features are locked.',
+        p: 'What you have used this month against your plan’s limits, such as syllabus scans, and which features are locked.',
       },
 
       { h2: 'Keyboard' },
@@ -1708,8 +1766,10 @@ export const PAGES = {
       {
         ul: [
           'A course **outline** you contribute as a blueprint: assessments, dates, and weights, with no grades attached.',
-          'Your profile, if you switch it to public. Private is the default, and a private profile is genuinely unsearchable.',
-          'Your follower count, if your profile is public. Your follower list is never retrievable by anyone.',
+          'Your profile, if you switch it to public. Private is the default, and a private profile does not appear in search.',
+          'Who you follow and who follows you. Follower and following lists can be opened from a profile.',
+          'Your class schedule, only to the people you allow in Settings → Privacy.',
+          'Messages, comments, likes and reposts you send, to the people and clubs involved.',
         ],
       },
 
@@ -1728,7 +1788,8 @@ export const PAGES = {
         ul: [
           'We do not sell your data.',
           'We do not show advertising in the app.',
-          'We do not connect to Moodle, eConcordia, or your student record, and never ask for those credentials.',
+          'We never ask for your Moodle, eConcordia or Concordia password, and never connect to your student record. Moodle sync uses only the read-only calendar link you choose to paste in, and it is stored where the app itself cannot read it back.',
+          'Club organizers never see which students viewed, followed or added their events: only totals.',
         ],
       },
     ],
@@ -1833,7 +1894,7 @@ export const PAGES = {
         p: 'If students in your section have already uploaded one, the community blueprints panel lists them. Expand **Review** to see the full dated list first: never verify one blind.',
       },
       {
-        p: 'Adopting it makes it your outline, promotes its dates to **official**, and removes it from the community pool. It is often faster than starting from scratch, since a student has usually already done the transcription.',
+        p: 'Adopting it makes it your outline and promotes its dates to **official**, pinned above the community uploads. It is often faster than starting from scratch, since a student has usually already done the transcription.',
       },
 
       { h2: '3. Preview as a student' },
@@ -1868,40 +1929,46 @@ export const PAGES = {
     title: 'Setting up your organization',
     section: 'For organizations',
     description:
-      'Step-by-step: request access to the ConcordiaTracker organizer portal, set up your public profile, and invite your team.',
+      'Step-by-step: apply to list your club on ConcordiaTracker, set up your public profile, and bring your team in.',
     blocks: [
       {
-        p: 'From no account to a public profile students can follow. Worth doing properly once: your profile is what every event you post is attached to.',
+        p: 'From no account to a public profile students can follow. Worth doing properly once: your profile is what every event and post you publish is attached to.',
       },
 
-      { h2: '1. Request access' },
+      { h2: '1. Apply' },
       {
-        p: 'Go to [concordiatracker.com/organizer/request](/organizer/request) with your organization’s name, a contact email, and what you run. You get a **case number** back, and the same page has a **Check a request** tab to look up its status.',
+        p: 'Go to [concordiatracker.com/organizer/apply](/organizer/apply) and sign in with the account you will run the club from (Google, Apple, or email). Then answer a few questions: the club’s name and handle, what it does, what it mostly posts, roughly how many members it has, your role, a contact email, and optionally a link that shows it is really you, such as an Instagram page.',
+      },
+      {
+        p: 'Your organizer dashboard opens as soon as you submit, so you can set up the profile and draft events straight away.',
+      },
+      {
+        note: 'A new club starts **pending**. Nothing you publish reaches students until an administrator approves the club; approval gates publication, not setup.',
+      },
+      {
+        p: 'If we sent you an invitation link instead, open it: it either sets up a new club with you as its owner or hands you a profile we have already prepared, and you review everything before it is yours.',
       },
 
-      { h2: '2. Accept your invitation' },
+      { h2: '2. The setup walkthrough' },
       {
-        p: 'Approved requests get a single-use invitation link that expires. Opening it creates the organization account and signs you in as its owner.',
-      },
-      {
-        note: 'New organizations start **pending**. You can create and edit events immediately, but publishing and notifying followers unlock once an administrator approves the account.',
+        p: 'The first time you open the dashboard, a short walkthrough asks whether you are the president (if not, you keep full access and invite them as an owner alongside you), then your handle, profile, a first event, and your team. Every step can be skipped and picked up later.',
       },
 
-      { h2: '3. Set up your public profile' },
+      { h2: '3. Your public profile' },
       {
         p: 'Profile is the most important screen in the portal. Students judge whether to follow you from it, and your brand colour carries through the feed so your events are recognisably yours.',
       },
       {
         ul: [
-          '**Name and handle**: the handle is your permanent URL, so pick it deliberately.',
-          '**Bio**: a couple of lines on who you are and what you run. Multi-line is supported.',
-          '**Logo and banner**: the logo appears on every event card; the banner heads your profile.',
+          '**Name and handle**: the handle is your address on the site, so pick it deliberately.',
+          '**Bio**: a few lines on who you are and what you run. It can hold links.',
+          '**Logo and banner**: uploaded from your device and cropped to the exact shape they appear in. The logo appears on every event card; the banner heads your profile.',
           '**Brand colour**: used for your event cards when an event has no image of its own.',
-          '**Links**: website, Instagram, X, LinkedIn. Only the ones you fill in are shown.',
+          '**Links**: website, Instagram, X, LinkedIn, each with an optional title. Only the ones you fill in are shown.',
         ],
       },
       {
-        p: 'A live preview updates as you type, and **View public profile** shows students’ exact view.',
+        p: 'A live preview, drawn with the same component students see, updates as you type.',
       },
 
       { h2: '4. Get verified' },
@@ -1909,12 +1976,15 @@ export const PAGES = {
         p: 'Verified organizations show a blue seal, which tells students the account genuinely represents your group. Verification is granted by an administrator: reach out once your profile is filled in.',
       },
 
-      { h2: '5. Invite your team' },
+      { h2: '5. Bring your team in' },
       {
-        p: 'From **Team**, invite people by name, email, and role. Each invitation is a single-use link you can send however you like.',
+        p: 'From **Team**, invite someone who already has an account by name or handle, or anyone by email, and choose their role. An email invitation is a link you can also send however you like.',
       },
       {
-        p: 'This matters more than it looks for student groups: when your executive turns over, remove the outgoing members and invite the incoming ones. The account, followers, and event history carry on.',
+        p: '**Roles** decide what each person can do (post, publish events, edit the profile, manage the team), and you can create your own. **Activity** records every change to the club with who made it, and most changes can be undone from there.',
+      },
+      {
+        p: 'This matters more than it looks for student groups: when your executive turns over, remove the outgoing members, invite the incoming ones, and hand ownership over. The account, followers, and history carry on.',
       },
 
       {
@@ -1947,7 +2017,7 @@ export const PAGES = {
       },
 
       { h2: '1. Create the event' },
-      { p: 'From your dashboard choose **Create event** and fill in:' },
+      { p: 'From **Events** in the portal, start a new event. Every new event begins as a **private draft** that only your team can see. Fill in:' },
       {
         ul: [
           '**Title**: specific beats clever. Students scan the feed quickly.',
@@ -1968,20 +2038,20 @@ export const PAGES = {
 
       { h2: '3. Publish' },
       {
-        p: 'Publishing puts it in the Community feed and on your public profile. Every event also gets a **public link that anyone can open without an account**: paste it into Instagram, a group chat, or a poster QR code.',
+        p: '**Save draft** keeps it private; **Publish** puts it in the Community feed and on your public profile (for a pending club, once you are approved). Every event also gets a **public link that anyone can open without an account**: paste it into Instagram, a group chat, or a poster QR code.',
       },
 
-      { h2: '4. Notify your followers' },
+      { h2: '4. Post about it' },
       {
-        p: 'Once approved, you can notify followers when you post something new. Use it deliberately: a group that notifies on everything gets unfollowed.',
+        p: 'If the event has a banner image, you can also share it to the Feed as a post. Your followers get a notification when your club publishes a new post, so use posts deliberately: a group that posts constantly gets unfollowed.',
       },
 
-      { h2: '5. Read your reach' },
+      { h2: '5. See how you are doing' },
       {
-        p: 'The dashboard reports followers, calendar adds, event follows, and views. **Calendar adds are the number worth watching**: a view is a glance, but adding an event to a calendar is a student telling you they intend to come.',
+        p: '**Insights** shows your followers, your posts, the events you have published, and how many are still to come.',
       },
       {
-        note: 'Metrics are **aggregate only**. You can never see which individual students viewed, followed, or added an event, and there is no tier that changes that.',
+        note: 'Figures are **aggregate only**. You can never see which individual students viewed, followed, or added an event, and there is no tier that changes that. Per-event reach (views and calendar adds) is not measured yet, and the page says so rather than showing a zero.',
       },
     ],
   },
@@ -2014,7 +2084,7 @@ export const PAGES = {
 
       { h2: 'Verifying a student outline' },
       {
-        p: 'If students in your section have already uploaded an outline, you can review it and adopt it as your own. It becomes your verified outline with its dates promoted to official, and it is removed from the community pool.',
+        p: 'If students in your section have already uploaded an outline, you can review it and adopt it as your own. It becomes your verified outline with its dates promoted to official, pinned above the community uploads.',
       },
 
       { h2: 'Announcements' },
@@ -2036,20 +2106,25 @@ export const PAGES = {
       'How Concordia student organizations publish events to the ConcordiaTracker Community feed and manage their public profile.',
     blocks: [
       {
-        p: 'The organizer portal is for student associations, clubs, and university offices publishing events to the Community feed.',
+        p: 'The organizer portal is for student associations, clubs, and university offices publishing to the Community tab.',
       },
 
       { h2: 'Getting access' },
       {
-        p: 'Access is by invitation. Request it at [concordiatracker.com/organizer/request](/organizer/request). Once approved, you can invite teammates to help run the account.',
+        p: 'Apply at [concordiatracker.com/organizer/apply](/organizer/apply), or open an invitation link if we sent you one. Applying opens your dashboard immediately; the club is **pending** until an administrator approves it, and nothing reaches students before then.',
       },
 
-      { h2: 'Publishing events' },
+      { h2: 'Publishing' },
       {
-        p: 'Create an event with its title, date and time, whether it is in person or online, location, description, category, and a banner image. Every event gets a public link that anyone can open without an account, which makes it shareable on social media.',
+        p: '**Events** carry a title, date and time, whether they are in person or online, location, description, category, a banner image, and the programs they are relevant to. Every event gets a public link that anyone can open without an account, which makes it shareable on social media.',
       },
       {
-        p: 'You can notify your followers when you post something new.',
+        p: '**Posts** are a picture, a set of pictures, or a short video with a caption, and they notify your followers. **Stories** stay up for one to three days. Posts and stories can be saved as drafts for your team to finish, and two clubs can co-author a post so it appears on both profiles.',
+      },
+
+      { h2: 'Inbox' },
+      {
+        p: 'Students can message your club from its profile, and anyone on your team with access can reply. A club can only start a conversation with a student who follows it and has not switched club messages off.',
       },
 
       { h2: 'Your public profile' },
@@ -2057,17 +2132,17 @@ export const PAGES = {
         p: 'Set your name, handle, bio, logo, banner, brand colour, and links. Your brand colour carries through the feed, so your events are recognisably yours. Verified organizations show a seal.',
       },
 
-      { h2: 'Reach' },
+      { h2: 'Insights' },
       {
-        p: 'The dashboard reports aggregate numbers: followers, calendar adds, event follows, and views.',
+        p: 'Aggregate numbers: followers, posts, events published, and events still to come.',
       },
       {
-        note: 'Metrics are **aggregate only**. Organizers can never see which individual students viewed, followed, or added an event. Students are frequently minors and always covered by Quebec privacy law, and there is no version of this feature that identifies them.',
+        note: 'Figures are **aggregate only**. Organizers can never see which individual students viewed, followed, or added an event. Students are frequently minors and always covered by Quebec privacy law, and there is no version of this feature that identifies them.',
       },
 
       { h2: 'Your team' },
       {
-        p: 'Invite teammates with a shareable single-use link and assign roles. Useful when an executive team turns over each year: remove the outgoing members, invite the incoming ones, and the account continues.',
+        p: 'Invite people by account or by email, give each a role, create custom roles with their own permissions, and hand ownership over when your executive turns over. Every change is recorded in **Activity**, where most can be undone.',
       },
     ],
   },

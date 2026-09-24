@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { useTeacher } from '@/app/providers/teacher'
+import { useAuth } from '@/app/providers/auth'
 import { Select } from '@/components/ui/Select'
 import { CATEGORY_META, CATEGORY_ORDER } from '@/features/community/category'
 
@@ -16,7 +16,7 @@ const field =
 /**
  * The application — for a club nobody invited.
  *
- * SHORT ON PURPOSE. Six questions, four of them one tap or one line. Every
+ * SHORT ON PURPOSE. Seven questions, most of them one tap or one line. Every
  * field earns its place by being something the approval decision actually
  * turns on: is this a real club, what will it post, and who is asking. A
  * longer form would filter out the busy exec we most want, and we can ask
@@ -32,6 +32,7 @@ const field =
  */
 export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: () => void }) {
   const { applyForOrg } = useTeacher()
+  const { user } = useAuth()
   const [name, setName] = useState('')
   const [handle, setHandle] = useState('')
   const [what, setWhat] = useState('')
@@ -39,16 +40,19 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
   const [size, setSize] = useState('')
   const [role, setRole] = useState('')
   const [proof, setProof] = useState('')
+  // Prefilled from the account, editable: the address the club actually
+  // answers is often a club inbox, not the president's personal one.
+  const [contact, setContact] = useState(user?.email ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const ready = name.trim().length > 1 && what.trim().length > 4 && role.trim().length > 1
+  const contactOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.trim())
+  const ready = name.trim().length > 1 && what.trim().length > 4 && role.trim().length > 1 && contactOk
 
   async function submit() {
     if (!ready || busy) return
     setBusy(true)
     setError('')
-    const { data: session } = await supabase.auth.getUser()
     const err = await applyForOrg({
       name: name.trim(),
       handle: (handle.trim() || suggestHandle(name)).replace(/^@/, ''),
@@ -57,7 +61,7 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
         category,
         size,
         role: role.trim(),
-        contact: session.user?.email ?? '',
+        contact: contact.trim(),
         proof: proof.trim(),
       },
     })
@@ -84,7 +88,7 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
         Apply to list your club
       </h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-subtle">
-        Six quick questions. You get your dashboard straight away. We check the application before
+        A few quick questions. You get your dashboard straight away. We check the application before
         anything appears in the student feed.
       </p>
 
@@ -149,6 +153,18 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
             onChange={(e) => setRole(e.target.value)}
             placeholder="President, VP Events, …"
             maxLength={60}
+            className={field}
+          />
+        </Labelled>
+
+        <Labelled label="Contact email" hint="Where we reach the club about this application">
+          <input
+            type="email"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder="club@example.com"
+            maxLength={200}
+            autoComplete="email"
             className={field}
           />
         </Labelled>

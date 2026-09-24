@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
-import { LangSwitch } from './LangSwitch'
+import { LangSwitch } from '@/components/LangSwitch'
 import { useDevCopy } from './copy'
 import { HEADER_H } from './layout'
 

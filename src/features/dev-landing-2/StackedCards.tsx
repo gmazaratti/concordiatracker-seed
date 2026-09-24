@@ -4,26 +4,27 @@ type Card = {
   title: string
   body: string
   media: { kind: 'video' | 'image'; src: string }
-  /** Recordly alternates: media left, then text left, then media left. */
+  /** The layout alternates: media left, then text left, then media left. */
   mediaFirst: boolean
 }
 
 const CARDS: Card[] = [
   {
-    title: 'Auto-zoom, silky cursor & beautiful backgrounds',
-    body: 'Recordly adds beautiful cursor animations and auto-zooming plus a background to your recordings so you can spend less time editing and more time shipping.',
-    media: { kind: 'video', src: '/dev-landing-2/card-1.mp4' },
+    title: 'Upload your outline, get every deadline dated',
+    body: 'Drop in your course outline PDF and ConcordiaTracker pulls out every assessment, its weight and its due date, so you check a list instead of retyping a syllabus.',
+    // The real syllabus-parse flow, recorded on the live app (COMM 305).
+    media: { kind: 'video', src: '/dev-landing-2/syllabus-parse.mp4' },
     mediaFirst: true,
   },
   {
-    title: 'Dynamic webcam bubble overlay',
-    body: 'Recordly uses smart webcam bubbles that expand and shrink to make sure you get the spotlight when you need to.',
+    title: 'Know the grade you need to pass',
+    body: 'Enter marks as they come back and see your standing, the average you still need, and where your GPA lands.',
     media: { kind: 'video', src: '/dev-landing-2/card-2.mp4' },
     mediaFirst: false,
   },
   {
-    title: 'Intuitive timeline editing interface',
-    body: 'Use drag-and-drop pieces to control video speed, zooms, annotations, audio tracks and video length, and save your projects as .recordly files so you can save your progress or edit other projects.',
+    title: 'Moodle deadlines, pulled in for you',
+    body: 'Paste your Moodle calendar link once and dated Moodle events land in your calendar, checked again every night. When a professor moves a date, you see the old and new date side by side.',
     media: { kind: 'image', src: '/dev-landing-2/card-3.avif' },
     mediaFirst: true,
   },

@@ -1,14 +1,14 @@
-import { FileUser, Heart, MessageCircleMore, Mic, MonitorPlay, MousePointer2, type LucideIcon } from 'lucide-react'
+import { BellRing, CalendarDays, CalendarSync, Gift, GraduationCap, Users, type LucideIcon } from 'lucide-react'
 
 type Tile = { icon: LucideIcon; title: string; body: string }
 
 const TILES: Tile[] = [
-  { icon: Mic, title: 'Record microphone & system audio', body: 'Dual-source audio capture with sample-accurate sync. Speak, demo, and showcase with flawless sound.' },
-  { icon: FileUser, title: 'Save and load projects', body: 'Recordly remembers your workspace. Save projects with all your audio, video, and layout choices, then reopen them instantly to continue creating.' },
-  { icon: MonitorPlay, title: 'Change export format and quality', body: 'Turn your recording into a smooth MP4 or a looping GIF.\nPerfect for demos, tutorials, and quick social posts.' },
-  { icon: MousePointer2, title: 'Loop cursor path', body: 'Loop your cursor path so GIFs and autoplay clips stay engaging. No jumps, no stutters; just clean, continuous motion.' },
-  { icon: MessageCircleMore, title: 'Import audio tracks & webcam footage', body: 'Import audio files and webcam video with full timeline control. Layer, sync, and refine external media right inside your project.' },
-  { icon: Heart, title: 'Free & open-source', body: 'Recordly is fully free and open-source, with no paywalls or hidden limits. Transparent, community-driven, and built for creators who value control.' },
+  { icon: CalendarDays, title: 'Your term, layered on one calendar', body: 'Month, week and agenda views with your deadlines, your tasks and Concordia dates as layers.' },
+  { icon: GraduationCap, title: 'Plan next term early', body: 'Search every Concordia course, follow prerequisite chains, and build a clash-free schedule from real sections before registration opens.' },
+  { icon: CalendarSync, title: 'Subscribe from Google or Apple', body: 'One private link your calendar app subscribes to, once.\nMove a date here and the change follows it there, too.' },
+  { icon: BellRing, title: 'Watch full seats', body: 'Watch a full section and get an alert when a seat opens, with the class number ready to paste into the Student Centre.' },
+  { icon: Users, title: 'Campus events, straight from clubs', body: 'Follow the clubs you care about, see their events and posts in one feed, and add any event to your calendar in a tap.' },
+  { icon: Gift, title: 'Free to get started', body: 'Deadlines, grade entry and the grade-needed calculator are free. The Semester pass adds GPA projection, calendar sync and more syllabus scans.' },
 ]
 
 /*
@@ -72,9 +72,10 @@ export function RecordlyTiles() {
 }
 
 /**
- * The phone-only picture on the "Loop cursor path" tile: the tile's own cursor
- * icon sitting on the closed, looping path it describes. Static, like every
- * other tile. Hidden from `sm` up, where the tile is its ordinary self.
+ * The phone-only picture on the "Watch full seats" tile: the tile's own bell
+ * on a dashed loop, the check that runs again and again until a seat opens.
+ * Static, like every other tile. Hidden from `sm` up, where the tile is its
+ * ordinary self.
  */
 function LoopVisual() {
   return (
@@ -89,11 +90,7 @@ function LoopVisual() {
           strokeLinecap="round"
         />
       </svg>
-      <MousePointer2
-        size={26}
-        strokeWidth={1.6}
-        className="absolute top-[16%] left-[53%] fill-white text-white"
-      />
+      <BellRing size={26} strokeWidth={1.6} className="absolute top-[14%] left-[50%] -translate-x-1/2 text-white" />
     </div>
   )
 }

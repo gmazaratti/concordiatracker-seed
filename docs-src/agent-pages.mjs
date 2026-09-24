@@ -82,8 +82,9 @@ export const HOME = {
     'ConcordiaTracker is a web app for Concordia University students. You add your courses once, ' +
     'by importing an outline another student or a professor has already shared, by uploading a ' +
     'syllabus PDF, or by typing them in, and it tracks what is due, what each piece of work is ' +
-    'worth, and where your grade actually stands. It is independent software: not affiliated with ' +
-    'Concordia University, and not connected to Moodle, eConcordia, or your student record.',
+    'worth, and where your grade actually stands. If you connect Moodle, your dated Moodle events ' +
+    'join the calendar too. It is independent software: not affiliated with Concordia University, ' +
+    'and never connected to eConcordia or your student record.',
   features: [
     {
       title: 'Every deadline in one place',
@@ -108,6 +109,18 @@ export const HOME = {
       desc:
         'Search the full Concordia course calendar, check prerequisites, build a timetable from ' +
         'real sections, and get told when a full section opens a seat.',
+    },
+    {
+      title: 'Moodle deadlines, synced',
+      desc:
+        'Paste your Moodle calendar link once and dated Moodle events come into your calendar, ' +
+        'checked again every night. A moved date shows the old and new date side by side.',
+    },
+    {
+      title: 'Campus events from clubs',
+      desc:
+        'Student clubs and organizations publish events and posts in the Community tab. Follow the ' +
+        'ones you care about and add any event to your calendar in one tap.',
     },
   ],
   faq: [
@@ -139,8 +152,23 @@ export const HOME = {
     {
       q: 'Is ConcordiaTracker affiliated with Concordia University?',
       a:
-        'No. It is an independent project, built by students. It does not connect to Moodle, ' +
-        'eConcordia, or your official student record.',
+        'No. It is an independent project, built by students. It never connects to eConcordia or ' +
+        'your official student record. It reads your Moodle calendar only if you paste in the ' +
+        'calendar link Moodle gives you, and never asks for your password.',
+    },
+    {
+      q: 'Does ConcordiaTracker sync with Moodle?',
+      a:
+        'Yes, one way. Paste your Moodle calendar link in Settings, and dated Moodle events are ' +
+        'pulled into your calendar and checked again every night. It cannot read grades or ' +
+        'submissions, and nothing is written back to Moodle.',
+    },
+    {
+      q: 'How does a student club get listed?',
+      a:
+        'Apply at concordiatracker.com/organizer/apply. After signing in and answering a few ' +
+        'questions, the club gets its dashboard straight away and stays pending until an ' +
+        'administrator approves it; nothing reaches students before then.',
     },
   ],
   links: [
@@ -265,13 +293,15 @@ ConcordiaTracker joins them up. You add a course once, by importing an outline a
 professor has already shared, by uploading a syllabus, or by typing it in. From there every
 deadline appears on one screen sorted by what is next, every grade you enter updates your standing
 in that course and your GPA on Concordia's 4.30 scale, and the planner shows what next term would
-look like before you register for it.
+look like before you register for it. Connecting Moodle adds the dates professors post there, and
+the Community tab carries events and posts from student clubs and organizations.
 
 ## What it is not
 
-It is not affiliated with, endorsed by, or operated by Concordia University. It does not connect to
-Moodle, eConcordia, or your official student record, and it cannot register you for a course, pay
-your tuition, or change your transcript. Where the app shows information taken from Concordia's
+It is not affiliated with, endorsed by, or operated by Concordia University. It never connects to
+eConcordia or your official student record, and it cannot register you for a course, pay your
+tuition, or change your transcript. It can read your Moodle calendar, one way, but only through the
+calendar link you choose to paste in, never your password. Where the app shows information taken from Concordia's
 published course calendar or academic calendar, it says so and links to the source, because the
 university is the authority and this app is not.
 

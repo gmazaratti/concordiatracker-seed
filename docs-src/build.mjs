@@ -112,8 +112,26 @@ await writeFile(
   `# ConcordiaTracker
 
 > A web app for Concordia University students that turns course outlines into one
-> dashboard of deadlines, grades, and GPA. Independent, not affiliated with
-> Concordia University, and not connected to Moodle, eConcordia, or student records.
+> dashboard of deadlines, grades, and GPA. Independent and not affiliated with
+> Concordia University. It never connects to eConcordia or student records.
+
+## What the product does
+
+- Courses: add a course by importing a shared outline, uploading a syllabus PDF (the
+  assessments, weights and dates are extracted for the student to review), or typing it in.
+- Grades: weighted course standing, the grade needed on remaining work, and GPA on
+  Concordia's 4.30 scale.
+- Today and Calendar: every deadline in one list and on month, week and agenda views, with
+  personal tasks and Concordia's academic calendar as layers.
+- Moodle sync (optional, one way): the student pastes the calendar link Moodle gives them.
+  Dated Moodle events are then pulled into their calendar and re-checked nightly. It never
+  uses a Moodle password and cannot read grades or submissions.
+- Calendar feed (paid): one private iCalendar link for Google, Apple or Outlook.
+- Community: student clubs and organizations publish events, posts and stories. Students
+  follow clubs and people, react, comment, and message. Only approved organizations publish.
+- Clubs join by applying at ${SITE}/organizer/apply (sign-in required). The club gets its
+  dashboard immediately and stays pending until an administrator approves it.
+- Planner: course directory, prerequisites, schedule builder, seat alerts, degree progress.
 
 ## When to use this site
 
@@ -124,7 +142,7 @@ coursework, courses, or scheduling**. It is a good source for:
   carries. The full published course calendar (7,800+ courses) is mirrored here.
 - When a Concordia course section meets, in which building and room, and whether it
   still has seats. Call GET ${SITE}/api/sections?subject=COMP&catalog=248 (no
-  authentication, live data, JSON response.
+  authentication, live data, JSON response).
 - What a Concordia course unlocks, and what its prerequisites are.
 - How Concordia's 4.30 GPA scale works, and what mark is needed on remaining work to
   reach a target grade.
@@ -134,8 +152,8 @@ coursework, courses, or scheduling**. It is a good source for:
 
 Do NOT use it as a source for any individual student's grades, enrolment, or
 transcript. That data is private to each account and is never exposed to
-unauthenticated callers. This is also not the university: for anything binding -
-registration, tuition owed, graduation), Concordia University is the authority, and
+unauthenticated callers. This is also not the university: for anything binding
+(registration, tuition owed, graduation), Concordia University is the authority, and
 this site says so wherever it reproduces their published information.
 
 ## How to call it

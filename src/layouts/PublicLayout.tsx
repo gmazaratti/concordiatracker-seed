@@ -1,61 +1,13 @@
 import { Link, Outlet } from 'react-router-dom'
-import { Logo } from '@/components/Logo'
-import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n/i18n'
-import { LangToggle } from '@/components/LangToggle'
+import { PublicHeader } from '@/components/PublicHeader'
 
 /** Chrome for the public marketing context. */
 export function PublicLayout() {
   const t = useT()
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-canvas/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
-          <Link to="/" aria-label="ConcordiaTracker home">
-            <Logo />
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <a
-              href="#how"
-              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
-            >
-              {t('landing.howItWorks')}
-            </a>
-            <a
-              href="#pricing"
-              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
-            >
-              {t('landing.pricing')}
-            </a>
-            <a
-              href="/docs/introduction"
-              className="hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block"
-            >
-              {t('landing.docs')}
-            </a>
-            {/* Clubs before teachers: there are far more of them, and the
-                whole point is that a president finds this without being
-                personally shown it. `lg:` so the mobile header stays two
-                items — it overflowed at 375px once already. */}
-            <Link to="/organizer" className="hidden lg:block">
-              <Button variant="ghost" size="sm">
-                For clubs
-              </Button>
-            </Link>
-            <Link to="/teacher" className="hidden sm:block">
-              <Button variant="ghost" size="sm">
-                {t('landing.forTeachers')}
-              </Button>
-            </Link>
-            {/* Kept before the CTA so French is visible without scrolling or
-                hunting: availability is the point, not decoration. */}
-            <LangToggle className="mr-1" />
-            <Link to="/app">
-              <Button size="sm">{t('landing.ctaPrimary')}</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="flex-1">
         <Outlet />

@@ -63,6 +63,7 @@ const OrganizerRoles = lazy(() => import('@/features/organizer/OrganizerRoles').
 const OrganizerActivity = lazy(() => import('@/features/organizer/OrganizerActivity').then((x) => ({ default: x.OrganizerActivity })))
 const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInvitePage').then((x) => ({ default: x.OrganizerInvitePage })))
 const OrgMemberInvitePage = lazy(() => import('@/features/organizer/OrgMemberInvitePage').then((x) => ({ default: x.OrgMemberInvitePage })))
+const OrganizerApplyPage = lazy(() => import('@/features/organizer/OrganizerApplyPage').then((x) => ({ default: x.OrganizerApplyPage })))
 const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({ default: x.LegalPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((x) => ({ default: x.ResetPasswordPage })))
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
@@ -129,6 +130,8 @@ export function AppRoutes() {
         <Route path="invite/:token" element={<OrganizerInvitePage />} />
         <Route path="join/:token" element={<OrgMemberInvitePage />} />
         <Route path="request" element={<TeacherRequestPage role="organizer" />} />
+        {/* The club application at a linkable address (the landing FAQ points here). */}
+        <Route path="apply" element={<OrganizerApplyPage />} />
         <Route path="event/:eventId" element={<OrganizerEventEditor />} />
         {/* There is ONE onboarding now and it lives over the dashboard, so
             this old address just goes there — keeping any `?org=` with it,

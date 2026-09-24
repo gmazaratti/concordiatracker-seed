@@ -61,14 +61,15 @@ export function OrganizerLayout() {
   })
 
   // Pages that make sense without a club: the door itself, and the links
-  // people are sent (an invite, a team invite, the access request).
+  // people are sent (an invite, a team invite, the access request, the
+  // club application).
   // `/join/<token>` is the SHORT invite link — the one that actually gets
   // sent. It was missing here, so a fresh account opening it was redirected
   // to the portal's sign-in door and the invite was lost.
   const openPath =
     pathname === '/organizer' ||
     pathname === '/organizer/' ||
-    /^\/organizer\/(invite|join|request|setup)(\/|$)/.test(pathname) ||
+    /^\/organizer\/(invite|join|request|setup|apply)(\/|$)/.test(pathname) ||
     /^\/join\/[^/]+/.test(pathname)
 
   if (loading || (!currentOrg && !openPath && orgsLoading)) {
