@@ -374,7 +374,8 @@ function blindSpots({ courses, assessments }: RadarInput): Signal[] {
  * looks light may only look that way.
  */
 function undated({ courses, assessments }: RadarInput): Signal[] {
-  const open = assessments.filter((a) => isOpen(a.status) && !a.due)
+  // Nothing to warn about for work that never has a date (attendance).
+  const open = assessments.filter((a) => isOpen(a.status) && !a.due && !a.noDate)
   if (open.length === 0) return []
   const weight = open.reduce((sum, a) => sum + a.weight, 0)
   const codes = [...new Set(open.map((a) => courses.find((c) => c.id === a.courseId)?.code))]

@@ -41,6 +41,15 @@ interface ReviewItem {
   due: string | null
   weight: number
   description: string
+  /** "No date needed" — attendance, participation. Never warned about. */
+  noDate: boolean
+  /**
+   * The student has made a choice about the date: picked one, said "No date
+   * yet", or said "No date needed". Only an undated item they have NOT looked
+   * at is outlined as a warning — outlining an item they deliberately left
+   * undated read as the app disagreeing with them.
+   */
+  reviewed: boolean
 }
 
 const KIND_OPTIONS = (Object.keys(KIND_LABEL) as AssessmentKind[]).map((k) => ({ value: k, label: KIND_LABEL[k] }))
@@ -66,6 +75,8 @@ function toReview(parsed: ParsedSyllabus): ReviewItem[] {
     due: normalizeDue(a.due),
     weight: typeof a.weight === 'number' ? Math.max(0, Math.min(100, a.weight)) : 0,
     description: a.description ?? '',
+    noDate: a.noDateNeeded === true && !a.due,
+    reviewed: false,
   }))
 }
 
@@ -144,6 +155,7 @@ export function SyllabusUploadPage({
   const [error, setError] = useState('')
   const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
   const [items, setItems] = useState<ReviewItem[]>([])
+  const [warnings, setWarnings] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [usage, setUsage] = useState<ParseUsage | null>(null)
   // The scanning card used to say "syllabus.pdf" whatever you dropped on it,
@@ -184,6 +196,7 @@ export function SyllabusUploadPage({
         gradingScale: c.gradingScale ?? '',
       })
       setItems(toReview(parsed))
+      setWarnings(parsed.warnings ?? [])
       setPhase('review')
       void getParseUsage().then(setUsage) // a successful parse consumed one
     } catch (e) {
@@ -196,7 +209,7 @@ export function SyllabusUploadPage({
     setItems((list) => list.map((it) => (it.id === id ? { ...it, ...p } : it)))
   const remove = (id: string) => setItems((list) => list.filter((it) => it.id !== id))
 
-  const undated = items.filter((i) => !i.due).length
+  const undated = items.filter((i) => !i.due && !i.noDate).length
   const total = items.reduce((s, i) => s + i.weight, 0)
   const canCommit = items.length > 0 && !saving
 
@@ -255,6 +268,7 @@ export function SyllabusUploadPage({
           grade: null,
           notes: '',
           description: it.description.trim() || undefined,
+          noDate: it.noDate && !it.due,
         }))
       if (course.gradingScale.trim()) {
         updateCourse(targetId, { gradingScale: course.gradingScale.trim() })
@@ -320,6 +334,7 @@ export function SyllabusUploadPage({
       grade: null,
       notes: '',
       description: it.description.trim() || undefined,
+      noDate: it.noDate && !it.due,
     }))
     await addAssessments(assessments)
     setSaving(false)
@@ -416,6 +431,12 @@ export function SyllabusUploadPage({
                   {Math.round(total)}%
                 </span>
               </div>
+
+              {warnings.map((w) => (
+                <p key={w} className="mb-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] leading-relaxed text-fg">
+                  {w}
+                </p>
+              ))}
 
               {undated > 0 && (
                 <p className="mb-2 flex items-start gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-muted">
@@ -645,9 +666,10 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
 
 function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p: Partial<ReviewItem>) => void; onRemove: () => void }) {
   const [open, setOpen] = useState(false)
-  const noDate = !item.due
+  // Only an undated item nobody has looked at yet is a question.
+  const needsLook = !item.due && !item.noDate && !item.reviewed
   return (
-    <li className={cn('rounded-lg border bg-surface px-2.5 py-2', noDate ? 'border-warning/50' : 'border-border')}>
+    <li className={cn('rounded-lg border bg-surface px-2.5 py-2', needsLook ? 'border-warning/50' : 'border-border')}>
       {/* Type + Title + row actions */}
       <div className="flex items-center gap-2">
         <Select
@@ -694,7 +716,9 @@ function ReviewRow({ item, onPatch, onRemove }: { item: ReviewItem; onPatch: (p:
             ariaLabel="Due date"
             value={item.due}
             clearable
-            onChange={(iso) => onPatch({ due: iso })}
+            noDate={item.noDate}
+            onNoDate={(v) => onPatch({ noDate: v, reviewed: true })}
+            onChange={(iso) => onPatch({ due: iso, reviewed: true })}
           />
         </Labeled>
 

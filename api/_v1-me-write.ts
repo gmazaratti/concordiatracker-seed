@@ -11,6 +11,7 @@
  */
 import { svc, rpcRaw, iso } from './_v1-auth.js'
 import { extractOutline, MAX_BYTES } from './_parse-core.js'
+import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
 import { assignment, course, mine, type AssignRow, type CourseRow } from './_v1-me.js'
 
 interface Json {
@@ -266,9 +267,49 @@ export async function courseFromOutline(
   if (buf.byteLength > MAX_BYTES) {
     return { status: 413, json: { error: 'That file is too large (max 4 MB).' } }
   }
+  // The same gates as the website: a PDF by its own bytes (not by the header
+  // the caller chose), and a page cap.
+  const bytes = new Uint8Array(buf)
+  if (!isPdf(bytes)) return { status: 415, json: { error: 'The body must be a PDF.' } }
+  if (pdfPageCount(bytes) > MAX_PAGES) {
+    return { status: 413, json: { error: `That PDF has more than ${MAX_PAGES} pages.` } }
+  }
+  void mimeType
 
-  const parsed = await extractOutline(buf, mimeType)
+  /*
+   * THE SAME LIMITER AS THE WEBSITE. This route used to call the model with no
+   * parse limit at all, so a personal token could spend the shared Gemini
+   * quota the upload page is careful with. ct_start_parse is the website's
+   * start_parse keyed on a user id (the service role has no auth.uid()), so
+   * both doors are held to one rule. It fails closed.
+   */
+  const slotRes = await rpcRaw('ct_start_parse', { p_uid: userId })
+  const slot = slotRes.ok
+    ? (slotRes.data as { allowed?: boolean; reason?: string; retry_after?: number; event_id?: string })
+    : null
+  if (!slot) return { status: 503, json: { error: 'Could not check the parse allowance. Try again.' } }
+  if (slot.allowed === false) {
+    return {
+      status: 429,
+      json: {
+        error: 'Syllabus parsing is rate limited for this account right now.',
+        reason: slot.reason ?? 'limited',
+        retry_after: slot.retry_after ?? null,
+      },
+    }
+  }
+
+  const parsed = await extractOutline(buf, 'application/pdf')
   if (!parsed.ok) {
+    // Our side of the line (timeout, unreachable, not configured) is handed
+    // back; a document the model read and could not use keeps the attempt.
+    if (slot.event_id) {
+      await rpcRaw('ct_finish_parse', {
+        p_event: slot.event_id,
+        p_error: parsed.detail ?? parsed.failure ?? 'unknown',
+        p_refund: parsed.failure !== 'unreadable',
+      })
+    }
     const status =
       parsed.failure === 'timeout' ? 504 : parsed.failure === 'not_configured' ? 500 : 502
     return {
@@ -284,7 +325,21 @@ export async function courseFromOutline(
   }
 
   const c = parsed.course
-  const created = await mine<CourseRow>(userId, 'courses', {
+  const term = c.term || String(q.term ?? '')
+
+  /*
+   * ONE COURSE PER COURSE (db/course_integrity.sql). If the student already has
+   * this code in this term, the outline goes INTO it rather than failing on
+   * the unique index or making a second copy.
+   */
+  const key = (v: string | null | undefined) => (v ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const termKey = (v: string | null | undefined) => (v ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+  const theirs = key(c.code)
+    ? ((await mine<CourseRow>(userId, 'courses?select=id,code,term,archived')) ?? [])
+    : []
+  const existing = theirs.find((r) => key(r.code) === key(c.code) && termKey(r.term) === termKey(term))
+
+  const created = existing ? [existing] : await mine<CourseRow>(userId, 'courses', {
     method: 'POST',
     noFilter: true,
     prefer: 'return=representation',
@@ -292,7 +347,7 @@ export async function courseFromOutline(
       user_id: userId,
       code: c.code ?? '',
       name: c.title ?? '',
-      term: c.term ?? String(q.term ?? ''),
+      term,
       section: c.section ?? '',
       professor: c.instructorName ?? '',
       prof_email: c.instructorEmail ?? '',
@@ -312,13 +367,15 @@ export async function courseFromOutline(
     title: a.title,
     type: KINDS.has(a.kind) ? a.kind : 'assignment',
     date: a.due ? new Date(a.due).toISOString() : null,
+    no_date: a.noDateNeeded && !a.due,
     weight: a.weight ?? 0,
     description: a.description ?? '',
     notes: '',
     status: 'not-started',
-    // It came from the professor's own document, which is what this badge
-    // has always meant.
-    provenance_status: 'official',
+    // UNVERIFIED, like every parse on the website. The model read the
+    // document; nobody has confirmed what it read, and a machine's reading of
+    // a PDF is not the professor's word. Official is earned, not assumed.
+    provenance_status: 'unverified',
     deleted: false,
   }))
 

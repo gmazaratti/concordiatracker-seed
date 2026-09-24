@@ -159,6 +159,8 @@ function Row({
             ariaLabel="Due date"
             value={a.due}
             clearable
+            noDate={!!a.noDate}
+            onNoDate={(v) => onPatch(a.id, { noDate: v })}
             onChange={(v) => onPatch(a.id, { due: v })}
           />
         </div>

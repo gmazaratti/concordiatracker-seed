@@ -105,7 +105,7 @@ export function dayItems(day: Date, src: CalendarSource, prefs: CalendarPrefs): 
   // on: it is your work (mine) placed against the university's calendar
   // (concordia), so hiding either should hide it.
   if (prefs.showMine && prefs.showConcordia) {
-    const undated = src.assessments.filter((a) => !a.due)
+    const undated = src.assessments.filter((a) => !a.due && !a.noDate)
     if (undated.length > 0) {
       const period = src.academic.find((e) => e.kind === 'exam' && e.start === key)
       if (period) items.push({ kind: 'undated', id: `undated-${key}`, items: undated, period })

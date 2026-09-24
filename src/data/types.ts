@@ -109,6 +109,13 @@ export interface Assessment {
   /** A richer description of the assessment (what it covers / format) — populated
    * by the AI syllabus parser; distinct from the user's free-form `notes`. */
   description?: string
+  /**
+   * "No date needed": graded without ever being due on a day (attendance,
+   * participation). Different from `due === null`, which means a date is
+   * coming. Only meaningful while `due` is null — setting a date clears it
+   * (the database enforces that too, db/no_date.sql).
+   */
+  noDate?: boolean
 }
 
 /** A personal calendar task/note the user adds (the "My calendar" layer, beyond

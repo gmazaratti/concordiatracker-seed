@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatDueDateTime, tbdLabel } from '@/lib/date'
+import { formatDueDateTime, noDateLabel, tbdLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { Select } from './Select'
 
@@ -51,6 +51,8 @@ export function DateTimePicker({
   onChange,
   ariaLabel,
   clearable = false,
+  noDate = false,
+  onNoDate,
 }: {
   /** Null means the date is genuinely not known yet, not "unset by mistake". */
   value: string | null
@@ -64,7 +66,23 @@ export function DateTimePicker({
    * the SOURCE may genuinely not have a date: a syllabus, a course outline.
    */
   clearable?: boolean
+  /**
+   * "No date needed" — a third answer, different from "No date yet".
+   *
+   * Attendance and participation are graded without ever being due on a day.
+   * "No date yet" says a date is coming and puts the item under "No date yet"
+   * on Today with a caution; this says none ever will, and does neither.
+   * Offered only when the caller passes `onNoDate`.
+   */
+  noDate?: boolean
+  onNoDate?: (noDate: boolean) => void
 }) {
+  // Any date (or "No date yet") is a different answer from "no date needed",
+  // so choosing one clears it — the two can never both be true.
+  const onChangeDate = (iso: string | null) => {
+    if (noDate) onNoDate?.(false)
+    onChange(iso)
+  }
   // With no date the calendar still has to open on some month and focus some
   // day. Today is the least surprising choice; nothing is marked selected.
   const selected = value ? new Date(value) : new Date()
@@ -91,14 +109,14 @@ export function DateTimePicker({
   function setDate(day: Date) {
     const next = new Date(selected)
     next.setFullYear(day.getFullYear(), day.getMonth(), day.getDate())
-    onChange(next.toISOString())
+    onChangeDate(next.toISOString())
     setFocusDay(day)
   }
   function setTime(h12: number, minute: number, ap: string) {
     const h24 = ap === 'PM' ? (h12 % 12) + 12 : h12 % 12
     const next = new Date(selected)
     next.setHours(h24, minute, 0, 0)
-    onChange(next.toISOString())
+    onChangeDate(next.toISOString())
   }
 
   // Move keyboard focus to the focused day cell.
@@ -161,7 +179,9 @@ export function DateTimePicker({
         className="flex w-full items-center gap-2 rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-left text-[13px] text-fg transition-colors hover:bg-surface"
       >
         <CalendarDays size={15} className="shrink-0 text-subtle" aria-hidden />
-        <span className="flex-1 truncate">{value ? formatDueDateTime(value) : tbdLabel()}</span>
+        <span className="flex-1 truncate">
+          {noDate ? noDateLabel() : value ? formatDueDateTime(value) : tbdLabel()}
+        </span>
       </button>
 
       {open &&
@@ -277,18 +297,35 @@ export function DateTimePicker({
                 <button
                   type="button"
                   onClick={() => {
-                    onChange(null)
+                    onChangeDate(null)
                     setOpen(false)
                     triggerRef.current?.focus()
                   }}
                   className={cn(
                     'shrink-0 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors',
-                    value
+                    value || noDate
                       ? 'border-border text-muted hover:text-fg'
                       : 'border-accent bg-accent-soft text-fg',
                   )}
                 >
                   No date yet
+                </button>
+              )}
+              {onNoDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(null)
+                    onNoDate(true)
+                    setOpen(false)
+                    triggerRef.current?.focus()
+                  }}
+                  className={cn(
+                    'shrink-0 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors',
+                    noDate ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:text-fg',
+                  )}
+                >
+                  No date needed
                 </button>
               )}
               <button

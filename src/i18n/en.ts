@@ -349,6 +349,8 @@ export const en = {
   'today.itemOne': 'item',
   'today.itemMany': 'items',
   'today.customize': 'Customize',
+  'today.addTask': 'Add task',
+  'today.addTaskTitle': 'Add a task',
   'today.customizeToday': 'Customize Today',
   'today.comingUp': 'Coming up',
   'today.noDateYet': 'No date yet',

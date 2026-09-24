@@ -43,6 +43,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const [gradeText, setGradeText] = useState(() => gradeToInput(assessment?.grade ?? null))
   // null is a real value here: an item whose date the syllabus never gave.
   const [dueISO, setDueISO] = useState<string | null>(assessment?.due ?? null)
+  const [noDate, setNoDate] = useState(!!assessment?.noDate)
   const [notes, setNotes] = useState(assessment?.notes ?? '')
   const [reminderOffset, setReminderOffset] = useState(0)
   const [reminderInitial, setReminderInitial] = useState(0)
@@ -74,9 +75,10 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const statusDirty = status !== assessment.status
   const gradeDirty = gradeError !== null || gradeToInput(parsed) !== gradeToInput(assessment.grade)
   const dueDirty = dueISO !== assessment.due
+  const noDateDirty = noDate !== !!assessment.noDate
   const notesDirty = notes !== assessment.notes
   const reminderDirty = reminderOffset !== reminderInitial
-  const dirty = statusDirty || gradeDirty || dueDirty || notesDirty || reminderDirty
+  const dirty = statusDirty || gradeDirty || dueDirty || noDateDirty || notesDirty || reminderDirty
 
   function save() {
     if (!assessment || !course || !dirty || gradeError) return
@@ -100,6 +102,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
     if (statusDirty) patch.status = status
     if (gradeDirty) patch.grade = parsed
     if (dueDirty) patch.due = dueISO
+    if (noDateDirty) patch.noDate = noDate
     if (notesDirty) patch.notes = notes
 
     closeTarget()
@@ -109,6 +112,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
         status: assessment.status,
         grade: assessment.grade,
         due: assessment.due,
+        noDate: !!assessment.noDate,
         notes: assessment.notes,
       }
       updateAssessment(assessment.id, patch)
@@ -209,6 +213,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <Field label="Due date & time">
             <DateTimePicker
               value={dueISO}
+              noDate={noDate}
+              onNoDate={setNoDate}
               clearable
               onChange={setDueISO}
               ariaLabel="Due date and time"

@@ -17,6 +17,7 @@
  * runtime — fetch / Request / Response are all standard, no Node deps.
  */
 import { extractOutline, MAX_BYTES } from './_parse-core.js'
+import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
 
 export const config = { runtime: 'edge' }
 
@@ -78,6 +79,12 @@ function rateLimitMessage(slot: Slot | null): string {
    * false claim this whole change exists to undo -- they were sold unlimited
    * and there is no allowance for them to have used up.
    */
+  // Every plan: ten model calls an hour. Worded as what it is, a pause on a
+  // burst, not an allowance they spent.
+  if (slot?.reason === 'hourly') {
+    const mins = Math.max(1, Math.ceil(Number(slot.retry_after ?? 3600) / 60))
+    return `That is ${slot.used ?? 10} syllabus uploads in the last hour, so parsing is paused for about ${mins} minute${mins === 1 ? '' : 's'}. Nothing is lost: try again then.`
+  }
   if (slot?.reason === 'daily') {
     return `That is ${slot.used ?? 40} syllabus uploads in a day, which is far past normal use, so we have paused parsing on this account for a few hours. If that was really you, reply to a support ticket and we will lift it.`
   }
@@ -149,13 +156,28 @@ export default async function handler(req: Request): Promise<Response> {
   const buf = await req.arrayBuffer()
   if (buf.byteLength === 0) return json({ error: 'No file received.' }, 400)
   if (buf.byteLength > MAX_BYTES) return json({ error: 'That file is too large (max 4 MB).' }, 413)
-  const mimeType = req.headers.get('content-type') || 'application/pdf'
+  // PDF is the one format supported, decided by the file's own first bytes —
+  // the Content-Type header is whatever the client chose to send, and it used
+  // to be handed to the model as the file's type.
+  const bytes = new Uint8Array(buf)
+  if (!isPdf(bytes)) return json({ error: 'That is not a PDF. Upload the outline as a PDF file.' }, 415)
+  if (pdfPageCount(bytes) > MAX_PAGES) {
+    return json(
+      { error: `That PDF has more than ${MAX_PAGES} pages. Upload just the course outline.` },
+      413,
+    )
+  }
+  const mimeType = 'application/pdf'
 
-  // 3. Rate limit (cooldown + monthly cap), enforced in the DB — this is the
+  // 3. Rate limit (cooldown, hourly, monthly/daily caps), enforced in the DB — this is the
   //    only path to Gemini, so a user can't spam it or starve the shared quota.
-  // Fail OPEN when there's no verdict (RPC missing pre-migration, or a transient
-  // DB error) — only block on an explicit denial, so the feature stays available.
   const slot = await callRpc('start_parse', {}, supabaseUrl, supabaseAnon, token)
+  // FAIL CLOSED. This used to run the model whenever the limiter did not
+  // answer, which made "the database is slow" the same as "no limit" — the
+  // one moment a burst could spend the shared key unchecked.
+  if (!slot) {
+    return json({ error: 'Couldn’t check your upload allowance just now. Try again in a moment.' }, 503)
+  }
   if (slot?.reason === 'auth') return json({ error: 'Your session expired — sign in again.' }, 401)
   if (slot && slot.allowed === false) return json({ error: rateLimitMessage(slot) }, 429)
 
@@ -236,7 +258,9 @@ export default async function handler(req: Request): Promise<Response> {
     )
   }
 
-  const out = { course: parsed.course, assessments: parsed.assessments }
+  // Already narrowed by cleanParse. Returned to THIS student only: nothing here
+  // is written anywhere — it becomes their own course's rows when they confirm.
+  const out = { course: parsed.course, assessments: parsed.assessments, warnings: parsed.warnings ?? [] }
 
   return json(out)
 }

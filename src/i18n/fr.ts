@@ -356,6 +356,8 @@ export const fr: Partial<Record<Key, string>> = {
   'today.itemOne': 'élément',
   'today.itemMany': 'éléments',
   'today.customize': 'Personnaliser',
+  'today.addTask': 'Ajouter une tâche',
+  'today.addTaskTitle': 'Ajouter une tâche',
   'today.customizeToday': 'Personnaliser Aujourd’hui',
   'today.comingUp': 'À venir',
   'today.noDateYet': 'Date à confirmer',

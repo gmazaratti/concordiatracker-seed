@@ -37,7 +37,9 @@ export interface DueGroups {
  * due beyond the week horizon, is intentionally left off this screen. */
 export function groupDue(assessments: Assessment[]): DueGroups {
   const outstanding = assessments.filter((a) => isOpen(a.status))
-  const undated = outstanding.filter((a) => !a.due)
+  // "No date needed" (attendance, participation) is not waiting on a date, so
+  // it is not "No date yet" — it is simply not a deadline, and Today is for those.
+  const undated = outstanding.filter((a) => !a.due && !a.noDate)
   // Everything below reasons about a point in time, so it works on the dated
   // half only. Narrowed once here rather than re-checked in six places.
   const dated = outstanding.filter((a): a is Assessment & { due: string } => !!a.due)

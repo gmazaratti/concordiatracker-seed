@@ -30,6 +30,11 @@ export function tbdLabel(): string {
   return LANG === 'fr' ? 'Date à confirmer' : 'Date not set'
 }
 
+/** For an item graded without ever being due on a day: attendance, participation. */
+export function noDateLabel(): string {
+  return LANG === 'fr' ? 'Aucune date requise' : 'No date needed'
+}
+
 /**
  * Sort comparator for anything with a due date.
  *

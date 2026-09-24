@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { byDue, daysUntil } from '@/lib/date'
-import { CheckCircle2, ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Plus, SlidersHorizontal } from 'lucide-react'
 import type { Assessment, AssessmentStatus, CalendarTask, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
@@ -12,6 +13,17 @@ import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
 import { TaskDueRow } from './TaskDueRow'
 import { CustomizeToday } from './CustomizeToday'
+import { ModalShell } from '@/command/ModalShell'
+import { TaskEditor } from '@/features/calendar/TaskEditor'
+
+/** A task added from Today is due today: end of day, so it does not read as
+ *  overdue an hour after it was written down. Module-level — reading the clock
+ *  is not allowed during render. */
+function endOfToday(): string {
+  const d = new Date()
+  d.setHours(23, 59, 0, 0)
+  return d.toISOString()
+}
 import type { DueGroups } from './due'
 
 /**
@@ -172,6 +184,7 @@ export function DueList({
 }) {
   const t = useT()
   const [customizeOpen, setCustomizeOpen] = useState(false)
+  const [addingTask, setAddingTask] = useState(false)
   // Long sections (a pile of overdue, say) collapse past this — the list stays
   // one calm screen and the rest sits behind "Show N more".
   const CAP = compact ? 3 : 5
@@ -195,6 +208,18 @@ export function DueList({
               {groups.total} {groups.total === 1 ? t('today.itemOne') : t('today.itemMany')}
             </span>
           )}
+          {/* Tasks are added from the calendar's day view, which nobody finds
+              from here. The same editor, one tap from the list it adds to. */}
+          <button
+            type="button"
+            onClick={() => setAddingTask(true)}
+            aria-label={t('today.addTaskTitle')}
+            title={t('today.addTaskTitle')}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <Plus size={14} aria-hidden />
+            <span className="hidden sm:inline">{t('today.addTask')}</span>
+          </button>
           <button
             type="button"
             data-tour="customize"
@@ -214,6 +239,17 @@ export function DueList({
       </div>
 
       {customizeOpen && <CustomizeToday prefs={prefs} onChange={onPrefsChange} />}
+
+      {addingTask &&
+        createPortal(
+          <ModalShell label={t('today.addTaskTitle')} onClose={() => setAddingTask(false)}>
+            <div className="p-5">
+              <h2 className="mb-3 font-display text-[18px] font-semibold text-fg">{t('today.addTaskTitle')}</h2>
+              <TaskEditor defaultDue={endOfToday()} onDone={() => setAddingTask(false)} />
+            </div>
+          </ModalShell>,
+          document.body,
+        )}
 
       {sections.length === 0 ? (
         <EmptyState />

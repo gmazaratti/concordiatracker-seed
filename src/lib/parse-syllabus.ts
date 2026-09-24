@@ -10,6 +10,9 @@ export interface ParsedAssessment {
   /** Percent of final grade (0–100), or null if not stated. */
   weight: number | null
   description: string
+  /** Graded with no date at all (attendance, participation). Absent from an
+   *  older server; treat as false. */
+  noDateNeeded?: boolean
 }
 
 export interface ParsedSyllabus {
@@ -25,6 +28,8 @@ export interface ParsedSyllabus {
     gradingScale?: string
   }
   assessments: ParsedAssessment[]
+  /** Things the server wants the student to check (an impossible weight total). */
+  warnings?: string[]
 }
 
 const KINDS: AssessmentKind[] = ['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project']
