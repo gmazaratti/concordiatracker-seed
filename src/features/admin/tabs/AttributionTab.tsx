@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, Compass, Loader2 } from 'lucide-react'
 import { AttributionPeople } from './AttributionPeople'
+import { RefSignups } from './RefSignups'
 import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
 import { HEARD_LABELS, HEARD_SOURCES } from '@/features/onboarding/heard-about'
@@ -79,6 +80,8 @@ export function AttributionTab() {
           </p>
         </div>
       </div>
+
+      <RefSignups />
 
       <div className="space-y-2.5 rounded-xl border border-border bg-surface p-4">
         {answered === 0 ? (
