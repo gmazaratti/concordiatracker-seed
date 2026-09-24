@@ -877,6 +877,20 @@ export async function buildAgentPages({ dist, pages }) {
   await writeFile(path.join(dist, 'index.md'), homeMarkdown(), 'utf8')
   written.push('index.md')
 
+  /* 3b. /r: the homepage, attributed to Reddit by the client (a cookie), and
+        NOINDEX IN THE SERVED HTML. The app also sets noindex once it runs,
+        but a crawler that reads the HTML without running JavaScript would
+        otherwise see the homepage's "index, follow". Same content and JSON-LD
+        as index.html; the canonical stays on `/`. */
+  const refPage = html.replace(
+    /<meta name="robots" content="[^"]*" \/>/,
+    '<meta name="robots" content="noindex, follow" />',
+  )
+  if (refPage === html) throw new Error('could not set noindex on prerendered/r.html')
+  await mkdir(path.join(dist, 'prerendered'), { recursive: true })
+  await writeFile(path.join(dist, 'prerendered', 'r.html'), refPage, 'utf8')
+  written.push('prerendered/r.html (noindex)')
+
   /* 4. Legal documents, prerendered into a copy of the shell. */
   const legal = await loadLegalDocs()
   const prerenderDir = path.join(dist, 'prerendered')

@@ -134,7 +134,6 @@ const appRoutes = [
   '/dev/login',
   '/e/ev-techfair',
   '/reset-password',
-  '/r',
   '/s/sometoken',
   '/legal/privacy',
   '/concordia-gpa-calculator',
@@ -145,6 +144,13 @@ const appRoutes = [
 for (const r of appRoutes) {
   const dest = resolve(r)
   check(`${r} → app shell`, dest === '/index.html', dest ?? '(no match)')
+}
+
+console.log('\n/r must reach its own prerendered, noindex copy of the homepage')
+{
+  const dest = resolve('/r')
+  check('/r → prerendered/r.html', dest === '/prerendered/r.html', dest ?? '(no match)')
+  if (dest === '/prerendered/r.html') check('/r target exists', isStatic(dest), dest)
 }
 
 console.log('\nLegal routes that must reach a prerendered document')

@@ -22,6 +22,7 @@ export function RefLanding({ source }: { source: string }) {
   useLayoutEffect(() => {
     setRefSource(source)
   }, [source])
-  useNoIndex()
+  // Same directive as the served HTML (prerendered/r.html): out of the index, links followed.
+  useNoIndex('noindex, follow')
   return <LandingPage />
 }

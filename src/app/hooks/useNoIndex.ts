@@ -12,7 +12,7 @@ import { useEffect } from 'react'
  * to each crawler's tie-break. The original value is put back on unmount, so the
  * next page in the SPA is indexed normally.
  */
-export function useNoIndex() {
+export function useNoIndex(content = 'noindex, nofollow') {
   useEffect(() => {
     let meta = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]')
     const created = !meta
@@ -22,10 +22,10 @@ export function useNoIndex() {
       document.head.appendChild(meta)
     }
     const previous = meta.content
-    meta.content = 'noindex, nofollow'
+    meta.content = content
     return () => {
       if (created) meta.remove()
       else meta.content = previous
     }
-  }, [])
+  }, [content])
 }
