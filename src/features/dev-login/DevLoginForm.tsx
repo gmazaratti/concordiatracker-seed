@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button'
 import { GoogleGlyph } from '@/components/GoogleGlyph'
 import { AppleGlyph } from '@/components/AppleGlyph'
 import { checkSignup, readAttempts, recordAttempt, waitLabel } from '@/lib/signup-throttle'
-import { authReturn, explainAuthError } from '@/lib/auth-return'
+import { authReturn, explainAuthError, oauthProblem } from '@/lib/auth-return'
+import { ForgotPasswordForm } from '@/features/auth/ForgotPasswordForm'
 import { cn } from '@/lib/cn'
 
 const field =
@@ -33,11 +34,18 @@ export function DevLoginForm() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(
-    authReturn.error ? explainAuthError(authReturn.error) : null,
-  )
+  const [error, setError] = useState<string | null>(() => {
+    if (!authReturn.error) return null
+    const problem = oauthProblem(authReturn.error)
+    if (problem) {
+      return problem.kind === 'conflict'
+        ? t('auth.oauthConflict', { provider: problem.provider ?? 'it' })
+        : t('auth.oauthFailed', { provider: problem.provider ?? 'That' })
+    }
+    return explainAuthError(authReturn.error)
+  })
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin')
   const [agreed, setAgreed] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -51,7 +59,7 @@ export function DevLoginForm() {
     if (submitted && user) navigate('/app', { replace: true })
   }, [submitted, user, navigate])
 
-  function switchMode(next: 'signin' | 'signup') {
+  function switchMode(next: 'signin' | 'signup' | 'reset') {
     setMode(next)
     setError(null)
     setSentTo(null)
@@ -114,9 +122,17 @@ export function DevLoginForm() {
     setSubmitted(true)
     const { error } = await signInWithPassword(email.trim(), password)
     if (error) {
-      setError(error)
+      setError(/invalid login credentials/i.test(error) ? t('auth.wrongPassword') : error)
       setBusy(false)
     }
+  }
+
+  if (mode === 'reset') {
+    return (
+      <div className="w-full max-w-[380px]">
+        <ForgotPasswordForm initialEmail={email} onBack={() => switchMode('signin')} />
+      </div>
+    )
   }
 
   return (
@@ -171,6 +187,15 @@ export function DevLoginForm() {
           />
           {creating && <span className="mt-1.5 block text-[12px] text-subtle">{t('auth.passwordHint')}</span>}
         </label>
+        {!creating && (
+          <button
+            type="button"
+            onClick={() => switchMode('reset')}
+            className="-mt-1.5 self-end text-[12.5px] font-medium text-accent hover:underline"
+          >
+            {t('auth.forgot')}
+          </button>
+        )}
 
         {error && (
           <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-[12.5px] text-danger">
