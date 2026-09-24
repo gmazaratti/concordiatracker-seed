@@ -64,6 +64,8 @@ const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInv
 const OrgMemberInvitePage = lazy(() => import('@/features/organizer/OrgMemberInvitePage').then((x) => ({ default: x.OrgMemberInvitePage })))
 const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({ default: x.LegalPage })))
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
+const DevLandingPage = lazy(() => import('@/features/dev-landing/DevLandingPage').then((x) => ({ default: x.DevLandingPage })))
+const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then((x) => ({ default: x.DevLoginPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
 /** Route tree for the three contexts: public, student app, teacher portal. */
@@ -182,6 +184,11 @@ export function AppRoutes() {
 
       {/* Throwaway full-bleed promo reel for screen recording: not in app nav */}
       <Route path="/demo" element={<DemoReel />} />
+
+      {/* Hidden design drafts: not linked from the live site, noindex while
+          mounted, and disallowed in robots.txt. */}
+      <Route path="/dev/landing" element={<DevLandingPage />} />
+      <Route path="/dev/login" element={<DevLoginPage />} />
 
       {/* Public user profile: concordiatracker.com/@handle (anyone can view).
           Dynamic single-segment, so every static route above wins; the component

@@ -129,6 +129,8 @@ const appRoutes = [
   '/survey',
   '/onboarding',
   '/demo',
+  '/dev/landing',
+  '/dev/login',
   '/e/ev-techfair',
   '/s/sometoken',
   '/legal/privacy',
@@ -259,6 +261,7 @@ const notFound = [
   '/wp-admin',
   '/.env',
   '/docs/introduction/extra',
+  '/dev/nothing',
 ]
 for (const r of notFound) {
   const dest = resolve(r)

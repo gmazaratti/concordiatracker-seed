@@ -10,6 +10,7 @@ Disallow: /organizer
 Disallow: /onboarding
 Disallow: /feedback
 Disallow: /demo
+Disallow: /dev/
 
 # Machine-readable indexes for agents and answer engines.
 # llms.txt carries a "when to use this" section; openapi.json describes the API.
