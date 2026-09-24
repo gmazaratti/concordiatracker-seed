@@ -5,6 +5,7 @@
  * same reason the outline sync is: Hobby allows 12 Serverless Functions and a
  * thirteenth fails the entire deploy. See the note in sync-catalog.ts.
  */
+import { cleanupFailedParses } from './_parse-cleanup.js'
 import { syncOneConnection } from './_moodle.js'
 import { fail } from './_respond.js'
 
@@ -44,6 +45,8 @@ export async function syncMoodle(req: any, res: any): Promise<void> {
   }
 
   const svc = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
+  // Daily housekeeping that needs no function of its own (see _parse-cleanup.ts).
+  await cleanupFailedParses(supabaseUrl, serviceKey)
 
   /**
    * Oldest-checked first, so a run that is cut short still makes progress and

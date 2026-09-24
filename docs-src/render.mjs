@@ -227,7 +227,7 @@ export function renderPage({ page, nav, prev, next, searchIndex, year }) {
   <form method="dialog" class="support-x"><button aria-label="Close">&times;</button></form>
   <div id="support-body">
     <h2>Contact support</h2>
-    <p class="support-lead">Tell us what is going wrong and we will reply by email. No account needed.</p>
+    <p class="support-lead">Tell us what is going wrong. We typically reply within the hour, by email. No account needed.</p>
     <label>Your email<input type="email" id="s-email" autocomplete="email" required /></label>
     <label>Your name <span class="opt">(optional)</span><input type="text" id="s-name" autocomplete="name" /></label>
     <label id="s-cat-label">What is this about?
@@ -447,7 +447,7 @@ sendBtn.addEventListener('click', function () {
       if (!res.ok) throw new Error(res.d && res.d.error ? res.d.error : 'Could not send that.');
       document.getElementById('support-body').innerHTML =
         '<div class="support-ok"><h2>Ticket created</h2>' +
-        '<p class="support-lead">Keep this case number — it is how you check for a reply.</p>' +
+        '<p class="support-lead">Got it, we’ve received your message and typically reply within the hour. Keep this case number — it is how you check for the reply.</p>' +
         '<p class="case">' + res.d.caseId + '</p>' +
         '<p class="support-foot"><a href="/docs/support-status?case=' + encodeURIComponent(res.d.caseId) +
         '&token=' + encodeURIComponent(res.d.token) + '">Open this conversation</a> — bookmark that link.</p></div>';

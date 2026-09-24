@@ -82,12 +82,16 @@ export interface CleanCourse {
   gradingScale: string
 }
 
+/** Titles that name submitted work repeated through the term. */
+export const RECURRING_DELIVERABLE =
+  /\bweekly\b|\bbi-?weekly\b|\beach week\b|\bposts?\b|\bforums?\b|\bjournals?\b|\bresponses?\b|\breflections?\b|\bblogs?\b|\bdiscussion board\b/i
+
 /** Control characters and bidi overrides out, whitespace collapsed, capped. */
 export function cleanText(value: unknown, max: number): string {
   if (typeof value !== 'string') return ''
   return value
     // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, ' ')
+    .replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max)
@@ -152,7 +156,11 @@ export function cleanParse(raw: { course?: unknown; assessments?: unknown }): {
     const kind = (KINDS as readonly string[]).includes(a.kind as string)
       ? (a.kind as CleanAssessment['kind'])
       : 'assignment'
-    const noDateNeeded = a.noDateNeeded === true
+    // A deliverable that recurs is still a deliverable. "No date needed" hides an
+    // item from Today, Radar and the calendar, which is right for attendance and
+    // wrong for twelve weekly Moodle posts worth 15% — so a title that names
+    // recurring submitted work overrules the model and stays "date not set".
+    const noDateNeeded = a.noDateNeeded === true && !RECURRING_DELIVERABLE.test(title)
     return [
       {
         title,

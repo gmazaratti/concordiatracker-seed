@@ -178,7 +178,8 @@ export interface TeacherContextValue {
    *  RPCs (roles, ownership), which this provider cannot see happen. */
   refreshOrgs: () => void
   /** Accept a teammate invite link → activates the member; resolves true on success. */
-  acceptOrgMemberInvite: (token: string) => Promise<boolean>
+  /** The org joined (or the demo org's id); null when the invite did not accept. */
+  acceptOrgMemberInvite: (token: string) => Promise<string | null>
   /** Remove a teammate (or revoke a pending invite). Owners can't be removed. */
   removeOrgMember: (id: string) => void
   /** What the SIGNED-IN user may do in the current org (owner/demo → all),

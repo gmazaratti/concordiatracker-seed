@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { getParseUsage, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
+import { getParseUsage, loadParseRetry, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
 import { KIND_LABEL } from '@/lib/assessment'
 import { MascotLoading } from '@/components/Mascot'
 import { ScanTips } from './ScanTips'
@@ -167,6 +167,51 @@ export function SyllabusUploadPage({
     void getParseUsage().then(setUsage)
   }, [])
 
+  function applyParsed(parsed: ParsedSyllabus) {
+    const c = parsed.course
+    setCourse({
+      code: c.code ?? '',
+      title: c.title ?? '',
+      term: c.term ?? '',
+      section: c.section ?? '',
+      instructorName: c.instructorName ?? '',
+      instructorEmail: c.instructorEmail ?? '',
+      taName: c.taName ?? '',
+      taEmail: c.taEmail ?? '',
+      gradingScale: c.gradingScale ?? '',
+    })
+    setItems(toReview(parsed))
+    setWarnings(parsed.warnings ?? [])
+    setPhase('review')
+  }
+
+  /*
+   * A RETRIED PARSE. When an upload failed and an admin re-ran it, the student
+   * is sent here with `?retry=<id>`. The result was never written into their
+   * courses — that is their decision — so it opens in the same review they
+   * would have seen had it worked the first time.
+   */
+  const [params] = useSearchParams()
+  const retryId = embedded || intoCourseId ? null : params.get('retry')
+  useEffect(() => {
+    if (!retryId) return
+    let active = true
+    void loadParseRetry(retryId).then((parsed) => {
+      if (!active) return
+      if (!parsed) {
+        setError('That re-read is no longer available. Upload the syllabus again.')
+        setPhase('error')
+        return
+      }
+      setFileName('your syllabus')
+      applyParsed(parsed)
+    })
+    return () => {
+      active = false
+    }
+  }, [retryId])
+
+
   async function handleFile(file: File) {
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       setError('Please choose a PDF file.')
@@ -183,21 +228,7 @@ export function SyllabusUploadPage({
     setError('')
     try {
       const parsed = await parseSyllabusPdf(file)
-      const c = parsed.course
-      setCourse({
-        code: c.code ?? '',
-        title: c.title ?? '',
-        term: c.term ?? '',
-        section: c.section ?? '',
-        instructorName: c.instructorName ?? '',
-        instructorEmail: c.instructorEmail ?? '',
-        taName: c.taName ?? '',
-        taEmail: c.taEmail ?? '',
-        gradingScale: c.gradingScale ?? '',
-      })
-      setItems(toReview(parsed))
-      setWarnings(parsed.warnings ?? [])
-      setPhase('review')
+      applyParsed(parsed)
       void getParseUsage().then(setUsage) // a successful parse consumed one
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')

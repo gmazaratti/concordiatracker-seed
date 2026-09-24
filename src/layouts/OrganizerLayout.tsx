@@ -10,6 +10,7 @@ import { OrgLogo } from '@/features/community/OrgLogo'
 import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { MemberPanelProvider } from '@/features/organizer/member-panel/MemberPanelProvider'
 import { OrgBell } from '@/features/organizer/OrgNotifications'
+import { MobilePortalNav } from '@/features/organizer/MobilePortalNav'
 import { cn } from '@/lib/cn'
 
 const NAV: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = [
@@ -253,24 +254,7 @@ export function OrganizerLayout() {
             scrolls inside itself; `overflow-x-auto` on the nav means the PAGE
             still never scrolls sideways, the same answer the Planner tab strip
             landed on. */}
-        <nav className="flex overflow-x-auto border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] [scrollbar-width:none] md:hidden">
-          {nav.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'flex shrink-0 flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-medium whitespace-nowrap transition-colors duration-150',
-                  isActive ? 'text-accent' : 'text-subtle',
-                )
-              }
-            >
-              <Icon size={19} aria-hidden />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <MobilePortalNav items={nav} />
       </div>
     </div>
     </MemberPanelProvider>

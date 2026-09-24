@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Activity, Check, ChevronRight, Copy, Lock, UserPlus } from 'lucide-react'
+import { Activity, ChevronRight } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { supabase } from '@/lib/supabase'
 import type { OrgMember, OrgRole } from '@/data/teacher'
-import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
 import { roleIdOf, setMemberRole, type OrgRoleDef } from '@/lib/org-roles'
 import { isDemoOrgId } from '@/lib/demo-org'
 import { cn } from '@/lib/cn'
@@ -13,9 +11,7 @@ import { MemberAvatar } from './MemberAvatar'
 import { RoleChip } from './RoleChip'
 import { useOrgRoles } from './use-org-roles'
 import { useMemberPanel } from './member-panel/member-panel'
-
-const field =
-  'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
+import { InviteForm } from './team/InviteForm'
 
 function joinedLabel(days: number): string {
   if (days <= 0) return 'Joined today'
@@ -54,13 +50,16 @@ export function OrganizerTeam() {
 
       {canInvite && roles && (
         <InviteForm
+          orgId={orgId}
           roles={roles}
           mine={mine}
-          onInvite={(input, role) => {
-            const m = inviteOrgMember({ ...input, role: legacyFor(role), roleId: isDemoOrgId(orgId) ? undefined : role.id })
-            if (isDemoOrgId(orgId)) void setMemberRole(m.id, role.id).then(refreshOrgs)
+          demo={isDemoOrgId(orgId)}
+          onDemoInvite={(input, role) => {
+            const m = inviteOrgMember({ ...input, role: legacyFor(role) })
+            void setMemberRole(m.id, role.id).then(refreshOrgs)
             return m.inviteToken ?? null
           }}
+          onInvited={refreshOrgs}
         />
       )}
 
@@ -79,101 +78,6 @@ export function OrganizerTeam() {
       </ul>
 
       <ActivityTrail orgId={orgId} real={!isDemoSession} onActor={(userId, name) => openMember({ userId, name })} />
-    </div>
-  )
-}
-
-function InviteForm({
-  roles,
-  mine,
-  onInvite,
-}: {
-  roles: OrgRoleDef[]
-  mine: number
-  onInvite: (input: { name: string; email: string }, role: OrgRoleDef) => string | null
-}) {
-  // Only roles strictly below yours: the database refuses anything else, so
-  // the list is shorter rather than the error longer.
-  const grantable = useMemo(() => roles.filter((r) => r.position < mine && !r.isOwner), [roles, mine])
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [roleId, setRoleId] = useState('')
-  const [token, setToken] = useState<string | null>(null)
-  const chosen = grantable.find((r) => r.id === roleId) ?? grantable.find((r) => r.systemKey === 'member') ?? grantable.at(-1)
-
-  if (grantable.length === 0) return null
-
-  return (
-    <div className="mt-5 rounded-xl border border-border bg-surface p-4">
-      <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
-        <UserPlus size={15} className="text-accent" aria-hidden />
-        Invite a teammate
-      </h2>
-      <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-end">
-        <label className="flex-1">
-          <span className="mb-1 block text-[12px] font-medium text-muted">Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className={field} />
-        </label>
-        <label className="flex-1">
-          <span className="mb-1 block text-[12px] font-medium text-muted">Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="them@club.ca" className={field} />
-        </label>
-        <label className="sm:w-44">
-          <span className="mb-1 block text-[12px] font-medium text-muted">Role</span>
-          <Select
-            ariaLabel="Role"
-            value={chosen?.id ?? ''}
-            onChange={setRoleId}
-            options={grantable.map((r) => ({ value: r.id, label: r.name }))}
-          />
-        </label>
-        <Button
-          disabled={!name.trim() || !email.trim() || !chosen}
-          onClick={() => {
-            if (!chosen) return
-            setToken(onInvite({ name: name.trim(), email: email.trim() }, chosen))
-            setName('')
-            setEmail('')
-          }}
-        >
-          Create invite link
-        </Button>
-      </div>
-      {token && <InviteLink token={token} />}
-      <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-subtle">
-        <Lock size={12} className="mt-0.5 shrink-0" aria-hidden />
-        You can invite people to any role below your own. Invite emails are not sent yet: share the
-        link directly.
-      </p>
-    </div>
-  )
-}
-
-function InviteLink({ token }: { token: string }) {
-  const [copied, setCopied] = useState(false)
-  const path = `/organizer/join/${token}`
-  return (
-    <div className="mt-3 rounded-lg border border-success/30 bg-success/10 p-3">
-      <p className="text-[12px] font-medium text-success">Invite link created.</p>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded bg-surface-2 px-2 py-1 text-[11px] text-muted">{path}</code>
-        <button
-          type="button"
-          onClick={() =>
-            navigator.clipboard?.writeText(`${window.location.origin}${path}`).then(
-              () => setCopied(true),
-              () => setCopied(false),
-            )
-          }
-          className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-        >
-          {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-        <Link to={path} className="text-[12px] font-medium text-accent hover:underline">
-          Open
-        </Link>
-      </div>
     </div>
   )
 }

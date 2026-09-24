@@ -91,9 +91,12 @@ export function SupportModal({ onClose }: { onClose: () => void }) {
         )}
         {view.mode === 'new' && (
           <NewTicketForm
-            onDone={() => {
+            onDone={async (caseId) => {
               refresh()
-              setView({ mode: 'list' })
+              // Straight into the conversation, where the "we've received it"
+              // line sits under what they just wrote — not back to a list.
+              const t = caseId ? (await myTickets().catch(() => [])).find((x) => x.case_id === caseId) : undefined
+              setView(t ? { mode: 'thread', ticket: t } : { mode: 'list' })
             }}
           />
         )}
@@ -159,7 +162,7 @@ function TicketList({
         <h3 className="font-display text-[17px] font-medium text-fg">No tickets yet</h3>
         <p className="max-w-xs text-[13px] text-muted">
           Something not working, or a question about your account? Open a ticket and we&rsquo;ll
-          reply here.
+          reply here, typically within the hour.
         </p>
         <button
           type="button"
@@ -199,7 +202,7 @@ function TicketList({
   )
 }
 
-function NewTicketForm({ onDone }: { onDone: () => void }) {
+function NewTicketForm({ onDone }: { onDone: (caseId: string) => void }) {
   const [subject, setSubject] = useState('')
   const [category, setCategory] = useState<TicketCategory>('bug')
   const [message, setMessage] = useState('')
@@ -214,8 +217,8 @@ function NewTicketForm({ onDone }: { onDone: () => void }) {
     setBusy(true)
     setError(null)
     try {
-      await submitTicket({ subject, message, category })
-      onDone()
+      const { caseId } = await submitTicket({ subject, message, category })
+      onDone(caseId)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not create that ticket.')
     } finally {
@@ -270,7 +273,7 @@ function NewTicketForm({ onDone }: { onDone: () => void }) {
         Send ticket
       </button>
       <p className="mt-2 text-center text-[11.5px] text-subtle">
-        We reply in this panel, and you can follow up here any time.
+        We typically reply within the hour, right here in this panel.
       </p>
     </div>
   )

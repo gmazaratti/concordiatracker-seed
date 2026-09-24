@@ -1364,7 +1364,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   )
 
   const acceptOrgMemberInvite = useCallback(
-    async (token: string): Promise<boolean> => {
+    async (token: string): Promise<string | null> => {
       // Demo/seed orgs hold their members in memory.
       const demo = orgs.find((o) => o.members.some((m) => m.inviteToken === token))
       if (demo) {
@@ -1383,14 +1383,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           ),
         )
         setSessionId(demo.id)
-        return true
+        return demo.id
       }
       // A real invite lives in org_members → activate via the definer RPC (the
       // invitee isn't the owner, so RLS can't let them UPDATE directly).
       const { data: orgId } = await supabase.rpc('accept_org_member_invite', { p_token: token })
-      if (!orgId) return false
+      if (!orgId) return null
       if (myOrg && myOrg.id === orgId) setSessionId(SELF_ORG)
-      return true
+      return orgId as string
     },
     [orgs, myOrg],
   )

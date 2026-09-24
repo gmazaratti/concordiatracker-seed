@@ -18,8 +18,19 @@
 import { stripeByEmail, stripeRollup, stripeMode } from './_stripe-admin.js'
 import { fail } from './_respond.js'
 import { sendEmail } from './_email.js'
+import { extractOutline } from './_parse-core.js'
 
-export const config = { maxDuration: 30 }
+export const config = { maxDuration: 60 }
+
+/** The caller's user id, read from a token `is_admin()` has already accepted. */
+function jwtSub(jwt: string): string | null {
+  try {
+    const part = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return (JSON.parse(Buffer.from(part, 'base64').toString('utf8')) as { sub?: string }).sub ?? null
+  } catch {
+    return null
+  }
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function handler(req: any, res: any) {
@@ -306,8 +317,97 @@ export default async function handler(req: any, res: any) {
       return
     }
 
+    /**
+     * Re-run a failed syllabus parse on the file the student uploaded.
+     *
+     * Only failed uploads are kept (30 days, private bucket), so this can only
+     * ever be asked about a failure. The result is NOT written into anybody's
+     * courses: it is stored on the parse and the student is notified with a
+     * link to review it, because adding assessments to a student's list is
+     * their decision, not an admin's.
+     */
+    if (action === 'parse-retry') {
+      const id = String(req.query?.id ?? '').trim()
+      if (!/^[0-9a-f-]{36}$/i.test(id)) {
+        fail(res, 400, 'Which parse? Pass ?id=<parse event id>.', { code: 'bad_request' })
+        return
+      }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const rows = await fetch(
+        `${url}/rest/v1/parse_events?id=eq.${id}&select=id,user_id,file_path,file_name,success`,
+        { headers: svc },
+      ).then((r) => r.json())
+      const ev = Array.isArray(rows) ? rows[0] : null
+      if (!ev) {
+        fail(res, 404, 'No parse with that id.', { code: 'not_found' })
+        return
+      }
+      if (!ev.file_path) {
+        fail(res, 409, 'That upload was not kept, so there is nothing to retry.', {
+          code: 'conflict',
+          hint: 'Only failed uploads since the retry feature shipped are kept, for 30 days.',
+        })
+        return
+      }
+      const file = await fetch(`${url}/storage/v1/object/parse-failures/${ev.file_path}`, { headers: svc })
+      if (!file.ok) {
+        fail(res, 404, 'The stored file could not be read. It may have been cleaned up.', { code: 'not_found' })
+        return
+      }
+      const buf = await file.arrayBuffer()
+      const started = Date.now()
+      const parsed = await extractOutline(buf, 'application/pdf')
+      const adminId = jwtSub(jwt)
+      const ok = parsed.ok && parsed.assessments.length > 0
+      await fetch(`${url}/rest/v1/parse_events?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          retry_status: ok ? 'succeeded' : 'failed',
+          retry_error: ok
+            ? null
+            : parsed.ok
+              ? 'Read the file but found no assessments.'
+              : (parsed.detail ?? parsed.failure ?? 'unknown').slice(0, 400),
+          retry_result: ok
+            ? { course: parsed.course, assessments: parsed.assessments, warnings: parsed.warnings ?? [] }
+            : null,
+          retried_at: new Date().toISOString(),
+          retried_by: adminId,
+        }),
+      })
+      if (ok) {
+        const code = parsed.course?.code ? ` (${parsed.course.code})` : ''
+        const n = parsed.assessments.length
+        await fetch(`${url}/rest/v1/rpc/ct_notify`, {
+          method: 'POST',
+          headers: { ...svc, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            p_users: [ev.user_id],
+            p_kind: 'parse_retry',
+            p_title: 'Your syllabus is ready to review',
+            p_body: `We re-read ${ev.file_name || 'the syllabus you uploaded'}${code} and found ${n} assessment${n === 1 ? '' : 's'}. Check them before adding.`,
+            p_link: `/app/courses/upload?retry=${id}`,
+            p_subject: null,
+            p_actor: 'ConcordiaTracker',
+          }),
+        })
+      }
+      res.setHeader('Cache-Control', 'no-store')
+      res.status(200).json({
+        ok,
+        items: parsed.ok ? parsed.assessments.length : 0,
+        course: parsed.ok ? parsed.course?.code ?? null : null,
+        path: parsed.how,
+        duration_ms: Date.now() - started,
+        error: ok ? null : parsed.ok ? 'no assessments found' : parsed.detail ?? parsed.failure,
+        notified: ok,
+      })
+      return
+    }
+
     fail(res, 400, 'Unknown action.', {
-      hint: 'stripe-user | stripe-rollup | reconcile | dashboard',
+      hint: 'stripe-user | stripe-rollup | reconcile | dashboard | parse-retry',
     })
   } catch (e) {
     // Stripe's own message is the useful one here; the caller is an admin.

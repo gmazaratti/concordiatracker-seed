@@ -104,6 +104,19 @@ check('an impossible weight is null', out.assessments[3].weight === null)
 check('descriptions are capped', out.assessments[3].description.length === 400)
 check('a sane total raises no warning', out.warnings.length === 0, out.warnings)
 
+const recurring = cleanParse({
+  assessments: [
+    { title: 'Weekly participation activity on Moodle', kind: 'assignment', weight: 15, noDateNeeded: true },
+    { title: 'Reading responses', kind: 'reading', weight: 10, noDateNeeded: true },
+    { title: 'Attendance', kind: 'quiz', weight: 10, noDateNeeded: true },
+    { title: 'In-class participation', kind: 'quiz', weight: 5, noDateNeeded: true },
+  ],
+})
+check('weekly Moodle posts stay "date not set", not "no date needed"', recurring.assessments[0].noDateNeeded === false)
+check('reading responses stay "date not set"', recurring.assessments[1].noDateNeeded === false)
+check('attendance is still "no date needed"', recurring.assessments[2].noDateNeeded === true)
+check('in-class participation is still "no date needed"', recurring.assessments[3].noDateNeeded === true)
+
 const heavy = cleanParse({ assessments: Array.from({ length: 5 }, (_, i) => ({ title: `Q${i}`, kind: 'quiz', weight: 40 })) })
 check('weights adding to 200% raise a warning', heavy.warnings.some((w) => w.includes('200%')), heavy.warnings)
 const flood = cleanParse({ assessments: Array.from({ length: 500 }, (_, i) => ({ title: `Item ${i}`, kind: 'quiz' })) })

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Loader2, Send } from 'lucide-react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { Clock, Loader2, Send } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatDueDateTime } from '@/lib/date'
 import { ticketThread, replyToTicket, type TicketMessage } from '@/lib/tickets'
@@ -74,6 +74,8 @@ export function TicketThread({
     if (messages) endRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
+  const firstMineId = messages?.find((m) => m.author_role === perspective)?.id ?? null
+
   async function send() {
     const body = draft.trim()
     if (!body || sending) return
@@ -94,19 +96,35 @@ export function TicketThread({
   return (
     <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', className)}>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {/* A chat box reads as "someone is here right now". We answer within
+            the hour, and saying so up front is kinder than a silence that
+            looks like being ignored. */}
+        {perspective === 'user' && (
+          <p className="flex items-center justify-center gap-1.5 text-[11.5px] text-subtle">
+            <Clock size={12} aria-hidden />
+            We typically reply within the hour.
+          </p>
+        )}
         {messages === null ? (
           <div className="grid place-items-center py-10">
             <Loader2 className="size-5 animate-spin text-accent" aria-label="Loading" />
           </div>
         ) : messages.length === 0 && !error ? (
           <p className="py-10 text-center text-[12.5px] text-subtle">
-            No messages in this conversation yet.
+            {perspective === 'user'
+              ? 'Write to us here. We typically reply within the hour.'
+              : 'No messages in this conversation yet.'}
           </p>
         ) : (
           messages.map((m) => {
             const mine = m.author_role === perspective
+            // ONCE, after the student's FIRST message: derived from the
+            // conversation rather than stored, so it is there on every reload,
+            // never repeats, and sits above the reply that answers it.
+            const ack = perspective === 'user' && mine && m.id === firstMineId
             return (
-              <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
+              <Fragment key={m.id}>
+              <div className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
                 <div className={cn('max-w-[85%] min-w-0', mine && 'text-right')}>
                   <p className="mb-1 text-[11px] text-subtle">
                     {m.author_name} · {formatDueDateTime(m.created_at)}
@@ -123,6 +141,12 @@ export function TicketThread({
                   </div>
                 </div>
               </div>
+              {ack && (
+                <p role="status" className="px-2 text-center text-[11.5px] leading-relaxed text-subtle">
+                  Got it, we’ve received your message and typically reply within the hour.
+                </p>
+              )}
+              </Fragment>
             )
           })
         )}

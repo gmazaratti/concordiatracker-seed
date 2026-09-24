@@ -299,7 +299,15 @@ export async function courseFromOutline(
     }
   }
 
+  const started = Date.now()
   const parsed = await extractOutline(buf, 'application/pdf')
+  const meta = (extra: Record<string, unknown>) => ({
+    source: 'api',
+    bytes: buf.byteLength,
+    path: parsed.how,
+    duration_ms: Date.now() - started,
+    ...extra,
+  })
   if (!parsed.ok) {
     // Our side of the line (timeout, unreachable, not configured) is handed
     // back; a document the model read and could not use keeps the attempt.
@@ -308,6 +316,7 @@ export async function courseFromOutline(
         p_event: slot.event_id,
         p_error: parsed.detail ?? parsed.failure ?? 'unknown',
         p_refund: parsed.failure !== 'unreadable',
+        p_meta: meta({}),
       })
     }
     const status =
@@ -324,7 +333,12 @@ export async function courseFromOutline(
     }
   }
 
-  if (slot.event_id) await rpcRaw('ct_parse_succeeded', { p_event: slot.event_id })
+  if (slot.event_id) {
+    await rpcRaw('ct_parse_succeeded', {
+      p_event: slot.event_id,
+      p_meta: meta({ items: parsed.assessments.length, course_code: parsed.course?.code || null }),
+    })
+  }
 
   const c = parsed.course
   const term = c.term || String(q.term ?? '')

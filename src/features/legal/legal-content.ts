@@ -54,7 +54,7 @@ const LAST_UPDATED = 'August 22, 2026'
 /** Privacy carries its own date. It last changed on 22 August 2026, when Resend
  * was added as a subprocessor — naming a new processor is exactly the kind of
  * change Law 25 expects to be dated. */
-const PRIVACY_UPDATED = 'August 22, 2026'
+const PRIVACY_UPDATED = 'September 23, 2026'
 
 const privacy: LegalDoc = {
   slug: 'privacy',
@@ -147,6 +147,7 @@ const privacy: LegalDoc = {
           ],
         },
         { kind: 'p', text: 'Upon receiving a deletion request via email or our in-app settings, ConcordiaTracker will permanently delete all associated user data from our active databases within 30 days. Backups are automatically rotated and do not retain deleted user data beyond this period.' },
+        { kind: 'p', text: 'Syllabus files you upload are read once to extract your course schedule and are not kept. The one exception: when a file cannot be read, we keep it privately for up to 30 days so we can fix the problem and re-run it for you. Only you and ConcordiaTracker administrators can access it, and it is deleted automatically after 30 days.' },
         { kind: 'p', text: 'Primary Support & Data Privacy Contact: concordiatracker@gmail.com' },
       ],
     },

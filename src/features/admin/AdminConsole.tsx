@@ -12,6 +12,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   Compass,
+  FileScan,
   GraduationCap,
   Inbox,
   LifeBuoy,
@@ -37,6 +38,7 @@ import { AttributionTab } from './tabs/AttributionTab'
 import { TrafficTab } from './tabs/TrafficTab'
 import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { SocialTab } from './tabs/SocialTab'
+import { ParsesTab } from './parses/ParsesTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -47,6 +49,7 @@ const TABS = [
   // Next to Support, because what the assistant sent IS support — and the
   // keys that let it live there too rather than on the stats page.
   { id: 'assistant', label: 'Assistant', icon: Bot },
+  { id: 'parses', label: 'Parses', icon: FileScan },
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'traffic', label: 'Traffic', icon: Activity },
   { id: 'attribution', label: 'Attribution', icon: Compass },
@@ -136,6 +139,7 @@ export function AdminConsole() {
         {current === 'data' && <DataReportsTab />}
         {current === 'bugs' && <BugReportsTab />}
         {current === 'assistant' && <AssistantTab />}
+        {current === 'parses' && <ParsesTab />}
       </div>
     </div>
   )

@@ -31,7 +31,36 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-/** ArrayBuffer → base64, chunked so large buffers don't overflow the call stack. */
+/** The client sends the file name URI-encoded (headers are Latin-1). */
+function decodeHeader(v: string | null): string {
+  if (!v) return ''
+  try {
+    // eslint-disable-next-line no-control-regex
+    return decodeURIComponent(v).replace(/[\u0000-\u001f]/g, ' ').trim()
+  } catch {
+    return ''
+  }
+}
+
+/** Put a failed upload in the private bucket; the path on success, else null. */
+async function keepFailedFile(
+  bytes: ArrayBuffer,
+  path: string,
+  url: string,
+  anon: string,
+  token: string,
+): Promise<string | null> {
+  try {
+    const r = await fetch(`${url}/storage/v1/object/parse-failures/${path}`, {
+      method: 'POST',
+      headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+      body: bytes,
+    })
+    return r.ok ? path : null
+  } catch {
+    return null
+  }
+}
 
 interface Slot {
   allowed?: boolean
@@ -151,6 +180,9 @@ export default async function handler(req: Request): Promise<Response> {
     headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnon },
   })
   if (!who.ok) return json({ error: 'Your session expired — sign in again.' }, 401)
+  const uid = ((await who.json().catch(() => null)) as { id?: string } | null)?.id ?? ''
+  // The name is only a label for the admin record: never used as a path.
+  const fileName = decodeHeader(req.headers.get('x-file-name')).slice(0, 200)
 
   // 2. Read the PDF bytes (sent raw, not base64, so the wire stays small).
   const buf = await req.arrayBuffer()
@@ -192,13 +224,31 @@ export default async function handler(req: Request): Promise<Response> {
    * sense of still keeps the attempt — it burned a real call — but the DB now
    * charges 20s for that rather than 180.)
    */
-  const release = async (reason: string) => {
+  const started = Date.now()
+  const meta = (extra: Record<string, unknown>) => ({
+    file_name: fileName || null,
+    bytes: buf.byteLength,
+    duration_ms: Date.now() - started,
+    ...extra,
+  })
+
+  const release = async (reason: string, how?: string) => {
     if (!slot?.event_id) return
+    // Keep the file, so an admin can retry it (deleted after 30 days by the
+    // daily cron). Stored with the STUDENT'S token, under their own folder —
+    // the bucket refuses any other path — so nothing here needs a service key.
+    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.pdf`, supabaseUrl, supabaseAnon, token) : null
     // Record the reason FIRST. `cancel_parse` used to delete the row, which
     // threw away the only evidence of what went wrong — a 32% failure rate
     // that was impossible to diagnose. It now marks the row refunded instead,
     // so the cooldown is excused and the reason survives.
-    await callRpc('fail_parse', { p_event: slot.event_id, p_error: reason }, supabaseUrl, supabaseAnon, token)
+    await callRpc(
+      'fail_parse',
+      { p_event: slot.event_id, p_error: reason, p_meta: meta({ path: how ?? null, file_path: filePath }) },
+      supabaseUrl,
+      supabaseAnon,
+      token,
+    )
     await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
   }
 
@@ -229,7 +279,7 @@ export default async function handler(req: Request): Promise<Response> {
   const parsed = await extractOutline(buf, mimeType)
 
   if (!parsed.ok) {
-    await release(parsed.detail ?? parsed.failure ?? 'unknown')
+    await release(parsed.detail ?? parsed.failure ?? 'unknown', parsed.how)
     if (parsed.failure === 'not_configured') {
       return json({ error: 'Server is not configured for parsing.' }, 500)
     }
@@ -264,7 +314,22 @@ export default async function handler(req: Request): Promise<Response> {
    * failure — and the free monthly cap, the free 180s cooldown and the Pro
    * daily ceiling all count SUCCESSES, so none of them had fired since.
    */
-  if (slot.event_id) await callRpc('finish_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
+  if (slot.event_id) {
+    await callRpc(
+      'finish_parse',
+      {
+        p_event: slot.event_id,
+        p_meta: meta({
+          path: parsed.how,
+          items: parsed.assessments.length,
+          course_code: parsed.course?.code || null,
+        }),
+      },
+      supabaseUrl,
+      supabaseAnon,
+      token,
+    )
+  }
 
   // Already narrowed by cleanParse. Returned to THIS student only: nothing here
   // is written anywhere — it becomes their own course's rows when they confirm.

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AlertTriangle, Loader2, Users } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
-import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/app/providers/auth'
+import { rememberReturn } from '@/lib/auth-intent'
+import { declineMemberInvite, memberInviteInfo } from '@/lib/org-invites'
 import { Button } from '@/components/ui/Button'
 
-type Invite = { orgName: string; memberName: string; role: string }
+type Invite = { orgName: string; memberName: string; role: string; forYou?: boolean; bound?: boolean }
 
 /** `/organizer/join/:token` — accept a teammate invite to an org dashboard. Demo
  * orgs hold their invites in memory; a real org's invite lives in org_members and
@@ -14,7 +16,9 @@ export function OrgMemberInvitePage() {
   const { token } = useParams()
   const navigate = useNavigate()
   const { orgs, myOrg, acceptOrgMemberInvite } = useTeacher()
+  const { user } = useAuth()
   const [busy, setBusy] = useState(false)
+  const [declined, setDeclined] = useState(false)
 
   // In-memory invites (demo orgs + your own org) resolve synchronously in render.
   let memInvite: Invite | null = null
@@ -37,38 +41,49 @@ export function OrgMemberInvitePage() {
     )
     if (inMem) return
     let active = true
-    void (async () => {
-      const { data: rows } = await supabase
-        .from('org_members')
-        .select('name,role,org_id')
-        .eq('invite_token', token)
-        .limit(1)
-      const row = rows?.[0] as { name: string | null; role: string; org_id: string } | undefined
-      if (!row) {
-        if (active) setDbInvite(null)
-        return
-      }
-      const { data: orgRows } = await supabase.from('organizations').select('name').eq('id', row.org_id).limit(1)
-      if (active) {
-        setDbInvite({
-          orgName: (orgRows?.[0] as { name: string } | undefined)?.name ?? 'this organization',
-          memberName: row.name ?? 'you',
-          role: row.role,
-        })
-      }
-    })()
+    // Through a definer function: it reports whether the invite was made for
+    // THIS account, which a plain read of the row could not say.
+    void memberInviteInfo(token).then((info) => {
+      if (!active) return
+      setDbInvite(
+        info
+          ? { orgName: info.orgName, memberName: info.memberName, role: info.roleName, forYou: info.forYou, bound: info.bound }
+          : null,
+      )
+    })
     return () => {
       active = false
     }
-  }, [token, orgs, myOrg])
+  }, [token, orgs, myOrg, user])
 
   const invite = memInvite ?? dbInvite
 
   async function accept() {
     if (!token) return
     setBusy(true)
-    if (await acceptOrgMemberInvite(token)) navigate('/organizer')
-    else setBusy(false)
+    const orgId = await acceptOrgMemberInvite(token)
+    if (!orgId) {
+      setBusy(false)
+      return
+    }
+    // A full load, carrying WHICH club: the portal's list of your clubs was
+    // read before you joined this one, and an admin has every club in it.
+    if (memInvite) navigate('/organizer')
+    else window.location.assign(`/organizer?org=${orgId}`)
+  }
+
+  async function decline() {
+    if (!token) return
+    setBusy(true)
+    if (await declineMemberInvite(token)) setDeclined(true)
+    setBusy(false)
+  }
+
+  function signIn() {
+    if (!token) return
+    // Every sign-in ends on /app; this brings the invitee back here after.
+    rememberReturn(`/organizer/join/${token}`)
+    navigate('/app')
   }
 
   if (invite === undefined) {
@@ -116,9 +131,30 @@ export function OrgMemberInvitePage() {
         </p>
         <p className="mt-2 text-[12px] text-subtle">Invited as {invite.memberName}</p>
 
-        <Button className="mt-4 w-full" disabled={busy} onClick={accept}>
-          {busy ? 'Joining…' : 'Accept & open dashboard'}
-        </Button>
+        {declined ? (
+          <p role="status" className="mt-4 rounded-lg bg-surface-2 px-3 py-2.5 text-[13px] text-muted">
+            Invite declined. The club can invite you again later.
+          </p>
+        ) : !user && !memInvite ? (
+          <Button className="mt-4 w-full" onClick={signIn}>
+            Sign in to accept
+          </Button>
+        ) : invite.bound && !invite.forYou ? (
+          <p role="alert" className="mt-4 rounded-lg bg-warning/10 px-3 py-2.5 text-[13px] text-warning">
+            This invite was sent to a different account. Sign in as the person it was meant for.
+          </p>
+        ) : (
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <Button className="w-full sm:flex-1" disabled={busy} onClick={accept}>
+              {busy ? 'Joining…' : 'Accept & open dashboard'}
+            </Button>
+            {invite.forYou && (
+              <Button variant="outline" className="w-full sm:w-auto" disabled={busy} onClick={decline}>
+                Decline
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

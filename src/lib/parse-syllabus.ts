@@ -67,7 +67,12 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
   try {
     res = await fetch('/api/parse-syllabus', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type || 'application/pdf' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': file.type || 'application/pdf',
+        // A label for the admin record of this parse; the server never uses it as a path.
+        'x-file-name': encodeURIComponent(file.name.slice(0, 200)),
+      },
       body: file,
     })
   } catch {
@@ -133,4 +138,17 @@ export async function getParseUsage(): Promise<ParseUsage | null> {
     resetsAt: d.resets_at,
     cooldownUntil,
   }
+}
+
+/**
+ * The result of an admin re-running a parse that failed for this student
+ * (db/parse_tracking.sql → my_parse_retry). Null when there is none, or it is
+ * not theirs — the function only returns the caller's own.
+ */
+export async function loadParseRetry(eventId: string): Promise<ParsedSyllabus | null> {
+  const { data, error } = await supabase.rpc('my_parse_retry', { p_event: eventId })
+  if (error || !data) return null
+  const r = data as Partial<ParsedSyllabus>
+  if (!r.course || !Array.isArray(r.assessments)) return null
+  return r as ParsedSyllabus
 }
