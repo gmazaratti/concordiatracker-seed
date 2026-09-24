@@ -134,6 +134,7 @@ const appRoutes = [
   '/dev/login',
   '/e/ev-techfair',
   '/reset-password',
+  '/r',
   '/s/sometoken',
   '/legal/privacy',
   '/concordia-gpa-calculator',

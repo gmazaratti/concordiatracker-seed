@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { readRefSource } from '@/lib/ref-source'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
 import { displayNameFrom } from '@/lib/oauth-identity'
@@ -109,6 +110,8 @@ export function useSupabaseProfile() {
               name,
               ...(av ? { avatar_url: av } : {}),
               ...(ref ? { referred_by_code: ref } : {}),
+              // The campaign link that brought them (/r = Reddit), set once at signup.
+              ...(readRefSource() ? { signup_ref: readRefSource() } : {}),
             },
             { onConflict: 'user_id' },
           )

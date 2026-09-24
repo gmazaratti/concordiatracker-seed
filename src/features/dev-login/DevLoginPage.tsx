@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
 import { useT } from '@/i18n/i18n'
 import { LangSwitch } from '@/features/dev-landing/LangSwitch'
-import { useNoIndex } from '@/features/dev-landing/useNoIndex'
+import { useNoIndex } from '@/app/hooks/useNoIndex'
 import { DevLoginForm } from './DevLoginForm'
 import { ProductPanel } from './ProductPanel'
 

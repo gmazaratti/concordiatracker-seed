@@ -13,7 +13,7 @@ import { MiniGrade } from './MiniGrade'
 import { MiniCalendar } from './MiniCalendar'
 import { MiniCommunity } from './MiniCommunity'
 import { Reveal } from './Reveal'
-import { useNoIndex } from './useNoIndex'
+import { useNoIndex } from '@/app/hooks/useNoIndex'
 import { useDevCopy } from './copy'
 
 /** The live stand-in each video slot shows until its clip is supplied. */

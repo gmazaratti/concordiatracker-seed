@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { readRefSource } from './ref-source'
 import { isNative } from './native'
 
 /**
@@ -142,6 +143,8 @@ async function send(kind: 'view' | 'ping', path: string): Promise<void> {
       referrer_host: kind === 'view' ? referrerHost() : null,
       ...(kind === 'view' ? campaign() : {}),
       device: isMobile() ? 'mobile' : 'desktop',
+      // Set by a source link like /r (Reddit); absent for everyone else.
+      ...(readRefSource() ? { ref: readRefSource() } : {}),
     })
   } catch {
     /* analytics must never break the app */

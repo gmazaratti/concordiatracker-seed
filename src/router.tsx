@@ -5,6 +5,7 @@ import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
 import { OrganizerLayout } from '@/layouts/OrganizerLayout'
 import { LandingPage } from '@/features/landing/LandingPage'
+import { RefLanding } from '@/features/landing/RefLanding'
 import { TodayPage } from '@/features/today/TodayPage'
 import { NotFoundPage } from '@/features/NotFoundPage'
 import { Loader2 } from 'lucide-react'
@@ -81,6 +82,8 @@ export function AppRoutes() {
       {/* Public marketing context */}
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
+        {/* The homepage, attributed: /r sets a Reddit cookie. noindex, canonical to /. */}
+        <Route path="r" element={<RefLanding source="reddit" />} />
         <Route path="concordia-gpa-calculator" element={<ConcordiaGpaCalculatorPage />} />
         <Route path="concordia-syllabus-tracker" element={<ConcordiaSyllabusTrackerPage />} />
       </Route>

@@ -1,19 +1,11 @@
 import { useEffect } from 'react'
-import { FileUser, Heart, MessageCircleMore, Mic, MonitorPlay, MousePointer2 } from 'lucide-react'
-import { useNoIndex } from '@/features/dev-landing/useNoIndex'
+import { useNoIndex } from '@/app/hooks/useNoIndex'
 import { RecordlyHeader } from './RecordlyHeader'
 import { StackedCards } from './StackedCards'
 import { RecordlyFaq, RecordlyFooter } from './RecordlyFaqFooter'
+import { RecordlyTiles } from './RecordlyTiles'
 import { AppleMark, CodeRabbitMark, LinuxMark, WindowsMark } from './glyphs'
 
-const TILES = [
-  { icon: Mic, title: 'Record microphone & system audio', body: 'Dual-source audio capture with sample-accurate sync. Speak, demo, and showcase with flawless sound.' },
-  { icon: FileUser, title: 'Save and load projects', body: 'Recordly remembers your workspace. Save projects with all your audio, video, and layout choices, then reopen them instantly to continue creating.' },
-  { icon: MonitorPlay, title: 'Change export format and quality', body: 'Turn your recording into a smooth MP4 or a looping GIF.\nPerfect for demos, tutorials, and quick social posts.' },
-  { icon: MousePointer2, title: 'Loop cursor path', body: 'Loop your cursor path so GIFs and autoplay clips stay engaging. No jumps, no stutters; just clean, continuous motion.' },
-  { icon: MessageCircleMore, title: 'Import audio tracks & webcam footage', body: 'Import audio files and webcam video with full timeline control. Layer, sync, and refine external media right inside your project.' },
-  { icon: Heart, title: 'Free & open-source', body: 'Recordly is fully free and open-source, with no paywalls or hidden limits. Transparent, community-driven, and built for creators who value control.' },
-]
 
 /**
  * `/dev/landing/2`: a 1:1 layout and motion comp of recordly.dev, built from
@@ -89,17 +81,7 @@ export function RecordlyPage() {
             <StackedCards />
           </div>
 
-          <div className="mx-auto mt-14 grid w-full max-w-[1080px] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {TILES.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="rounded-[10px] bg-[#181816] p-5">
-                <span className="grid size-16 place-items-center rounded-full bg-[#0c0c0b]">
-                  <Icon size={20} strokeWidth={1.6} aria-hidden />
-                </span>
-                <h3 className="mt-[34px] text-[16px] font-semibold">{title}</h3>
-                <p className="mt-2.5 text-[16px] leading-[1.3] whitespace-pre-line text-[#dcdcdc]">{body}</p>
-              </div>
-            ))}
-          </div>
+          <RecordlyTiles />
 
           <RecordlyFaq />
           <RecordlyFooter />
