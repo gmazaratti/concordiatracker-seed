@@ -73,13 +73,40 @@ export function StackedCards() {
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update)
     }
+
+    /*
+     * EQUAL HEIGHTS, at every width. The cards only stack cleanly if each one is
+     * exactly as tall as the one it covers: on a phone the text wraps to
+     * different lengths (measured 398 / 378 / 417px at 390), so a shorter card
+     * left the bottom of the taller one peeking out underneath it, and the stack
+     * left the screen with ragged edges. Every card gets the tallest card's
+     * natural height, re-measured whenever any card's content changes size
+     * (rotation, font load, a video's metadata arriving).
+     */
+    const equalize = () => {
+      const cards = [...root.querySelectorAll<HTMLElement>('[data-stack-card]')]
+      const tallest = Math.max(
+        ...cards.map((c) => c.querySelector<HTMLElement>('[data-stack-inner]')?.offsetHeight ?? 0),
+      )
+      for (const c of cards) c.style.minHeight = `${tallest}px`
+      onScroll()
+    }
+    const ro = new ResizeObserver(equalize)
+    root.querySelectorAll('[data-stack-inner]').forEach((el) => ro.observe(el))
+
+    // Not only through the observer: measured once now, and again on resize and
+    // once everything (fonts, video metadata) has loaded.
+    equalize()
     update()
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
+    window.addEventListener('resize', equalize)
+    window.addEventListener('load', equalize)
     return () => {
+      ro.disconnect()
+      window.removeEventListener('load', equalize)
       cancelAnimationFrame(raf)
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
+      window.removeEventListener('resize', equalize)
     }
   }, [])
 
