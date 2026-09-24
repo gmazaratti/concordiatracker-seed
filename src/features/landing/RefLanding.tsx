@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react'
-import { LandingPage } from './LandingPage'
+import { RecordlyPage } from '@/features/dev-landing-2/RecordlyPage'
 import { setRefSource } from '@/lib/ref-source'
 import { useNoIndex } from '@/app/hooks/useNoIndex'
 
@@ -24,5 +24,5 @@ export function RefLanding({ source }: { source: string }) {
   }, [source])
   // Same directive as the served HTML (prerendered/r.html): out of the index, links followed.
   useNoIndex('noindex, follow')
-  return <LandingPage />
+  return <RecordlyPage />
 }

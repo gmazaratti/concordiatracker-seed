@@ -921,6 +921,17 @@ export async function buildAgentPages({ dist, pages }) {
   await writeFile(path.join(dist, 'prerendered', 'r.html'), refPage, 'utf8')
   written.push('prerendered/r.html (noindex)')
 
+  /* 3c. /dev/original-landing: the previous homepage, kept live as a rollback
+        and NOINDEX, NOFOLLOW IN THE SERVED HTML, so it never competes with /
+        in search whether or not a crawler runs JavaScript. */
+  const rollback = html.replace(
+    /<meta name="robots" content="[^"]*" \/>/,
+    '<meta name="robots" content="noindex, nofollow" />',
+  )
+  if (rollback === html) throw new Error('could not set noindex on prerendered/dev-original-landing.html')
+  await writeFile(path.join(dist, 'prerendered', 'dev-original-landing.html'), rollback, 'utf8')
+  written.push('prerendered/dev-original-landing.html (noindex, nofollow)')
+
   /* 4. Legal documents, prerendered into a copy of the shell. */
   const legal = await loadLegalDocs()
   const prerenderDir = path.join(dist, 'prerendered')

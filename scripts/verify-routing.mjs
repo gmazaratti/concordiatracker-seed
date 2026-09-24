@@ -131,7 +131,6 @@ const appRoutes = [
   '/onboarding',
   '/demo',
   '/dev/landing',
-  '/dev/landing/2',
   '/dev/login',
   '/e/ev-techfair',
   '/reset-password',
@@ -152,6 +151,27 @@ console.log('\n/r must reach its own prerendered, noindex copy of the homepage')
   const dest = resolve('/r')
   check('/r → prerendered/r.html', dest === '/prerendered/r.html', dest ?? '(no match)')
   if (dest === '/prerendered/r.html') check('/r target exists', isStatic(dest), dest)
+}
+
+console.log('\nThe previous homepage: a prerendered, noindex, nofollow rollback copy')
+{
+  const file = '/prerendered/dev-original-landing.html'
+  const dest = resolve('/dev/original-landing')
+  check('/dev/original-landing → prerendered rollback', dest === file, dest ?? '(no match)')
+  if (dest === file) {
+    check('rollback target exists', isStatic(dest), dest)
+    const html = await readFile(path.join(DIST, file), 'utf8')
+    check('rollback serves noindex, nofollow', html.includes('<meta name="robots" content="noindex, nofollow" />'))
+  }
+  const home = await readFile(path.join(DIST, 'index.html'), 'utf8')
+  check('/ serves index, follow', home.includes('<meta name="robots" content="index, follow" />'))
+  check('/ canonical is the site root', home.includes('<link rel="canonical" href="https://concordiatracker.com/" />'))
+}
+
+console.log('\nThe comp that became the homepage redirects to it, permanently')
+{
+  const rule = (vercel.redirects ?? []).find((r) => r.source === '/dev/landing/2')
+  check('/dev/landing/2 → / with a 301', rule?.destination === '/' && rule?.statusCode === 301, JSON.stringify(rule ?? null))
 }
 
 console.log('\nLegal routes that must reach a prerendered document')

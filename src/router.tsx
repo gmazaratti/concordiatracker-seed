@@ -4,7 +4,7 @@ import { PublicLayout } from '@/layouts/PublicLayout'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
 import { OrganizerLayout } from '@/layouts/OrganizerLayout'
-import { LandingPage } from '@/features/landing/LandingPage'
+import { RecordlyPage } from '@/features/dev-landing-2/RecordlyPage'
 import { RefLanding } from '@/features/landing/RefLanding'
 import { TodayPage } from '@/features/today/TodayPage'
 import { NotFoundPage } from '@/features/NotFoundPage'
@@ -67,8 +67,8 @@ const OrganizerApplyPage = lazy(() => import('@/features/organizer/OrganizerAppl
 const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({ default: x.LegalPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((x) => ({ default: x.ResetPasswordPage })))
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
+const OriginalLanding = lazy(() => import('@/features/landing/OriginalLanding').then((x) => ({ default: x.OriginalLanding })))
 const DevLandingPage = lazy(() => import('@/features/dev-landing/DevLandingPage').then((x) => ({ default: x.DevLandingPage })))
-const RecordlyPage = lazy(() => import('@/features/dev-landing-2/RecordlyPage').then((x) => ({ default: x.RecordlyPage })))
 const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then((x) => ({ default: x.DevLoginPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
@@ -80,11 +80,16 @@ export function AppRoutes() {
        more than it reassures. */
     <Suspense fallback={<RouteFallback />}>
     <Routes>
+      {/* The homepage. It brings its own header and footer, so it sits outside
+          PublicLayout. /r is the same page, attributed: it sets a Reddit
+          cookie, noindex, canonical to /. */}
+      <Route index element={<RecordlyPage />} />
+      <Route path="/r" element={<RefLanding source="reddit" />} />
+
       {/* Public marketing context */}
       <Route element={<PublicLayout />}>
-        <Route index element={<LandingPage />} />
-        {/* The homepage, attributed: /r sets a Reddit cookie. noindex, canonical to /. */}
-        <Route path="r" element={<RefLanding source="reddit" />} />
+        {/* The previous homepage, kept as a rollback: noindex, nofollow. */}
+        <Route path="dev/original-landing" element={<OriginalLanding />} />
         <Route path="concordia-gpa-calculator" element={<ConcordiaGpaCalculatorPage />} />
         <Route path="concordia-syllabus-tracker" element={<ConcordiaSyllabusTrackerPage />} />
       </Route>
@@ -199,8 +204,9 @@ export function AppRoutes() {
       {/* Hidden design drafts: not linked from the live site, noindex while
           mounted, and disallowed in robots.txt. */}
       <Route path="/dev/landing" element={<DevLandingPage />} />
-      {/* 1:1 Recordly layout + motion comp. Hidden, noindex, linked from nowhere. */}
-      <Route path="/dev/landing/2" element={<RecordlyPage />} />
+      {/* The comp that became the homepage. Vercel answers a 301 to / for this
+          path; this covers the dev server and in-app navigation. */}
+      <Route path="/dev/landing/2" element={<Navigate to="/" replace />} />
       <Route path="/dev/login" element={<DevLoginPage />} />
 
       {/* Public user profile: concordiatracker.com/@handle (anyone can view).

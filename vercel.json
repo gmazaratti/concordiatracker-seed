@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/dev/landing/2",
+      "destination": "/",
+      "statusCode": 301
+    }
+  ],
   "rewrites": [
     {
       "source": "/docs",
@@ -46,8 +53,8 @@
       "destination": "/index.html"
     },
     {
-      "source": "/dev/landing/2",
-      "destination": "/index.html"
+      "source": "/dev/original-landing",
+      "destination": "/prerendered/dev-original-landing.html"
     },
     {
       "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|reset-password|concordia-gpa-calculator|concordia-syllabus-tracker)",

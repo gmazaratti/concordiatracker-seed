@@ -109,7 +109,15 @@ export function PublicHeader({
           )}
           <Link to="/app" className="flex">
             <Button size="sm">
-              <SameWidth labels={[en[ctaKey], fr[ctaKey] ?? en[ctaKey]]} shown={t(ctaKey)} />
+              {/* Width-locked only for the homepage's longer Sign in / Sign Up,
+                  which has the room for it. Locking "Open the app" to its
+                  French length pushed the other public pages' header past a
+                  390px screen. */}
+              {cta === 'account' ? (
+                <SameWidth labels={[en[ctaKey], fr[ctaKey] ?? en[ctaKey]]} shown={t(ctaKey)} />
+              ) : (
+                t(ctaKey)
+              )}
             </Button>
           </Link>
         </nav>

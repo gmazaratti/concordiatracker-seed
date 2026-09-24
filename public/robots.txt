@@ -11,6 +11,10 @@ Disallow: /onboarding
 Disallow: /feedback
 Disallow: /demo
 Disallow: /dev/
+# The previous homepage, kept as a rollback. Crawlable ONLY so that crawlers
+# can read its noindex, nofollow: a blocked page's noindex is never seen, and a
+# blocked URL can still be indexed from links alone.
+Allow: /dev/original-landing
 
 # Machine-readable indexes for agents and answer engines.
 # llms.txt carries a "when to use this" section; openapi.json describes the API.

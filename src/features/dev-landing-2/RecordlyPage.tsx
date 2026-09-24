@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { useNoIndex } from '@/app/hooks/useNoIndex'
+import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { PublicHeader } from '@/components/PublicHeader'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
@@ -32,8 +31,10 @@ const HEADER_H = 76
  * at 420px with a bottom fade so it reads as a window into the product.
  */
 export function RecordlyPage() {
-  useNoIndex()
-  usePageHead()
+  // THE PRODUCTION HOMEPAGE since 2026-09-24 (it was the /dev/landing/2 comp).
+  // Indexable, canonical https://concordiatracker.com/. The /r route renders
+  // this same page and adds its own noindex on top (see RefLanding).
+  usePageMeta({ title: TITLE, description: DESCRIPTION, path: '/' })
   const t = useT()
 
   return (
@@ -157,35 +158,10 @@ export function RecordlyPage() {
   )
 }
 
-/** This comp's tab title and description, put back when the page unmounts.
- *  noindex stays (useNoIndex). */
+/** The homepage's tab title and description. index.html carries the same two
+ *  strings, so a crawler that does not run JavaScript sees what a visitor sees;
+ *  change them together. */
 // The one em dash allowed on this page: the tab title, as it was before the purge.
 const TITLE = 'ConcordiaTracker — GPA, syllabus & assignment tracker for Concordia students'
 const DESCRIPTION =
   'Upload your course outline and every deadline is dated for you. Track grades, see what you need to pass, sync Moodle, and follow campus clubs. Not affiliated with Concordia University.'
-
-function usePageHead() {
-  useEffect(() => {
-    const prevTitle = document.title
-    let meta = document.head.querySelector<HTMLMetaElement>('meta[name="description"]')
-    const created = !meta
-    if (!meta) {
-      meta = document.createElement('meta')
-      meta.name = 'description'
-      document.head.appendChild(meta)
-    }
-    const prevDesc = meta.content
-    document.title = TITLE
-    meta.content = DESCRIPTION
-    // The app's own title hook may run after mount; hold ours for this page.
-    const t = setTimeout(() => {
-      document.title = TITLE
-    }, 0)
-    return () => {
-      clearTimeout(t)
-      document.title = prevTitle
-      if (created) meta.remove()
-      else meta.content = prevDesc
-    }
-  }, [])
-}
