@@ -16,7 +16,8 @@ import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
-import { useT } from '@/i18n/i18n'
+import { useI18n, useT } from '@/i18n/i18n'
+import { BrandSidebar } from './BrandSidebar'
 
 /** A static, non-interactive recreation of the real Today screen — built from
  * the actual mock data + shared components (CourseChip, ProvenanceBadge) so the
@@ -41,14 +42,30 @@ function dueTone(due: string | null): string {
   return 'text-fg'
 }
 
-export function AppPreview({ name }: { name?: string }) {
+/** The greeting the real Today uses for this time of day. */
+function greetingKey(hour: number) {
+  if (hour < 12) return 'today.goodMorning' as const
+  if (hour < 18) return 'today.goodAfternoon' as const
+  return 'today.goodEvening' as const
+}
+
+/**
+ * `account="brand"` draws the real app's sidebar with the ConcordiaTracker
+ * brand account (the /dev/landing/2 comp); the default keeps the sample
+ * student the live landing page and onboarding use.
+ */
+export function AppPreview({ name, account = 'sample' }: { name?: string; account?: 'sample' | 'brand' }) {
   const t = useT()
+  const { lang } = useI18n()
+  const brand = account === 'brand'
+  // Read once, at mount: a clock read during render is impure.
+  const [now] = useState(() => new Date())
   const { week, totalWeeks, percent } = termProgress(term.start, term.end)
   const overdue = dueItems.filter((a) => daysUntil(a.due) < 0)
   const thisWeek = dueItems.filter((a) => daysUntil(a.due) >= 0)
   // Landing keeps the default SAMPLE identity; onboarding passes the real user.
   // It must never be a real person's name - this renders on the public page.
-  const displayName = name?.trim() || currentUser.name
+  const displayName = brand ? 'Concordia' : name?.trim() || currentUser.name
   const firstName = displayName.split(/\s+/)[0]
   const initials =
     displayName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U'
@@ -56,6 +73,7 @@ export function AppPreview({ name }: { name?: string }) {
   return (
     <div className="flex h-full min-h-0 text-left">
       {/* Sidebar */}
+      {brand ? <BrandSidebar /> : (
       <aside className="hidden w-48 shrink-0 flex-col border-r border-border bg-surface/60 px-3 py-4 sm:flex">
         <div className="flex items-center gap-2 px-1.5">
           <span className="grid size-6 place-items-center rounded-md bg-surface-2">
@@ -89,12 +107,17 @@ export function AppPreview({ name }: { name?: string }) {
           </span>
         </div>
       </aside>
+      )}
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
         <header className="mb-3">
-          <p className="text-[10px] text-subtle">{t('preview.sampleDate')}</p>
-          <TypedGreeting text={`${t('today.goodMorning')}, ${firstName}`} />
+          <p className="text-[10px] text-subtle">
+            {brand
+              ? new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(now)
+              : t('preview.sampleDate')}
+          </p>
+          <TypedGreeting text={`${t(brand ? greetingKey(now.getHours()) : 'today.goodMorning')}, ${firstName}`} />
         </header>
 
         <div className="flex min-h-0 flex-1 gap-3">

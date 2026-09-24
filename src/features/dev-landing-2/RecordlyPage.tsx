@@ -40,7 +40,8 @@ export function RecordlyPage() {
     <div id="top" data-theme="dark" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-white antialiased">
       <PublicHeader
         fixed
-        pill
+        lang="dropdown"
+        docs={false}
         height={HEADER_H}
         anchors={[
           { href: '#features', label: 'Features' },
@@ -73,26 +74,15 @@ export function RecordlyPage() {
           </div>
         </section>
 
-        {/* The pinned card: the real Today screen, live, in a browser frame, as
-            the main landing page shows it. AppPreview is the actual Today layout
-            built from the demo data and the app's own components, not a picture.
-            If a walkthrough video is recorded later it can take this slot. */}
+        {/* The pinned card: the real Today screen, live. AppPreview is the actual
+            Today layout built from the demo data and the app's own components,
+            with the real sidebar and the ConcordiaTracker brand account, not a
+            picture. No browser chrome: it read as a mock-up. If a walkthrough
+            video is recorded later it can take this slot. */}
         <div className="sticky top-[75px] z-0 mx-auto mt-[60px] w-[calc(100%-32px)] max-w-[960px] md:mt-[80px]">
-          <div className="flex h-[440px] flex-col overflow-hidden rounded-[16px] border border-border bg-surface shadow-[0_0_60px_var(--ct-accent-soft)] sm:h-[520px] md:aspect-[16/10] md:h-auto md:rounded-[24px]">
-            <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-2/60 px-4 py-2.5">
-              <span className="flex gap-1.5">
-                <span className="size-2.5 rounded-full bg-danger/70" />
-                <span className="size-2.5 rounded-full bg-warning/70" />
-                <span className="size-2.5 rounded-full bg-success/70" />
-              </span>
-              <span className="ml-3 rounded-md border border-border bg-canvas/60 px-3 py-1 text-[11px] text-subtle">
-                concordiatracker.com/today
-              </span>
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden" aria-hidden>
-              <div className="pointer-events-none h-full select-none">
-                <AppPreview />
-              </div>
+          <div className="h-[440px] overflow-hidden rounded-[16px] border border-border bg-canvas shadow-[0_0_60px_var(--ct-accent-soft)] sm:h-[520px] md:aspect-[16/10] md:h-auto md:rounded-[24px]">
+            <div className="pointer-events-none h-full select-none" aria-hidden>
+              <AppPreview account="brand" />
             </div>
           </div>
         </div>

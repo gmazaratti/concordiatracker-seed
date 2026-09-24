@@ -3,6 +3,7 @@ import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
 import { LangToggle } from '@/components/LangToggle'
 import { LangSwitch } from '@/components/LangSwitch'
+import { LangDropdown } from '@/components/LangDropdown'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
@@ -18,20 +19,24 @@ const link =
  * comp), so there is one navbar rather than a copy that drifts.
  *
  * `fixed` + `height` exist for a page that pins something just under the
- * header and so needs to know exactly where the header ends. `pill` swaps the
- * compact EN|FR buttons for the sliding segmented switch.
+ * header and so needs to know exactly where the header ends. `lang` picks the
+ * language control: the compact EN|FR buttons (the live site), the sliding
+ * pill, or a plain text dropdown. `docs={false}` leaves Docs out of the bar,
+ * for a page that links it from its footer instead.
  */
 export function PublicHeader({
   anchors,
   fixed = false,
   height,
-  pill = false,
+  lang = 'toggle',
+  docs = true,
 }: {
   /** In-page sections. Defaults to the landing page's How it works + Pricing. */
   anchors?: Anchor[]
   fixed?: boolean
   height?: number
-  pill?: boolean
+  lang?: 'toggle' | 'pill' | 'dropdown'
+  docs?: boolean
 }) {
   const t = useT()
   const sections = anchors ?? [
@@ -61,9 +66,11 @@ export function PublicHeader({
               {s.label}
             </a>
           ))}
-          <a href="/docs/introduction" className={link}>
-            {t('landing.docs')}
-          </a>
+          {docs && (
+            <a href="/docs/introduction" className={link}>
+              {t('landing.docs')}
+            </a>
+          )}
           {/* Clubs before teachers: there are far more of them, and the
               whole point is that a president finds this without being
               personally shown it. `lg:` so the mobile header stays two
@@ -80,7 +87,13 @@ export function PublicHeader({
           </Link>
           {/* Kept before the CTA so French is visible without scrolling or
               hunting: availability is the point, not decoration. */}
-          {pill ? <LangSwitch className="mr-1" /> : <LangToggle className="mr-1" />}
+          {lang === 'dropdown' ? (
+            <LangDropdown className="mr-1" />
+          ) : lang === 'pill' ? (
+            <LangSwitch className="mr-1" />
+          ) : (
+            <LangToggle className="mr-1" />
+          )}
           <Link to="/app">
             <Button size="sm">{t('landing.ctaPrimary')}</Button>
           </Link>

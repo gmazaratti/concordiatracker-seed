@@ -72,6 +72,22 @@ const QUESTIONS: { q: string; a: ReactNode }[] = [
   },
 ]
 
+/**
+ * The main page's footer links, in its order and to the same places. Docs,
+ * API, About and Contact are static pages outside the SPA, so they are plain
+ * anchors (client-side routing would miss them); the rest are app routes.
+ */
+const FOOTER_LINKS: [label: string, href: string, spa: boolean][] = [
+  ['Docs', '/docs/introduction', false],
+  ['API', '/developers', false],
+  ['About', '/about', false],
+  ['Contact', '/contact', false],
+  ['Privacy', '/privacy', true],
+  ['Terms', '/terms', true],
+  ['List your club', '/organizer', true],
+  ['Educators', '/educator', true],
+]
+
 const row = 'flex items-center justify-between gap-4 py-4 text-left text-[16px] font-semibold'
 
 export function RecordlyFaq() {
@@ -114,21 +130,19 @@ export function RecordlyFooter() {
       <nav aria-label="Footer" className="min-w-0">
         <p className="text-[14px] font-semibold text-white">Navigation</p>
         <ul className="mt-3 flex flex-col gap-2 text-[15px] text-[#8b8b8b]">
-          <li>
-            <a href="#features" className="transition-colors hover:text-white">
-              Features
-            </a>
-          </li>
-          <li>
-            <a href="#faq" className="transition-colors hover:text-white">
-              FAQ
-            </a>
-          </li>
-          <li>
-            <a href="/docs/introduction" className="transition-colors hover:text-white">
-              Docs
-            </a>
-          </li>
+          {FOOTER_LINKS.map(([label, href, spa]) => (
+            <li key={href}>
+              {spa ? (
+                <Link to={href} className="transition-colors hover:text-white">
+                  {label}
+                </Link>
+              ) : (
+                <a href={href} className="transition-colors hover:text-white">
+                  {label}
+                </a>
+              )}
+            </li>
+          ))}
         </ul>
       </nav>
     </footer>

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import type { Card } from './cards-data'
 
 /** What the card looked like when it was clicked, in viewport pixels. */
@@ -19,12 +19,27 @@ const HEADER = 76
 
 const box = (r: DOMRect): Box => ({ left: r.left, top: r.top, width: r.width, height: r.height })
 
-/** The expanded panel and the video's place inside it, for the current viewport. */
-function target(vw: number, vh: number) {
-  const side = Math.max(24, Math.round(vw * 0.03))
-  const panel: Box = { left: side, top: HEADER + 12, width: vw - side * 2, height: vh - HEADER - 12 - 24 }
-  const w = Math.min(960, panel.width - 96, Math.max(320, (panel.height - 330) * (580 / 330)))
-  const media: Box = { left: (panel.width - w) / 2, top: 32, width: w, height: w * (330 / 580) }
+/** Room the title, intro and two rows of points need under the video. */
+const TEXT_H = 256
+const PAD = 32
+
+/**
+ * The open panel, sized to its content rather than to the screen: the video
+ * is as large as the height allows, and the panel is that plus a margin,
+ * always a little wider than the card it grew from, so its edges visibly move
+ * out to the sides. A full-width panel left wide
+ * empty bands either side of a centred video, which read as unfinished.
+ */
+function target(vw: number, vh: number, cardWidth: number) {
+  const side = Math.max(20, Math.round(vw * 0.02))
+  const top = HEADER + 12
+  const height = vh - top - 20
+  const maxW = vw - side * 2
+  const videoH = Math.max(200, height - 28 - 24 - TEXT_H)
+  const w = Math.min(videoH * (580 / 330), maxW - PAD * 2)
+  const width = Math.min(maxW, Math.max(cardWidth + 48, w + PAD * 2))
+  const panel: Box = { left: (vw - width) / 2, top, width, height }
+  const media: Box = { left: (width - w) / 2, top: 28, width: w, height: w * (330 / 580) }
   return { panel, media }
 }
 
@@ -90,7 +105,7 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
   }, [])
 
   const open = phase === 'open'
-  const to = target(view.w, view.h)
+  const to = target(view.w, view.h, origin.card.width)
   const panel = open ? to.panel : box(origin.card)
   const media = open
     ? to.media
@@ -141,9 +156,9 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
         </div>
 
         <div
-          className="absolute inset-x-0 overflow-y-auto px-12 pb-10"
+          className="absolute inset-x-0 overflow-y-auto px-8 pb-6"
           style={{
-            top: to.media.top + to.media.height + 28,
+            top: to.media.top + to.media.height + 24,
             bottom: 0,
             opacity: open ? 1 : 0,
             transform: open ? 'none' : 'translateY(12px)',
@@ -152,13 +167,22 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
               : 'opacity 120ms ease, transform 120ms ease',
           }}
         >
-          <div className="mx-auto max-w-[760px] text-center">
-            <h3 className="text-[34px] leading-[1.08] font-bold tracking-[-0.045em] text-white">{card.title}</h3>
-            {card.detail.map((d) => (
-              <p key={d} className="mt-4 text-[17px] leading-[1.45] text-[#b4b4b4]">
-                {d}
-              </p>
-            ))}
+          <div>
+            <h3 className="text-[30px] leading-[1.08] font-bold tracking-[-0.045em] text-white">{card.title}</h3>
+            <p className="mt-1.5 text-[16px] leading-[1.4] text-[#b4b4b4]">{card.intro}</p>
+            <ul className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4">
+              {card.points.map((pt) => (
+                <li key={pt.label} className="flex gap-3">
+                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+                    <Check size={12} strokeWidth={2.5} aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[14.5px] font-semibold text-white">{pt.label}</span>
+                    <span className="mt-0.5 block text-[14.5px] leading-[1.4] text-[#9b9b9b]">{pt.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
