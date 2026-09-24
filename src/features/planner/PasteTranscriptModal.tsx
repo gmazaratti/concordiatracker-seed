@@ -7,6 +7,8 @@ import { useAppData } from '@/app/providers/app-data'
 import { isNotation, parseFinalGrade, percentToGrade } from '@/lib/gpa'
 import { parseTranscript, type ParsedRow } from '@/lib/transcript-parse'
 import { cn } from '@/lib/cn'
+import { courseKey, findSameCourse } from '@/lib/course-match'
+import { normalizeTerm } from '@/lib/term'
 import { allTerms, isUpcomingTerm } from './past-terms'
 
 /**
@@ -23,7 +25,7 @@ import { allTerms, isUpcomingTerm } from './past-terms'
  * year later.
  */
 export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
-  const { addPastCourse } = useAppData()
+  const { addPastCourse, courses, pastCourses } = useAppData()
   const [text, setText] = useState('')
   const [rows, setRows] = useState<ParsedRow[] | null>(null)
   const [saving, setSaving] = useState(false)
@@ -35,7 +37,22 @@ export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
     setRows(parsed.rows)
   }
 
-  const ready = (rows ?? []).filter((r) => r.term)
+  // A transcript lists a retake twice, in two terms, and that is real. The SAME
+  // course in the SAME term twice — or one already on record — is not, and
+  // saving it would count its credits twice.
+  const skipReason = (r: ParsedRow, i: number): string | null => {
+    if (!r.term) return null
+    const key = `${courseKey(r.code)}|${normalizeTerm(r.term)}`
+    const earlier = (rows ?? [])
+      .slice(0, i)
+      .some((x) => x.term && `${courseKey(x.code)}|${normalizeTerm(x.term)}` === key)
+    if (earlier) return 'Listed twice for this term: saved once.'
+    if (findSameCourse([...courses, ...pastCourses], r.code, r.term)) {
+      return `Already on your record for ${r.term}: skipped.`
+    }
+    return null
+  }
+  const ready = (rows ?? []).filter((r, i) => r.term && skipReason(r, i) === null)
   const unplaced = (rows ?? []).filter((r) => !r.term)
 
   async function save() {
@@ -203,6 +220,9 @@ export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
                   {/* The line it came from, so a misread is obvious rather than
                       something to take on trust. */}
                   <p className="mt-1 truncate font-mono text-[10.5px] text-subtle">{r.source}</p>
+                  {skipReason(r, i) && (
+                    <p className="mt-0.5 text-[11.5px] text-warning">{skipReason(r, i)}</p>
+                  )}
                 </li>
               ))}
             </ul>

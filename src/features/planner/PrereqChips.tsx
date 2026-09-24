@@ -13,20 +13,23 @@ import { cn } from '@/lib/cn'
  */
 export function PrereqChips({
   prerequisites,
+  code,
   completed,
   credits,
   /** False until the student says their history is complete. */
   trusted,
 }: {
   prerequisites: string | null
+  /** The course these belong to — never listed as its own prerequisite. */
+  code?: string
   completed: Set<string>
   credits: number
   trusted: boolean
 }) {
   if (!prerequisites?.trim()) return null
 
-  const parsed = parsePrereq(prerequisites)
-  const result = checkPrereq(prerequisites, { completed, credits })
+  const parsed = parsePrereq(prerequisites, code)
+  const result = checkPrereq(prerequisites, { completed, credits }, code)
 
   return (
     <div>

@@ -45,6 +45,14 @@ export function GettingStartedChecklist() {
     return () => window.removeEventListener('ct:show-checklist', onShow)
   }, [])
 
+  // Both steps happen INSIDE a course, and both used to link to the Courses
+  // list — which is usually the page you are already on, so the link did
+  // nothing at all. They open a real course now: the newest one for adding an
+  // assignment, and one that has assessments for entering a grade.
+  const newestCourse = courses[courses.length - 1]
+  const gradable = courses.find((c) => assessments.some((a) => a.courseId === c.id)) ?? newestCourse
+  const courseHref = (id: string | undefined) => (id ? `/app/courses/${id}` : '/app/courses')
+
   const steps: Step[] = [
     {
       id: 'course',
@@ -58,7 +66,7 @@ export function GettingStartedChecklist() {
       label: 'Add an assignment',
       hint: 'A deadline to track',
       done: assessments.length > 0,
-      to: '/app/courses',
+      to: courseHref(newestCourse?.id),
     },
     {
       id: 'done',
@@ -72,7 +80,7 @@ export function GettingStartedChecklist() {
       label: 'Enter a grade',
       hint: 'See your standing update',
       done: assessments.some((a) => gradeToPercent(a.grade) !== null),
-      to: '/app/courses',
+      to: courseHref(gradable?.id),
     },
     {
       id: 'community',

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { isStaleChunkError, reloadForNewVersion } from '@/lib/stale-chunk'
 
 /**
  * The thing that stops one bad row taking the whole app with it.
@@ -59,6 +60,9 @@ export class ErrorBoundary extends Component<
      * guessing. The first few frames of the component stack name the screen,
      * which is the half that makes it findable.
      */
+    // A screen whose code was replaced by a deploy: fetch the new build rather
+    // than show a crash for something a reload fixes.
+    if (isStaleChunkError(error) && reloadForNewVersion()) return
     this.setState({ where: topFrames(info.componentStack) })
     console.error('[ErrorBoundary]', error, info.componentStack)
   }

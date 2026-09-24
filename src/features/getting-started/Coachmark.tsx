@@ -26,11 +26,16 @@ export function Coachmark({
   selector,
   title,
   body,
+  when = true,
 }: {
   id: string
   selector: string
   title: string
   body: string
+  /** Whether the tip still applies. "Start with a course" is wrong advice to
+   *  somebody who already has one — it appeared after deleting a duplicate
+   *  while a course was still there — so the caller says when it is true. */
+  when?: boolean
 }) {
   const { loaded, isTipSeen, markTipSeen } = useUiState()
   const { active: tourActive } = useTour()
@@ -42,9 +47,9 @@ export function Coachmark({
 
   // Suppressed while the guided tour runs, so its spotlight is never doubled up
   // with a coachmark on the same screen.
-  const active = loaded && !isTipSeen(id) && !tourActive
+  const active = loaded && !isTipSeen(id) && !tourActive && when
   // Seen or not applicable here, the queue moves on.
-  if (loaded && isTipSeen(id)) completePrompt('highlights')
+  if (loaded && (isTipSeen(id) || !when)) completePrompt('highlights')
 
   useEffect(() => {
     if (!active) return
@@ -80,7 +85,13 @@ export function Coachmark({
   const W = 264
   const gap = 10
   const left = Math.max(12, Math.min(rect.left + rect.width / 2 - W / 2, window.innerWidth - W - 12))
-  const top = rect.top + rect.height + gap
+  // Below the target when it fits, above it when it does not: a tip hanging off
+  // the bottom of the screen loses its last line, which read as the copy being
+  // cut off ("Everything builds from her").
+  const H = 168
+  const below = rect.top + rect.height + gap
+  const above = below + H > window.innerHeight - 12
+  const top = above ? Math.max(12, rect.top - gap - H) : below
   const caretX = rect.left + rect.width / 2 - left
 
   return createPortal(
@@ -88,11 +99,17 @@ export function Coachmark({
       role="dialog"
       aria-label={title}
       className="ct-animate-pop fixed z-[60] rounded-xl border border-border bg-surface p-3.5 shadow-[var(--ct-shadow)]"
-      style={{ top, left, width: W }}
+      style={{ top, left, width: W, ...(above ? { minHeight: H } : {}) }}
     >
       <span
-        className="absolute size-3 rotate-45 border-t border-l border-border bg-surface"
-        style={{ top: -6, left: Math.max(10, Math.min(caretX - 6, W - 22)) }}
+        className={cn(
+          'absolute size-3 rotate-45 border-border bg-surface',
+          above ? 'border-r border-b' : 'border-t border-l',
+        )}
+        style={{
+          ...(above ? { bottom: -6 } : { top: -6 }),
+          left: Math.max(10, Math.min(caretX - 6, W - 22)),
+        }}
         aria-hidden
       />
       <div className="flex items-start justify-between gap-2">

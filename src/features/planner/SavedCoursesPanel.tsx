@@ -158,7 +158,7 @@ function SavedRow({
   const [note, setNote] = useState(saved.note ?? '')
   const [term, setTerm] = useState(saved.planned_term ?? '')
   const verdict = detail?.prerequisites
-    ? checkPrereq(detail.prerequisites, record).verdict
+    ? checkPrereq(detail.prerequisites, record, saved.code).verdict
     : null
 
   return (
@@ -314,7 +314,7 @@ function CompareTable({
             const d = details.get(s.code)
             if (!d?.prerequisites) return <span className="text-subtle">None listed</span>
             if (!trusted) return <span className="text-subtle">Complete your record to check</span>
-            const v = checkPrereq(d.prerequisites, record).verdict
+            const v = checkPrereq(d.prerequisites, record, s.code).verdict
             return (
               <span
                 className={cn(

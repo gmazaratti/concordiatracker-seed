@@ -222,7 +222,49 @@ export function CourseDetailPage() {
             )}
           </aside>
 
-          <main className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-1.5">
+          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+            {/* EVERY course takes this branch — `createCourse` stamps origin
+                'manual' on all of them — so this is the only place an outline
+                can be brought into a course you already have. It used to live
+                solely in the branch below, which no real course reaches, so a
+                student who had RELI 230 and then got its outline had no way to
+                upload it. */}
+            {empty ? (
+              <div className="rounded-xl border border-accent/40 bg-accent-soft/60 px-4 py-4">
+                <p className="text-[14px] font-medium text-fg">Got the outline for {course.code || 'this class'}?</p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+                  Upload the PDF and we read the assessments, dates and weights into this course. You
+                  review everything before it is added.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImporting(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+                  >
+                    <Upload size={14} aria-hidden />
+                    Upload the outline
+                  </button>
+                  <Link
+                    to={`/app/courses/blueprints?course=${course.id}`}
+                    className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
+                  >
+                    or find a classmate&rsquo;s blueprint
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end print:hidden">
+                <button
+                  type="button"
+                  onClick={() => setImporting(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                >
+                  <Upload size={12} aria-hidden />
+                  Import an outline
+                </button>
+              </div>
+            )}
             <ManualCourseAssessments
               courseId={course.id}
               assessments={courseAssessments}
@@ -233,12 +275,19 @@ export function CourseDetailPage() {
       ) : empty ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
           <p className="text-[13px] text-subtle">No assessments yet for {course.code}.</p>
-          <Link
-            to={`/app/courses/blueprints?course=${course.id}`}
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Upload size={15} aria-hidden />
-            Import a syllabus
+            Upload the outline
+          </button>
+          <Link
+            to={`/app/courses/blueprints?course=${course.id}`}
+            className="text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
+          >
+            or find a classmate&rsquo;s blueprint
           </Link>
         </div>
       ) : (

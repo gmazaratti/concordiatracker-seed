@@ -144,7 +144,7 @@ export function PrereqGraph({
   const arrange = useCallback((list: Node[]): Node[] => {
     const previous = new Map(list.map((n) => [n.code, n]))
     const placed = layout(
-      list.map((n) => ({ code: n.code, needs: extractCourseCodes(n.course.prerequisites) })),
+      list.map((n) => ({ code: n.code, needs: extractCourseCodes(n.course.prerequisites, n.code) })),
       previous,
     )
     const at = new Map(placed.map((p) => [p.code, p]))
@@ -159,7 +159,7 @@ export function PrereqGraph({
 
       setNodes((prev) => arrange([...prev, { code, course, x: 0, y: 0 }]))
       setPulling(code)
-      const needs = extractCourseCodes(course.prerequisites)
+      const needs = extractCourseCodes(course.prerequisites, code)
       const [parents, children] = await Promise.all([
         needs.length ? coursesByCodes(needs).catch(() => []) : Promise.resolve([]),
         unlockedBy(code, 6).catch(() => []),
@@ -186,7 +186,7 @@ export function PrereqGraph({
     const index = new Map(nodes.map((n) => [normalizeCode(n.code), n]))
     const out: { from: Node; to: Node }[] = []
     for (const n of nodes) {
-      for (const need of extractCourseCodes(n.course.prerequisites)) {
+      for (const need of extractCourseCodes(n.course.prerequisites, n.code)) {
         const parent = index.get(normalizeCode(need))
         if (parent && parent.code !== n.code) out.push({ from: parent, to: n })
       }

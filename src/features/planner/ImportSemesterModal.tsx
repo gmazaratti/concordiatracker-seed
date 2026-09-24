@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Check, Loader2, Plus, Search, Trash2 } from 'lucide-react'
+import { Check, Loader2, Plus, Search, Trash2, X } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { searchCourses, type CatalogCourse } from '@/lib/catalog'
 import { isNotation, parseFinalGrade, percentToGrade } from '@/lib/gpa'
 import { GradeField } from '@/components/ui/GradeField'
+import { batchRepeats, findSameCourse } from '@/lib/course-match'
 import { allTerms, isUpcomingTerm, pastTerms } from './past-terms'
 
 /**
@@ -41,12 +42,24 @@ export function ImportSemesterModal({
   /** Pre-selects the term, for adding to a semester that already exists. */
   initialTerm?: string
 }) {
-  const { addPastCourse } = useAppData()
+  const { addPastCourse, courses, pastCourses } = useAppData()
   const [term, setTerm] = useState(initialTerm ?? pastTerms()[1] ?? pastTerms()[0])
   const [rows, setRows] = useState<Draft[]>([blank(), blank(), blank()])
   const [saving, setSaving] = useState(false)
 
-  const ready = rows.filter((r) => r.course !== null)
+  const codeOf = (r: Draft) => (r.course ? `${r.course.subject} ${r.course.catalog}` : '')
+  // A row that repeats a course already on record for this term, or one
+  // earlier in this same import, is shown as such and SKIPPED: adding it would
+  // make a second record of one class and count its credits twice.
+  const repeats = batchRepeats(rows.map(codeOf))
+  const skipReason = (r: Draft, i: number): string | null => {
+    if (!r.course) return null
+    if (repeats[i]) return 'Already in this list: it will only be added once.'
+    const held = findSameCourse([...courses, ...pastCourses], codeOf(r), term)
+    if (held) return `Already on your record for ${term}: it will be skipped.`
+    return null
+  }
+  const ready = rows.filter((r, i) => r.course !== null && skipReason(r, i) === null)
   const badGrade = rows.some((r) => r.grade.trim() !== '' && parseFinalGrade(r.grade) === null)
 
   const patch = (key: string, next: Partial<Draft>) =>
@@ -118,6 +131,7 @@ export function ImportSemesterModal({
               row={row}
               index={i}
               canRemove={rows.length > 1}
+              note={skipReason(row, i)}
               onChange={(next) => patch(row.key, next)}
               onRemove={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
               onEnter={() => setRows((prev) => [...prev, blank()])}
@@ -180,6 +194,7 @@ function DraftRow({
   row,
   index,
   canRemove,
+  note,
   onChange,
   onRemove,
   onEnter,
@@ -187,6 +202,8 @@ function DraftRow({
   row: Draft
   index: number
   canRemove: boolean
+  /** Why this row will not be added (a duplicate), or null. */
+  note: string | null
   onChange: (next: Partial<Draft>) => void
   onRemove: () => void
   onEnter: () => void
@@ -211,31 +228,52 @@ function DraftRow({
   return (
     <li className="relative">
       <div className="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_130px_auto]">
-        <div className="relative">
-          <Search
-            size={14}
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-subtle"
-          />
-          <input
-            value={row.course ? `${row.course.subject} ${row.course.catalog} · ${row.course.title}` : row.query}
-            onChange={(e) => {
-              onChange({ course: null, query: e.target.value })
-              if (!e.target.value.trim()) setHits(null)
-            }}
-            onKeyDown={(e) => {
-              // Enter opens another row, so a whole semester can be entered
-              // from the keyboard without reaching for "Add another class".
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                onEnter()
-              }
-            }}
-            placeholder={`Class ${index + 1}`}
-            aria-label={`Class ${index + 1}`}
-            className="w-full rounded-lg border border-border bg-canvas py-2 pr-3 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
-          />
-        </div>
+        {/* A chosen course is a chip, cleared only by its X — see PastCourseEntry
+            for why it is not text inside the search box. */}
+        {row.course ? (
+          <div className="flex min-w-0 items-center gap-2 rounded-lg border border-accent/50 bg-accent-soft py-1 pr-1 pl-3">
+            <span className="shrink-0 text-[12.5px] font-semibold text-fg">
+              {row.course.subject} {row.course.catalog}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
+              {row.course.title}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange({ course: null, query: '' })}
+              aria-label={`Choose a different course for class ${index + 1}`}
+              className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+            >
+              <X size={13} aria-hidden />
+            </button>
+          </div>
+        ) : (
+          <div className="relative">
+            <Search
+              size={14}
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-subtle"
+            />
+            <input
+              value={row.query}
+              onChange={(e) => {
+                onChange({ course: null, query: e.target.value })
+                if (!e.target.value.trim()) setHits(null)
+              }}
+              onKeyDown={(e) => {
+                // Enter opens another row, so a whole semester can be entered
+                // from the keyboard without reaching for "Add another class".
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  onEnter()
+                }
+              }}
+              placeholder={`Class ${index + 1}`}
+              aria-label={`Class ${index + 1}`}
+              className="w-full rounded-lg border border-border bg-canvas py-2 pr-3 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+            />
+          </div>
+        )}
 
         <GradeField
           value={row.grade}
@@ -253,6 +291,8 @@ function DraftRow({
           <Trash2 size={14} aria-hidden />
         </button>
       </div>
+
+      {note && <p className="mt-1 px-1 text-[11.5px] text-warning">{note}</p>}
 
       {!row.course && hits !== null && hits.length > 0 && row.query.trim() !== '' && (
         <ul className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-border bg-surface shadow-lg sm:w-[calc(100%-150px)]">

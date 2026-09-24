@@ -60,7 +60,7 @@ export async function buildPrereqTree(
   const root: TreeNode = {
     code: norm,
     course: rootCourse ?? null,
-    terms: parsePrereq(rootCourse?.prerequisites).terms,
+    terms: parsePrereq(rootCourse?.prerequisites, rootCode).terms,
     children: [],
     done: completed.has(norm),
     repeated: false,
@@ -102,7 +102,7 @@ export async function buildPrereqTree(
           const child: TreeNode = {
             code: alt.code,
             course,
-            terms: already ? [] : parsePrereq(course?.prerequisites).terms,
+            terms: already ? [] : parsePrereq(course?.prerequisites, alt.code).terms,
             children: [],
             done: completed.has(alt.code),
             repeated: already,

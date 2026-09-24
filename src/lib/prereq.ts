@@ -209,7 +209,26 @@ function allCodes(text: string): string[] {
   return [...text.matchAll(new RegExp(CODE, 'g'))].map((m) => `${m[1]}${m[2]}`)
 }
 
-export function parsePrereq(raw: string | null | undefined): Prereq {
+/**
+ * Parse a calendar entry, leaving out the course ITSELF.
+ *
+ * A course is never its own prerequisite, but 156 catalogue entries name
+ * themselves — as a label ("PREREQ COMP425: must complete all 200 level
+ * courses…", "Prerequisite FMAN 450", "anti req for ACTT 201"). Read literally,
+ * COMP 425 required COMP 425: an unmeetable condition and a loop in the tree.
+ * Every reader passes the course's own code so it is dropped here, once.
+ */
+export function parsePrereq(raw: string | null | undefined, self?: string | null): Prereq {
+  const p = parsePrereqText(raw)
+  const own = self ? normalizeCode(self) : ''
+  if (!own) return p
+  const terms = p.terms
+    .map((t) => ({ ...t, alternatives: t.alternatives.filter((a) => a.code !== own) }))
+    .filter((t) => t.alternatives.length > 0)
+  return { ...p, terms, antirequisites: p.antirequisites.filter((c) => normalizeCode(c) !== own) }
+}
+
+function parsePrereqText(raw: string | null | undefined): Prereq {
   const out: Prereq = { terms: [], antirequisites: [], minCredits: null, undecidable: [] }
   if (!raw?.trim()) return out
   const text = expandBareNumbers(raw)
@@ -394,8 +413,13 @@ export function evaluate(p: Prereq, rec: Record): Evaluation {
 }
 
 /** Parse and evaluate in one step. */
-export function checkPrereq(text: string | null | undefined, rec: Record): Evaluation {
-  return evaluate(parsePrereq(text), rec)
+export function checkPrereq(
+  text: string | null | undefined,
+  rec: Record,
+  /** The course being checked, so it is never read as its own requirement. */
+  self?: string | null,
+): Evaluation {
+  return evaluate(parsePrereq(text, self), rec)
 }
 
 /** "COMP232 or COEN231" — how a missing term reads in the UI. */

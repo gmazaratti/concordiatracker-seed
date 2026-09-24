@@ -91,7 +91,8 @@ export function MyRecordPanel() {
       {hasHistory && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5">
           <p className="min-w-0 text-[12.5px] text-subtle">
-            {summary.credits} credits · {summary.courseCount} courses
+            {summary.credits} {summary.credits === 1 ? 'credit' : 'credits'} · {summary.courseCount}{' '}
+            {summary.courseCount === 1 ? 'course' : 'courses'}
             {shownGpa === null ? '' : ` · GPA ${shownGpa.toFixed(2)}`}
           </p>
           <button
@@ -377,7 +378,7 @@ function Unlocks({
     for (const c of rows ?? []) {
       // Nothing you have already finished.
       if (done.has(normalizeCode(c.subject + c.catalog))) continue
-      const e = checkPrereq(c.prerequisites, record)
+      const e = checkPrereq(c.prerequisites, record, c.subject + c.catalog)
       // A course with no prerequisite at all is true but not interesting: it
       // was never locked, so listing it as "unlocked" is noise.
       if (e.verdict === 'met' && e.unreadable) continue

@@ -83,7 +83,11 @@ export function GlanceStrip(data: GlanceData) {
         />
         <Row
           label={t('today.thisTerm')}
-          value={t('today.coursesCount', { count: data.courseCount })}
+          value={
+            data.courseCount === 1
+              ? t('today.coursesOne')
+              : t('today.coursesCount', { count: data.courseCount })
+          }
           sub={t('today.creditsCount', { count: data.credits })}
         />
       </div>

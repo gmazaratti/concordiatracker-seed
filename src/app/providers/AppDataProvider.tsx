@@ -10,6 +10,9 @@ import {
 } from './app-data'
 import { term } from '@/data/mock'
 import { coursePercent, percentToGrade } from '@/lib/gpa'
+import { courseKey, findSameCourse } from '@/lib/course-match'
+import { normalizeTerm } from '@/lib/term'
+import { catalogueFacts } from '@/lib/catalog'
 import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
 import { supabase, fireWrite } from '@/lib/supabase'
@@ -167,6 +170,18 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     DEFAULT_CALENDAR_PREFS,
   )
   const colorSeq = useRef(0)
+  /**
+   * The newest course list, for the duplicate check inside the async adders.
+   * Their closures can be a render behind — an import adds six rows in a loop —
+   * and a check against a stale list is how one class became three records.
+   */
+  const allCoursesRef = useRef<Course[]>(baseCourses)
+  useEffect(() => {
+    allCoursesRef.current = baseCourses
+  }, [baseCourses])
+  /** Adds still waiting on the database, by course+term, so a double tap on
+   *  Add resolves to ONE insert instead of two racing ones. */
+  const inflightAdds = useRef<Map<string, Promise<string>>>(new Map())
   // In-memory until later phases.
   const [peerCorrections, setPeerCorrections] = useState<PeerCorrection[]>([])
   // "Remind me" subscriptions, backed by `event_reminders` (per-user, own-row RLS).
@@ -393,6 +408,84 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [updateCourses],
   )
 
+  const insertCourse = useCallback(async (init?: {
+    code?: string
+    title?: string
+    section?: string
+    credits?: number
+    term?: string
+    enrollment?: Course['enrollment']
+    source?: 'catalogue' | 'manual' | 'blueprint' | 'outline' | 'moodle' | 'syllabus'
+  }): Promise<string> => {
+      if (!authUser) return ''
+      // Credits from the calendar, not an assumed 3: COMP 248 is 3.5, and a
+      // wrong count silently breaks the full-time check, the cost estimate and
+      // the degree audit at once. Only when the caller did not say.
+      // The title too, when the caller had none: a course typed in as "COMP 249"
+      // should read "Object-Oriented Programming II", not "Untitled course".
+      const facts =
+        init?.code && (init.credits === undefined || !init.title?.trim())
+          ? await catalogueFacts(init.code)
+          : null
+      const credits = init?.credits ?? facts?.credits ?? 3
+      const title = init?.title?.trim() || facts?.title || ''
+      const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
+      colorSeq.current += 1
+      let { data } = await supabase
+        .from('courses')
+        .insert({
+          user_id: authUser.id,
+          code: init?.code ?? '',
+          name: title,
+          term: normalizeTerm(init?.term ?? term.name),
+          // Was below the spread that set it, so an explicit credit count was
+          // always overwritten with 3.
+          credits,
+          color,
+          section: init?.section ?? '',
+          professor: '',
+          prof_email: '',
+          location: '',
+          time: '',
+          syllabus_url: '',
+          origin: 'manual',
+          enrollment: init?.enrollment ?? null,
+          source: init?.source ?? null,
+        })
+        .select('*')
+        .maybeSingle()
+      // The source column may not be migrated yet; the course matters more
+      // than knowing where it came from, so retry without it.
+      if (!data && init?.source) {
+        const retry = await supabase
+          .from('courses')
+          .insert({
+            user_id: authUser.id,
+            code: init?.code ?? '',
+            name: title,
+            term: normalizeTerm(init?.term ?? term.name),
+            credits,
+            color,
+            section: init?.section ?? '',
+            professor: '',
+            prof_email: '',
+            location: '',
+            time: '',
+            syllabus_url: '',
+            origin: 'manual',
+            enrollment: init?.enrollment ?? null,
+          })
+          .select('*')
+          .maybeSingle()
+        if (retry.data) data = retry.data
+      }
+      if (!data) return ''
+      const course = courseFromRow(data as CourseRow)
+      allCoursesRef.current = [...allCoursesRef.current, course]
+      updateCourses((list) => [...list, course])
+      return course.id
+  }, [authUser, updateCourses])
+
   // Course creation — insert a course (DB-generated id), adopt it. Blank for a
   // manual add; pre-filled code/title/section when added from a blueprint.
   const createCourse = useCallback(
@@ -416,62 +509,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       source?: 'catalogue' | 'manual' | 'blueprint' | 'outline' | 'moodle' | 'syllabus'
     }) => {
       if (!authUser) return ''
-      const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
-      colorSeq.current += 1
-      let { data } = await supabase
-        .from('courses')
-        .insert({
-          user_id: authUser.id,
-          code: init?.code ?? '',
-          name: init?.title ?? '',
-          term: init?.term ?? term.name,
-          // Was below the spread that set it, so an explicit credit count was
-          // always overwritten with 3.
-          credits: init?.credits ?? 3,
-          color,
-          section: init?.section ?? '',
-          professor: '',
-          prof_email: '',
-          location: '',
-          time: '',
-          syllabus_url: '',
-          origin: 'manual',
-          enrollment: init?.enrollment ?? null,
-          source: init?.source ?? null,
-        })
-        .select('*')
-        .maybeSingle()
-      // The source column may not be migrated yet; the course matters more
-      // than knowing where it came from, so retry without it.
-      if (!data && init?.source) {
-        const retry = await supabase
-          .from('courses')
-          .insert({
-            user_id: authUser.id,
-            code: init?.code ?? '',
-            name: init?.title ?? '',
-            term: init?.term ?? term.name,
-            credits: init?.credits ?? 3,
-            color,
-            section: init?.section ?? '',
-            professor: '',
-            prof_email: '',
-            location: '',
-            time: '',
-            syllabus_url: '',
-            origin: 'manual',
-            enrollment: init?.enrollment ?? null,
-          })
-          .select('*')
-          .maybeSingle()
-        if (retry.data) data = retry.data
+      // Already have it this term? That record IS the course — return it, and
+      // the caller (a blueprint import, a Moodle pick, onboarding) adds into it.
+      const targetTerm = init?.term ?? term.name
+      if (init?.code) {
+        const dup = findSameCourse(allCoursesRef.current, init.code, targetTerm)
+        if (dup) return dup.id
       }
-      if (!data) return ''
-      const course = courseFromRow(data as CourseRow)
-      updateCourses((list) => [...list, course])
-      return course.id
+      const flightKey = init?.code ? `${courseKey(init.code)}|${normalizeTerm(targetTerm)}` : null
+      const inflight = flightKey ? inflightAdds.current.get(flightKey) : undefined
+      if (inflight) return inflight
+      const run = insertCourse(init)
+      if (flightKey) {
+        inflightAdds.current.set(flightKey, run)
+        void run.finally(() => inflightAdds.current.delete(flightKey))
+      }
+      return run
     },
-    [authUser, updateCourses],
+    [authUser, insertCourse],
   )
 
   // ── Academic history ──────────────────────────────────────────────────────
@@ -532,6 +587,20 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       archived?: boolean
     }) => {
       if (!authUser) return ''
+      // Already on record for that term: it is the same course, so fill in a
+      // grade it is missing and hand back the record — never a second row.
+      const dup = findSameCourse(allCoursesRef.current, init.code, init.term)
+      if (dup) {
+        if (init.finalPercent !== undefined && dup.finalPercent == null) {
+          const patch: Partial<Course> = {
+            finalPercent: init.finalPercent,
+            finalLetter: init.finalLetter ?? percentToGrade(init.finalPercent).letter,
+          }
+          updateCourses((list) => list.map((c) => (c.id === dup.id ? { ...c, ...patch } : c)))
+          fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', dup.id))
+        }
+        return dup.id
+      }
       const color = COURSE_COLORS[colorSeq.current % COURSE_COLORS.length].id
       colorSeq.current += 1
       const { data } = await supabase
@@ -540,7 +609,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           user_id: authUser.id,
           code: init.code,
           name: init.title,
-          term: init.term,
+          term: normalizeTerm(init.term),
           credits: init.credits,
           color,
           section: '',
@@ -560,6 +629,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle()
       if (!data) return ''
       const course = courseFromRow(data as CourseRow)
+      allCoursesRef.current = [...allCoursesRef.current, course]
       updateCourses((list) => [...list, course])
       return course.id
     },

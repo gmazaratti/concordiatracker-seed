@@ -281,7 +281,7 @@ function CourseRow({
   onToggleSave: (course: CatalogCourse) => void
 }) {
   const { t } = useI18n()
-  const linked = extractCourseCodes(course.prerequisites)
+  const linked = extractCourseCodes(course.prerequisites, `${course.subject} ${course.catalog}`)
 
   const meta = [
     course.class_unit
@@ -349,6 +349,7 @@ function CourseRow({
           {course.prerequisites ? (
             <PrereqChips
               prerequisites={course.prerequisites}
+              code={`${course.subject} ${course.catalog}`}
               completed={record.completed}
               credits={record.credits}
               trusted={trusted}

@@ -140,6 +140,11 @@ export function GradeField({
                   type="button"
                   role="option"
                   aria-selected={value.trim().toUpperCase() === letter}
+                  // Pressing an option must not move focus: a focus change fires
+                  // blur (and, on phones, an autocorrect commit) on whatever
+                  // field had it — the course search, next door — and a stray
+                  // input event there is how a pick could un-choose the course.
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onChange(letter)
                     setOpen(false)

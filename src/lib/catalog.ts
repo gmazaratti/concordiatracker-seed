@@ -116,10 +116,19 @@ export async function catalogStatus(): Promise<{ total: number; synced_at: strin
  * is a separate problem and deliberately not attempted here, because a
  * half-understood rule shown as fact would be worse than showing the sentence.
  */
-export function extractCourseCodes(prereq: string | null): string[] {
+export function extractCourseCodes(prereq: string | null, self?: string | null): string[] {
   if (!prereq) return []
   const found = prereq.match(/\b([A-Z]{4})\s?(\d{3}[A-Z]?)\b/g) ?? []
-  return [...new Set(found.map((c) => c.replace(/\s+/g, ' ').trim()))]
+  // A course never requires itself, but entries like "PREREQ COMP425: …" name
+  // their own code as a label — which drew COMP 425 as its own prerequisite.
+  const own = (self ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+  return [
+    ...new Set(
+      found
+        .map((c) => c.replace(/\s+/g, ' ').trim())
+        .filter((c) => !own || c.replace(/\s+/g, '') !== own),
+    ),
+  ]
 }
 
 /**
@@ -134,6 +143,28 @@ export async function coursesByCodes(codes: string[]): Promise<CatalogCourse[]> 
   const { data, error } = await supabase.rpc('courses_by_codes', { p_codes: codes })
   if (error) return []
   return (data ?? []) as CatalogCourse[]
+}
+
+/**
+ * A course's credit value from the calendar, or null when we do not know it.
+ *
+ * Every add path used to default to 3, and plenty of Concordia courses are not
+ * 3 (COMP 248 is 3.5). A wrong count is quiet and expensive: the full-time
+ * check, the tuition estimate and the degree audit all sum it. Never throws —
+ * an unknown value falls back to the caller's default rather than blocking an
+ * add over a lookup.
+ */
+export async function catalogueFacts(
+  code: string,
+): Promise<{ credits: number | null; title: string | null }> {
+  try {
+    const rows = await coursesByCodes([code])
+    const units = rows.map((r) => r.class_unit).find((u): u is number => typeof u === 'number' && u > 0)
+    const title = rows.map((r) => r.title?.trim()).find((t): t is string => !!t)
+    return { credits: units ?? null, title: title ?? null }
+  } catch {
+    return { credits: null, title: null }
+  }
 }
 
 /** Courses that name this one in their prerequisites: what finishing it opens. */

@@ -7,10 +7,12 @@ import { KIND_LABEL } from '@/lib/assessment'
 import { MascotLoading } from '@/components/Mascot'
 import { ScanTips } from './ScanTips'
 import { matchAll } from './duplicate-assessments'
+import { syllabusTarget } from '@/lib/course-match'
+import { normalizeTerm } from '@/lib/term'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
-import type { Assessment, AssessmentKind } from '@/data/types'
+import type { Assessment, AssessmentKind, Course } from '@/data/types'
 
 type Phase = 'idle' | 'parsing' | 'review' | 'error'
 const MAX_MB = 4
@@ -136,7 +138,8 @@ export function SyllabusUploadPage({
   embedded?: boolean
 } = {}) {
   const navigate = useNavigate()
-  const { createCourse, addAssessments, updateCourse, assessments: allAssessments } = useAppData()
+  const { createCourse, addAssessments, updateCourse, assessments: allAssessments, courses } =
+    useAppData()
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState('')
   const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
@@ -197,15 +200,27 @@ export function SyllabusUploadPage({
   const total = items.reduce((s, i) => s + i.weight, 0)
   const canCommit = items.length > 0 && !saving
 
+  /**
+   * A course the student ALREADY HAS with this code — the outline goes into it.
+   *
+   * Uploading RELI 230's syllabus when RELI 230 is already in your courses used
+   * to make a second RELI 230, so the class showed twice and its credits
+   * counted twice. Now the same parse lands in the existing course, with the
+   * same duplicate check a re-import gets. Re-evaluated as the code field is
+   * edited, so fixing a misread code finds the right course.
+   */
+  const matched = intoCourseId ? undefined : syllabusTarget(courses, course.code, course.term)
+  const targetId = intoCourseId ?? matched?.id
+
   /** What this course already has, for the duplicate check. Empty for a new one. */
   const existing = useMemo(
     () =>
-      intoCourseId
+      targetId
         ? allAssessments
-            .filter((a) => a.courseId === intoCourseId)
+            .filter((a) => a.courseId === targetId)
             .map((a) => ({ id: a.id, title: a.title, kind: a.kind, weight: a.weight, due: a.due }))
         : [],
-    [allAssessments, intoCourseId],
+    [allAssessments, targetId],
   )
 
   const duplicates = useMemo(
@@ -225,12 +240,12 @@ export function SyllabusUploadPage({
     setSaving(true)
 
     // ── Into a course that already exists ──────────────────────────────────
-    if (intoCourseId) {
+    if (targetId) {
       const add: Assessment[] = items
         .filter((_, i) => !duplicates[i]?.confident)
         .map((it) => ({
           id: crypto.randomUUID(),
-          courseId: intoCourseId,
+          courseId: targetId,
           title: it.title.trim() || 'Untitled',
           kind: it.kind,
           due: it.due as string,
@@ -242,18 +257,37 @@ export function SyllabusUploadPage({
           description: it.description.trim() || undefined,
         }))
       if (course.gradingScale.trim()) {
-        updateCourse(intoCourseId, { gradingScale: course.gradingScale.trim() })
+        updateCourse(targetId, { gradingScale: course.gradingScale.trim() })
+      }
+      // A course found by its code keeps what the student already typed and
+      // gains only what was blank — the outline does not get to overwrite them.
+      if (matched) {
+        const fill: Partial<Course> = {}
+        if (!matched.instructor?.name && course.instructorName.trim()) {
+          fill.instructor = { name: course.instructorName.trim(), email: course.instructorEmail.trim() }
+        }
+        if (!matched.section && course.section.trim()) fill.section = course.section.trim()
+        if (!matched.title && course.title.trim()) fill.title = course.title.trim()
+        if (Object.keys(fill).length > 0) updateCourse(matched.id, fill)
       }
       if (add.length > 0) await addAssessments(add)
       setSaving(false)
-      onDone?.()
+      if (onDone) {
+        onDone(intoCourseId ? undefined : { courseId: targetId, code: course.code.trim(), count: add.length })
+        return
+      }
+      if (!intoCourseId) navigate(`/app/courses/${targetId}`)
       return
     }
 
+    // The outline's own term, when it states one, so the new course is filed in
+    // it — and so the duplicate check is asked about the right term.
+    const parsedTerm = normalizeTerm(course.term)
     const id = await createCourse({ source: 'syllabus',
       code: course.code.trim(),
       title: course.title.trim(),
       section: course.section.trim(),
+      ...(parsedTerm ? { term: parsedTerm } : {}),
     })
     if (!id) {
       setSaving(false)
@@ -359,6 +393,14 @@ export function SyllabusUploadPage({
         <div>
           <CourseEdit course={course} setCourse={setCourse} />
 
+          {matched && (
+            <p className="mt-3 rounded-lg border border-accent/40 bg-accent-soft px-3 py-2 text-[12.5px] leading-relaxed text-fg">
+              You already have <span className="font-semibold">{matched.code}</span>
+              {matched.term ? ` (${matched.term})` : ''}, so these go into that course instead of a
+              second copy. Anything that matches an assessment already there is skipped.
+            </p>
+          )}
+
           {items.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-8 text-center text-[13px] text-subtle">
               No graded assessments were found in that document.
@@ -447,7 +489,9 @@ export function SyllabusUploadPage({
               {saving && <Loader2 size={14} className="animate-spin" aria-hidden />}
               {intoCourseId
                 ? `Add ${items.length - confidentDupes} to this course`
-                : `Add ${items.length} to a new course`}
+                : matched
+                  ? `Add ${items.length - confidentDupes} to your ${matched.code}`
+                  : `Add ${items.length} to a new course`}
             </button>
             <button
               type="button"

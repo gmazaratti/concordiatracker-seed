@@ -8,7 +8,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
-import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
+import { gradeToInput, gradeToPercent, readGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 
@@ -33,8 +33,12 @@ export function AssessmentRow({
   const [draftGrade, setDraftGrade] = useState(() => gradeToInput(assessment.grade))
 
   const committedGradeText = gradeToInput(assessment.grade)
-  const parsedDraft = parseGradeInput(draftGrade)
-  const gradeDirty = gradeToInput(parsedDraft) !== committedGradeText
+  const read = readGradeInput(draftGrade)
+  const parsedDraft = read.kind === 'grade' ? read.grade : null
+  // Unreadable text is a change nobody can save — it must never fall through to
+  // "no grade" and wipe the real one.
+  const gradeError = read.kind === 'invalid' ? read.error : null
+  const gradeDirty = gradeError !== null || gradeToInput(parsedDraft) !== committedGradeText
   const statusDirty = draftStatus !== assessment.status
   const dirty = gradeDirty || statusDirty
 
@@ -43,6 +47,7 @@ export function AssessmentRow({
   const due = dueLabel(assessment.due, assessment.status)
 
   function commit() {
+    if (gradeError) return
     if (statusDirty) setStatus(assessment.id, draftStatus)
     if (gradeDirty) setGrade(assessment.id, parsedDraft)
   }
@@ -187,12 +192,17 @@ export function AssessmentRow({
               placeholder="%"
               title="Enter a percent (e.g. 82). Got a score like 15/20? Type it and we'll convert it."
               aria-label={`Grade for ${assessment.title} (percent, or a score like 15/20)`}
+              aria-invalid={gradeError !== null}
+              aria-describedby={gradeError ? `grade-err-${assessment.id}` : undefined}
               onChange={(e) => setDraftGrade(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && dirty) commit()
                 if (e.key === 'Escape' && dirty) revert()
               }}
-              className="h-7 w-[72px] rounded-md border border-border-strong bg-surface-2 px-2 text-center text-[13px] font-medium text-fg tabular-nums focus-visible:outline-none"
+              className={cn(
+                'h-7 w-[72px] rounded-md border bg-surface-2 px-2 text-center text-[13px] font-medium text-fg tabular-nums focus-visible:outline-none',
+                gradeError ? 'border-danger' : 'border-border-strong',
+              )}
             />
 
             <span className="w-10 shrink-0 text-right text-[12px] leading-tight font-medium tabular-nums">
@@ -221,9 +231,10 @@ export function AssessmentRow({
                   <button
                     type="button"
                     onClick={commit}
-                    title="Save changes"
+                    disabled={gradeError !== null}
+                    title={gradeError ?? 'Save changes'}
                     aria-label="Save changes"
-                    className="grid size-7 place-items-center rounded-md bg-accent text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
+                    className="grid size-7 place-items-center rounded-md bg-accent text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Check size={15} aria-hidden />
                   </button>
@@ -254,6 +265,16 @@ export function AssessmentRow({
           </span>
         )}
       </div>
+
+      {tab === 'grades' && gradeError && (
+        <p
+          id={`grade-err-${assessment.id}`}
+          role="alert"
+          className="mt-1 hidden text-right text-[11.5px] text-danger md:block"
+        >
+          {gradeError}
+        </p>
+      )}
 
       {tab === 'notes' && (
         <textarea

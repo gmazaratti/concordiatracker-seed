@@ -41,7 +41,7 @@ import { TourOverlay } from '@/features/tour/TourOverlay'
  * area requires a signed-in session — otherwise the login screen takes over. */
 export function StudentLayout({ children }: { children?: React.ReactNode } = {}) {
   const { user, loading } = useAuth()
-  const { onboardingCompleted } = useAppData()
+  const { onboardingCompleted, courses, pastCourses } = useAppData()
   const { pathname } = useLocation()
   // Before the early returns: a hook is a hook. It writes nothing
   // outside /app, so the login screen and a public profile keep their
@@ -141,6 +141,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
         id="add-course"
         selector='[data-coach="add-course"]'
         title="Start with a course"
+        when={courses.length + pastCourses.length === 0}
         body="Add your first course: import a syllabus or pick a classmate's blueprint. Everything builds from here."
       />
       <Coachmark

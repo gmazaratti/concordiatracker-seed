@@ -16,7 +16,8 @@ import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
-import { gradeToInput, gradeToPercent, parseGradeInput } from '@/lib/grade'
+import { cn } from '@/lib/cn'
+import { gradeToInput, gradeToPercent, readGradeInput } from '@/lib/grade'
 import { percentToGrade } from '@/lib/gpa'
 import { courseColor } from '@/lib/course-color'
 import { Select } from '@/components/ui/Select'
@@ -62,20 +63,23 @@ export function AssessmentDetailModal({ id }: { id: string }) {
 
   if (!assessment || !course) return null
 
-  const parsed = parseGradeInput(gradeText)
+  const read = readGradeInput(gradeText)
+  const parsed = read.kind === 'grade' ? read.grade : null
+  // "abc" is not "no grade": treating it as one saved over a real 82%.
+  const gradeError = read.kind === 'invalid' ? read.error : null
   const pct = gradeToPercent(parsed)
   const resolved = pct === null ? null : percentToGrade(pct)
   const { hex } = courseColor(course.color)
 
   const statusDirty = status !== assessment.status
-  const gradeDirty = gradeToInput(parsed) !== gradeToInput(assessment.grade)
+  const gradeDirty = gradeError !== null || gradeToInput(parsed) !== gradeToInput(assessment.grade)
   const dueDirty = dueISO !== assessment.due
   const notesDirty = notes !== assessment.notes
   const reminderDirty = reminderOffset !== reminderInitial
   const dirty = statusDirty || gradeDirty || dueDirty || notesDirty || reminderDirty
 
   function save() {
-    if (!assessment || !course || !dirty) return
+    if (!assessment || !course || !dirty || gradeError) return
 
     // Reminder side-write: (re)schedule when set + dated, clear when turned off.
     if (reminderOffset > 0 && dueISO && (reminderDirty || dueDirty)) {
@@ -174,17 +178,23 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               placeholder="%"
               title="Enter a percent (e.g. 82). Got a score like 15/20? Type it and we'll convert it."
               aria-label="Grade (percent, or a score like 15/20)"
+              aria-invalid={gradeError !== null}
               onChange={(e) => setGradeText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && dirty) save()
               }}
-              className="w-[124px] rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-center text-[14px] font-medium text-fg tabular-nums focus-visible:outline-none"
+              className={cn(
+                'w-[124px] rounded-lg border bg-surface-2 px-3 py-2 text-center text-[14px] font-medium text-fg tabular-nums focus-visible:outline-none',
+                gradeError ? 'border-danger' : 'border-border-strong',
+              )}
             />
           </Field>
         </div>
 
-        <p className="mt-2 text-[12px] text-subtle">
-          {resolved ? (
+        <p className={cn('mt-2 text-[12px]', gradeError ? 'text-danger' : 'text-subtle')} role={gradeError ? 'alert' : undefined}>
+          {gradeError ? (
+            gradeError
+          ) : resolved ? (
             <>
               Resolves to{' '}
               <span className="font-semibold text-fg">{Math.round(pct!)}%</span> ·{' '}
@@ -256,7 +266,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
             <button
               type="button"
               onClick={save}
-              disabled={!dirty}
+              disabled={!dirty || gradeError !== null}
               className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               Save

@@ -4,6 +4,13 @@ import './index.css'
 import './lib/pwa-install' // capture `beforeinstallprompt` as early as possible
 import App from './App.tsx'
 import { initNative, isNative, nativeReady } from './lib/native'
+import { reloadForNewVersion } from './lib/stale-chunk'
+
+// Vite reports a chunk it could not preload (the old build's file is gone after
+// a deploy). Reload into the new build instead of letting the screen crash.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewVersion()) event.preventDefault()
+})
 
 // No-ops in a browser, so the web build is unchanged.
 initNative()

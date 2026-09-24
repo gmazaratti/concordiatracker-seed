@@ -581,9 +581,9 @@ export const OPENAPI = {
               schema: {
                 type: 'object',
                 properties: {
-                  percent: { type: 'number', nullable: true },
-                  earned: { type: 'number', nullable: true },
-                  total: { type: 'number', nullable: true },
+                  percent: { type: 'number', nullable: true, minimum: 0, maximum: 100 },
+                  earned: { type: 'number', nullable: true, minimum: 0, description: 'At most total.' },
+                  total: { type: 'number', nullable: true, exclusiveMinimum: 0 },
                 },
               },
             },
@@ -926,9 +926,9 @@ export const OPENAPI = {
                     nullable: true,
                     description: 'Either {percent} or {earned,total}. null clears the grade.',
                     properties: {
-                      percent: { type: 'number', nullable: true },
-                      earned: { type: 'number', nullable: true },
-                      total: { type: 'number', nullable: true },
+                      percent: { type: 'number', nullable: true, minimum: 0, maximum: 100 },
+                      earned: { type: 'number', nullable: true, minimum: 0, description: 'At most total.' },
+                      total: { type: 'number', nullable: true, exclusiveMinimum: 0 },
                     },
                   },
                 },

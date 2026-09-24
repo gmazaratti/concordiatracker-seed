@@ -173,7 +173,7 @@ export function ScheduleGenerator({
           const prose = rows.find(
             (r) => normalizeCode(`${r.subject} ${r.catalog}`) === normalizeCode(code),
           )?.description
-          const verdict = prose ? checkPrereq(prose, record).verdict : 'met'
+          const verdict = prose ? checkPrereq(prose, record, code).verdict : 'met'
           // Only a definite NO drops a course. "unknown" — a sentence the
           // parser could not read — leaves it in, because refusing to schedule
           // something on the strength of a rule we could not understand is the

@@ -110,7 +110,7 @@ export function ScheduleSearch({
         // and losing.
         const enrolled = record.inProgress?.has(normalizeCode(label)) ?? false
         if (course.prerequisites && !enrolled) {
-          const result = checkPrereq(course.prerequisites, record)
+          const result = checkPrereq(course.prerequisites, record, label)
           setBlockedByPrereq(result.verdict === 'not-met' || result.verdict === 'blocked')
           if (result.verdict === 'not-met') setPrereqNote('You do not meet the prerequisites yet.')
           else if (result.verdict === 'blocked') setPrereqNote(result.notes[0] ?? 'Cannot be taken.')

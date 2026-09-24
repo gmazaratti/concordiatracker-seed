@@ -334,13 +334,17 @@ function assignmentPatch(body: Json): { patch: Json } | { error: string } {
       const earned = g.earned == null ? null : Number(g.earned)
       const total = g.total == null ? null : Number(g.total)
       if (earned != null && total != null) {
-        if (!(total > 0) || earned < 0) return { error: 'A raw grade needs earned >= 0 and total > 0.' }
+        // The same limits the app and the database enforce (db/course_integrity.sql):
+        // a score cannot beat full marks.
+        if (!Number.isFinite(earned) || !Number.isFinite(total) || !(total > 0) || earned < 0 || earned > total) {
+          return { error: 'A raw grade needs 0 <= earned <= total, and total > 0.' }
+        }
         patch.raw_score = earned
         patch.raw_total = total
         patch.score = null
       } else if (percent != null) {
-        if (!Number.isFinite(percent) || percent < 0 || percent > 1000) {
-          return { error: 'A percentage grade must be between 0 and 1000.' }
+        if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+          return { error: 'A percentage grade must be between 0 and 100.' }
         }
         patch.score = percent
         patch.raw_score = null
