@@ -1,7 +1,9 @@
-import { FileUser, Heart, MessageCircleMore, Mic, MonitorPlay, MousePointer2, Plus } from 'lucide-react'
+import { useEffect } from 'react'
+import { FileUser, Heart, MessageCircleMore, Mic, MonitorPlay, MousePointer2 } from 'lucide-react'
 import { useNoIndex } from '@/features/dev-landing/useNoIndex'
 import { RecordlyHeader } from './RecordlyHeader'
 import { StackedCards } from './StackedCards'
+import { RecordlyFaq, RecordlyFooter } from './RecordlyFaqFooter'
 import { AppleMark, CodeRabbitMark, LinuxMark, WindowsMark } from './glyphs'
 
 const TILES = [
@@ -29,6 +31,7 @@ const TILES = [
  */
 export function RecordlyPage() {
   useNoIndex()
+  useRecordlyHead()
 
   return (
     <div id="top" className="min-h-[100dvh] overflow-x-clip bg-[#0b0b0b] font-sans text-white antialiased">
@@ -73,7 +76,7 @@ export function RecordlyPage() {
         </div>
 
         {/* Everything else: one solid layer that covers the pinned card. */}
-        <div className="relative z-10 bg-[#0b0b0b] px-4 pt-[80px] pb-40 md:pt-[117px]">
+        <div className="relative z-10 bg-[#0b0b0b] px-4 pt-[80px] pb-16 md:pt-[117px]">
           <div className="text-center">
             <p className="text-[18px] text-[#8b8b8b] md:text-[20px]">Backed by the community</p>
             <p className="mt-2 flex items-center justify-center gap-2.5 text-[26px] font-bold tracking-[-0.03em] text-[#9b9b9b] md:text-[30px]">
@@ -98,27 +101,42 @@ export function RecordlyPage() {
             ))}
           </div>
 
-          <section className="mx-auto mt-40 grid w-full max-w-[1080px] gap-8 md:grid-cols-[1fr_520px]">
-            <div>
-              <p className="text-[14px] text-[#8b8b8b]">// FAQ</p>
-              <h2 className="mt-2 text-[34px] leading-[1.1] tracking-[-0.04em] md:text-[40px]">
-                Questions? <span className="text-[#8b8b8b]">We&apos;ve got answers</span>
-              </h2>
-            </div>
-            <div className="flex flex-col gap-3">
-              <details className="group rounded-[10px] bg-[#181816] px-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between py-4 text-[16px] font-semibold [&::-webkit-details-marker]:hidden">
-                  Is Recordly really free?
-                  <Plus size={18} className="transition-transform duration-200 group-open:rotate-45" aria-hidden />
-                </summary>
-                <p className="pb-4 text-[15px] leading-[1.4] text-[#b4b4b4]">
-                  Recordly is fully free and open-source, with no paywalls or hidden limits.
-                </p>
-              </details>
-            </div>
-          </section>
+          <RecordlyFaq />
+          <RecordlyFooter />
         </div>
       </main>
     </div>
   )
+}
+
+/** Recordly's own tab title and description, verbatim from recordly.dev,
+ *  put back to ours when the page unmounts. noindex stays (useNoIndex). */
+const TITLE = 'Recordly - Open-source app for incredible screen recordings.'
+const DESCRIPTION =
+  'Recordly is an open‑source screen recorder for MacOS/Windows/Linux with auto-zoom, motion blur animated cursors, and minimal interface. Used to create product demos, guided walkthroughs and more. A free alternative to Screen Studio.'
+
+function useRecordlyHead() {
+  useEffect(() => {
+    const prevTitle = document.title
+    let meta = document.head.querySelector<HTMLMetaElement>('meta[name="description"]')
+    const created = !meta
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.name = 'description'
+      document.head.appendChild(meta)
+    }
+    const prevDesc = meta.content
+    document.title = TITLE
+    meta.content = DESCRIPTION
+    // The app's own title hook may run after mount; hold ours for this page.
+    const t = setTimeout(() => {
+      document.title = TITLE
+    }, 0)
+    return () => {
+      clearTimeout(t)
+      document.title = prevTitle
+      if (created) meta.remove()
+      else meta.content = prevDesc
+    }
+  }, [])
 }
