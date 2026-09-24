@@ -258,6 +258,14 @@ export default async function handler(req: Request): Promise<Response> {
     )
   }
 
+  /*
+   * MARK IT SUCCESSFUL. Nothing called finish_parse after the extractor moved
+   * into _parse-core.ts (2026-09-18), so every parse since was recorded as a
+   * failure — and the free monthly cap, the free 180s cooldown and the Pro
+   * daily ceiling all count SUCCESSES, so none of them had fired since.
+   */
+  if (slot.event_id) await callRpc('finish_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
+
   // Already narrowed by cleanParse. Returned to THIS student only: nothing here
   // is written anywhere — it becomes their own course's rows when they confirm.
   const out = { course: parsed.course, assessments: parsed.assessments, warnings: parsed.warnings ?? [] }

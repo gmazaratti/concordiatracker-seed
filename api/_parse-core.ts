@@ -69,37 +69,44 @@ Rules:
 
 Return ONLY the JSON object. No commentary, no markdown, no code fences.`
 
+/**
+ * The shape the model is asked for. DELIBERATELY LOOSE on limits: string
+ * `maxLength`, number `minimum`/`maximum` and array `maxItems` were tried and
+ * Gemini refused the whole request ("too many states for serving") — every
+ * parse failed with a 400. The limits live where they cannot be refused:
+ * `cleanParse` in _parse-guard.ts narrows every field after the model answers,
+ * and `maxOutputTokens` caps the answer's size.
+ */
 export const SCHEMA = {
   type: 'OBJECT',
   properties: {
     course: {
       type: 'OBJECT',
       properties: {
-        code: { type: 'STRING', maxLength: 20 },
-        title: { type: 'STRING', maxLength: 150 },
-        term: { type: 'STRING', maxLength: 30 },
-        section: { type: 'STRING', maxLength: 20 },
-        instructorName: { type: 'STRING', maxLength: 100 },
-        instructorEmail: { type: 'STRING', maxLength: 120 },
-        taName: { type: 'STRING', maxLength: 100 },
-        taEmail: { type: 'STRING', maxLength: 120 },
-        gradingScale: { type: 'STRING', maxLength: 300 },
+        code: { type: 'STRING' },
+        title: { type: 'STRING' },
+        term: { type: 'STRING' },
+        section: { type: 'STRING' },
+        instructorName: { type: 'STRING' },
+        instructorEmail: { type: 'STRING' },
+        taName: { type: 'STRING' },
+        taEmail: { type: 'STRING' },
+        gradingScale: { type: 'STRING' },
       },
     },
     assessments: {
       type: 'ARRAY',
-      maxItems: 60,
       items: {
         type: 'OBJECT',
         properties: {
-          title: { type: 'STRING', maxLength: 150 },
+          title: { type: 'STRING' },
           kind: {
             type: 'STRING',
             enum: ['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'],
           },
           due: { type: 'STRING', nullable: true },
-          weight: { type: 'NUMBER', nullable: true, minimum: 0, maximum: 100 },
-          description: { type: 'STRING', maxLength: 400 },
+          weight: { type: 'NUMBER', nullable: true },
+          description: { type: 'STRING' },
           noDateNeeded: { type: 'BOOLEAN' },
         },
         required: ['title', 'kind', 'description', 'noDateNeeded'],

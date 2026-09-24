@@ -247,3 +247,32 @@ as $$
    where id = p_event;
 $$;
 revoke all on function public.ct_finish_parse(uuid, text, boolean) from public, anon, authenticated;
+
+-- A refunded attempt is MARKED, never deleted. The live cancel_parse was still
+-- the old DELETE (db/parse_rate_limit.sql, re-run after the file that fixed
+-- it), so every failure the endpoint handed back vanished with its reason.
+create or replace function public.cancel_parse(p_event uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.parse_events
+     set refunded = true
+   where id = p_event and user_id = auth.uid() and success = false;
+end;
+$$;
+grant execute on function public.cancel_parse(uuid) to authenticated;
+
+-- The personal API's success marker (the service role has no auth.uid(), so
+-- the website's finish_parse cannot be used). Server-only.
+create or replace function public.ct_parse_succeeded(p_event uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update public.parse_events set success = true where id = p_event;
+$$;
+revoke all on function public.ct_parse_succeeded(uuid) from public, anon, authenticated;

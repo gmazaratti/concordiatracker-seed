@@ -324,6 +324,8 @@ export async function courseFromOutline(
     }
   }
 
+  if (slot.event_id) await rpcRaw('ct_parse_succeeded', { p_event: slot.event_id })
+
   const c = parsed.course
   const term = c.term || String(q.term ?? '')
 

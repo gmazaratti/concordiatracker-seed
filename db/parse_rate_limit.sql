@@ -161,8 +161,13 @@ create or replace function public.cancel_parse(p_event uuid)
 returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  delete from public.parse_events
-    where id = p_event and user_id = auth.uid() and success = false;
+  -- MARK, do not delete: a deleted row takes the failure's reason with it
+  -- (and stops the hourly ceiling seeing it). Kept in step with
+  -- db/stats_and_terms.sql + db/parse_hardening.sql, because re-running THIS
+  -- file after those quietly restored the delete.
+  update public.parse_events
+     set refunded = true
+   where id = p_event and user_id = auth.uid() and success = false;
 end;
 $$;
 
