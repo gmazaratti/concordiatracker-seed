@@ -247,7 +247,7 @@ async function sendRenewalNotice(invoice: Stripe.Invoice) {
       heading: 'Your pass renews soon',
       paragraphs: [
         'This is the heads-up we promise in our Terms, so a renewal never arrives as a surprise on your statement.',
-        'Nothing to do if you want to keep going \u2014 it renews on its own.',
+        'Nothing to do if you want to keep going. It renews on its own.',
       ],
       facts: [
         { label: 'Amount', value: formatAmount(amount, invoice.currency ?? 'cad') },
@@ -255,7 +255,7 @@ async function sendRenewalNotice(invoice: Stripe.Invoice) {
       ],
       button: { label: 'Manage your plan', href: 'https://concordiatracker.com/app?settings=billing' },
       footnote:
-        'Cancel any time before that date and you keep access until the end of the period you have already paid for. If it renews and you would rather it had not, you have 14 days to ask for a full refund \u2014 just reply to this email.',
+        'Cancel any time before that date and you keep access until the end of the period you have already paid for. If it renews and you would rather it had not, you have 14 days to ask for a full refund. Just reply to this email.',
     })
   } catch (err) {
     console.error('[stripe-webhook] renewal notice failed', err)

@@ -77,7 +77,7 @@ export function UserMessagePanel({ userId, name }: { userId: string; name: strin
         onChange={(e) => setBody(e.target.value)}
         rows={2}
         maxLength={1000}
-        placeholder={first ? `Hi ${first} — ` : 'Write a note…'}
+        placeholder={first ? `Hi ${first}, ` : 'Write a note…'}
         aria-label="Message"
         className="mt-2 w-full resize-y rounded-md border border-border bg-canvas px-2.5 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
       />
@@ -137,5 +137,5 @@ function Status({ m }: { m: Sent }) {
       </span>
     )
   }
-  return <span className="text-subtle">Waiting — they have not opened the app since</span>
+  return <span className="text-subtle">Waiting: they have not opened the app since</span>
 }

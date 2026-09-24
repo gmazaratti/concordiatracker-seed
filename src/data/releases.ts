@@ -48,16 +48,16 @@ export const RELEASES: Release[] = [
     hero: {
       headline: 'Your whole campus, in one app.',
       tagline:
-        'Version two is the biggest thing we have shipped. Your deadlines were always here — now the clubs, the events and the people around them are too, in the same place, on your phone.',
+        'Version two is the biggest thing we have shipped. Your deadlines were always here. Now the clubs, the events and the people around them are too, in the same place, on your phone.',
       highlights: [
         { icon: 'feed', title: 'A social feed', text: 'Posts from the clubs you follow, newest first, with what you have not seen at the top.' },
         { icon: 'events', title: 'An Events tab', text: 'Everything happening on campus, filtered by what you care about. One tap adds it to your calendar.' },
-        { icon: 'clubs', title: 'Clubs, for real', text: 'Every club gets a profile, a team with roles, and a portal to run it all — onboarding takes minutes.' },
+        { icon: 'clubs', title: 'Clubs, for real', text: 'Every club gets a profile, a team with roles, and a portal to run it all. Onboarding takes minutes.' },
         { icon: 'posts', title: 'Posts', text: 'Photo and video posts with captions, comments, reposts, collaborations between clubs and linked events.' },
-        { icon: 'stories', title: 'Stories', text: 'Text on a photo that disappears on its own — after 24, 48 or 72 hours, your choice.' },
+        { icon: 'stories', title: 'Stories', text: 'Text on a photo that disappears on its own after 24, 48 or 72 hours, your choice.' },
         { icon: 'scan', title: 'Syllabus scans, twice as fast', text: 'Drop an outline and your dates and weights arrive in seconds.' },
         { icon: 'dm', title: 'Direct messages', text: 'Message classmates and clubs. Send a schedule, a class or an event as a card, not a screenshot.' },
-        { icon: 'support', title: 'Support, in your inbox', text: 'Write to us from Messages and get the answer in the same thread — and by email.' },
+        { icon: 'support', title: 'Support, in your inbox', text: 'Write to us from Messages and get the answer in the same thread, and by email.' },
         { icon: 'integrations', title: 'New integrations', text: 'Moodle deadlines sync on their own, your calendar subscribes from Google, Apple or Outlook, and Sign in with Apple.' },
       ],
     },
@@ -83,7 +83,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'You can message a club. There is a Message button on every club profile, and replying to a story writes to the club too — not to whoever happens to have set it up.',
+        text: 'You can message a club. There is a Message button on every club profile, and replying to a story writes to the club too, not to whoever happens to have set it up.',
       },
       {
         kind: 'new',
@@ -91,7 +91,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'When a club you follow posts, you hear about it. That is what following one is for, so it starts on — and there is a switch in Settings if you would rather it did not. Stories never notify: they are on the ring at the top of the feed.',
+        text: 'When a club you follow posts, you hear about it. That is what following one is for, so it starts on. There is a switch in Settings if you would rather it did not. Stories never notify: they are on the ring at the top of the feed.',
       },
       {
         kind: 'improved',
@@ -110,11 +110,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'You can message anyone. If they do not follow you back you get one message — enough to say who you are and why — and after that it waits for them. You can narrow that in Settings to people you follow back, or turn messages off entirely.',
+        text: 'You can message anyone. If they do not follow you back you get one message (enough to say who you are and why), and after that it waits for them. You can narrow that in Settings to people you follow back, or turn messages off entirely.',
       },
       {
         kind: 'new',
-        text: 'Clubs can post. Photos, one or a slideshow, with a caption — and you can like, comment, repost and send them on. Stories too: up for twenty-four hours, with text the club can drag onto the picture.',
+        text: 'Clubs can post. Photos, one or a slideshow, with a caption, and you can like, comment, repost and send them on. Stories too: up for twenty-four hours, with text the club can drag onto the picture.',
       },
       {
         kind: 'new',
@@ -122,7 +122,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'Profiles were a wall you scrolled past. They have tabs now — outlines, reposts and classes for a student; events, posts and reposts for a club — and the counts above them open the list behind each one.',
+        text: 'Profiles were a wall you scrolled past. They have tabs now (outlines, reposts and classes for a student; events, posts and reposts for a club), and the counts above them open the list behind each one.',
       },
       {
         kind: 'new',
@@ -130,7 +130,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'fixed',
-        text: 'A first message from somebody you had not met was invisible. Those have existed since message requests shipped and nothing in the app ever showed them — your inbox only listed people you were already connected to.',
+        text: 'A first message from somebody you had not met was invisible. Those have existed since message requests shipped and nothing in the app ever showed them. Your inbox only listed people you were already connected to.',
       },
     ],
   },
@@ -141,11 +141,11 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'fixed',
-        text: 'Add to Google Calendar failed with “Unable to add calendar. Check the URL.” The link itself was always fine — Apple Calendar took it without complaint — but Google wants a subscription link handed to it in a particular form, and we were handing it the other one. It adds in one press now.',
+        text: 'Add to Google Calendar failed with “Unable to add calendar. Check the URL.” The link itself was always fine (Apple Calendar took it without complaint), but Google wants a subscription link handed to it in a particular form, and we were handing it the other one. It adds in one press now.',
       },
       {
         kind: 'new',
-        text: 'A “How?” next to the link, with the actual menu names. Google Calendar, Apple Calendar on a Mac, on an iPhone, and Outlook each bury “subscribe to a calendar” somewhere different, so the panel now spells out where. It also says the one thing worth knowing up front: the Google Calendar phone app cannot add a calendar by link at all — that has to be done once from a computer, and it then appears on the phone.',
+        text: 'A “How?” next to the link, with the actual menu names. Google Calendar, Apple Calendar on a Mac, on an iPhone, and Outlook each bury “subscribe to a calendar” somewhere different, so the panel now spells out where. It also says the one thing worth knowing up front: the Google Calendar phone app cannot add a calendar by link at all. That has to be done once from a computer, and it then appears on the phone.',
       },
       {
         kind: 'improved',
@@ -153,7 +153,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'No monthly limit on scans with the semester pass. There is still a few seconds between scans, and a generous daily ceiling that exists only to stop something running away with itself — but the monthly cap is gone for Pro, and the counter no longer reads “Infinity of Infinity”.',
+        text: 'No monthly limit on scans with the semester pass. There is still a few seconds between scans, and a generous daily ceiling that exists only to stop something running away with itself, but the monthly cap is gone for Pro, and the counter no longer reads “Infinity of Infinity”.',
       },
       {
         kind: 'fixed',
@@ -161,11 +161,11 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'A private profile can still be found. Searching someone’s handle now finds them and the profile opens — showing their name, their picture, and nothing else unless they chose to share it. Being findable and being visible are two different settings, and they should be.',
+        text: 'A private profile can still be found. Searching someone’s handle now finds them and the profile opens, showing their name, their picture, and nothing else unless they chose to share it. Being findable and being visible are two different settings, and they should be.',
       },
       {
         kind: 'new',
-        text: 'We can write back on your screen. If you report something, a short note from us can appear in the corner of the app — it waits until you have read it, and you can reply straight from it. Only ever in response to you; there are no broadcasts.',
+        text: 'We can write back on your screen. If you report something, a short note from us can appear in the corner of the app. It waits until you have read it, and you can reply straight from it. Only ever in response to you; there are no broadcasts.',
       },
     ],
   },
@@ -176,7 +176,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Your deadlines, in Google Calendar or Apple Calendar. Settings → Calendar sync gives you one link: press Add to Google Calendar or Add to Apple Calendar, or paste it into Outlook or anything else that keeps a calendar. It stays up to date on its own — move a date here and it moves there. It goes one way only: we never read your calendar and never ask for access to your Google or Apple account.',
+        text: 'Your deadlines, in Google Calendar or Apple Calendar. Settings → Calendar sync gives you one link: press Add to Google Calendar or Add to Apple Calendar, or paste it into Outlook or anything else that keeps a calendar. It stays up to date on its own: move a date here and it moves there. It goes one way only: we never read your calendar and never ask for access to your Google or Apple account.',
       },
       {
         kind: 'fixed',
@@ -184,15 +184,15 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'The panel says whether anything has read your link, and when. “Google last read this 2 hours ago” and “nothing has read this yet” send you to two different fixes, and neither is guessable from your end. It also says plainly that Google refreshes subscribed calendars on its own schedule — hours, sometimes a day — because that is not something any publisher can speed up, and a moved deadline arriving late should not read as the sync being broken.',
+        text: 'The panel says whether anything has read your link, and when. “Google last read this 2 hours ago” and “nothing has read this yet” send you to two different fixes, and neither is guessable from your end. It also says plainly that Google refreshes subscribed calendars on its own schedule (hours, sometimes a day), because that is not something any publisher can speed up, and a moved deadline arriving late should not read as the sync being broken.',
       },
       {
         kind: 'new',
-        text: 'Choose what rides along, and take it back. Course deadlines and tasks are separate switches. Rotate link mints a new one and breaks every copy of the old one immediately, because anyone holding the link can read those dates without signing in — which is exactly how Google reads it.',
+        text: 'Choose what rides along, and take it back. Course deadlines and tasks are separate switches. Rotate link mints a new one and breaks every copy of the old one immediately, because anyone holding the link can read those dates without signing in, which is exactly how Google reads it.',
       },
       {
         kind: 'fixed',
-        text: 'Support conversations could never load. Opening any ticket showed a spinner forever and no messages, on both sides — a query in the database was refusing every single call, and the screen showed a spinner instead of the reason. Fixed at the source, and a failed load now says what went wrong with a Try again rather than spinning.',
+        text: 'Support conversations could never load. Opening any ticket showed a spinner forever and no messages, on both sides. A query in the database was refusing every single call, and the screen showed a spinner instead of the reason. Fixed at the source, and a failed load now says what went wrong with a Try again rather than spinning.',
       },
       {
         kind: 'improved',
@@ -215,7 +215,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Connect your Moodle calendar. Settings → Moodle walks you through the four clicks (Calendar → Export → Get calendar URL — not the Export button, which downloads a file), and draws the page so you can see which options to pick. Paste the link once and your Moodle deadlines land in your calendar, re-checked every night. No password: the link is read-only, covers your calendar and nothing else, and is stored where the app itself cannot read it back — only the sync job can. Disconnect removes it and everything it added.',
+        text: 'Connect your Moodle calendar. Settings → Moodle walks you through the four clicks (Calendar → Export → Get calendar URL, not the Export button, which downloads a file), and draws the page so you can see which options to pick. Paste the link once and your Moodle deadlines land in your calendar, re-checked every night. No password: the link is read-only, covers your calendar and nothing else, and is stored where the app itself cannot read it back. Only the sync job can. Disconnect removes it and everything it added.',
       },
       {
         kind: 'new',
@@ -223,15 +223,15 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'If a professor moves a date, you are told rather than finding out. A synced item shows the old date and the new one side by side. And when the same work is also an assessment on one of your courses — the record that carries the weight and your grade — that course asks whether to use Moodle’s date or keep yours. Your weight, grade and notes are never touched, only the date.',
+        text: 'If a professor moves a date, you are told rather than finding out. A synced item shows the old date and the new one side by side. And when the same work is also an assessment on one of your courses (the record that carries the weight and your grade), that course asks whether to use Moodle’s date or keep yours. Your weight, grade and notes are never touched, only the date.',
       },
       {
         kind: 'improved',
-        text: 'No duplicates. A Moodle “Assignment 2 is due” and the Assignment 2 on your course are the same piece of work, so only one appears — the assessment, since it is the one with a weight. What shows up on its own is what no syllabus lists, like “Join a Group”. Matching is deliberately cautious: it needs the course and the numbers to agree, so “Quiz 1” can never be mistaken for “Quiz 4”.',
+        text: 'No duplicates. A Moodle “Assignment 2 is due” and the Assignment 2 on your course are the same piece of work, so only one appears: the assessment, since it is the one with a weight. What shows up on its own is what no syllabus lists, like “Join a Group”. Matching is deliberately cautious: it needs the course and the numbers to agree, so “Quiz 1” can never be mistaken for “Quiz 4”.',
       },
       {
         kind: 'new',
-        text: 'Sign in with Apple, beside Google, on the app and both portals. If you use Hide My Email that is treated as an ordinary address everywhere. Apple only sends your name on the very first sign-in, so if it never arrives you start as “Student” and can set it in Edit profile — better than a made-up name built out of a random email address.',
+        text: 'Sign in with Apple, beside Google, on the app and both portals. If you use Hide My Email that is treated as an ordinary address everywhere. Apple only sends your name on the very first sign-in, so if it never arrives you start as “Student” and can set it in Edit profile. That beats a made-up name built out of a random email address.',
       },
       {
         kind: 'improved',
@@ -251,7 +251,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'fixed',
-        text: '“FALL 2026”, “Summer 2026” and “Automne 2026” were each becoming their own term — their own tab, their own GPA row, sorted wrong. Terms are now written one way however they arrive.',
+        text: '“FALL 2026”, “Summer 2026” and “Automne 2026” were each becoming their own term, with their own tab, their own GPA row, sorted wrong. Terms are now written one way however they arrive.',
       },
     ],
   },
@@ -262,11 +262,11 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Generate a timetable. Say how many credits you want and what kind of week — most days off, mornings, mid‑day, evenings, shortest days, most or least time on campus — and cycle through real options built from real sections. Credits still come first: a pretty nine‑credit week is not an answer to “give me fifteen”.',
+        text: 'Generate a timetable. Say how many credits you want and what kind of week (most days off, mornings, mid‑day, evenings, shortest days, most or least time on campus), and cycle through real options built from real sections. Credits still come first: a pretty nine‑credit week is not an answer to “give me fifteen”.',
       },
       {
         kind: 'new',
-        text: 'Choose where you are willing to be. Tick Loyola, Sir George Williams, online, or any mix, and only those sections are considered. Sections whose campus Concordia never published stay in — a gap in our reading should not delete an option that exists.',
+        text: 'Choose where you are willing to be. Tick Loyola, Sir George Williams, online, or any mix, and only those sections are considered. Sections whose campus Concordia never published stay in. A gap in our reading should not delete an option that exists.',
       },
       {
         kind: 'new',
@@ -274,7 +274,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'Right‑click any class on the week to pin it, hide it, see its room, seat counts and class number, or take it off — no hunting for the matching row in the list.',
+        text: 'Right‑click any class on the week to pin it, hide it, see its room, seat counts and class number, or take it off. No hunting for the matching row in the list.',
       },
       {
         kind: 'new',
@@ -294,7 +294,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'Find, In this schedule and the week now read left to right across the page, and the week is denser — a nine‑to‑six teaching day fits on a laptop without scrolling. Seat counts show on every class you have picked.',
+        text: 'Find, In this schedule and the week now read left to right across the page, and the week is denser: a nine‑to‑six teaching day fits on a laptop without scrolling. Seat counts show on every class you have picked.',
       },
       {
         kind: 'improved',
@@ -329,7 +329,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Tap a locked theme to wear it. It takes over the whole app for two minutes so you can see how it reads across your own due list and course banners, then hands itself back \u2014 which is a fairer way to decide than a ninety-pixel swatch.',
+        text: 'Tap a locked theme to wear it. It takes over the whole app for two minutes so you can see how it reads across your own due list and course banners, then hands itself back. That is a fairer way to decide than a ninety-pixel swatch.',
       },
       {
         kind: 'new',
@@ -341,7 +341,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'The Terms, Privacy Policy and Educator Agreement are finalised \u2014 no more bracketed placeholders. The minimum age is 16, and the Educator Agreement now spells out the thing instructors ask first: a teacher account can publish, and can never see a single student\u2019s grades.',
+        text: 'The Terms, Privacy Policy and Educator Agreement are finalised, with no more bracketed placeholders. The minimum age is 16, and the Educator Agreement now spells out the thing instructors ask first: a teacher account can publish, and can never see a single student\u2019s grades.',
       },
       {
         kind: 'fixed',
@@ -368,7 +368,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: '“Something here is wrong” on every class. Almost everything in the class details came from a mirror of Concordia’s calendar, which is only as fresh as the last sync — now there is a way to say so, and someone reads it.',
+        text: '“Something here is wrong” on every class. Almost everything in the class details came from a mirror of Concordia’s calendar, which is only as fresh as the last sync. Now there is a way to say so, and someone reads it.',
       },
       {
         kind: 'fixed',
@@ -387,11 +387,11 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Radar checks your semester for you. It reads your courses, grades, outlines and the registrar’s calendar and tells you what is coming but not yet obvious — a week where too much of your grade lands at once, a drop deadline about to close, a course the marks can no longer save. Nine checks, and it shows you all of them, whether or not it found anything.',
+        text: 'Radar checks your semester for you. It reads your courses, grades, outlines and the registrar’s calendar and tells you what is coming but not yet obvious: a week where too much of your grade lands at once, a drop deadline about to close, a course the marks can no longer save. Nine checks, and it shows you all of them, whether or not it found anything.',
       },
       {
         kind: 'new',
-        text: 'See the shape of your term: one bar per week, as tall as the share of your grade landing in it. Switch a course off to see the rest of the term without it — including what dropping it would cost you.',
+        text: 'See the shape of your term: one bar per week, as tall as the share of your grade landing in it. Switch a course off to see the rest of the term without it, including what dropping it would cost you.',
       },
       {
         kind: 'new',
@@ -399,7 +399,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'new',
-        text: 'Money (Pro): what the term costs at Concordia’s published rates, worked out from the credits you are actually registered for — and what each course is worth if you are deciding whether to keep it, next to the refund deadline.',
+        text: 'Money (Pro): what the term costs at Concordia’s published rates, worked out from the credits you are actually registered for, and what each course is worth if you are deciding whether to keep it, next to the refund deadline.',
       },
       {
         kind: 'new',
@@ -407,7 +407,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'A class for a term that has not started now waits quietly instead of asking for assignments. Outlines are published in the first week — last term’s dates would be wrong in a way you would plan around.',
+        text: 'A class for a term that has not started now waits quietly instead of asking for assignments. Outlines are published in the first week, and last term’s dates would be wrong in a way you would plan around.',
       },
       {
         kind: 'improved',
@@ -426,7 +426,7 @@ export const RELEASES: Release[] = [
     changes: [
       {
         kind: 'new',
-        text: 'Planner is a new tab. Next term lives here — your record, the course directory, what a class unlocks, and a schedule you can build — so the term you are running stays on Today, Courses and Calendar.',
+        text: 'Planner is a new tab. Next term lives here (your record, the course directory, what a class unlocks, and a schedule you can build), so the term you are running stays on Today, Courses and Calendar.',
       },
       {
         kind: 'new',
@@ -462,7 +462,7 @@ export const RELEASES: Release[] = [
       },
       {
         kind: 'improved',
-        text: 'Past terms are editable, future ones too — enter your fall classes in the summer. FNS and the other notations are supported, and repeated courses follow Concordia’s rule.',
+        text: 'Past terms are editable, future ones too, so you can enter your fall classes in the summer. FNS and the other notations are supported, and repeated courses follow Concordia’s rule.',
       },
       {
         kind: 'improved',

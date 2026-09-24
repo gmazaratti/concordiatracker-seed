@@ -95,7 +95,7 @@ export function CommunityRail() {
             Run a club?
           </span>
           <span className="mt-0.5 block text-[11.5px] leading-relaxed text-subtle">
-            List your events here — free, and students see them in this feed.
+            List your events here for free, and students see them in this feed.
           </span>
         </Link>
       </div>

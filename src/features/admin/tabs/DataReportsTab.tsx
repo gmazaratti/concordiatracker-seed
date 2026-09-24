@@ -179,7 +179,7 @@ function ReportRow({ report: r, onSaved }: { report: DataReport; onSaved: () => 
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Notes - what did the calendar actually say?"
+          placeholder="Notes: what did the calendar actually say?"
           className="min-w-0 flex-1 rounded-lg border border-border bg-canvas px-3 py-1.5 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
         />
         <Button size="sm" onClick={() => void save()} disabled={!dirty || busy}>

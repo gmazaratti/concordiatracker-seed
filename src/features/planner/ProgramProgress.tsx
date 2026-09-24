@@ -190,7 +190,7 @@ export function ProgramProgress() {
 
       {unsaved && (
         <p className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-muted">
-          Showing this for now, but we could not save the choice — it will be gone when you
+          Showing this for now, but we could not save the choice. It will be gone when you
           reload, and the schedule generator will not see it. That usually means a database
           migration has not been run yet.
         </p>
@@ -264,7 +264,7 @@ export function ProgramProgress() {
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
                 We have the degree and its {program.total_credits} credits, but not its course
                 lists. Those are copied from the calendar by hand, one programme at a time, because
-                a degree audit that guesses is worse than no degree audit — people plan a year
+                a degree audit that guesses is worse than no degree audit: people plan a year
                 around it. Yours is on the list.
               </p>
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-subtle">
@@ -362,7 +362,7 @@ export function ProgramProgress() {
                 <div className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2.5">
                   <p className="text-[12.5px] leading-relaxed text-muted">{group.rule}</p>
                   <p className="mt-1.5 text-[11.5px] text-subtle">
-                    Not ticked off automatically — which courses satisfy this depends on wording we
+                    Not ticked off automatically. Which courses satisfy this depends on wording we
                     will not guess at.
                   </p>
                   <Picks picks={picks} mine={held} />
@@ -473,7 +473,7 @@ function Legend() {
         </span>
       ))}
       <span className="ml-auto text-[11.5px] text-subtle">
-        A group with no tick boxes is a rule we will not guess at — see its wording.
+        A group with no tick boxes is a rule we will not guess at, so see its wording.
       </span>
     </div>
   )

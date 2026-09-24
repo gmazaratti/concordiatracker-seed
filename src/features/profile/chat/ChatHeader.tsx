@@ -129,7 +129,7 @@ export function ChatHeader({
         )}
         {open === 'theme' && (
           <div className={cn(pop, 'w-[212px] p-2.5')}>
-            <p className="mb-2 px-0.5 text-[11px] text-subtle">Just for you — they see their own.</p>
+            <p className="mb-2 px-0.5 text-[11px] text-subtle">Just for you. They see their own.</p>
             <div className="grid grid-cols-3 gap-2">
               {CHAT_THEMES.map((t) => (
                 <button

@@ -424,7 +424,7 @@ export async function courseFromOutline(
       notes: [
         'Dates the outline did not give are null, never guessed.',
         weight === 0
-          ? 'No weights were found — check the outline against what was created.'
+          ? 'No weights were found. Check the outline against what was created.'
           : `Weights total ${weight}%.`,
       ],
     },

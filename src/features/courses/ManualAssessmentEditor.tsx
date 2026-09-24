@@ -95,7 +95,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
           computed from it is wrong, so it is said plainly rather than hinted. */}
       {total > 100 && (
         <p className="mt-2 text-[12px] leading-relaxed text-danger" role="status">
-          These add up to more than 100%. Check for a typo — unless the outline drops your lowest
+          These add up to more than 100%. Check for a typo, unless the outline drops your lowest
           mark (like “best 4 of 5 quizzes”), in which case this is expected.
         </p>
       )}

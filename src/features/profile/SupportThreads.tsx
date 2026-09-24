@@ -175,7 +175,7 @@ export function SupportPane({
           <Mascot mood="resting" size="sm" soft className="text-accent" />
           <p className="text-[13.5px] font-medium text-fg">No support conversations</p>
           <p className="max-w-sm text-[12.5px] leading-relaxed text-subtle">
-            Something broken, a billing question, or a class the app has wrong — start one and the
+            Something broken, a billing question, or a class the app has wrong? Start one and the
             reply lands here, in your messages.
           </p>
         </div>

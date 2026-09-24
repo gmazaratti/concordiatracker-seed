@@ -278,7 +278,7 @@ const terms: LegalDoc = {
             { label: 'Free Tier', text: 'Core features are available at no cost with no time limit.' },
             { label: 'Pro Accounts', text: 'Premium features require a paid subscription. Payments are processed securely via Stripe. We do not store credit card information on our servers.' },
             { label: 'Auto-Renewal', text: 'Paid subscriptions renew automatically at the end of each billing period (the Semester pass at term end; monthly plans each month). We email you at least 7 days before each renewal, to the address on your account, telling you the amount and the date. If that email does not reach you, the 14-day refund window on the renewal charge is your backstop. You can cancel anytime before the renewal date via Settings → Billing; access continues until the end of the paid period.' },
-            { label: 'Refunds', text: 'You may request a full refund within 14 days of any charge, including a renewal charge, for any reason or none. Email concordiatracker@gmail.com from the address on your account and we will process it — there is no form and no argument. After 14 days the current period is not refundable, but you can cancel at any time to stop future billing, and access continues to the end of the period you have paid for. Duplicate or accidental charges are refunded whenever we find them, without a time limit. We may decline a repeat request from an account that has already been refunded under this policy, which is the only limit on it.' },
+            { label: 'Refunds', text: 'You may request a full refund within 14 days of any charge, including a renewal charge, for any reason or none. Email concordiatracker@gmail.com from the address on your account and we will process it. There is no form and no argument. After 14 days the current period is not refundable, but you can cancel at any time to stop future billing, and access continues to the end of the period you have paid for. Duplicate or accidental charges are refunded whenever we find them, without a time limit. We may decline a repeat request from an account that has already been refunded under this policy, which is the only limit on it.' },
             { label: 'Price Changes', text: 'We reserve the right to modify subscription pricing with 30 days’ notice to existing subscribers.' },
           ],
         },
@@ -328,7 +328,7 @@ const educator: LegalDoc = {
         },
         {
           kind: 'highlight',
-          text: 'A portal account gives you no access to any student\u2019s grades, standing, or personal data. There is no version of the teacher portal that shows you how a student is doing, and there will not be one. Organizer accounts see event totals only \u2014 never who viewed, followed, or saved anything.',
+          text: 'A portal account gives you no access to any student\u2019s grades, standing, or personal data. There is no version of the teacher portal that shows you how a student is doing, and there will not be one. Organizer accounts see event totals only, never who viewed, followed, or saved anything.',
         },
         {
           kind: 'p',

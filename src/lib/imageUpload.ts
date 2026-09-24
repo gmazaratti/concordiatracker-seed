@@ -189,7 +189,7 @@ export async function uploadOrgVideo(file: File): Promise<UploadedMedia> {
   if (!type) {
     throw new Error(
       file.type === 'video/quicktime' || /\.mov$/i.test(file.name)
-        ? 'Most browsers cannot play .mov — export it as MP4 and try again.'
+        ? 'Most browsers cannot play .mov. Export it as MP4 and try again.'
         : 'Choose an MP4 or WEBM video.',
     )
   }

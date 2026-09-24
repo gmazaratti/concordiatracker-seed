@@ -77,8 +77,8 @@ export function DropSimulator({
 
       <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
         {simulating
-          ? 'Everything above is now showing the term without it — including anything dropping it would cost you. Nothing has changed in your account.'
-          : 'Switch one off to see the rest of the term without it. This changes nothing — it is a question, not an action.'}
+          ? 'Everything above is now showing the term without it, including anything dropping it would cost you. Nothing has changed in your account.'
+          : 'Switch one off to see the rest of the term without it. This changes nothing: it is a question, not an action.'}
       </p>
     </div>
   )

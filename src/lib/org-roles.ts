@@ -50,7 +50,7 @@ export const ORG_PERMS: PermMeta[] = [
   { key: 'handle_change', label: 'Change the handle', hint: 'Your address. Every link anybody has shared points at it.', group: 'The club' },
   { key: 'view_insights', label: 'View insights', hint: 'The aggregate reach numbers.', group: 'The club' },
   { key: 'manage_team', label: 'Manage the team', hint: 'Invite people and remove them.', group: 'People' },
-  { key: 'roles_grant', label: 'Grant roles', hint: 'Hand out any role below their own — never their own or above.', group: 'People' },
+  { key: 'roles_grant', label: 'Grant roles', hint: 'Hand out any role below their own, never their own or above.', group: 'People' },
 ]
 
 export type OrgPerms = Partial<Record<OrgPermKey, boolean>>

@@ -63,6 +63,7 @@ const OrganizerActivity = lazy(() => import('@/features/organizer/OrganizerActiv
 const OrganizerInvitePage = lazy(() => import('@/features/organizer/OrganizerInvitePage').then((x) => ({ default: x.OrganizerInvitePage })))
 const OrgMemberInvitePage = lazy(() => import('@/features/organizer/OrgMemberInvitePage').then((x) => ({ default: x.OrgMemberInvitePage })))
 const LegalPage = lazy(() => import('@/features/legal/LegalPage').then((x) => ({ default: x.LegalPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((x) => ({ default: x.ResetPasswordPage })))
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
@@ -179,6 +180,9 @@ export function AppRoutes() {
       {/* Public, shareable schedule. Signed-out on purpose: the whole point is
           sending it to a friend, and a login wall would kill that. */}
       <Route path="/s/:token" element={<SharedSchedulePage />} />
+
+      {/* Where a password-reset email lands. Signed in by the link itself. */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Throwaway full-bleed promo reel for screen recording: not in app nav */}
       <Route path="/demo" element={<DemoReel />} />

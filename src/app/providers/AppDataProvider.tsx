@@ -676,11 +676,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         // printing a Postgres code at them.
         throw new Error(
           error.code === '42501'
-            ? 'We could not publish that outline — your account is not allowed to share right now. Tell us and we will sort it out.'
+            ? 'We could not publish that outline. Your account is not allowed to share right now. Tell us and we will sort it out.'
             : error.message || 'Sharing failed. Try again in a moment.',
         )
       }
-      if (!data) throw new Error('Sharing failed — nothing was saved. Try again.')
+      if (!data) throw new Error('Sharing failed, and nothing was saved. Try again.')
     },
     [authUser, courses, assessments, user.name],
   )

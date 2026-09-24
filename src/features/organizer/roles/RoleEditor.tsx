@@ -134,7 +134,7 @@ export function RoleEditor({
 
       <div className="mt-4">
         <span className="mb-1.5 block text-[12px] font-medium text-muted">
-          Rank <span className="font-normal text-subtle">— higher outranks lower</span>
+          Rank <span className="font-normal text-subtle">(higher outranks lower)</span>
         </span>
         <LevelLadder
           others={others}

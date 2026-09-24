@@ -98,7 +98,7 @@ export function MemberPanel({ target, onClose }: { target: MemberRef; onClose: (
               {member.userId ? (
                 <MemberHistory orgId={orgId} userId={member.userId} />
               ) : (
-                <p className="text-[13px] text-subtle">Nothing yet — they haven't accepted the invite.</p>
+                <p className="text-[13px] text-subtle">Nothing yet. They haven't accepted the invite.</p>
               )}
             </section>
           </div>

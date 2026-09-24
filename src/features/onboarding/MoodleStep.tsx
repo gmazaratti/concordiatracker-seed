@@ -97,7 +97,7 @@ export function MoodleStep({ onConnected }: { onConnected: () => void }) {
         sub={
           done.imported > 0
             ? `${done.imported} upcoming ${done.imported === 1 ? 'deadline is' : 'deadlines are'} already in your calendar. We check again every night.`
-            : 'Nothing upcoming in Moodle yet — we check again every night and add deadlines as your professors post them.'
+            : 'Nothing upcoming in Moodle yet. We check again every night and add deadlines as your professors post them.'
         }
         extra={
           <div className="mt-5 w-full text-left">
@@ -156,7 +156,7 @@ export function MoodleStep({ onConnected }: { onConnected: () => void }) {
           <p className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-subtle">
             <ArrowUpRight size={12} className="mt-0.5 shrink-0" aria-hidden />
             <span>
-              Skip it if you like — Settings → Moodle has the same thing whenever you want it.
+              Skip it if you like. Settings → Moodle has the same thing whenever you want it.
             </span>
           </p>
         </div>

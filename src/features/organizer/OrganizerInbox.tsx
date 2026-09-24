@@ -83,7 +83,7 @@ export function OrganizerInbox() {
         <div className="min-w-0">
           <h1 className="font-display text-[22px] font-semibold text-fg">Inbox</h1>
           <p className="mt-0.5 text-[13px] text-subtle">
-            Messages students have sent {currentOrg.org.name} — including replies to your stories.
+            Messages students have sent {currentOrg.org.name}, including replies to your stories.
             Anyone on the team can answer, and the reply goes out as the club.
           </p>
         </div>

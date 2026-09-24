@@ -181,7 +181,7 @@ const ORG = {
     color: '#d6322e',
     logo: '/logos/reggies.png',
     banner: '/logos/reggies-banner.jpg',
-    bio: "Concordia's own bar, on the mezzanine of the Hall building. Pints, pub food and a room that is already full of people you know — open to students and the neighbourhood alike.",
+    bio: "Concordia's own bar, on the mezzanine of the Hall building. Pints, pub food and a room that is already full of people you know. Open to students and the neighbourhood alike.",
     links: { instagram: 'https://www.instagram.com/reggiesmtl/', website: 'https://reggies.ca' },
     venue: {
       address: '1455 Blvd. De Maisonneuve Ouest, Montreal, QC',
@@ -230,7 +230,7 @@ export const CAMPUS_EVENTS: CampusEvent[] = [
     postedDaysAgo: 2,
     description:
       'The weekly night at Reggies: cheap pints, a full room and whoever is around. ' +
-      'Doors from 8 PM until close — the bar runs to 2 AM on a Thursday. ' +
+      'Doors from 8 PM until close (the bar runs to 2 AM on a Thursday). ' +
       'Student ID at the door; 18+.',
   })),
   {

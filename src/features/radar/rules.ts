@@ -152,7 +152,7 @@ function fullTimeLoad({ courses }: RadarInput): Signal[] {
       id: 'full-time',
       severity: 'warning',
       topic: 'load',
-      title: `You are registered for ${credits} credits — under full time`,
+      title: `You are registered for ${credits} credits, under full time`,
       detail:
         `Concordia counts ${FULL_TIME_CREDITS} credits a term as full time. Under it, Quebec loans and ` +
         'bursaries stop, most scholarships are withheld, and some insurance and transit discounts ' +
@@ -180,7 +180,7 @@ function deadlines({ now, calendar, courses }: RadarInput): Signal[] {
       id: `deadline-${e.id}`,
       severity: days <= 3 ? 'warning' : 'watch',
       topic: 'deadlines',
-      title: `${e.title} — ${days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}`,
+      title: `${e.title}: ${days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}`,
       detail: withdrawal
         ? 'After this date a course you leave stays on the transcript as DISC rather than ' +
           'disappearing. It does not affect your GPA, but it is visible to anyone reading the ' +
@@ -216,7 +216,7 @@ function crunch({ now, assessments }: RadarInput): Signal[] {
       detail:
         `${worst.items.length} pieces of work are due in the week of ${worst.start}, worth ` +
         `${Math.round(worst.weight)}% of your final grades between them. That is not a scheduling ` +
-        'quirk you can fix later — the only lever is starting earlier, and the time to know is now.',
+        'quirk you can fix later. The only lever is starting earlier, and the time to know is now.',
       basis: 'Your own outlines, summed across every course rather than one at a time.',
       by: worst.start,
       action: { label: 'See the term', to: '/app/calendar' },
@@ -247,7 +247,7 @@ function sameDay({ now, assessments }: RadarInput): Signal[] {
       title: `${first.items.length} things due on ${first.day}, worth ${Math.round(first.weight)}%`,
       detail:
         'Same calendar day, different courses. Neither professor knows about the other, so nobody ' +
-        'is going to move it for you — but an extension asked for a week early is a different ' +
+        'is going to move it for you. But an extension asked for a week early is a different ' +
         'conversation from one asked for the night before.',
       basis: 'Due dates across your courses, compared to each other.',
       by: first.day,
@@ -287,7 +287,7 @@ function atRisk({ courses, assessments }: RadarInput): Signal[] {
             'the deadline, and worth a conversation with the department either way.'
           : `${Math.round(remaining)}% of the grade is still unmarked, and it all has to land near ` +
             'the top. Possible, but not by accident.',
-      basis: 'Your own entered grades and weights — the same arithmetic as the course page.',
+      basis: 'Your own entered grades and weights, with the same arithmetic as the course page.',
       action: { label: course.code, to: `/app/courses/${course.id}` },
     })
   }
@@ -310,7 +310,7 @@ function lowFinals({ pastCourses }: RadarInput): Signal[] {
       detail:
         `${low.map((c) => c.code).join(', ')}. Several programmes require a minimum grade in their ` +
         '200-level courses before you can carry on, and a course you have to repeat is a term you ' +
-        'have to find room for. Check the requirement for your own programme — it is not the same ' +
+        'have to find room for. Check the requirement for your own programme, because it is not the same ' +
         'everywhere.',
       basis: 'The final grades in your record.',
       action: { label: 'Your programme', to: '/app/planner' },
@@ -336,7 +336,7 @@ function unverified({ now, assessments }: RadarInput): Signal[] {
       topic: 'coverage',
       title: `${shaky.length} unverified date${shaky.length === 1 ? '' : 's'} in the next three weeks`,
       detail:
-        'These came from a single upload and nobody has confirmed them. They are probably right — ' +
+        'These came from a single upload and nobody has confirmed them. They are probably right, ' +
         'but "probably" is doing a lot of work three weeks before a midterm. Worth thirty seconds ' +
         'against the real syllabus.',
       basis: 'The provenance stamped on each date when it was imported.',
@@ -357,7 +357,7 @@ function blindSpots({ courses, assessments }: RadarInput): Signal[] {
       title: `${blind.length} course${blind.length === 1 ? '' : 's'} with no outline`,
       detail:
         `${blind.map((c) => c.code).join(', ')} have no dates in them, so nothing above counts ` +
-        'them. An empty course is not a quiet one — it is one this page is blind to.',
+        'them. An empty course is not a quiet one. It is one this page is blind to.',
       basis: 'Courses in your term with no assessments entered.',
       action: { label: 'Add an outline', to: '/app/courses' },
     },
@@ -390,7 +390,7 @@ function undated({ courses, assessments }: RadarInput): Signal[] {
       topic: 'coverage',
       title: `${open.length} item${open.length === 1 ? '' : 's'} with no date yet`,
       detail:
-        `${codes || 'Some of your courses'} — ${Math.round(weight)}% of your grade has no date ` +
+        `${codes || 'Some of your courses'}: ${Math.round(weight)}% of your grade has no date ` +
         'attached to it. None of the checks above can see this work, so a term that looks light ' +
         'may only look that way. Add the dates once the registrar or your professor publishes them.',
       basis: 'Open assessments saved without a due date.',

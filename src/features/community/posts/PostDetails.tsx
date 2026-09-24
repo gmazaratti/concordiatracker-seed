@@ -234,7 +234,7 @@ export function PostDetails({
               <div className="min-w-0 flex-1">
                 <p className="text-[13.5px] text-fg">Schedule post</p>
                 <p className="text-[12px] text-subtle">
-                  It stays off the feed — including yours — until then.
+                  It stays off the feed (including yours) until then.
                 </p>
                 <div className="mt-2">
                   <DateTimePicker
@@ -369,7 +369,7 @@ function MapHint({ url }: { url: string }) {
     <p className="mt-1.5 flex items-center gap-1 text-[11.5px] text-subtle">
       <ExternalLink size={11} aria-hidden />
       Opens {link.host}
-      {!link.isMap && ' — not a map we recognise, but it will still open'}
+      {!link.isMap && ', not a map we recognise, but it will still open'}
     </p>
   )
 }
@@ -440,7 +440,7 @@ function CreateEventSheet({
           value={where}
           onChange={(e) => setWhere(e.target.value)}
           maxLength={80}
-          placeholder="Reggie's — leave empty for online"
+          placeholder="Reggie's (leave empty for online)"
           className="mt-1 w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
         />
 

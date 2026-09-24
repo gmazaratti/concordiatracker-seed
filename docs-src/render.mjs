@@ -164,7 +164,7 @@ function pager(prev, next) {
 export function renderPage({ page, nav, prev, next, searchIndex, year }) {
   const desc = page.description || plainText(page).slice(0, 155)
   const url = `${SITE}/docs/${page.slug}`
-  const title = `${page.title} — ConcordiaTracker Docs`
+  const title = `${page.title} · ConcordiaTracker Docs`
 
   return `<!doctype html>
 <html lang="en" data-theme="dark">
@@ -447,10 +447,10 @@ sendBtn.addEventListener('click', function () {
       if (!res.ok) throw new Error(res.d && res.d.error ? res.d.error : 'Could not send that.');
       document.getElementById('support-body').innerHTML =
         '<div class="support-ok"><h2>Ticket created</h2>' +
-        '<p class="support-lead">Got it, we’ve received your message and typically reply within the hour. Keep this case number — it is how you check for the reply.</p>' +
+        '<p class="support-lead">Got it, we’ve received your message and typically reply within the hour. Keep this case number. It is how you check for the reply.</p>' +
         '<p class="case">' + res.d.caseId + '</p>' +
         '<p class="support-foot"><a href="/docs/support-status?case=' + encodeURIComponent(res.d.caseId) +
-        '&token=' + encodeURIComponent(res.d.token) + '">Open this conversation</a> — bookmark that link.</p></div>';
+        '&token=' + encodeURIComponent(res.d.token) + '">Open this conversation</a> and bookmark that link.</p></div>';
     })
     .catch(function (e) {
       errEl.textContent = e.message;

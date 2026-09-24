@@ -103,7 +103,7 @@ export function ScheduleBlockMenu({
       <Item
         icon={hidden ? Eye : EyeOff}
         label={hidden ? 'Show on the week' : 'Hide from the week'}
-        hint={hidden ? undefined : 'Stays in the list — nothing is removed'}
+        hint={hidden ? undefined : 'Stays in the list. Nothing is removed'}
         onSelect={run(onHide)}
       />
       <Item icon={Info} label="Details" onSelect={run(onDetails)} />

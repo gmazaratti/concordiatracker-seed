@@ -241,7 +241,7 @@ export function dmRefusal(reason: string | null): string {
     case 'link':
       return 'A first message to someone new cannot contain a link.'
     case 'too-long':
-      return 'That first message is too long — 500 characters maximum.'
+      return 'That first message is too long (500 characters maximum).'
     case 'rate':
       return 'You have started a lot of new conversations today. Try again tomorrow.'
     default:
@@ -340,7 +340,7 @@ export async function sendMessageRequest(handle: string, body: string): Promise<
     case 'already_sent':
       return 'You have already sent them a request. They will see it when they look.'
     case 'already_friends':
-      return 'You are already connected — just message them.'
+      return 'You are already connected, so just message them.'
     case 'rate':
       return `That is ${r.detail ?? 10} requests today, which is the limit. Try again tomorrow.`
     case 'too_long':

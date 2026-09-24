@@ -95,7 +95,7 @@ export function ReferrerPicker({ value, onChange }: { value?: string; onChange: 
         </ul>
       )}
       {q.trim().length >= 2 && list.length === 0 && (
-        <p className="mt-1.5 text-[12px] text-subtle">No one found — only public profiles show up here.</p>
+        <p className="mt-1.5 text-[12px] text-subtle">No one found. Only public profiles show up here.</p>
       )}
     </div>
   )

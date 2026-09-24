@@ -38,7 +38,7 @@ export function OrgPostSwitch() {
   return (
     <Row
       label="New posts from clubs you follow"
-      description="A club posting is the reason to follow one, so this starts on. Stories are never notified — they are on the ring at the top of the feed."
+      description="A club posting is the reason to follow one, so this starts on. Stories are never notified, since they are on the ring at the top of the feed."
     >
       <Switch
         checked={on}

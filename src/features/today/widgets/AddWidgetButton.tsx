@@ -68,7 +68,7 @@ export function AddWidgetButton({
             <h2 className="font-display text-[18px] font-semibold text-fg">Widgets</h2>
             <p className="mt-0.5 mb-4 text-[12.5px] text-subtle">
               Every widget below is shown with your real data: what you see is what you
-              get. Drag anything on Today itself — double-click a card's header to start —
+              get. Drag anything on Today itself (double-click a card's header to start)
               to move it between the wide column and the side rail.
             </p>
             <WidgetGallery

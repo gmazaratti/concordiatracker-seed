@@ -87,7 +87,7 @@ export function ThemePicker() {
       {!pro && (
         <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
           Dark and Light are free, always. Tap a locked one to wear it for two minutes and see
-          how it reads across your own term — the rest of the palette, and a colour of your own,
+          how it reads across your own term. The rest of the palette, and a colour of your own,
           come with the Semester pass.
         </p>
       )}
@@ -144,7 +144,7 @@ export function ThemePicker() {
           </div>
 
           <p className="mt-3 text-[11.5px] leading-relaxed text-subtle">
-            Text is worked out from the background, not chosen — that is what keeps it readable
+            Text is worked out from the background, not chosen. That is what keeps it readable
             whatever you pick. A colour too close to the page is nudged away from it, and a
             mid-tone background is deepened until text can sit on it.
             {derived.adjusted && (
@@ -181,7 +181,7 @@ function Tile({
       type="button"
       role="radio"
       aria-checked={active}
-      aria-label={locked ? `${option.label} — included with the Semester pass` : option.label}
+      aria-label={locked ? `${option.label} (included with the Semester pass)` : option.label}
       onClick={onPick}
       className={cn(
         'group relative overflow-hidden rounded-xl border text-left transition-colors duration-150',

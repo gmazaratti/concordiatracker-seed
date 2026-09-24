@@ -138,7 +138,7 @@ export function OrganizerInsights() {
       <header className="mb-5">
         <h1 className="font-display text-[24px] leading-tight font-semibold text-fg">Insights</h1>
         <p className="text-[13px] text-subtle">
-          How {currentOrg.org.name} reaches students. Counts only — never who.
+          How {currentOrg.org.name} reaches students. Counts only, never who.
         </p>
       </header>
 
@@ -202,7 +202,7 @@ export function OrganizerInsights() {
             )}
 
             <p className="border-t border-border px-4 py-2.5 text-[11px] leading-snug text-subtle">
-              Plotted per event, not per day — we do not record when each view happened, so a
+              Plotted per event, not per day. We do not record when each view happened, so a
               daily line would be invented.
             </p>
           </Panel>
@@ -238,7 +238,7 @@ export function OrganizerInsights() {
           <Panel title="Privacy" sub="What this page can never show">
             <p className="flex items-start gap-2 p-4 text-[12px] leading-relaxed text-subtle">
               <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
-              Totals only. Nobody in this portal — including us — can see which students
+              Totals only. Nobody in this portal (including us) can see which students
               viewed, followed or saved anything you posted.
             </p>
           </Panel>
@@ -313,14 +313,14 @@ function NotMeasuredYet({ events }: { events: number }) {
           ))}
         </div>
         <p className="mt-3.5 text-[12.5px] leading-relaxed text-muted">
-          We do not record who opens an event yet, so these would be zero for every club — and a
+          We do not record who opens an event yet, so these would be zero for every club, and a
           zero here reads as “nobody came”, which is not something we know.
           {events > 0
             ? ` Your ${events} published event${events === 1 ? '' : 's'} ${events === 1 ? 'is' : 'are'} live in Community in the meantime.`
             : ' Publish an event and it goes live in Community in the meantime.'}
         </p>
         <p className="mt-2 text-[11.5px] leading-snug text-subtle">
-          When it arrives it will be counts only — never which students.
+          When it arrives it will be counts only, never which students.
         </p>
       </div>
     </Panel>

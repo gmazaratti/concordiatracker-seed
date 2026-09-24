@@ -473,7 +473,7 @@ export function SyllabusUploadPage({
                 <p className="mb-2 flex items-start gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[12px] leading-relaxed text-muted">
                   <Clock size={14} className="mt-px shrink-0 text-subtle" aria-hidden />
                   <span>
-                    {undated} {undated === 1 ? 'item has' : 'items have'} no date &mdash; usually a
+                    {undated} {undated === 1 ? 'item has' : 'items have'} no date, usually a
                     final the registrar hasn&rsquo;t scheduled. That&rsquo;s fine:{' '}
                     {undated === 1 ? 'it' : 'they'} will be added as{' '}
                     <span className="font-medium text-fg">date not set</span> and show up on Today
@@ -493,7 +493,7 @@ export function SyllabusUploadPage({
                     course
                   </span>{' '}
                   and will be skipped, so nothing is duplicated. Remove the ones you want replaced
-                  from the course first, or leave them — the rest still import.
+                  from the course first, or leave them. The rest still import.
                 </p>
               )}
 
@@ -520,7 +520,7 @@ export function SyllabusUploadPage({
                           duplicates[i]!.confident ? 'text-warning' : 'text-subtle',
                         )}
                       >
-                        {duplicates[i]!.confident ? 'Skipping — ' : 'Possibly '}
+                        {duplicates[i]!.confident ? 'Skipping: ' : 'Possibly '}
                         matches &ldquo;{duplicates[i]!.title}&rdquo; you already have (
                         {duplicates[i]!.reason}).
                       </p>

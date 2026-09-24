@@ -186,7 +186,7 @@ export function SocialTab() {
 
       <p className="px-1 text-[11.5px] leading-relaxed text-subtle">
         A blocked person is never told, and blocking also removes the connection and the follow in
-        both directions. Shown here so a pattern of complaints about one account can be seen — not
+        both directions. Shown here so a pattern of complaints about one account can be seen, not
         as a list to act on row by row.
       </p>
     </div>

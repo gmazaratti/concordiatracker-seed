@@ -227,7 +227,7 @@ export function RecordSheet({
             )}
 
             <p className="mt-6 border-t border-border pt-3 text-[11px] text-subtle">
-              Exported from ConcordiaTracker on {dated}. Self-reported — not an official
+              Exported from ConcordiaTracker on {dated}. Self-reported, not an official
               transcript.
             </p>
           </article>

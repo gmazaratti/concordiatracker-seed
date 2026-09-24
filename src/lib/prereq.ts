@@ -404,7 +404,7 @@ export function evaluate(p: Prereq, rec: Record): Evaluation {
         ...notes,
         `You are taking ${pending
           .map((t) => t.alternatives.map((a) => a.text).join(' or '))
-          .join(', ')} now — this holds as long as you pass.`,
+          .join(', ')} now. This holds as long as you pass.`,
       ],
       unreadable,
     }

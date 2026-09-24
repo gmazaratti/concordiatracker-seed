@@ -61,7 +61,7 @@ export function orgRefusal(reason: string | null): string {
     case 'closed':
       return 'This club is not accepting messages yet.'
     case 'self':
-      return 'This is your own club — open its inbox in the organizer portal.'
+      return 'This is your own club. Open its inbox in the organizer portal.'
     case 'too-long':
       return 'That message is too long.'
     case 'rate':

@@ -89,7 +89,7 @@ export async function reportMessage(m: Message, from: { name: string | null; han
       `Message id: ${m.id}`,
       ``,
       `Text:`,
-      m.body.trim() || '(no text — an attachment)',
+      m.body.trim() || '(no text, just an attachment)',
     ].join('\n'),
   })
   return caseId

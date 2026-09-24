@@ -101,7 +101,7 @@ export async function ownerUsers(): Promise<Json> {
     timezone: 'UTC',
     ...u,
     notes: [
-      'Counts only. This endpoint never returns names, emails or user ids — a long-lived token should not be able to export the user table.',
+      'Counts only. This endpoint never returns names, emails or user ids, because a long-lived token should not be able to export the user table.',
       'Internal and test accounts are excluded from every figure except `excluded_internal`.',
       'Comped accounts are counted as users and are never counted as paying.',
     ],

@@ -492,7 +492,7 @@ export function PrereqGraph({
                       dragging.current = null
                     }}
                     onDoubleClick={() => onOpenList(n.code)}
-                    title={`${n.code} — ${n.course.title}. Double-click to see its full chain.`}
+                    title={`${n.code}: ${n.course.title}. Double-click to see its full chain.`}
                     className={cn(
                       // Opaque, with a shadow. The cards were translucent over a
                       // grid background, so two that touched became unreadable.

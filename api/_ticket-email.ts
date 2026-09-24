@@ -99,6 +99,6 @@ export async function notifyTicketReply(ticketId: string): Promise<boolean> {
       { label: 'Case', value: ticket.case_id },
       { label: 'Subject', value: ticket.subject },
     ],
-    footnote: 'Reply in the app and we will see it — this address is not monitored.',
+    footnote: 'Reply in the app and we will see it. This address is not monitored.',
   })
 }

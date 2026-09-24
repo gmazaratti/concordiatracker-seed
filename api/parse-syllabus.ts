@@ -140,7 +140,7 @@ function geminiReason(status: number, body: string): string {
     detail = e.error?.message ?? ''
     const code = e.error?.status ?? ''
     if (code === 'RESOURCE_EXHAUSTED' || status === 429) {
-      return 'The parser is out of capacity for the moment. Try again shortly — this one is on us, not your file.'
+      return 'The parser is out of capacity for the moment. Try again shortly. This one is on us, not your file.'
     }
     if (code === 'PERMISSION_DENIED' || code === 'UNAUTHENTICATED' || status === 403) {
       return 'The parser is misconfigured on our side (the key was rejected). Nothing is wrong with your file.'
@@ -152,7 +152,7 @@ function geminiReason(status: number, body: string): string {
       return 'That PDF is too big for the parser. Export just the outline pages and try again.'
     }
     if (/mime|unsupported|invalid.*type/i.test(detail)) {
-      return 'The parser could not open that file type. It needs a real PDF — a scan saved as a PDF works, a .doc does not.'
+      return 'The parser could not open that file type. It needs a real PDF: a scan saved as a PDF works, a .doc does not.'
     }
   } catch {
     /* not JSON — fall through to the generic form with the status attached */
@@ -179,7 +179,7 @@ export default async function handler(req: Request): Promise<Response> {
   const who = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${token}`, apikey: supabaseAnon },
   })
-  if (!who.ok) return json({ error: 'Your session expired — sign in again.' }, 401)
+  if (!who.ok) return json({ error: 'Your session expired. Sign in again.' }, 401)
   const uid = ((await who.json().catch(() => null)) as { id?: string } | null)?.id ?? ''
   // The name is only a label for the admin record: never used as a path.
   const fileName = decodeHeader(req.headers.get('x-file-name')).slice(0, 200)
@@ -210,7 +210,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (!slot) {
     return json({ error: 'Couldn’t check your upload allowance just now. Try again in a moment.' }, 503)
   }
-  if (slot?.reason === 'auth') return json({ error: 'Your session expired — sign in again.' }, 401)
+  if (slot?.reason === 'auth') return json({ error: 'Your session expired. Sign in again.' }, 401)
   if (slot && slot.allowed === false) return json({ error: rateLimitMessage(slot) }, 429)
 
   /**
@@ -290,13 +290,13 @@ export default async function handler(req: Request): Promise<Response> {
       return json(
         {
           error:
-            'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and if it keeps happening send it to support. This attempt didn’t count against you.',
+            'The parser ran out of time on that file. That is our ceiling, not your outline. Try again, and if it keeps happening send it to support. This attempt didn’t count against you.',
         },
         504,
       )
     }
     if (parsed.failure === 'unreachable') {
-      return json({ error: 'Could not reach the parser. Try again — this one is on us.' }, 502)
+      return json({ error: 'Could not reach the parser. Try again. This one is on us.' }, 502)
     }
     if (parsed.failure === 'upstream') {
       const status = parsed.upstreamStatus ?? 502

@@ -108,7 +108,7 @@ export function OrganizerOverview({ onReplaySetup }: { onReplaySetup?: () => voi
       {pending && (
         <div className="mb-5 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] text-warning">
           <strong className="font-semibold">Waiting on us, not on you.</strong> Set up your profile and
-          draft your events now — nothing is lost. We check new organizations by hand, and you'll get
+          draft your events now. Nothing is lost. We check new organizations by hand, and you'll get
           an email the moment yours is approved; everything you've published goes live then.
         </div>
       )}

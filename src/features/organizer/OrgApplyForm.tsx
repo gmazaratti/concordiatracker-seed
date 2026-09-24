@@ -84,7 +84,7 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
         Apply to list your club
       </h1>
       <p className="mt-1.5 text-[13px] leading-relaxed text-subtle">
-        Six quick questions. You get your dashboard straight away — we check the application before
+        Six quick questions. You get your dashboard straight away. We check the application before
         anything appears in the student feed.
       </p>
 
@@ -155,7 +155,7 @@ export function OrgApplyForm({ onBack, onDone }: { onBack: () => void; onDone: (
 
         <Labelled
           label="Anything that shows it's you"
-          hint="Optional — an Instagram, a CSU page, a website. It speeds this up a lot."
+          hint="Optional: an Instagram, a CSU page, a website. It speeds this up a lot."
         >
           <input
             value={proof}

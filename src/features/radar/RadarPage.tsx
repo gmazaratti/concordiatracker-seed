@@ -138,12 +138,12 @@ export function RadarPage() {
         <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted">
           An automatic check on your semester. It reads your courses, grades, outlines and the
           registrar&rsquo;s calendar, and tells you about problems that are coming but not yet
-          obvious — a week where too much of your grade lands at once, a drop deadline about to
+          obvious: a week where too much of your grade lands at once, a drop deadline about to
           close, a course the marks can no longer save.
         </p>
         <p className="mt-1.5 text-[12.5px] text-subtle">
           Today shows what is due. Calendar shows when. Radar is the one that says whether the term
-          ahead is survivable — which needs every course added together, so nothing else can.
+          ahead is survivable, which needs every course added together, so nothing else can.
         </p>
       </header>
 
@@ -163,7 +163,7 @@ export function RadarPage() {
           <p className="text-[14px] font-medium text-fg">{summary.headline}</p>
           {excluded.size > 0 && (
             <p className="mt-1 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
-              Simulated — without{' '}
+              Simulated without{' '}
               {courses
                 .filter((c) => excluded.has(c.id))
                 .map((c) => c.code)
@@ -241,7 +241,7 @@ export function RadarPage() {
 
       <p className="mt-5 text-[11.5px] leading-relaxed text-subtle">
         Radar reads what you have already told ConcordiaTracker. It cannot see a course you have not
-        added or an outline you have not imported, and it is not advice — for anything that changes
+        added or an outline you have not imported, and it is not advice. For anything that changes
         your registration, your loan or your graduation, the department is the authority.
       </p>
     </div>

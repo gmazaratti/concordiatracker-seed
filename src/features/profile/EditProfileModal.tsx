@@ -201,7 +201,7 @@ export function EditProfileModal({
                 checked={scheduleFriends}
                 onChange={setScheduleFriends}
                 label="Show my schedule to people I follow back"
-                body="Times and rooms only — never a grade, and never to a stranger."
+                body="Times and rooms only. Never a grade, and never to a stranger."
               />
             </div>
           </div>

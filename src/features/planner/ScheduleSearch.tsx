@@ -356,7 +356,7 @@ function EmptyTerm({
         <p className="text-[11.5px] leading-relaxed text-muted">
           Concordia has not published {termLabel(termCode)} sections for {code} to its open
           schedule feed yet
-          {newest ? ` — the newest it has is ${termLabel(newest)}` : ''}. That usually means the
+          {newest ? ` (the newest it has is ${termLabel(newest)})` : ''}. That usually means the
           term is not out rather than that the class is not running, so if you are already
           registered, put your section in by hand.
         </p>

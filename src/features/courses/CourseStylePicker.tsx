@@ -143,7 +143,7 @@ export function CourseStylePicker({ course }: { course: Course }) {
                         role="menuitemradio"
                         aria-checked={active}
                         aria-label={g.label}
-                        title={pro ? g.label : `${g.label} — Semester pass`}
+                        title={pro ? g.label : `${g.label} (Semester pass)`}
                         onClick={() => {
                           if (!pro) return gate()
                           updateCourse(course.id, { gradient: g.id })
@@ -199,7 +199,7 @@ export function CourseStylePicker({ course }: { course: Course }) {
                             role="menuitemradio"
                             aria-checked={active}
                             aria-label={i.label}
-                            title={pro ? i.label : `${i.label} — Semester pass`}
+                            title={pro ? i.label : `${i.label} (Semester pass)`}
                             onClick={() => {
                               if (!pro) return gate()
                               updateCourse(course.id, { icon: i.id })

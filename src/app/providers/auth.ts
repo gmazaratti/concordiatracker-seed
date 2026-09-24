@@ -27,6 +27,12 @@ export interface AuthContextValue {
     email: string,
     password: string,
   ) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  /** Same answer whether or not the address has an account (no enumeration). */
+  sendPasswordReset: (email: string) => Promise<{ error: string | null }>
+  /** Set a new password for the signed-in user (the reset link signs them in). */
+  updatePassword: (password: string) => Promise<{ error: string | null }>
+  /** Attach another OAuth provider to the current account. */
+  linkProvider: (provider: 'google' | 'apple') => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 

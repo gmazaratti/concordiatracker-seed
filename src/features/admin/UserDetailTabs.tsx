@@ -111,7 +111,7 @@ export function VisitsTab({
       {direct > 0 && (
         <p className="text-[11.5px] leading-relaxed text-subtle">
           {direct} of {visits.length} visits show as Direct. Most browsers send no referrer on a
-          typed or bookmarked visit, so that is the default rather than a finding — only a tagged
+          typed or bookmarked visit, so that is the default rather than a finding. Only a tagged
           link or an external click can say otherwise.
         </p>
       )}
@@ -181,7 +181,7 @@ export function SubscriptionTab({ user }: { user: AdminUser }) {
             {user.plan_status === 'pro' && !user.comped && (
               <span className="text-warning">
                 {' '}
-                That is Pro without a payment and without the comped flag — worth explaining or
+                That is Pro without a payment and without the comped flag, worth explaining or
                 marking.
               </span>
             )}

@@ -228,7 +228,7 @@ function SyncButton({ pro }: { pro: boolean }) {
           {on ? 'Calendar sync is on' : t('calendar.syncYours')}
         </span>
         <span className="block text-[12px] text-muted">
-          {on ? 'Manage the link or turn it off' : 'Google, Apple, Outlook — one link'}
+          {on ? 'Manage the link or turn it off' : 'Google, Apple, Outlook: one link'}
         </span>
       </span>
     </button>

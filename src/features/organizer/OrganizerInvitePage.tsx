@@ -184,7 +184,7 @@ export function OrganizerInvitePage() {
     ? `join ${dbInvite.org_name}'s team`
     : mode === 'prefilled'
       ? `take over ${dbInvite.org_name}: we've set up its profile, and you review and edit everything before it's yours`
-      : `set up ${dbInvite.org_name} from scratch — your profile, first event and team`
+      : `set up ${dbInvite.org_name} from scratch: your profile, first event and team`
 
   return (
     <InviteCard
@@ -193,7 +193,7 @@ export function OrganizerInvitePage() {
       note={
         authUser
           ? `You're signed in as ${authUser.email}. Accepting lets you ${what}.`
-          : `Sign in or create an account first — the club will be tied to it. Then you'll ${what}.${
+          : `Sign in or create an account first. The club will be tied to it. Then you'll ${what}.${
               dbInvite.kind === 'email'
                 ? ' This invite was sent to one email address: sign in with that one.'
                 : dbInvite.kind === 'user'
@@ -205,7 +205,7 @@ export function OrganizerInvitePage() {
       err={err}
       success={
         dryRun
-          ? 'Link verified — admin test run. Nothing was consumed; this exact link still works for the recipient.'
+          ? 'Link verified (admin test run). Nothing was consumed; this exact link still works for the recipient.'
           : undefined
       }
       cta={joining ? 'Join the team' : mode === 'prefilled' ? 'Review & take over' : 'Start setting up'}
@@ -215,7 +215,7 @@ export function OrganizerInvitePage() {
         joining
           ? 'You will join as a Member. The owner can change your role.'
           : mode === 'prefilled'
-            ? 'A short guided review follows — change anything before students see it.'
+            ? 'A short guided review follows, so you can change anything before students see it.'
             : "You'll start as pending approval: a guided setup walks you through your profile, first event, and team."
       }
       onForce={dryRun ? () => void accept(true) : undefined}
@@ -286,7 +286,7 @@ function InviteCard({
               onClick={signIn.email}
               className="rounded-lg py-2 text-[13px] font-medium text-accent hover:underline"
             >
-              Use email instead — sign in or create an account
+              Use email instead to sign in or create an account
             </button>
           </div>
         ) : (

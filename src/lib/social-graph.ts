@@ -141,7 +141,7 @@ export function dmMessage(reason: DmReason): string | null {
     case 'mutuals-only':
       return 'They only accept messages from people they follow back.'
     case 'request-pending':
-      return 'Your message request is waiting — you can send more once they follow you back.'
+      return 'Your message request is waiting. You can send more once they follow you back.'
     case 'blocked':
       // Says nothing about who blocked whom, in either direction.
       return 'You cannot message this account.'

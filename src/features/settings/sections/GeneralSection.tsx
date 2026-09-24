@@ -85,7 +85,7 @@ export function GeneralSection() {
         <Group label="Demo">
           <Row
             label="Flatter my GPA when showing the site"
-            description={`Displays at least ${DEMO_GPA_TARGET.toFixed(1)} on My record. Nothing is saved and no grade is changed — switch it off and your real GPA is back.`}
+            description={`Displays at least ${DEMO_GPA_TARGET.toFixed(1)} on My record. Nothing is saved and no grade is changed. Switch it off and your real GPA is back.`}
           >
             <Switch
               checked={demoGpa}

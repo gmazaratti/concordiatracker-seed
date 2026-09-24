@@ -262,7 +262,7 @@ export default async function handler(req: any, res: any) {
         heading: `${org.name} is approved`,
         paragraphs: [
           `Your organizer portal is open. Anything you post now shows up in the Community feed that every ConcordiaTracker student sees.`,
-          `Your public page is ${site}/app/community/org/${String(org.handle).replace(/^@/, '')} — share it anywhere.`,
+          `Your public page is ${site}/app/community/org/${String(org.handle).replace(/^@/, '')}. Share it anywhere.`,
         ],
         button: { label: 'Post your first event', href: `${site}/organizer` },
         footnote: 'Reply to this email if anything looks wrong and a person will read it.',
@@ -304,14 +304,14 @@ export default async function handler(req: any, res: any) {
         paragraphs: [
           inv.mode === 'prefilled'
             ? `We've built ${inv.org_name}'s page on ConcordiaTracker for you. Open the invite to review it, change anything, and make it yours.`
-            : `You've been invited to set up ${inv.org_name} (${inv.org_handle}) on ConcordiaTracker — the app Concordia students use for their deadlines, events and clubs.`,
+            : `You've been invited to set up ${inv.org_name} (${inv.org_handle}) on ConcordiaTracker, the app Concordia students use for their deadlines, events and clubs.`,
           `The invite is for you: sign in with this email address (${inv.recipient_email}) to accept it.`,
         ],
         button: { label: 'Open the invite', href: `${site}/join/${token}` },
         facts: expires.getFullYear() < 2099
           ? [{ label: 'Expires', value: expires.toLocaleDateString('en-CA', { dateStyle: 'long' }) }]
           : undefined,
-        footnote: 'Not expecting this? You can ignore it — nothing happens unless you accept.',
+        footnote: 'Not expecting this? You can ignore it. Nothing happens unless you accept.',
       })
       res.status(200).json({ sent })
       return

@@ -100,7 +100,7 @@ export function ImageUploadField({
           <p className="text-[12.5px] font-medium text-fg">Recommended: {spec.recommended}</p>
           <p className="mt-1 text-[12px] leading-relaxed text-muted">{spec.note}</p>
           <p className="mt-1.5 text-[11.5px] text-subtle">
-            Anything else works too — you position it after choosing, and we save it at this size.
+            Anything else works too: you position it after choosing, and we save it at this size.
           </p>
         </InfoHint>
         {hint && <span className="text-[11px] text-subtle">{hint}</span>}

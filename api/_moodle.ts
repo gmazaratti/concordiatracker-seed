@@ -63,7 +63,7 @@ export async function fetchMoodleCalendar(icsUrl: string): Promise<MoodleFetchRe
       ok: false,
       events: [],
       error: timedOut
-        ? 'Moodle did not answer in time. This usually clears on its own — we will try again tonight.'
+        ? 'Moodle did not answer in time. This usually clears on its own. We will try again tonight.'
         : 'Could not reach Moodle just now. We will try again tonight.',
     }
   }
@@ -84,7 +84,7 @@ export async function fetchMoodleCalendar(icsUrl: string): Promise<MoodleFetchRe
     return {
       ok: false,
       events: [],
-      error: 'Moodle rejected the link. Its token was probably reset — get a new calendar URL from Moodle and reconnect.',
+      error: 'Moodle rejected the link. Its token was probably reset. Get a new calendar URL from Moodle and reconnect.',
     }
   }
   if (!body.includes('BEGIN:VCALENDAR')) {

@@ -483,7 +483,7 @@ export async function meGpa(userId: string): Promise<{ status: number; json: Jso
       notes: [
         'The same functions the GPA screen uses: Concordia’s 4.30 scale, credit-weighted, and only the latest attempt at a retaken course.',
         'A course with nothing graded reports null rather than zero.',
-        'Self-reported — this is what has been entered, not an official record.',
+        'Self-reported: this is what has been entered, not an official record.',
       ],
     },
   }

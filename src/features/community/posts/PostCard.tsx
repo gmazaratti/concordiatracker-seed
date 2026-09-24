@@ -861,7 +861,7 @@ Account: @${slug}`,
       <div className="px-4 pt-3 pb-4">
         {sent ? (
           <div className="py-4 text-center">
-            <p className="text-[15px] font-semibold text-fg">Thanks — we have it</p>
+            <p className="text-[15px] font-semibold text-fg">Thanks, we have it</p>
             <p className="mx-auto mt-1 max-w-xs text-[13px] leading-relaxed text-subtle">
               {sent === 'received'
                 ? 'Someone will take a look.'

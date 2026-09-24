@@ -178,7 +178,7 @@ function renderText(o: EmailOptions): string {
 export async function sendEmail(o: EmailOptions): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
   if (!key) {
-    console.warn('[email] RESEND_API_KEY is not set — skipping', o.subject)
+    console.warn('[email] RESEND_API_KEY is not set, skipping', o.subject)
     return false
   }
   // A verified domain is required to send to anyone but the account owner, so

@@ -193,7 +193,7 @@ export function TaskEditor({
             )}
           >
             <Trash2 size={13} aria-hidden />
-            {confirmDelete ? 'Delete — sure?' : 'Delete'}
+            {confirmDelete ? 'Really delete?' : 'Delete'}
           </button>
         )}
       </div>

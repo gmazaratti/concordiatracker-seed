@@ -207,8 +207,8 @@ function ProfileForm({
                     value={links.titles?.[f.key] ?? ''}
                     onChange={(e) => setTitle(f.key, e.target.value)}
                     maxLength={40}
-                    placeholder={`Link title — e.g. "${f.titleHint}"`}
-                    aria-label={`${f.label} — title`}
+                    placeholder={`Link title, e.g. "${f.titleHint}"`}
+                    aria-label={`${f.label} title`}
                     className="mt-1.5 w-full rounded-lg border border-border bg-surface-2 px-2.5 py-1.5 text-[12.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
                   />
                 )}

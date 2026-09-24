@@ -353,7 +353,7 @@ export const OPENAPI = {
         summary: 'Revenue, read live from Stripe',
         description:
           'MRR is derived only from subscriptions that have actually been charged. ARR is an ' +
-          'estimate — MRR multiplied by twelve, not a year of observed revenue — and is named ' +
+          'estimate (MRR multiplied by twelve, not a year of observed revenue) and is named ' +
           'one in the payload.',
         security: [{ ownerToken: [] }],
         responses: {
@@ -462,7 +462,7 @@ export const OPENAPI = {
         tags: ['Personal API'],
         summary: 'Archive a course, or really delete it',
         description:
-          'Archives by default: a course with grades in it is a record, and clearing a term to tidy a list is the sort of thing somebody regrets. hard=true really removes it, and takes its assignments with it — they do not cascade, so a plain delete would leave rows still counting toward a GPA for a course that no longer exists.',
+          'Archives by default: a course with grades in it is a record, and clearing a term to tidy a list is the sort of thing somebody regrets. hard=true really removes it, and takes its assignments with it: they do not cascade, so a plain delete would leave rows still counting toward a GPA for a course that no longer exists.',
         security: [{ personalToken: [] }],
         parameters: [
           {
@@ -500,7 +500,7 @@ export const OPENAPI = {
         tags: ['Personal API'],
         summary: 'Create a course by uploading a syllabus PDF',
         description:
-          'Send the PDF as the raw request body with Content-Type application/pdf. Runs the SAME extractor as the website upload — literally the same function — so an outline cannot parse one way in the browser and another way here. Creates the course and its assessments, and returns both plus the weight total. Dates the outline does not give come back null and are never guessed. Max 4 MB.',
+          'Send the PDF as the raw request body with Content-Type application/pdf. Runs the SAME extractor as the website upload (literally the same function), so an outline cannot parse one way in the browser and another way here. Creates the course and its assessments, and returns both plus the weight total. Dates the outline does not give come back null and are never guessed. Max 4 MB.',
         security: [{ personalToken: [] }],
         requestBody: {
           required: true,
@@ -609,7 +609,7 @@ export const OPENAPI = {
         tags: ['Personal API'],
         summary: 'Everything dated, grouped by day',
         description:
-          'Assignments and personal or Moodle tasks in a date range, bucketed on the LOCAL date the way the calendar screen buckets them — slicing an ISO string would report a 23:59 deadline as the next day in UTC. An assignment with no date is not here, because we do not know when it is. Defaults to the last week and the next sixty days.',
+          'Assignments and personal or Moodle tasks in a date range, bucketed on the LOCAL date the way the calendar screen buckets them. Slicing an ISO string would report a 23:59 deadline as the next day in UTC. An assignment with no date is not here, because we do not know when it is. Defaults to the last week and the next sixty days.',
         security: [{ personalToken: [] }],
         parameters: [
           {
@@ -675,7 +675,7 @@ export const OPENAPI = {
         tags: ['Personal API'],
         summary: 'Create a course by hand',
         description:
-          'At least a code or a name. Credits default to 3 only when nothing is given — a ' +
+          'At least a code or a name. Credits default to 3 only when nothing is given. A ' +
           'wrong credit count silently breaks the full-time check, the cost estimate and the ' +
           'degree audit at once, so it is never inferred from anything else.',
         security: [{ personalToken: [] }],
@@ -702,7 +702,7 @@ export const OPENAPI = {
         summary: 'Your deadlines',
         description:
           'Every assessment on your account, earliest first. `upcoming=true` means dated and ' +
-          'not yet past — an UNDATED item is not upcoming, because we do not know that it is.',
+          'not yet past. An UNDATED item is not upcoming, because we do not know that it is.',
         security: [{ personalToken: [] }],
         parameters: [
           {
@@ -791,7 +791,7 @@ export const OPENAPI = {
         description:
           "Needs a title. A course_id is checked against your own courses first, so an " +
           "assignment cannot be filed against a stranger course. An omitted or null " +
-          "due_at means the date is unknown — it is never invented.",
+          "due_at means the date is unknown, and it is never invented.",
         security: [{ personalToken: [] }],
         requestBody: {
           required: true,
@@ -862,7 +862,7 @@ export const OPENAPI = {
         summary: 'Remove an assignment',
         description:
           "Soft delete. The row is marked deleted and disappears from every view, " +
-          "including the GPA, but is not destroyed — a script deleting the wrong row is " +
+          "including the GPA, but is not destroyed: a script deleting the wrong row is " +
           "a likelier accident than a person doing it, and one of the two should be " +
           "recoverable.",
         security: [{ personalToken: [] }],
@@ -892,7 +892,7 @@ export const OPENAPI = {
         tags: ['Personal API'],
         summary: 'Tick something off, or record a grade',
         description:
-          'Changes status, grade or notes — the same narrow set the app itself allows. Not ' +
+          'Changes status, grade or notes, the same narrow set the app itself allows. Not ' +
           'weights, dates or provenance: a weight edited by a script is a grade computed from a ' +
           'number nobody checked, and provenance is a claim about where a date came from that a ' +
           'token cannot honestly make. Returns the row as it now stands.',
@@ -1089,7 +1089,7 @@ export const OPENAPI = {
         summary: 'Change a thread state',
         description:
           'Either field, or both. Use it to ESCALATE: set needs_human true and leave the ' +
-          'thread for a person. Setting `ai_handling` CLEARS `needs_human` — the hand-back ' +
+          'thread for a person. Setting `ai_handling` CLEARS `needs_human`. That is the hand-back ' +
           'gesture, one call so there is no window where the assistant owns a thread still ' +
           'flagged for a person. `resolved` is REFUSED for this token (409 ' +
           '`resolve_is_human_only`): deciding a customer problem is over is a judgement with ' +
@@ -1142,9 +1142,9 @@ export const OPENAPI = {
           'Stored with author `ai`. Replying to an `open` thread moves it to `ai_handling`. ' +
           'WHETHER A REPLY IS ALLOWED IS DECIDED IN THE DATABASE, not here, so no caller can ' +
           'route around it. A refusal is 409 with a machine-readable `reason`: `crisis_hold` ' +
-          '(the customer mentioned self-harm — never answered automatically; follow the ' +
+          '(the customer mentioned self-harm, never answered automatically; follow the ' +
           'crisis protocol and leave it for a person), `money_hold` (a refund, discount or ' +
-          'delivery date — those are promises a person makes), `human_takeover`, `resolved`, ' +
+          'delivery date; those are promises a person makes), `human_takeover`, `resolved`, ' +
           '`needs_human`, or `diagnostic_not_repliable`. Every accepted reply is written to ' +
           'the admin audit log with its exact wording.',
         security: [{ supportToken: [] }],
@@ -1169,7 +1169,7 @@ export const OPENAPI = {
                     type: 'string',
                     maxLength: 5000,
                     description:
-                      'The reply. Never write an assistant label into it — the UI renders that ' +
+                      'The reply. Never write an assistant label into it. The UI renders that ' +
                       'from the author field.',
                   },
                 },
@@ -1278,7 +1278,7 @@ export const OPENAPI = {
         tags: ['Support API'],
         summary: 'List every knowledge base article',
         description:
-          'Id, title, url and summary for every article — no bodies, because forty articles ' +
+          'Id, title, url and summary for every article, with no bodies, because forty articles ' +
           'of prose is most of a context window spent on pages that will not be used. ' +
           'Generated from the published documentation and the legal documents, so they ' +
           'cannot drift from what a person would be told to read. Answer ONLY from these.',
@@ -2219,7 +2219,7 @@ export const OPENAPI = {
             type: 'array',
             items: { type: 'string', format: 'uri' },
             description:
-              'ALWAYS EMPTY. The product has no attachment upload — a customer cannot send ' +
+              'ALWAYS EMPTY. The product has no attachment upload, so a customer cannot send ' +
               'a file with a ticket. The field exists so the contract does not change on the ' +
               'day uploads ship. Never wait for one.',
           },
@@ -2402,7 +2402,7 @@ export const OPENAPI = {
                 type: 'boolean',
                 description:
                   "Whether the weights reach 100. False means the outline is missing " +
-                  "something or has an ungraded component — worth a look either way.",
+                  "something or has an ungraded component. Worth a look either way.",
               },
               parse_path: { type: 'string', description: 'Which path read the file.' },
               retried: { type: 'boolean' },

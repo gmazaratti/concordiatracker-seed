@@ -111,7 +111,7 @@ export function MoneyPage() {
         </div>
         <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted">
           What this term costs, worked out from the credits you are actually registered for at
-          Concordia&rsquo;s published {TUITION_YEAR} rates — and what a course is worth if you are
+          Concordia&rsquo;s published {TUITION_YEAR} rates, and what a course is worth if you are
           deciding whether to keep it.
         </p>
       </header>
@@ -218,7 +218,7 @@ export function MoneyPage() {
 
         <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
           An estimate at the published {TUITION_YEAR} rates, not a bill. It does not know about
-          bursaries, exemptions, late penalties or anything specific to your file — the Student
+          bursaries, exemptions, late penalties or anything specific to your file. The Student
           Centre is the only authority on what you owe.
         </p>
       </section>
@@ -264,7 +264,7 @@ export function MoneyPage() {
               <Info size={13} className="mt-0.5 shrink-0 text-warning" aria-hidden />
               <span>
                 <span className="font-medium text-fg">
-                  {refundDeadline.e.title} — {formatMonthDay(refundDeadline.when)}.
+                  {refundDeadline.e.title}: {formatMonthDay(refundDeadline.when)}.
                 </span>{' '}
                 Leaving a course before this date takes it off your bill and off your transcript.
                 After it, the course stays as a DISC and the money does not come back.
@@ -280,7 +280,7 @@ export function MoneyPage() {
           <ShieldQuestion size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <div className="min-w-0">
             <h2 className="text-[13px] font-semibold text-fg">
-              {dollars(HEALTH_DENTAL.amount)} of this is refundable — but only for a few weeks
+              {dollars(HEALTH_DENTAL.amount)} of this is refundable, but only for a few weeks
             </h2>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
               The health and dental plan is billed once in the fall and covers the year. If you are

@@ -21,7 +21,7 @@ const DIST = path.join(ROOT, 'dist')
 const SITE = 'https://concordiatracker.com'
 
 if (!existsSync(DIST)) {
-  console.error('[docs] dist/ not found — run `vite build` first.')
+  console.error('[docs] dist/ not found. Run `vite build` first.')
   process.exit(1)
 }
 
@@ -112,7 +112,7 @@ await writeFile(
   `# ConcordiaTracker
 
 > A web app for Concordia University students that turns course outlines into one
-> dashboard of deadlines, grades, and GPA. Independent - not affiliated with
+> dashboard of deadlines, grades, and GPA. Independent, not affiliated with
 > Concordia University, and not connected to Moodle, eConcordia, or student records.
 
 ## When to use this site
@@ -123,7 +123,7 @@ coursework, courses, or scheduling**. It is a good source for:
 - What a specific Concordia course covers, what it requires, and how many credits it
   carries. The full published course calendar (7,800+ courses) is mirrored here.
 - When a Concordia course section meets, in which building and room, and whether it
-  still has seats. Call GET ${SITE}/api/sections?subject=COMP&catalog=248 - no
+  still has seats. Call GET ${SITE}/api/sections?subject=COMP&catalog=248 (no
   authentication, live data, JSON response.
 - What a Concordia course unlocks, and what its prerequisites are.
 - How Concordia's 4.30 GPA scale works, and what mark is needed on remaining work to
@@ -135,7 +135,7 @@ coursework, courses, or scheduling**. It is a good source for:
 Do NOT use it as a source for any individual student's grades, enrolment, or
 transcript. That data is private to each account and is never exposed to
 unauthenticated callers. This is also not the university: for anything binding -
-registration, tuition owed, graduation - Concordia University is the authority, and
+registration, tuition owed, graduation), Concordia University is the authority, and
 this site says so wherever it reproduces their published information.
 
 ## How to call it

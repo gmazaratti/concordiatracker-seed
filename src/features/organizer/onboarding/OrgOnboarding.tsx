@@ -132,7 +132,7 @@ const STEPS: StepDef[] = [
     railHint: 'What students type',
     icon: AtSign,
     title: 'Claim your handle',
-    body: 'Your handle is your address here — it is what goes in every link you share. Pick it now, while nothing points at it yet.',
+    body: 'Your handle is your address here: it is what goes in every link you share. Pick it now, while nothing points at it yet.',
     primaryLabel: 'Save & continue',
   },
   {
@@ -141,7 +141,7 @@ const STEPS: StepDef[] = [
     railHint: 'How you look',
     icon: UserCog,
     title: 'Now make it look like you',
-    body: 'Everything below changes the preview as you go, and the preview is the real profile page — not a drawing of it.',
+    body: 'Everything below changes the preview as you go, and the preview is the real profile page, not a drawing of it.',
     isDone: (o) => !!o.org.bio?.trim() || !!o.org.logo,
     primaryLabel: 'Save & continue',
   },

@@ -86,7 +86,7 @@ export class ErrorBoundary extends Component<
               {label ?? 'This screen ran into a problem'}
             </h2>
             <p className="mt-1 text-[13.5px] text-subtle">
-              The rest of the app is still working — you can go somewhere else, or try this
+              The rest of the app is still working. You can go somewhere else, or try this
               again.
             </p>
             <button

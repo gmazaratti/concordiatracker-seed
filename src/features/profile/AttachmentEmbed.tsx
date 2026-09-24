@@ -108,7 +108,7 @@ export function AttachmentEmbed({
             // so beats a card that renders as an empty frame.
             <p className="p-2.5 text-[11.5px] text-subtle">
               <PartyPopper size={12} className="mr-1 inline" aria-hidden />
-              {attachment.title} — this event is no longer listed.
+              {attachment.title}: this event is no longer listed.
             </p>
           )}
         </button>

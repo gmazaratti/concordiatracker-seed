@@ -234,12 +234,12 @@ async function manage(
     headers: { Authorization: `Bearer ${jwt}`, apikey: anonKey },
   })
   if (!who.ok) {
-    fail(res, 401, 'Your session expired — sign in again.')
+    fail(res, 401, 'Your session expired. Sign in again.')
     return
   }
   const userId = ((await who.json()) as { id?: string }).id
   if (!userId) {
-    fail(res, 401, 'Your session expired — sign in again.')
+    fail(res, 401, 'Your session expired. Sign in again.')
     return
   }
 

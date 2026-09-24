@@ -180,7 +180,7 @@ function YouSection({ handle }: { handle?: string }) {
         <Mascot mood="resting" size="sm" soft className="text-accent" />
         <p className="text-[13.5px] font-medium text-fg">No handle yet</p>
         <p className="max-w-xs text-[12.5px] leading-relaxed text-subtle">
-          Pick one in Settings and your profile appears here — the same page classmates see when
+          Pick one in Settings and your profile appears here. It is the same page classmates see when
           they find you.
         </p>
       </div>

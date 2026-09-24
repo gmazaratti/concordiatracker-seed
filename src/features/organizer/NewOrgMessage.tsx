@@ -158,7 +158,7 @@ export function NewOrgMessage({
             className="mt-3 w-full resize-none rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[15px] leading-relaxed text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
           />
           <p className="mt-2 text-[11.5px] text-subtle">
-            One message, then it is their turn — you can write again once they answer.
+            One message, then it is their turn. You can write again once they answer.
           </p>
           {err && <p className="mt-2 text-[12.5px] text-danger">{err}</p>}
 

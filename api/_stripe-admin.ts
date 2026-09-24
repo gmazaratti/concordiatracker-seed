@@ -133,15 +133,15 @@ function outcomeOf(c: any): string {
   if (c.status === 'pending') return 'Pending with the bank'
   const decline: string | null = c.outcome?.reason ?? c.failure_code ?? null
   const map: Record<string, string> = {
-    insufficient_funds: 'Declined — not enough funds. Another card will work.',
+    insufficient_funds: 'Declined: not enough funds. Another card will work.',
     do_not_honor: 'Declined by the bank with no reason given. They have to call their bank.',
     generic_decline: 'Declined by the bank with no reason given.',
-    expired_card: 'Declined — the card has expired.',
-    incorrect_cvc: 'Declined — the security code was wrong.',
-    lost_card: 'Declined — reported lost. Nothing we can do.',
-    stolen_card: 'Declined — reported stolen. Nothing we can do.',
-    card_not_supported: 'Declined — the card does not support this kind of charge.',
-    currency_not_supported: 'Declined — the card cannot be billed in this currency.',
+    expired_card: 'Declined: the card has expired.',
+    incorrect_cvc: 'Declined: the security code was wrong.',
+    lost_card: 'Declined: reported lost. Nothing we can do.',
+    stolen_card: 'Declined: reported stolen. Nothing we can do.',
+    card_not_supported: 'Declined: the card does not support this kind of charge.',
+    currency_not_supported: 'Declined: the card cannot be billed in this currency.',
     processing_error: 'The bank had a processing error. Retrying usually works.',
     authentication_required: 'Needs 3-D Secure confirmation from the cardholder.',
     fraudulent: 'Blocked as suspected fraud.',
@@ -379,7 +379,7 @@ export async function stripeRollup(): Promise<StripeRollup> {
     activity.push({
       kind: 'subscription',
       label: c.paid && c.status === 'succeeded' ? 'Payment received' : 'Payment failed',
-      detail: `$${((c.amount ?? 0) / 100).toFixed(2)} — ${outcomeOf(c)}`,
+      detail: `$${((c.amount ?? 0) / 100).toFixed(2)} · ${outcomeOf(c)}`,
       who: c.billing_details?.email ?? c.receipt_email ?? 'Unknown',
       at: iso(c.created) ?? '',
     })

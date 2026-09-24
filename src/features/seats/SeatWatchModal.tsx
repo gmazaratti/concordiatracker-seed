@@ -271,9 +271,9 @@ export function SeatWatchModal({
         {sections && sections.length > 0 && !status.published && (
           <p className="border-b border-border bg-warning/10 px-4 py-2.5 text-[11.5px] leading-snug text-muted">
             <span className="font-medium text-fg">
-              Concordia hasn&rsquo;t published {currentTermName()} yet
+              Concordia hasn&rsquo;t published {currentTermName()} yet,
             </span>{' '}
-            — not to the course data we read, anyway.{' '}
+            at least not to the course data we read.{' '}
             {status.newest
               ? `The newest it carries for this course is ${termLabel(status.newest)}.`
               : ''}{' '}

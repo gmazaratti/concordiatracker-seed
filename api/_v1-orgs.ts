@@ -129,8 +129,8 @@ async function requireMember(
     {
       reason: 'not_a_member',
       hint: teamOnly
-        ? `Publishing to ${org.handle} works with a platform-admin token; adding a member or sending an invite does not, on purpose — an invite can mint an account, and that stays a human action from a browser.`
-        : `Adding this account to ${org.handle} is a human action, on purpose: an admin does it from their own browser. A platform-admin token can be granted the publish-anywhere override instead — see db/agent_publish_any.sql.`,
+        ? `Publishing to ${org.handle} works with a platform-admin token; adding a member or sending an invite does not, on purpose: an invite can mint an account, and that stays a human action from a browser.`
+        : `Adding this account to ${org.handle} is a human action, on purpose: an admin does it from their own browser. A platform-admin token can be granted the publish-anywhere override instead (see db/agent_publish_any.sql).`,
     },
   )
 }

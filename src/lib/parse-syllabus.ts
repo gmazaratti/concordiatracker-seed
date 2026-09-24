@@ -43,9 +43,9 @@ export function normalizeKind(kind: string): AssessmentKind {
 /** What a failure means when the server gave us nothing but a status code. */
 function statusMessage(status: number): string {
   if (status === 404) return 'The parser only runs on the deployed site, not local dev.'
-  if (status === 413) return 'That file is too large — the limit is 4 MB.'
+  if (status === 413) return 'That file is too large. The limit is 4 MB.'
   if (status === 504 || status === 502)
-    return 'The parser ran out of time on that file. That is our ceiling, not your outline — try again, and tell support if it keeps happening.'
+    return 'The parser ran out of time on that file. That is our ceiling, not your outline. Try again, and tell support if it keeps happening.'
   if (status >= 500) return `The parser errored (${status}). Try again in a moment.`
   return `That upload was rejected (${status}).`
 }

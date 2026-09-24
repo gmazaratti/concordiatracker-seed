@@ -86,7 +86,7 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
               ? `Send this link to whoever runs ${name.trim()}.`
               : emailed
                 ? `Emailed to ${recipient.kind === 'email' ? recipient.email : recipient.user.email}${recipient.kind === 'user' ? ', and it is in their notifications' : ''}. Only they can accept it.`
-                : `The invite exists${recipient.kind === 'user' ? ' and is in their notifications' : ''}, but the email did not go out — send them the link below yourself. Only they can accept it.`}{' '}
+                : `The invite exists${recipient.kind === 'user' ? ' and is in their notifications' : ''}, but the email did not go out. Send them the link below yourself. Only they can accept it.`}{' '}
             Opening it walks them from signing in straight into
             {mode === 'prefilled' ? ' reviewing the club you built.' : ' the setup wizard.'}
           </p>
@@ -104,7 +104,7 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
               <PenLine size={18} className="shrink-0 text-accent" aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13.5px] font-medium text-fg">Keep building the club</span>
-                <span className="block text-[12px] text-subtle">Logo, banner, links, a first event or post — in the real editors.</span>
+                <span className="block text-[12px] text-subtle">Logo, banner, links, a first event or post, all in the real editors.</span>
               </span>
               <ArrowRight size={16} className="text-subtle" aria-hidden />
             </button>
@@ -218,7 +218,7 @@ export function NewInviteModal({ onClose, onCreated }: { onClose: () => void; on
                 </span>
               </div>
               <p className="mt-4 text-[13px] text-muted">
-                to run <span className="font-medium text-fg">{name.trim()}</span> — make sure this is the right person.
+                to run <span className="font-medium text-fg">{name.trim()}</span>. Make sure this is the right person.
                 Only they will be able to accept it.
               </p>
               <div className="mt-5 flex gap-2">

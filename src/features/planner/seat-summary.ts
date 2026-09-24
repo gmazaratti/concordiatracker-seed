@@ -24,7 +24,7 @@ export function seatSummary(s: SectionOption): SeatSummary | null {
   const headline =
     open > 0
       ? `${open} seat${open === 1 ? '' : 's'} open of ${s.capacity}`
-      : `Full — ${waiting} on the waitlist`
+      : `Full, ${waiting} on the waitlist`
   const parts = [`${s.enrolled} of ${s.capacity} registered.`]
   if (s.waitlistCap) parts.push(`Waitlist ${waiting}/${s.waitlistCap}.`)
   else if (waiting > 0) parts.push(`${waiting} waiting.`)

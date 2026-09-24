@@ -111,7 +111,7 @@ export function AssistantTab() {
           <ShieldAlert size={14} className="mt-px shrink-0 text-warning" aria-hidden />
           <span>
             {takenOver} of these {takenOver === 1 ? 'is' : 'are'} on a thread a person has since
-            taken over — worth reading, because it means the machine had a go and someone
+            taken over. Worth reading, because it means the machine had a go and someone
             disagreed.
           </span>
         </p>
@@ -130,7 +130,7 @@ export function AssistantTab() {
           <p className="flex items-start gap-2 px-3.5 py-6 text-[12.5px] text-danger">
             <AlertTriangle size={14} className="mt-px shrink-0" aria-hidden />
             <span>
-              Could not load these — {err}. If the migration has not been run yet, that is
+              Could not load these: {err}. If the migration has not been run yet, that is
               db/personal_api.sql.
             </span>
           </p>

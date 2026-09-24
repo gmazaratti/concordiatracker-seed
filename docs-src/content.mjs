@@ -824,7 +824,7 @@ export const PAGES = {
       },
       {
         ul: [
-          '**Apple Calendar** asks you how often to refresh when you subscribe, and honours it — every five minutes if you want.',
+          '**Apple Calendar** asks you how often to refresh when you subscribe, and honours it, every five minutes if you want.',
           '**Google Calendar** uses its own schedule for every subscribed calendar. In practice that is usually a few hours and can be up to a day. Google does not offer a refresh button and does not let the publisher set the interval.',
           '**Outlook** behaves like Google: its own schedule, typically a few hours.',
         ],
@@ -844,8 +844,8 @@ export const PAGES = {
       { h2: 'What is in the feed' },
       {
         ul: [
-          '**Course deadlines** — assignments, quizzes and exams, each named with its course code so they read clearly among your other events.',
-          '**Tasks and Moodle deadlines** — anything you added yourself, plus whatever your Moodle calendar sends.',
+          '**Course deadlines**: assignments, quizzes and exams, each named with its course code so they read clearly among your other events.',
+          '**Tasks and Moodle deadlines**: anything you added yourself, plus whatever your Moodle calendar sends.',
         ],
       },
       {
@@ -878,12 +878,12 @@ export const PAGES = {
       'Bring your Moodle assignment deadlines into ConcordiaTracker with one link, re-checked every night, so a date your professor moves shows up here too.',
     blocks: [
       {
-        p: 'Concordia hands you deadlines in three places and joins none of them. ConcordiaTracker already holds your syllabus dates and the registrar calendar; Moodle holds what your professor actually posted — the assignment that moved, the quiz added in week six. Connecting it is the missing third.',
+        p: 'Concordia hands you deadlines in three places and joins none of them. ConcordiaTracker already holds your syllabus dates and the registrar calendar; Moodle holds what your professor actually posted: the assignment that moved, the quiz added in week six. Connecting it is the missing third.',
       },
 
       { h2: 'What you need' },
       {
-        p: 'One link from Moodle. Not your password — we never ask for one, and Concordia signs you in through its own system anyway.',
+        p: 'One link from Moodle. Not your password. We never ask for one, and Concordia signs you in through its own system anyway.',
       },
 
       { raw: MOODLE_VIDEO },
@@ -893,7 +893,7 @@ export const PAGES = {
         ol: [
           'Open [Moodle → Calendar → Export](https://moodle.concordia.ca/moodle/calendar/export.php) and sign in if it asks.',
           'Choose **All events** and **Recent and next 60 days**. Pick **Custom range** instead if you want the whole term.',
-          'Press **Get calendar URL** — *not* the Export button, which downloads a file to your computer instead.',
+          'Press **Get calendar URL**, *not* the Export button, which downloads a file to your computer instead.',
           'A long link appears underneath. Copy the whole thing.',
         ],
       },
@@ -922,7 +922,7 @@ export const PAGES = {
       {
         ul: [
           'The synced calendar item shows **the old date and the new one**, so you can see what changed rather than finding it already moved. Dismiss it with *Got it*.',
-          'If the deadline also exists as an assessment in one of your courses — from a syllabus or a blueprint — that course shows **Moodle has a different date**, with your date and Moodle’s side by side. You choose. Your weight, grade and notes are never touched, only the date.',
+          'If the deadline also exists as an assessment in one of your courses (from a syllabus or a blueprint), that course shows **Moodle has a different date**, with your date and Moodle’s side by side. You choose. Your weight, grade and notes are never touched, only the date.',
         ],
       },
       {
@@ -942,7 +942,7 @@ export const PAGES = {
         },
       },
       {
-        p: 'It is still a private key: anyone holding it could read your calendar. So it is stored where **our own app cannot read it back** — only the nightly sync can use it — and it is never shown again after you paste it.',
+        p: 'It is still a private key: anyone holding it could read your calendar. So it is stored where **our own app cannot read it back** (only the nightly sync can use it), and it is never shown again after you paste it.',
       },
 
       { h2: 'Turning it off' },
@@ -1161,7 +1161,7 @@ export const PAGES = {
 
       { h2: 'Prerequisite colouring' },
       {
-        p: 'Once your record is marked complete, prerequisite codes are marked as met or outstanding against it. Where the wording is a rule the app cannot read — "18 credits in the programme" — it says so instead of guessing.',
+        p: 'Once your record is marked complete, prerequisite codes are marked as met or outstanding against it. Where the wording is a rule the app cannot read, like "18 credits in the programme", it says so instead of guessing.',
       },
 
       { h2: 'Saving for later' },
@@ -1223,7 +1223,7 @@ export const PAGES = {
 
       { h2: 'Blocking out time' },
       {
-        p: 'Drag down a column to block hours you work, commute or sleep, or type one in Filters — day, from, to. Right-click a block to remove it. Sections that clash get marked in the search rather than hidden, so it stays your call.',
+        p: 'Drag down a column to block hours you work, commute or sleep, or type one in Filters (day, from, to). Right-click a block to remove it. Sections that clash get marked in the search rather than hidden, so it stays your call.',
       },
 
       { h2: 'Filters' },
@@ -1274,7 +1274,7 @@ export const PAGES = {
       'An automatic check on your Concordia semester: crunch weeks, closing drop deadlines, and courses the marks can no longer save.',
     blocks: [
       {
-        p: 'Today shows what is due. The calendar shows when. Radar is the one that says whether the term ahead is survivable, which needs every course added together — so nothing else in the app can answer it.',
+        p: 'Today shows what is due. The calendar shows when. Radar is the one that says whether the term ahead is survivable, which needs every course added together, so nothing else in the app can answer it.',
       },
       {
         p: 'It runs every time you open it, against your own account. Nothing is sent anywhere and nothing it finds changes your registration.',
@@ -1282,17 +1282,17 @@ export const PAGES = {
 
       { h2: 'What it checks' },
       {
-        p: '**Course load** — whether you have dropped under the 12 credits Concordia counts as full time, which affects loans, bursaries and some insurance.',
+        p: '**Course load**: whether you have dropped under the 12 credits Concordia counts as full time, which affects loans, bursaries and some insurance.',
       },
       {
-        p: '**Crunch weeks** — weeks where a large share of your grade lands at once, summed across every course rather than one at a time.',
+        p: '**Crunch weeks**: weeks where a large share of your grade lands at once, summed across every course rather than one at a time.',
       },
-      { p: '**Same-day collisions** — two or more heavy things due on one day, in different courses.' },
-      { p: '**Courses at risk** — where the marks left can no longer realistically reach a C.' },
-      { p: '**Registrar deadlines** — add, drop and withdrawal windows closing in the next three weeks.' },
-      { p: '**Grades that may block you** — finished courses below C-, which some programmes require you to repeat.' },
-      { p: '**Dates worth double-checking** — upcoming dates nobody has confirmed.' },
-      { p: '**Blind spots** — courses with no outline, which nothing above can see into.' },
+      { p: '**Same-day collisions**: two or more heavy things due on one day, in different courses.' },
+      { p: '**Courses at risk**: where the marks left can no longer realistically reach a C.' },
+      { p: '**Registrar deadlines**: add, drop and withdrawal windows closing in the next three weeks.' },
+      { p: '**Grades that may block you**: finished courses below C-, which some programmes require you to repeat.' },
+      { p: '**Dates worth double-checking**: upcoming dates nobody has confirmed.' },
+      { p: '**Blind spots**: courses with no outline, which nothing above can see into.' },
 
       { h2: 'Seeing the whole sweep' },
       {
@@ -1309,7 +1309,7 @@ export const PAGES = {
         p: 'One bar per week, as tall as the share of your final grades landing in it. Tap a bar for what is in it.',
       },
       {
-        p: 'Switching a course off re-runs every check without it, so you can see the term you would have if you dropped it — including what dropping it would cost, like falling under full time. Nothing is written to your account; it is a question, not an action.',
+        p: 'Switching a course off re-runs every check without it, so you can see the term you would have if you dropped it, including what dropping it would cost, like falling under full time. Nothing is written to your account; it is a question, not an action.',
       },
 
       {
@@ -1331,7 +1331,7 @@ export const PAGES = {
 
       { h2: 'What it works out' },
       {
-        p: 'Tuition at the rate for your fee status, plus every compulsory fee: administrative, student services, recreation, technology, copyright, your faculty’s student association, registration, and the rest. Each line shows its own arithmetic — rate times credits — so you can reconcile it against a real invoice instead of taking a total on trust.',
+        p: 'Tuition at the rate for your fee status, plus every compulsory fee: administrative, student services, recreation, technology, copyright, your faculty’s student association, registration, and the rest. Each line shows its own arithmetic (rate times credits), so you can reconcile it against a real invoice instead of taking a total on trust.',
       },
 
       { h2: 'What a course is worth' },
@@ -1375,8 +1375,8 @@ export const PAGES = {
       },
       {
         ul: [
-          '`subject` — two to six letters, case-insensitive. For example `COMP`.',
-          '`catalog` — two to four digits with an optional trailing letter. For example `248`.',
+          '`subject`: two to six letters, case-insensitive. For example `COMP`.',
+          '`catalog`: two to four digits with an optional trailing letter. For example `248`.',
         ],
       },
       {
@@ -1392,51 +1392,51 @@ export const PAGES = {
       },
       {
         ul: [
-          '`ct_owner_…` — business statistics under `/api/v1/owner`. Created by an admin in the console. It reads counts and revenue and can never read an individual account.',
-          '`ct_per_…` — your own data under `/api/v1/me`. Created by you in Settings → Developer. It can only ever see and edit your account. Older keys start `ct_pat_` and still work.',
-          '`ct_sup_…` — the support desk under `/api/v1/support`. Created by an admin. It reads and answers support conversations and nothing else.',
-          '`ct_adm_…` — everything the admin console shows, under `/api/v1/admin`, plus managing student organisations under `/api/v1/orgs`. Created by an admin. The widest key here by a distance.',
+          '`ct_owner_…`: business statistics under `/api/v1/owner`. Created by an admin in the console. It reads counts and revenue and can never read an individual account.',
+          '`ct_per_…`: your own data under `/api/v1/me`. Created by you in Settings → Developer. It can only ever see and edit your account. Older keys start `ct_pat_` and still work.',
+          '`ct_sup_…`: the support desk under `/api/v1/support`. Created by an admin. It reads and answers support conversations and nothing else.',
+          '`ct_adm_…`: everything the admin console shows, under `/api/v1/admin`, plus managing student organisations under `/api/v1/orgs`. Created by an admin. The widest key here by a distance.',
         ],
       },
       {
         note: 'An admin token still cannot publish as an organisation it does not belong to. That is enforced by the database rather than by the endpoint: the token carries a claim that removes an admin’s usual write-anywhere bypass, so being on the team is the only route in. Deleting an organisation, a teammate or a post is not reachable through the API at all, and every write an admin token makes is recorded in the audit log.',
       },
       {
-        note: 'A token is shown once, when it is created, and cannot be retrieved afterwards. Only its SHA-256 hash is stored, so a database dump is not a set of live credentials — and if you lose one, the answer is to revoke it and make another. Revoking takes effect immediately.',
+        note: 'A token is shown once, when it is created, and cannot be retrieved afterwards. Only its SHA-256 hash is stored, so a database dump is not a set of live credentials. If you lose one, the answer is to revoke it and make another. Revoking takes effect immediately.',
       },
       {
-        p: 'Each token is limited to 120 requests a minute. Going over returns `rate_limited` with a `Retry-After` header, which is a different answer from `unauthorized` — a client that cannot tell them apart will either retry forever or give up on a token that is perfectly good.',
+        p: 'Each token is limited to 120 requests a minute. Going over returns `rate_limited` with a `Retry-After` header, which is a different answer from `unauthorized`: a client that cannot tell them apart will either retry forever or give up on a token that is perfectly good.',
       },
 
-      { h2: 'Owner API — how the business is doing' },
+      { h2: 'Owner API: how the business is doing' },
       {
-        p: 'Four read-only endpoints, for a dashboard or an agent. Every response carries `generated_at`, `timezone: "UTC"`, and a `notes` array naming anything that makes the figures less than complete — Stripe paging, test mode, a missing key, or how far back visitor tracking actually goes.',
+        p: 'Four read-only endpoints, for a dashboard or an agent. Every response carries `generated_at`, `timezone: "UTC"`, and a `notes` array naming anything that makes the figures less than complete: Stripe paging, test mode, a missing key, or how far back visitor tracking actually goes.',
       },
       {
         ul: [
-          '`GET /api/v1/owner/overview` — users, engagement, support load and revenue in one call.',
-          '`GET /api/v1/owner/users` — cohorts: new, active, comped, and breakdowns by school and programme.',
-          '`GET /api/v1/owner/payments` — revenue read live from Stripe.',
-          '`GET /api/v1/owner/timeseries?days=30` — daily signups, visitors, active users and page views.',
+          '`GET /api/v1/owner/overview`: users, engagement, support load and revenue in one call.',
+          '`GET /api/v1/owner/users`: cohorts (new, active, comped) and breakdowns by school and programme.',
+          '`GET /api/v1/owner/payments`: revenue read live from Stripe.',
+          '`GET /api/v1/owner/timeseries?days=30`: daily signups, visitors, active users and page views.',
         ],
       },
       {
         p: 'The definitions are fixed and worth knowing, because the same words mean different things in different dashboards. A **paying customer** has been charged more than $0 and the charge settled. A trial is not a paying customer. A comped account is counted as a user and never as paying. Internal and test accounts are excluded from every figure except the one that counts them. **MRR** comes only from subscriptions that have actually been charged, and **ARR** is labelled an estimate because it is one month multiplied by twelve, not a year of observed revenue.',
       },
       {
-        note: '`/owner/users` returns counts and never identities — no names, no emails, no user ids. A long-lived token sitting in a cron job is a looser credential than a session, so the worst a leaked one can do is reveal how the business is doing, not export the user table.',
+        note: '`/owner/users` returns counts and never identities: no names, no emails, no user ids. A long-lived token sitting in a cron job is a looser credential than a session, so the worst a leaked one can do is reveal how the business is doing, not export the user table.',
       },
       {
-        p: 'Amounts are in **cents**, so `mrr_cents: 375` is $3.75. Timestamps are ISO-8601 in UTC, always — a dashboard in another timezone silently shifting a day is the classic wrong answer nobody notices.',
+        p: 'Amounts are in **cents**, so `mrr_cents: 375` is $3.75. Timestamps are ISO-8601 in UTC, always. A dashboard in another timezone silently shifting a day is the classic wrong answer nobody notices.',
       },
 
-      { h2: 'Personal API — your own courses and grades' },
+      { h2: 'Personal API: your own courses and grades' },
       {
         ul: [
-          '`GET /api/v1/me/courses` — your classes. `?archived=true` for finished ones.',
-          '`GET /api/v1/me/assignments` — every deadline with its weight and status. Filter with `course_id`, `status`, or `upcoming=true`.',
-          '`PATCH /api/v1/me/assignments/{id}` — change status, grade or notes.',
-          '`GET /api/v1/me/gpa` — your standing, per course and overall.',
+          '`GET /api/v1/me/courses`: your classes. `?archived=true` for finished ones.',
+          '`GET /api/v1/me/assignments`: every deadline with its weight and status. Filter with `course_id`, `status`, or `upcoming=true`.',
+          '`PATCH /api/v1/me/assignments/{id}`: change status, grade or notes.',
+          '`GET /api/v1/me/gpa`: your standing, per course and overall.',
         ],
       },
       {
@@ -1446,7 +1446,7 @@ export const PAGES = {
         p: 'Those three fields are the whole write surface, deliberately. A token cannot change a weight, move a date, or set provenance: a weight edited by a script is a grade computed from a number nobody checked, and provenance is a claim about where a date came from that a script cannot honestly make.',
       },
       {
-        p: 'Two things the responses are careful about. An assessment with no date returns `due: null` rather than today — an outline that says the Examinations Office will set the date has not given us one, and inventing it would put a made-up deadline on the highest-stakes item you have. And `/me/gpa` averages over the weight graded **so far**, returning that denominator as `graded_weight`, so a term two assessments in is not reported as though the ungraded 80% were zeros.',
+        p: 'Two things the responses are careful about. An assessment with no date returns `due: null` rather than today. An outline that says the Examinations Office will set the date has not given us one, and inventing it would put a made-up deadline on the highest-stakes item you have. And `/me/gpa` averages over the weight graded **so far**, returning that denominator as `graded_weight`, so a term two assessments in is not reported as though the ungraded 80% were zeros.',
       },
 
       { h2: 'Errors' },
@@ -1472,7 +1472,7 @@ export const PAGES = {
 
       { h2: 'For AI agents' },
       {
-        p: 'Start from [llms.txt](/llms.txt). It carries a "when to use this" section naming the questions this site can answer well — course content, prerequisites, section times and seats, Concordia’s GPA scale, tuition rates, registrar deadlines — and states plainly what it cannot answer, namely anything about an individual student’s private record.',
+        p: 'Start from [llms.txt](/llms.txt). It carries a "when to use this" section naming the questions this site can answer well (course content, prerequisites, section times and seats, Concordia’s GPA scale, tuition rates, registrar deadlines) and states plainly what it cannot answer, namely anything about an individual student’s private record.',
       },
 
       {

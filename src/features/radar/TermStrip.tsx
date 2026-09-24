@@ -78,7 +78,7 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
         {active ? (
           active.items.length === 0 ? (
             <p className="text-[12px] text-subtle">
-              Week of {formatMonthDay(parseDay(active.start))} — nothing due. Those exist too.
+              Week of {formatMonthDay(parseDay(active.start))}: nothing due. Those exist too.
             </p>
           ) : (
             <>

@@ -54,8 +54,8 @@ const LOADS = [
 const ECP_MINIMUM = 15
 
 const CAMPUSES: { value: Campus; label: string; hint: string }[] = [
-  { value: 'sgw', label: 'SGW', hint: 'Sir George Williams — downtown' },
-  { value: 'loyola', label: 'Loyola', hint: 'Loyola — NDG' },
+  { value: 'sgw', label: 'SGW', hint: 'Sir George Williams, downtown' },
+  { value: 'loyola', label: 'Loyola', hint: 'Loyola, in NDG' },
   { value: 'online', label: 'Online', hint: 'No campus at all' },
 ]
 
@@ -227,7 +227,7 @@ export function ScheduleGenerator({
       }
       if (skippedForPrereq.length > 0) {
         setError(
-          `Left out for now: ${skippedForPrereq.join(', ')} — prerequisites not met yet. Turn off "only what I can take" in Filters to include them anyway.`,
+          `Left out for now: ${skippedForPrereq.join(', ')} (prerequisites not met yet). Turn off "only what I can take" in Filters to include them anyway.`,
         )
       }
       if (generated.length === 0) {
@@ -343,7 +343,7 @@ export function ScheduleGenerator({
           </div>
           {campuses.length > 0 && (
             <span className="mt-1 block text-[11px] leading-relaxed text-subtle">
-              Sections whose campus Concordia did not publish are still included — a gap in our
+              Sections whose campus Concordia did not publish are still included. A gap in our
               reading should not delete an option that exists.
             </span>
           )}

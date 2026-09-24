@@ -108,7 +108,7 @@ export function ReportDialog({
           {message.body.trim() || 'An attachment'}
         </p>
         <p className="mt-3 text-[12.5px] leading-snug text-subtle">
-          ConcordiaTracker gets this message and who sent it — nothing else from the conversation.
+          ConcordiaTracker gets this message and who sent it, and nothing else from the conversation.
           It is not anonymous, and {from.name ?? 'they'} won't be told you reported it.
         </p>
         {err && <p className="mt-2 text-[12px] text-danger">{err}</p>}

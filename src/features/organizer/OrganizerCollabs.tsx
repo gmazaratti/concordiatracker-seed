@@ -69,7 +69,7 @@ export function OrganizerCollabs() {
         </h1>
         <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-subtle">
           When another club puts your name on a post, it lands here. Accepting shows both names
-          on it and puts the post on your profile too — it stays their post, and either of you
+          on it and puts the post on your profile too. It stays their post, and either of you
           can undo it later.
         </p>
       </header>
@@ -208,7 +208,7 @@ function Row({
         <p className="truncate text-[13.5px] font-medium text-fg">
           {slugOf(who.handle)}
           <span className="font-normal text-subtle">
-            {showOther ? ' — you invited them' : ' invited you'}
+            {showOther ? ' (you invited them)' : ' invited you'}
           </span>
         </p>
         <p className="truncate text-[12px] text-subtle">

@@ -51,12 +51,12 @@ export default async function handler(req: any, res: any) {
     headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
   })
   if (!who.ok) {
-    fail(res, 401, 'Your session expired — sign in again.')
+    fail(res, 401, 'Your session expired. Sign in again.')
     return
   }
   const userId = ((await who.json()) as { id?: string }).id
   if (!userId) {
-    fail(res, 401, 'Your session expired — sign in again.')
+    fail(res, 401, 'Your session expired. Sign in again.')
     return
   }
 
@@ -84,7 +84,7 @@ export default async function handler(req: any, res: any) {
     if (!probe.ok) {
       fail(res, 400, probe.error ?? 'That link did not work.', {
         code: 'upstream_error',
-        hint: 'Copy the link again from Moodle — the token changes if you reset it.',
+        hint: 'Copy the link again from Moodle. The token changes if you reset it.',
       })
       return
     }

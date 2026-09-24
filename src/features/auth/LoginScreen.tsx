@@ -5,7 +5,8 @@ import { useAuth } from '@/app/providers/auth'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
 import { checkSignup, readAttempts, recordAttempt, waitLabel } from '@/lib/signup-throttle'
-import { authReturn, explainAuthError } from '@/lib/auth-return'
+import { authReturn, explainAuthError, oauthProblem } from '@/lib/auth-return'
+import { ForgotPasswordForm } from './ForgotPasswordForm'
 import { AppleGlyph } from '@/components/AppleGlyph'
 
 const field =
@@ -34,11 +35,21 @@ export function LoginScreen() {
   const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(
-    authReturn.error ? explainAuthError(authReturn.error) : null,
-  )
+  const [error, setError] = useState<string | null>(() => {
+    if (!authReturn.error) return null
+    // A provider failure says WHICH provider and what to do next, rather than
+    // repeating the auth server's "Unable to exchange external code".
+    const problem = oauthProblem(authReturn.error)
+    if (problem) {
+      const provider = problem.provider ?? 'That'
+      return problem.kind === 'conflict'
+        ? t('auth.oauthConflict', { provider: problem.provider ?? 'it' })
+        : t('auth.oauthFailed', { provider })
+    }
+    return explainAuthError(authReturn.error)
+  })
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin')
   const [agreed, setAgreed] = useState(false)
   const [sentTo, setSentTo] = useState<string | null>(null)
   const agreeRef = useRef<HTMLInputElement>(null)
@@ -46,7 +57,7 @@ export function LoginScreen() {
   // One gate, checked by the OAuth buttons and the form alike.
   const blocked = creating && !agreed
 
-  function switchMode(next: 'signin' | 'signup') {
+  function switchMode(next: 'signin' | 'signup' | 'reset') {
     setMode(next)
     setError(null)
     setSentTo(null)
@@ -125,7 +136,11 @@ export function LoginScreen() {
 
     const { error } = await signInWithPassword(email.trim(), password)
     if (error) {
-      setError(error)
+      // Supabase answers "Invalid login credentials" for a wrong password AND
+      // for an account that has no password because it was made with Google or
+      // Apple. The message covers both without saying which, so it cannot be
+      // used to find out who has an account.
+      setError(/invalid login credentials/i.test(error) ? t('auth.wrongPassword') : error)
       setBusy(false)
     }
     // On success the auth listener flips the session → the app renders. No nav needed.
@@ -138,6 +153,9 @@ export function LoginScreen() {
           <Logo size="lg" />
         </div>
 
+        {mode === 'reset' ? (
+          <ForgotPasswordForm initialEmail={email} onBack={() => switchMode('signin')} />
+        ) : (
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h1 className="font-display text-[20px] leading-tight font-semibold text-fg">
             {creating ? t('auth.createAccount') : t('auth.signIn')}
@@ -205,6 +223,15 @@ export function LoginScreen() {
                 <span className="mt-1 block text-[11.5px] text-subtle">{t('auth.passwordHint')}</span>
               )}
             </label>
+            {!creating && (
+              <button
+                type="button"
+                onClick={() => switchMode('reset')}
+                className="-mt-1 self-end text-[12px] font-medium text-accent hover:underline"
+              >
+                {t('auth.forgot')}
+              </button>
+            )}
 
             {error && (
               <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[12px] text-danger">
@@ -272,6 +299,7 @@ export function LoginScreen() {
             </button>
           </p>
         </div>
+        )}
       </div>
     </div>
   )

@@ -23,7 +23,7 @@ export const FOUNDERS: Record<string, FounderProfile> = {
      one "Computer Science" was never true. */
   concordiatracker: {
     role: 'Administrator',
-    tagline: 'The team behind ConcordiaTracker. Questions, bugs, ideas — we read all of it.',
+    tagline: 'The team behind ConcordiaTracker. Questions, bugs, ideas: we read all of it.',
     links: {
       website: 'https://concordiatracker.com',
     },

@@ -301,7 +301,7 @@ export async function runReminders(req: any, res: any) {
       const seats = (a.last_capacity ?? 0) - (a.last_enrollment ?? 0)
       const subs = await subsFor(a.user_id)
       const payload = JSON.stringify({
-        title: `Seat open — ${a.subject} ${a.catalog}`,
+        title: `Seat open: ${a.subject} ${a.catalog}`,
         // "may be reserved" is stated when Concordia flags held seats, rather
         // than sending someone to a seat they turn out not to qualify for.
         body:

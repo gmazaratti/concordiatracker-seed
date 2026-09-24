@@ -65,7 +65,7 @@ export function StoriesRow({
               type="button"
               onClick={() => onOpen(r.orgId)}
               className="group flex w-[68px] flex-col items-center gap-1.5"
-              aria-label={`${r.name} — ${r.unseen > 0 ? `${r.unseen} new` : 'watched'}`}
+              aria-label={`${r.name}, ${r.unseen > 0 ? `${r.unseen} new` : 'watched'}`}
             >
               <Ring seen={r.unseen === 0}>
                 <Face logo={r.logo} glyph={r.glyph} color={r.color} name={r.name} />

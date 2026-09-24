@@ -631,7 +631,7 @@ export function ScheduleBuilder() {
           </Link>
           <span className="w-full text-[11px] text-subtle">
             Anyone with this link can view the timetable. It does not show who it belongs to, and
-            they can save a copy as their own. Sending it to a friend attaches the week itself —
+            they can save a copy as their own. Sending it to a friend attaches the week itself, and
             they can save it as an image.
           </span>
         </div>
@@ -743,7 +743,7 @@ export function ScheduleBuilder() {
           action={
             picked.some((p) => p.state === 'enrolled') ? (
               <span
-                title="The classes you are already registered in. Hiding them lets you try a different term on the grid without removing anything — nothing here changes your Courses tab either way."
+                title="The classes you are already registered in. Hiding them lets you try a different term on the grid without removing anything. Nothing here changes your Courses tab either way."
                 className="flex items-center"
               >
                 <Checkbox
@@ -855,7 +855,7 @@ export function ScheduleBuilder() {
                       aria-label={pins.has(p.code) ? `Unpin ${p.code}` : `Pin ${p.code}`}
                       title={
                         pins.has(p.code)
-                          ? 'Pinned — this one will not move'
+                          ? 'Pinned: this one will not move'
                           : 'Pin so it stays put when you regenerate'
                       }
                       className={cn(
@@ -879,7 +879,7 @@ export function ScheduleBuilder() {
                       }
                       title={
                         isHidden
-                          ? 'Hidden from the week — click to put it back'
+                          ? 'Hidden from the week. Click to put it back'
                           : 'Take it off the week without removing it'
                       }
                       className={cn(

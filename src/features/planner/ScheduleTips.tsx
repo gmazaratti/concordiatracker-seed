@@ -38,19 +38,19 @@ const TIPS: Tip[] = [
   {
     icon: CalendarRange,
     title: 'Start with the term',
-    body: 'The term picker beside the schedule name scopes the whole page — search, the week, and everything the generator considers. Change it and you are planning a different semester, with nothing lost from this one.',
+    body: 'The term picker beside the schedule name scopes the whole page: search, the week, and everything the generator considers. Change it and you are planning a different semester, with nothing lost from this one.',
     art: <TermArt />,
   },
   {
     icon: Search,
     title: 'Find a class, see the seats',
-    body: 'Search by code or by name. Each section shows how it meets, where, and how many seats were open when it was read. Adding one puts it on the week immediately — nothing is registered anywhere.',
+    body: 'Search by code or by name. Each section shows how it meets, where, and how many seats were open when it was read. Adding one puts it on the week immediately. Nothing is registered anywhere.',
     art: <SearchArt />,
   },
   {
     icon: SquareMousePointer,
     title: 'Block the time that is already yours',
-    body: 'Drag down an empty column to carve out a shift, a commute or a standing appointment. Everything you generate afterwards works around it. On a phone, type it in Filters instead — a drag there is a scroll.',
+    body: 'Drag down an empty column to carve out a shift, a commute or a standing appointment. Everything you generate afterwards works around it. On a phone, type it in Filters instead, because a drag there is a scroll.',
     art: <BlockArt />,
   },
   {
@@ -62,7 +62,7 @@ const TIPS: Tip[] = [
   {
     icon: Eye,
     title: 'Hide without deleting',
-    body: 'The eye takes a class off the grid but keeps it in this schedule. It is how you try an alternative in the same hour without losing the one you already had — and how you get it back in one click.',
+    body: 'The eye takes a class off the grid but keeps it in this schedule. It is how you try an alternative in the same hour without losing the one you already had, and how you get it back in one click.',
     art: <EyeArt />,
   },
   {
@@ -74,13 +74,13 @@ const TIPS: Tip[] = [
   {
     icon: ArrowDownWideNarrow,
     title: 'Generate the shape of week you want',
-    body: 'Most days off, mornings, mid-day, evenings, shortest days, most or least time on campus. Credits still come first — a pretty nine-credit week is not an answer to “give me fifteen” — and you can build on what you already have instead of starting fresh.',
+    body: 'Most days off, mornings, mid-day, evenings, shortest days, most or least time on campus. Credits still come first (a pretty nine-credit week is not an answer to “give me fifteen”), and you can build on what you already have instead of starting fresh.',
     art: <PreferArt />,
   },
   {
     icon: Link2,
     title: 'Keep it, print it, share it',
-    body: 'Save as many drafts as you like and switch between them. Print gives you the week with room numbers under it. Share makes a link anyone can open — it does not say whose it is, and they can save a copy of their own.',
+    body: 'Save as many drafts as you like and switch between them. Print gives you the week with room numbers under it. Share makes a link anyone can open. It does not say whose it is, and they can save a copy of their own.',
     art: <ShareArt />,
   },
 ]

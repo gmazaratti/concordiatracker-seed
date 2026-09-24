@@ -233,7 +233,7 @@ function UserSearch({
       )}
       {shown && shown.length === 0 && (
         <p className="mt-3 text-[12px] text-subtle">
-          Nobody matches “{query}”. Emails only match exactly — or invite them by email instead.
+          Nobody matches “{query}”. Emails only match exactly, so try inviting them by email instead.
         </p>
       )}
       {shown && shown.length > 0 && (

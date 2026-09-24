@@ -64,7 +64,7 @@ export function MoodleMismatchCard({ mismatch }: { mismatch: Mismatch }) {
           checkable instead of something to be taken on faith. */}
       <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
         Matched to the Moodle event &ldquo;{mismatch.viaTitle}&rdquo;. Your weight, grade and notes
-        stay exactly as they are — only the date changes.
+        stay exactly as they are. Only the date changes.
       </p>
 
       <div className="mt-2.5 flex gap-2">

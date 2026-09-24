@@ -110,7 +110,7 @@ export function SuggestedCourses({
         Nothing in mind?
       </p>
       <p className="mb-2 px-1 text-[11.5px] leading-relaxed text-subtle">
-        Not advice — just what&rsquo;s still outstanding on {program.name}.
+        Not advice, just what&rsquo;s still outstanding on {program.name}.
       </p>
       <ul className="space-y-0.5">
         {suggestions.map((s) => {
@@ -149,7 +149,7 @@ export function SuggestedCourses({
         // between them, so this can only ever be a maybe.
         <p className="mt-2 px-1 text-[11px] leading-relaxed text-subtle">
           &ldquo;Maybe open to you&rdquo; means a prerequisite mentions a course you have passed.
-          We don&rsquo;t read the rules between them &mdash; check the calendar before you register.
+          We don&rsquo;t read the rules between them, so check the calendar before you register.
         </p>
       )}
     </div>

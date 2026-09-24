@@ -155,7 +155,7 @@ export function PersonMenu({
           {!target.following && <div className="my-1 border-t border-border" />}
           <Item
             icon={Ban}
-            label={confirmBlock ? 'Block — are you sure?' : 'Block'}
+            label={confirmBlock ? 'Block? Are you sure?' : 'Block'}
             danger
             onSelect={() => {
               if (!confirmBlock) {

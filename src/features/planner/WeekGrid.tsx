@@ -189,7 +189,7 @@ export function WeekGrid({
                         top: (toMinutes(b.start) - start) * PX_PER_MIN + 9,
                         height: Math.max((toMinutes(b.end) - toMinutes(b.start)) * PX_PER_MIN, 14),
                       }}
-                      title={onRemoveBlock ? `${b.label} — right-click to remove` : b.label}
+                      title={onRemoveBlock ? `${b.label} (right-click to remove)` : b.label}
                       onContextMenu={
                         onRemoveBlock
                           ? (e) => {
@@ -272,7 +272,7 @@ export function WeekGrid({
                         }}
                         title={
                           onSectionContext
-                            ? `${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end} — right-click for options`
+                            ? `${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end} (right-click for options)`
                             : `${p.code} ${p.section.section} ${p.slot.start}–${p.slot.end}`
                         }
                         onContextMenu={

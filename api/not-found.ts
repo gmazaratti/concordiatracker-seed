@@ -12,7 +12,7 @@
  */
 const SITE = 'https://concordiatracker.com'
 
-const MARKDOWN = `# 404 — Not found
+const MARKDOWN = `# 404: Not found
 
 That path is not part of ConcordiaTracker.
 
@@ -25,7 +25,7 @@ students. It is independent and not affiliated with Concordia University.
 - [Documentation](${SITE}/docs/introduction)
 - [Developer resources and API](${SITE}/developers)
 - [OpenAPI specification](${SITE}/openapi.json)
-- [llms.txt](${SITE}/llms.txt) — the machine-readable index of this site
+- [llms.txt](${SITE}/llms.txt): the machine-readable index of this site
 - [Sitemap](${SITE}/sitemap.xml)
 - [Contact](${SITE}/contact)
 `
@@ -62,7 +62,7 @@ const HTML = `<!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, follow" />
-<title>404 — Not found · ConcordiaTracker</title>
+<title>404: Not found · ConcordiaTracker</title>
 <style>
 :root{color-scheme:dark;--bg:#0f0f16;--surface:#191926;--fg:#f2f1f6;--muted:#b9b7c4;--accent:#8fb39a;--border:#2a2a3a}
 *{box-sizing:border-box}
@@ -86,7 +86,7 @@ transform-origin:50% 88%;animation:ct-sway 5.5s ease-in-out infinite}
 <body>
 <main>
   ${MASCOT}
-  <h1>404 — Not found</h1>
+  <h1>404: Not found</h1>
   <p>That path is not part of ConcordiaTracker. ConcordiaTracker is a deadline, grade, and GPA
   tracker for Concordia University students. It is independent and not affiliated with Concordia
   University.</p>
@@ -95,7 +95,7 @@ transform-origin:50% 88%;animation:ct-sway 5.5s ease-in-out infinite}
     <li><a href="/docs/introduction">Documentation</a></li>
     <li><a href="/developers">Developer resources and API</a></li>
     <li><a href="/openapi.json">OpenAPI specification</a></li>
-    <li><a href="/llms.txt">llms.txt — the machine-readable index of this site</a></li>
+    <li><a href="/llms.txt">llms.txt: the machine-readable index of this site</a></li>
     <li><a href="/sitemap.xml">Sitemap</a></li>
     <li><a href="/contact">Contact</a></li>
   </ul>

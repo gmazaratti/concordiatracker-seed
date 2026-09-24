@@ -51,7 +51,7 @@ export function OrganizerSignIn() {
           Enter your invite
         </h1>
         <p className="mt-1.5 text-[13px] text-subtle">
-          Paste the whole link or just the code — either works.
+          Paste the whole link or just the code. Either works.
         </p>
         <input
           autoFocus

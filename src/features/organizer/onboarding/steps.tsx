@@ -105,7 +105,7 @@ export function RoleGate({
           Your president has been invited
         </h1>
         <p className="mt-2.5 text-[14.5px] leading-relaxed text-muted">
-          {email.trim()} gets owner access to {org.org.name}. You keep yours — a club can have
+          {email.trim()} gets owner access to {org.org.name}. You keep yours. A club can have
           more than one owner, and it should.
         </p>
         <InviteLink token={sent} />
@@ -122,7 +122,7 @@ export function RoleGate({
         <Crown size={22} aria-hidden />
       </span>
       <h1 className="mt-5 font-display text-[25px] leading-tight font-semibold text-fg">
-        Before we start — are you the president?
+        Before we start: are you the president?
       </h1>
       <p className="mt-2.5 text-[14.5px] leading-relaxed text-muted">
         Either answer gives you full access. It only decides who else we should make an owner of{' '}
@@ -138,7 +138,7 @@ export function RoleGate({
         />
         <Choice
           on={isPresident === false}
-          title="No — I'm setting it up for them"
+          title="No, I'm setting it up for them"
           hint="We'll invite them as an owner too."
           onClick={() => setIsPresident(false)}
         />
@@ -353,7 +353,7 @@ function HandleNote({
   if (bare.length === 0) {
     return (
       <span className="mt-1 block text-[11.5px] text-danger">
-        Your club needs a handle — it is the address students share.
+        Your club needs a handle. It is the address students share.
       </span>
     )
   }
@@ -366,7 +366,7 @@ function HandleNote({
   }
   return (
     <span className="mt-1 block text-[11.5px] text-subtle">
-      This is the address students share. Change it freely now — after you publish, old links stop
+      This is the address students share. Change it freely now. After you publish, old links stop
       working.
     </span>
   )
@@ -495,7 +495,7 @@ export function EventStep({ org, onCreated }: { org: OrgAccount; onCreated: () =
           Save this draft
         </Button>
         <p className="mt-2 text-[11.5px] text-subtle">
-          It stays a draft you can finish in Events — description, banner, and the rest.
+          It stays a draft you can finish in Events (description, banner, and the rest).
         </p>
       </div>
     </div>

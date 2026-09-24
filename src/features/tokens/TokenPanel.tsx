@@ -82,7 +82,7 @@ export function TokenPanel({ scope }: { scope: TokenScope }) {
             The widest key this system issues. It reaches everything the admin console shows
             through <code className="rounded bg-surface-2 px-1">/api/v1/admin</code>, and manages
             student organisations through{' '}
-            <code className="rounded bg-surface-2 px-1">/api/v1/orgs</code> — profiles, images,
+            <code className="rounded bg-surface-2 px-1">/api/v1/orgs</code>: profiles, images,
             events, posts, stories and invites. Publishing still needs the account to be on that
             organisation&rsquo;s team, and deleting an org or a teammate is not reachable at all.
             Every write it makes is recorded in the audit log.
@@ -91,13 +91,13 @@ export function TokenPanel({ scope }: { scope: TokenScope }) {
           <>
             A key for an assistant working the support desk through{' '}
             <code className="rounded bg-surface-2 px-1">/api/v1/support</code>. It can read
-            threads, draft replies and hand a conversation back — and the database refuses it any
+            threads, draft replies and hand a conversation back, and the database refuses it any
             thread you have taken over, resolved, or that the customer asked a person for.
           </>
         ) : scope === 'owner' ? (
           <>
             A token for reading business statistics from{' '}
-            <code className="rounded bg-surface-2 px-1">/api/v1/owner</code> — a dashboard, a
+            <code className="rounded bg-surface-2 px-1">/api/v1/owner</code>, for a dashboard, a
             script, or an agent. It returns counts and revenue only, never anybody&rsquo;s name or
             email.
           </>
@@ -114,7 +114,7 @@ export function TokenPanel({ scope }: { scope: TokenScope }) {
       {fresh && (
         <div className="rounded-lg border border-accent/50 bg-accent-soft/30 p-3">
           <p className="text-[12.5px] font-medium text-fg">
-            Copy this now — it is not shown again.
+            Copy this now. It is not shown again.
           </p>
           <div className="mt-2 flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-md bg-canvas px-2.5 py-2 font-mono text-[12px] text-fg">

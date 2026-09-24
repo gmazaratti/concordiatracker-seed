@@ -19,8 +19,8 @@ export async function crossPostEvent(input: {
      event with no banner cannot exist. The switch says so BEFORE the save;
      this is the backstop, and it returns the same sentence rather than
      letting the database phrase it. */
-  if (!input.image) return 'a feed post needs a picture — add a banner image first'
-  const caption = input.title.trim() ? `${input.title.trim()} — details on the event.` : ''
+  if (!input.image) return 'a feed post needs a picture, so add a banner image first'
+  const caption = input.title.trim() ? `${input.title.trim()}. Details on the event.` : ''
   const media = [{ url: input.image, kind: 'image' as const }]
   const { error } = await supabase.from('org_posts').insert({
     org_id: input.orgId,

@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
     headers: { Authorization: `Bearer ${token}`, apikey: anon },
   })
   if (!who.ok) {
-    fail(res, 401, 'Your session expired — sign in again.')
+    fail(res, 401, 'Your session expired. Sign in again.')
     return
   }
   const user = await who.json()
@@ -69,7 +69,7 @@ export default async function handler(req: any, res: any) {
   }
   const subs: SubRow[] = await subsRes.json()
   if (!subs.length) {
-    fail(res, 409, 'No device is subscribed yet — enable notifications first.')
+    fail(res, 409, 'No device is subscribed yet. Enable notifications first.')
     return
   }
 

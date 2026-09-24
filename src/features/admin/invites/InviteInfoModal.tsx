@@ -29,7 +29,7 @@ export function InviteInfoModal({ invite: i, onClose }: { invite: ClubInvite; on
 
   const facts: [string, string][] = [
     ['Handle', atHandle(i.org_handle)],
-    ['Mode', i.mode === 'prefilled' ? 'Pre-filled — you built it' : 'Self-setup — they build it'],
+    ['Mode', i.mode === 'prefilled' ? 'Pre-filled (you built it)' : 'Self-setup (they build it)'],
     ['Created', when(i.created_at)],
     ['First opened', when(i.first_open_at)],
     ['Last opened', when(i.last_open_at)],
@@ -60,7 +60,7 @@ export function InviteInfoModal({ invite: i, onClose }: { invite: ClubInvite; on
           <Loading />
         ) : events.length === 0 ? (
           <p className="text-[12.5px] text-subtle">
-            Nothing recorded yet{i.opens > 0 ? ' — this link was opened before per-person tracking existed.' : '.'}
+            Nothing recorded yet{i.opens > 0 ? '. This link was opened before per-person tracking existed.' : '.'}
           </p>
         ) : (
           <ol className="space-y-2">

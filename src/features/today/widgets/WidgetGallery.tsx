@@ -172,7 +172,7 @@ export function WidgetGallery({
         </p>
         <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
           Full-width cards, in order, with your due list among them. Drag on Today itself to
-          reorder — double-click a card's header to start.
+          reorder. Double-click a card's header to start.
         </p>
         <BandZone layout={mainLayout} onChange={onMainChange} ctx={ctx} max={MAX_MAIN} />
       </div>

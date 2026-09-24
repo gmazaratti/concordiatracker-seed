@@ -105,7 +105,7 @@ export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
           <li className="flex gap-2.5">
             <span className="font-semibold text-accent">2.</span>
             <span>
-              Select the course list and copy it &mdash;{' '}
+              Select the course list and copy it.{' '}
               <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">Ctrl</kbd>+
               <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">A</kbd> then{' '}
               <kbd className="rounded border border-border bg-canvas px-1 text-[11px]">Ctrl</kbd>+

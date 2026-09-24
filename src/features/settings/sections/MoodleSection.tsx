@@ -268,7 +268,7 @@ export function MoodleSection() {
               <p className="text-[11.5px] text-subtle">
                 {looksLikeMoodleLink(url)
                   ? 'Looks like a Moodle calendar link.'
-                  : 'That does not look like the calendar link yet — it should contain export_execute.php and authtoken.'}
+                  : 'That does not look like the calendar link yet. It should contain export_execute.php and authtoken.'}
               </p>
             )}
             <button
@@ -314,7 +314,7 @@ export function MoodleSection() {
 function summarise(lead: string, json: { imported?: number; found?: number }): string {
   const kept = json.imported ?? 0
   const found = json.found ?? kept
-  if (found === 0) return `${lead} Moodle's calendar is empty — nothing to import yet.`
+  if (found === 0) return `${lead} Moodle's calendar is empty, so there is nothing to import yet.`
   if (kept === 0) return `${lead} All ${found} events in your Moodle calendar have already passed.`
   const noun = kept === 1 ? 'deadline' : 'deadlines'
   if (found > kept) {

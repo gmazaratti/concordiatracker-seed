@@ -17,13 +17,13 @@ import { Lightbulb } from 'lucide-react'
  */
 const TIPS: string[] = [
   'You can correct anything it gets wrong. Nothing here is final, and editing a date takes one click.',
-  'A final exam with no date stays TBA rather than being given one — it shows against the exam period on your calendar instead.',
+  'A final exam with no date stays TBA rather than being given one. It shows against the exam period on your calendar instead.',
   'Weights that do not add to 100% get flagged, because that is almost always a line the parser missed rather than a syllabus that is wrong.',
-  'Dates from a professor’s own outline are marked Official. Ones you type yourself are simply yours — no badge, no doubt cast.',
+  'Dates from a professor’s own outline are marked Official. Ones you type yourself are simply yours: no badge, no doubt cast.',
   'Grade-needed is free forever: it tells you the average you need on what is left to finish with the grade you want.',
   'Blocked out your Thursday shift in the schedule builder? Everything you generate afterwards works around it.',
   'Right-click a class on the schedule builder’s week to pin it, hide it, or see its room and seat counts.',
-  'Uploading your outline helps the next student in your section too — it becomes a blueprint they can import in one click.',
+  'Uploading your outline helps the next student in your section too. It becomes a blueprint they can import in one click.',
   'The seat watcher checks a full section for you and tells you the moment a place opens, with the class number ready to paste.',
   'Concordia’s schedule feed does not publish who teaches a section, so we never guess at an instructor’s name.',
   'You can drag your classes into whatever order you like on the Courses page. It sticks, and it follows you between devices.',

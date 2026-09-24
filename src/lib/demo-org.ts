@@ -155,7 +155,7 @@ export function demoDrafts(orgId: string): PostDraft[] {
   if (!drafts.has(orgId)) {
     drafts.set(orgId, [
       {
-        id: 'demo-draft-1', caption: 'Mentor sign-ups for ConUHacks close Friday —', media: [demoPoster('Mentors wanted', 'Sign up by Friday', '#7c2d12', '#f59e0b', 1080, 1080)],
+        id: 'demo-draft-1', caption: 'Mentor sign-ups for ConUHacks close Friday…', media: [demoPoster('Mentors wanted', 'Sign up by Friday', '#7c2d12', '#f59e0b', 1080, 1080)],
         createdAt: hoursAgo(5), authorUser: 'demo-wei', authorName: 'Wei Chen', lastEditedBy: 'demo-wei',
         lastEditedName: 'Wei Chen', lastEditedAt: hoursAgo(5),
         details: { place: '', placeUrl: '', eventId: null, audience: 'everyone', publishAt: null, hideLikes: false, hideShares: false },
@@ -285,7 +285,7 @@ function demoInbox(orgId: string): DemoConvo[] {
         thread: { other: 'demo-student-1', handle: '@lea.m', name: 'Léa Moreau', avatar: null },
         messages: [
           m('dm-1', 'Hi! Is ConUHacks open to first-years?', false, 30),
-          m('dm-2', 'It is — no experience needed. Sign-ups are on our profile.', true, 29),
+          m('dm-2', 'It is, no experience needed. Sign-ups are on our profile.', true, 29),
           m('dm-3', 'Amazing, thank you. Can I come without a team?', false, 1, false),
         ],
       },

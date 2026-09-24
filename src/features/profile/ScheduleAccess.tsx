@@ -165,7 +165,7 @@ export function ScheduleAccess({
 
       <p className="mt-1 text-[11.5px] leading-relaxed text-subtle">
         {shared
-          ? 'Shared with friends. Times and rooms only — never grades.'
+          ? 'Shared with friends. Times and rooms only, never grades.'
           : 'Not shared with you. Asking sends them a message; they decide.'}
       </p>
       {asked && <p className="mt-1.5 text-[12px] text-accent">{asked}</p>}

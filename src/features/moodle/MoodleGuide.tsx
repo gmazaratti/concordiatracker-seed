@@ -22,7 +22,7 @@ export function HowTo() {
             rest, and the menu path stays underneath for anyone who would
             rather find it themselves. */}
         <Step n={1}>
-          Sign in if it asks — you will land on the page below.
+          Sign in if it asks, and you will land on the page below.
           <a
             href={MOODLE_EXPORT_URL}
             target="_blank"

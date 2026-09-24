@@ -106,7 +106,7 @@ export function ManualSection({
       waitlistCap: null,
       hasReserved: false,
       location: '',
-      instructionMode: timed ? 'Added by you' : 'Online — no set time',
+      instructionMode: timed ? 'Added by you' : 'Online, no set time',
       building: '',
       room: room.trim(),
     })
@@ -120,7 +120,7 @@ export function ManualSection({
     <div className="mt-2 rounded-lg border border-border bg-canvas p-2.5">
       <p className="text-[11.5px] leading-relaxed text-subtle">
         Type what your Student Centre says. It goes on your week like any other class, marked as
-        yours — no seat counts, and no seat watch, because we are not reading it from Concordia.
+        yours. There are no seat counts and no seat watch, because we are not reading it from Concordia.
       </p>
 
       <div className="mt-2.5 grid gap-2 sm:grid-cols-[1fr_1fr]">

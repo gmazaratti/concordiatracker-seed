@@ -162,11 +162,11 @@ export function useCourseBlueprints(course: Course) {
       if (error) {
         throw new Error(
           error.code === '42501'
-            ? 'We could not publish that outline — your account is not allowed to share right now. Tell us and we will sort it out.'
+            ? 'We could not publish that outline: your account is not allowed to share right now. Tell us and we will sort it out.'
             : error.message || 'Sharing failed. Try again in a moment.',
         )
       }
-      if (!data) throw new Error('Sharing failed — nothing was saved. Try again.')
+      if (!data) throw new Error('Sharing failed. Nothing was saved. Try again.')
       load()
     },
     [uid, course, load],

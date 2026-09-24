@@ -36,26 +36,26 @@ export const FEE_STATUSES: FeeStatus[] = [
   { id: 'qc', label: 'Quebec resident', perCredit: 103.92 },
   {
     id: 'oop-grandfathered',
-    label: 'Out-of-province — admitted before Fall 2024',
+    label: 'Out-of-province, admitted before Fall 2024',
     perCredit: 324.35,
     note: 'Grandfathered rate.',
   },
   {
     id: 'oop-new',
-    label: 'Out-of-province — admitted Fall 2024 or later',
+    label: 'Out-of-province, admitted Fall 2024 or later',
     perCredit: 432.85,
   },
   {
     id: 'france-belgium',
-    label: 'France or Belgium — grandfathered',
+    label: 'France or Belgium (grandfathered)',
     perCredit: 324.35,
   },
-  { id: 'intl-arts', label: 'International — Arts & Science', perCredit: 1160 },
-  { id: 'intl-jmsb', label: 'International — John Molson', perCredit: 1400 },
-  { id: 'intl-encs', label: 'International — Engineering & Computer Science', perCredit: 1285 },
+  { id: 'intl-arts', label: 'International: Arts & Science', perCredit: 1160 },
+  { id: 'intl-jmsb', label: 'International: John Molson', perCredit: 1400 },
+  { id: 'intl-encs', label: 'International: Engineering & Computer Science', perCredit: 1285 },
   {
     id: 'intl-fine',
-    label: 'International — Fine Arts, Independent or CUC',
+    label: 'International: Fine Arts, Independent or CUC',
     perCredit: 1010,
   },
 ]

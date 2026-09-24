@@ -151,7 +151,7 @@ export async function listThreads(q: Json): Promise<{ status: number; json: Json
       timezone: 'UTC',
       notes: [
         '`since` matches threads created OR updated at or after the timestamp, so an older thread with a new customer message is returned.',
-        'A diagnostic has no update timestamp — for those, `since` is the time it arrived.',
+        'A diagnostic has no update timestamp. For those, `since` is the time it arrived.',
         'Page with `cursor`, not an offset: threads reorder as they are answered, and an offset scan silently skips whatever moved up while you were reading. A null `next_cursor` means there is no more.',
         '`hold` names a thread the assistant may never answer: crisis, money, or diagnostic. Held threads also read back as needs_human.',
       ],
@@ -282,7 +282,7 @@ export function kbSearch(q: Json): { status: number; json: Json } {
       results: hits,
       notes: hits.length
         ? ['Fetch the full text with GET /api/v1/support/kb/{id} before quoting it.']
-        : ['Nothing matched. Do not answer from memory — escalate with needs_human instead.'],
+        : ['Nothing matched. Do not answer from memory. Escalate with needs_human instead.'],
     },
   }
 }

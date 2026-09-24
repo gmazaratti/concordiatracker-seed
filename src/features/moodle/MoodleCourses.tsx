@@ -112,7 +112,7 @@ export function MoodleCourses({ tasks }: { tasks: CalendarTask[] }) {
 
       {added > 0 ? (
         <p className="mt-1 text-[11.5px] leading-relaxed text-subtle">
-          They are on your Courses page. Add a syllabus to each one to get weights and grades —
+          They are on your Courses page. Add a syllabus to each one to get weights and grades.
           Moodle only carries dates.
         </p>
       ) : (

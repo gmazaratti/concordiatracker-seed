@@ -80,7 +80,7 @@ export function ReleaseHero({ release }: { release: Release }) {
         </ul>
 
         <p className="mt-5 text-[12px] text-subtle tabular-nums">
-          {count('new')} new · {count('improved')} improved · {count('fixed')} fixed — the full list is below.
+          {count('new')} new · {count('improved')} improved · {count('fixed')} fixed. The full list is below.
         </p>
       </div>
     </div>

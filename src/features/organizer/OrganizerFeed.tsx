@@ -80,7 +80,7 @@ export function OrganizerFeed() {
           <h1 className="font-display text-[22px] font-semibold text-fg">Feed</h1>
           <p className="mt-0.5 text-[13px] text-subtle">
             Posts from {currentOrg.org.name} in the Community feed. Photos, a video, a
-            note — anything that is not a dated event.
+            note: anything that is not a dated event.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -125,7 +125,7 @@ export function OrganizerFeed() {
           <Mascot mood="resting" size="sm" soft className="text-accent" />
           <p className="text-[13.5px] font-medium text-fg">Nothing posted yet</p>
           <p className="max-w-xs text-[12.5px] leading-relaxed text-subtle">
-            A post is the quick one — a photo from last night, a reminder, a thank-you.
+            A post is the quick one: a photo from last night, a reminder, a thank-you.
             Events live on their own tab.
           </p>
         </div>

@@ -135,10 +135,10 @@ export function recordToText(s: RecordSnapshot): string {
   )
   for (const t of s.terms) {
     out.push('')
-    out.push(`${t.term} — ${t.credits} credits`)
+    out.push(`${t.term}: ${t.credits} credits`)
     for (const c of t.courses) {
       const grade = c.letter ? `  ${c.letter}` : ''
-      out.push(`  ${c.code}${c.title ? ` — ${c.title}` : ''} (${c.credits})${grade}`)
+      out.push(`  ${c.code}${c.title ? `, ${c.title}` : ''} (${c.credits})${grade}`)
     }
   }
   out.push('')

@@ -69,7 +69,7 @@ export async function itemFromFile(file: File): Promise<ComposeItem> {
     throw new Error(`${file.name}: HEIC photos cannot be opened in this browser. Export it as JPG and try again.`)
   }
   if (/\.mov$/.test(lower) || file.type === 'video/quicktime') {
-    throw new Error(`${file.name}: most browsers cannot play .mov — export it as MP4 and try again.`)
+    throw new Error(`${file.name}: most browsers cannot play .mov, so export it as MP4 and try again.`)
   }
   if (!isVideo && !file.type.startsWith('image/')) {
     throw new Error(`${file.name} is not a photo or a video.`)

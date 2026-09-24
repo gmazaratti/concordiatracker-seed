@@ -213,7 +213,7 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Course code or name — e.g. COMM 217, or “accounting”"
+                placeholder="Course code or name, e.g. COMM 217, or “accounting”"
                 aria-label="Find a course"
                 autoFocus
                 className="w-full rounded-lg border border-border bg-canvas py-2.5 pr-9 pl-9 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
@@ -270,7 +270,7 @@ export function AddUpcomingModal({ onClose }: { onClose: () => void }) {
               className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-subtle transition-colors duration-150 hover:text-accent"
             >
               <PlusCircle size={12} aria-hidden />
-              My course isn&rsquo;t here — add it myself
+              My course isn&rsquo;t here, add it myself
             </button>
           </>
         )}

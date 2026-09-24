@@ -58,6 +58,67 @@ function read(): AuthReturn {
 export const authReturn: AuthReturn = read()
 
 /**
+ * WHICH PROVIDER WAS BEING TRIED.
+ *
+ * An OAuth failure comes back as a bare string on the return URL
+ * ("Unable to exchange external code") that names neither Google nor Apple.
+ * The browser remembers which button was pressed so the message can.
+ * sessionStorage, because it only has to survive one round trip.
+ */
+const OAUTH_KEY = 'ct_oauth_attempt'
+
+export function rememberOAuthAttempt(provider: 'google' | 'apple'): void {
+  try {
+    sessionStorage.setItem(OAUTH_KEY, provider)
+  } catch {
+    /* private mode: the message just will not name the provider */
+  }
+}
+
+function lastOAuthAttempt(): 'google' | 'apple' | null {
+  try {
+    const v = sessionStorage.getItem(OAUTH_KEY)
+    return v === 'google' || v === 'apple' ? v : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A provider error, mapped to a message KEY (so it translates) plus the
+ * provider it concerns. Null when the error is not one of these.
+ *
+ *  - `conflict`: an account already exists for that email under another sign-in
+ *    method and could not be joined automatically. The fix is to sign in the
+ *    original way and link the second method from Settings.
+ *  - `failed`: the provider handshake itself did not finish ("Unable to
+ *    exchange external code"). That is a configuration problem on our side,
+ *    never the student's account, and the message says so.
+ */
+export function oauthProblem(
+  raw: string,
+): { kind: 'conflict' | 'failed'; provider: 'Google' | 'Apple' | null } | null {
+  const e = raw.toLowerCase()
+  const p = lastOAuthAttempt()
+  const provider = p === 'apple' ? 'Apple' : p === 'google' ? 'Google' : null
+  if (
+    e.includes('already registered') ||
+    e.includes('already exists') ||
+    e.includes('already been registered') ||
+    e.includes('multiple accounts') ||
+    e.includes('identity is already linked') ||
+    e.includes('email_exists') ||
+    e.includes('identity_already_exists')
+  ) {
+    return { kind: 'conflict', provider }
+  }
+  if (e.includes('exchange external code') || e.includes('external provider') || e.includes('oauth')) {
+    return { kind: 'failed', provider }
+  }
+  return null
+}
+
+/**
  * Say what went wrong in words the person can act on.
  *
  * Supabase's own strings are accurate and unhelpful ("Email link is invalid or
@@ -68,10 +129,10 @@ export const authReturn: AuthReturn = read()
 export function explainAuthError(raw: string): string {
   const e = raw.toLowerCase()
   if (e.includes('expired') || e.includes('invalid')) {
-    return 'That confirmation link has expired or was already used. Sign in below — and if that does not work, create the account again to get a fresh link.'
+    return 'That link has expired or was already used. Sign in below. If that does not work, ask for a fresh link: create the account again, or use Forgot password.'
   }
   if (e.includes('access_denied') || e.includes('denied')) {
-    return 'That confirmation link could not be used. Try signing in below, or create the account again for a new link.'
+    return 'That link could not be used. Try signing in below, or ask for a new link.'
   }
   return raw
 }

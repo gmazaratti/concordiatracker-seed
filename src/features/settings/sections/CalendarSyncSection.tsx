@@ -121,7 +121,7 @@ export function CalendarSyncSection() {
         <h3 className="text-[13px] font-semibold text-fg">Google &amp; Apple Calendar</h3>
         <p className="mt-0.5 mb-3 text-[12.5px] leading-relaxed text-muted">
           Put your ConcordiaTracker deadlines in the calendar you already check. One link, and it
-          keeps itself up to date — move a date here and it moves there.
+          keeps itself up to date: move a date here and it moves there.
         </p>
 
         {feed === undefined ? (
@@ -183,7 +183,7 @@ export function CalendarSyncSection() {
               <div className="mt-1.5 flex flex-wrap items-start gap-x-3 gap-y-1">
                 <p className="min-w-0 flex-1 text-[11.5px] leading-relaxed text-subtle">
                   Treat it like a password. Anyone with this link can read these dates without
-                  signing in — that is exactly how Google reads it, and why Rotate is below.
+                  signing in. That is exactly how Google reads it, and why Rotate is below.
                 </p>
                 <button
                   type="button"
@@ -374,7 +374,7 @@ function WhereToPasteIt() {
     <div className="mt-2 space-y-3 rounded-lg border border-border bg-canvas/60 px-3 py-2.5">
       <Where
         title="Google Calendar"
-        note="Has to be done on a computer — the Google Calendar phone app cannot add a calendar by URL."
+        note="Has to be done on a computer. The Google Calendar phone app cannot add a calendar by URL."
         steps={[
           'Open calendar.google.com.',
           'In the left column, next to "Other calendars", click +.',
@@ -429,7 +429,7 @@ function HowItBehaves() {
           <Check size={14} className="mt-0.5 shrink-0 text-success" aria-hidden />
           <span>
             <span className="font-medium text-fg">It goes one way.</span> Your deadlines show up in
-            Google or Apple. Events you create over there stay over there — we never read your
+            Google or Apple. Events you create over there stay over there. We never read your
             calendar, and we never ask for access to it.
           </span>
         </li>
@@ -438,7 +438,7 @@ function HowItBehaves() {
           <span>
             <span className="font-medium text-fg">Your calendar decides how often it refreshes.</span>{' '}
             Apple checks as often as you tell it to, down to every five minutes. Google uses its
-            own schedule and can take several hours — that is Google&rsquo;s behaviour for every
+            own schedule and can take several hours. That is Google&rsquo;s behaviour for every
             subscribed calendar, not something we can speed up. If a date changed and you need it
             now, open ConcordiaTracker.
           </span>

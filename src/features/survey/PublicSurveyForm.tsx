@@ -234,11 +234,11 @@ function OutlineDrop({
       </p>
       <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
         Drop in any syllabus PDF and we&rsquo;ll turn it into a shared outline for everyone else in
-        your section — dates, weights, the lot. Genuinely appreciated, and it&rsquo;s what makes
+        your section: dates, weights, the lot. Genuinely appreciated, and it&rsquo;s what makes
         this useful for the people sitting next to you.
       </p>
       <p className="mt-1.5 text-[12.5px] leading-relaxed text-subtle">
-        <span className="font-medium text-muted">No pressure though</span> — you can upload the
+        <span className="font-medium text-muted">No pressure though.</span> You can upload the
         same file inside the app once you have an account, and get your own course set up from it
         on the spot. Here is just faster if you already have it open.
       </p>
@@ -286,7 +286,7 @@ function OutlineDrop({
       )}
 
       <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
-        PDF or Word, up to {MAX_OUTLINE_MB} MB each. We only publish the dates and weights &mdash;
+        PDF or Word, up to {MAX_OUTLINE_MB} MB each. We only publish the dates and weights,
         never your name, and never the file itself.
       </p>
     </section>

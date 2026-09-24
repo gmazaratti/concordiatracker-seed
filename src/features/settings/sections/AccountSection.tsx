@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select'
 import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPicker'
 import { programById } from '@/data/programs'
 import { Group, Row } from '../controls'
+import { SignInMethods } from './SignInMethods'
 import { useT } from '@/i18n/i18n'
 
 const COOLDOWN_MS = 14 * 86_400_000
@@ -38,7 +39,15 @@ const SCHOOLS = [
 export function AccountSection() {
   const t = useT()
   const { user, updateProfile } = useAppData()
-  const { signOut } = useAuth()
+  const { signOut, user: authUser } = useAuth()
+  // How they FIRST signed up. The notes below used to say "Google" to everyone.
+  const provider = (authUser?.app_metadata?.provider as string | undefined) ?? 'email'
+  const emailNote =
+    provider === 'google'
+      ? 'Comes from your Google account: not editable here.'
+      : provider === 'apple'
+        ? 'Comes from your Apple account: not editable here.'
+        : 'The address you sign in with.'
 
   return (
     <div>
@@ -49,9 +58,6 @@ export function AccountSection() {
         <div className="min-w-0">
           <p className="truncate text-[15px] font-medium text-fg">{user.name}</p>
           <p className="truncate text-[12px] text-subtle">{user.email}</p>
-          <div className="mt-1.5">
-            <GoogleBadge />
-          </div>
         </div>
       </div>
 
@@ -71,7 +77,7 @@ export function AccountSection() {
         >
           <HandleEditor />
         </Row>
-        <Row label="Email address" description="Connected through Google: not editable here.">
+        <Row label="Email address" description={emailNote}>
           <span className="text-[13px] text-muted">{user.email}</span>
         </Row>
         <Row label="School / Faculty" description="Used to tailor your dashboard and Community feed." stacked>
@@ -83,15 +89,17 @@ export function AccountSection() {
             className="max-w-sm"
           />
         </Row>
-        <Row label="Major / Program" description="Search Concordia's program list: or choose Other." stacked>
+        <Row label="Major / Program" description="Search Concordia's program list, or choose Other." stacked>
           <ProgramField />
         </Row>
-        <Row label="Profile photo" description="Synced from your Google account.">
+        <Row label="Profile photo" description={provider === 'google' ? 'Synced from your Google account.' : 'Your initials, until you add a photo.'}>
           <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
             {user.initials}
           </span>
         </Row>
       </Group>
+
+      <SignInMethods />
 
       <Group label={t('settings.account')}>
         <Row label="Sign out" description="End your session on this device.">
@@ -337,20 +345,5 @@ function DeleteAccountRow() {
         </p>
       )}
     </div>
-  )
-}
-
-/** Google's 4-color "G", inline so we don't pull an icon dependency. */
-function GoogleBadge() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-canvas px-2 py-0.5 text-[11px] font-medium text-muted">
-      <svg viewBox="0 0 48 48" className="size-3.5" aria-hidden>
-        <path fill="#4285F4" d="M45 24c0-1.6-.1-3.1-.4-4.5H24v9h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1C42.7 36.4 45 30.7 45 24z" />
-        <path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 41.1 15.4 46 24 46z" />
-        <path fill="#FBBC05" d="M11.8 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.5C3 17.1 2 20.4 2 24s1 6.9 2.5 9.9l7.3-5.7z" />
-        <path fill="#EA4335" d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8.1 6.9 4.5 14.1l7.3 5.7c1.7-5.2 6.5-9 12.2-9z" />
-      </svg>
-      Connected with Google
-    </span>
   )
 }

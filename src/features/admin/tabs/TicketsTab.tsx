@@ -117,7 +117,7 @@ export function TicketsTab() {
           ) : shown.length === 0 ? (
             <EmptyState>
               {counts.all > 0 && filter !== 'all'
-                ? `No ${filter} tickets. ${counts.all} in total — try All.`
+                ? `No ${filter} tickets. ${counts.all} in total. Try All.`
                 : 'No tickets match.'}
             </EmptyState>
           ) : (

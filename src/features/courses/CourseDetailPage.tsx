@@ -179,7 +179,7 @@ export function CourseDetailPage() {
               <p className="mt-3 text-[15px] font-medium text-fg">Waiting for {course.term}</p>
               <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-subtle">
                 This class is saved and out of the way until the term begins. Assignments and dates
-                come from the outline, which your professor publishes in the first week — nothing
+                come from the outline, which your professor publishes in the first week, so nothing
                 worth entering exists yet.
               </p>
               <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-subtle">

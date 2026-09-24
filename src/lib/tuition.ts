@@ -63,7 +63,7 @@ export function estimateTerm(input: CostInput): CostEstimate {
   const lines: CostLine[] = []
 
   lines.push({
-    label: `Tuition — ${status.label}`,
+    label: `Tuition: ${status.label}`,
     rate: status.perCredit,
     amount: money(status.perCredit * credits),
     how: `$${status.perCredit.toFixed(2)} × ${credits} credits`,
@@ -81,7 +81,7 @@ export function estimateTerm(input: CostInput): CostEstimate {
   }
 
   lines.push({
-    label: `Student association — ${association.label}`,
+    label: `Student association: ${association.label}`,
     rate: association.perCredit,
     amount: money(association.perCredit * credits),
     how: `$${association.perCredit.toFixed(2)} × ${credits} credits`,

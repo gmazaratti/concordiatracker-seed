@@ -591,7 +591,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       })
       if (error) {
         if (error.message.includes('already have an application')) {
-          return "You already have an application waiting — we'll email you when it's reviewed."
+          return "You already have an application waiting. We'll email you when it's reviewed."
         }
         if (error.code === '23505') {
           /*
@@ -609,7 +609,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
            * one of them already holds.
            */
           return (
-            'That handle is already registered — possibly to a club that is still ' +
+            'That handle is already registered, possibly to a club that is still ' +
             'waiting on approval, which is why you cannot see it. Try another, or ' +
             'get in touch if it should be yours.'
           )
@@ -1003,7 +1003,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
        * is_admin().
        */
       if (myOrgs.some((o) => o.id === id)) {
-        console.warn('approveOrg: approval is admin-only — use Admin → Portals.')
+        console.warn('approveOrg: approval is admin-only. Use Admin → Portals.')
         return
       }
       setOrgs((prev) =>

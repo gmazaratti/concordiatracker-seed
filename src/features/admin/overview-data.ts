@@ -304,7 +304,7 @@ function fakeActivity(real: ActivityRow[]): ActivityRow[] {
       rows.push({
         kind: 'subscription',
         label: i % 12 === 0 ? 'Started a trial' : 'Payment received',
-        detail: i % 12 === 0 ? '3 days left' : '$15.00 — Paid',
+        detail: i % 12 === 0 ? '3 days left' : '$15.00 · Paid',
         who: fakeEmail(name),
         at,
       })

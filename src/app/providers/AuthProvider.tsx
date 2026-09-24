@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { AuthContext } from './auth'
-import { authReturn } from '@/lib/auth-return'
+import { authReturn, rememberOAuthAttempt } from '@/lib/auth-return'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
@@ -19,8 +19,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => {
+    } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next)
+      /**
+       * A PASSWORD-RESET LINK signs you in (that is how Supabase proves you own
+       * the address) and then has to take you to the page that asks for the new
+       * password, not into the app. Checked by the event AND the URL type,
+       * because the link may land on the Site URL rather than /reset-password
+       * when the redirect is not on the allow-list (see auth-return.ts).
+       */
+      if (event === 'PASSWORD_RECOVERY' || authReturn.type === 'recovery') {
+        if (next && window.location.pathname !== '/reset-password') {
+          window.location.replace('/reset-password')
+        }
+        return
+      }
       /**
        * Land a confirmed user in the APP, not on the marketing page.
        *
@@ -52,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * pressed. A second flow would be a second thing to keep in step.
    */
   const startOAuth = useCallback(async (provider: 'google' | 'apple') => {
+    rememberOAuthAttempt(provider)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/app` },
@@ -87,6 +101,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null, needsConfirmation: !data.session }
   }, [])
 
+  /**
+   * Email a password-reset link. The answer is the same whether or not an
+   * account uses that address, so the form cannot be used to find out who has
+   * one. The token in the link is single-use and expires (Supabase's email OTP
+   * lifetime).
+   */
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error: error?.message ?? null }
+  }, [])
+
+  /** Add a second sign-in method to the account you are signed into. */
+  const linkProvider = useCallback(async (provider: 'google' | 'apple') => {
+    rememberOAuthAttempt(provider)
+    const { error } = await supabase.auth.linkIdentity({
+      provider,
+      options: { redirectTo: `${window.location.origin}/app?settings=account` },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
   }, [])
@@ -100,6 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithApple,
       signInWithPassword,
       signUpWithPassword,
+      sendPasswordReset,
+      updatePassword,
+      linkProvider,
       signOut,
     }),
     [
@@ -109,6 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithApple,
       signInWithPassword,
       signUpWithPassword,
+      sendPasswordReset,
+      updatePassword,
+      linkProvider,
       signOut,
     ],
   )

@@ -19,25 +19,25 @@ export function DeveloperSection() {
       <Group label="What you can do with one" padded>
         <ul className="space-y-1.5 text-[12.5px] leading-relaxed text-subtle">
           <li>
-            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/courses</code> — your
+            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/courses</code>: your
             classes this term.
           </li>
           <li>
-            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/assignments</code> — every
+            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/assignments</code>: every
             deadline, with its weight and status.
           </li>
           <li>
-            <code className="rounded bg-surface-2 px-1">PATCH /api/v1/me/assignments/&#123;id&#125;</code>{' '}
-            — tick something off, or record a grade.
+            <code className="rounded bg-surface-2 px-1">PATCH /api/v1/me/assignments/&#123;id&#125;</code>:{' '}
+            tick something off, or record a grade.
           </li>
           <li>
-            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/gpa</code> — your standing,
+            <code className="rounded bg-surface-2 px-1">GET /api/v1/me/gpa</code>: your standing,
             per course and overall.
           </li>
         </ul>
         <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
           A token reads and writes only your own account, and only the things the app itself lets
-          you change — status, grades and notes. It cannot move a deadline, alter a weight, or
+          you change: status, grades and notes. It cannot move a deadline, alter a weight, or
           touch anybody else&rsquo;s data.
         </p>
       </Group>

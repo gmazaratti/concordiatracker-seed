@@ -162,7 +162,7 @@ function Row({
         <span className="text-muted" title="Total opens since it was sent">
           {l.opens} <span className="text-subtle">opens</span>
         </span>
-        <span className="text-muted" title="Distinct browsers — not people: one person on a phone and a laptop counts twice">
+        <span className="text-muted" title="Distinct browsers, not people. One person on a phone and a laptop counts twice">
           {l.unique_opens} <span className="text-subtle">unique</span>
         </span>
       </div>

@@ -178,7 +178,7 @@ export function ItemRow({
             {item.items.length} {item.items.length === 1 ? 'item has' : 'items have'} no date yet
           </p>
           <p className="mt-0.5 text-[12px] leading-relaxed text-subtle">
-            {item.items.map((a) => a.title).join(' · ')} — somewhere in{' '}
+            {item.items.map((a) => a.title).join(' · ')}, somewhere in{' '}
             {item.period.title.toLowerCase()}. Set the date once the registrar publishes it.
           </p>
         </div>

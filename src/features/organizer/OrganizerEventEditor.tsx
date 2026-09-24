@@ -323,7 +323,7 @@ function EventEditorForm({
             blocked={
               image.trim()
                 ? undefined
-                : 'Add a banner image above first — a post in the feed is a picture.'
+                : 'Add a banner image above first. A post in the feed is a picture.'
             }
             title={title}
           />}

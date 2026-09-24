@@ -38,8 +38,8 @@ export function WhatThatLinkIs() {
               <RefreshCw size={13} className="mt-[3px] shrink-0 text-accent" aria-hidden />
               <span>
                 Re-checked nightly. If a professor moves a date,{' '}
-                <strong className="font-medium text-fg">the item says so</strong> &mdash; old date
-                and new, so you can see what changed rather than finding it moved.
+                <strong className="font-medium text-fg">the item says so</strong>, with the old date
+                and the new one, so you can see what changed rather than finding it moved.
               </span>
             </li>
           </ul>
@@ -60,7 +60,7 @@ export function WhatThatLinkIs() {
             </li>
             <li>
               We store it where{' '}
-              <strong className="font-medium text-fg">our own app cannot read it back</strong> — only
+              <strong className="font-medium text-fg">our own app cannot read it back</strong>. Only
               the sync job can use it.
             </li>
             <li>
@@ -72,7 +72,7 @@ export function WhatThatLinkIs() {
       </div>
       <p className="mt-3 border-t border-border pt-3 text-[11.5px] leading-relaxed text-subtle">
         Moodle does not tell us what an assignment is worth, so synced items arrive as calendar
-        deadlines, not graded assessments — they will not change your GPA or your grade breakdown.
+        deadlines, not graded assessments. They will not change your GPA or your grade breakdown.
       </p>
     </div>
   )

@@ -123,7 +123,7 @@ export function recommend(input: RecommendInput, limit = 12): Suggestion[] {
           credits: c.credits,
           reason: 'elective',
           groupTitle: group.title,
-          because: `Counts toward ${group.title} — ${short} credit${short === 1 ? '' : 's'} still to fill.`,
+          because: `Counts toward ${group.title}: ${short} credit${short === 1 ? '' : 's'} still to fill.`,
         })
       }
     }

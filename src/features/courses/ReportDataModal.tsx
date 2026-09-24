@@ -57,7 +57,7 @@ export function ReportDataModal({
         {done ? (
           <div className="py-4 text-center">
             <CheckCircle2 size={26} className="mx-auto text-success" aria-hidden />
-            <p className="mt-3 text-[15px] font-medium text-fg">Thanks — that&rsquo;s logged</p>
+            <p className="mt-3 text-[15px] font-medium text-fg">Thanks, that&rsquo;s logged</p>
             <p className="mx-auto mt-1 max-w-xs text-[12.5px] leading-relaxed text-subtle">
               We&rsquo;ll check it against Concordia and fix the source. Your own copy is still
               yours to edit in the meantime.
@@ -78,7 +78,7 @@ export function ReportDataModal({
             </h2>
             <p className="mt-1 text-[12.5px] leading-relaxed text-subtle">
               For {course.code || 'this class'}. Every field in the panel is editable, so fix yours
-              straight away — this is how the copy everyone else sees gets fixed too.
+              straight away. This is how the copy everyone else sees gets fixed too.
             </p>
 
             <label className="mt-4 block">

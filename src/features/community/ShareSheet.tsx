@@ -148,7 +148,7 @@ export function ShareSheet({
             <p className="py-8 text-center text-[12.5px] text-subtle">
               {q.trim()
                 ? 'Nobody by that name.'
-                : 'Nobody to send to yet — follow a classmate, and once they follow back you can send them things.'}
+                : 'Nobody to send to yet. Follow a classmate, and once they follow back you can send them things.'}
             </p>
           ) : (
             <ul className="grid grid-cols-3 gap-x-2 gap-y-4 pb-3 sm:grid-cols-4">

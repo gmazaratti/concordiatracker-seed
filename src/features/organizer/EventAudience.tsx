@@ -149,7 +149,7 @@ export function MapLinkField({
             <li>Paste it here.</li>
           </ol>
           <p className="mt-1.5 text-[11.5px] text-subtle">
-            The “Embed a map” tab gives you an <code>&lt;iframe&gt;</code> — we do not take
+            The “Embed a map” tab gives you an <code>&lt;iframe&gt;</code>. We do not take
             those, because accepting markup from anywhere would put it on a page every
             student loads. The plain link opens their own maps app, which is what they
             want on a phone anyway.

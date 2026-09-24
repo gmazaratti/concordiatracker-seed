@@ -79,9 +79,9 @@ export const HOME = {
     'ConcordiaTracker turns your syllabi into a live plan: every deadline, grade calculation, ' +
     'and GPA projection for all your classes, in one calm dashboard.',
   intro:
-    'ConcordiaTracker is a web app for Concordia University students. You add your courses once — ' +
+    'ConcordiaTracker is a web app for Concordia University students. You add your courses once, ' +
     'by importing an outline another student or a professor has already shared, by uploading a ' +
-    'syllabus PDF, or by typing them in — and it tracks what is due, what each piece of work is ' +
+    'syllabus PDF, or by typing them in, and it tracks what is due, what each piece of work is ' +
     'worth, and where your grade actually stands. It is independent software: not affiliated with ' +
     'Concordia University, and not connected to Moodle, eConcordia, or your student record.',
   features: [
@@ -100,8 +100,8 @@ export const HOME = {
     {
       title: 'Dates you can trust',
       desc:
-        'Every date carries its provenance — taken from an official outline, confirmed by other ' +
-        'students, or unverified — so you know which ones to double-check.',
+        'Every date carries its provenance (taken from an official outline, confirmed by other ' +
+        'students, or unverified), so you know which ones to double-check.',
     },
     {
       title: 'Plan next term before you register',
@@ -114,7 +114,7 @@ export const HOME = {
     {
       q: 'How do I keep track of all my Concordia deadlines?',
       a:
-        'Add your courses — search a shared outline, upload a syllabus, or enter them by hand — and ' +
+        'Add your courses (search a shared outline, upload a syllabus, or enter them by hand) and ' +
         'ConcordiaTracker puts every deadline on one Today view, sorted by what is due next, across ' +
         'all your classes.',
     },
@@ -133,7 +133,7 @@ export const HOME = {
     {
       q: 'Is ConcordiaTracker free?',
       a:
-        'The core — deadline tracking, the grade-needed calculator, and your full course dashboard — ' +
+        'The core (deadline tracking, the grade-needed calculator, and your full course dashboard) ' +
         'is free. GPA prediction and the other Semester pass features are paid.',
     },
     {
@@ -249,8 +249,8 @@ ${bodyHtml}
 const ABOUT_MD = `# About ConcordiaTracker
 
 ConcordiaTracker is an independent web app for students at Concordia University in Montreal,
-Quebec. It takes the thing every course already gives you — a course outline listing what is due,
-when, and how much it is worth — and turns it into a single working dashboard of deadlines, grades,
+Quebec. It takes the thing every course already gives you (a course outline listing what is due,
+when, and how much it is worth) and turns it into a single working dashboard of deadlines, grades,
 and GPA projections across all of your classes.
 
 ## Why it exists
@@ -258,7 +258,7 @@ and GPA projections across all of your classes.
 A Concordia student typically carries four or five courses at once. Each one publishes its own
 outline, on its own schedule, in its own format, to its own place: Moodle for one, a PDF emailed
 for another, a page on eConcordia for a third. Nothing joins them up. The result is that students
-know each course individually and know their term not at all — which is how three midterms in one
+know each course individually and know their term not at all, which is how three midterms in one
 week gets discovered in that week rather than in September.
 
 ConcordiaTracker joins them up. You add a course once, by importing an outline another student or
@@ -536,7 +536,7 @@ function homeMarkdown() {
     '',
     '## What it does',
     '',
-    ...HOME.features.map((f) => `- **${f.title}** — ${f.desc}`),
+    ...HOME.features.map((f) => `- **${f.title}**: ${f.desc}`),
     '',
     '## Questions Concordia students ask',
     '',
@@ -564,7 +564,7 @@ function homeFallbackHtml() {
 <p style="margin:0 0 20px">${esc(HOME.intro)}</p>
 <h2 style="font-size:19px;color:#f2f1f6;margin:26px 0 10px;font-weight:600">What it does</h2>
 <ul style="padding-left:20px;margin:0 0 20px">
-${HOME.features.map((f) => `<li style="margin:0 0 8px"><strong style="color:#f2f1f6">${esc(f.title)}</strong> — ${esc(f.desc)}</li>`).join('\n')}
+${HOME.features.map((f) => `<li style="margin:0 0 8px"><strong style="color:#f2f1f6">${esc(f.title)}</strong>: ${esc(f.desc)}</li>`).join('\n')}
 </ul>
 <h2 style="font-size:19px;color:#f2f1f6;margin:26px 0 10px;font-weight:600">Questions Concordia students ask</h2>
 ${HOME.faq.map((f) => `<h3 style="font-size:15.5px;color:#f2f1f6;margin:18px 0 6px;font-weight:600">${esc(f.q)}</h3><p style="margin:0 0 12px">${esc(f.a)}</p>`).join('\n')}

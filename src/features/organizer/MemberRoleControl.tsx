@@ -107,7 +107,7 @@ export function MemberRoleControl({
                 : 'grid size-8 place-items-center rounded-lg border border-border text-subtle transition-colors hover:bg-surface-2 hover:text-fg'
             }
           >
-            {confirmOwner ? 'Yes — make them an owner' : <Crown size={14} aria-hidden />}
+            {confirmOwner ? 'Yes, make them an owner' : <Crown size={14} aria-hidden />}
           </button>
         )}
       </div>

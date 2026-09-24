@@ -155,7 +155,7 @@ export function AdminMessageLayer() {
       {sent ? (
         <div className="flex items-center gap-1.5 border-t border-border px-3.5 py-2.5 text-[12.5px] font-medium text-success">
           <Check size={14} aria-hidden />
-          {reply.trim() ? 'Sent — thanks' : 'Got it'}
+          {reply.trim() ? 'Sent, thanks' : 'Got it'}
         </div>
       ) : showReply ? (
         <div className="border-t border-border px-3 py-2.5">

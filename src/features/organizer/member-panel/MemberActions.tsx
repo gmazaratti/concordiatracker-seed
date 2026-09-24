@@ -69,7 +69,7 @@ export function MemberActions({
       <p className="mx-5 mt-4 rounded-xl bg-surface-2/60 px-3.5 py-3 text-[12.5px] leading-snug text-subtle">
         {member.isYou
           ? 'This is you. Your own role can only be changed by somebody above you.'
-          : 'Nothing here you can change — they rank at or above you, or your role does not manage the team.'}
+          : 'Nothing here you can change: they rank at or above you, or your role does not manage the team.'}
       </p>
     )
   }

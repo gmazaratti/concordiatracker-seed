@@ -146,7 +146,7 @@ export async function authenticate(req: {
       return {
         error: {
           status: 503,
-          message: 'Could not verify the token right now — the database did not answer. The token itself is probably fine; try again in a moment.',
+          message: 'Could not verify the token right now: the database did not answer. The token itself is probably fine; try again in a moment.',
           retryAfter: 2,
         },
       }

@@ -81,7 +81,7 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-subtle">
           They will see Allow or Deny here. If they allow it, their classes appear on their
-          profile — you do not get a notification.
+          profile. You do not get a notification.
         </p>
       </div>
     )
@@ -127,7 +127,7 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
           decision is made, so it is the only place the detail is worth reading. */}
       <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-muted">
         <li>
-          They would see <strong className="font-medium text-fg">when and where your classes meet</strong> —
+          They would see <strong className="font-medium text-fg">when and where your classes meet</strong>:
           times and rooms.
         </li>
         <li>
@@ -136,7 +136,7 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
         </li>
         <li>
           Allowing turns on{' '}
-          <strong className="font-medium text-fg">&ldquo;Let friends see my schedule&rdquo;</strong> —
+          <strong className="font-medium text-fg">&ldquo;Let friends see my schedule&rdquo;</strong>,
           so it applies to everyone you have accepted, not just them.
         </li>
       </ul>

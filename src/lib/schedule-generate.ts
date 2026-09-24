@@ -279,7 +279,7 @@ function warningsFor(
   if (unplaceable.length > 0) {
     out.push({
       kind: 'unplaceable',
-      text: `${unplaceable.join(', ')} could not be fitted — every section clashes with something you kept or a time you blocked.`,
+      text: `${unplaceable.join(', ')} could not be fitted. Every section clashes with something you kept or a time you blocked.`,
     })
   }
   if (credits < target) {
@@ -293,7 +293,7 @@ function warningsFor(
   if (credits > target) {
     out.push({
       kind: 'over-target',
-      text: `${credits} credits — ${credits - target} over what you asked for.`,
+      text: `${credits} credits, ${credits - target} over what you asked for.`,
     })
   }
 
@@ -303,7 +303,7 @@ function warningsFor(
   for (const gap of findCampusGaps(placed)) {
     out.push({
       kind: 'campus-gap',
-      text: `${gap.from.code} to ${gap.to.code} is a campus change with ${gap.minutes} minutes between them — the shuttle takes about 30.`,
+      text: `${gap.from.code} to ${gap.to.code} is a campus change with ${gap.minutes} minutes between them, and the shuttle takes about 30.`,
     })
   }
 

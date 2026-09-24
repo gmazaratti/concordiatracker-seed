@@ -212,7 +212,7 @@ export function validateMoodleIcsUrl(
     }
   }
   if (u.protocol !== 'https:') {
-    return { ok: false, reason: 'The link must start with https:// — it carries a private token.' }
+    return { ok: false, reason: 'The link must start with https://, since it carries a private token.' }
   }
   if (!/(^|\.)concordia\.ca$/i.test(u.hostname)) {
     return {

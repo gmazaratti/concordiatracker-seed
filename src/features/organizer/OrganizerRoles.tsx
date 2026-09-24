@@ -70,7 +70,7 @@ export function OrganizerRoles() {
         <div>
           <h1 className="font-display text-[22px] font-semibold text-fg">Roles</h1>
           <p className="mt-1 max-w-xl text-[13px] text-muted">
-            What each person on your team may do. You can change any role below your own — never
+            What each person on your team may do. You can change any role below your own, but never
             your own, and never one above it.
           </p>
           <TutorialHint id="roles" className="mt-2.5" />

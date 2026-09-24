@@ -206,7 +206,7 @@ export function ColorPicker({
             </div>
             {eyeDropper() && (
               <p className="mt-2 text-[11px] leading-snug text-subtle">
-                The pipette samples anywhere on screen — including the logo you
+                The pipette samples anywhere on screen, including the logo you
                 just uploaded.
               </p>
             )}

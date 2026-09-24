@@ -64,7 +64,7 @@ export function MessageOrgModal({
               className="mt-4 w-full resize-none rounded-xl border border-border bg-canvas px-3 py-2.5 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-subtle">
-              This goes to the club, not to one person — anyone on their team can answer.
+              This goes to the club, not to one person. Anyone on their team can answer.
             </p>
             {error && <p className="mt-2 text-[12px] text-warning">{error}</p>}
           </>

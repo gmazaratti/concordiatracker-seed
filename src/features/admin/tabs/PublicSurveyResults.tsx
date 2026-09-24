@@ -68,7 +68,7 @@ export function PublicSurveyResults() {
         Couldn&rsquo;t load{err ? `: ${err}` : ''}. If this persists, run{' '}
         <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px]">db/survey_fix.sql</code>.
         <span className="mt-1.5 block text-[12px] text-subtle">
-          Responses are still being recorded either way &mdash; this page is the reader, not the
+          Responses are still being recorded either way. This page is the reader, not the
           writer.
         </span>
       </div>
