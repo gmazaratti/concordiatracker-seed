@@ -60,12 +60,39 @@ self.addEventListener('message', (event) => {
 
 function cachePut(cacheName, request, response) {
   // Only cache complete, same-origin 200s — never an error/redirect/opaque body.
+  // The write is fire-and-forget, so its failure is caught HERE: an uncaught
+  // rejection from a full or unavailable cache used to surface in the console.
   if (response && response.ok && response.status === 200) {
     const copy = response.clone()
-    caches.open(cacheName).then((cache) => cache.put(request, copy))
+    caches
+      .open(cacheName)
+      .then((cache) => cache.put(request, copy))
+      .catch(() => {})
   }
   return response
 }
+
+/**
+ * EVERY respondWith RESOLVES TO A REAL Response. Two branches used not to:
+ * a stale-while-revalidate miss while offline resolved to `undefined` (the
+ * "Failed to convert value to 'Response'" TypeError), and a navigation whose
+ * fetch failed with no cached shell REJECTED ("the FetchEvent … resulted in a
+ * network error response: the promise was rejected"). `settle` turns anything
+ * that is not a Response, or any rejection, into the given fallback.
+ */
+function settle(promise, fallback) {
+  return promise
+    .then((res) => (res instanceof Response ? res : fallback()))
+    .catch(() => fallback())
+}
+
+const offlinePage = () =>
+  new Response(
+    '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Offline</title>' +
+      '<body style="font:16px system-ui;background:#0f0f16;color:#f4f3f7;display:grid;place-items:center;min-height:100vh;margin:0">' +
+      '<p>You are offline. Reconnect and reload.</p>',
+    { status: 503, headers: { 'content-type': 'text/html; charset=utf-8' } },
+  )
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
@@ -76,12 +103,14 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return
   if (url.pathname.startsWith('/api/')) return
 
-  // App navigations → fresh HTML when online, cached shell when not.
+  // App navigations → fresh HTML when online, cached shell when not, and a
+  // plain offline page when there is no shell yet.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((res) => cachePut(SHELL_CACHE, SHELL_URL, res))
-        .catch(() => caches.match(SHELL_URL).then((cached) => cached || Response.error())),
+      settle(
+        fetch(request).then((res) => cachePut(SHELL_CACHE, SHELL_URL, res)),
+        () => settle(caches.match(SHELL_URL), offlinePage),
+      ),
     )
     return
   }
@@ -89,8 +118,11 @@ self.addEventListener('fetch', (event) => {
   // Immutable hashed build assets → cache-first.
   if (url.pathname.startsWith('/assets/')) {
     event.respondWith(
-      caches.match(request).then(
-        (cached) => cached || fetch(request).then((res) => cachePut(ASSET_CACHE, request, res)),
+      settle(
+        caches
+          .match(request)
+          .then((cached) => cached || fetch(request).then((res) => cachePut(ASSET_CACHE, request, res))),
+        () => Response.error(),
       ),
     )
     return
@@ -98,12 +130,15 @@ self.addEventListener('fetch', (event) => {
 
   // Other same-origin static (icons, manifest, og) → stale-while-revalidate.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((res) => cachePut(ASSET_CACHE, request, res))
-        .catch(() => cached)
-      return cached || network
-    }),
+    settle(
+      caches.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((res) => cachePut(ASSET_CACHE, request, res))
+          .catch(() => cached || Response.error())
+        return cached || network
+      }),
+      () => Response.error(),
+    ),
   )
 })
 
@@ -130,17 +165,27 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Tapping the notification → focus an existing app window or open one.
+// Tapping the notification → reuse a window that is ALREADY IN THE APP, or open
+// a new one. It used to navigate the first window it found, whatever that was:
+// a tab sitting on the landing page (or the docs, or a legal page) was pulled
+// into /app/community without the person touching it, which read as "opening
+// concordiatracker.com skipped the landing page". A page outside /app is left
+// exactly where it is.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const target = event.notification.data?.url || '/app'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ('focus' in client) {
-          client.navigate?.(target)
-          return client.focus()
+      const inApp = clients.find((c) => {
+        try {
+          return new URL(c.url).pathname.startsWith('/app') && 'focus' in c
+        } catch {
+          return false
         }
+      })
+      if (inApp) {
+        inApp.navigate?.(target)
+        return inApp.focus()
       }
       return self.clients.openWindow(target)
     }),

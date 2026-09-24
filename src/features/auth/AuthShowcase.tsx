@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import { CalendarClock, RefreshCw, TrendingUp } from 'lucide-react'
 import { CourseChip } from '@/components/CourseChip'
 import { useT } from '@/i18n/i18n'
-import { cn } from '@/lib/cn'
 import { FlowPaths } from './FlowPaths'
 import { useCardFloat } from './useCardFloat'
 
@@ -11,22 +10,21 @@ import { useCardFloat } from './useCardFloat'
  * with the app's own pieces (CourseChip, the surface and border tokens, line
  * icons), so they read as the product rather than an illustration.
  *
- * `strip` is the phone form: the same headline and the same cards, laid out
- * as a row that scrolls sideways above the form instead of a tall panel.
+ * Desktop only: on a phone the sign-in screen is the form alone, full width.
  *
- * On the desktop panel the cards float (useCardFloat) and, behind them,
- * FlowPaths draws animated sage flow
- * lines; the phone strip keeps one soft accent-soft glow. No other colour is
- * introduced: the course chip uses the class palette the app
- * already has, and everything else is theme tokens, so the panel follows the
- * viewer's light or dark theme like the rest of the site.
+ * The cards float and the flow lines drift, both from one rAF loop
+ * (useCardFloat) writing transform and opacity only. No other colour is
+ * introduced: the course chip uses the class palette the app already has, and
+ * everything else is theme tokens, so the panel follows the viewer's light or
+ * dark theme like the rest of the site.
  */
-export function AuthShowcase({ strip = false }: { strip?: boolean }) {
+export function AuthShowcase() {
   const t = useT()
   const panelRef = useRef<HTMLElement>(null)
   const headRef = useRef<HTMLHeadingElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  useCardFloat(panelRef, headRef, listRef)
+  const flowRef = useRef<HTMLDivElement>(null)
+  useCardFloat(panelRef, headRef, listRef, flowRef)
 
   const cards = [
     <div key="due" className={card}>
@@ -67,31 +65,13 @@ export function AuthShowcase({ strip = false }: { strip?: boolean }) {
     </div>,
   ]
 
-  if (strip) {
-    return (
-      <section aria-label={t('auth.showcaseTitle')} className="relative overflow-hidden border-b border-border bg-surface">
-        <Glow className="top-1/2 left-1/2 h-40 w-[80%]" />
-        <p className="relative px-5 pt-6 font-display text-[18px] leading-tight font-semibold text-fg">
-          {t('auth.showcaseTitle')}
-        </p>
-        <div className="relative mt-4 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {cards.map((c) => (
-            <div key={c.key} className="w-[250px] shrink-0 snap-start">
-              {c}
-            </div>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
   return (
     <section
       ref={panelRef}
       aria-label={t('auth.showcaseTitle')}
       className="relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface p-10 xl:p-12"
     >
-      <FlowPaths />
+      <FlowPaths ref={flowRef} />
       <h2 ref={headRef} className="relative max-w-[18ch] font-display text-[30px] leading-[1.1] font-semibold tracking-[-0.02em] text-fg xl:text-[34px]">
         {t('auth.showcaseTitle')}
       </h2>
@@ -115,16 +95,3 @@ export function AuthShowcase({ strip = false }: { strip?: boolean }) {
 }
 
 const card = 'rounded-2xl border border-border bg-canvas/90 p-4 shadow-[0_12px_32px_-18px_rgba(0,0,0,0.45)]'
-
-/** The one sage glow: the accent-soft token, blurred, behind the cards. */
-function Glow({ className }: { className?: string }) {
-  return (
-    <div
-      aria-hidden
-      className={cn(
-        'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-soft blur-3xl',
-        className,
-      )}
-    />
-  )
-}

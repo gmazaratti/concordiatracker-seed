@@ -169,11 +169,7 @@ export function LoginScreen() {
 
   return (
     <div className="min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
-      {/* Phone: the showcase is a short strip ABOVE the form, same content. */}
-      <Rise at={100} on={intro} className="lg:hidden">
-        <AuthShowcase strip />
-      </Rise>
-
+      {/* Phone: the form alone, full width. The showcase is a desktop panel. */}
       <main className="flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
         <div className="w-full max-w-[400px]">
           <Rise at={100} on={intro} className="mb-10">

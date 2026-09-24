@@ -12,10 +12,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true
+    /**
+     * WHAT THE URL SAID AT LOAD, CONSUMED ONCE. `authReturn` is a snapshot of
+     * the page's first URL and never changes, and this listener fires for
+     * the whole life of the document: on every token refresh and every time
+     * the tab regains focus. Reading the snapshot directly meant a single
+     * OAuth or confirmation return armed a redirect for the rest of the
+     * session, so clicking the logo to `/` was bounced back into the app on
+     * the next refresh. Each flag now acts on the first session and is gone.
+     */
+    let pendingToken = authReturn.hasToken
+    let pendingRecovery = authReturn.type === 'recovery'
+
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return
       setSession(data.session)
       setLoading(false)
+      /**
+       * A stored session can outlive its account (deleted server-side while a
+       * tab still held the token). The JWT still verifies locally, so the app
+       * rendered as signed in against a user who no longer exists: a blank
+       * screen and a 409 on every profile write. Ask the auth server once;
+       * if it says the user is gone, drop the local session so the sign-in
+       * screen shows. A network failure has no status and is left alone.
+       */
+      if (data.session) {
+        void supabase.auth.getUser().then(({ error }) => {
+          if (!active || !error) return
+          const status = (error as { status?: number }).status
+          const code = (error as { code?: string }).code
+          if (status === 401 || status === 403 || code === 'user_not_found' || code === 'session_not_found') {
+            void supabase.auth.signOut({ scope: 'local' })
+          }
+        })
+      }
     })
     const {
       data: { subscription },
@@ -28,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        * because the link may land on the Site URL rather than /reset-password
        * when the redirect is not on the allow-list (see auth-return.ts).
        */
-      if (event === 'PASSWORD_RECOVERY' || authReturn.type === 'recovery') {
+      if (event === 'PASSWORD_RECOVERY' || (pendingRecovery && next)) {
+        pendingRecovery = false
+        pendingToken = false
         if (next && window.location.pathname !== '/reset-password') {
           window.location.replace('/reset-password')
         }
@@ -46,8 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        * landing page by someone already signed in is left alone — they may
        * have gone there on purpose.
        */
-      if (next && authReturn.hasToken && !window.location.pathname.startsWith('/app')) {
-        window.location.replace('/app')
+      if (next && pendingToken) {
+        pendingToken = false
+        if (!window.location.pathname.startsWith('/app')) window.location.replace('/app')
       }
     })
     return () => {
