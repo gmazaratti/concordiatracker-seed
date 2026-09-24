@@ -1,37 +1,23 @@
-import { useEffect, useRef } from 'react'
-
-type Card = {
-  title: string
-  body: string
-  media: { kind: 'video' | 'image'; src: string }
-  /** The layout alternates: media left, then text left, then media left. */
-  mediaFirst: boolean
-}
-
-const CARDS: Card[] = [
-  {
-    title: 'Upload your outline, get every deadline dated',
-    body: 'Drop in your course outline PDF and ConcordiaTracker pulls out every assessment, its weight and its due date, so you check a list instead of retyping a syllabus.',
-    // The real syllabus-parse flow, recorded on the live app (COMM 305).
-    media: { kind: 'video', src: '/dev-landing-2/syllabus-parse.mp4' },
-    mediaFirst: true,
-  },
-  {
-    title: 'Know the grade you need to pass',
-    body: 'Enter marks as they come back and see your standing, the average you still need, and where your GPA lands.',
-    media: { kind: 'video', src: '/dev-landing-2/card-2.mp4' },
-    mediaFirst: false,
-  },
-  {
-    title: 'Moodle deadlines, pulled in for you',
-    body: 'Paste your Moodle calendar link once and dated Moodle events land in your calendar, checked again every night. When a professor moves a date, you see the old and new date side by side.',
-    media: { kind: 'image', src: '/dev-landing-2/card-3.avif' },
-    mediaFirst: true,
-  },
-]
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { CARDS } from './cards-data'
+import { CardExpand, type Origin } from './CardExpand'
 
 /** How tall the fade at the covered card's cut edge is, in px. */
 const FADE = 44
+
+/**
+ * Where a card may open into its expanded view: a desktop with a real pointer.
+ * Not on a phone or a tablet: a card that grows to fill the screen fights the
+ * page's own touch scrolling, so there the cards are simply cards.
+ */
+const DESKTOP = '(min-width: 768px) and (hover: hover) and (pointer: fine)'
+function subscribe(cb: () => void) {
+  const mq = window.matchMedia(DESKTOP)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+const useDesktop = () =>
+  useSyncExternalStore(subscribe, () => window.matchMedia(DESKTOP).matches, () => false)
 
 /**
  * The three feature cards, stacking.
@@ -41,11 +27,16 @@ const FADE = 44
  * opacity on the card itself. The only script is the fade seen in the
  * reference, where the covered card's content dissolves at the line where the
  * next card starts: every frame, the covered card's CONTENT (not its panel) is
- * masked at that line, so the two panels read as one surface. When the parent
- * ends, the stuck cards leave together, as Recordly's do.
+ * masked at that line, so the two panels read as one surface.
+ *
+ * On a desktop a card is also a button: it opens CardExpand, which grows out of
+ * the card's exact box. The card hides while it is open, so there is only ever
+ * one of it on screen, and focus comes back to it on close.
  */
 export function StackedCards() {
   const list = useRef<HTMLDivElement>(null)
+  const desktop = useDesktop()
+  const [open, setOpen] = useState<{ index: number; origin: Origin } | null>(null)
 
   useEffect(() => {
     const root = list.current
@@ -78,11 +69,9 @@ export function StackedCards() {
     /*
      * EQUAL HEIGHTS, at every width. The cards only stack cleanly if each one is
      * exactly as tall as the one it covers: on a phone the text wraps to
-     * different lengths (measured 398 / 378 / 417px at 390), so a shorter card
-     * left the bottom of the taller one peeking out underneath it, and the stack
-     * left the screen with ragged edges. Every card gets the tallest card's
-     * natural height, re-measured whenever any card's content changes size
-     * (rotation, font load, a video's metadata arriving).
+     * different lengths, so a shorter card left the bottom of the taller one
+     * peeking out underneath it. Every card gets the tallest card's natural
+     * height, re-measured whenever any card's content changes size.
      */
     const equalize = () => {
       const cards = [...root.querySelectorAll<HTMLElement>('[data-stack-card]')]
@@ -95,8 +84,6 @@ export function StackedCards() {
     const ro = new ResizeObserver(equalize)
     root.querySelectorAll('[data-stack-inner]').forEach((el) => ro.observe(el))
 
-    // Not only through the observer: measured once now, and again on resize and
-    // once everything (fonts, video metadata) has loaded.
     equalize()
     update()
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -111,6 +98,30 @@ export function StackedCards() {
     }
   }, [])
 
+  const openCard = (index: number, el: HTMLElement) => {
+    const media = el.querySelector<HTMLElement>('[data-card-media]')
+    const text = el.querySelector<HTMLElement>('[data-card-text]')
+    const video = el.querySelector('video')
+    if (!media || !text) return
+    setOpen({
+      index,
+      origin: {
+        card: el.getBoundingClientRect(),
+        media: media.getBoundingClientRect(),
+        text: text.getBoundingClientRect(),
+        time: video?.currentTime ?? 0,
+      },
+    })
+  }
+
+  const openIndex = open?.index
+  const closed = useCallback(() => {
+    setOpen(null)
+    if (openIndex !== undefined) {
+      list.current?.querySelectorAll<HTMLElement>('[data-stack-card]')[openIndex]?.focus({ preventScroll: true })
+    }
+  }, [openIndex])
+
   return (
     <div ref={list} className="mx-auto flex w-full max-w-[1080px] flex-col gap-14">
       {CARDS.map((c, i) => (
@@ -118,30 +129,38 @@ export function StackedCards() {
           key={c.title}
           data-stack-card
           style={{ zIndex: i + 1 }}
-          className="sticky top-[88px] rounded-[18px] bg-[#161616] md:top-[128px]"
+          {...(desktop && {
+            role: 'button',
+            tabIndex: 0,
+            'aria-label': `${c.title}. Open for more`,
+            onClick: (e: React.MouseEvent<HTMLElement>) => openCard(i, e.currentTarget),
+            onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                openCard(i, e.currentTarget)
+              }
+            },
+          })}
+          className={`sticky top-[88px] rounded-[18px] bg-[#161616] md:top-[128px] ${
+            desktop
+              ? 'cursor-pointer transition-shadow duration-200 outline-none hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)] focus-visible:shadow-[inset_0_0_0_2px_var(--ct-accent)]'
+              : ''
+          }`}
         >
           <div
             data-stack-inner
+            style={{ visibility: open?.index === i ? 'hidden' : undefined }}
             className={`flex flex-col gap-6 p-4 md:items-center md:gap-0 md:pt-[30px] md:pb-[40px] md:pl-[17px] ${
               c.mediaFirst ? 'md:flex-row md:pr-12' : 'md:flex-row-reverse md:pr-[16px]'
             }`}
           >
-            <div className="aspect-[580/330] w-full shrink-0 overflow-hidden rounded-[8px] bg-black md:w-1/2 lg:w-[580px]">
-              {c.media.kind === 'video' ? (
-                <video
-                  src={c.media.src}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="size-full object-cover"
-                />
-              ) : (
-                <img src={c.media.src} alt="" className="size-full object-cover" loading="lazy" />
-              )}
+            <div
+              data-card-media
+              className="aspect-[580/330] w-full shrink-0 overflow-hidden rounded-[8px] bg-black md:w-1/2 lg:w-[580px]"
+            >
+              <video src={c.video} autoPlay muted loop playsInline preload="metadata" className="size-full object-cover" />
             </div>
-            <div className={`min-w-0 flex-1 pb-2 md:pb-0 ${c.mediaFirst ? 'md:pl-12' : 'md:pl-8 md:pr-12'}`}>
+            <div data-card-text className={`min-w-0 flex-1 pb-2 md:pb-0 ${c.mediaFirst ? 'md:pl-12' : 'md:pl-8 md:pr-12'}`}>
               <h3 className="text-[28px] leading-[1.06] font-bold tracking-[-0.045em] text-white md:text-[38px]">
                 {c.title}
               </h3>
@@ -150,6 +169,7 @@ export function StackedCards() {
           </div>
         </article>
       ))}
+      {open && <CardExpand card={CARDS[open.index]} origin={open.origin} onClosed={closed} />}
     </div>
   )
 }

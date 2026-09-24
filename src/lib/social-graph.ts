@@ -106,6 +106,16 @@ export interface FollowRow {
   is_me: boolean
 }
 
+/** Whether the caller may open this profile's follower / following lists.
+ *  A private profile's lists are for the owner and the people it follows back
+ *  (db/private_follow_lists.sql); the server enforces it, this only lets the
+ *  screen say "private" instead of the false "nobody yet". */
+export async function canViewFollowLists(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('can_view_follow_lists', { p_handle: handle })
+  if (error) return true // an unmigrated or failed check must not hide a public list
+  return data === true
+}
+
 export async function followList(
   handle: string,
   kind: 'followers' | 'following',

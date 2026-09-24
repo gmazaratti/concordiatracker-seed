@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Search } from 'lucide-react'
-import { followList, setFollow, type FollowRow } from '@/lib/social-graph'
+import { canViewFollowLists, followList, setFollow, type FollowRow } from '@/lib/social-graph'
 import { useCommunity } from '@/features/community/useCommunity'
 import { useFollows } from '@/app/providers/follows'
 import { OrgLogo } from '@/features/community/OrgLogo'
@@ -145,6 +145,7 @@ function PeopleList({
 }) {
   const [rows, setRows] = useState<FollowRow[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const [busy, setBusy] = useState('')
   const [local, setLocal] = useState<Record<string, boolean>>({})
 
@@ -155,12 +156,17 @@ function PeopleList({
     setShownFor(kind)
     setRows(null)
     setFailed(false)
+    setHidden(false)
   }
 
   useEffect(() => {
     let alive = true
-    void followList(handle, kind)
-      .then((r) => alive && setRows(r))
+    void Promise.all([canViewFollowLists(handle), followList(handle, kind)])
+      .then(([can, r]) => {
+        if (!alive) return
+        setHidden(!can)
+        setRows(r)
+      })
       .catch(() => alive && setFailed(true))
     return () => {
       alive = false
@@ -169,6 +175,9 @@ function PeopleList({
 
   if (failed) return <Empty>Could not load that list.</Empty>
   if (!rows) return <Empty>Loading…</Empty>
+  if (hidden) {
+    return <Empty>This account is private. Only the account and the people it follows back can see this list.</Empty>
+  }
 
   const term = q.trim().toLowerCase()
   const shown = term

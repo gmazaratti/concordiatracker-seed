@@ -1577,7 +1577,7 @@ export const PAGES = {
         p: '**You** is your own profile, exactly as others see it, with an edit button. Your profile is **private by default**: until you make it public in Settings → Privacy, it does not appear in search.',
       },
       {
-        note: 'Follower and following **counts and lists** can be opened from a profile. Your grades are never on your profile or anywhere else another person can see.',
+        note: 'Follower and following **counts** show on every profile. The **lists** behind them are open on public profiles only: on a private profile, only you and the people you follow back can see them. Your grades are never on your profile or anywhere else another person can see.',
       },
     ],
   },
@@ -1767,7 +1767,7 @@ export const PAGES = {
         ul: [
           'A course **outline** you contribute as a blueprint: assessments, dates, and weights, with no grades attached.',
           'Your profile, if you switch it to public. Private is the default, and a private profile does not appear in search.',
-          'Who you follow and who follows you. Follower and following lists can be opened from a profile.',
+          'Who you follow and who follows you: open to anyone if your profile is public; if it is private, only you and the people you follow back can see those lists. The counts are always shown.',
           'Your class schedule, only to the people you allow in Settings → Privacy.',
           'Messages, comments, likes and reposts you send, to the people and clubs involved.',
         ],
