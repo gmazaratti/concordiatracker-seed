@@ -506,7 +506,8 @@ export const fr: Partial<Record<Key, string>> = {
   // ── Auth ──────────────────────────────────────────────────────────────────
   'auth.signIn': 'Se connecter',
   'auth.heroTitle': "Bon retour",
-  'auth.heroSub': "Connectez-vous à votre session. Chaque échéance, exactement là où vous l’avez laissée.",
+  'auth.heroSub': "Connectez-vous à votre session.",
+  'auth.modeLabel': "Se connecter ou créer un compte",
   'auth.keepSignedIn': "Rester connecté",
   'auth.keepSignedInOff': "Sur un ordinateur partagé, déconnectez-vous depuis le menu de votre profil une fois terminé.",
   'auth.resetPassword': "Réinitialiser le mot de passe",

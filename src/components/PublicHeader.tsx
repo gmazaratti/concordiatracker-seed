@@ -3,7 +3,7 @@ import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
 import { LangToggle } from '@/components/LangToggle'
 import { LangSwitch } from '@/components/LangSwitch'
-import { LangDropdown } from '@/components/LangDropdown'
+import { LangTextToggle } from '@/components/LangTextToggle'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 
@@ -21,7 +21,7 @@ const link =
  * `fixed` + `height` exist for a page that pins something just under the
  * header and so needs to know exactly where the header ends. `lang` picks the
  * language control: the compact EN|FR buttons (the live site), the sliding
- * pill, or a plain text dropdown. `docs={false}` leaves Docs out of the bar,
+ * pill, or plain text that switches on press. `docs={false}` leaves Docs out of the bar,
  * for a page that links it from its footer instead.
  */
 export function PublicHeader({
@@ -35,7 +35,7 @@ export function PublicHeader({
   anchors?: Anchor[]
   fixed?: boolean
   height?: number
-  lang?: 'toggle' | 'pill' | 'dropdown'
+  lang?: 'toggle' | 'pill' | 'text'
   docs?: boolean
 }) {
   const t = useT()
@@ -57,7 +57,10 @@ export function PublicHeader({
           height ? 'h-full' : 'py-4',
         )}
       >
-        <Link to="/" aria-label="ConcordiaTracker home">
+        {/* flex, not the default inline: an inline link wrapping a block
+            leaves a line box around it, which is what sat the logo and the
+            button a few pixels off the row's centre. */}
+        <Link to="/" aria-label="ConcordiaTracker home" className="flex items-center">
           <Logo />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
@@ -87,14 +90,14 @@ export function PublicHeader({
           </Link>
           {/* Kept before the CTA so French is visible without scrolling or
               hunting: availability is the point, not decoration. */}
-          {lang === 'dropdown' ? (
-            <LangDropdown className="mr-1" />
+          {lang === 'text' ? (
+            <LangTextToggle className="mr-1" />
           ) : lang === 'pill' ? (
             <LangSwitch className="mr-1" />
           ) : (
             <LangToggle className="mr-1" />
           )}
-          <Link to="/app">
+          <Link to="/app" className="flex">
             <Button size="sm">{t('landing.ctaPrimary')}</Button>
           </Link>
         </nav>

@@ -68,3 +68,24 @@ export function BrandSidebar() {
     </aside>
   )
 }
+
+/**
+ * The real app's phone top bar (StudentLayout, below `md`): the Logo on the
+ * left, search and the account avatar on the right. It stands in for the
+ * sidebar when the embed is phone-sized, so the phone preview is the mobile
+ * Today, not a shrunken desktop.
+ */
+export function BrandMobileBar() {
+  return (
+    <div className="-mx-4 -mt-4 mb-4 flex items-center justify-between border-b border-border px-4 py-3 sm:hidden">
+      <Logo />
+      <div className="flex items-center gap-3">
+        <Search size={18} className="text-muted" aria-hidden />
+        <span className="relative grid size-8 place-items-center rounded-full bg-surface">
+          <Logo showText={false} />
+          <span className="absolute top-0 right-0 size-2 rounded-full bg-accent ring-2 ring-canvas" aria-hidden />
+        </span>
+      </div>
+    </div>
+  )
+}

@@ -499,7 +499,8 @@ export const en = {
   // ── Auth ──────────────────────────────────────────────────────────────────
   'auth.signIn': 'Sign in',
   'auth.heroTitle': "Welcome back",
-  'auth.heroSub': "Sign in to your term. Every deadline, exactly where you left it.",
+  'auth.heroSub': "Sign in to your term.",
+  'auth.modeLabel': "Sign in or create an account",
   'auth.keepSignedIn': "Keep me signed in",
   'auth.keepSignedInOff': "On a shared computer, sign out from your profile menu when you are done.",
   'auth.resetPassword': "Reset password",

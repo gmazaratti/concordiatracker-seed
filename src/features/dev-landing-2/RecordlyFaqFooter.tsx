@@ -92,7 +92,7 @@ const row = 'flex items-center justify-between gap-4 py-4 text-left text-[16px] 
 
 export function RecordlyFaq() {
   return (
-    <section id="faq" className="mx-auto mt-40 grid w-full max-w-[1080px] scroll-mt-[96px] gap-8 md:grid-cols-[1fr_520px]">
+    <section id="faq" className="mx-auto -mt-8 grid md:mt-40 w-full max-w-[1080px] scroll-mt-[96px] gap-8 md:grid-cols-[1fr_520px]">
       <div className="min-w-0">
         <p className="text-[14px] text-[#8b8b8b]">// FAQ</p>
         <h2 className="mt-2 text-[34px] leading-[1.1] tracking-[-0.04em] md:text-[40px]">
@@ -117,7 +117,7 @@ export function RecordlyFaq() {
 
 export function RecordlyFooter() {
   return (
-    <footer className="mx-auto mt-40 flex w-full max-w-[1080px] flex-col gap-10 border-t border-white/10 pt-12 sm:flex-row sm:justify-between">
+    <footer className="mx-auto mt-4 flex md:mt-40 w-full max-w-[1080px] flex-col gap-10 border-t border-white/10 pt-12 sm:flex-row sm:justify-between">
       <div className="min-w-0 max-w-[340px]">
         <a href="#top" className="inline-flex text-white" aria-label="Back to top">
           <Logo />

@@ -8,7 +8,8 @@ import { checkSignup, readAttempts, recordAttempt, waitLabel } from '@/lib/signu
 import { authReturn, explainAuthError, oauthProblem } from '@/lib/auth-return'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
 import { AuthShowcase } from './AuthShowcase'
-import { AppleLineIcon, GoogleLineIcon } from './SsoLineIcons'
+import { GoogleGlyph } from '@/components/GoogleGlyph'
+import { AppleGlyph } from '@/components/AppleGlyph'
 
 /**
  * Both inputs share this one class list, so they cannot drift apart: the same
@@ -176,11 +177,35 @@ export function LoginScreen() {
               <h1 className="font-display text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] text-fg sm:text-[40px]">
                 {creating ? t('auth.createAccount') : t('auth.heroTitle')}
               </h1>
-              <p className="mt-3 text-[14px] leading-relaxed text-muted">
+              <p className="mt-3 text-[14px] leading-relaxed whitespace-nowrap text-muted">
                 {creating ? t('auth.startTracking') : t('auth.heroSub')}
               </p>
 
-              <form onSubmit={handlePassword} className="mt-8 flex flex-col gap-4">
+              {/* The two modes as one segmented control: the active one is the
+                  filled pill, the other plain text. It only switches the mode
+                  the screen already had (create mode keeps its terms gate). */}
+              <div role="group" aria-label={t('auth.modeLabel')} className="mt-6 grid grid-cols-2 rounded-full border border-border bg-surface p-1">
+                {(['signin', 'signup'] as const).map((m) => {
+                  const active = mode === m
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => !active && switchMode(m)}
+                      className={
+                        active
+                          ? 'h-9 rounded-full border border-border bg-canvas text-[13.5px] font-semibold text-fg shadow-sm transition-transform duration-150 active:scale-[0.98]'
+                          : 'h-9 rounded-full border border-transparent text-[13.5px] font-medium text-muted transition-[color,transform] duration-150 hover:text-fg active:scale-[0.98]'
+                      }
+                    >
+                      {m === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <form onSubmit={handlePassword} className="mt-6 flex flex-col gap-4">
                 <div>
                   <label htmlFor="auth-email" className={label}>
                     {t('auth.email')}
@@ -303,41 +328,28 @@ export function LoginScreen() {
                 <span className="h-px flex-1 bg-border" aria-hidden />
               </div>
 
-              {/* Side by side with the provider name alone; the full sentence
-                  is the aria-label, so a screen reader hears all of it. */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Full width, one under the other, with the official marks: the
+                  whole sentence fits, so it is the visible label too. */}
+              <div className="flex flex-col gap-3">
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={() => void handleOAuth('Google')}
-                  aria-label={t('auth.signInGoogle')}
-                  className="w-full rounded-full"
+                  className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
                 >
-                  <GoogleLineIcon />
-                  {t('auth.google')}
+                  <GoogleGlyph />
+                  {t('auth.signInGoogle')}
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={() => void handleOAuth('Apple')}
-                  aria-label={t('auth.signInApple')}
-                  className="w-full rounded-full"
+                  className="w-full gap-2.5 rounded-xl bg-surface hover:bg-surface-2"
                 >
-                  <AppleLineIcon />
-                  {t('auth.apple')}
+                  <AppleGlyph />
+                  {t('auth.signInApple')}
                 </Button>
               </div>
-
-              <p className="mt-8 text-center text-[13px] text-muted">
-                {creating ? t('auth.haveAccount') : t('auth.noAccount')}{' '}
-                <button
-                  type="button"
-                  onClick={() => switchMode(creating ? 'signin' : 'signup')}
-                  className="rounded font-medium text-accent hover:underline"
-                >
-                  {creating ? t('auth.signInInstead') : t('auth.createAnAccount')}
-                </button>
-              </p>
             </>
           )}
         </div>

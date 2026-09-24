@@ -17,7 +17,7 @@ import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { cn } from '@/lib/cn'
 import { useI18n, useT } from '@/i18n/i18n'
-import { BrandSidebar } from './BrandSidebar'
+import { BrandMobileBar, BrandSidebar } from './BrandSidebar'
 
 /** A static, non-interactive recreation of the real Today screen — built from
  * the actual mock data + shared components (CourseChip, ProvenanceBadge) so the
@@ -111,6 +111,8 @@ export function AppPreview({ name, account = 'sample' }: { name?: string; accoun
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col px-4 py-4">
+        {/* On a phone the real app has no sidebar; it has this top bar. */}
+        {brand && <BrandMobileBar />}
         <header className="mb-3">
           <p className="text-[10px] text-subtle">
             {brand
