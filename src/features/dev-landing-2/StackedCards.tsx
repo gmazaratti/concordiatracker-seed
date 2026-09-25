@@ -141,9 +141,9 @@ export function StackedCards() {
               }
             },
           })}
-          className={`sticky top-[88px] rounded-[18px] bg-[#161616] md:top-[128px] ${
+          className={`sticky top-[88px] rounded-[18px] bg-surface md:top-[128px] ${
             desktop
-              ? 'cursor-pointer transition-shadow duration-200 outline-none hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)] focus-visible:shadow-[inset_0_0_0_2px_var(--ct-accent)]'
+              ? 'cursor-pointer transition-shadow duration-200 outline-none hover:shadow-[inset_0_0_0_1px_var(--ct-border-strong)] focus-visible:shadow-[inset_0_0_0_2px_var(--ct-accent)]'
               : ''
           }`}
         >
@@ -161,10 +161,10 @@ export function StackedCards() {
               <video src={c.video} autoPlay muted loop playsInline preload="metadata" className="size-full object-cover" />
             </div>
             <div data-card-text className={`min-w-0 flex-1 pb-2 md:pb-0 ${c.mediaFirst ? 'md:pl-12' : 'md:pl-8 md:pr-12'}`}>
-              <h3 className="text-[28px] leading-[1.06] font-bold tracking-[-0.045em] text-white md:text-[38px]">
+              <h3 className="text-[28px] leading-[1.06] font-bold tracking-[-0.045em] text-fg md:text-[38px]">
                 {c.title}
               </h3>
-              <p className="mt-3 text-[16px] leading-[1.2] text-[#8b8b8b] md:mt-3.5">{c.body}</p>
+              <p className="mt-3 text-[16px] leading-[1.2] text-muted md:mt-3.5">{c.body}</p>
             </div>
           </div>
         </article>

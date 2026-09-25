@@ -12,9 +12,8 @@ import { FAQ_GROUPS, LINK_RE, aKey, plainAnswer, qKey } from './faq-data'
  * `/faq`: the long-form FAQ the navbar links to. The homepage keeps its own
  * short FAQ section; this is where every question gets a full answer.
  *
- * LOCKED TO THE DARK BRAND, like the homepage it is reached from, so the
- * navbar does not change colour between the two. It uses the same navbar,
- * with Features pointing back at the homepage section.
+ * Follows the viewer's theme, like the homepage it is reached from, and uses
+ * the same navbar, with Features pointing back at the homepage section.
  *
  * Answers are plain `<details>`: they open with no JavaScript, keyboard and
  * screen readers handle them natively, and a crawler reads every answer.
@@ -37,7 +36,7 @@ export function FaqPage() {
   })
 
   return (
-    <div id="top" data-theme="dark" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-fg antialiased">
+    <div id="top" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-fg antialiased">
       <PublicHeader
         lang="text"
         docs={false}

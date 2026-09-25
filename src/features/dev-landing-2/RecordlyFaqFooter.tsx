@@ -94,20 +94,20 @@ export function RecordlyFaq() {
   return (
     <section id="faq" className="mx-auto -mt-8 grid md:mt-0 w-full max-w-[1080px] scroll-mt-[96px] gap-8 md:grid-cols-[1fr_520px]">
       <div className="min-w-0">
-        <p className="text-[14px] text-[#8b8b8b]">// FAQ</p>
+        <p className="text-[14px] text-subtle">// FAQ</p>
         <h2 className="mt-2 text-[34px] leading-[1.1] tracking-[-0.04em] md:text-[40px]">
-          Questions? <span className="text-[#8b8b8b]">We&apos;ve got answers.</span>
+          Questions? <span className="text-muted">We&apos;ve got answers.</span>
         </h2>
-        <p className="mt-4 text-[16px] text-[#8b8b8b]">For support, message us from inside the app.</p>
+        <p className="mt-4 text-[16px] text-muted">For support, message us from inside the app.</p>
       </div>
       <div className="flex min-w-0 flex-col gap-3">
         {QUESTIONS.map(({ q, a }) => (
-          <details key={q} className="group rounded-[10px] bg-[#181816] px-4">
+          <details key={q} className="group rounded-[10px] bg-surface px-4">
             <summary className={`${row} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
               {q}
               <Plus size={18} className="shrink-0 transition-transform duration-200 group-open:rotate-45" aria-hidden />
             </summary>
-            <p className="pb-4 text-[15px] leading-[1.4] text-[#b4b4b4]">{a}</p>
+            <p className="pb-4 text-[15px] leading-[1.4] text-muted">{a}</p>
           </details>
         ))}
       </div>
@@ -117,27 +117,27 @@ export function RecordlyFaq() {
 
 export function RecordlyFooter() {
   return (
-    <footer className="mx-auto mt-4 flex md:mt-0 w-full max-w-[1080px] flex-col gap-10 border-t border-white/10 pt-12 sm:flex-row sm:justify-between">
+    <footer className="mx-auto mt-4 flex md:mt-0 w-full max-w-[1080px] flex-col gap-10 border-t border-border pt-12 sm:flex-row sm:justify-between">
       <div className="min-w-0 max-w-[340px]">
-        <a href="#top" className="inline-flex text-white" aria-label="Back to top">
+        <a href="#top" className="inline-flex text-fg" aria-label="Back to top">
           <Logo />
         </a>
-        <p className="mt-3 text-[15px] leading-[1.4] text-[#8b8b8b]">
+        <p className="mt-3 text-[15px] leading-[1.4] text-muted">
           Deadlines, grades and GPA, built for Concordia students.
         </p>
-        <p className="mt-2 text-[13px] text-[#8b8b8b]">Not affiliated with Concordia University.</p>
+        <p className="mt-2 text-[13px] text-subtle">Not affiliated with Concordia University.</p>
       </div>
       <nav aria-label="Footer" className="min-w-0">
-        <p className="text-[14px] font-semibold text-white">Navigation</p>
-        <ul className="mt-3 flex flex-col gap-2 text-[15px] text-[#8b8b8b]">
+        <p className="text-[14px] font-semibold text-fg">Navigation</p>
+        <ul className="mt-3 flex flex-col gap-2 text-[15px] text-muted">
           {FOOTER_LINKS.map(([label, href, spa]) => (
             <li key={href}>
               {spa ? (
-                <Link to={href} className="transition-colors hover:text-white">
+                <Link to={href} className="transition-colors hover:text-fg">
                   {label}
                 </Link>
               ) : (
-                <a href={href} className="transition-colors hover:text-white">
+                <a href={href} className="transition-colors hover:text-fg">
                   {label}
                 </a>
               )}

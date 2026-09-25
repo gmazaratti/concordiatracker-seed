@@ -19,11 +19,12 @@ const HEADER_H = 76
  * ConcordiaTracker's own navbar, colours and copy. Hidden, noindex, linked
  * from nowhere; the live landing page is untouched.
  *
- * LOCKED TO THE DARK BRAND. The root carries `data-theme="dark"`, and every
- * token rule in index.css is written against `[data-theme]` rather than only
- * `:root`, so this subtree resolves to the real brand palette (canvas #0f0f16,
- * sage accent) whatever theme the viewer picked in the app. Text colours and
- * type are still the comp's own, on purpose, until those are decided.
+ * FOLLOWS THE VIEWER'S THEME, as the original landing did. Every colour is a
+ * token (fg / muted / subtle / surface / canvas / border), so a light or
+ * custom theme repaints the whole page. It was locked to dark with the comp's
+ * own hex greys until 2026-09-25. What stays black is only what sits on media
+ * (video letterboxing, the dialog backdrop, shadows) and the stacking cards'
+ * scroll mask, which is an alpha channel, not a colour.
  *
  * THE HERO is the main landing page's side-by-side composition: the copy and
  * both buttons on the left, the live Today embed on the right, bleeding off
@@ -38,7 +39,7 @@ export function RecordlyPage() {
   const t = useT()
 
   return (
-    <div id="top" data-theme="dark" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-white antialiased">
+    <div id="top" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-fg antialiased">
       <PublicHeader
         fixed
         lang="text"
@@ -61,14 +62,14 @@ export function RecordlyPage() {
                   starts 0.94px into its own, so the eyebrow is nudged by the
                   difference, computed from the headline's own clamp so it holds
                   at every width. Measured with canvas text metrics. */}
-              <p className="pl-[calc(0.03125*clamp(2.5rem,5vw,4.5rem)_-_0.94px)] text-[12px] font-medium tracking-[0.22em] text-[#9b9b9b] uppercase">
+              <p className="pl-[calc(0.03125*clamp(2.5rem,5vw,4.5rem)_-_0.94px)] text-[12px] font-medium tracking-[0.22em] text-muted uppercase">
                 {t('landing.eyebrow')}
               </p>
               {/* The main landing page's hero headline, class for class. */}
               <h1 className="mt-5 font-display text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.02] font-medium tracking-[-0.022em] text-fg">
                 {t('landing.heroTitle')} <span className="text-accent">{t('landing.heroTitleAccent')}.</span>
               </h1>
-              <p className="mt-6 max-w-md text-[17px] leading-[1.45] text-[#9b9b9b] md:text-[18px]">{t('landing.heroBody')}</p>
+              <p className="mt-6 max-w-md text-[17px] leading-[1.45] text-muted md:text-[18px]">{t('landing.heroBody')}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link to="/app" className="w-full sm:w-auto">
                   <Button size="lg" className="group w-full sm:w-auto">
@@ -82,7 +83,7 @@ export function RecordlyPage() {
                   </Button>
                 </a>
               </div>
-              <p className="mt-4 text-[12.5px] text-[#8b8b8b]">{t('landing.freeToStart')}</p>
+              <p className="mt-4 text-[12.5px] text-subtle">{t('landing.freeToStart')}</p>
             </div>
 
             {/* The real Today screen, live: AppPreview is the actual Today layout
@@ -111,10 +112,15 @@ export function RecordlyPage() {
             wait under a band of empty space. */}
         <div className="relative z-10 bg-canvas px-4 pt-6 pb-16 md:pt-4">
           <div className="text-center">
-            <p className="text-[18px] text-[#8b8b8b] md:text-[20px]">Built by fellow students</p>
-            <p className="mt-2 flex items-center justify-center gap-2.5 text-[26px] font-bold tracking-[-0.03em] text-[#9b9b9b] md:text-[30px]">
+            <p className="text-[18px] text-muted md:text-[20px]">Built by fellow students</p>
+            {/* The brand wordmark as the Logo draws it (display face, medium,
+                "Tracker" a step quieter), not bold Inter, which read as a
+                different logo. Toned down as a whole, like a logo strip. */}
+            <p className="mt-2 flex items-center justify-center gap-2.5 font-display text-[26px] leading-none font-medium tracking-[-0.02em] text-muted md:text-[30px]">
               <Logo showText={false} />
-              ConcordiaTracker
+              <span>
+                Concordia<span className="text-subtle">Tracker</span>
+              </span>
             </p>
           </div>
 
@@ -134,13 +140,13 @@ export function RecordlyPage() {
           {/* The main page's closing section, in the same place: after the FAQ. */}
           <section className="-mx-4 mt-16 border-t border-border/60 px-5 pt-20 pb-10 sm:pt-36 sm:pb-16 md:mt-32">
             <div className="mx-auto grid w-full max-w-[1080px] items-end gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-              <h2 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.04] font-medium text-white">
+              <h2 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1.04] font-medium text-fg">
                 {t('landing.ctaHeadingA')}
                 <br />
                 {t('landing.ctaHeadingB')}
               </h2>
               <div className="lg:pb-2">
-                <p className="max-w-sm text-[15px] leading-relaxed text-[#9b9b9b]">{t('landing.ctaBody')}</p>
+                <p className="max-w-sm text-[15px] leading-relaxed text-muted">{t('landing.ctaBody')}</p>
                 <Link to="/app" className="mt-6 inline-block">
                   <Button size="lg" className="group">
                     {t('landing.ctaPrimary')}

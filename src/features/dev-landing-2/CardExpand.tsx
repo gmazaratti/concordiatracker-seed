@@ -118,7 +118,7 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
   const move = `left ${DURATION}ms ${EASE}, top ${DURATION}ms ${EASE}, width ${DURATION}ms ${EASE}, height ${DURATION}ms ${EASE}, border-radius ${DURATION}ms ${EASE}`
 
   return createPortal(
-    <div data-theme="dark" className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label={card.title}>
+    <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label={card.title}>
       {/* Clicking anywhere outside the panel closes it. */}
       <div
         className="absolute inset-0 bg-black/70 transition-opacity duration-300"
@@ -126,7 +126,7 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
         onClick={close}
       />
       <div
-        className="absolute overflow-hidden bg-[#161616] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]"
+        className="absolute overflow-hidden bg-surface shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]"
         style={{ ...panel, borderRadius: open ? 24 : 18, transition: move }}
       >
         <video
@@ -151,8 +151,8 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
           }}
           aria-hidden
         >
-          <p className="text-[38px] leading-[1.06] font-bold tracking-[-0.045em] text-white">{card.title}</p>
-          <p className="mt-3.5 text-[16px] leading-[1.2] text-[#8b8b8b]">{card.body}</p>
+          <p className="text-[38px] leading-[1.06] font-bold tracking-[-0.045em] text-fg">{card.title}</p>
+          <p className="mt-3.5 text-[16px] leading-[1.2] text-muted">{card.body}</p>
         </div>
 
         <div
@@ -168,8 +168,8 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
           }}
         >
           <div>
-            <h3 className="text-[30px] leading-[1.08] font-bold tracking-[-0.045em] text-white">{card.title}</h3>
-            <p className="mt-1.5 text-[16px] leading-[1.4] text-[#b4b4b4]">{card.intro}</p>
+            <h3 className="text-[30px] leading-[1.08] font-bold tracking-[-0.045em] text-fg">{card.title}</h3>
+            <p className="mt-1.5 text-[16px] leading-[1.4] text-muted">{card.intro}</p>
             <ul className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4">
               {card.points.map((pt) => (
                 <li key={pt.label} className="flex gap-3">
@@ -177,8 +177,8 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
                     <Check size={12} strokeWidth={2.5} aria-hidden />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[14.5px] font-semibold text-white">{pt.label}</span>
-                    <span className="mt-0.5 block text-[14.5px] leading-[1.4] text-[#9b9b9b]">{pt.text}</span>
+                    <span className="block text-[14.5px] font-semibold text-fg">{pt.label}</span>
+                    <span className="mt-0.5 block text-[14.5px] leading-[1.4] text-muted">{pt.text}</span>
                   </span>
                 </li>
               ))}
@@ -191,7 +191,7 @@ export function CardExpand({ card, origin, onClosed }: { card: Card; origin: Ori
           type="button"
           onClick={close}
           aria-label="Close"
-          className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-[background-color,opacity] duration-200 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-accent"
+          className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-fg/10 text-fg transition-[background-color,opacity] duration-200 hover:bg-fg/20 focus-visible:outline-2 focus-visible:outline-accent"
           style={{ opacity: open ? 1 : 0 }}
         >
           <X size={18} aria-hidden />

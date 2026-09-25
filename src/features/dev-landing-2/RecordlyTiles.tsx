@@ -36,13 +36,13 @@ export function RecordlyTiles() {
         return (
           <div
             key={title}
-            className={`flex min-w-0 flex-col rounded-[10px] bg-[#181816] p-4 sm:block sm:p-5 ${PHONE[i] ?? ''} ${
+            className={`flex min-w-0 flex-col rounded-[10px] bg-surface p-4 sm:block sm:p-5 ${PHONE[i] ?? ''} ${
               banner ? 'max-sm:flex-row max-sm:items-start max-sm:gap-4' : ''
             }`}
           >
             {visual && <LoopVisual />}
             <span
-              className={`grid shrink-0 place-items-center rounded-full bg-[#0c0c0b] ${
+              className={`grid shrink-0 place-items-center rounded-full bg-canvas ${
                 banner ? 'size-14 sm:size-16' : 'size-11 sm:size-16'
               } ${visual ? 'max-sm:hidden' : ''}`}
             >
@@ -57,7 +57,7 @@ export function RecordlyTiles() {
                 {title}
               </h3>
               <p
-                className={`mt-2 leading-[1.35] whitespace-pre-line text-[#dcdcdc] sm:mt-2.5 sm:text-[16px] sm:leading-[1.3] ${
+                className={`mt-2 leading-[1.35] whitespace-pre-line text-fg sm:mt-2.5 sm:text-[16px] sm:leading-[1.3] ${
                   banner ? 'text-[15px]' : 'text-[13.5px]'
                 }`}
               >
@@ -79,8 +79,8 @@ export function RecordlyTiles() {
  */
 function LoopVisual() {
   return (
-    <div className="relative mb-1 grid aspect-square w-full place-items-center rounded-[8px] bg-[#0c0c0b] sm:hidden" aria-hidden>
-      <svg viewBox="0 0 120 120" className="size-[82%] text-white/25">
+    <div className="relative mb-1 grid aspect-square w-full place-items-center rounded-[8px] bg-canvas sm:hidden" aria-hidden>
+      <svg viewBox="0 0 120 120" className="size-[82%] text-fg/25">
         <path
           d="M60 22c22 0 34 12 34 26s-14 22-34 22-34 10-34 24 12 18 34 18 34-8 34-22-12-22-34-24-34-12-34-26 12-18 34-18z"
           fill="none"
@@ -90,7 +90,7 @@ function LoopVisual() {
           strokeLinecap="round"
         />
       </svg>
-      <BellRing size={26} strokeWidth={1.6} className="absolute top-[14%] left-[50%] -translate-x-1/2 text-white" />
+      <BellRing size={26} strokeWidth={1.6} className="absolute top-[14%] left-[50%] -translate-x-1/2 text-fg" />
     </div>
   )
 }

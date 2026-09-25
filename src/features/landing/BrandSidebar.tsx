@@ -57,7 +57,8 @@ export function BrandSidebar() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1">
-            <span className="truncate text-[12px] font-medium text-fg">ConcordiaTracker</span>
+            {/* "CTracker": the full name does not fit beside the seal and truncated to "ConcordiaTr…". */}
+            <span className="truncate text-[12px] font-medium text-fg">CTracker</span>
             <VerifiedBadge size={12} tone="text-success" label="Staff · ConcordiaTracker" />
           </span>
           <span className="block truncate text-[10.5px] font-medium text-accent">Administrator</span>

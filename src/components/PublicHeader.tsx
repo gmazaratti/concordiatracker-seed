@@ -5,6 +5,7 @@ import { LangToggle } from '@/components/LangToggle'
 import { LangSwitch } from '@/components/LangSwitch'
 import { LangTextToggle } from '@/components/LangTextToggle'
 import { useI18n } from '@/i18n/i18n'
+import { useAuth } from '@/app/providers/auth'
 import type { Key } from '@/i18n/en'
 import { cn } from '@/lib/cn'
 
@@ -43,7 +44,14 @@ export function PublicHeader({
   cta?: 'app' | 'account'
 }) {
   const { t } = useI18n()
-  const ctaKey: Key = cta === 'account' ? 'landing.signInUp' : 'landing.ctaPrimary'
+  const { user, loading } = useAuth()
+  /* Somebody who is already signed in is not looking for "Sign in", they
+     are looking for their dashboard. Until the session check answers, the
+     sign-in label stands: it is the right answer for a first visit, which
+     is who this page is for. */
+  const signedIn = !loading && !!user
+  const ctaKey: Key =
+    cta === 'account' ? (signedIn ? 'landing.dashboard' : 'landing.signInUp') : 'landing.ctaPrimary'
   const sections = anchors ?? [
     { href: '#how', label: t('landing.howItWorks') },
     { href: '#pricing', label: t('landing.pricing') },
