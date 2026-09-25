@@ -22,6 +22,8 @@ export interface UiState {
    * so a layout survives a reload and follows you between devices. */
   todayWidgets?: string[]
   checklistDismissed?: boolean
+  /** Finished or skipped the teacher portal's setup wizard. */
+  teacherSetupDone?: boolean
   communityVisited?: boolean
   tipsSeen?: string[]
   /** Opt-in: pin the feature-requests board as a sidebar item. */

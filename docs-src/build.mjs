@@ -77,6 +77,7 @@ const staticUrls = [
   { loc: `${SITE}/`, priority: '1.0', changefreq: 'weekly' },
   { loc: `${SITE}/concordia-gpa-calculator`, priority: '0.8', changefreq: 'monthly' },
   { loc: `${SITE}/concordia-syllabus-tracker`, priority: '0.8', changefreq: 'monthly' },
+  { loc: `${SITE}/faq`, priority: '0.7', changefreq: 'monthly' },
   { loc: `${SITE}/about`, priority: '0.6', changefreq: 'yearly' },
   { loc: `${SITE}/contact`, priority: '0.6', changefreq: 'yearly' },
   { loc: `${SITE}/developers`, priority: '0.7', changefreq: 'monthly' },

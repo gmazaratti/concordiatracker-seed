@@ -9,8 +9,10 @@ import { cn } from '@/lib/cn'
  * language. There are two, so a menu to pick one of them was a step for
  * nothing.
  *
- * Sized like the header's other items (32px tall, 13px text) so it sits on
- * the same centre line. The chevron turns over when French is on, which is
+ * Sized like the header's other items (32px tall, 13px text, 1.5 line
+ * height) so it sits on the same baseline. The line height matters: with
+ * `leading-none` the text box was 13px where the links' is 19.5px, so it
+ * centred onto a different sub-pixel and rendered 1px high. The chevron turns over when French is on, which is
  * the only other thing that says which way it will go next.
  */
 export function LangTextToggle({ className }: { className?: string }) {
@@ -23,7 +25,7 @@ export function LangTextToggle({ className }: { className?: string }) {
       onClick={() => setLang(next.id)}
       aria-label={`${LANGS[i].label}. Switch to ${next.label}`}
       className={cn(
-        'inline-flex h-8 items-center gap-1 rounded-md px-2 text-[13px] leading-none font-medium tracking-[0.04em] text-muted uppercase transition-[color,transform] duration-150 hover:text-fg active:scale-[0.97]',
+        'inline-flex h-8 items-center gap-1 rounded-md px-2 text-[13px] leading-[1.5] font-medium tracking-[0.04em] text-muted uppercase transition-[color,transform] duration-150 hover:text-fg active:scale-[0.97]',
         className,
       )}
     >

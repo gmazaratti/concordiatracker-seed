@@ -47,7 +47,7 @@ export function RecordlyPage() {
         height={HEADER_H}
         anchors={[
           { href: '#features', label: 'Features' },
-          { href: '#faq', label: 'FAQ' },
+          { href: '/faq', label: 'FAQ' },
         ]}
       />
 

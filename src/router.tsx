@@ -70,6 +70,7 @@ const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ de
 const OriginalLanding = lazy(() => import('@/features/landing/OriginalLanding').then((x) => ({ default: x.OriginalLanding })))
 const DevLandingPage = lazy(() => import('@/features/dev-landing/DevLandingPage').then((x) => ({ default: x.DevLandingPage })))
 const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then((x) => ({ default: x.DevLoginPage })))
+const FaqPage = lazy(() => import('@/features/faq/FaqPage').then((x) => ({ default: x.FaqPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
 /** Route tree for the three contexts: public, student app, teacher portal. */
@@ -85,6 +86,8 @@ export function AppRoutes() {
           cookie, noindex, canonical to /. */}
       <Route index element={<RecordlyPage />} />
       <Route path="/r" element={<RefLanding source="reddit" />} />
+      {/* The long-form FAQ; like the homepage, it brings its own header. */}
+      <Route path="/faq" element={<FaqPage />} />
 
       {/* Public marketing context */}
       <Route element={<PublicLayout />}>

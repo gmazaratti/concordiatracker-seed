@@ -123,6 +123,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
   const publishedBlueprintIds = useRef<Map<string, string>>(new Map())
   // The logged-in user's OWN persisted teacher courses (loaded from teacher_courses).
   const [myCourses, setMyCourses] = useState<TeacherCourse[]>([])
+  /* WHOSE courses are loaded, not a boolean: `myCourses` is empty both before
+     the query answers and for a teacher with none, and the setup wizard opens
+     on exactly one of those. Keyed by account so switching users re-waits. */
+  const [coursesLoadedFor, setCoursesLoadedFor] = useState<string | null>(null)
+  /* The name students see on your verified outline and announcements, from
+     `teacher_accounts.name`. Null until read, or when there is no row yet,
+     and then the account's display name stands in. */
+  const [teacherName, setTeacherName] = useState<string | null>(null)
   // Every org the logged-in user can manage: owned + member-of + (all, if admin).
   const [myOrgs, setMyOrgs] = useState<OrgAccount[]>([])
   /*
@@ -196,6 +204,26 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // The name you publish under, if you have set one.
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      if (!authUser) {
+        if (active) setTeacherName(null)
+        return
+      }
+      const { data } = await supabase
+        .from('teacher_accounts')
+        .select('name')
+        .eq('user_id', authUser.id)
+        .maybeSingle()
+      if (active) setTeacherName((data as { name: string | null } | null)?.name?.trim() || null)
+    })()
+    return () => {
+      active = false
+    }
+  }, [authUser])
+
   // Load the logged-in user's own teacher courses (+ restore published blueprint ids).
   useEffect(() => {
     let active = true
@@ -211,6 +239,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         .order('created_at')
       if (!active) return
       const rows = (data as TeacherCourseRow[] | null) ?? []
+      setCoursesLoadedFor(authUser.id)
       for (const r of rows) if (r.blueprint_id) publishedBlueprintIds.current.set(r.id, r.blueprint_id)
       setMyCourses(
         rows.map((r) => ({
@@ -406,14 +435,14 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     if (sessionId === SELF && authUser) {
       return {
         id: SELF,
-        name: user.name,
+        name: teacherName ?? user.name,
         email: authUser.email ?? user.email,
         status: 'approved',
         courses: myCourses,
       }
     }
     return teachers.find((t) => t.id === sessionId) ?? null
-  }, [sessionId, authUser, user.name, user.email, myCourses, teachers])
+  }, [sessionId, authUser, teacherName, user.name, user.email, myCourses, teachers])
   const currentOrg = useMemo<OrgAccount | null>(() => {
     if (sessionId === SELF_ORG) {
       if (!myOrg) return null
@@ -503,12 +532,34 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     if (!authUser) return
     setSessionId(SELF)
     fireWrite(
+      /* Insert only. This used to overwrite `name` with the account's display
+         name on every visit, which would undo the name a teacher chose to
+         publish under the next time they opened the portal. */
       supabase.from('teacher_accounts').upsert(
         { user_id: authUser.id, name: user.name, email: authUser.email ?? '', status: 'approved' },
-        { onConflict: 'user_id' },
+        { onConflict: 'user_id', ignoreDuplicates: true },
       ),
     )
   }, [authUser, user.name])
+
+  /** Set the name students see on your outlines and announcements. */
+  const renameTeacher = useCallback(
+    (name: string) => {
+      const next = name.trim()
+      if (!next) return
+      if (sessionId === SELF && authUser) {
+        setTeacherName(next)
+        fireWrite(
+          supabase.from('teacher_accounts').update({ name: next }).eq('user_id', authUser.id),
+          'Your name did not save',
+        )
+        return
+      }
+      setTeachers((prev) => prev.map((t) => (t.id === sessionId ? { ...t, name: next } : t)))
+    },
+    [sessionId, authUser],
+  )
+  const coursesLoaded = sessionId !== SELF || (!!authUser && coursesLoadedFor === authUser.id)
   const signInDemo = useCallback(() => setSessionId('t-hanna'), [])
   const signInDemoOrg = useCallback(() => setSessionId('org-hack'), [])
 
@@ -1422,6 +1473,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currentTeacher,
       isDemoSession,
+      isSelfTeacher: sessionId === SELF,
+      coursesLoaded,
+      renameTeacher,
       signInSelf,
       signIn,
       signInDemo,
@@ -1488,6 +1542,8 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     [
       currentTeacher,
       isDemoSession,
+      coursesLoaded,
+      renameTeacher,
       signInSelf,
       signIn,
       signInDemo,

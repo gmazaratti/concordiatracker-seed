@@ -5,8 +5,7 @@ import { LangToggle } from '@/components/LangToggle'
 import { LangSwitch } from '@/components/LangSwitch'
 import { LangTextToggle } from '@/components/LangTextToggle'
 import { useI18n } from '@/i18n/i18n'
-import { en, type Key } from '@/i18n/en'
-import { fr } from '@/i18n/fr'
+import type { Key } from '@/i18n/en'
 import { cn } from '@/lib/cn'
 
 type Anchor = { href: string; label: string }
@@ -74,11 +73,20 @@ export function PublicHeader({
           <Logo className={cta === 'account' ? 'max-sm:[&>span]:hidden' : undefined} />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
-          {sections.map((s) => (
-            <a key={s.href} href={s.href} className={link}>
-              {s.label}
-            </a>
-          ))}
+          {/* An in-app page (a path with no fragment, like /faq) goes through
+              the router; a section on a page (#how, /#features) stays a plain
+              anchor so the browser scrolls to it. */}
+          {sections.map((s) =>
+            s.href.startsWith('/') && !s.href.includes('#') ? (
+              <Link key={s.href} to={s.href} className={link}>
+                {s.label}
+              </Link>
+            ) : (
+              <a key={s.href} href={s.href} className={link}>
+                {s.label}
+              </a>
+            ),
+          )}
           {docs && (
             <a href="/docs/introduction" className={link}>
               {t('landing.docs')}
@@ -108,17 +116,7 @@ export function PublicHeader({
             <LangToggle className="mr-1" />
           )}
           <Link to="/app" className="flex">
-            <Button size="sm">
-              {/* Width-locked only for the homepage's longer Sign in / Sign Up,
-                  which has the room for it. Locking "Open the app" to its
-                  French length pushed the other public pages' header past a
-                  390px screen. */}
-              {cta === 'account' ? (
-                <SameWidth labels={[en[ctaKey], fr[ctaKey] ?? en[ctaKey]]} shown={t(ctaKey)} />
-              ) : (
-                t(ctaKey)
-              )}
-            </Button>
+            <Button size="sm">{t(ctaKey)}</Button>
           </Link>
         </nav>
       </div>
@@ -126,26 +124,3 @@ export function PublicHeader({
   )
 }
 
-/**
- * A label that is always as wide as the widest of its translations. Every
- * version sits in the same grid cell and only the current one is visible, so
- * switching language cannot resize the button, and nothing beside it (the
- * language toggle that was just pressed) moves. Measured from the real text
- * rather than a pixel width, so a font or copy change cannot outgrow it.
- */
-function SameWidth({ labels, shown }: { labels: string[]; shown: string }) {
-  return (
-    <span className="grid justify-items-center">
-      {labels.map((l, i) => (
-        <span
-          key={i}
-          aria-hidden={l !== shown || undefined}
-          className={cn('col-start-1 row-start-1 whitespace-nowrap', l !== shown && 'invisible')}
-        >
-          {l}
-        </span>
-      ))}
-      {!labels.includes(shown) && <span className="col-start-1 row-start-1">{shown}</span>}
-    </span>
-  )
-}

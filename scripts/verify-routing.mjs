@@ -124,6 +124,7 @@ const appRoutes = [
   '/organizer/event/ev-1',
   '/organizer/join/tok123',
   '/organizer/apply',
+  '/faq',
   '/join/tok123',
   '/admin',
   '/feedback',

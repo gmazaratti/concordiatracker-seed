@@ -31,6 +31,12 @@ export interface TeacherContextValue {
   isDemoSession: boolean
   /** Enter the portal as YOUR real logged-in account (a persistent, approved
    * teacher whose courses are saved to `teacher_courses`). */
+  /** Signed in as your own real account (not a demo or seeded teacher). */
+  isSelfTeacher: boolean
+  /** Your own courses have been read at least once (always true for a demo). */
+  coursesLoaded: boolean
+  /** Set the name students see on your outlines and announcements. */
+  renameTeacher: (name: string) => void
   signInSelf: () => void
   /** Sign in by email; returns false if no account matches. */
   signIn: (email: string) => boolean
