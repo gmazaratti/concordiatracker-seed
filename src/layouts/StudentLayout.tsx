@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
 import { useScrollMemory } from '@/app/hooks/useScrollMemory'
@@ -20,6 +20,8 @@ import { SettingsLayer } from '@/features/settings/SettingsLayer'
 import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { NotificationToast } from '@/features/community/NotificationToast'
+import { ActivityLayer } from '@/features/community/ActivityLayer'
+import { markTabRendered } from '@/lib/view-transition'
 import { LiveMessages } from '@/features/profile/LiveMessages'
 import { ThemePreviewBar } from '@/components/ThemePreviewBar'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
@@ -43,6 +45,10 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   const { user, loading } = useAuth()
   const { onboardingCompleted, courses, pastCourses } = useAppData()
   const { pathname } = useLocation()
+  // A tab animates only once its (lazy) page has rendered: lib/view-transition.
+  useEffect(() => {
+    markTabRendered(pathname)
+  }, [pathname])
   // Before the early returns: a hook is a hook. It writes nothing
   // outside /app, so the login screen and a public profile keep their
   // own titles.
@@ -99,7 +105,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
             one you happen to be on. */}
         <MessageToast />
 
-        <main ref={scroller} className="relative flex-1 overflow-y-auto">
+        <main ref={scroller} id="app-main" className="relative flex-1 overflow-y-auto">
           {/* `children` for the one page that lives at a top-level URL but
               still belongs inside the app: a public profile at /@handle, which
               a signed-in student should see with their sidebar rather than as
@@ -127,6 +133,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       {/* Mounted on the shell, not in Community: the point is that it finds
           you on whatever page you land on. */}
       <NotificationToast />
+      <ActivityLayer />
       {/* One inbox subscription for the whole app: a message can land while
           you are anywhere, and the list that cares is usually not on screen. */}
       <LiveMessages />

@@ -10,7 +10,6 @@ import { Mascot } from '@/components/Mascot'
 import { EventsFeed } from './EventsFeed'
 import { FeedSection } from './FeedSection'
 import { CommunityRail } from './CommunityRail'
-import { ActivityPanel } from './ActivityPanel'
 import { CommunitySearchBar } from './SearchOverlay'
 import { DEFAULT_SECTION, isCommunitySection, type CommunitySection } from './sections'
 
@@ -38,17 +37,8 @@ import { DEFAULT_SECTION, isCommunitySection, type CommunitySection } from './se
 export function CommunityPage() {
   const { loaded, uiState, patchUiState } = useUiState()
   const { user } = useAppData()
-  const [params, setParams] = useSearchParams()
-  /*
-   * READ FROM THE URL EVERY RENDER, not captured once on mount.
-   *
-   * It was initial state, so it only ever opened if `?activity=1` was in the
-   * address when this page first mounted. Pressing the bell from inside
-   * Community is a same-route navigation — nothing remounts — so the param
-   * appeared and the panel did not. That is the whole of "clicking
-   * notifications on my own profile does nothing except move me".
-   */
-  const activity = params.get('activity') === '1'
+  const [params] = useSearchParams()
+  // The notifications panel lives in the app shell now (ActivityLayer).
 
   // Completes the getting-started "Explore Community" step.
   useEffect(() => {
@@ -149,17 +139,6 @@ export function CommunityPage() {
         </ErrorBoundary>
       </div>
 
-      {activity && (
-        <ActivityPanel
-          onClose={() => {
-            // Closing it is closing the URL: one source of truth, so Back
-            // behaves and a second press reopens it.
-            const p = new URLSearchParams(params)
-            p.delete('activity')
-            setParams(p, { replace: true })
-          }}
-        />
-      )}
     </div>
   )
 }

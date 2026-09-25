@@ -74,11 +74,15 @@ export function communityHref(section: CommunitySection): string {
  * and anything else that was in there. From outside Community there is nothing
  * to keep and this is the old constant.
  */
-export function activityHref(search?: string): string {
-  const params = new URLSearchParams(search ?? '')
+export function activityHref(pathname: string, search?: string): string {
+  /* THE PANEL OPENS WHERE YOU ARE (ActivityLayer, in the app shell). So the
+     address is the current page plus `activity=1`, keeping everything already
+     in the query. Outside the student app there is no shell to open it in,
+     so that case still goes to Community. */
+  const base = pathname.startsWith('/app') ? pathname : '/app/community'
+  const params = new URLSearchParams(pathname.startsWith('/app') ? (search ?? '') : '')
   params.set('activity', '1')
-  const query = params.toString()
-  return query ? `/app/community?${query}` : '/app/community?activity=1'
+  return `${base}?${params.toString()}`
 }
 
 /** Are we looking at our own profile right now? Both addresses count: the

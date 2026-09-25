@@ -32,6 +32,7 @@ import { cn } from '@/lib/cn'
 import { badgeForPerson } from '@/features/profile/badges'
 import { useCommunityData } from '@/app/providers/community-data'
 import { activityHref, onOwnProfile } from '@/features/community/sections'
+import { useTransitionClick } from '@/lib/view-transition'
 
 /** The people who built this — badged with a verification seal in the profile
  * block (cosmetic; admin rights are gated separately in the DB). Kept as
@@ -144,7 +145,7 @@ export function AvatarMenu({
               only exists inside Community. Nobody hunts for a bell on a page
               they are not on, so there is a door here too, on every screen. */}
           <MenuLink
-            to={activityHref(location.pathname.startsWith('/app/community') ? location.search : '')}
+            to={activityHref(location.pathname, location.search)}
             icon={Bell}
             onSelect={() => setOpen(false)}
           >
@@ -427,11 +428,13 @@ function MenuLink({
   onSelect: () => void
   children: React.ReactNode
 }) {
+  const transition = useTransitionClick()
   return (
     <Link
       to={to}
       role="menuitem"
-      onClick={onSelect}
+      // Back to the landing page reverses the landing → dashboard transition.
+      onClick={to === '/' ? transition('/', 'leave-app', onSelect) : onSelect}
       className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
     >
       <Icon size={16} aria-hidden />

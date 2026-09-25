@@ -53,7 +53,7 @@ function line(item: ActivityItem): { title: string; sub: string; href: string } 
       return {
         title: item.n.title,
         sub: item.n.kind === 'follow' ? 'New follower' : 'Feature request',
-        href: item.n.link ?? '/app/community?activity=1',
+        href: item.n.link ?? '/app?activity=1',
       }
   }
 }
@@ -117,7 +117,7 @@ export function ActivityWidget({ zone }: { zone?: 'rail' | 'wide' | 'half' }) {
             })}
           </ul>
           <Link
-            to="/app/community?activity=1"
+            to="/app?activity=1"
             className="block border-t border-border/60 px-3.5 py-2 text-[12px] font-medium text-accent transition-colors duration-150 hover:bg-surface-2/50"
           >
             See all activity

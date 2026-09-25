@@ -53,7 +53,9 @@ export function SupportModal({ onClose }: { onClose: () => void }) {
   return (
     <ModalShell label="Support" onClose={onClose} widthClass="sm:max-w-lg" scroll={false}>
       <div className="flex h-[min(78vh,620px)] flex-col pb-[env(safe-area-inset-bottom)] sm:pb-0">
-        <header className="flex items-center gap-2 border-b border-border px-4 py-3">
+        {/* pr-14 keeps the right edge clear of ModalShell's close button, which
+            sits absolute in the top-right corner and was covering "New". */}
+        <header className="flex items-center gap-2 border-b border-border py-3 pr-14 pl-4">
           {view.mode !== 'list' && (
             <button
               type="button"

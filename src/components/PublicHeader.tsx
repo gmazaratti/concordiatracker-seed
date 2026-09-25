@@ -1,5 +1,5 @@
-import { flushSync } from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { useTransitionClick } from '@/lib/view-transition'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/Button'
 import { LangToggle } from '@/components/LangToggle'
@@ -46,7 +46,8 @@ export function PublicHeader({
 }) {
   const { t } = useI18n()
   const { user, loading } = useAuth()
-  const navigate = useNavigate()
+  // Signed in and heading to the dashboard: cross-fade into the app.
+  const transition = useTransitionClick()
   /* Somebody who is already signed in is not looking for "Sign in", they
      are looking for their dashboard. Until the session check answers, the
      sign-in label stands: it is the right answer for a first visit, which
@@ -125,31 +126,11 @@ export function PublicHeader({
           ) : (
             <LangToggle className="mr-1" />
           )}
-          <Link to="/app" className="flex" onClick={(e) => signedIn && enterApp(e, navigate)}>
+          <Link to="/app" className="flex" onClick={signedIn ? transition('/app', 'enter-app') : undefined}>
             <Button size="sm">{t(ctaKey)}</Button>
           </Link>
         </nav>
       </div>
     </header>
   )
-}
-
-/**
- * Signed in and heading to the dashboard: cross-fade the landing page into
- * the app with the browser's View Transitions, instead of a hard cut. The
- * app shell and Today are loaded up front (not lazy), so the new page is
- * ready inside the same frame and the transition has something to land on.
- * Plain navigation where the API is missing (Firefox) or motion is reduced;
- * the animation itself lives in index.css (`ct-enter-app`).
- */
-function enterApp(e: React.MouseEvent, navigate: ReturnType<typeof useNavigate>) {
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (!doc.startViewTransition || reduce || e.metaKey || e.ctrlKey || e.shiftKey) return
-  e.preventDefault()
-  document.documentElement.classList.add('ct-enter-app')
-  const done = doc.startViewTransition(() => flushSync(() => navigate('/app'))) as { finished?: Promise<void> }
-  const clear = () => document.documentElement.classList.remove('ct-enter-app')
-  if (done.finished) void done.finished.then(clear, clear)
-  else clear()
 }

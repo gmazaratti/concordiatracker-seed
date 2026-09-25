@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { activityHref } from './sections'
 import { Bell, X } from 'lucide-react'
 import { listNotifications, type AppNotification } from '@/lib/notifications'
 import { cn } from '@/lib/cn'
@@ -37,6 +38,7 @@ function markShown() {
  */
 export function NotificationToast() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [newest, setNewest] = useState<AppNotification | null>(null)
   const [count, setCount] = useState(0)
   const [gone, setGone] = useState(false)
@@ -78,7 +80,7 @@ export function NotificationToast() {
         type="button"
         onClick={() => {
           setGone(true)
-          navigate('/app/community?activity=1')
+          navigate(activityHref(location.pathname, location.search))
         }}
         className="flex min-w-0 flex-1 items-start gap-3 text-left"
       >

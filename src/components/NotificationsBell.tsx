@@ -31,11 +31,10 @@ export function NotificationsBell({
   const count = useActivityBadge()
   const location = useLocation()
   const [ring, setRing] = useState(0)
-  const inCommunity = location.pathname.startsWith('/app/community')
 
   return (
     <Link
-      to={activityHref(inCommunity ? location.search : '')}
+      to={activityHref(location.pathname, location.search)}
       onClick={() => setRing((n) => n + 1)}
       aria-label={count > 0 ? `Notifications, ${count} new` : 'Notifications'}
       title="Notifications"

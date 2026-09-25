@@ -504,24 +504,45 @@ html {
   }
 }
 
-/* Landing → dashboard (PublicHeader enterApp). Scoped to the html class the
-   click adds, so no other navigation gets this. The old page settles back
-   and fades; the app rises in over it. */
-.ct-enter-app::view-transition-old(root) {
-  animation: ct-vt-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+/* Page transitions (lib/view-transition). Each is scoped to the html class
+   the click adds, so no other navigation gets it. */
+/* Landing → dashboard: the landing settles back and fades, the app rises in. */
+.ct-vt-enter-app::view-transition-old(root) {
+  animation: ct-vt-shrink-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
 }
-.ct-enter-app::view-transition-new(root) {
-  animation: ct-vt-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+.ct-vt-enter-app::view-transition-new(root) {
+  animation: ct-vt-rise-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
 }
-@keyframes ct-vt-out {
-  to { opacity: 0; transform: scale(0.97); }
+/* Dashboard → landing: the same move reversed. */
+.ct-vt-leave-app::view-transition-old(root) {
+  animation: ct-vt-sink-out 240ms cubic-bezier(0.4, 0, 1, 1) both;
 }
-@keyframes ct-vt-in {
-  from { opacity: 0; transform: translateY(12px) scale(1.01); }
+.ct-vt-leave-app::view-transition-new(root) {
+  animation: ct-vt-grow-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
 }
+/* Between tabs: only the main column moves; the sidebar stays put. */
+.ct-vt-tab #app-main {
+  view-transition-name: ct-main;
+}
+.ct-vt-tab::view-transition-old(root),
+.ct-vt-tab::view-transition-new(root) {
+  animation: none;
+}
+.ct-vt-tab::view-transition-old(ct-main) {
+  animation: ct-vt-fade-out 140ms ease-in both;
+}
+.ct-vt-tab::view-transition-new(ct-main) {
+  animation: ct-vt-rise-in-small 240ms cubic-bezier(0.16, 1, 0.3, 1) 40ms both;
+}
+@keyframes ct-vt-shrink-out { to { opacity: 0; transform: scale(0.97); } }
+@keyframes ct-vt-rise-in { from { opacity: 0; transform: translateY(12px) scale(1.01); } }
+@keyframes ct-vt-sink-out { to { opacity: 0; transform: translateY(12px) scale(1.01); } }
+@keyframes ct-vt-grow-in { from { opacity: 0; transform: scale(0.97); } }
+@keyframes ct-vt-fade-out { to { opacity: 0; } }
+@keyframes ct-vt-rise-in-small { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) {
-  .ct-enter-app::view-transition-old(root),
-  .ct-enter-app::view-transition-new(root) { animation: none; }
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
 }
 
 .ct-animate-fade {

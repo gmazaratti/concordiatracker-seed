@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTransitionClick } from '@/lib/view-transition'
 import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
@@ -29,6 +30,7 @@ export function Sidebar() {
   const { uiState } = useUiState()
   const badges = useNavBadges()
   const t = useT()
+  const transition = useTransitionClick()
   // The planner's sections nest under it while you are in there, so the page
   // does not need a second rail of its own.
   const path = useLocation().pathname
@@ -109,6 +111,7 @@ export function Sidebar() {
           <NavLink
             to={to}
             end={end}
+            onClick={transition(to, 'tab')}
             title={collapsed ? t(labelKey) : undefined}
             className={({ isActive }) =>
               cn(
