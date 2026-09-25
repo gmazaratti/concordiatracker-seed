@@ -7,6 +7,7 @@ import { courseStanding } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { MoodleMismatchCard } from './MoodleMismatch'
+import { TeacherChangeCard } from './TeacherChangeCard'
 import { findMoodleMismatches } from '@/lib/moodle-match'
 import { CourseHeader } from './CourseHeader'
 import { CourseInfoPanel } from './CourseInfoPanel'
@@ -332,6 +333,7 @@ export function CourseDetailPage() {
                 Import an outline
               </button>
             </div>
+            <TeacherChangeCard items={courseAssessments.filter((a) => a.teacherPrev)} />
             {(coursePeerCorrections.length > 0 || moodleMismatches.length > 0) && (
               <div className="flex flex-col gap-2">
                 {moodleMismatches.map((m) => (

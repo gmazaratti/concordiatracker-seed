@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Eye, EyeOff, X } from 'lucide-react'
+import { useTransitionClick } from '@/lib/view-transition'
 import { useT } from '@/i18n/i18n'
 import { useAuth } from '@/app/providers/auth'
 import { Logo } from '@/components/Logo'
@@ -43,6 +45,7 @@ const label = 'mb-1.5 block text-[12.5px] font-medium text-muted'
 export function LoginScreen() {
   const { signInWithGoogle, signInWithApple, signInWithPassword, signUpWithPassword } = useAuth()
   const t = useT()
+  const leave = useTransitionClick()
   const [email, setEmail] = useState('')
   // True for the first load's entrance only (see Rise). 1.8s covers the last
   // step, 900ms of delay plus its 620ms animation.
@@ -170,7 +173,18 @@ export function LoginScreen() {
   return (
     <div className="min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
       {/* Phone: the form alone, full width. The showcase is a desktop panel. */}
-      <main className="flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
+      <main className="relative flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
+        {/* A way out that is not the browser's Back button: straight to the
+            landing page, with the dashboard transition in reverse. */}
+        <Link
+          to="/"
+          onClick={leave('/', 'leave-app')}
+          aria-label={t('auth.close')}
+          title={t('auth.close')}
+          className="absolute top-4 right-4 grid size-9 place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <X size={18} aria-hidden />
+        </Link>
         <div className="w-full max-w-[400px]">
           <Rise at={100} on={intro} className="mb-10">
             <Logo />

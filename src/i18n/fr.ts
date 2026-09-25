@@ -831,4 +831,13 @@ export const fr: Partial<Record<Key, string>> = {
   'devices.error': 'Impossible de charger vos appareils.',
   'devices.retry': 'Réessayer',
   'teacherSetup.replay': 'Refaire la configuration',
+  'teacherChange.titleOne': 'Votre enseignant a modifié 1 élément du plan de cours',
+  'teacherChange.titleMany': 'Votre enseignant a modifié {n} éléments du plan de cours',
+  'teacherChange.renamed': 'Renommé',
+  'teacherChange.date': 'Date',
+  'teacherChange.weight': 'Pondération',
+  'teacherChange.noDate': 'Sans date',
+  'teacherChange.note': 'Mis à jour à partir du plan vérifié de votre enseignant. Votre note, votre statut et vos notes personnelles restent inchangés.',
+  'teacherChange.ack': 'Compris',
+  'auth.close': 'Fermer',
 }

@@ -135,6 +135,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
      hard-coded 'approved', which is half of how any signed-in student could
      become a teacher; only an admin can move it now (db/teacher_gate.sql). */
   const [teacherStatus, setTeacherStatus] = useState<'pending' | 'approved' | null>(null)
+  /* Courses you are a TA on (db/teacher_features.sql, my_ta_courses). Kept
+     apart from your own: you can edit their draft outline and nothing else. */
+  const [taCourses, setTaCourses] = useState<TeacherCourse[]>([])
   const [accountLoadedFor, setAccountLoadedFor] = useState<string | null>(null)
   // Every org the logged-in user can manage: owned + member-of + (all, if admin).
   const [myOrgs, setMyOrgs] = useState<OrgAccount[]>([])
@@ -208,6 +211,33 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      if (!authUser) {
+        if (active) setTaCourses([])
+        return
+      }
+      const { data } = await supabase.rpc('my_ta_courses')
+      if (!active) return
+      type TaRow = { id: string; code: string; title: string; section: string; outline: OutlineItem[] | null; published: boolean; owner_name: string }
+      setTaCourses(
+        ((data as TaRow[] | null) ?? []).map((r) => ({
+          courseId: r.id,
+          code: r.code ?? '',
+          title: r.title ?? '',
+          section: r.section ?? '',
+          outline: r.outline ?? [],
+          published: !!r.published,
+          ta: { ownerName: r.owner_name || 'the professor' },
+        })),
+      )
+    })()
+    return () => {
+      active = false
+    }
+  }, [authUser])
 
   // The name you publish under, if you have set one.
   useEffect(() => {
@@ -451,11 +481,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         email: authUser.email ?? user.email,
         // No row yet, or not read yet, is pending: never assume approval.
         status: teacherStatus ?? 'pending',
-        courses: myCourses,
+        courses: [...myCourses, ...taCourses],
       }
     }
     return teachers.find((t) => t.id === sessionId) ?? null
-  }, [sessionId, authUser, teacherName, teacherStatus, user.name, user.email, myCourses, teachers])
+  }, [sessionId, authUser, teacherName, teacherStatus, user.name, user.email, myCourses, taCourses, teachers])
   const currentOrg = useMemo<OrgAccount | null>(() => {
     if (sessionId === SELF_ORG) {
       if (!myOrg) return null
@@ -849,6 +879,15 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
 
   const updateOutline = useCallback(
     (courseId: string, outline: OutlineItem[]) => {
+      // A TA's edit goes through the one function that lets a TA write.
+      if (sessionId === SELF && taCourses.some((c) => c.courseId === courseId)) {
+        setTaCourses((prev) => prev.map((c) => (c.courseId === courseId ? { ...c, outline } : c)))
+        fireWrite(
+          supabase.rpc('ta_update_outline', { p_course: courseId, p_outline: outline }),
+          'The outline did not save',
+        )
+        return
+      }
       updateCurrentCourses((courses) =>
         courses.map((c) => (c.courseId === courseId ? { ...c, outline } : c)),
       )
@@ -857,7 +896,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           'The outline did not save',
         )
     },
-    [sessionId, updateCurrentCourses],
+    [sessionId, taCourses, updateCurrentCourses],
   )
 
   // Shared writer: a teacher course's dates → a REAL teacher-verified blueprint in
@@ -870,7 +909,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       courseId: string,
       tc: TeacherCourse,
       teacherName: string,
-      dates: { title: string; kind: OutlineItem['kind']; weight: number; due: string | null }[],
+      dates: { id?: string; title: string; kind: OutlineItem['kind']; weight: number; due: string | null }[],
     ) => {
       if (sessionId !== SELF || !authUser) return
       const row = {
@@ -882,7 +921,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         section: tc.section,
         term: term.name,
         verified: true,
-        items: dates.map((d) => ({ title: d.title, kind: d.kind, weight: d.weight, due: d.due })),
+        // `id` links each item to the copies students import, so a republish
+        // reaches them (db/teacher_features.sql).
+        items: dates.map((d) => ({ id: d.id, title: d.title, kind: d.kind, weight: d.weight, due: d.due })),
       }
       const existing = publishedBlueprintIds.current.get(courseId)
       if (existing) {
@@ -958,7 +999,7 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
           supabase.from('teacher_courses').update({ outline }).eq('id', courseId),
           'The outline did not save',
         )
-      if (tc) await writeVerifiedBlueprint(courseId, tc, teacherName, blueprint.dates)
+      if (tc) await writeVerifiedBlueprint(courseId, tc, teacherName, outline)
       persistSelfPublished(courseId, outline)
     },
     [sessionId, updateCurrentCourses, currentTeacher, writeVerifiedBlueprint, persistSelfPublished],

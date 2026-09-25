@@ -148,6 +148,11 @@ export interface AssignmentRow {
   status: string | null
   provenance_status: string | null
   provenance_confirmations: number | null
+  /** db/teacher_features.sql. Absent on a row read before that migration. */
+  source_blueprint?: string | null
+  source_item?: string | null
+  teacher_prev?: { due?: string | null; title?: string; weight?: number } | null
+  teacher_changed_at?: string | null
 }
 
 const SEED_KINDS = new Set<string>(['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'])
@@ -215,6 +220,12 @@ export function assessmentFromRow(r: AssignmentRow): Assessment {
     notes: r.notes ?? '',
     description: r.description ?? undefined,
     noDate: r.date ? false : !!r.no_date,
+    source:
+      r.source_blueprint && r.source_item
+        ? { blueprintId: r.source_blueprint, itemId: r.source_item }
+        : undefined,
+    teacherPrev: r.teacher_prev ?? null,
+    teacherChangedAt: r.teacher_changed_at ?? null,
   }
 }
 
@@ -233,6 +244,10 @@ export function assessmentToInsert(a: Assessment, userId: string): Record<string
     ...(a.noDate ? { no_date: true } : {}),
     provenance_status: a.provenance.status,
     provenance_confirmations: a.provenance.confirmations ?? 0,
+    // Always present (null when unlinked): PostgREST refuses a batch insert
+    // whose rows do not all carry the same keys (PGRST102).
+    source_blueprint: a.source?.blueprintId ?? null,
+    source_item: a.source?.itemId ?? null,
     ...statusToCols(a.status),
     ...gradeToCols(a.grade),
   }
@@ -249,6 +264,7 @@ export function assessmentPatchToRow(patch: Partial<Assessment>): Record<string,
   if ('notes' in patch) row.notes = patch.notes
   if ('description' in patch) row.description = patch.description ?? null
   if ('noDate' in patch) row.no_date = !!patch.noDate
+  if ('teacherPrev' in patch) row.teacher_prev = patch.teacherPrev ?? null
   if (patch.provenance) {
     row.provenance_status = patch.provenance.status
     row.provenance_confirmations = patch.provenance.confirmations ?? 0
@@ -331,6 +347,8 @@ interface BlueprintItem {
   due?: string | null
   /** A condition the weight cannot express: a pass floor, a flexible option. */
   note?: string
+  /** Stable item id in a teacher-published outline (links imported copies). */
+  id?: string
 }
 
 export interface BlueprintRow {
@@ -409,6 +427,7 @@ export function blueprintFromRow(r: BlueprintRow): Blueprint {
        */
       due: it.due ?? null,
       note: typeof it.note === 'string' && it.note.trim() ? it.note.trim() : undefined,
+      itemId: verified && typeof it.id === 'string' && it.id ? it.id : undefined,
       // No ground truth for community uploads → unverified; teacher rows → official.
       provenance: { status: (verified ? 'official' : 'unverified') as ProvenanceStatus },
     })),

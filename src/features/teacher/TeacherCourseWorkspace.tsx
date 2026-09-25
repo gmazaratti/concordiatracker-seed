@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, Check, Eye, ListChecks, Megaphone, ScrollText, ShieldCheck, Upload, type LucideIcon } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Eye, ListChecks, Megaphone, ScrollText, ShieldCheck, Upload, Users, type LucideIcon } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useAppData } from '@/app/providers/app-data'
 import type { Assessment } from '@/data/types'
@@ -26,12 +26,16 @@ import { OutlineEditor } from './OutlineEditor'
 import { CommunityBlueprintsPanel } from './CommunityBlueprintsPanel'
 import { StudentCoursePreview } from './StudentCoursePreview'
 import { TeacherAnnouncementList } from './TeacherAnnouncementList'
+import { CourseReach } from './CourseReach'
+import { OutlineTools } from './OutlineTools'
+import { CourseTAs } from './CourseTAs'
 
 const ICON: Record<string, LucideIcon> = {
   assignments: ListChecks,
   outline: ScrollText,
   announcements: Megaphone,
   blueprints: ShieldCheck,
+  team: Users,
 }
 
 /** The course workspace, split into sub-sections (driven by the sidebar on
@@ -39,7 +43,7 @@ const ICON: Record<string, LucideIcon> = {
  * **outline** is the snapshot they publish as the blueprint students import. */
 export function TeacherCourseWorkspace() {
   const { courseId } = useParams()
-  const { currentTeacher, updateOutline, publishCourse, postAnnouncement } = useTeacher()
+  const { currentTeacher, updateOutline, publishCourse, postAnnouncement, isDemoSession } = useTeacher()
   const { courseById } = useAppData()
   const [parsing, setParsing] = useState(false)
   const [previewItems, setPreviewItems] = useState<OutlineItem[] | null>(null)
@@ -80,6 +84,9 @@ export function TeacherCourseWorkspace() {
             {course.code} · Section {course.section}
           </h1>
           <p className="text-[13px] text-subtle">{course.title} · {term.name}</p>
+          <div className="mt-1">
+            <CourseReach code={course.code} />
+          </div>
         </div>
         {course.published ? (
           <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium', dirty ? 'bg-warning/15 text-warning' : 'bg-success/15 text-success')}>
@@ -147,7 +154,11 @@ export function TeacherCourseWorkspace() {
 
                 {/* Publish / update prompt */}
                 <div className="mt-5 border-t border-border pt-4">
-                  {!course.published ? (
+                  {course.ta ? (
+                    <p className="text-[13px] text-subtle">
+                      You&rsquo;re a TA on this course: your edits save to the draft, and {course.ta.ownerName} publishes it.
+                    </p>
+                  ) : !course.published ? (
                     <div className="flex flex-wrap items-center gap-3">
                       <Button disabled={pending || course.outline.length === 0} onClick={publish} title={pending ? 'Pending approval' : undefined}>
                         <ShieldCheck size={16} aria-hidden />
@@ -161,7 +172,8 @@ export function TeacherCourseWorkspace() {
                     <div className="rounded-xl border border-warning/40 bg-warning/10 p-3.5">
                       <p className="text-[13px] font-medium text-warning">You&rsquo;ve changed your assignments.</p>
                       <p className="mt-0.5 text-[12px] text-warning/90">
-                        Students still see the previously-shared outline until you update it.
+                        Students still see the previously-shared outline until you update it. When you do,
+                        students who imported it get the new dates and weights, with a note showing what changed.
                       </p>
                       <div className="mt-2.5 flex flex-wrap items-center gap-2">
                         <Button size="sm" disabled={pending} onClick={publish}>
@@ -178,6 +190,7 @@ export function TeacherCourseWorkspace() {
                     </p>
                   )}
                 </div>
+                <OutlineTools course={course} />
               </>
             )}
           </section>
@@ -245,6 +258,7 @@ export function TeacherCourseWorkspace() {
         )}
 
         {section === 'blueprints' && <CommunityBlueprintsPanel course={course} disabled={pending} />}
+        {section === 'team' && <CourseTAs course={course} sandbox={isDemoSession} />}
       </div>
 
       <p className="mt-8 rounded-lg border border-border bg-surface/50 px-4 py-3 text-[12px] text-subtle">

@@ -49,6 +49,9 @@ export interface TeacherCourse {
    * differs from `outline`, the teacher has unpublished changes to push. */
   publishedOutline?: OutlineItem[]
   stats?: { upvotes: number; downvotes: number; imports: number; uploadedDaysAgo: number }
+  /** Set when you are a TA on someone else's course: you edit the draft, the
+   *  professor publishes. */
+  ta?: { ownerName: string }
 }
 
 /** The sub-sections of a course workspace (sidebar sub-tabs + mobile tab bar). */
@@ -57,6 +60,7 @@ export const TEACHER_SECTIONS = [
   { id: 'outline', label: 'Course outline' },
   { id: 'announcements', label: 'Announcements' },
   { id: 'blueprints', label: 'Student blueprints' },
+  { id: 'team', label: 'TAs' },
 ] as const
 export type TeacherSectionId = (typeof TEACHER_SECTIONS)[number]['id']
 

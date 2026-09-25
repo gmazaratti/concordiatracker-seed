@@ -38,6 +38,9 @@ export interface BlueprintDate {
   note?: string
   /** `official` only on teacher-verified blueprints; community = `unverified`. */
   provenance: Provenance
+  /** The item's stable id in a teacher-published outline, so an imported
+   *  copy stays linked to it. Absent on student uploads. */
+  itemId?: string
 }
 
 export interface Blueprint {
@@ -272,6 +275,8 @@ export function blueprintWeight(b: Blueprint): number {
 /** Materialize a blueprint into importable assessments for its course. Carries
  * each date's provenance through — official for teacher-verified, unverified for
  * community (honest: single-source until your classmates corroborate it). */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function blueprintToAssessments(b: Blueprint): Assessment[] {
   return b.dates.map((d, i) => ({
     id: `${b.courseId}-bp-${b.id}-${i}`,
@@ -285,6 +290,11 @@ export function blueprintToAssessments(b: Blueprint): Assessment[] {
     grade: null,
     // The outline's condition follows the item onto the student's own list.
     notes: d.note ?? '',
+    // Linked only to a teacher's outline stored in the database (a uuid id),
+    // so a republish can update this copy. Student uploads stay unlinked.
+    ...(b.teacherVerified && d.itemId && UUID_RE.test(b.id)
+      ? { source: { blueprintId: b.id, itemId: d.itemId } }
+      : {}),
   }))
 }
 

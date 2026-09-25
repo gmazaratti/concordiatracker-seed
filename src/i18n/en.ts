@@ -820,6 +820,15 @@ export const en = {
   'devices.error': 'Your devices could not be loaded.',
   'devices.retry': 'Try again',
   'teacherSetup.replay': 'Replay setup',
+  'teacherChange.titleOne': 'Your teacher changed 1 item in the outline',
+  'teacherChange.titleMany': 'Your teacher changed {n} items in the outline',
+  'teacherChange.renamed': 'Renamed',
+  'teacherChange.date': 'Date',
+  'teacherChange.weight': 'Weight',
+  'teacherChange.noDate': 'No date',
+  'teacherChange.note': 'Updated from your teacher’s verified outline. Your grade, status and notes are unchanged.',
+  'teacherChange.ack': 'Got it',
+  'auth.close': 'Close',
 } as const
 
 export type Key = keyof typeof en
