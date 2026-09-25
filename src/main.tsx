@@ -1,3 +1,6 @@
+// FIRST, before anything renders: a sign-in return that landed on the
+// landing page goes straight to /app (see lib/auth-bounce).
+import { bouncing } from './lib/auth-bounce'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -15,7 +18,7 @@ window.addEventListener('vite:preloadError', (event) => {
 // No-ops in a browser, so the web build is unchanged.
 initNative()
 
-createRoot(document.getElementById('root')!).render(
+if (!bouncing) createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,

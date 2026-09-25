@@ -14,6 +14,7 @@ import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
 import { FallbackImg } from '@/components/ui/FallbackImg'
+import { useSettings, type SettingsSection } from '@/app/providers/settings'
 
 const DAY = 86_400_000
 /** Matches ct-panel-right-out. One number, so the CSS and the unmount
@@ -381,6 +382,7 @@ function Row({
   onClose: () => void
   onActed: () => void
 }) {
+  const { openSettings } = useSettings()
   const age = shortAge(item.at, nowMs())
 
   if (item.kind === 'request') {
@@ -472,6 +474,24 @@ function Row({
       {!n.read_at && <span className="size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
     </>
   )
+  /* A link into Settings (the Moodle-sync alert) opens the panel itself:
+     `?settings=` is only read on a full page load, so following it as a
+     route would land on the page with nothing opened. */
+  const settingsPane = n.link ? /[?&]settings=([a-zA-Z]+)/.exec(n.link)?.[1] : undefined
+  if (settingsPane) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onClose()
+          openSettings(settingsPane as SettingsSection)
+        }}
+        className={cn(ROW, 'w-full text-left')}
+      >
+        {inner}
+      </button>
+    )
+  }
   return n.link ? (
     <Link to={n.link} onClick={onClose} className={ROW}>
       {inner}

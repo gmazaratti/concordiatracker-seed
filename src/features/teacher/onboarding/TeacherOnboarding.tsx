@@ -69,14 +69,17 @@ const PRIMARY: Record<StepDef['id'], Key> = {
 
 export function TeacherOnboarding({
   teacher,
+  fresh = false,
   onClose,
 }: {
   teacher: TeacherAccount
+  /** A replay starts from the first step rather than where you left off. */
+  fresh?: boolean
   onClose: () => void
 }) {
   const t = useT()
   const { renameTeacher } = useTeacher()
-  const [step, setStep] = useState(() => Math.min(teacherStep.get('step') ?? 0, STEPS.length - 1))
+  const [step, setStep] = useState(() => (fresh ? 0 : Math.min(teacherStep.get('step') ?? 0, STEPS.length - 1)))
   const [name, setName] = useState(teacher.name)
   // The course the outline step edits: the one just added, else the newest.
   const [courseId, setCourseId] = useState<string | null>(null)

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useT } from '@/i18n/i18n'
 import { BookOpen, Plus, ShieldCheck } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { outlineWeight, type TeacherCourse } from '@/data/teacher'
@@ -9,7 +10,8 @@ import { LinkCourseModal } from './LinkCourseModal'
 /** The teacher's home once signed in — their managed courses + a link/create
  * affordance. Pending accounts can prepare here; publishing is gated downstream. */
 export function TeacherDashboard() {
-  const { currentTeacher } = useTeacher()
+  const { currentTeacher, isSelfTeacher } = useTeacher()
+  const t = useT()
   const [linkOpen, setLinkOpen] = useState(false)
   if (!currentTeacher) return null
 
@@ -24,7 +26,17 @@ export function TeacherDashboard() {
           </h1>
           <p className="text-[13px] text-subtle">Manage your course outlines and announcements.</p>
         </div>
-        <StatusChip status={currentTeacher.status} />
+        <div className="flex items-center gap-2">
+          {isSelfTeacher && (
+            <Link
+              to="/teacher?setup=1"
+              className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              {t('teacherSetup.replay')}
+            </Link>
+          )}
+          <StatusChip status={currentTeacher.status} />
+        </div>
       </header>
 
       {pending && (

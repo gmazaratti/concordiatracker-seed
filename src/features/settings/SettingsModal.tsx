@@ -3,6 +3,7 @@ import {
   Code2,
   CreditCard,
   Gauge,
+  MonitorSmartphone,
   GraduationCap,
   ShieldCheck,
   SlidersHorizontal,
@@ -23,6 +24,7 @@ import { PrivacySection } from './sections/PrivacySection'
 import { BillingSection } from './sections/BillingSection'
 import { UsageSection } from './sections/UsageSection'
 import { DeveloperSection } from './sections/DeveloperSection'
+import { DevicesSection } from './sections/DevicesSection'
 import { useIsAdmin } from '@/features/admin/admin-data'
 
 /**
@@ -40,6 +42,7 @@ const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon; adminOnl
   { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync },
   { id: 'moodle', labelKey: 'settings.moodle', icon: GraduationCap },
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
+  { id: 'devices', labelKey: 'settings.devices', icon: MonitorSmartphone },
   { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
   { id: 'usage', labelKey: 'settings.usage', icon: Gauge },
   { id: 'developer', labelKey: 'settings.developer', icon: Code2, adminOnly: true },
@@ -53,6 +56,7 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
   privacy: PrivacySection,
   billing: BillingSection,
   usage: UsageSection,
+  devices: DevicesSection,
   developer: DeveloperSection,
 }
 

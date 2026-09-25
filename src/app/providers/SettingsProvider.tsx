@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SettingsContext, type SettingsSection } from './settings'
 
-const SECTIONS: SettingsSection[] = ['general', 'account', 'privacy', 'billing', 'usage']
+const SECTIONS: SettingsSection[] = [
+  'general',
+  'account',
+  'calendarSync',
+  'moodle',
+  'privacy',
+  'devices',
+  'billing',
+  'usage',
+]
 
 /**
  * `?settings=billing` opens the panel straight to that pane on load.

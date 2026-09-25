@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useTeacher } from '@/app/providers/teacher'
 import { useUiState } from '@/app/providers/ui-state'
@@ -27,6 +28,10 @@ export function TeacherHome() {
   const { currentTeacher, isSelfTeacher, coursesLoaded } = useTeacher()
   const { uiState, loaded, patchUiState } = useUiState()
   const [wizard, setWizard] = useState<'open' | 'closed' | null>(null)
+  /* `?setup=1` replays the wizard on an account that has already been set up,
+     from the first step (the dashboard's Replay setup button links here). */
+  const [params, setParams] = useSearchParams()
+  const replay = params.get('setup') === '1'
 
   if (!currentTeacher) return <TeacherSignIn />
   if (!isSelfTeacher) return <TeacherDashboard />
@@ -41,13 +46,15 @@ export function TeacherHome() {
       </div>
     )
   }
-  if (wizard === 'open') {
+  if (wizard === 'open' || replay) {
     return (
       <TeacherOnboarding
         teacher={currentTeacher}
+        fresh={replay}
         onClose={() => {
           patchUiState({ teacherSetupDone: true })
           setWizard('closed')
+          if (replay) setParams({}, { replace: true })
         }}
       />
     )

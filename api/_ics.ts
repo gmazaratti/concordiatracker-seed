@@ -263,6 +263,28 @@ export interface MoodleTodoRow {
  * Comparison is on the INSTANT, not the string, because the two can differ in
  * formatting while meaning the same moment.
  */
+/**
+ * Split rows into batches that each share one set of keys.
+ *
+ * PostgREST refuses a bulk insert whose objects do not all have the same keys
+ * (PGRST102 "All object keys must match"). `markMoves` adds `moved_from` only
+ * to the rows whose date changed, so the first time a professor moved a
+ * deadline, the whole night's save was refused, and every night after it.
+ * Filling the key in as null on the other rows is NOT the fix: an upsert
+ * writes every column it is given, so it would wipe an earlier "moved" note
+ * the student has not acknowledged yet. Separate batches leave it alone.
+ */
+export function batchesByKeys<T extends object>(rows: T[]): T[][] {
+  const groups = new Map<string, T[]>()
+  for (const r of rows) {
+    const sig = Object.keys(r).sort().join(',')
+    const g = groups.get(sig)
+    if (g) g.push(r)
+    else groups.set(sig, [r])
+  }
+  return [...groups.values()]
+}
+
 export function markMoves(
   rows: MoodleTodoRow[],
   previous: Map<string, string>,

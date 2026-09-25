@@ -13,6 +13,7 @@ import {
   validateMoodleIcsUrl,
   eventsToTodos,
   markMoves,
+  batchesByKeys,
   buildIcs,
   icsStamp,
 } from './_ics.ts'
@@ -255,6 +256,18 @@ check(
   ),
 )
 check('an empty calendar is still a valid calendar', buildIcs({ name: 'x', now: WNOW, events: [] }).includes('BEGIN:VCALENDAR'))
+
+console.log('\nbatchesByKeys (the PGRST102 fix)')
+{
+  // The exact failing shape: one moved row among unmoved ones.
+  const mixed = markMoves(base.concat([{ ...base[0], external_id: 'other@x' }]), new Map([[base[0].external_id, '2026-10-05T23:59:00.000Z']]))
+  const groups = batchesByKeys(mixed)
+  check('a moved row and an unmoved row go in separate batches', groups.length === 2)
+  check('every batch shares one set of keys', groups.every((g) => new Set(g.map((r) => Object.keys(r).sort().join(','))).size === 1))
+  check('no row is lost', groups.flat().length === mixed.length)
+  check('unmoved rows are not given a moved_from key (would wipe an old note)', groups.flat().filter((r) => 'moved_from' in r).length === 1)
+  check('an empty list is no batches', batchesByKeys([]).length === 0)
+}
 
 console.log(failures === 0 ? '\nics: all checks passed' : `\nics: ${failures} FAILED`)
 process.exit(failures === 0 ? 0 : 1)

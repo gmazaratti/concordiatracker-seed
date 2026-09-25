@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { touchDevices } from '@/lib/devices'
 import { supabase } from '@/lib/supabase'
 import { AuthContext } from './auth'
 import { authReturn, rememberOAuthAttempt } from '@/lib/auth-return'
@@ -8,6 +9,12 @@ import { authReturn, rememberOAuthAttempt } from '@/lib/auth-return'
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  /* Record this device against the account once per session, so Settings →
+     Devices can list it after it signs out (Supabase forgets it then). */
+  const sessionUser = session?.user.id
+  useEffect(() => {
+    if (sessionUser) touchDevices()
+  }, [sessionUser])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -163,7 +170,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    /* THIS DEVICE ONLY. supabase-js defaults to scope 'global', so every
+       "Sign out" used to end the account's sessions on every device at once.
+       Signing out everywhere is now its own button in Settings → Devices. */
+    await supabase.auth.signOut({ scope: 'local' })
   }, [])
 
   const value = useMemo(

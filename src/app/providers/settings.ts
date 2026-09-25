@@ -9,6 +9,7 @@ export type SettingsSection =
   | 'privacy'
   | 'billing'
   | 'usage'
+  | 'devices'
   | 'developer'
 
 export interface SettingsContextValue {

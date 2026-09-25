@@ -17,7 +17,7 @@
  * control: the content is the student's own, fetched with their own token, at
  * their explicit request.
  */
-import { parseIcs, eventsToTodos, markMoves, type IcsEvent, type MoodleTodoRow } from './_ics.js'
+import { parseIcs, eventsToTodos, markMoves, batchesByKeys, type IcsEvent, type MoodleTodoRow } from './_ics.js'
 
 // Re-exported so callers have one import for the feature; the definitions
 // live in _ics.ts because they are pure and that is what makes them testable
@@ -115,25 +115,38 @@ export async function writeMoodleTodos(
   serviceKey: string,
 ): Promise<{ written: number; error?: string }> {
   if (rows.length === 0) return { written: 0 }
-  const res = await fetch(
-    `${supabaseUrl}/rest/v1/todos?on_conflict=user_id,external_id`,
-    {
-      method: 'POST',
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        'Content-Type': 'application/json',
-        // merge-duplicates = update the row that is already there.
-        Prefer: 'resolution=merge-duplicates,return=minimal',
+  let written = 0
+  // One request per shape of row: PostgREST refuses a batch whose rows do not
+  // all carry the same keys (see batchesByKeys).
+  for (const batch of batchesByKeys(rows)) {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/todos?on_conflict=user_id,external_id`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          // merge-duplicates = update the row that is already there.
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify(batch),
       },
-      body: JSON.stringify(rows),
-    },
-  )
-  if (!res.ok) {
-    const detail = (await res.text()).slice(0, 200)
-    return { written: 0, error: `Could not save the deadlines (${res.status}). ${detail}` }
+    )
+    if (!res.ok) {
+      // The student reads this in Settings, so it is a sentence; the code in
+      // brackets is for us when they send a screenshot.
+      const body = await res.text()
+      const code = /"code":"([^"]+)"/.exec(body)?.[1] ?? String(res.status)
+      console.error('moodle save failed', res.status, body.slice(0, 300))
+      return {
+        written,
+        error: `Your Moodle deadlines could not be saved. Press Sync now to try again, and contact support if it keeps happening. (${code})`,
+      }
+    }
+    written += batch.length
   }
-  return { written: rows.length }
+  return { written }
 }
 
 /** Record the outcome so the student can see it without asking us. */
@@ -143,6 +156,40 @@ export async function recordMoodleSync(
   supabaseUrl: string,
   serviceKey: string,
 ): Promise<void> {
+  const headers = {
+    apikey: serviceKey,
+    Authorization: `Bearer ${serviceKey}`,
+    'Content-Type': 'application/json',
+  }
+  /* WAS it working? Read before writing, so the alert goes out when a sync
+     STARTS failing, once, not every night it stays broken. A failed read
+     counts as "was working": one extra alert beats a silent breakage, which
+     is how a broken sync went unnoticed until somebody opened Settings. */
+  let wasFailing = false
+  try {
+    const r = await fetch(
+      `${supabaseUrl}/rest/v1/moodle_connections?select=status&user_id=eq.${userId}`,
+      { headers },
+    )
+    if (r.ok) wasFailing = ((await r.json()) as { status: string }[])[0]?.status === 'error'
+  } catch {
+    /* treated as working, see above */
+  }
+  if (!result.ok && !wasFailing) {
+    await fetch(`${supabaseUrl}/rest/v1/rpc/ct_notify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        p_users: [userId],
+        p_kind: 'moodle_sync_failed',
+        p_title: 'Your Moodle sync stopped working',
+        p_body: 'New Moodle deadlines are not coming in. Open Settings → Moodle to see why and sync again.',
+        p_link: '/app?settings=moodle',
+        p_subject: null,
+        p_actor: null,
+      }),
+    }).catch(() => {})
+  }
   await fetch(`${supabaseUrl}/rest/v1/moodle_connections?user_id=eq.${userId}`, {
     method: 'PATCH',
     headers: {
