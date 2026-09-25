@@ -7,6 +7,7 @@ import {
   adminListPortalTeachers,
   adminRemoveOrgMember,
   adminRemoveTeacher,
+  adminSetTeacherStatus,
   adminSetOrgStatus,
   useAdminList,
   type OrgMember,
@@ -122,15 +123,31 @@ export function PortalsTab() {
 
 function TeacherRow({ t, onChanged }: { t: PortalTeacher; onChanged: () => void }) {
   const [busy, setBusy] = useState(false)
-  const remove = async () => {
+  const run = async (fn: () => Promise<unknown>) => {
     setBusy(true)
     try {
-      await adminRemoveTeacher(t.id)
+      await fn()
       onChanged()
     } catch {
-      setBusy(false)
+      /* the row keeps its old state, which is the truth */
     }
+    setBusy(false)
   }
+  const remove = () => run(() => adminRemoveTeacher(t.id))
+  const approved = t.status === 'approved'
+  /* Approval is what lets a teacher publish verified outlines and post
+     announcements; the database enforces it (db/teacher_gate.sql). A new
+     account starts pending, so this button is how anybody becomes one. */
+  const actions = (
+    <>
+      {approved ? (
+        <ConfirmButton label="Back to pending" armedLabel="Confirm" disabled={busy} onConfirm={() => run(() => adminSetTeacherStatus(t.id, 'pending'))} />
+      ) : (
+        <ConfirmButton label="Approve" armedLabel="Confirm approve" disabled={busy} onConfirm={() => run(() => adminSetTeacherStatus(t.id, 'approved'))} />
+      )}
+      <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
+    </>
+  )
   // Stacks below sm. A name, two counters and a destructive button do not fit
   // 375px on one line, and flex-wrap alone left the button orphaned against the
   // right edge with the counters stranded above it.
@@ -146,13 +163,9 @@ function TeacherRow({ t, onChanged }: { t: PortalTeacher; onChanged: () => void 
       <div className="flex items-center gap-4 text-[12px] text-subtle">
         <span title="Published blueprints" className="inline-flex items-center gap-1"><FileText size={13} aria-hidden />{t.blueprint_count}</span>
         <span title="Announcements" className="inline-flex items-center gap-1"><Megaphone size={13} aria-hidden />{t.announcement_count}</span>
-        <span className="ml-auto sm:hidden">
-          <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
-        </span>
+        <span className="ml-auto flex gap-2 sm:hidden">{actions}</span>
       </div>
-      <span className="hidden sm:inline-flex">
-        <ConfirmButton label="Remove" armedLabel="Confirm remove" danger disabled={busy} onConfirm={remove} />
-      </span>
+      <span className="hidden gap-2 sm:inline-flex">{actions}</span>
     </li>
   )
 }

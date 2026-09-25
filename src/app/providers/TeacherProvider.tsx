@@ -131,6 +131,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
      `teacher_accounts.name`. Null until read, or when there is no row yet,
      and then the account's display name stands in. */
   const [teacherName, setTeacherName] = useState<string | null>(null)
+  /* Your teacher account's approval, as the DATABASE has it. It used to be
+     hard-coded 'approved', which is half of how any signed-in student could
+     become a teacher; only an admin can move it now (db/teacher_gate.sql). */
+  const [teacherStatus, setTeacherStatus] = useState<'pending' | 'approved' | null>(null)
+  const [accountLoadedFor, setAccountLoadedFor] = useState<string | null>(null)
   // Every org the logged-in user can manage: owned + member-of + (all, if admin).
   const [myOrgs, setMyOrgs] = useState<OrgAccount[]>([])
   /*
@@ -209,15 +214,22 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     let active = true
     void (async () => {
       if (!authUser) {
-        if (active) setTeacherName(null)
+        if (active) {
+          setTeacherName(null)
+          setTeacherStatus(null)
+        }
         return
       }
       const { data } = await supabase
         .from('teacher_accounts')
-        .select('name')
+        .select('name, status')
         .eq('user_id', authUser.id)
         .maybeSingle()
-      if (active) setTeacherName((data as { name: string | null } | null)?.name?.trim() || null)
+      if (!active) return
+      const row = data as { name: string | null; status: string | null } | null
+      setTeacherName(row?.name?.trim() || null)
+      setTeacherStatus(row ? (row.status === 'approved' ? 'approved' : 'pending') : null)
+      setAccountLoadedFor(authUser.id)
     })()
     return () => {
       active = false
@@ -437,12 +449,13 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
         id: SELF,
         name: teacherName ?? user.name,
         email: authUser.email ?? user.email,
-        status: 'approved',
+        // No row yet, or not read yet, is pending: never assume approval.
+        status: teacherStatus ?? 'pending',
         courses: myCourses,
       }
     }
     return teachers.find((t) => t.id === sessionId) ?? null
-  }, [sessionId, authUser, teacherName, user.name, user.email, myCourses, teachers])
+  }, [sessionId, authUser, teacherName, teacherStatus, user.name, user.email, myCourses, teachers])
   const currentOrg = useMemo<OrgAccount | null>(() => {
     if (sessionId === SELF_ORG) {
       if (!myOrg) return null
@@ -532,14 +545,16 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     if (!authUser) return
     setSessionId(SELF)
     fireWrite(
-      /* Insert only. This used to overwrite `name` with the account's display
-         name on every visit, which would undo the name a teacher chose to
-         publish under the next time they opened the portal. */
+      /* Insert only, and pending. It used to write status 'approved' here,
+         which made anyone who pressed the button a teacher; the database now
+         forces 'pending' on insert whatever is sent, and an admin approves.
+         Insert-only also stops it overwriting the name a teacher chose. */
       supabase.from('teacher_accounts').upsert(
-        { user_id: authUser.id, name: user.name, email: authUser.email ?? '', status: 'approved' },
+        { user_id: authUser.id, name: user.name, email: authUser.email ?? '', status: 'pending' },
         { onConflict: 'user_id', ignoreDuplicates: true },
       ),
     )
+    setTeacherStatus((s) => s ?? 'pending')
   }, [authUser, user.name])
 
   /** Set the name students see on your outlines and announcements. */
@@ -559,7 +574,9 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
     },
     [sessionId, authUser],
   )
-  const coursesLoaded = sessionId !== SELF || (!!authUser && coursesLoadedFor === authUser.id)
+  const coursesLoaded =
+    sessionId !== SELF ||
+    (!!authUser && coursesLoadedFor === authUser.id && accountLoadedFor === authUser.id)
   const signInDemo = useCallback(() => setSessionId('t-hanna'), [])
   const signInDemoOrg = useCallback(() => setSessionId('org-hack'), [])
 
@@ -869,7 +886,11 @@ export function TeacherProvider({ children }: { children: React.ReactNode }) {
       }
       const existing = publishedBlueprintIds.current.get(courseId)
       if (existing) {
-        fireWrite(supabase.from('shared_blueprints').update(row).eq('id', existing), 'The blueprint did not save')
+        // Content columns only: users may not write `user_id` (or the vote and
+        // import counts) on this table, so sending it would refuse the update.
+        const { user_id: _owner, ...content } = row
+        void _owner
+        fireWrite(supabase.from('shared_blueprints').update(content).eq('id', existing), 'The blueprint did not save')
       } else {
         const { data } = await supabase
           .from('shared_blueprints')

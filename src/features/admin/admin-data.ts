@@ -363,6 +363,12 @@ export async function adminRemoveOrgMember(memberId: string) {
   const { error } = await supabase.rpc('admin_remove_org_member', { p_member_id: memberId })
   if (error) throw error
 }
+/** Approve a teacher account, or send it back to pending. Only approved
+ *  teachers can publish verified outlines or post announcements. */
+export async function adminSetTeacherStatus(teacherId: string, status: 'pending' | 'approved') {
+  const { error } = await supabase.rpc('admin_set_teacher_status', { p_teacher_id: teacherId, p_status: status })
+  if (error) throw error
+}
 export async function adminRemoveTeacher(teacherId: string) {
   const { error } = await supabase.rpc('admin_remove_teacher', { p_teacher_id: teacherId })
   if (error) throw error

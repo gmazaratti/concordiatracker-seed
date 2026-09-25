@@ -33,7 +33,7 @@ export interface TeacherContextValue {
    * teacher whose courses are saved to `teacher_courses`). */
   /** Signed in as your own real account (not a demo or seeded teacher). */
   isSelfTeacher: boolean
-  /** Your own courses have been read at least once (always true for a demo). */
+  /** Your own teacher account and courses have been read (always true for a demo). */
   coursesLoaded: boolean
   /** Set the name students see on your outlines and announcements. */
   renameTeacher: (name: string) => void
