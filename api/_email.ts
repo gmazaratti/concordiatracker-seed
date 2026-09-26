@@ -42,6 +42,14 @@ export interface EmailButton {
 export interface EmailOptions {
   to: string
   subject: string
+  /**
+   * Which kind of email this is (snake_case), sent to Resend as a tag so the
+   * delivery/open/click webhook can be counted per template
+   * (db/product_analytics.sql → email_events). Never the address or subject.
+   */
+  template: string
+  /** The recipient's account, when there is one. Stored with the event only if they have not opted out of analytics. */
+  userId?: string | null
   /** The big line at the top of the card. Keep it a statement, not a greeting. */
   heading: string
   /** Body paragraphs, plain strings. Rendered in order. */
@@ -175,6 +183,13 @@ function renderText(o: EmailOptions): string {
  * failing that operation because an email bounced would turn a small problem
  * into a real one. The failure is logged; the caller carries on.
  */
+/** Resend allows ASCII letters, digits, `_` and `-` in tag values; anything else is dropped, not sent. */
+export function emailTags(o: Pick<EmailOptions, 'template' | 'userId'>): { name: string; value: string }[] {
+  const tags = [{ name: 'template', value: typeof o.template === 'string' && /^[a-z0-9_]{1,40}$/.test(o.template) ? o.template : 'other' }]
+  if (o.userId && /^[0-9a-f-]{36}$/i.test(o.userId)) tags.push({ name: 'uid', value: o.userId })
+  return tags
+}
+
 export async function sendEmail(o: EmailOptions): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
   if (!key) {
@@ -197,6 +212,7 @@ export async function sendEmail(o: EmailOptions): Promise<boolean> {
         html: renderEmail(o),
         text: o.text ?? renderText(o),
         reply_to: process.env.EMAIL_REPLY_TO ?? 'concordiatracker@gmail.com',
+        tags: emailTags(o),
       }),
     })
     if (!res.ok) {

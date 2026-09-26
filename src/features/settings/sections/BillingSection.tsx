@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CreditCard, Download, Loader2, RefreshCw } from 'lucide-react'
+import { ChurnSurvey } from './ChurnSurvey'
 import { useAppData } from '@/app/providers/app-data'
 import {
   BILLING_ENABLED,
@@ -101,6 +102,7 @@ export function BillingSection() {
                 {t('billing.cancelsOn', { date: fmtDate(sub.currentPeriodEnd) })}
               </p>
             )}
+            {sub?.cancelAtPeriodEnd && <ChurnSurvey kind="pro_cancel" scope={String(sub.currentPeriodEnd ?? 'now')} />}
           </div>
           <div className="shrink-0 text-right">
             <span className="text-[20px] leading-none font-semibold text-fg">

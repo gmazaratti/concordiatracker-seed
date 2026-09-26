@@ -86,6 +86,8 @@ export async function notifyTicketReply(ticketId: string): Promise<boolean> {
 
   return sendEmail({
     to: ticket.email,
+    template: 'support_reply',
+    userId: ticket.user_id,
     subject: `Re: ${ticket.subject} (${ticket.case_id})`,
     heading: 'You have a reply',
     paragraphs: [

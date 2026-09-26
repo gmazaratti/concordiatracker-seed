@@ -47,6 +47,7 @@ scripts/*
 # The UI verification harness: a throwaway account + org to look at a signed-in
 # screen with. Reads .env.local (ignored) and sweeps after itself.
 !scripts/probe-ui.mjs
+!scripts/db-analytics.mjs
 
 # Raw club-logo drops (processed into public/logos/, raw files stay local)
 logo-drop/
@@ -91,3 +92,6 @@ public/__probe-session.json
 
 # Local-only credentials (e.g. Alfred login secret). Move to a vault, then delete.
 .secrets/
+.attribution.test.tmp.mjs
+.svix.test.tmp.mjs
+.db-analytics.run.sql

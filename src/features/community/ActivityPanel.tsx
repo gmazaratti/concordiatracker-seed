@@ -13,6 +13,7 @@ import { dismissActivity, markedAllRead, notificationsChanged } from '@/lib/noti
 import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
+import { trackFeature } from '@/lib/track'
 import { FallbackImg } from '@/components/ui/FallbackImg'
 import { useSettings, type SettingsSection } from '@/app/providers/settings'
 
@@ -79,6 +80,11 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [tick, setTick] = useState(0)
   const [friends, setFriends] = useState<Friend[] | null>(null)
+
+  // Opening the panel is the feature; the server keeps one per person per day.
+  useEffect(() => {
+    trackFeature('notifications_open')
+  }, [])
 
   useEffect(() => {
     let alive = true

@@ -13,6 +13,7 @@ import type Stripe from 'stripe'
 import { getProfile, getStripe, patchProfile, supabaseAdmin } from './_stripe.js'
 import { fail } from './_respond.js'
 import { formatAmount, formatEmailDate, sendEmail } from './_email.js'
+import { handleResendWebhook } from './_resend-webhook.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
@@ -116,6 +117,12 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     fail(res, 405, 'Method not allowed')
+    return
+  }
+
+  // /api/email-events (Resend) shares this function for its raw body only.
+  if (req.query?.source === 'resend') {
+    await handleResendWebhook(req, res, await rawBody(req))
     return
   }
 
@@ -241,8 +248,11 @@ async function sendRenewalNotice(invoice: Stripe.Invoice) {
       (invoice as unknown as { period_end?: number }).period_end ??
       null
 
+    const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id
     await sendEmail({
       to,
+      template: 'renewal_notice',
+      userId: customerId ? await userIdForCustomer(customerId) : null,
       subject: `Your ConcordiaTracker pass renews ${renewsAt ? 'on ' + formatEmailDate(renewsAt) : 'soon'}`,
       heading: 'Your pass renews soon',
       paragraphs: [

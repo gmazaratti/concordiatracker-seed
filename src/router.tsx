@@ -85,7 +85,11 @@ export function AppRoutes() {
           PublicLayout. /r is the same page, attributed: it sets a Reddit
           cookie, noindex, canonical to /. */}
       <Route index element={<RecordlyPage />} />
+      {/* Short source links: each is the homepage, attributed to a channel (lib/attribution). */}
       <Route path="/r" element={<RefLanding source="reddit" />} />
+      <Route path="/ig" element={<RefLanding source="instagram" />} />
+      <Route path="/li" element={<RefLanding source="linkedin" />} />
+      <Route path="/qr" element={<RefLanding source="in_person" />} />
       {/* The long-form FAQ; like the homepage, it brings its own header. */}
       <Route path="/faq" element={<FaqPage />} />
 

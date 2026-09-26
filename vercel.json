@@ -61,7 +61,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/r",
+      "source": "/:src(r|ig|li|qr)",
       "destination": "/prerendered/r.html"
     },
     {
@@ -95,6 +95,10 @@
     {
       "source": "/api/stripe-checkout",
       "destination": "/api/stripe-billing?a=checkout"
+    },
+    {
+      "source": "/api/email-events",
+      "destination": "/api/stripe-webhook?source=resend"
     },
     {
       "source": "/api/:path*",

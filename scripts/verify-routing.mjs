@@ -147,12 +147,14 @@ for (const r of appRoutes) {
   check(`${r} → app shell`, dest === '/index.html', dest ?? '(no match)')
 }
 
-console.log('\n/r must reach its own prerendered, noindex copy of the homepage')
-{
-  const dest = resolve('/r')
-  check('/r → prerendered/r.html', dest === '/prerendered/r.html', dest ?? '(no match)')
-  if (dest === '/prerendered/r.html') check('/r target exists', isStatic(dest), dest)
+console.log('\nSource links (/r /ig /li /qr) reach the prerendered, noindex copy of the homepage')
+for (const link of ['/r', '/ig', '/li', '/qr']) {
+  const dest = resolve(link)
+  check(`${link} → prerendered/r.html`, dest === '/prerendered/r.html', dest ?? '(no match)')
+  if (dest === '/prerendered/r.html') check(`${link} target exists`, isStatic(dest), dest)
 }
+// A lookalike must not ride the same rule.
+check('/igx is not a source link', resolve('/igx') !== '/prerendered/r.html', resolve('/igx') ?? '(no match)')
 
 console.log('\nThe previous homepage: a prerendered, noindex, nofollow rollback copy')
 {

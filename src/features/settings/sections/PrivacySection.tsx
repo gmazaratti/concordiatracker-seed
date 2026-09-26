@@ -12,10 +12,11 @@ import {
 import { useSettings } from '@/app/providers/settings'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
-import { supabase } from '@/lib/supabase'
+import { fireWrite, supabase } from '@/lib/supabase'
 import { Group, Row, Segmented, Switch, Flag } from '../controls'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 import { useT } from '@/i18n/i18n'
+import { AnalyticsSetting } from './AnalyticsSetting'
 
 /** Public-profile controls — the opt-in toggle, the bio, and a link to view it.
  * Reads profile_public/bio defensively (degrades if not migrated yet). */
@@ -70,11 +71,14 @@ function PublicProfileSettings() {
   }, [authUser])
 
   /** Written directly rather than through `updatePrivacy`, which predates
-   *  these columns. Failures are swallowed: an unrun migration should cost a
-   *  toggle, not the settings panel. */
+   *  these columns. fireWrite, NOT `void`: a PostgREST builder only sends when
+   *  something subscribes to it, so `void supabase…update()` never reached the
+   *  database, and "Who can message you", schedule sharing, club messages and
+   *  links all looked saved while nothing changed. fireWrite sends it and says
+   *  so if it fails. */
   const write = (patch: Record<string, unknown>) => {
     if (!authUser) return
-    void supabase.from('user_profile').update(patch).eq('user_id', authUser.id)
+    fireWrite(supabase.from('user_profile').update(patch).eq('user_id', authUser.id), 'Your privacy setting did not save')
   }
 
   return (
@@ -220,6 +224,8 @@ export function PrivacySection() {
   return (
     <div>
       <PublicProfileSettings />
+
+      <AnalyticsSetting />
 
       <p className="mb-5 text-[13px] leading-relaxed text-muted">
         ConcordiaTracker complies with Quebec&rsquo;s Law 25. The full documents

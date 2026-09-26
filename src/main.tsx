@@ -8,6 +8,11 @@ import './lib/pwa-install' // capture `beforeinstallprompt` as early as possible
 import App from './App.tsx'
 import { initNative, isNative, nativeReady } from './lib/native'
 import { reloadForNewVersion } from './lib/stale-chunk'
+import { captureFirstTouch } from './lib/attribution'
+
+// The first page this browser ever loaded, kept for signup attribution. Before
+// render, so the URL and referrer are still the ones the visit arrived with.
+captureFirstTouch()
 
 // Vite reports a chunk it could not preload (the old build's file is gone after
 // a deploy). Reload into the new build instead of letting the screen crash.

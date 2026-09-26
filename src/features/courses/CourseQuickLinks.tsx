@@ -1,3 +1,4 @@
+import { trackFeature } from '@/lib/track'
 import { useState } from 'react'
 import { ExternalLink, Link2, Plus, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
@@ -73,6 +74,7 @@ export function CourseQuickLinks({ course }: { course: Course }) {
             <li key={`${l.url}-${i}`} className="group flex items-center gap-2">
               <a
                 href={l.url}
+                onClick={() => trackFeature('quick_links')}
                 target="_blank"
                 rel="noreferrer"
                 title={l.url}

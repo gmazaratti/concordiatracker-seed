@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   Activity,
+  TrendingUp,
   ArrowLeft,
   Ban,
   ChevronDown,
@@ -39,6 +40,7 @@ import { TrafficTab } from './tabs/TrafficTab'
 import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { SocialTab } from './tabs/SocialTab'
 import { ParsesTab } from './parses/ParsesTab'
+import { ProductTab } from './product/ProductTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -52,6 +54,7 @@ const TABS = [
   { id: 'parses', label: 'Parses', icon: FileScan },
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'traffic', label: 'Traffic', icon: Activity },
+  { id: 'product', label: 'Product', icon: TrendingUp },
   { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
@@ -131,6 +134,7 @@ export function AdminConsole() {
         {current === 'applications' && <ApplicationsTab />}
         {current === 'portals' && <PortalsTab />}
         {current === 'traffic' && <TrafficTab />}
+        {current === 'product' && <ProductTab />}
         {current === 'attribution' && <AttributionTab />}
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}

@@ -1,3 +1,4 @@
+import { trackFeature } from '@/lib/track'
 import { useState } from 'react'
 import { ArrowBigDown, ArrowBigUp, ChevronDown, Download, ExternalLink, Info, ShieldCheck } from 'lucide-react'
 import { blueprintWeight, netVotes, uploadedOn, type Blueprint } from '@/data/blueprints'
@@ -73,7 +74,10 @@ export function BlueprintRow({
         {/* Expandable identity + meta */}
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            if (!open) trackFeature('blueprint_preview')
+            setOpen((o) => !o)
+          }}
           aria-expanded={open}
           className="min-w-0 flex-1 py-0.5 text-left"
         >
@@ -120,7 +124,10 @@ export function BlueprintRow({
         <div className="flex shrink-0 items-center">
           <button
             type="button"
-            onClick={onImport}
+            onClick={() => {
+              trackFeature('blueprint_import')
+              onImport()
+            }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
           >
             <Download size={15} aria-hidden />

@@ -258,6 +258,8 @@ export default async function handler(req: any, res: any) {
       const site = process.env.PUBLIC_SITE_URL ?? 'https://concordiatracker.com'
       const sent = await sendEmail({
         to,
+        template: 'org_approved',
+        userId: org.owner_id ?? null,
         subject: `${org.name} is live on ConcordiaTracker`,
         heading: `${org.name} is approved`,
         paragraphs: [
@@ -283,7 +285,7 @@ export default async function handler(req: any, res: any) {
       }
       const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
       const rows = await fetch(
-        `${url}/rest/v1/org_invites?token=eq.${token}&select=org_name,org_handle,kind,recipient_email,mode,expires_at,revoked_at,use_count,max_uses`,
+        `${url}/rest/v1/org_invites?token=eq.${token}&select=org_name,org_handle,kind,recipient_email,recipient_user,mode,expires_at,revoked_at,use_count,max_uses`,
         { headers: svc },
       ).then((r) => r.json())
       const inv = Array.isArray(rows) ? rows[0] : null
@@ -299,6 +301,8 @@ export default async function handler(req: any, res: any) {
       const expires = new Date(inv.expires_at)
       const sent = await sendEmail({
         to: String(inv.recipient_email),
+        template: 'club_invite',
+        userId: inv.recipient_user ?? null,
         subject: `You're invited to run ${inv.org_name} on ConcordiaTracker`,
         heading: `Set up ${inv.org_name}`,
         paragraphs: [

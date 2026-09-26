@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, Loader2, Trash2 } from 'lucide-react'
+import { ChurnReasonPicker } from './ChurnSurvey'
+import { submitChurn, type ChurnReason } from '@/lib/churn'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { supabase } from '@/lib/supabase'
@@ -290,6 +292,9 @@ function HandleEditor() {
 function DeleteAccountRow() {
   const [confirming, setConfirming] = useState(false)
   const [done, setDone] = useState(false)
+  // Why they are leaving: optional, sent with the confirmation (lib/churn).
+  const [reason, setReason] = useState<ChurnReason | null>(null)
+  const [detail, setDetail] = useState('')
 
   return (
     <div className="px-4 py-3.5">
@@ -316,6 +321,10 @@ function DeleteAccountRow() {
 
       {confirming && !done && (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5">
+          <div className="w-full">
+            <p className="mb-1.5 text-[12px] text-muted">Mind telling us why? (optional)</p>
+            <ChurnReasonPicker reason={reason} detail={detail} onReason={setReason} onDetail={setDetail} />
+          </div>
           <span className="text-[12px] text-fg">This can’t be undone. Are you sure?</span>
           <div className="ml-auto flex gap-2">
             <button
@@ -328,6 +337,9 @@ function DeleteAccountRow() {
             <button
               type="button"
               onClick={() => {
+                // The request is recorded whether or not a reason was given.
+                // Failure is ignored: a survey must never stand in the way.
+                submitChurn('account_delete', reason, detail).catch(() => {})
                 setConfirming(false)
                 setDone(true)
               }}

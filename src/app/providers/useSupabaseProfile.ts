@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { readRefSource } from '@/lib/ref-source'
+import { signupAttribution } from '@/lib/attribution'
+import { missingColumn } from '@/lib/pg-errors'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
 import { displayNameFrom } from '@/lib/oauth-identity'
@@ -106,22 +108,26 @@ export function useSupabaseProfile() {
         } catch {
           ref = null
         }
-        const ins = await supabase
+        const base = {
+          user_id: au.id,
+          email: au.email ?? '',
+          name,
+          ...(av ? { avatar_url: av } : {}),
+          ...(ref ? { referred_by_code: ref } : {}),
+          // The campaign link that brought them (/r = Reddit), set once at signup.
+          ...(readRefSource() ? { signup_ref: readRefSource() } : {}),
+        }
+        // First-touch attribution (lib/attribution). If the columns are not
+        // there yet the row is created without them: attribution is worth a
+        // column, never a signup.
+        let ins = await supabase
           .from('user_profile')
-          .upsert(
-            {
-              user_id: au.id,
-              email: au.email ?? '',
-              name,
-              ...(av ? { avatar_url: av } : {}),
-              ...(ref ? { referred_by_code: ref } : {}),
-              // The campaign link that brought them (/r = Reddit), set once at signup.
-              ...(readRefSource() ? { signup_ref: readRefSource() } : {}),
-            },
-            { onConflict: 'user_id' },
-          )
+          .upsert({ ...base, ...signupAttribution(readRefSource(), ref) }, { onConflict: 'user_id' })
           .select(COLS)
           .maybeSingle()
+        if (ins.error && (missingColumn(ins.error) || ins.error.code === '23514')) {
+          ins = await supabase.from('user_profile').upsert(base, { onConflict: 'user_id' }).select(COLS).maybeSingle()
+        }
         data = ins.data
         // If the upsert returned nothing (a concurrent run created the row),
         // read it back — so we NEVER end up with no row → no infinite spinner.
