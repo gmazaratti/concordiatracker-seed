@@ -43,6 +43,8 @@ export interface CourseRow {
   section: string | null
   office_hours: string | null
   syllabus_url: string | null
+  /** db/course_quick_links.sql. Absent on a row read before that migration. */
+  quick_links?: { label?: string; url?: string }[] | null
   term: string | null
   origin: string | null
   enrollment: string | null
@@ -76,6 +78,11 @@ export function courseFromRow(r: CourseRow): Course {
         : undefined,
     officeHours: r.office_hours ?? undefined,
     syllabusUrl: r.syllabus_url ?? '',
+    quickLinks: Array.isArray(r.quick_links)
+      ? r.quick_links
+          .filter((l) => typeof l?.url === 'string' && /^https?:\/\//i.test(l.url))
+          .map((l) => ({ label: String(l.label ?? l.url), url: String(l.url) }))
+      : [],
     gradingScale: r.grading_scale ?? undefined,
     origin: r.origin === 'manual' ? 'manual' : undefined,
     enrollment:
@@ -120,6 +127,7 @@ export function courseToRow(patch: Partial<Course>): Record<string, unknown> {
   if ('delivery' in patch) row.delivery = patch.delivery ?? null
   if ('officeHours' in patch) row.office_hours = patch.officeHours ?? null
   if ('syllabusUrl' in patch) row.syllabus_url = patch.syllabusUrl
+  if ('quickLinks' in patch) row.quick_links = patch.quickLinks ?? []
   if ('gradingScale' in patch) row.grading_scale = patch.gradingScale ?? null
   if ('origin' in patch) row.origin = patch.origin
   if ('enrollment' in patch) row.enrollment = patch.enrollment ?? null

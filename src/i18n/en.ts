@@ -829,6 +829,16 @@ export const en = {
   'teacherChange.note': 'Updated from your teacher’s verified outline. Your grade, status and notes are unchanged.',
   'teacherChange.ack': 'Got it',
   'auth.close': 'Close',
+  'quickLinks.title': 'Quick links',
+  'quickLinks.addFirst': 'Add a link (homework portal, lab site…)',
+  'quickLinks.add': 'Add a link',
+  'quickLinks.url': 'Link',
+  'quickLinks.label': 'Name',
+  'quickLinks.labelPlaceholder': 'Name (optional), e.g. WileyPLUS',
+  'quickLinks.save': 'Save',
+  'quickLinks.cancel': 'Cancel',
+  'quickLinks.remove': 'Remove {label}',
+  'quickLinks.badUrl': 'That doesn’t look like a web address.',
 } as const
 
 export type Key = keyof typeof en

@@ -6,6 +6,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { normalizeCode } from '@/lib/supabase-adapters'
 import { courseColor } from '@/lib/course-color'
 import { termRank } from '@/lib/term'
+import { term } from '@/data/mock'
 import { Select } from '@/components/ui/Select'
 import { BlueprintList } from './BlueprintList'
 import { useAllBlueprintCourses, type BlueprintCodeMatch } from './useBlueprints'
@@ -28,7 +29,31 @@ export function BlueprintBrowserPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const selectedId = params.get('course')
-  const selected = selectedId ? courseById(selectedId) : undefined
+  /*
+   * PREVIEW, not add. Opening an outline for a class you do not have used to
+   * create the course on the spot, so merely looking added it to your list.
+   * Now it opens on an unsaved stand-in course (`?preview=CODE&name=…`), and
+   * the course is created only when you press Import (ensureCourse below).
+   */
+  const previewCode = params.get('preview')
+  const previewName = params.get('name') ?? ''
+  const preview: Course | undefined = previewCode
+    ? {
+        id: 'preview',
+        code: previewCode,
+        title: previewName,
+        term: term.name,
+        credits: 3,
+        color: 'blue',
+        section: '',
+        instructor: { name: '', email: '' },
+        ta: null,
+        location: '',
+        meetingTimes: '',
+        syllabusUrl: '',
+      }
+    : undefined
+  const selected = selectedId ? courseById(selectedId) : preview
   const [typed, setTyped] = useState('')
   const [sort, setSort] = useState<SortMode>('code')
   const { list: outlines, loading } = useAllBlueprintCourses()
@@ -112,19 +137,19 @@ export function BlueprintBrowserPage() {
     setCatalogue([])
     setParams({})
   }
-  // Open an outline: enrolled → its own list; otherwise add the course, then open.
-  async function openOutline(o: BlueprintCodeMatch) {
+  // Open an outline: enrolled → its own list; otherwise a PREVIEW (nothing added).
+  function openOutline(o: BlueprintCodeMatch) {
     const mine = enrolled.get(o.code)
-    if (mine) {
-      setTyped('')
-      setParams({ course: mine.id })
-      return
-    }
-    const id = await createCourse({ source: 'blueprint', code: o.code, title: o.courseName })
-    if (id) {
-      setTyped('')
-      setParams({ course: id })
-    }
+    setTyped('')
+    setParams(mine ? { course: mine.id } : { preview: o.code, name: o.courseName })
+  }
+
+  /** Called by Import in preview mode: the class is added now, not on view. */
+  async function ensurePreviewCourse(): Promise<string | null> {
+    if (!previewCode) return null
+    const mine = enrolled.get(previewCode)
+    if (mine) return mine.id
+    return (await createCourse({ source: 'blueprint', code: previewCode, title: previewName })) ?? null
   }
 
   const inputValue = selected ? selected.code : typed
@@ -189,7 +214,16 @@ export function BlueprintBrowserPage() {
               <span className="ml-2 text-[13px] font-normal text-subtle">{selected.title}</span>
             </h2>
           </div>
-          <BlueprintList key={selected.id} course={selected} />
+          {preview && !selectedId && (
+            <p className="mb-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2 text-[12.5px] text-muted">
+              Previewing. {selected.code} is not in your courses; importing an outline adds it.
+            </p>
+          )}
+          <BlueprintList
+            key={selected.id + selected.code}
+            course={selected}
+            ensureCourse={preview && !selectedId ? ensurePreviewCourse : undefined}
+          />
         </>
       ) : loading ? (
         <div className="grid place-items-center py-16">

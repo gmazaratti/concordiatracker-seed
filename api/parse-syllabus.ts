@@ -315,6 +315,11 @@ export default async function handler(req: Request): Promise<Response> {
    * daily ceiling all count SUCCESSES, so none of them had fired since.
    */
   if (slot.event_id) {
+    /* KEEP SUCCESSFUL UPLOADS TOO, for 30 days like failed ones, so an admin
+       can open what a student uploaded and fix a parse that "worked" but read
+       it wrong. Same private folder, same daily cleanup (_parse-cleanup.ts),
+       same privacy-policy wording. A failure to store is not a failed parse. */
+    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.pdf`, supabaseUrl, supabaseAnon, token) : null
     await callRpc(
       'finish_parse',
       {
@@ -323,6 +328,7 @@ export default async function handler(req: Request): Promise<Response> {
           path: parsed.how,
           items: parsed.assessments.length,
           course_code: parsed.course?.code || null,
+          file_path: filePath,
         }),
       },
       supabaseUrl,

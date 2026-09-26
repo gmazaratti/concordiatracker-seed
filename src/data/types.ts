@@ -158,6 +158,12 @@ export interface CalendarTask {
 }
 
 /** A teaching contact — instructor or TA. Editable inline on the course detail. */
+/** A personal link on a course: the homework portal, a lab site. */
+export interface QuickLink {
+  label: string
+  url: string
+}
+
 export interface Contact {
   name: string
   email: string
@@ -201,6 +207,8 @@ export interface Course {
   officeHours?: string
   /** Syllabus link (mock — an external URL the student pasted). */
   syllabusUrl: string
+  /** Your own links for this class (db/course_quick_links.sql). Private. */
+  quickLinks?: QuickLink[]
   /** The class's letter-grade scale / cutoffs, if the syllabus stated one
    * (free text, e.g. "A: 90-100, A-: 85-89, …"). Populated by the parser. */
   gradingScale?: string

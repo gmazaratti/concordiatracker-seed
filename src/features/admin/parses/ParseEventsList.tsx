@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { FileText, Loader2, RotateCw } from 'lucide-react'
+import { ManualParseModal } from './ManualParseModal'
+import { FileText, Loader2, RotateCw, PenLine } from 'lucide-react'
 import { ErrorState, Panel, Pill } from '../admin-ui'
 import { cn } from '@/lib/cn'
 import { loadParseEvents, openStoredFile, retryParse, type ParseEvent, type ParseStatus } from './parse-data'
@@ -103,6 +104,7 @@ export function ParseEventsList({ onChanged }: { onChanged: () => void }) {
 function Row({ e, onRetried }: { e: ParseEvent; onRetried: () => void }) {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const [manual, setManual] = useState(false)
   const s = STATUS[e.status]
   const who = e.name || (e.handle ? `@${e.handle}` : e.email) || 'Unknown'
   const canRetry = e.has_file && e.status !== 'succeeded' && e.retry_status !== 'succeeded'
@@ -145,10 +147,24 @@ function Row({ e, onRetried }: { e: ParseEvent; onRetried: () => void }) {
       </p>
       {e.error && <p className="mt-1 text-[12px] break-words text-danger">{e.error}</p>}
       {e.retry_status && (
-        <p className={cn('mt-1 text-[12px]', e.retry_status === 'succeeded' ? 'text-success' : 'text-warning')}>
+        <p className={cn('mt-1 text-[12px]', e.retry_status === 'succeeded' || e.retry_status === 'delivered' ? 'text-success' : 'text-warning')}>
           Retried {e.retried_at ? when(e.retried_at) : ''}:{' '}
-          {e.retry_status === 'succeeded' ? 'read it, student notified' : e.retry_error || 'failed again'}
+          {e.retry_status === 'succeeded'
+            ? 'read it, student notified'
+            : e.retry_status === 'delivered'
+              ? 'parsed by hand and added to their courses'
+              : e.retry_error || 'failed again'}
         </p>
+      )}
+      {manual && (
+        <ManualParseModal
+          event={e}
+          onClose={() => setManual(false)}
+          onDone={(m) => {
+            setNote(m)
+            onRetried()
+          }}
+        />
       )}
       {(canRetry || e.has_file) && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -170,6 +186,15 @@ function Row({ e, onRetried }: { e: ParseEvent; onRetried: () => void }) {
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg"
             >
               <FileText size={13} aria-hidden /> Open file
+            </button>
+          )}
+          {e.has_file && (
+            <button
+              type="button"
+              onClick={() => setManual(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg"
+            >
+              <PenLine size={13} aria-hidden /> Parse manually
             </button>
           )}
         </div>

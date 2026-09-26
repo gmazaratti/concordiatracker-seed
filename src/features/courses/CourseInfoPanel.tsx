@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CourseQuickLinks } from './CourseQuickLinks'
 import { ChevronDown, ExternalLink, Flag, Mail, Users, Wand2 } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
@@ -269,6 +270,8 @@ export function CourseInfoPanel({
             </a>
           </Row>
         </dl>
+
+        <CourseQuickLinks course={course} />
 
         {/* Almost everything above came from a mirror of Concordia's calendar,
             which is only as fresh as the last sync. Saying so, and giving a way

@@ -25,7 +25,18 @@ const ALL = 'all'
  * Data is REAL (Phase 5): blueprints are fetched from `shared_blueprints` by the
  * course code, votes persist to `blueprint_votes`, and importing materializes the
  * outline as real assignments on THIS course. */
-export function BlueprintList({ course }: { course: Course }) {
+export function BlueprintList({
+  course,
+  ensureCourse,
+}: {
+  course: Course
+  /**
+   * PREVIEW MODE. Set when `course` is not one of yours yet: browsing an
+   * outline must not add the class. Called only when you press Import; it
+   * creates (or finds) the real course and returns its id.
+   */
+  ensureCourse?: () => Promise<string | null>
+}) {
   const navigate = useNavigate()
   const { user, assessments } = useAppData()
   const { blueprints, votes, loading, castVote, recordImport, contribute } =
@@ -65,12 +76,14 @@ export function BlueprintList({ course }: { course: Course }) {
   // Only a real, known mismatch warns — never when viewing "All" or with no section.
   const mismatch = activeSection !== ALL && !!yourSection && activeSection !== yourSection
 
-  function importBlueprint(b: Blueprint) {
+  async function importBlueprint(b: Blueprint) {
+    const courseId = ensureCourse ? await ensureCourse() : course.id
+    if (!courseId) return
     recordImport(b.id)
     // The outline states the instructor, their email, their office hours and
     // the room on page one. Sending those along means a student stops retyping
     // them off the PDF we just read — `outlineDetails` fills blanks only.
-    navigate(`/app/courses/${course.id}`, {
+    navigate(`/app/courses/${courseId}`, {
       state: {
         importItems: blueprintToAssessments(b),
         importDetails: outlineDetails(b, course),
@@ -82,7 +95,7 @@ export function BlueprintList({ course }: { course: Course }) {
     yourSection,
     userVote: votes[b.id] ?? 0,
     onVote: (dir: 1 | -1) => castVote(b.id, dir),
-    onImport: () => importBlueprint(b),
+    onImport: () => void importBlueprint(b),
   })
 
   if (loading) {

@@ -58,7 +58,7 @@ export interface ParseEvent {
   course_code: string | null
   duration_ms: number | null
   has_file: boolean
-  retry_status: 'succeeded' | 'failed' | null
+  retry_status: 'succeeded' | 'failed' | 'delivered' | null
   retry_error: string | null
   retried_at: string | null
   user_id: string
