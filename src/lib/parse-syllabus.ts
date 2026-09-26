@@ -56,6 +56,33 @@ function statusMessage(status: number): string {
  * is signed in. The PDF is sent as the raw body (no base64 inflation on the wire).
  * Throws an Error with a user-friendly message on any failure.
  */
+/**
+ * A parse that did not work, with what the page needs to offer next: the
+ * upload's id, and whether its file was kept so it can be left for an admin to
+ * add by hand (db/parse_review.sql). The message is already safe to show.
+ */
+export class ParseFailure extends Error {
+  eventId: string | null
+  reviewable: boolean
+  constructor(message: string, eventId: string | null = null, reviewable = false) {
+    super(message)
+    this.name = 'ParseFailure'
+    this.eventId = eventId
+    this.reviewable = reviewable
+  }
+}
+
+/** "Leave it for review": the student is done, an admin adds it. */
+export async function requestParseReview(eventId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('request_parse_review', { p_event: eventId })
+  if (error) throw new Error('That did not go through. Try again in a moment.')
+  return (data as { queued?: boolean } | null)?.queued === true
+}
+
+/** Longer than the server's own ceiling, so this only fires when something
+ *  between us and the server hung. Never an endless spinner. */
+const CLIENT_TIMEOUT_MS = 90_000
+
 export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
   const {
     data: { session },
@@ -64,8 +91,11 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
   if (!token) throw new Error('Please sign in again to parse a syllabus.')
 
   let res: Response
+  const abort = new AbortController()
+  const timer = setTimeout(() => abort.abort(), CLIENT_TIMEOUT_MS)
   try {
     res = await fetch('/api/parse-syllabus', {
+      signal: abort.signal,
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -76,8 +106,14 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
       body: file,
     })
   } catch {
-    throw new Error('Couldn’t reach the parser. Check your connection and try again.')
+    clearTimeout(timer)
+    throw new ParseFailure(
+      abort.signal.aborted
+        ? 'This is taking far longer than it should. Try uploading again.'
+        : 'Couldn’t reach the parser. Check your connection and try again.',
+    )
   }
+  clearTimeout(timer)
 
   if (!res.ok) {
     // A JSON body means the function itself answered and knows what went wrong.
@@ -86,13 +122,17 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
     // for all of it. That is the "it failed and didn't say why" report: the
     // status is the only fact available, so say what it means.
     let msg = ''
+    let eventId: string | null = null
+    let reviewable = false
     try {
-      const body = (await res.json()) as { error?: string }
+      const body = (await res.json()) as { error?: string; event_id?: string | null; reviewable?: boolean }
       if (body.error) msg = body.error
+      eventId = body.event_id ?? null
+      reviewable = body.reviewable === true
     } catch {
       msg = ''
     }
-    throw new Error(msg || statusMessage(res.status))
+    throw new ParseFailure(msg || statusMessage(res.status), eventId, reviewable)
   }
 
   return (await res.json()) as ParsedSyllabus

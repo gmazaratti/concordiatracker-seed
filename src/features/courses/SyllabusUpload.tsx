@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Clock, FileText, Loader2, Sparkles, Trash2, UploadCloud } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { getParseUsage, loadParseRetry, normalizeKind, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
+import { getParseUsage, loadParseRetry, normalizeKind, ParseFailure, parseSyllabusPdf, type ParsedSyllabus, type ParseUsage } from '@/lib/parse-syllabus'
+import { SyllabusFailure } from './SyllabusFailure'
 import { KIND_LABEL } from '@/lib/assessment'
 import { MascotLoading } from '@/components/Mascot'
 import { ScanTips } from './ScanTips'
@@ -153,6 +154,10 @@ export function SyllabusUploadPage({
     useAppData()
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState('')
+  // The failed upload, so the student can retry the same file or leave it for
+  // review (SyllabusFailure).
+  const [failure, setFailure] = useState<{ eventId: string | null; reviewable: boolean }>({ eventId: null, reviewable: false })
+  const [lastFile, setLastFile] = useState<File | null>(null)
   const [course, setCourse] = useState<CourseFields>(EMPTY_COURSE)
   const [items, setItems] = useState<ReviewItem[]>([])
   const [warnings, setWarnings] = useState<string[]>([])
@@ -224,14 +229,17 @@ export function SyllabusUploadPage({
       return
     }
     setFileName(file.name)
+    setLastFile(file)
     setPhase('parsing')
     setError('')
+    setFailure({ eventId: null, reviewable: false })
     try {
       const parsed = await parseSyllabusPdf(file)
       applyParsed(parsed)
       void getParseUsage().then(setUsage) // a successful parse consumed one
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
+      if (e instanceof ParseFailure) setFailure({ eventId: e.eventId, reviewable: e.reviewable })
       setPhase('error')
     }
   }
@@ -419,20 +427,20 @@ export function SyllabusUploadPage({
       )}
       {phase === 'parsing' && <Scanning fileName={fileName} />}
       {phase === 'error' && (
-        <div className="mt-6 rounded-2xl border border-danger/40 bg-danger/5 p-6 text-center">
-          <AlertTriangle size={24} className="mx-auto text-danger" aria-hidden />
-          <p className="mt-2 text-[14px] font-medium text-fg">{error}</p>
-          <button
-            type="button"
-            onClick={() => {
-              setError('')
-              setPhase('idle')
-            }}
-            className="mt-3 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-opacity hover:opacity-90"
-          >
-            Try again
-          </button>
-        </div>
+        <SyllabusFailure
+          message={error}
+          eventId={failure.eventId}
+          reviewable={failure.reviewable}
+          canRetrySame={!!lastFile}
+          onRetrySame={() => {
+            if (lastFile) void handleFile(lastFile)
+          }}
+          onChooseAnother={() => {
+            setError('')
+            setPhase('idle')
+          }}
+          onDone={() => navigate('/app/courses')}
+        />
       )}
 
       {phase === 'review' && (

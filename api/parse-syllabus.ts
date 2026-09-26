@@ -225,15 +225,22 @@ export default async function handler(req: Request): Promise<Response> {
    * charges 20s for that rather than 180.)
    */
   const started = Date.now()
+  // The file's fingerprint: a retry of the same syllabus is the same review
+  // entry, and a later success of it resolves the failure (db/parse_review.sql).
+  const fileHash = await crypto.subtle
+    .digest('SHA-256', buf)
+    .then((d) => Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, '0')).join(''))
+    .catch(() => null)
   const meta = (extra: Record<string, unknown>) => ({
     file_name: fileName || null,
     bytes: buf.byteLength,
     duration_ms: Date.now() - started,
+    file_hash: fileHash,
     ...extra,
   })
 
-  const release = async (reason: string, how?: string) => {
-    if (!slot?.event_id) return
+  const release = async (reason: string, how?: string): Promise<string | null> => {
+    if (!slot?.event_id) return null
     // Keep the file, so an admin can retry it (deleted after 30 days by the
     // daily cron). Stored with the STUDENT'S token, under their own folder —
     // the bucket refuses any other path — so nothing here needs a service key.
@@ -250,6 +257,7 @@ export default async function handler(req: Request): Promise<Response> {
       token,
     )
     await callRpc('cancel_parse', { p_event: slot.event_id }, supabaseUrl, supabaseAnon, token)
+    return filePath
   }
 
   /**
@@ -279,9 +287,12 @@ export default async function handler(req: Request): Promise<Response> {
   const parsed = await extractOutline(buf, mimeType)
 
   if (!parsed.ok) {
-    await release(parsed.detail ?? parsed.failure ?? 'unknown', parsed.how)
+    const kept = await release(parsed.detail ?? parsed.failure ?? 'unknown', parsed.how)
+    // Tells the page which upload this was and whether it can be left for an
+    // admin to add by hand: only when the file was kept.
+    const review = { event_id: slot?.event_id ?? null, reviewable: Boolean(kept) }
     if (parsed.failure === 'not_configured') {
-      return json({ error: 'Server is not configured for parsing.' }, 500)
+      return json({ error: 'Server is not configured for parsing.', ...review }, 500)
     }
     if (parsed.failure === 'timeout') {
       // NOT "try a shorter PDF". That was our timeout described as the
@@ -290,20 +301,21 @@ export default async function handler(req: Request): Promise<Response> {
       return json(
         {
           error:
-            'The parser ran out of time on that file. That is our ceiling, not your outline. Try again, and if it keeps happening send it to support. This attempt didn’t count against you.',
+            'The parser ran out of time on that file. That is our ceiling, not your outline. Try again, or leave it for review. This attempt didn’t count against you.',
+          ...review,
         },
         504,
       )
     }
     if (parsed.failure === 'unreachable') {
-      return json({ error: 'Could not reach the parser. Try again. This one is on us.' }, 502)
+      return json({ error: 'Could not reach the parser. Try again. This one is on us.', ...review }, 502)
     }
     if (parsed.failure === 'upstream') {
       const status = parsed.upstreamStatus ?? 502
-      return json({ error: geminiReason(status, parsed.detail ?? '') }, status === 429 ? 429 : 502)
+      return json({ error: geminiReason(status, parsed.detail ?? ''), ...review }, status === 429 ? 429 : 502)
     }
     return json(
-      { error: 'The parser returned something we could not read. Try again.' },
+      { error: 'We couldn’t read this file. Try again, or leave it for review and we’ll add it for you.', ...review },
       502,
     )
   }

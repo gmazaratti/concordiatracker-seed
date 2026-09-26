@@ -76,6 +76,7 @@ import {
   revokeInvite,
 } from './_v1-org-publish.js'
 import { JwtUnavailable, actorToken } from './_v1-jwt.js'
+import { deliverReview, listQueue, previewReview, resolveReview, reviewFile, undoReview } from './_v1-reviews.js'
 import { table } from './_v1-auth.js'
 import { fail } from './_respond.js'
 
@@ -389,6 +390,47 @@ export default async function handler(req: any, res: any) {
         return
       }
       return void send(res, await listThreads((req.query ?? {}) as Record<string, unknown>))
+    }
+
+    // /reviews: the failed-syllabus review queue (db/parse_review.sql). The
+    // assistant token or an admin token; the database decides everything else.
+    if (area === 'reviews') {
+      if (caller.scope !== 'assistant' && caller.scope !== 'admin') {
+        fail(res, 403, 'This is a ' + caller.scope + ' token. The review queue needs an assistant or admin token.')
+        return
+      }
+      res.setHeader('Cache-Control', 'private, no-store')
+      let jwt: string
+      try {
+        jwt = await actorToken(caller.userId, await actorEmail(caller.userId))
+      } catch (e) {
+        if (e instanceof JwtUnavailable) return void fail(res, 503, e.message)
+        throw e
+      }
+      const M = req.method as string
+      const id = resource ? decodeURIComponent(resource) : ''
+      const action = raw[2]
+      const body = M === 'POST' ? readBody(req) : {}
+      if (!id) {
+        if (M !== 'GET') return void fail(res, 405, 'GET to list the review queue.')
+        const q = (req.query ?? {}) as Record<string, unknown>
+        return void send(res, await listQueue(jwt, typeof q.status === 'string' ? q.status : null))
+      }
+      if (action === 'file') {
+        if (M !== 'GET') return void fail(res, 405, 'GET to download the file.')
+        const out = await reviewFile(jwt, id)
+        if (!out.raw) return void send(res, out)
+        res.setHeader('Content-Type', out.raw.type)
+        res.setHeader('Content-Disposition', `inline; filename="${out.raw.name.replace(/[^\w. -]/g, '_')}"`)
+        res.status(200).send(Buffer.from(out.raw.bytes))
+        return
+      }
+      if (M !== 'POST') return void fail(res, 405, 'POST to preview, deliver, undo or resolve.')
+      if (action === 'preview') return void send(res, await previewReview(jwt, id, body))
+      if (action === 'deliver') return void send(res, await deliverReview(jwt, id, body, caller.scope === 'assistant'))
+      if (action === 'undo') return void send(res, await undoReview(jwt, id))
+      if (action === 'resolve') return void send(res, await resolveReview(jwt, id, body))
+      return void fail(res, 404, 'Unknown review action. Use file, preview, deliver, undo or resolve.')
     }
 
     if (area === 'admin' || area === 'orgs') {

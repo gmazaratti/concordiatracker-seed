@@ -7,6 +7,7 @@ import { ago, pct, secs, withinDay } from './format'
 import { ParseDailyChart } from './ParseDailyChart'
 import { ParseBreakdowns } from './ParseBreakdowns'
 import { ParseEventsList } from './ParseEventsList'
+import { ReviewQueue } from './ReviewQueue'
 
 const RANGES = [7, 30, 90] as const
 
@@ -118,6 +119,7 @@ export function ParsesTab() {
 
       <ParseBreakdowns data={data} />
 
+      <ReviewQueue onChanged={refresh} />
       <ParseEventsList onChanged={refresh} />
 
       <p className="text-[11px] text-subtle">

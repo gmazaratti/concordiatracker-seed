@@ -1530,6 +1530,157 @@ export const OPENAPI = {
       },
     },
 
+    '/api/v1/reviews': {
+      get: {
+        operationId: 'listParseReviews',
+        tags: ['Review queue API'],
+        summary: 'List failed syllabus uploads waiting for a person',
+        description:
+          'Failed uploads whose file was kept, one row per syllabus (a retry of the same file ' +
+          'replaces the older row). Students who asked for review come first. Nothing here ' +
+          'exposes a student beyond their name, email and the upload itself.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [
+          { name: 'status', in: 'query', required: false, description: 'queued (default), delivered, resolved or superseded.', schema: { type: 'string', enum: ['queued', 'delivered', 'resolved', 'superseded'] } },
+        ],
+        responses: { '200': { description: 'The queue.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/reviews/{id}/file': {
+      get: {
+        operationId: 'readParseReviewFile',
+        tags: ['Review queue API'],
+        summary: 'Download the kept syllabus',
+        description:
+          'The PDF itself. An assistant token can read it only while the upload is a failed one ' +
+          'still waiting for review; the storage policy enforces that. Every read is audited. ' +
+          'Files are deleted 30 days after upload.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'The review id (the failed upload).', schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'The file.', content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } } } },
+      },
+    },
+
+    '/api/v1/reviews/{id}/preview': {
+      post: {
+        operationId: 'previewParseReview',
+        tags: ['Review queue API'],
+        summary: 'Preview what adding it would do',
+        description:
+          'Writes nothing. Says which course it lands in (existing or new, with credits from the ' +
+          'catalogue), what will be added, what is skipped as already on their list, the weight ' +
+          'total and how many items have no date. Always call this before deliver.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'The review id (the failed upload).', schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['code', 'term', 'items'],
+                properties: {
+                  code: { type: 'string', description: 'Course code, e.g. COMM 305.' },
+                  title: { type: 'string', description: 'Course title. Optional; the catalogue fills it.' },
+                  term: { type: 'string', description: 'Term, e.g. Fall 2026.' },
+                  items: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['title'],
+                      properties: {
+                        title: { type: 'string' },
+                        kind: { type: 'string', description: 'assignment, quiz, midterm, final, lab, project, presentation, participation or other.' },
+                        due: { type: ['string', 'null'], description: 'ISO 8601, or null when the outline gives no date.' },
+                        weight: { type: ['number', 'null'], description: 'Percent of the final grade.' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'The preview.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/reviews/{id}/deliver': {
+      post: {
+        operationId: 'deliverParseReview',
+        tags: ['Review queue API'],
+        summary: 'Add it to the student course',
+        description:
+          'Adds the assessments to the course that belongs to the student who uploaded the file ' +
+          '(never anyone else), creating the course when needed, marked Unverified. Refused with ' +
+          '409 if it was already delivered: undo first. The student is notified and the delivery ' +
+          'is audited.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'The review id (the failed upload).', schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['code', 'term', 'items'],
+                properties: {
+                  code: { type: 'string', description: 'Course code, e.g. COMM 305.' },
+                  title: { type: 'string', description: 'Course title. Optional; the catalogue fills it.' },
+                  term: { type: 'string', description: 'Term, e.g. Fall 2026.' },
+                  items: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      required: ['title'],
+                      properties: {
+                        title: { type: 'string' },
+                        kind: { type: 'string', description: 'assignment, quiz, midterm, final, lab, project, presentation, participation or other.' },
+                        due: { type: ['string', 'null'], description: 'ISO 8601, or null when the outline gives no date.' },
+                        weight: { type: ['number', 'null'], description: 'Percent of the final grade.' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '201': { description: 'What was added.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/reviews/{id}/undo': {
+      post: {
+        operationId: 'undoParseReview',
+        tags: ['Review queue API'],
+        summary: 'Undo a wrong delivery',
+        description:
+          'Removes exactly what that delivery added (and the course, if it created one and nothing ' +
+          'else is in it) and puts the upload back in the queue. Audited.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'The review id (the failed upload).', schema: { type: 'string', format: 'uuid' } }],
+        responses: { '200': { description: 'What was removed.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/reviews/{id}/resolve': {
+      post: {
+        operationId: 'resolveParseReview',
+        tags: ['Review queue API'],
+        summary: 'Close it without adding anything',
+        description: 'For a file that is not an outline, a duplicate, or similar. The note is sent to the student. Audited.',
+        security: [{ assistantToken: [] }, { adminToken: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'The review id (the failed upload).', schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { type: 'object', required: ['note'], properties: { note: { type: 'string', description: 'What the student is told.' } } } } },
+        },
+        responses: { '200': { description: 'Resolved.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
     '/api/v1/orgs': {
       get: {
         operationId: 'listOrganizations',
@@ -2168,6 +2319,14 @@ export const OPENAPI = {
           'organisations. Publishing as an organisation still requires membership of it, and ' +
           'deleting an organisation or a teammate is not reachable. Every write is recorded in ' +
           'the audit log. 120 requests a minute.',
+      },
+      assistantToken: {
+        type: 'http',
+        scheme: 'bearer',
+        description:
+          'A ct_ast_… API token for the assistant identity, created by an admin in the console. ' +
+          'Acts on existing clubs and works the failed-syllabus review queue; every action is ' +
+          'audited. 120 requests a minute.',
       },
       supportToken: {
         type: 'http',

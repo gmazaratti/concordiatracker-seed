@@ -132,3 +132,40 @@ export async function openStoredFile(userId: string, id: string): Promise<void> 
   if (error || !data) throw new Error(error?.message ?? 'Could not open the file.')
   window.open(data.signedUrl, '_blank', 'noopener')
 }
+
+/** One row of the failed-upload review queue (db/parse_review.sql). */
+export interface ReviewRow {
+  id: string
+  created_at: string
+  user_id: string
+  name: string | null
+  email: string | null
+  handle: string | null
+  file_name: string | null
+  has_file: boolean
+  error: string | null
+  course_code: string | null
+  review_status: 'queued' | 'superseded' | 'delivered' | 'resolved'
+  review_requested_at: string | null
+  attempts: number
+  resolved_at: string | null
+  resolution_note: string | null
+  delivery: { course_id?: string; code?: string; created_course?: boolean; assignment_ids?: string[] } | null
+}
+
+export async function loadReviewQueue(status: string | null): Promise<ReviewRow[]> {
+  const { data, error } = await supabase.rpc('admin_parse_queue', { p_status: status })
+  if (error) throw new Error(error.message)
+  return (data as ReviewRow[] | null) ?? []
+}
+
+export async function undoDelivery(id: string): Promise<{ removed: number; course_removed: boolean }> {
+  const { data, error } = await supabase.rpc('undo_parse_delivery', { p_event: id })
+  if (error) throw new Error(error.message)
+  return data as { removed: number; course_removed: boolean }
+}
+
+export async function resolveReview(id: string, note: string): Promise<void> {
+  const { error } = await supabase.rpc('resolve_parse_review', { p_event: id, p_note: note })
+  if (error) throw new Error(error.message)
+}

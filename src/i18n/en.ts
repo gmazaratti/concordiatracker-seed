@@ -839,6 +839,20 @@ export const en = {
   'quickLinks.cancel': 'Cancel',
   'quickLinks.remove': 'Remove {label}',
   'quickLinks.badUrl': 'That doesn’t look like a web address.',
+  'parseFail.tryTitle': 'Try uploading again',
+  'parseFail.tryBody': 'Same file or a different one. It only takes a few seconds.',
+  'parseFail.retrySame': 'Try this file again',
+  'parseFail.another': 'Choose another file',
+  'parseFail.leaveTitle': 'Leave it for review',
+  'parseFail.leaveBody': 'We already have your file. An admin will read it and add it to your courses as soon as possible. You don’t need to do anything else.',
+  'parseFail.leave': 'Leave it for review',
+  'parseFail.leaving': 'Sending…',
+  'parseFail.leaveError': 'That didn’t go through. Try again in a moment.',
+  'parseFail.leftTitle': 'Left for review',
+  'parseFail.leftBody': 'An admin will read your syllabus and add it to your courses as soon as possible. You’ll get a notification when it’s done. Nothing else to do.',
+  'parseFail.backToCourses': 'Back to my courses',
+  'parseFail.stuckTitle': 'Still stuck?',
+  'parseFail.stuckBody': 'If it keeps failing, you can add the assessments by hand, or write to support from your profile menu.',
 } as const
 
 export type Key = keyof typeof en

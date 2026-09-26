@@ -147,7 +147,7 @@ const privacy: LegalDoc = {
           ],
         },
         { kind: 'p', text: 'Upon receiving a deletion request via email or our in-app settings, ConcordiaTracker will permanently delete all associated user data from our active databases within 30 days. Backups are automatically rotated and do not retain deleted user data beyond this period.' },
-        { kind: 'p', text: 'Syllabus files you upload are read to extract your course schedule, then kept privately for up to 30 days so that, if the result was wrong or the file could not be read, we can re-read it and fix your course for you. Only you and ConcordiaTracker administrators can access them, and they are deleted automatically after 30 days.' },
+        { kind: 'p', text: 'Syllabus files you upload are read to extract your course schedule, then stored privately for up to 30 days so that, if the result was wrong or the file could not be read, we can read it again and fix your course for you. The files are not public and are not shown to other users. ConcordiaTracker administrators may open a stored file to review it by hand, and our automated support assistant may open a file only while it is an unread upload waiting for that review, and every file it opens is logged. Stored files are deleted automatically 30 days after upload. A record that the upload happened (the file name, the date, and whether it could be read) stays with your account like other usage records.' },
         { kind: 'p', text: 'Primary Support & Data Privacy Contact: concordiatracker@gmail.com' },
       ],
     },
