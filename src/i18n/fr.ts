@@ -792,7 +792,7 @@ export const fr: Partial<Record<Key, string>> = {
   'faqPage.q.sell': 'Vendez-vous mes données ou affichez-vous de la publicité?',
   'faqPage.a.sell': 'Non, et non. Il n’y a aucune publicité dans l’application, et vos données ne sont pas vendues.',
   'faqPage.q.delete': 'Comment supprimer mon compte ou obtenir une copie de mes données?',
-  'faqPage.a.delete': 'Écrivez à [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) depuis l’adresse de votre compte. La Loi 25 du Québec vous donne le droit d’accéder à vos données, de les faire corriger et de les faire supprimer, et nous donnons suite à chacune de ces demandes.',
+  'faqPage.a.delete': 'Supprimez votre compte vous-même dans Paramètres → Compte → Supprimer le compte : c’est immédiat et définitif, et tout abonnement est annulé d’abord. Pour obtenir une copie de vos données, ou si vous ne pouvez pas vous connecter, écrivez à [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) depuis l’adresse de votre compte. La Loi 25 du Québec vous donne le droit d’accéder à vos données, de les faire corriger et de les faire supprimer, et nous donnons suite à chacune de ces demandes.',
   'faqPage.q.age': 'Y a-t-il un âge minimum?',
   'faqPage.a.age': 'Oui. Il faut avoir au moins 16 ans pour créer un compte.',
   'faqPage.q.listed': 'Comment inscrire mon club?',

@@ -5,73 +5,63 @@ import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
 /**
- * "Can I see your schedule?" — rendered as a decision, not a set of directions.
+ * "Can I see your schedule?", answered for THE PERSON WHO ASKED.
  *
- * It used to send a sentence telling the other person which settings screen to
- * go and find. That asks somebody to go hunting for a switch on the word of
- * someone who wants something from them, and it puts the explanation of what
- * they would be sharing in a place they have to navigate to. The prompt goes
- * where the question is, with its limits written on it.
+ * Allow grants that one person access (db/account_deletion.sql →
+ * schedule_grants, read by can_see_schedule / get_friend_schedule). It does
+ * not touch "Let friends see my schedule" in Settings, which stays the switch
+ * for everyone you have accepted. It used to be the only answer, so saying yes
+ * to one person quietly said yes to all of them.
  *
- * THERE IS NO REQUEST RECORD. The answer is the `schedule_visibility` setting
- * that already exists, so this card reads live state rather than keeping a
- * second copy that can drift out of step with the switch in Settings — and
- * changing your mind later is that same switch, not an undo of this card.
- *
- * Which means: Allow is not "allow this person". It turns on "friends can see
- * my schedule", and the card says so, because a button that quietly does more
- * than its label is the one thing this screen cannot do.
+ * The card reads the live grant, so it shows the truth if you revoke it later,
+ * and "Stop sharing" is on the card as well as the grant.
  */
-export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: boolean }) {
+export function ScheduleRequestCard({ mine, bare, requester }: { mine: boolean; bare?: boolean; requester?: string }) {
   const { user } = useAuth()
-  const [visible, setVisible] = useState<boolean | null>(null)
+  const [granted, setGranted] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [denied, setDenied] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!user) return
+    if (!user || !requester || mine) return
     let alive = true
-    void supabase
-      .from('user_profile')
-      .select('schedule_visibility')
-      .eq('user_id', user.id)
+    supabase
+      .from('schedule_grants')
+      .select('grantee')
+      .eq('owner', user.id)
+      .eq('grantee', requester)
       .maybeSingle()
-      .then(({ data }) => {
-        if (!alive) return
-        setVisible((data as { schedule_visibility?: string } | null)?.schedule_visibility === 'friends')
+      .then(({ data, error: e }) => {
+        if (alive) setGranted(e ? false : !!data)
       })
     return () => {
       alive = false
     }
-  }, [user])
+  }, [user, requester, mine])
 
-  async function allow() {
-    if (!user || busy) return
+  async function change(allow: boolean) {
+    if (!requester || busy) return
     setBusy(true)
     setError('')
-    const { error: e } = await supabase
-      .from('user_profile')
-      .update({ schedule_visibility: 'friends' })
-      .eq('user_id', user.id)
+    const { data, error: e } = await supabase.rpc(allow ? 'grant_schedule' : 'revoke_schedule', { p_grantee: requester })
     setBusy(false)
-    if (e) {
-      setError('Could not turn that on. Try again, or use Settings → Privacy.')
+    if (e || (allow && data !== true)) {
+      setError(allow ? 'Could not share it. Try again.' : 'Could not stop sharing. Try again.')
       return
     }
-    setVisible(true)
+    setGranted(allow)
+    if (!allow) setDenied(false)
   }
 
   const shell = cn(
     'rounded-xl border bg-canvas p-3',
     !bare && 'mt-1.5',
     bare && 'w-[290px] max-w-full',
-    visible ? 'border-success/40' : 'border-border',
+    granted ? 'border-success/40' : 'border-border',
   )
 
-  // ── The sender's own copy ─────────────────────────────────────────────────
-  // They must not see Allow/Deny: the decision is not theirs, and a disabled
-  // pair of buttons would only make it look like it might be.
+  // ── The sender's own copy: the decision is not theirs. ──────────────────
   if (mine) {
     return (
       <div className={shell}>
@@ -80,24 +70,32 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
           You asked to see their schedule
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-subtle">
-          They will see Allow or Deny here. If they allow it, their classes appear on their
-          profile. You do not get a notification.
+          They will see Allow or Deny here. If they allow it, their classes appear on their profile for you. You do not
+          get a notification.
         </p>
       </div>
     )
   }
 
-  // ── The recipient's copy ──────────────────────────────────────────────────
-  if (visible) {
+  if (granted) {
     return (
       <div className={shell}>
         <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-success">
           <Check size={14} aria-hidden />
-          Your friends can see your schedule
+          They can see your schedule
         </p>
         <p className="mt-1 text-[12px] leading-relaxed text-subtle">
-          Times and rooms only. Turn it off any time in Settings → Privacy.
+          Only this person, and only times and rooms. Nobody else&rsquo;s access changed.
         </p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void change(false)}
+          className="mt-2 rounded-lg border border-border px-2.5 py-1 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-fg disabled:opacity-50"
+        >
+          Stop sharing with them
+        </button>
+        {error && <p className="mt-1.5 text-[12px] text-danger">{error}</p>}
       </div>
     )
   }
@@ -109,9 +107,7 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
           <X size={14} className="text-subtle" aria-hidden />
           You kept your schedule private
         </p>
-        <p className="mt-1 text-[12px] leading-relaxed text-subtle">
-          Nothing was shared and they were not told. You can change this any time.
-        </p>
+        <p className="mt-1 text-[12px] leading-relaxed text-subtle">Nothing was shared and they were not told.</p>
       </div>
     )
   }
@@ -122,22 +118,17 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
         <CalendarRange size={14} className="text-accent" aria-hidden />
         They are asking to see your schedule
       </p>
-
-      {/* The limits are on the card, not behind a link. This is the moment the
-          decision is made, so it is the only place the detail is worth reading. */}
       <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-muted">
         <li>
-          They would see <strong className="font-medium text-fg">when and where your classes meet</strong>:
-          times and rooms.
+          They would see <strong className="font-medium text-fg">when and where your classes meet</strong>: times and
+          rooms.
         </li>
         <li>
-          <strong className="font-medium text-fg">Never your grades</strong>, your assignments or
-          anything else.
+          <strong className="font-medium text-fg">Never your grades</strong>, your assignments or anything else.
         </li>
         <li>
-          Allowing turns on{' '}
-          <strong className="font-medium text-fg">&ldquo;Let friends see my schedule&rdquo;</strong>,
-          so it applies to everyone you have accepted, not just them.
+          Allowing shares it with <strong className="font-medium text-fg">this person only</strong>. You can stop any
+          time from this card.
         </li>
       </ul>
 
@@ -151,8 +142,8 @@ export function ScheduleRequestCard({ mine, bare }: { mine: boolean; bare?: bool
       <div className="mt-2.5 flex gap-2">
         <button
           type="button"
-          disabled={busy || visible === null}
-          onClick={() => void allow()}
+          disabled={busy || granted === null || !requester}
+          onClick={() => void change(true)}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {busy && <Loader2 size={13} className="animate-spin" aria-hidden />}

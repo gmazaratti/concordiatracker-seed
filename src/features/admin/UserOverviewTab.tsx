@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AdminDeleteUser } from './AdminDeleteUser'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
@@ -298,6 +299,8 @@ export function OverviewTab({
           </p>
         </div>
       )}
+
+      {user.email && <AdminDeleteUser userId={user.user_id} email={user.email} onDeleted={onChanged} />}
 
       {showCourses && <CoursesPanel userId={user.user_id} onClose={() => setShowCourses(false)} />}
     </div>

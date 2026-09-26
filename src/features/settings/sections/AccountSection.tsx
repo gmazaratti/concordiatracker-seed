@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Check, Loader2, Trash2 } from 'lucide-react'
-import { ChurnReasonPicker } from './ChurnSurvey'
-import { submitChurn, type ChurnReason } from '@/lib/churn'
+import { Check, Loader2 } from 'lucide-react'
+import { DeleteAccountRow } from './DeleteAccountRow'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { supabase } from '@/lib/supabase'
@@ -287,75 +286,3 @@ function HandleEditor() {
   )
 }
 
-/** Privacy policy references a "Delete Account" button here. Mocked — there is no
- * backend, so it just demonstrates the confirm flow. */
-function DeleteAccountRow() {
-  const [confirming, setConfirming] = useState(false)
-  const [done, setDone] = useState(false)
-  // Why they are leaving: optional, sent with the confirmation (lib/churn).
-  const [reason, setReason] = useState<ChurnReason | null>(null)
-  const [detail, setDetail] = useState('')
-
-  return (
-    <div className="px-4 py-3.5">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[13px] font-medium text-danger">
-            <Trash2 size={14} aria-hidden />
-            Delete account
-          </p>
-          <p className="mt-0.5 text-[12px] text-subtle">
-            Permanently removes your courses, grades, notifications, and profile.
-          </p>
-        </div>
-        {!confirming && !done && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="shrink-0 rounded-lg border border-danger/40 px-3 py-1.5 text-[12px] font-medium text-danger transition-colors hover:bg-danger/10"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-
-      {confirming && !done && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2.5">
-          <div className="w-full">
-            <p className="mb-1.5 text-[12px] text-muted">Mind telling us why? (optional)</p>
-            <ChurnReasonPicker reason={reason} detail={detail} onReason={setReason} onDetail={setDetail} />
-          </div>
-          <span className="text-[12px] text-fg">This can’t be undone. Are you sure?</span>
-          <div className="ml-auto flex gap-2">
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="rounded-md px-2.5 py-1 text-[12px] font-medium text-muted hover:text-fg"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                // The request is recorded whether or not a reason was given.
-                // Failure is ignored: a survey must never stand in the way.
-                submitChurn('account_delete', reason, detail).catch(() => {})
-                setConfirming(false)
-                setDone(true)
-              }}
-              className="rounded-md bg-danger px-2.5 py-1 text-[12px] font-medium text-white"
-            >
-              Delete account
-            </button>
-          </div>
-        </div>
-      )}
-
-      {done && (
-        <p className="mt-3 rounded-lg border border-border bg-surface-2/40 px-3 py-2 text-[12px] text-subtle">
-          Account deletion is mocked in this seed: no backend to delete from.
-        </p>
-      )}
-    </div>
-  )
-}

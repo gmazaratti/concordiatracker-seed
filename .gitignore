@@ -95,3 +95,4 @@ public/__probe-session.json
 .attribution.test.tmp.mjs
 .svix.test.tmp.mjs
 .db-analytics.run.sql
+.route-shape.test.tmp.mjs

@@ -19,6 +19,8 @@ import { stripeByEmail, stripeRollup, stripeMode } from './_stripe-admin.js'
 import { fail } from './_respond.js'
 import { sendEmail } from './_email.js'
 import { extractOutline } from './_parse-core.js'
+import { deleteAccount } from './_delete-account.js'
+import { getStripe } from './_stripe.js'
 
 export const config = { maxDuration: 60 }
 
@@ -63,6 +65,62 @@ export default async function handler(req: any, res: any) {
 
   const action = String(req.query?.action ?? '')
   try {
+    // Permanent deletion on an emailed request (the policy's "By email" path).
+    // HUMAN admins only: ct_admin_write() is false for agent accounts, and an
+    // irreversible deletion is not something an unattended token may do. The
+    // admin must type the account's email, and admins cannot be deleted here.
+    if (action === 'delete-user') {
+      if (req.method !== 'POST') {
+        fail(res, 405, 'POST to delete an account.')
+        return
+      }
+      const human = await fetch(`${url}/rest/v1/rpc/ct_admin_write`, {
+        method: 'POST',
+        headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!human.ok || (await human.text()).trim() !== 'true') {
+        fail(res, 403, 'Only a person, not an agent token, can delete an account.')
+        return
+      }
+      const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {}) as { userId?: string; confirmEmail?: string }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const target = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(String(body.userId ?? ''))}`, { headers: svc })
+      const tu = target.ok ? ((await target.json()) as { id?: string; email?: string }) : null
+      if (!tu?.id) {
+        fail(res, 404, 'No account with that id.')
+        return
+      }
+      if (!body.confirmEmail || body.confirmEmail.trim().toLowerCase() !== String(tu.email ?? '').toLowerCase()) {
+        fail(res, 400, 'Type the account email exactly to confirm.')
+        return
+      }
+      const isAdmin = await fetch(`${url}/rest/v1/admins?user_id=eq.${tu.id}&select=user_id`, { headers: svc }).then((r) => r.json())
+      if (Array.isArray(isAdmin) && isAdmin.length) {
+        fail(res, 409, 'That account is an admin. Remove it from admins first.')
+        return
+      }
+      let stripeClient = null
+      try {
+        stripeClient = getStripe()
+      } catch {
+        stripeClient = null
+      }
+      const result = await deleteAccount(tu.id, { url, service: svcKey, stripe: stripeClient })
+      if (!result.ok) {
+        fail(res, 409, result.error ?? 'The account could not be deleted.')
+        return
+      }
+      // The audit row says an account was deleted and by whom, never whose.
+      await fetch(`${url}/rest/v1/admin_audit_log`, {
+        method: 'POST',
+        headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ actor_id: jwtSub(jwt), action: 'account.deleted', reason: 'Deleted on request' }),
+      })
+      res.status(200).json(result)
+      return
+    }
+
     if (action === 'stripe-user') {
       const email = String(req.query?.email ?? '').trim()
       if (!email) {

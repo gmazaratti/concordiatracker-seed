@@ -124,10 +124,10 @@ export function MessageRow({
               style={bubbleStyle}
             >
               <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]">{m.body}</p>
-              {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} />}
+              {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} sender={m.sender} />}
             </div>
           ) : (
-            m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} bare />
+            m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} sender={m.sender} bare />
           )}
         </div>
 

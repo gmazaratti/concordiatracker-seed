@@ -781,7 +781,7 @@ export const en = {
   'faqPage.q.sell': 'Do you sell my data or show ads?',
   'faqPage.a.sell': 'No and no. There’s no advertising in the app, and your data isn’t sold.',
   'faqPage.q.delete': 'How do I delete my account or get a copy of my data?',
-  'faqPage.a.delete': 'Email [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) from the address on your account. Quebec’s Law 25 gives you the right to access, correct and delete your data, and we act on any of those on request.',
+  'faqPage.a.delete': 'Delete your account yourself in Settings → Account → Delete account: it is immediate and permanent, and cancels any subscription first. For a copy of your data, or if you cannot sign in, email [concordiatracker@gmail.com](mailto:concordiatracker@gmail.com) from the address on your account. Quebec’s Law 25 gives you the right to access, correct and delete your data, and we act on any of those on request.',
   'faqPage.q.age': 'Is there a minimum age?',
   'faqPage.a.age': 'Yes. You need to be at least 16 to create an account.',
   'faqPage.q.listed': 'How does my club get listed?',

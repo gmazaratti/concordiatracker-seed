@@ -30,3 +30,21 @@ export function normalizePath(pathname: string): string {
   }
   return '/' + out.join('/')
 }
+
+/**
+ * A full URL made safe to hand to ANY analytics, first-party or Vercel's.
+ *
+ * Query strings and fragments are dropped entirely (support-status links carry
+ * `?token=`, password resets carry `#access_token=`), and the path goes through
+ * normalizePath, so a single-use club claim link `/join/<token>` arrives as
+ * `/join/:token`. A claim token is a credential, not a page view. Anything
+ * that is not a parseable URL is reduced to the site root rather than passed on.
+ */
+export function scrubAnalyticsUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    return u.origin + normalizePath(u.pathname)
+  } catch {
+    return '/'
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
+import { normalizePath, scrubAnalyticsUrl } from './lib/route-shape'
 import { AuthProvider } from '@/app/providers/AuthProvider'
 import { AppProviders } from '@/app/providers/AppProviders'
 import { AppRoutes } from '@/router'
@@ -47,8 +48,13 @@ export default function App() {
           */}
           {import.meta.env.PROD && !isNative() && (
             <>
-              <Analytics />
-              <SpeedInsights />
+              {/* beforeSend strips query strings, fragments and token-like path
+                  segments (lib/route-shape): a club claim link is a credential,
+                  and it must not reach Vercel as a page view. */}
+              <Analytics beforeSend={(e) => ({ ...e, url: scrubAnalyticsUrl(e.url) })} />
+              <SpeedInsights
+                beforeSend={(e) => ({ ...e, url: scrubAnalyticsUrl(e.url), ...(e.route ? { route: normalizePath(e.route) } : {}) })}
+              />
             </>
           )}
         </BrowserRouter>

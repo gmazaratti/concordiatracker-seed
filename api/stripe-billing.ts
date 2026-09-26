@@ -12,7 +12,8 @@
  * Every action resolves the subscription from the CALLER'S OWN profile, so a
  * crafted request can't cancel or read anybody else's subscription.
  */
-import { authedUser, getProfile, getStripe, readJson, siteUrl } from './_stripe.js'
+import { authedUser, getProfile, getStripe, readJson, siteUrl, supabaseAdmin } from './_stripe.js'
+import { deleteAccount } from './_delete-account.js'
 import { startCheckout } from './_stripe-checkout.js'
 import { fail } from './_respond.js'
 
@@ -38,7 +39,36 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    const { action = 'summary', sessionId } = readJson<{ action?: Action; sessionId?: string }>(req)
+    const { action = 'summary', sessionId, confirm } = readJson<{ action?: Action | 'delete-account'; sessionId?: string; confirm?: string }>(req)
+
+    // Permanent deletion of the caller's own account (api/_delete-account.ts).
+    // Lives here because it must cancel billing first and this function
+    // already holds both the caller's identity and Stripe.
+    if (action === 'delete-account') {
+      if (confirm !== 'DELETE') {
+        fail(res, 400, 'Type DELETE to confirm.')
+        return
+      }
+      const admin = supabaseAdmin()
+      let stripeClient = null
+      try {
+        stripeClient = getStripe()
+      } catch {
+        stripeClient = null
+      }
+      const result = await deleteAccount(user.id, {
+        url: admin.url,
+        service: String(admin.headers.apikey),
+        stripe: stripeClient,
+      })
+      if (!result.ok) {
+        fail(res, 409, result.error ?? 'The account could not be deleted.')
+        return
+      }
+      res.status(200).json(result)
+      return
+    }
+
     const stripe = getStripe()
 
     // Did this checkout actually complete? Asked straight after the redirect so

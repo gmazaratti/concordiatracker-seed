@@ -44,9 +44,12 @@ export function AttachmentEmbed({
   attachment,
   mine,
   bare = false,
+  sender,
 }: {
   attachment: Attachment
   mine: boolean
+  /** Who sent the message carrying this attachment (a schedule request is answered for that one person). */
+  sender?: string
   /** Sent on its own, so the card IS the message: no top margin separating it
    *  from text that is not there, and a fixed width so a bare card does not
    *  stretch to the full bubble column. */
@@ -57,7 +60,7 @@ export function AttachmentEmbed({
 
   // Answered in place, so it never opens anything.
   if (attachment.kind === 'schedule_request') {
-    return <ScheduleRequestCard mine={mine} bare={bare} />
+    return <ScheduleRequestCard mine={mine} bare={bare} requester={sender} />
   }
 
   if (attachment.kind === 'event') {

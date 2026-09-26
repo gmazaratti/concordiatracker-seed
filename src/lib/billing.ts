@@ -113,3 +113,12 @@ export function fmtDate(unixSeconds: number | null): string {
     year: 'numeric',
   })
 }
+
+/**
+ * Permanently delete the signed-in account (api/_delete-account.ts): cancels
+ * billing first, then removes every row and file that identifies the person.
+ * The server requires the literal confirmation word as well.
+ */
+export function deleteMyAccount(): Promise<{ ok: true; filesRemoved: number; billing: 'none' | 'cancelled' }> {
+  return post('/api/stripe-billing', { action: 'delete-account', confirm: 'DELETE' })
+}

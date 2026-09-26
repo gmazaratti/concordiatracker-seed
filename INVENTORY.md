@@ -68,7 +68,7 @@ removed with the account. "Survives (SET NULL)" means the row stays with its `us
 
 | Data | Stored where | Visible to | Retention | Disclosed |
 |---|---|---|---|---|
-| Follows (person to person) | `public.user_follows` | Both parties; follower/following lists are readable by anyone including signed-out visitors (`profile_follow_list` granted to anon) | Cascade | N |
+| Follows (person to person) | `public.user_follows` | Both parties; lists are readable by others only when the profile is public (or by mutuals), signed-out included | Cascade | N |
 | Club follows | `public.org_follows` | The user; clubs see a count only | Cascade | N |
 | Legacy friendships | `public.friendships` | Both parties | Cascade | N |
 | Blocks | `public.profile_blocks` | The blocker; admins (Social graph tab) | Cascade | N |
@@ -300,8 +300,10 @@ Readable by the user (own), admins, and the support API token. Both survive acco
     design, since calendar apps cannot send headers).
 21. **Parse records keep a file hash, error text and the extracted retry result indefinitely**;
     the policy mentions only file name, date and outcome.
-22. **Public follower lists**: `profile_follow_list` is callable by signed-out visitors for any
-    handle, including private profiles. Not disclosed (and possibly not intended).
+22. ~~**Public follower lists**~~ **CORRECTED, this was wrong.** `profile_follow_list` is callable
+    signed-out, but it goes through `can_view_follow_lists` (public profile, yourself, or a mutual),
+    so a signed-out caller gets **0 rows** for a private profile and the list only for a public
+    one (measured 2026-09-26). It already follows the profile's own privacy setting.
 23. **Resend tracking status is unknown** (see question 6). If open/click tracking is on, it is
     undisclosed.
 24. **Stripe.js sets `__stripe_mid` and `__stripe_sid` cookies** on our domain for fraud detection
@@ -324,3 +326,19 @@ New collection introduced by `db/product_analytics.sql` (applied to production t
 | `ct_first_touch` | localStorage | First-touch record above | Until cleared | N |
 
 Also added: the source links `/ig`, `/li` and `/qr` set the same `ct_ref` cookie as `/r`.
+
+---
+
+## Status after the 2026-09-26 fixes
+
+| # | Mismatch | Status |
+|---|---|---|
+| 1, 2 | Delete account was a mock; deletion left emails and text behind | **Fixed.** Real deletion (`db/account_deletion.sql` + `api/_delete-account.ts`), proven on disposable accounts: after deletion no table in `public` or `auth` holds the person's id, email, name, handle or text, and their files are gone. Kept: an anonymous per-day count, reason and plan without id or text, analytics rows with the account link removed, club content without the author. |
+| 3, 4 | IPs and user agents stored | **Disclosed** in the policy (90 days, admin-visible). Retention now enforced daily. |
+| 5 | Vercel Analytics undisclosed and received tokens | **Fixed + disclosed.** `beforeSend` strips query, fragment and token-like segments; `strict-origin` referrer policy. |
+| 6–13, 17–20 | Gemini, Moodle, Apple, social/DM data, admin access to club messages, support data, attribution, cookies, sessions, browser-loaded third parties, admin notes, billing state | **Disclosed** in the rewritten policy. |
+| 15 | Analytics retention not enforced | **Fixed.** `ct_prune_analytics()` on cron `ct-prune-analytics` (daily 04:40); first run removed 5,546 old heartbeat rows. The policy states that it had not run before. |
+| 16 | "Anonymous" label on account-linked analytics | **Fixed** in the policy; per-account opt-out exists. |
+| 22 | Follower lists | Was wrong (see above). |
+| 23 | Resend tracking unknown | Still needs a dashboard check. |
+| 24 | Stripe cookies | **Disclosed.** |

@@ -51,43 +51,53 @@ export interface LegalDoc {
 }
 
 const LAST_UPDATED = 'August 22, 2026'
-/** Privacy carries its own date. It last changed on 22 August 2026, when Resend
- * was added as a subprocessor — naming a new processor is exactly the kind of
- * change Law 25 expects to be dated. */
+/** Privacy carries its own date. Rewritten on 26 September 2026 against a full
+ * audit of what the product collects (INVENTORY.md in the repo): every item the
+ * old text left out is now here, including the things we would rather had been
+ * different (raw IPs in device history, page views kept past the stated period
+ * because the deletion job was never scheduled). Changes now take effect when
+ * posted and are announced in the app. */
 const PRIVACY_UPDATED = 'September 26, 2026'
 
 const privacy: LegalDoc = {
   slug: 'privacy',
   title: 'Privacy Policy',
   lastUpdated: PRIVACY_UPDATED,
-  intro: 'How ConcordiaTracker collects, uses, and protects your information.',
+  intro: 'How ConcordiaTracker collects, uses, and protects your information. This page describes what the product actually does.',
   sections: [
     {
       n: 1,
-      title: 'Data Collection (Law 25 Compliance)',
+      title: 'What We Collect (Law 25)',
       blocks: [
         {
           kind: 'p',
-          text: 'In compliance with Quebec’s Law 25 (Act respecting the protection of personal information in the private sector), we disclose that we collect:',
+          text: 'In compliance with Quebec’s Law 25 (Act respecting the protection of personal information in the private sector), this is everything ConcordiaTracker collects:',
         },
         {
           kind: 'list',
           items: [
-            { label: 'Identification', text: 'Email address, display name, and profile picture (via Google OAuth).' },
-            { label: 'Academic Data', text: 'Course names, assignment titles, weights, due dates, and grades: all entered voluntarily by the user.' },
-            { label: 'Technical Data', text: 'Our hosting and database providers process your IP address and browser information to keep the service secure and to mitigate abuse. We do not store your IP address ourselves, and it is never used for analytics or advertising.' },
-            { label: 'Usage Statistics', text: 'Anonymous statistics about how the service is used: see Usage Analytics below for exactly what is and is not recorded.' },
+            { label: 'Account', text: 'Your email address, display name and profile picture. You sign in with Google, with Apple, or with an email and password. A password is stored only as a secure hash by our authentication provider; we never see it. If you use Apple’s “Hide My Email”, we receive Apple’s relay address, and Apple shares your name only on your first sign-in.' },
+            { label: 'Profile', text: 'What you choose to add: a handle, a bio, links, your program, school and year of study, and your privacy settings.' },
+            { label: 'Academic data', text: 'Your courses, assessments, weights, due dates, grades, notes, tasks and schedules, your record of finished courses, and any instructor or TA contact details you enter.' },
+            { label: 'Syllabus uploads', text: 'The files you upload and what we extract from them. See sections 5 and 7.' },
+            { label: 'Messages and social activity', text: 'Direct messages you send and receive (their text, and anything you attach, such as a snapshot of your schedule or record), reactions, read receipts (as your settings allow), follows, blocks, short notes, club memberships, comments, likes, reposts, which stories you viewed, schedule-sharing permissions you grant, and your notifications.' },
+            { label: 'Support and feedback', text: 'Support tickets (your email, name, and every message in the conversation; for requests sent from our help pages without signing in, also your browser’s user-agent string), bug reports (your email and what you wrote), feature requests and comments, survey answers, course-data corrections, access requests, and the reason you give if you cancel or delete your account.' },
+            { label: 'Payments', text: 'Your Stripe customer and subscription identifiers, plan, subscription status, amounts and renewal dates. Card numbers are entered on Stripe and never reach us.' },
+            { label: 'Connected services', text: 'If you connect Moodle: your Moodle calendar link, stored so that nobody, including you, can read it back, and the deadlines it contains (title, due date, course code and description). If you turn on calendar sync: your private feed link, and when a calendar app last fetched it, including that app’s user-agent string.' },
+            { label: 'Devices and IP addresses', text: 'While you are signed in, our authentication provider keeps each session with its IP address and browser user-agent string. We keep a copy of your past sessions (IP address, user agent, first and last seen) for 90 days, so Settings → Devices can show where your account has been used. You can see this list, and so can ConcordiaTracker administrators.' },
+            { label: 'Push notifications', text: 'If you allow them: your device’s push address and keys, and the browser’s user-agent string.' },
+            { label: 'Usage analytics', text: 'See section 9 for exactly what is recorded, and how to turn it off.' },
           ],
         },
       ],
     },
     {
       n: 2,
-      title: 'Google OAuth & API Data Usage',
+      title: 'Google and Apple Sign-In',
       blocks: [
         {
           kind: 'p',
-          text: 'We use Google OAuth 2.0 solely for secure authentication. When you sign in with Google, we only request and access your basic profile information: email address, display name, and profile picture. We do not access your Google Drive, Gmail, Calendar, Contacts, or any other Google service data.',
+          text: 'We use Google OAuth 2.0 and Sign in with Apple solely for authentication. With Google we request only your email address, display name and profile picture; with Apple, your email address (or relay address) and name. We do not access your Google Drive, Gmail, Calendar, Contacts, or any other Google or Apple service data.',
         },
         {
           kind: 'callout',
@@ -108,46 +118,64 @@ const privacy: LegalDoc = {
         {
           kind: 'list',
           items: [
-            'Provide grade calculations, GPA projections, and dashboard features.',
-            'Send essential service updates and deadline notifications (if opted-in).',
-            'Improve application performance and user experience through anonymized analytics.',
+            'Provide the service: grade calculations, GPA projections, deadlines, planning, messaging and clubs.',
+            'Read the syllabi you upload, using Google’s Gemini AI service (section 7).',
+            'Send the emails the service needs: renewal notices, replies to your support requests, and club invitations.',
+            'Understand how the product is used and improve it (section 9).',
+            'Answer support requests and keep the service safe.',
           ],
         },
         {
           kind: 'highlight',
-          text: 'We do not, and will never, sell your personal or academic data to third parties. Your data is never used for advertising, profiling, or any purpose beyond providing the ConcordiaTracker service.',
+          text: 'We do not, and will never, sell your personal or academic data. Your data is never used for advertising or shared with advertisers.',
         },
       ],
     },
     {
       n: 4,
-      title: 'Data Storage & Security',
+      title: 'Security and Who Can See Your Data',
       blocks: [
         {
           kind: 'list',
           items: [
-            { label: 'Encryption', text: 'All data is encrypted in transit (TLS 1.3) and at rest via Supabase PostgreSQL infrastructure.' },
-            { label: 'Row Level Security', text: 'Database access is enforced per-user via Supabase RLS policies. You can only read and modify your own data.' },
-            { label: 'Payment Info', text: 'Financial data is handled exclusively by Stripe. We never store credit card numbers on our servers.' },
-            { label: 'Authentication', text: 'Session tokens are managed by Supabase Auth and are never exposed to client-side JavaScript.' },
+            { label: 'Encryption', text: 'All data is encrypted in transit (TLS) and at rest by our database provider, Supabase.' },
+            { label: 'Access rules', text: 'Database rules limit your private data (courses, grades, tasks, settings) to you. Anything you share is visible to the people you share it with: messages to their recipients, a public profile to anyone, posts and comments to their audience, and your schedule to the people you grant it to.' },
+            { label: 'Clubs', text: 'Messages you send to a club, and its replies, are visible to every active member of that club’s team.' },
+            { label: 'Administrators', text: 'ConcordiaTracker administrators can access account data to provide support and keep the service safe. This includes your profile and plan, courses and grades, support tickets and bug reports, the device and IP history described above, failed syllabus uploads, and every message sent to or from any club. Administrators do not have an in-app view of direct messages between two people.' },
+            { label: 'Automated support assistant', text: 'Our support assistant can read and answer support tickets and bug reports, and can open a failed syllabus upload only while it waits for review. What it sends is logged.' },
+            { label: 'Sign-in session', text: 'Your sign-in session is kept in your browser’s storage by Supabase Auth and is readable by ConcordiaTracker’s own page code, as with most web sign-ins.' },
+            { label: 'Payments', text: 'Payment details are handled by Stripe. We never store card numbers.' },
           ],
         },
       ],
     },
     {
       n: 5,
-      title: 'Data Retention & Deletion',
+      title: 'Data Retention and Deletion',
       blocks: [
-        { kind: 'p', text: 'Your data is retained for as long as your account is active. You may delete your account and all associated data at any time using:' },
+        { kind: 'p', text: 'Your data is kept while your account is active. You can delete your account at any time:' },
         {
           kind: 'list',
           items: [
-            { label: 'In-app', text: 'The “Delete Account” button in the Settings page of your dashboard. This immediately and permanently removes all your courses, assignments, grades, notifications, and profile data.' },
-            { label: 'By email', text: 'Emailing concordiatracker@gmail.com to request manual deletion.' },
+            { label: 'In the app', text: 'Settings → Account → Delete account. Deletion is immediate and permanent. It cancels any subscription first, then removes your profile, courses, assessments, grades, tasks, messages, follows, notes, notifications that name you, support tickets and every message in them, bug reports, survey answers, course reviews and outlines you shared, device and IP history, analytics records, sign-up attribution, connected Moodle and calendar links, push subscriptions, API keys, and your uploaded files.' },
+            { label: 'By email', text: 'Email concordiatracker@gmail.com from the address on your account. We carry out the same deletion within 30 days.' },
           ],
         },
-        { kind: 'p', text: 'Upon receiving a deletion request via email or our in-app settings, ConcordiaTracker will permanently delete all associated user data from our active databases within 30 days. Backups are automatically rotated and do not retain deleted user data beyond this period.' },
-        { kind: 'p', text: 'Syllabus files you upload are read to extract your course schedule, then stored privately for up to 30 days so that, if the result was wrong or the file could not be read, we can read it again and fix your course for you. The files are not public and are not shown to other users. ConcordiaTracker administrators may open a stored file to review it by hand, and our automated support assistant may open a file only while it is an unread upload waiting for that review, and every file it opens is logged. Stored files are deleted automatically 30 days after upload. A record that the upload happened (the file name, the date, and whether it could be read) stays with your account like other usage records.' },
+        { kind: 'p', text: 'What remains after deletion identifies no one: a count of deleted accounts per day and plan; the reason you chose, if you gave one, kept as a category and plan only, without any text you typed or any link to you; and usage statistics with the link to your account removed. Posts and events you published on behalf of a club stay with that club without your name, and images the club still displays stay with it.' },
+        { kind: 'p', text: 'What we do not control: Stripe keeps its own records of past payments, as financial law requires. Our email provider, Resend, keeps logs of emails it sent under its own retention. Our database provider’s backups are replaced on a rolling basis, so deleted data can remain in a backup for up to 30 days before it is overwritten; backups are not used to restore individual accounts.' },
+        { kind: 'p', text: 'Syllabus files you upload are read to extract your course schedule, then stored privately for up to 30 days so that, if the result was wrong or the file could not be read, we can read it again and fix your course for you. The files are not public and are not shown to other users. Administrators may open a stored file to review it by hand, and the support assistant may open one only while it is a failed upload waiting for that review. Stored files are deleted automatically 30 days after upload. A record that the upload happened (the file name, the date, and whether it could be read) stays with your account until you delete it.' },
+        {
+          kind: 'list',
+          items: [
+            { label: 'Page-visit records', text: '180 days. Short “who is online now” signals: 7 days.' },
+            { label: 'Product analytics events', text: '13 months.' },
+            { label: 'Email delivery records', text: '180 days.' },
+            { label: 'Cancellation and deletion reasons', text: '2 years, without any link to you once your account is deleted.' },
+            { label: 'Device and IP history', text: '90 days.' },
+            { label: 'Uploaded syllabus files', text: '30 days.' },
+          ],
+        },
+        { kind: 'p', text: 'These periods are enforced by an automatic job that runs daily. Until September 26, 2026 the automatic deletion of page-visit records had never run, so page views recorded before that date were kept longer than stated. The job now runs every day, and records past these periods are deleted.' },
         { kind: 'p', text: 'Primary Support & Data Privacy Contact: concordiatracker@gmail.com' },
       ],
     },
@@ -159,10 +187,10 @@ const privacy: LegalDoc = {
         {
           kind: 'list',
           items: [
-            'Access a copy of all personal data we store about you.',
+            'Access a copy of the personal data we hold about you.',
             'Request correction of inaccurate data.',
-            'Request complete deletion of your data and account.',
-            'Withdraw consent for data processing at any time.',
+            'Delete your account and data (section 5).',
+            'Withdraw consent to optional processing: turn off usage analytics in Settings → Privacy at any time (section 9).',
           ],
         },
         { kind: 'p', text: 'To exercise these rights, contact us at concordiatracker@gmail.com.' },
@@ -172,47 +200,67 @@ const privacy: LegalDoc = {
       n: 7,
       title: 'Third-Party Services',
       blocks: [
-        { kind: 'p', text: 'We integrate with the following third-party providers. Each has their own privacy policy:' },
+        { kind: 'p', text: 'We rely on these providers. Each has its own privacy policy:' },
         {
           kind: 'links',
           items: [
-            { label: 'Google (Authentication)', href: 'https://policies.google.com/privacy' },
-            { label: 'Supabase (Database & Auth)', href: 'https://supabase.com/privacy' },
+            { label: 'Supabase (Database, authentication, file storage)', href: 'https://supabase.com/privacy' },
+            { label: 'Vercel (Hosting, Web Analytics, Speed Insights)', href: 'https://vercel.com/legal/privacy-policy' },
+            { label: 'Google (Sign-in, and Gemini AI for reading syllabi)', href: 'https://policies.google.com/privacy' },
+            { label: 'Apple (Sign in with Apple)', href: 'https://www.apple.com/legal/privacy/' },
             { label: 'Stripe (Payments)', href: 'https://stripe.com/privacy' },
-            { label: 'Vercel (Hosting, analytics)', href: 'https://vercel.com/legal/privacy-policy' },
             { label: 'Resend (Transactional email)', href: 'https://resend.com/legal/privacy-policy' },
+          ],
+        },
+        {
+          kind: 'list',
+          items: [
+            { label: 'Google Gemini', text: 'When you upload a syllabus, its text (or, if the text cannot be read, the file itself) is sent to Google’s Gemini API to extract your assessments and dates.' },
+            { label: 'Moodle', text: 'If you connect Moodle, our server fetches your Moodle calendar link from Concordia’s Moodle once a day to import your deadlines.' },
+            { label: 'Loaded by your browser', text: 'Pages load fonts from Google Fonts, profile pictures from Google, some club images from image hosts such as ImgBB, and the weather widget from Open-Meteo. These providers receive your IP address as part of the request. Push notifications are delivered through your browser’s push service (for example Google, Apple or Mozilla).' },
           ],
         },
       ],
     },
     {
       n: 8,
-      title: 'Cookies & Local Storage',
+      title: 'Cookies and Browser Storage',
       blocks: [
-        { kind: 'p', text: 'We use essential cookies only for session management via Supabase Auth. These cookies are strictly necessary to keep you logged in and do not track your browsing activity. We do not use advertising cookies, and we do not allow any third party to track you across other websites.' },
-        { kind: 'p', text: 'We also store a small amount of data in your browser’s local storage: your interface preferences, and the anonymous identifiers described in the Usage Analytics section below. This data stays in your browser, is never shared with third parties, and is cleared when you clear your browser data.' },
+        {
+          kind: 'list',
+          items: [
+            { label: 'ct_ref (cookie, 30 days)', text: 'Set when you arrive through one of our short links (such as /r, /ig, /li or /qr). It holds only the name of that link, so we can tell which one brought a visit or a sign-up.' },
+            { label: '__stripe_mid, __stripe_sid (cookies, 1 year and 30 minutes)', text: 'Set by Stripe when the checkout loads, for fraud prevention.' },
+            { label: 'Sign-in session (browser storage)', text: 'Kept by Supabase Auth so you stay signed in.' },
+            { label: 'Other browser storage', text: 'Your interface preferences, the analytics identifiers and first-visit record described in section 9, and conveniences such as recent searches. This stays in your browser and is cleared when you clear your browser data.' },
+          ],
+        },
+        { kind: 'p', text: 'We do not use advertising cookies, and we do not let any third party track you across other websites.' },
       ],
     },
     {
       n: 9,
       title: 'Usage Analytics',
       blocks: [
-        { kind: 'p', text: 'To understand how the service is used and where to improve it, we collect anonymous usage statistics ourselves. We do not use Google Analytics or any other third-party analytics provider, and no advertising or tracking script runs on this site.' },
-        { kind: 'p', text: 'What we record when you visit a page:' },
+        { kind: 'p', text: 'We measure how the service is used in three ways.' },
+        { kind: 'p', text: '1. Page visits (our own). When you open a page we record: two random identifiers kept in your browser (one per browser, one per tab session); the general route you viewed, with invitation codes and other private links stripped out; the website that linked you (its domain only); campaign tags on the link; whether the screen is phone- or desktop-sized; and the short-link name from the ct_ref cookie. If you are signed in, the visit is linked to your account unless you turn analytics off.' },
+        { kind: 'p', text: '2. Vercel Web Analytics and Speed Insights. Our hosting provider records page views and page-loading performance. Before anything is sent we remove query strings and private codes from page addresses, and referring addresses are limited to the site’s domain. Vercel derives an approximate country from your IP address; it does not give us your IP address.' },
+        { kind: 'p', text: '3. Product analytics (signed-in accounts). We record:' },
         {
           kind: 'list',
           items: [
-            { label: 'Anonymous identifiers', text: 'two randomly generated ids stored in your browser: one per browser (to distinguish new from returning visitors) and one per tab session (to count how many people are using the site at a given moment). They are random values that identify a browser, not a person, and contain no personal information.' },
-            { label: 'Page visited', text: 'the general route you viewed (for example, /app/courses). Addresses that contain private links: such as invitation links: are stripped of their unique code before anything is recorded, so those codes are never stored.' },
-            { label: 'Referring website', text: 'the domain that linked you here (for example, instagram.com): never the full address, which can itself contain personal information.' },
-            { label: 'Campaign tags', text: 'if you arrived through a tagged link we share (for example, a link posted by a student club), the tag on that link.' },
-            { label: 'Device type', text: 'whether the screen is phone-sized or desktop-sized.' },
+            { label: 'How you found us', text: 'from your first visit: campaign tags, the referring domain, the page you landed on, and the channel we derive from them, saved to your account when you sign up.' },
+            { label: 'Getting started', text: 'when you finish setup, add your first course, and complete your first assessment.' },
+            { label: 'Features you use', text: 'quick links, outline previews and imports, syllabus uploads, club follows, the notifications panel, calendar sync and Moodle, at most once per feature per day.' },
+            { label: 'Club invitations', text: 'whether an invitation was sent, opened, claimed, and led to an active club.' },
+            { label: 'Email', text: 'whether each email we send was delivered, and, where our email provider’s tracking is enabled, opened or clicked, by type of email. We do not store the address, subject, or links.' },
+            { label: 'Syllabus reading', text: 'whether each upload was read successfully, and a category for any failure.' },
+            { label: 'Weekly activity', text: 'whether you used the service in a given week, grouped by the week you signed up.' },
+            { label: 'Leaving', text: 'when a subscription is cancelled or an account is deleted, and the reason you give, if any.' },
           ],
         },
-        { kind: 'p', text: 'What we deliberately do not collect: your IP address, your browser or device fingerprint, your location, or any identifier that could link your browsing to you personally or follow you to other websites. If you are signed in, a visit may be associated with your account so we can measure how the product is used; it is never sold, shared, or used to build an advertising profile.' },
-        { kind: 'highlight', text: 'This analytics data is anonymous and stays with us. We will never sell it, share it with advertisers, or use it to track you across the internet.' },
-        { kind: 'p', text: 'Retention: activity signals used only to count who is currently online are deleted after 7 days, and page-visit records are deleted after 180 days.' },
-        { kind: 'p', text: 'Because these statistics are anonymous, they generally cannot be traced back to you individually. If you have questions about this, or you would like us to stop associating your signed-in account with usage statistics, contact us at concordiatracker@gmail.com and we will action it.' },
+        { kind: 'p', text: 'Product analytics never include your grades, the text of your messages, file contents, passwords, or codes from private links. They are used only to improve the service and are never sold or shared with advertisers.' },
+        { kind: 'callout', title: 'Turning analytics off', text: 'Settings → Privacy → “Share how I use ConcordiaTracker”. When you turn it off we stop recording product analytics for your account, delete what we had already recorded and your sign-up attribution, and stop linking your page visits to your account. Pages you open are still counted anonymously, as a signed-out visitor’s are.' },
       ],
     },
     {
@@ -226,7 +274,7 @@ const privacy: LegalDoc = {
       n: 11,
       title: 'Changes to This Policy',
       blocks: [
-        { kind: 'p', text: 'We will notify users of material changes to this Privacy Policy via email or in-app notification at least 14 days before they take effect. Continued use of the service after changes become effective constitutes acceptance of the revised policy.' },
+        { kind: 'p', text: 'Material changes to this policy are announced in the app and take effect when posted. The date at the top of this page shows when it last changed.' },
       ],
     },
   ],
