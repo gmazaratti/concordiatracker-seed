@@ -1,3 +1,4 @@
+import { askForGrade } from '@/lib/grade-prompt'
 import { useState } from 'react'
 import { Check, Pencil, Trash2, X } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
@@ -50,6 +51,8 @@ export function AssessmentRow({
     if (gradeError) return
     if (statusDirty) setStatus(assessment.id, draftStatus)
     if (gradeDirty) setGrade(assessment.id, parsedDraft)
+    // Marked done here without a grade being typed alongside it: ask.
+    if (statusDirty && draftStatus === 'done' && !gradeDirty) askForGrade(assessment.id)
   }
   function revert() {
     setDraftStatus(assessment.status)
@@ -62,6 +65,7 @@ export function AssessmentRow({
     const next: AssessmentStatus = isDone ? 'not-started' : 'done'
     setStatus(assessment.id, next)
     setDraftStatus(next)
+    if (next === 'done') askForGrade(assessment.id)
   }
 
   const menuItems: MenuItem[] = [

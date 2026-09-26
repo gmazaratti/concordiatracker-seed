@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { readRefSource } from '@/lib/ref-source'
 import { signupAttribution } from '@/lib/attribution'
 import { missingColumn } from '@/lib/pg-errors'
+import { onOwnProfileChange } from '@/lib/profile-live'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
 import { displayNameFrom } from '@/lib/oauth-identity'
@@ -169,12 +170,35 @@ export function useSupabaseProfile() {
     [authUser],
   )
 
+  // Live: an admin grant, a Stripe webhook or another tab changes this row, and
+  // the app reflects it at once (plan, Pro-until, team Pro, name, picture). Only
+  // the columns this hook already loads are merged; nothing polls.
+  useEffect(() => {
+    if (!authUser?.id) return
+    const keys = COLS.split(',').map((k) => k.trim())
+    return onOwnProfileChange(authUser.id, (fresh) => {
+      const patch: Record<string, unknown> = {}
+      for (const k of keys) if (k in fresh) patch[k] = fresh[k]
+      setRow((r) => (r && r.user_id === authUser.id ? ({ ...r, ...patch } as ProfileRow) : r))
+    })
+  }, [authUser?.id])
+
   const setPlan = useCallback(
     (next: Plan) => {
       const plan_status = next === 'semester' ? 'pro' : 'free'
       setRow((r) => (r ? { ...r, plan_status } : r))
+      // Through the admin RPC: plan columns are locked against direct writes
+      // (db/profile_guard.sql), and only admins see this toggle anyway.
       if (authUser)
-        fireWrite(supabase.from('user_profile').update({ plan_status }).eq('user_id', authUser.id))
+        fireWrite(
+          supabase.rpc('admin_set_plan', {
+            p_target: authUser.id,
+            p_pro: plan_status === 'pro',
+            p_reason: 'Demo plan toggle',
+            p_until: null,
+          }),
+          'The demo plan did not change',
+        )
     },
     [authUser],
   )

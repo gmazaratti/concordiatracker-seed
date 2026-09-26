@@ -1,3 +1,4 @@
+import { GradePrompt } from '@/features/courses/GradePrompt'
 import { useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
@@ -163,6 +164,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       {/* Rendered last → its portal sits on top, so a Pro gift greets the user
           before any other one-time prompt. */}
       <ProGiftCelebration />
+      <GradePrompt />
       <SubscriptionCelebration />
       <EndOfTermPrompt />
       <AdminActivityToaster />

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { loadStripe } from '@stripe/stripe-js'
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from '@stripe/react-stripe-js'
 import { X } from 'lucide-react'
+import { markCheckoutOpen } from '@/lib/checkout-state'
 
 /**
  * Stripe's payment form, mounted INSIDE the app (embedded checkout) rather than
@@ -32,6 +33,9 @@ export function EmbeddedCheckoutPanel({
 }) {
   // Stripe requires a stable callback; ours just forwards to the caller's fetch.
   const getSecret = useCallback(() => fetchClientSecret(), [fetchClientSecret])
+
+  // While this is on screen, the Pro-gift celebration waits (lib/checkout-state).
+  useEffect(() => markCheckoutOpen(), [])
 
   // Escape closes the checkout (and only the checkout — it's the topmost layer).
   useEffect(() => {

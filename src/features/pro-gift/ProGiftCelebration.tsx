@@ -7,6 +7,8 @@ import { supabase, fireWrite } from '@/lib/supabase'
 import { ModalShell } from '@/command/ModalShell'
 import { Button } from '@/components/ui/Button'
 import { Confetti } from '@/components/Confetti'
+import { onOwnProfileChange } from '@/lib/profile-live'
+import { useCheckoutOpen } from '@/lib/checkout-state'
 import {
   REFERRAL_PAYING_CREDIT,
   REFERRAL_SIGNUP_CREDIT,
@@ -15,40 +17,73 @@ import {
 } from '@/features/feedback/survey/survey-data'
 
 /**
- * When an admin gifts a user Pro (db/pro_gift.sql sets pro_gift_pending), this
- * throws a one-time confetti + personal thank-you the next time they open the
- * app — and nudges them toward the survey + inviting friends. Reads/clears the
- * flag itself, so it needs no provider plumbing.
+ * When an admin gifts a user Pro (admin_set_plan arms pro_gift_pending), this
+ * throws a one-time confetti + personal thank-you, and nudges them toward the
+ * survey + inviting friends.
+ *
+ * LIVE, not on next load: the flag is read once on sign-in AND followed over
+ * Realtime (lib/profile-live), so a grant made while the person is using the
+ * app celebrates the moment it lands. No polling. Three cases are handled:
+ *
+ *   - Another tab / a hidden tab: it waits until the page is visible, so the
+ *     moment is not spent on a tab nobody is looking at. Every open tab hears
+ *     the grant; whichever is dismissed first clears the flag on the server,
+ *     and that UPDATE closes it in the others.
+ *   - Mid-checkout: it waits until the Stripe checkout closes (checkout-state).
+ *   - Already played: once dismissed here it stays closed, even if an unrelated
+ *     update to the row still carries the old flag before the dismissal lands.
+ *     Only a flag that went false and then true again (a new grant) reopens it.
  */
 export function ProGiftCelebration() {
   const { user: authUser } = useAuth()
   const { user } = useAppData()
   const navigate = useNavigate()
-  const [by, setBy] = useState<string | null>(null)
-  const [ready, setReady] = useState(false)
+  const checkoutOpen = useCheckoutOpen()
+  const [pendingBy, setPendingBy] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+  const [visible, setVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible')
 
+  // Initial read, then live updates.
   useEffect(() => {
     if (!authUser) return
     let active = true
-    void (async () => {
-      const { data } = await supabase
-        .from('user_profile')
-        .select('pro_gift_pending, pro_gift_by')
-        .eq('user_id', authUser.id)
-        .maybeSingle()
-      if (!active) return
-      if (data?.pro_gift_pending) setBy((data.pro_gift_by as string) || 'the ConcordiaTracker team')
-      setReady(true)
-    })()
+    const apply = (row: { pro_gift_pending?: unknown; pro_gift_by?: unknown }) => {
+      if (!active || !('pro_gift_pending' in row)) return
+      if (row.pro_gift_pending) {
+        setPendingBy((row.pro_gift_by as string) || 'the ConcordiaTracker team')
+      } else {
+        // Cleared (dismissed in some tab, or revoked): close, and forget the
+        // dismissal so a later, genuinely new grant can celebrate again.
+        setPendingBy(null)
+        setDismissed(false)
+      }
+    }
+    void supabase
+      .from('user_profile')
+      .select('pro_gift_pending, pro_gift_by')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) apply(data)
+      })
+    const stop = onOwnProfileChange(authUser.id, apply)
     return () => {
       active = false
+      stop()
     }
   }, [authUser])
 
-  if (!ready || !by) return null
+  useEffect(() => {
+    const on = () => setVisible(document.visibilityState === 'visible')
+    document.addEventListener('visibilitychange', on)
+    return () => document.removeEventListener('visibilitychange', on)
+  }, [])
+
+  const by = pendingBy && !dismissed && visible && !checkoutOpen ? pendingBy : null
+  if (!by) return null
 
   const dismiss = () => {
-    setBy(null)
+    setDismissed(true)
     fireWrite(supabase.rpc('dismiss_pro_gift'))
   }
 

@@ -1,3 +1,4 @@
+import { askForGrade } from '@/lib/grade-prompt'
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
@@ -155,6 +156,8 @@ export function TodayPage() {
   function resolve(id: string, status: AssessmentStatus) {
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
+    // Finished: offer to record the grade (a small card, never a dialog).
+    if (status === 'done') askForGrade(id)
   }
   /** Tick one line of a task's checklist without opening anything. */
   function toggleStep(id: string, index: number) {
