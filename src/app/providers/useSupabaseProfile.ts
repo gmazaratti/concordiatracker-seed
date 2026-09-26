@@ -18,6 +18,8 @@ interface ProfileRow {
   program_id?: string | null
   plan_status: string | null
   pro_until?: string | null
+  /** On a club team (db/team_pro.sql): Pro while the membership lasts. */
+  team_pro?: boolean | null
   avatar_url: string | null
   handle: string | null
   onboarding_completed: boolean | null
@@ -27,7 +29,7 @@ interface ProfileRow {
 }
 
 const COLS =
-  'user_id, name, email, school, program, plan_status, pro_until, avatar_url, handle, onboarding_completed'
+  'user_id, name, email, school, program, plan_status, pro_until, team_pro, avatar_url, handle, onboarding_completed'
 
 /** Google supplies the picture under either key. Apple sends none at all, so
  *  this is null for Apple users and the initials avatar is used — which is the
@@ -47,8 +49,11 @@ const initialsOf = (name: string) =>
 
 /** DB plan_status ('free'|'pro') ↔ the seed's Plan ('free'|'semester'). A live
  * `pro_until` window (e.g. the survey reward) also counts as Pro. */
-const toPlan = (status: string | null | undefined, proUntil?: string | null): Plan => {
+const toPlan = (status: string | null | undefined, proUntil?: string | null, teamPro?: boolean | null): Plan => {
   if (status === 'pro') return 'semester'
+  // Club teams get Pro for as long as they are on one (db/team_pro.sql). The
+  // same three conditions as ct_is_pro(), so the app and the server agree.
+  if (teamPro) return 'semester'
   if (proUntil && new Date(proUntil).getTime() > Date.now()) return 'semester'
   return 'free'
 }
@@ -181,7 +186,7 @@ export function useSupabaseProfile() {
       initials: initialsOf(name),
       avatarUrl: profile?.avatar_url || metaAvatar(meta) || undefined,
       handle: profile?.handle ?? undefined,
-      plan: toPlan(profile?.plan_status, profile?.pro_until),
+      plan: toPlan(profile?.plan_status, profile?.pro_until, profile?.team_pro),
       school: profile?.school ?? '',
       program: profile?.program ?? '',
       // Absent column (migration pending) reads as true, which is the default

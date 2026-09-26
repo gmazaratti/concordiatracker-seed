@@ -8,7 +8,7 @@
  * caller can act on, and to record what was published.
  */
 import { asUser, rpcAsUser } from './_v1-jwt.js'
-import { approved, bad, findOrg, norm, ok, requireMember, str, viaOverride, type OrgRow, type Out } from './_v1-orgs.js'
+import { approved, bad, findOrg, isAssistant, norm, ok, requireMember, str, viaOverride, type OrgRow, type Out } from './_v1-orgs.js'
 
 const EVENT_COLS =
   'id,org_id,title,start,mode,location,category,description,image,relevant_to,posted_at,series_id,recurrence,translations,created_at'
@@ -204,6 +204,40 @@ export async function createPost(
   return ok({ post: r.data?.[0] ?? null }, 201)
 }
 
+/**
+ * Delete an event or a story. No confirmation step here, on purpose: the
+ * caller's own policy decides whether a delete needs a person's approval, and
+ * the database decides whether it is allowed at all. Both are recorded in the
+ * audit log (the assistant's by a database trigger).
+ */
+export async function deleteEvent(jwt: string, userId: string, handle: string, id: string): Promise<Out> {
+  const g = await gate(jwt, userId, handle)
+  if (!g.ok) return g.out
+  const r = await asUser<Record<string, unknown>[]>(
+    jwt,
+    `events?id=eq.${encodeURIComponent(id)}&org_id=eq.${g.org.id}&select=id`,
+    { method: 'DELETE', prefer: 'return=representation' },
+  )
+  if (!r.ok) return bad(r.status, r.error?.message ?? 'Could not delete that event.')
+  if (!r.data?.length) return bad(404, `${norm(handle)} has no event with that id.`)
+  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.event.delete', p_target: g.org.id, p_value: mark(g, { event_id: id }) })
+  return ok({ deleted: true, event_id: id })
+}
+
+export async function deleteStory(jwt: string, userId: string, handle: string, id: string): Promise<Out> {
+  const g = await gate(jwt, userId, handle)
+  if (!g.ok) return g.out
+  const r = await asUser<Record<string, unknown>[]>(
+    jwt,
+    `org_stories?id=eq.${encodeURIComponent(id)}&org_id=eq.${g.org.id}&select=id`,
+    { method: 'DELETE', prefer: 'return=representation' },
+  )
+  if (!r.ok) return bad(r.status, r.error?.message ?? 'Could not delete that story.')
+  if (!r.data?.length) return bad(404, `${norm(handle)} has no live story with that id.`)
+  await rpcAsUser(jwt, 'ct_agent_audit', { p_action: 'agent.story.delete', p_target: g.org.id, p_value: mark(g, { story_id: id }) })
+  return ok({ deleted: true, story_id: id })
+}
+
 /** Soft delete, the same write the composer makes. Not the destructive kind
  *  held back behind an opt-in: the row stays and the feed stops showing it. */
 export async function hidePost(jwt: string, userId: string, handle: string, id: string): Promise<Out> {
@@ -301,6 +335,12 @@ export async function createInvite(
   if (member) return member
 
   const kind = str(body.kind) ?? 'team'
+  // A handoff link gives the club away. The assistant grant covers team
+  // invites only (db/assistant_grant.sql); say so rather than let the
+  // database answer with a bare 42501.
+  if (kind !== 'team' && (await isAssistant(jwt))) {
+    return bad(403, 'The assistant can create team invites, not handoff links. A handoff link transfers the club; an admin makes those in the console.', { reason: 'assistant_no_handoff' })
+  }
   const token = `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`
 
   if (kind === 'team') {

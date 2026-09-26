@@ -3,6 +3,8 @@ import { AlertTriangle, Bot, ExternalLink, Loader2, ShieldAlert } from 'lucide-r
 import { supabase } from '@/lib/supabase'
 import { TokenPanel } from '@/features/tokens/TokenPanel'
 import { EmptyState, Panel } from '../admin-ui'
+import { AssistantTokens } from '../assistant/AssistantTokens'
+import { AssistantActivity } from '../assistant/AssistantActivity'
 import { fmtDateTime } from '../admin-data'
 import { cn } from '@/lib/cn'
 
@@ -191,8 +193,11 @@ export function AssistantTab() {
 
       <Panel title="Assistant access" sub="API keys">
         <div className="space-y-5 p-3.5">
-          {/* First, because it is the one that can do the most. */}
-          <TokenPanel scope="admin" />
+          {/* The assistant's own key: acts as the assistant identity. */}
+          <AssistantTokens />
+          <div className="border-t border-border pt-4">
+            <TokenPanel scope="admin" />
+          </div>
           <div className="border-t border-border pt-4">
             <TokenPanel scope="support" />
           </div>
@@ -203,6 +208,10 @@ export function AssistantTab() {
             <TokenPanel scope="owner" />
           </div>
         </div>
+      </Panel>
+
+      <Panel title="Assistant activity" sub="Every write the assistant makes">
+        <AssistantActivity />
       </Panel>
     </div>
   )

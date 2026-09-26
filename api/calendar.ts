@@ -40,6 +40,7 @@ interface FeedRow {
 interface ProfileRow {
   plan_status: string | null
   pro_until: string | null
+  team_pro?: boolean | null
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -356,12 +357,13 @@ async function getJson<T>(url: string, headers: Record<string, string>): Promise
  *  the client reads, so the server and the UI cannot disagree about it. */
 async function isPro(url: string, svc: Record<string, string>, userId: string): Promise<boolean> {
   const rows = await getJson<ProfileRow[]>(
-    `${url}/rest/v1/user_profile?user_id=eq.${userId}&select=plan_status,pro_until&limit=1`,
+    `${url}/rest/v1/user_profile?user_id=eq.${userId}&select=plan_status,pro_until,team_pro&limit=1`,
     svc,
   )
   const p = rows?.[0]
   if (!p) return false
   if (p.plan_status === 'pro') return true
+  if (p.team_pro) return true // club teams (db/team_pro.sql)
   return !!p.pro_until && new Date(p.pro_until).getTime() > Date.now()
 }
 

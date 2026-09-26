@@ -65,6 +65,8 @@ import {
   createStory,
   getTeam,
   hidePost,
+  deleteEvent,
+  deleteStory,
   listEvents,
   listInvites,
   listPosts,
@@ -230,7 +232,7 @@ export default async function handler(req: any, res: any) {
               // the token was never judged. Saying otherwise is what sent
               // somebody re-minting a credential that was fine.
               'This is a fault on our side, not a problem with your token. Retry in a few seconds.'
-            : 'Send an API token as "Authorization: Bearer ct_owner_...", "ct_adm_...", "ct_sup_..." or "ct_per_...". Create one in Settings → Developer, or in the admin console. A Supabase session token will not work here.',
+            : 'Send an API token as "Authorization: Bearer ct_owner_...", "ct_adm_...", "ct_ast_...", "ct_sup_..." or "ct_per_...". Create one in Settings → Developer, or in the admin console. A Supabase session token will not work here.',
     })
     return
   }
@@ -390,7 +392,11 @@ export default async function handler(req: any, res: any) {
     }
 
     if (area === 'admin' || area === 'orgs') {
-      if (caller.scope !== 'admin') {
+      // The assistant token reaches the club routes, never the admin area.
+      // Its reach on each club is the database's (db/assistant_grant.sql),
+      // checked by the account's user id, not by this scope string.
+      const assistantOk = caller.scope === 'assistant' && area === 'orgs'
+      if (caller.scope !== 'admin' && !assistantOk) {
         fail(
           res,
           403,
@@ -433,7 +439,10 @@ export default async function handler(req: any, res: any) {
 
       if (!handle) {
         if (M === 'GET') return void send(res, await listOrgs(jwt, q))
-        if (M === 'POST') return void send(res, await createOrg(jwt, readBody(req)))
+        if (M === 'POST') {
+          if (caller.scope === 'assistant') return void fail(res, 403, 'The assistant acts on existing clubs; creating one needs an admin token.')
+          return void send(res, await createOrg(jwt, readBody(req)))
+        }
         return void fail(res, 405, 'GET to list organisations, POST to create one.')
       }
 
@@ -458,7 +467,8 @@ export default async function handler(req: any, res: any) {
 
         case 'events':
           if (itemId) {
-            if (M !== 'PATCH') return void fail(res, 405, 'PATCH to edit an event.')
+            if (M === 'DELETE') return void send(res, await deleteEvent(jwt, uid, handle, decodeURIComponent(itemId)))
+            if (M !== 'PATCH') return void fail(res, 405, 'PATCH to edit an event, DELETE to remove it.')
             return void send(res, await patchEvent(jwt, uid, handle, decodeURIComponent(itemId), readBody(req)))
           }
           if (M === 'GET') return void send(res, await listEvents(jwt, handle, q))
@@ -475,6 +485,10 @@ export default async function handler(req: any, res: any) {
           return void fail(res, 405, 'GET to list posts, POST to publish one.')
 
         case 'stories':
+          if (itemId) {
+            if (M !== 'DELETE') return void fail(res, 405, 'DELETE to take a story down.')
+            return void send(res, await deleteStory(jwt, uid, handle, decodeURIComponent(itemId)))
+          }
           if (M === 'GET') return void send(res, await listStories(jwt, handle))
           if (M === 'POST') return void send(res, await createStory(jwt, uid, handle, readBody(req)))
           return void fail(res, 405, 'GET to list live stories, POST to add one.')

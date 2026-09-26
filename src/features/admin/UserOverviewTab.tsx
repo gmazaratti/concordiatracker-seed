@@ -17,6 +17,7 @@ import { Stat } from './admin-ui'
 import { ModalShell } from '@/command/ModalShell'
 import { cn } from '@/lib/cn'
 import { UserMessagePanel } from './UserMessagePanel'
+import { UserExtras } from './UserExtras'
 
 const SOURCE_LABEL: Record<string, string> = {
   catalogue: 'Concordia catalogue',
@@ -186,6 +187,8 @@ export function OverviewTab({
           measured. They are excluded from the averages above, not counted as zero.
         </p>
       )}
+
+      <UserExtras userId={user.user_id} />
 
       {/* ── The controls ─────────────────────────────────────────────── */}
       <div className="rounded-lg border border-border bg-surface p-3">

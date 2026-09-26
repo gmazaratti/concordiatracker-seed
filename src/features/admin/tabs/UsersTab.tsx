@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BookOpen, ChevronRight, FileCheck2, Users2 } from 'lucide-react'
 import { adminListUsers, fmtDate, useAdminList, type AdminUser } from '../admin-data'
 import { EmptyState, ErrorState, Loading, Panel, Pill, RefreshButton, SearchBar } from '../admin-ui'
 import { UserDetailPanel } from '../UserDetailPanel'
 import { cn } from '@/lib/cn'
+import { loadProSources, type ProSource } from '../pro-sources'
 
 type Filter = 'all' | 'paying' | 'pro' | 'internal'
 const FILTERS: { id: Filter; label: string }[] = [
@@ -29,6 +30,16 @@ export function UsersTab() {
   const { items, loading, error, reload } = useAdminList<AdminUser>(loader)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  /* Why each Pro account is Pro (db/team_pro.sql). Separate from the list so
+     admin_list_users keeps its shape; a failure just leaves the pills off. */
+  const [pro, setPro] = useState<Map<string, ProSource>>(new Map())
+  useEffect(() => {
+    let alive = true
+    loadProSources().then((m) => alive && setPro(m), () => undefined)
+    return () => {
+      alive = false
+    }
+  }, [items])
   // Opened from elsewhere — Traffic's "online now" list links here rather
   // than rebuilding a user panel of its own, so the message box, the plan
   // controls and the audit trail are all the ones that already exist.
@@ -52,13 +63,15 @@ export function UsersTab() {
   const isPaying = (u: AdminUser) =>
     !!u.stripe_customer_id && !u.comped && !u.is_internal && u.plan_status === 'pro'
 
+  // Pro from any source: a plan, a manual grant, or a club team.
+  const isPro = (u: AdminUser) => u.plan_status === 'pro' || pro.has(u.user_id)
   const inFilter = (u: AdminUser) =>
     filter === 'all'
       ? true
       : filter === 'paying'
         ? isPaying(u)
         : filter === 'pro'
-          ? u.plan_status === 'pro'
+          ? isPro(u)
           : !!u.is_internal
 
   const searched = items.filter(matches)
@@ -66,7 +79,7 @@ export function UsersTab() {
   const counts: Record<Filter, number> = {
     all: searched.length,
     paying: searched.filter(isPaying).length,
-    pro: searched.filter((u) => u.plan_status === 'pro').length,
+    pro: searched.filter(isPro).length,
     internal: searched.filter((u) => u.is_internal).length,
   }
   const open = openId ? (items.find((u) => u.user_id === openId) ?? null) : null
@@ -122,6 +135,9 @@ export function UsersTab() {
                       </span>
                       {isPaying(u) && <Pill tone="green">Paying</Pill>}
                       {u.comped && <Pill tone="blue">Comped</Pill>}
+                      {(pro.get(u.user_id)?.team_clubs.length ?? 0) > 0 && (
+                        <Pill tone="green">Team Pro: {pro.get(u.user_id)!.team_clubs.join(', ')}</Pill>
+                      )}
                       {u.is_internal && <Pill tone="amber">Internal</Pill>}
                       {u.subscription_status === 'trialing' && <Pill tone="neutral">Trial</Pill>}
                     </div>

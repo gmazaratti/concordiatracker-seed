@@ -76,11 +76,19 @@ async function findOrg(jwt: string, handle: string): Promise<OrgRow | null> {
 const OVERRIDE_TTL_MS = 60_000
 const overrideCache = new Map<string, { at: number; value: boolean }>()
 
+/** Is this the assistant identity (db/assistant_grant.sql)? A failure is no. */
+export async function isAssistant(jwt: string): Promise<boolean> {
+  const r = await rpcAsUser<boolean>(jwt, 'ct_is_assistant', {})
+  return r.ok && r.data === true
+}
+
 async function publishAny(jwt: string): Promise<boolean> {
   const hit = overrideCache.get(jwt)
   const now = Date.now()
   if (hit && now - hit.at < OVERRIDE_TTL_MS) return hit.value
-  const r = await rpcAsUser<boolean>(jwt, 'ct_agent_publish_any', {})
+  // ct_org_override = the admin agent override OR the assistant identity
+  // (db/assistant_grant.sql). Both decided by the database, by user id.
+  const r = await rpcAsUser<boolean>(jwt, 'ct_org_override', {})
   // A failure is NOT an override. The stricter answer on an unknown is the
   // same rule ct_is_agent follows.
   const value = r.ok && r.data === true
@@ -120,6 +128,9 @@ async function requireMember(
   )
   if (r.data?.length) return null
   if (opts.allowOverride !== false && (await publishAny(jwt))) return null
+  // The assistant identity may also read the team and manage PENDING invites;
+  // the database's guard limits what those writes can be.
+  if (opts.allowOverride === false && (await isAssistant(jwt))) return null
   const teamOnly = opts.allowOverride === false
   return bad(
     403,
