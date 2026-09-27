@@ -87,12 +87,12 @@ export function ProductTab() {
         </p>
       )}
       <ActivationPanel r={data.product} />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <ChannelPanel r={data.product} />
         <AdoptionPanel r={data.product} />
       </div>
       <CohortPanel c={data.cohorts} />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <InvitePanel f={data.invites} />
         <EmailPanel e={data.email} />
       </div>

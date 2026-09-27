@@ -90,4 +90,4 @@ export async function loadProduct(days: number): Promise<ProductBundle> {
   return { product, invites, email, parse, cohorts, churn }
 }
 
-export const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '·')
+export const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '—')
