@@ -20,15 +20,22 @@ export const GEMINI_MODEL = 'gemini-2.5-flash'
 export const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny
 
 /**
- * The model fallback for a busy primary: a separate capacity pool.
+ * The last resort when the primary model is busy: a separate capacity pool.
  *
  * Google answers 503 "This model is currently experiencing high demand" in
  * bursts, and a student saw exactly that as "parser failed (error 503)" with
- * nothing retried (QA, 2026-09-26). Asking the same model again a second
- * later usually meets the same spike; the lighter model usually does not, and
- * the task is transcription into a fixed schema, which it does fine.
+ * nothing retried (QA, 2026-09-26). The first retry is the SAME model after a
+ * pause, because its request shape is the one we know works; this one is
+ * only tried after that.
+ *
+ * MEASURED: the first version named `gemini-2.5-flash-lite`, and on its first
+ * live retry Google answered 404 "no longer available to new users", pointing
+ * at this model instead. Gemini 3 models do not take `thinkingBudget`, so the
+ * request for it omits that field. If this one is refused too, the student is
+ * told about the ORIGINAL failure, not about our fallback.
  */
-export const FALLBACK_MODEL = 'gemini-2.5-flash-lite'
+export const FALLBACK_MODEL = 'gemini-3.5-flash-lite'
+
 
 /**
  * How long the whole extraction may take, by default.
@@ -221,7 +228,7 @@ async function ask(
            * squeaked under. Nothing is lost: the output is pinned to a JSON
            * schema and the task is transcription, not deduction.
            */
-          thinkingConfig: { thinkingBudget: 0 },
+          ...(model === GEMINI_MODEL ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
         },
       }),
     },
@@ -301,12 +308,19 @@ export async function extractOutline(
     // (4.4s in the logged case), so a retry still has most of it left. A
     // TIMEOUT is not retried — a second slow call cannot fit in what remains.
     res = await ask(apiKey, parts, budgetMs)
-    if (!res.ok && retryable(res.status) && leftMs() > 4_000) {
-      const first = await res.text().catch(() => '')
-      console.error('[parse] model', res.status, 'retrying on', FALLBACK_MODEL, first.slice(0, 200))
-      await new Promise((r) => setTimeout(r, 400 + Math.random() * 600))
+    // Busy: the same model again after a pause, then the fallback pool.
+    for (const model of [GEMINI_MODEL, FALLBACK_MODEL]) {
+      if (res.ok || !retryable(res.status) || leftMs() < 4_000) break
+      const refused = res
+      const why = await refused.clone().text().catch(() => '')
+      console.error('[parse] model', refused.status, 'retrying on', model, why.slice(0, 200))
+      await new Promise((r) => setTimeout(r, 800 + Math.random() * 900))
       retried = true
-      res = await ask(apiKey, parts, Math.max(3_000, leftMs()), FALLBACK_MODEL)
+      const next = await ask(apiKey, parts, Math.max(3_000, leftMs()), model)
+      // A fallback that cannot even take the request (404 retired, 400 shape)
+      // is our problem, not the answer to report: keep the original refusal.
+      res = next.ok || retryable(next.status) ? next : refused
+      if (res === refused) break
     }
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError'
@@ -334,7 +348,7 @@ export async function extractOutline(
       retried,
       failure: 'upstream',
       upstreamStatus: res.status,
-      detail: `model ${res.status} (${useText ? 'text' : 'pdf'}${retried ? ', after a retry on ' + FALLBACK_MODEL : ''}): ${body.slice(0, 200)}`,
+      detail: `model ${res.status} (${useText ? 'text' : 'pdf'}${retried ? ', after retrying' : ''}): ${body.slice(0, 200)}`,
     }
   }
 
