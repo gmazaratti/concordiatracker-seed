@@ -186,53 +186,79 @@ export function ParsePanel({ p }: { p: ParseReport }) {
   )
 }
 
+/** "2026-08-31" (a Monday) → "Aug 31". Parsed as a local date, not UTC. */
+function weekLabel(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 /**
  * Retention as a shaded grid: each cell's tint is its share, so a cohort that
  * holds reads as a dark row and one that drops off fades, without reading
  * every number. Weeks a cohort has not reached yet are left blank.
+ *
+ * It explains itself (asked, 2026-09-27: "I don't understand what W0 or W1
+ * are"): a one-line key above the grid, headers that say "Week 1" rather than
+ * "W1", the raw count under each percentage, and a sentence on hover.
  */
 export function CohortPanel({ c }: { c: CohortReport }) {
   const width = Math.max(0, ...c.cohorts.map((x) => x.active.length))
   return (
-    <Panel title="Weekly retention by signup week" sub={c.note}>
+    <Panel title="Do people come back?" sub="Weekly retention, grouped by the week people signed up">
       <Body>
         {c.cohorts.length === 0 ? (
           <Empty />
         ) : (
-          <div className="-mx-4 overflow-x-auto px-4">
-            <table className="w-full border-separate border-spacing-1 text-[12px] tabular-nums">
-              <thead>
-                <tr className="text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
-                  <th className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">Signup week</th>
-                  <th className="pr-3 pb-1 text-right font-semibold">Size</th>
-                  {Array.from({ length: width }, (_, i) => (
-                    <th key={i} className="pb-1 text-center font-semibold">W{i}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {c.cohorts.map((x) => (
-                  <tr key={x.week}>
-                    <td className="pr-3 whitespace-nowrap text-muted">{x.week}</td>
-                    <td className="pr-3 text-right text-fg">{x.size}</td>
-                    {Array.from({ length: width }, (_, i) => {
-                      if (i >= x.active.length) return <td key={i} />
-                      const share = x.size > 0 ? x.active[i] / x.size : 0
-                      return (
-                        <td
-                          key={i}
-                          className="min-w-12 rounded-md px-2 py-1.5 text-center text-fg"
-                          style={{ backgroundColor: `color-mix(in srgb, var(--ct-accent) ${Math.round(share * 55)}%, var(--ct-surface-2))` }}
-                        >
-                          {pct(x.active[i], x.size)}
-                        </td>
-                      )
-                    })}
+          <>
+            <p className="text-[12.5px] leading-relaxed text-muted">
+              Each row is everyone who signed up in one week. Week 0 is that signup week (always 100%); Week 1 is
+              the week after, and so on. A cell is the share of that group who used the app at least once that
+              week (any signed-in page view counts). Blank means that week hasn&rsquo;t happened yet. Darker means more of them came back.
+            </p>
+            <div className="-mx-4 overflow-x-auto px-4">
+              <table className="w-full border-separate border-spacing-1 text-[12px] tabular-nums">
+                <thead>
+                  <tr className="text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    <th className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">Signed up week of</th>
+                    <th className="pr-3 pb-1 text-right font-semibold">People</th>
+                    {Array.from({ length: width }, (_, i) => (
+                      <th key={i} className="pb-1 text-center font-semibold whitespace-nowrap">
+                        {i === 0 ? 'Week 0' : `Week ${i}`}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {c.cohorts.map((x) => (
+                    <tr key={x.week}>
+                      <td className="pr-3 whitespace-nowrap text-muted">{weekLabel(x.week)}</td>
+                      <td className="pr-3 text-right text-fg">{x.size}</td>
+                      {Array.from({ length: width }, (_, i) => {
+                        if (i >= x.active.length) return <td key={i} />
+                        const n = x.active[i]
+                        const share = x.size > 0 ? n / x.size : 0
+                        const when = i === 0 ? 'in the week they signed up' : `${i} week${i === 1 ? '' : 's'} after signing up`
+                        return (
+                          <td
+                            key={i}
+                            title={`${n} of the ${x.size} who signed up the week of ${weekLabel(x.week)} used the app ${when}.`}
+                            className="min-w-14 rounded-md px-2 py-1 text-center text-fg"
+                            style={{ backgroundColor: `color-mix(in srgb, var(--ct-accent) ${Math.round(share * 55)}%, var(--ct-surface-2))` }}
+                          >
+                            <span className="block leading-tight">{pct(n, x.size)}</span>
+                            <span className="block text-[10px] leading-tight text-muted">
+                              {n} of {x.size}
+                            </span>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Body>
     </Panel>
