@@ -16,6 +16,7 @@ import {
   STATIC_COMMANDS,
   type Command,
 } from './commands'
+import { usePeopleCommands } from './usePeopleCommands'
 
 const GROUP_ORDER = ['Navigate', 'Actions'] as const
 
@@ -45,9 +46,12 @@ function CommandPaletteDialog() {
     () => [...STATIC_COMMANDS, ...dynamicCommands(courses, assessments)],
     [courses, assessments],
   )
+  const matched = useMemo(() => matchCommands(query, commands), [query, commands])
+  const people = usePeopleCommands(query)
+  // One list for the keyboard: matches first, then people and clubs.
   const results = useMemo(
-    () => matchCommands(query, commands),
-    [query, commands],
+    () => (query ? [...matched, ...people.commands] : matched),
+    [query, matched, people.commands],
   )
   const activeIndex = results.length ? Math.min(active, results.length - 1) : 0
 
@@ -105,7 +109,10 @@ function CommandPaletteDialog() {
   }
 
   const sections = query
-    ? [{ label: 'Results', items: indexed(results) }]
+    ? [
+        { label: 'Results', items: indexed(results).slice(0, matched.length) },
+        { label: 'People & clubs', items: indexed(results).slice(matched.length) },
+      ].filter((s) => s.items.length)
     : GROUP_ORDER.map((label) => ({
         label,
         items: indexed(results).filter((r) => r.cmd.group === label),
@@ -158,7 +165,7 @@ function CommandPaletteDialog() {
             aria-activedescendant={
               results[activeIndex] ? `cmd-${results[activeIndex].id}` : undefined
             }
-            placeholder="Search or jump to…  (try “Change grade for…”)"
+            placeholder="Search courses, people, clubs…  (try “Change grade for…”)"
             className="w-full bg-transparent py-4 text-[15px] text-fg outline-none placeholder:text-subtle"
           />
           <kbd className="hidden shrink-0 rounded border border-border bg-canvas px-1.5 py-0.5 text-[11px] text-muted sm:block">
@@ -174,7 +181,7 @@ function CommandPaletteDialog() {
         >
           {results.length === 0 && (
             <p className="px-4 py-8 text-center text-sm text-subtle">
-              No matching commands.
+              {people.searching ? 'Searching people and clubs…' : 'No matching commands, people or clubs.'}
             </p>
           )}
           {sections.map((section) => (

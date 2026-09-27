@@ -59,7 +59,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
           <div className="hidden gap-2 px-1 text-[11px] font-semibold tracking-wide text-subtle uppercase sm:flex">
             <span className="w-32">Type</span>
             <span className="flex-1">Title</span>
-            <span className="w-44">Due</span>
+            <span className="w-52">Due</span>
             <span className="w-24 text-right">Weight</span>
             <span className="w-8" />
           </div>
@@ -154,7 +154,7 @@ function Row({
             <p className="mt-1 text-[11px] text-danger">Give it a name, like “Midterm”.</p>
           )}
         </div>
-        <div className="sm:w-44">
+        <div className="sm:w-52">
           <DateTimePicker
             ariaLabel="Due date"
             value={a.due}

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import {
   CalendarSync,
   Code2,
@@ -66,6 +67,18 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
  * as a horizontal scroll row) on mobile. */
 export function SettingsModal() {
   const { section, setSection, closeSettings } = useSettings()
+  // On a phone the section list is a sideways strip, and a deep link to
+  // Privacy opened with the strip still at General — the open section's tab
+  // was off-screen, so nothing said where you were. Bring it into view.
+  // scrollLeft on the strip itself, not scrollIntoView, which would also
+  // scroll every ancestor.
+  const navRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const nav = navRef.current
+    const tab = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !tab || nav.scrollWidth <= nav.clientWidth) return
+    nav.scrollLeft = Math.max(0, tab.offsetLeft - (nav.clientWidth - tab.offsetWidth) / 2)
+  }, [section])
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(closeSettings)
   const t = useT()
   const { isAdmin } = useIsAdmin()
@@ -117,7 +130,7 @@ export function SettingsModal() {
               <X size={18} aria-hidden />
             </button>
           </div>
-          <nav className="flex gap-1 overflow-x-auto px-2 pt-1 pb-2 sm:flex-col sm:overflow-visible sm:pb-3">
+          <nav ref={navRef} className="flex gap-1 overflow-x-auto px-2 pt-1 pb-2 sm:flex-col sm:overflow-visible sm:pb-3">
             {sections.map((s) => {
               const isActive = s.id === section
               return (

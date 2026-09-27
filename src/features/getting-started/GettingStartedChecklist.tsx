@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronDown, Play, Rocket, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
@@ -31,7 +31,49 @@ export function GettingStartedChecklist() {
   // actual job, so it earns the opening slot.
   const slot = usePromptSlot('checklist')
   const { start } = useTour()
-  const [open, setOpen] = useState(true)
+  // Open the first time it is seen; after that it stays however it was left
+  // for the rest of the session.
+  const [open, setOpenState] = useState(() => readOpen())
+  const setOpen = (next: boolean | ((o: boolean) => boolean)) =>
+    setOpenState((o) => {
+      const v = typeof next === 'function' ? next(o) : next
+      writeOpen(v)
+      return v
+    })
+  const cardRef = useRef<HTMLElement>(null)
+
+  /*
+   * IT GETS OUT OF THE WAY ONCE YOU START WORKING. Expanded, this card is
+   * 300×360px of fixed position in the bottom-right corner, and it stayed that
+   * way while you used the page — so on a course's Edit tab it sat over the Due
+   * column, and every date button below the first row looked blank (QA,
+   * 2026-09-26). The first press anywhere else collapses it to its header; the
+   * chevron (or the "maybe later" nudge) brings it back.
+   */
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown, true)
+    return () => document.removeEventListener('pointerdown', onDown, true)
+  }, [open])
+
+  // And the page can always scroll its last row clear of it: the app's scroller
+  // gets bottom padding the height of the card for as long as it is on screen.
+  useEffect(() => {
+    const el = cardRef.current
+    const main = document.getElementById('app-main')
+    if (!el || !main) return
+    const apply = () => main.style.setProperty('--ct-float-pad', `${el.offsetHeight + 24}px`)
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      main.style.removeProperty('--ct-float-pad')
+    }
+  })
   // Brief attention pulse when the user declines the tour ("maybe later"), so the
   // eye lands on this passive helper. Auto-clears; expands the card if collapsed.
   const [nudge, setNudge] = useState(false)
@@ -104,6 +146,7 @@ export function GettingStartedChecklist() {
 
   return (
     <section
+      ref={cardRef}
       className={cn(
         'fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border bg-surface shadow-[var(--ct-shadow)] md:bottom-5',
         nudge ? 'ct-attention border-accent' : 'border-border',
@@ -183,6 +226,7 @@ export function GettingStartedChecklist() {
         </button>
       )}
 
+      {open && (
       <div className="flex items-center gap-3 border-t border-border px-4 py-2.5">
         <span className="shrink-0 text-[12px] font-semibold text-accent tabular-nums">
           {completed} of {steps.length}
@@ -194,6 +238,23 @@ export function GettingStartedChecklist() {
           />
         </div>
       </div>
+      )}
     </section>
   )
+}
+
+const OPEN_KEY = 'ct_checklist_open'
+function readOpen(): boolean {
+  try {
+    return sessionStorage.getItem(OPEN_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+function writeOpen(v: boolean) {
+  try {
+    sessionStorage.setItem(OPEN_KEY, v ? '1' : '0')
+  } catch {
+    /* private mode: it just forgets */
+  }
 }

@@ -9,12 +9,13 @@ import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
 import { KIND_LABEL } from '@/lib/assessment'
-import { gradeToInput, gradeToPercent, readGradeInput } from '@/lib/grade'
+import { gradeToPercent, readGradeInput } from '@/lib/grade'
+import { draftPatch, draftView, EMPTY_DRAFT, type AssessmentDraft } from '@/lib/assessment-draft'
 import { percentToGrade } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 
-/** One compact row of the course grade editor. Status + grade are STAGED and
- * committed together on the ✓ (nothing writes until you confirm); the grade
+/** One compact row of the course grade editor. The status saves when picked;
+ * the grade is STAGED and written on the ✓ (typing is not a decision); the grade
  * field is smart (15/20 → 75%). A per-row "⋯" (on hover) opens Edit / Delete.
  * Every control shares one height so the row reads uniform. The Notes tab swaps
  * the editor for a free-form note. */
@@ -30,42 +31,44 @@ export function AssessmentRow({
 }) {
   const { setStatus, setGrade, setNotes, removeAssessment, addAssessments } = useAppData()
   const { openAssessment, flashUndo } = useQuickActions()
-  const [draftStatus, setDraftStatus] = useState<AssessmentStatus>(assessment.status)
-  const [draftGrade, setDraftGrade] = useState(() => gradeToInput(assessment.grade))
+  // Only what the student has TYPED lives here; the status saves the moment it
+  // is picked. See lib/assessment-draft for why an untouched field must read
+  // through to the store instead of a copy taken on mount.
+  const [draft, setDraft] = useState<AssessmentDraft>(EMPTY_DRAFT)
+  const draftGrade = draftView(assessment, draft).gradeText
 
-  const committedGradeText = gradeToInput(assessment.grade)
   const read = readGradeInput(draftGrade)
   const parsedDraft = read.kind === 'grade' ? read.grade : null
   // Unreadable text is a change nobody can save — it must never fall through to
   // "no grade" and wipe the real one.
   const gradeError = read.kind === 'invalid' ? read.error : null
-  const gradeDirty = gradeError !== null || gradeToInput(parsedDraft) !== committedGradeText
-  const statusDirty = draftStatus !== assessment.status
-  const dirty = gradeDirty || statusDirty
+  const planned = draftPatch(assessment, draft)
+  const dirty = gradeError !== null || (planned.kind === 'patch' && 'grade' in planned.patch)
 
   const draftPct = gradeToPercent(parsedDraft)
   const resolved = draftPct === null ? null : percentToGrade(draftPct)
   const due = dueLabel(assessment.due, assessment.status)
 
   function commit() {
-    if (gradeError) return
-    if (statusDirty) setStatus(assessment.id, draftStatus)
-    if (gradeDirty) setGrade(assessment.id, parsedDraft)
-    // Marked done here without a grade being typed alongside it: ask.
-    if (statusDirty && draftStatus === 'done' && !gradeDirty) askForGrade(assessment.id)
+    if (planned.kind !== 'patch') return
+    if ('grade' in planned.patch) setGrade(assessment.id, planned.patch.grade ?? null)
+    setDraft(EMPTY_DRAFT)
   }
   function revert() {
-    setDraftStatus(assessment.status)
-    setDraftGrade(committedGradeText)
+    setDraft(EMPTY_DRAFT)
   }
 
-  // One-tap done, in sync with the staged dropdown so they never disagree.
+  // A status is one decision, so it saves when it is made — from the round
+  // check or the dropdown alike — and "what did you get?" follows at once in
+  // both. It used to wait for Save on the dropdown path only.
+  function changeStatus(next: AssessmentStatus) {
+    if (next === assessment.status) return
+    setStatus(assessment.id, next)
+    if (next === 'done' && !assessment.grade) askForGrade(assessment.id)
+  }
   const isDone = assessment.status === 'done'
   function toggleDone() {
-    const next: AssessmentStatus = isDone ? 'not-started' : 'done'
-    setStatus(assessment.id, next)
-    setDraftStatus(next)
-    if (next === 'done') askForGrade(assessment.id)
+    changeStatus(isDone ? 'not-started' : 'done')
   }
 
   const menuItems: MenuItem[] = [
@@ -118,7 +121,7 @@ export function AssessmentRow({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-x-1.5">
-              <span className="truncate text-[13px] text-fg">{assessment.title}</span>
+              <span className="truncate text-[13px] text-fg">{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
               <span className="shrink-0 text-[11px] text-subtle">{assessment.weight}%</span>
             </div>
             <div className="mt-0.5 flex items-center gap-x-2 text-[11px]">
@@ -177,8 +180,8 @@ export function AssessmentRow({
             <div className="hidden items-center gap-1.5 md:flex">
             <Select
               ariaLabel={`Status for ${assessment.title}`}
-              value={draftStatus}
-              onChange={(v) => setDraftStatus(v as AssessmentStatus)}
+              value={assessment.status}
+              onChange={(v) => changeStatus(v as AssessmentStatus)}
               size="sm"
               tone="control"
               className="h-7 w-[124px]"
@@ -198,7 +201,7 @@ export function AssessmentRow({
               aria-label={`Grade for ${assessment.title} (percent, or a score like 15/20)`}
               aria-invalid={gradeError !== null}
               aria-describedby={gradeError ? `grade-err-${assessment.id}` : undefined}
-              onChange={(e) => setDraftGrade(e.target.value)}
+              onChange={(e) => setDraft((d) => ({ ...d, gradeText: e.target.value }))}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && dirty) commit()
                 if (e.key === 'Escape' && dirty) revert()

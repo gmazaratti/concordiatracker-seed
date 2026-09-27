@@ -146,7 +146,7 @@ export function DueRow({
           className="-my-1 flex min-w-0 flex-1 items-start gap-3 rounded-md py-1 text-left transition-colors duration-150 hover:bg-surface-2/40"
         >
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[14px] font-medium text-fg">{assessment.title}</span>
+            <span className="block truncate text-[14px] font-medium text-fg">{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
             <span
               className={cn(
                 'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-subtle',

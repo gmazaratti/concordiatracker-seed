@@ -20,7 +20,7 @@ const out = path.join(here, '.course-integrity.test.tmp.mjs')
 
 fs.writeFileSync(
   entry,
-  "export * from './grade'\nexport * from './course-match'\nexport { parsePrereq, checkPrereq } from './prereq'\nexport { extractCourseCodes } from './catalog-pure-shim'\n",
+  "export * from './grade'\nexport * from './assessment-draft'\nexport * from './course-match'\nexport { parsePrereq, checkPrereq } from './prereq'\nexport { extractCourseCodes } from './catalog-pure-shim'\n",
 )
 // catalog.ts imports Supabase; the one function under test is pure, so a shim
 // re-exports it without the client.
@@ -123,6 +123,25 @@ check(
   'not-met',
 )
 check('without a self code nothing is dropped', m.extractCourseCodes('PREREQ COMP425: x'), ['COMP425'])
+
+// ── Reopening keeps the grade (QA, 2026-09-26) ───────────────────────────────
+// Mark done, save 18/20 from the prompt, then mark not done and save: the
+// grade was wiped because the editor still held the empty text from before.
+{
+  const graded = { status: 'done', grade: { mode: 'raw', percent: null, earned: 18, total: 20 } }
+  // The editor opened before the grade existed, then only the status changed.
+  const reopen = m.draftPatch(graded, { status: 'not-started', gradeText: null })
+  check('reopen writes status only', reopen, { kind: 'patch', patch: { status: 'not-started' } })
+  check('untouched grade field shows the stored grade', m.draftView(graded, m.EMPTY_DRAFT).gradeText, '18 / 20')
+  check('nothing touched → empty patch', m.draftPatch(graded, m.EMPTY_DRAFT), { kind: 'patch', patch: {} })
+  check('retyping the same grade is not a change', m.draftPatch(graded, { status: null, gradeText: '18/20' }), { kind: 'patch', patch: {} })
+  check('deliberately clearing the grade still clears it', m.draftPatch(graded, { status: null, gradeText: '' }), { kind: 'patch', patch: { grade: null } })
+  check('unreadable grade is refused, not saved as empty', m.draftPatch(graded, { status: 'not-started', gradeText: 'abc' }).kind, 'invalid')
+  check('status + new grade save together', m.draftPatch(graded, { status: 'not-started', gradeText: '90' }), {
+    kind: 'patch',
+    patch: { status: 'not-started', grade: { mode: 'percent', percent: 90, earned: null, total: null } },
+  })
+}
 
 console.log(failed === 0 ? '\ncourse integrity: all checks passed' : `\n${failed} check(s) failed`)
 process.exit(failed === 0 ? 0 : 1)

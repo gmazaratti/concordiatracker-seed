@@ -20,15 +20,32 @@ export const GEMINI_MODEL = 'gemini-2.5-flash'
 export const MAX_BYTES = 4 * 1024 * 1024 // 4 MB — syllabi are tiny
 
 /**
- * Abort the model before the platform aborts us, so the error is ours to word.
+ * The model fallback for a busy primary: a separate capacity pool.
  *
- * 23s, under the Edge runtime's 25s ceiling. It was 20s, and that was the
- * whole of one paying student's "it says my outline is too long": three
- * timeouts in his log, one on 5,969 characters — while a 17,466 character
- * outline measured 8.1s and came back fine. Length was never the variable.
- * Thinking tokens were, which is what `thinkingBudget: 0` removes.
+ * Google answers 503 "This model is currently experiencing high demand" in
+ * bursts, and a student saw exactly that as "parser failed (error 503)" with
+ * nothing retried (QA, 2026-09-26). Asking the same model again a second
+ * later usually meets the same spike; the lighter model usually does not, and
+ * the task is transcription into a fixed schema, which it does fine.
+ */
+export const FALLBACK_MODEL = 'gemini-2.5-flash-lite'
+
+/**
+ * How long the whole extraction may take, by default.
+ *
+ * Abort the model before the platform aborts us, so the error is ours to word.
+ * It was 23s, under the Edge runtime's 25s ceiling, and that ceiling was the
+ * whole of "ran out of time": COMM 227 (22,626 characters of ordinary text)
+ * timed out at 23s three times in a row. The site's parse endpoint now runs on
+ * the Node runtime with 60s, and passes a budget that fits it; callers on a
+ * shorter function (the personal API, 30s) pass their own.
  */
 export const MODEL_TIMEOUT_MS = 23_000
+
+/** Upstream answers worth one more try: overloaded, rate-limited, or a server fault. */
+function retryable(status: number): boolean {
+  return status === 503 || status === 429 || status === 500 || status === 502 || status === 504
+}
 
 /**
  * Below this, the extracted "text" is a header and a link table, not a
@@ -164,7 +181,12 @@ export function toBase64(buf: ArrayBuffer): string {
 }
 
 /** One call to the model, bounded on our side. */
-async function ask(apiKey: string, parts: unknown[], budgetMs: number): Promise<Response> {
+async function ask(
+  apiKey: string,
+  parts: unknown[],
+  budgetMs: number,
+  model: string = GEMINI_MODEL,
+): Promise<Response> {
   /*
    * WHAT THE MODEL CAN SEE AND DO, stated so it can be checked:
    *  - no `tools`, no function declarations, no code execution, no grounding
@@ -177,7 +199,7 @@ async function ask(apiKey: string, parts: unknown[], budgetMs: number): Promise<
    *    place it can land.
    */
   return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       signal: AbortSignal.timeout(budgetMs),
@@ -238,7 +260,11 @@ function readModelJson(
  * apart is worth it. PHIL 235, which an earlier session wrote off as
  * unreadable, went from 0 items to 4 that way.
  */
-export async function extractOutline(buf: ArrayBuffer, mimeType: string): Promise<ParseResult> {
+export async function extractOutline(
+  buf: ArrayBuffer,
+  mimeType: string,
+  budgetMs: number = MODEL_TIMEOUT_MS,
+): Promise<ParseResult> {
   const apiKey = process.env.GEMINI_API_KEY
   const empty = { course: {}, assessments: [] as ParsedAssessment[] }
   if (!apiKey) {
@@ -266,18 +292,32 @@ export async function extractOutline(buf: ArrayBuffer, mimeType: string): Promis
   ]
 
   const started = Date.now()
+  const leftMs = () => budgetMs - (Date.now() - started)
+  const parts = useText ? textParts : pdfParts
   let res: Response
+  let retried = false
   try {
-    res = await ask(apiKey, useText ? textParts : pdfParts, MODEL_TIMEOUT_MS)
+    // The whole budget: an overloaded model answers 503 in a few seconds
+    // (4.4s in the logged case), so a retry still has most of it left. A
+    // TIMEOUT is not retried — a second slow call cannot fit in what remains.
+    res = await ask(apiKey, parts, budgetMs)
+    if (!res.ok && retryable(res.status) && leftMs() > 4_000) {
+      const first = await res.text().catch(() => '')
+      console.error('[parse] model', res.status, 'retrying on', FALLBACK_MODEL, first.slice(0, 200))
+      await new Promise((r) => setTimeout(r, 400 + Math.random() * 600))
+      retried = true
+      res = await ask(apiKey, parts, Math.max(3_000, leftMs()), FALLBACK_MODEL)
+    }
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError'
     return {
       ok: false,
       ...empty,
       how,
+      retried,
       failure: timedOut ? 'timeout' : 'unreachable',
       detail: timedOut
-        ? `model timeout after ${MODEL_TIMEOUT_MS}ms (${how})`
+        ? `model timeout after ${Date.now() - started}ms of ${budgetMs} (${how}${retried ? ', after a retry' : ''})`
         : `fetch failed (${how}): ${(err as Error)?.message ?? 'unknown'}`,
     }
   }
@@ -291,9 +331,10 @@ export async function extractOutline(buf: ArrayBuffer, mimeType: string): Promis
       ok: false,
       ...empty,
       how,
+      retried,
       failure: 'upstream',
       upstreamStatus: res.status,
-      detail: `model ${res.status} (${useText ? 'text' : 'pdf'}): ${body.slice(0, 200)}`,
+      detail: `model ${res.status} (${useText ? 'text' : 'pdf'}${retried ? ', after a retry on ' + FALLBACK_MODEL : ''}): ${body.slice(0, 200)}`,
     }
   }
 
@@ -314,7 +355,7 @@ export async function extractOutline(buf: ArrayBuffer, mimeType: string): Promis
   }
 
   // Nothing found in the text. Spend what is left of the budget on the file.
-  const left = MODEL_TIMEOUT_MS - (Date.now() - started)
+  const left = leftMs()
   if (left < 4_000) {
     return { ok: true, course: first.course, assessments: [], how }
   }

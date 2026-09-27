@@ -13,13 +13,21 @@
  * worded to a person who is mid-upload and waiting.
  *
  * The Google API key lives only as a server env var (GEMINI_API_KEY, NOT
- * VITE_-prefixed), so it never reaches the browser bundle. Runs on the Edge
- * runtime — fetch / Request / Response are all standard, no Node deps.
+ * VITE_-prefixed), so it never reaches the browser bundle.
+ *
+ * NODE RUNTIME, 60s. It ran on Edge, whose 25s ceiling forced a 23s model
+ * budget, and ordinary outlines hit it: COMM 227 (22,626 characters) timed out
+ * three times in a row, which a student read as "ran out of time" on a file
+ * with nothing wrong with it. The handler is still the Web-standard
+ * Request/Response shape (the `POST` export), so nothing below changed.
  */
 import { extractOutline, MAX_BYTES } from './_parse-core.js'
 import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
 
-export const config = { runtime: 'edge' }
+export const config = { maxDuration: 60 }
+
+/** The parse's own budget: under the function's 60s, with room to record the outcome. */
+const PARSE_BUDGET_MS = 50_000
 
 
 
@@ -161,7 +169,7 @@ function geminiReason(status: number, body: string): string {
   return `The parser failed on that file (error ${status}${trimmed ? `: ${trimmed}` : ''}).`
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const apiKey = process.env.GEMINI_API_KEY
@@ -284,7 +292,7 @@ export default async function handler(req: Request): Promise<Response> {
    * call it, what it costs them, and how a failure is worded to a person
    * mid-upload.
    */
-  const parsed = await extractOutline(buf, mimeType)
+  const parsed = await extractOutline(buf, mimeType, PARSE_BUDGET_MS)
 
   if (!parsed.ok) {
     const kept = await release(parsed.detail ?? parsed.failure ?? 'unknown', parsed.how)

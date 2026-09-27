@@ -418,7 +418,7 @@ export default async function handler(req: any, res: any) {
       }
       const buf = await file.arrayBuffer()
       const started = Date.now()
-      const parsed = await extractOutline(buf, 'application/pdf')
+      const parsed = await extractOutline(buf, 'application/pdf', 50_000)
       const adminId = jwtSub(jwt)
       const ok = parsed.ok && parsed.assessments.length > 0
       await fetch(`${url}/rest/v1/parse_events?id=eq.${id}`, {
