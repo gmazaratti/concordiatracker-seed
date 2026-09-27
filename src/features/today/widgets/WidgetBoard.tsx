@@ -92,7 +92,8 @@ export function WidgetBoard({
 }: {
   zones: ZoneSpec[]
   editing: boolean
-  /** Double-clicking any card's header turns edit mode on. */
+  /** Double-clicking a card header turns edit mode on; double-clicking any
+   *  card while editing turns it off. The owner toggles. */
   onRequestEdit: () => void
   /** Draws the copy that follows the pointer. Supplied by the owner because
    *  two of the items (the due list, the glance panel) are rendered there
@@ -330,7 +331,13 @@ export function WidgetZoneView({
                and buttons, and a double-click anywhere would turn a missed
                tap into a rearranged screen. */
             onDoubleClick={(e) => {
-              if (editing) return
+              // The same gesture undoes itself: in edit mode nothing inside a
+              // card is live (every press is a drag), so a double-click
+              // anywhere on one is unambiguous and leaves edit mode.
+              if (editing) {
+                requestEdit()
+                return
+              }
               const r = e.currentTarget.getBoundingClientRect()
               if (e.clientY - r.top <= HEADER_BAND) requestEdit()
             }}

@@ -19,7 +19,7 @@ export const IMAGE_ACCEPT_ATTR = ACCEPT.join(',')
  * capped here and at the bucket, and the storage path is scoped to the user's own
  * folder by RLS.
  */
-export type ImageKind = 'logo' | 'banner' | 'post' | 'story'
+export type ImageKind = 'logo' | 'banner' | 'post' | 'story' | 'background'
 
 /** How large each kind is allowed to be on its longest edge. A story fills a
  *  phone and a logo is 40px on a row, so one number for both would either
@@ -29,6 +29,9 @@ const MAX_DIM: Record<ImageKind, number> = {
   banner: 1600,
   post: 1440,
   story: 1440,
+  // A Today background fills a desktop window behind translucent cards; wider
+  // than a banner, still ~300–600 KB after re-encoding.
+  background: 2400,
 }
 
 export async function uploadOrgImage(file: File, kind: ImageKind): Promise<string> {

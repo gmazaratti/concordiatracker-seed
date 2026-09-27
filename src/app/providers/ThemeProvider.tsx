@@ -4,6 +4,8 @@ import {
   ThemeContext,
   THEMES,
   DEFAULT_CUSTOM,
+  isProTheme,
+  LAST_FREE_KEY,
   type CustomTheme,
   type Theme,
   type ThemeOrigin,
@@ -117,6 +119,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     try {
       localStorage.setItem(STORAGE_KEY, theme)
+      // The last FREE theme chosen, so losing a Pro one (a pass ending, a
+      // hand-edited setting) returns you to what you actually had rather
+      // than to whichever free theme shares its light/dark scheme.
+      if (!isProTheme(theme)) localStorage.setItem(LAST_FREE_KEY, theme)
       localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom))
       // Cached for the pre-paint script in index.html, which replays these
       // rather than reimplementing the derivation.

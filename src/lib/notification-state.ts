@@ -147,3 +147,57 @@ export function useNotificationTick(): number {
 export function useDismissed(): ReadonlySet<string> {
   return useSyncExternalStore(subscribe, () => read(), () => EMPTY)
 }
+
+/*
+ * THE PEOPLE HALF OF THE BELL.
+ *
+ * The bell adds two counts: unread notifications, which opening the panel
+ * marks read on the server, and things waiting from other people (unread
+ * messages, follow requests), which opening the panel does not change — they
+ * are cleared by answering them. So the red dot survived opening the panel,
+ * which is what you do to make it go away (QA, 2026-09-27).
+ *
+ * Opening the panel now records how many people-items were waiting, and the
+ * bell counts only what arrives after that. The items stay in the panel, and
+ * unread messages keep their own count on the Messages icon. Per device, like
+ * the dismiss list.
+ */
+const PEOPLE_SEEN_KEY = 'ct_bell_people_seen'
+let peopleSeen: number | null = null
+let seenRequested = false
+
+export function peopleSeenValue(): number {
+  if (peopleSeen === null) {
+    try {
+      peopleSeen = Number(localStorage.getItem(PEOPLE_SEEN_KEY) ?? '0') || 0
+    } catch {
+      peopleSeen = 0
+    }
+  }
+  return peopleSeen
+}
+
+export function setPeopleSeen(n: number): void {
+  const next = Math.max(0, n)
+  if (next === peopleSeenValue()) return
+  peopleSeen = next
+  try {
+    localStorage.setItem(PEOPLE_SEEN_KEY, String(peopleSeen))
+  } catch {
+    /* private mode: remembered for this session only */
+  }
+  emit()
+}
+
+/** The panel was opened: whoever knows the people count records it as seen. */
+export function bellOpened(): void {
+  seenRequested = true
+  emit()
+}
+
+/** Consumed by the first counter to see it (the count is shared, so once is enough). */
+export function takeSeenRequest(): boolean {
+  const r = seenRequested
+  seenRequested = false
+  return r
+}

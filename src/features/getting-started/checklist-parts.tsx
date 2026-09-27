@@ -107,7 +107,7 @@ export function ChecklistDone({ onClose }: { onClose: () => void }) {
         <Mascot mood="celebrate" size="sm" className="mx-auto text-accent" />
         <p className="mt-2 font-display text-[18px] font-semibold text-fg">You&rsquo;re all set</p>
         <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-          Five for five. Your courses, deadlines and grades are in, and Community is a tap away.
+          Every step done. Your courses, deadlines and grades are in, Today is set up your way, and Community is a tap away.
         </p>
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-surface-2">
           <div className="h-full w-full rounded-full bg-accent" />

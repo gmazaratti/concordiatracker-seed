@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useTheme } from './theme'
-import { freeFallbackFor, isProTheme, THEMES, type Theme } from './theme'
+import { freeFallbackFor, isProTheme, LAST_FREE_KEY, THEMES, type Theme } from './theme'
 import { useAppData } from './app-data'
 
 /** Where a Pro theme is parked while the pass is not active, so it can come
@@ -43,7 +43,17 @@ export function ThemeEntitlement() {
       } catch {
         /* private mode — it just will not come back on its own */
       }
-      setTheme(freeFallbackFor(theme, custom))
+      // Back to the free theme they last chose, when there is one: someone on
+      // Dark who ends up on a light Pro theme should land on Dark again, not on
+      // Light because the Pro theme happened to be light (QA, 2026-09-27).
+      let lastFree: string | null = null
+      try {
+        lastFree = localStorage.getItem(LAST_FREE_KEY)
+      } catch {
+        /* no storage: fall back by scheme */
+      }
+      const back = lastFree && THEMES.some((t) => t.id === lastFree && !t.pro) ? (lastFree as Theme) : null
+      setTheme(back ?? freeFallbackFor(theme, custom))
       return
     }
 

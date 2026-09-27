@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { listFriends, unreadCount } from '@/lib/social'
 import { listNotifications, unreadNotifications } from '@/lib/notifications'
 import { useMessageTick } from '@/lib/message-alerts'
-import { unreadHintValue, useNotificationTick } from '@/lib/notification-state'
+import {
+  peopleSeenValue,
+  setPeopleSeen,
+  takeSeenRequest,
+  unreadHintValue,
+  useNotificationTick,
+} from '@/lib/notification-state'
 
 /**
  * How many things are waiting on you from other people.
@@ -17,7 +23,13 @@ import { unreadHintValue, useNotificationTick } from '@/lib/notification-state'
  * arrives while you are reading a syllabus can wait until you look up.
  */
 export function usePeopleBadge(): number {
-  const [count, setCount] = useState(0)
+  return usePeopleCount() ?? 0
+}
+
+/** The same count, or null until the first answer: "not loaded yet" and
+ *  "nobody waiting" are different facts to the bell. */
+function usePeopleCount(): number | null {
+  const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -84,7 +96,8 @@ export function useUnreadMessages(): number {
  * that is not there.
  */
 export function useActivityBadge(): number {
-  const people = usePeopleBadge()
+  const loadedPeople = usePeopleCount()
+  const people = loadedPeople ?? 0
   const [notes, setNotes] = useState(0)
   /* Opening the panel marks everything read; the badge has to agree with the
      screen on the same frame, not after the next poll. */
@@ -109,6 +122,15 @@ export function useActivityBadge(): number {
   // The hint wins while it stands: marking everything read is a round trip,
   // and the dot must go the moment the count is zero rather than when the
   // network agrees.
+  // Opening the panel marks the people who were waiting as seen; answering
+  // them (or reading the messages) lowers the count below that, and the mark
+  // follows it down so the next arrival counts again.
+  useEffect(() => {
+    if (loadedPeople === null) return
+    if (takeSeenRequest()) setPeopleSeen(loadedPeople)
+    else if (loadedPeople < peopleSeenValue()) setPeopleSeen(loadedPeople)
+  }, [tick, loadedPeople])
+
   const hint = unreadHintValue()
-  return people + (hint ?? notes)
+  return Math.max(0, people - peopleSeenValue()) + (hint ?? notes)
 }

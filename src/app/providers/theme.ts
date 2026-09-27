@@ -94,6 +94,9 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null)
  * on Light Rose chose a light app, and answering a lapsed subscription by
  * turning their screen black at midnight is a punishment, not a downgrade.
  */
+/** localStorage: the last free theme the student chose (see ThemeProvider). */
+export const LAST_FREE_KEY = 'ct_theme_last_free'
+
 export function freeFallbackFor(id: Theme, custom?: { base: 'dark' | 'light' }): Theme {
   const scheme = id === 'custom' ? (custom?.base ?? 'dark') : THEMES.find((t) => t.id === id)?.scheme
   return scheme === 'light' ? 'light' : 'dark'

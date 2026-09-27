@@ -9,6 +9,7 @@ import { TOUR_STEPS } from '@/features/tour/steps'
 import { isOpen } from '@/lib/status'
 import { gradeToPercent } from '@/lib/grade'
 import { cn } from '@/lib/cn'
+import { DEFAULT_MAIN, DEFAULT_WIDGETS } from '@/features/today/widgets/registry'
 import { ChecklistDone, StepRow, type Step } from './checklist-parts'
 import { readActive, readOpen, writeActive, writeOpen } from './checklist-storage'
 
@@ -113,6 +114,19 @@ export function GettingStartedChecklist() {
       hint: 'See your standing update',
       done: assessments.some((a) => gradeToPercent(a.grade) !== null),
       to: courseHref(gradable?.id),
+    },
+    {
+      // Widgets are the app's feature directory (library seats, the shuttle,
+      // weather, seat watch), and nobody finds them by accident: the button
+      // sits at the foot of Today's rail. Done once anything beyond the
+      // default layout is on Today, in either column.
+      id: 'widget',
+      label: 'Add a widget',
+      hint: 'Library seats, shuttle times, weather and more',
+      done: [...(uiState.todayWidgets ?? []), ...(uiState.todayMain ?? [])].some(
+        (id) => !DEFAULT_WIDGETS.includes(id) && !DEFAULT_MAIN.includes(id),
+      ),
+      to: '/app?widgets=1',
     },
     {
       id: 'community',

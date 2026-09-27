@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Check, LayoutGrid, Pencil } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { cn } from '@/lib/cn'
 import { WidgetGallery } from './WidgetGallery'
+import { BackgroundSetting } from '../background/BackgroundSetting'
+import { useIsAdmin } from '@/features/admin/admin-data'
 import type { WidgetContext } from './registry'
 
 /**
@@ -32,6 +35,23 @@ export function AddWidgetButton({
   ctx: WidgetContext
 }) {
   const [open, setOpen] = useState(false)
+  // The Today background is a trial, shown to admins only for now.
+  const { isAdmin } = useIsAdmin()
+
+  // `?widgets=1` opens the gallery: the Getting started step "Add a widget"
+  // links here, and landing on Today with nothing open would leave the student
+  // to find the button themselves. Opened during render (so it is open on the
+  // first paint), and the parameter is dropped afterwards so a reload or Back
+  // does not open it again.
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('widgets') === '1'
+  if (asked && !open) setOpen(true)
+  useEffect(() => {
+    if (!asked) return
+    const next = new URLSearchParams(params)
+    next.delete('widgets')
+    setParams(next, { replace: true })
+  }, [asked, params, setParams])
 
   return (
     <>
@@ -71,6 +91,7 @@ export function AddWidgetButton({
               get. Drag anything on Today itself (double-click a card's header to start)
               to move it between the wide column and the side rail.
             </p>
+            {isAdmin && <BackgroundSetting />}
             <WidgetGallery
               layout={layout}
               onChange={onChange}

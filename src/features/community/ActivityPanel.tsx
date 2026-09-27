@@ -9,7 +9,7 @@ import { useCommunity } from './useCommunity'
 import type { EventOrg } from '@/data/community'
 import { acceptFriend, listFriends, type Friend } from '@/lib/social'
 import { deleteNotifications, listNotifications, markNotificationsRead } from '@/lib/notifications'
-import { dismissActivity, markedAllRead, notificationsChanged } from '@/lib/notification-state'
+import { bellOpened, dismissActivity, markedAllRead, notificationsChanged } from '@/lib/notification-state'
 import { SwipeToDelete } from '@/components/SwipeToDelete'
 import { useActivityFeed, type ActivityItem } from './useActivityFeed'
 import { cn } from '@/lib/cn'
@@ -84,6 +84,8 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
   // Opening the panel is the feature; the server keeps one per person per day.
   useEffect(() => {
     trackFeature('notifications_open')
+    // And the bell's red dot goes, whatever it was counting.
+    bellOpened()
   }, [])
 
   useEffect(() => {

@@ -28,6 +28,7 @@ import {
   sanitizeLayout,
 } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
+import { useTodayBackground } from './background/useTodayBackground'
 import { WidgetBoard, WidgetZoneView, type ZoneSpec } from './widgets/WidgetBoard'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
@@ -78,6 +79,7 @@ export function TodayPage() {
   // Unknown ids are dropped, so a layout saved against an older build can never
   // crash Today or render a widget twice.
   const widgets = sanitizeLayout(uiState.todayWidgets)
+  useTodayBackground(uiState.todayBackground)
   /**
    * The wide column, migrating the old two-band layout on read.
    *
@@ -251,7 +253,7 @@ export function TodayPage() {
       <WidgetBoard
         zones={zones}
         editing={editing}
-        onRequestEdit={() => setEditing(true)}
+        onRequestEdit={() => setEditing((v) => !v)}
         renderGhost={renderIn('rail')}
       >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">

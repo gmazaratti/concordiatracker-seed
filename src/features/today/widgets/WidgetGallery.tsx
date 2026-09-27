@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, GripVertical, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, Lock, Plus, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import {
   ADDABLE,
@@ -32,10 +32,12 @@ export function WidgetGallery({
   ctx: WidgetContext
 }) {
   const full = layout.length >= MAX_WIDGETS
-  const available = ADDABLE.filter(
-    (w) =>
-      !layout.includes(w.id) && !mainLayout.includes(w.id) && (w.availableWhen?.(ctx) ?? true),
-  )
+  const notPlaced = ADDABLE.filter((w) => !layout.includes(w.id) && !mainLayout.includes(w.id))
+  const available = notPlaced.filter((w) => w.availableWhen?.(ctx) ?? true)
+  // Widgets that need something first (a course) used to be left out of the
+  // list entirely, so a new account saw a shorter library and had no way to
+  // know the rest existed. They are listed, locked, with what unlocks them.
+  const locked = notPlaced.filter((w) => !(w.availableWhen?.(ctx) ?? true))
 
   // Native HTML5 drag — no library, which keeps the "no animation/drag deps"
   // rule intact. The arrow buttons stay: dragging is unusable by keyboard and on
@@ -140,7 +142,7 @@ export function WidgetGallery({
         </ul>
       )}
 
-      {available.length > 0 && (
+      {available.length + locked.length > 0 && (
         <>
           <p className="mb-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
             Available
@@ -153,6 +155,11 @@ export function WidgetGallery({
                   disabled={full}
                   onAdd={() => onChange([...layout, w.id])}
                 />
+              </li>
+            ))}
+            {locked.map((w) => (
+              <li key={w.id} className="h-full">
+                <WidgetPreviewCard def={w} disabled lockedReason="Add a course first" onAdd={() => {}} />
               </li>
             ))}
           </ul>
@@ -202,6 +209,9 @@ function BandZone({
   const eligible = ADDABLE.filter(
     (w) => !layout.includes(w.id) && fitsZone(w, 'wide') && (w.availableWhen?.(ctx) ?? true),
   )
+  // Said out loud, because a shorter list here than in the library above
+  // reads as widgets having gone missing.
+  const sideOnly = ADDABLE.filter((w) => !fitsZone(w, 'wide')).map((w) => w.name)
 
   return (
     <>
@@ -262,6 +272,12 @@ function BandZone({
           {max} is the most that stays readable here.
         </p>
       )}
+      {sideOnly.length > 0 && (
+        <p className="mt-2 text-[11.5px] leading-snug text-subtle">
+          {sideOnly.join(' and ')} {sideOnly.length === 1 ? 'is' : 'are'} small enough for the side
+          column only: add {sideOnly.length === 1 ? 'it' : 'them'} from the library above.
+        </p>
+      )}
     </>
   )
 }
@@ -280,10 +296,14 @@ function BandZone({
 function WidgetPreviewCard({
   def,
   disabled,
+  lockedReason,
   onAdd,
 }: {
   def: WidgetDef
   disabled: boolean
+  /** Why it cannot be added yet. Shown in place of the live preview, which
+   *  would only render an empty state. */
+  lockedReason?: string
   onAdd: () => void
 }) {
   const Icon = def.icon
@@ -291,7 +311,7 @@ function WidgetPreviewCard({
     <div
       className={cn(
         'flex h-full flex-col overflow-hidden rounded-xl border border-border bg-canvas transition-colors duration-150',
-        disabled ? 'opacity-50' : 'hover:border-border-strong',
+        disabled && !lockedReason ? 'opacity-50' : !disabled && 'hover:border-border-strong',
       )}
     >
       {/* A FIXED height, not a maximum.
@@ -302,9 +322,18 @@ function WidgetPreviewCard({
           same, the content is top-aligned, and anything longer fades out at the
           bottom edge rather than being cut through the middle of a word. */}
       <div className="relative h-[136px] shrink-0 overflow-hidden">
-        <div className="pointer-events-none p-2.5" inert>
-          {def.render('rail')}
-        </div>
+        {lockedReason ? (
+          <div className="grid h-full place-items-center p-4 text-center">
+            <span className="flex flex-col items-center gap-2 text-subtle">
+              <Lock size={16} aria-hidden />
+              <span className="text-[12px]">{lockedReason}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="pointer-events-none p-2.5" inert>
+            {def.render('rail')}
+          </div>
+        )}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-7 bg-gradient-to-b from-transparent to-canvas"
           aria-hidden
@@ -321,7 +350,7 @@ function WidgetPreviewCard({
           type="button"
           disabled={disabled}
           onClick={onAdd}
-          aria-label={`Add ${def.name}`}
+          aria-label={lockedReason ? `${def.name}: ${lockedReason}` : `Add ${def.name}`}
           className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent transition-colors duration-150 hover:bg-accent hover:text-accent-contrast disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus size={14} aria-hidden />
