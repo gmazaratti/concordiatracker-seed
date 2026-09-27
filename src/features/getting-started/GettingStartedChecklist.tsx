@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Check, ChevronDown, Play, Rocket, X } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { ChevronDown, Play, Rocket, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
 import { completePrompt, usePromptSlot } from '@/app/first-run'
@@ -9,14 +9,8 @@ import { TOUR_STEPS } from '@/features/tour/steps'
 import { isOpen } from '@/lib/status'
 import { gradeToPercent } from '@/lib/grade'
 import { cn } from '@/lib/cn'
-
-interface Step {
-  id: string
-  label: string
-  hint: string
-  done: boolean
-  to: string
-}
+import { ChecklistDone, StepRow, type Step } from './checklist-parts'
+import { readActive, readOpen, writeActive, writeOpen } from './checklist-storage'
 
 /**
  * A light, dismissible "Getting started" card (bottom-right) that fills in as the
@@ -25,7 +19,8 @@ interface Step {
  * list. Hidden once everything's done, or once dismissed (persisted per user).
  */
 export function GettingStartedChecklist() {
-  const { courses, assessments } = useAppData()
+  const { courses, assessments, dataLoading } = useAppData()
+  const { pathname, search } = useLocation()
   const { uiState, loaded, patchUiState } = useUiState()
   // First in the queue: it is the only one of the four about the product's
   // actual job, so it earns the opening slot.
@@ -33,13 +28,8 @@ export function GettingStartedChecklist() {
   const { start } = useTour()
   // Open the first time it is seen; after that it stays however it was left
   // for the rest of the session.
-  const [open, setOpenState] = useState(() => readOpen())
-  const setOpen = (next: boolean | ((o: boolean) => boolean)) =>
-    setOpenState((o) => {
-      const v = typeof next === 'function' ? next(o) : next
-      writeOpen(v)
-      return v
-    })
+  const [open, setOpen] = useState(() => readOpen())
+  useEffect(() => writeOpen(open), [open])
   const cardRef = useRef<HTMLElement>(null)
 
   /*
@@ -135,14 +125,63 @@ export function GettingStartedChecklist() {
 
   const completed = steps.filter((s) => s.done).length
   const allDone = completed === steps.length
+  const next = steps.find((s) => !s.done)
 
-  // Wait for the flags to load (so it doesn't flash), and bow out once finished
-  // or dismissed.
+  /*
+   * WHAT JUST GOT FINISHED. The done flags are derived from real data, so the
+   * only way to know a step was completed NOW (and not before the page loaded)
+   * is to remember what was done last render. The first answer after data
+   * loads is the baseline and animates nothing; any step that flips to done
+   * after it gets its moment. Adjusted during render, not in an effect, so the
+   * flash is in the same frame as the change.
+   */
+  const doneKey = steps.filter((s) => s.done).map((s) => s.id).join(',')
+  const ready = loaded && !dataLoading
+  const [seen, setSeen] = useState<string | null>(null)
+  const [fresh, setFresh] = useState<string[]>([])
+  const [celebrate, setCelebrate] = useState(false)
+  if (ready && seen === null) setSeen(doneKey)
+  else if (ready && seen !== null && seen !== doneKey) {
+    const before = new Set(seen.split(',').filter(Boolean))
+    const added = steps.filter((s) => s.done && !before.has(s.id)).map((s) => s.id)
+    setSeen(doneKey)
+    if (added.length > 0) {
+      setFresh(added)
+      setOpen(true)
+      if (allDone) setCelebrate(true)
+    }
+  }
+  useEffect(() => {
+    if (fresh.length === 0) return
+    const t = window.setTimeout(() => setFresh([]), 1800)
+    return () => window.clearTimeout(t)
+  }, [fresh])
+  useEffect(() => {
+    if (!celebrate) return
+    const t = window.setTimeout(() => setCelebrate(false), 6000)
+    return () => window.clearTimeout(t)
+  }, [celebrate])
+
+  // The step the student tapped: pulses until it is done or another is picked.
+  const [active, setActive] = useState<string | null>(() => readActive())
+  const go = (id: string) => {
+    setActive(id)
+    writeActive(id)
+    // Out of the way of the page the step just opened.
+    setOpen(false)
+  }
+
+  // Messages is a conversation screen: the card would sit on the composer, and
+  // no step happens there.
+  const onMessages = /\/app\/community/.test(pathname) && new URLSearchParams(search).get('c') === 'messages'
+
+  if (celebrate) return <ChecklistDone onClose={() => setCelebrate(false)} />
+
   // Dismissed or finished, the queue moves on. Reported from render-adjacent
   // state rather than an effect, because completePrompt only writes storage and
   // fires an event — it sets no React state of its own.
   if (loaded && (uiState.checklistDismissed || allDone)) completePrompt('checklist')
-  if (!loaded || uiState.checklistDismissed || allDone || !slot) return null
+  if (!loaded || uiState.checklistDismissed || allDone || !slot || onMessages) return null
 
   return (
     <section
@@ -159,7 +198,12 @@ export function GettingStartedChecklist() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-fg">Getting started</p>
-          <p className="text-[12px] text-subtle">{completed} of {steps.length} done</p>
+          <p className="truncate text-[12px] text-subtle">
+            <span key={completed} className="ct-count inline-block font-medium text-accent">
+              {completed} of {steps.length}
+            </span>{' '}
+            {!open && next ? `· Next: ${next.label}` : 'done'}
+          </p>
         </div>
         <button
           type="button"
@@ -186,32 +230,15 @@ export function GettingStartedChecklist() {
 
       {open && (
         <ul className="border-t border-border">
-          {steps.map((s) =>
-            s.done ? (
-              <li
-                key={s.id}
-                className="flex items-center gap-2.5 px-4 py-2.5 text-[13px]"
-              >
-                <span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast">
-                  <Check size={12} strokeWidth={3} aria-hidden />
-                </span>
-                <span className="text-subtle line-through">{s.label}</span>
-              </li>
-            ) : (
-              <li key={s.id}>
-                <Link
-                  to={s.to}
-                  className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-surface-2/50"
-                >
-                  <span className="size-5 shrink-0 rounded-full border-2 border-dashed border-border-strong" />
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-fg">{s.label}</span>
-                    <span className="block truncate text-[11px] text-subtle">{s.hint}</span>
-                  </span>
-                </Link>
-              </li>
-            ),
-          )}
+          {steps.map((s) => (
+            <StepRow
+              key={s.id}
+              step={s}
+              fresh={fresh.includes(s.id)}
+              active={active === s.id && !s.done}
+              onGo={() => go(s.id)}
+            />
+          ))}
         </ul>
       )}
 
@@ -241,20 +268,4 @@ export function GettingStartedChecklist() {
       )}
     </section>
   )
-}
-
-const OPEN_KEY = 'ct_checklist_open'
-function readOpen(): boolean {
-  try {
-    return sessionStorage.getItem(OPEN_KEY) !== '0'
-  } catch {
-    return true
-  }
-}
-function writeOpen(v: boolean) {
-  try {
-    sessionStorage.setItem(OPEN_KEY, v ? '1' : '0')
-  } catch {
-    /* private mode: it just forgets */
-  }
 }

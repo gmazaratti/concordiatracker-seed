@@ -78,7 +78,7 @@ export function CommunityPage() {
     <div
       className={cn(
         full
-          ? 'flex h-full min-h-0 w-full flex-col overflow-hidden'
+          ? 'ct-fill-page flex h-full min-h-0 w-full flex-col overflow-hidden'
           : 'mx-auto w-full max-w-[76rem] px-4 py-3 sm:px-6 sm:py-5',
       )}
     >

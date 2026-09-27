@@ -249,10 +249,11 @@ export function OnboardingPage() {
             ) : step === STEP_MOODLE ? (
               <MoodleStep onConnected={() => setMoodleDone(true)} />
             ) : step === STEP_COURSE ? (
-              <>
-                <TutorialHint id="add-course" className="mb-3" />
-                <AddCourses onAdded={() => setAddedCourse(true)} concordia={atConcordia} />
-              </>
+              <AddCourses
+                onAdded={() => setAddedCourse(true)}
+                concordia={atConcordia}
+                hint={<TutorialHint id="add-course" />}
+              />
             ) : step === STEP_HOW ? (
               <HowItWorksSlide />
             ) : step === STEP_COMMUNITY ? (

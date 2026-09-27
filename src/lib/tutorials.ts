@@ -93,6 +93,11 @@ export const TUTORIALS = {
       'No outline? Upload the syllabus PDF and we read the dates out of it.',
       'Or connect Moodle and your posted deadlines arrive on their own.',
     ],
+    // The same recording the landing page plays: Courses → find a blueprint
+    // (COMM 213) → import it → edit it and enter grades. Served from where the
+    // landing already hosts it, so there is one copy of the file.
+    video: '/dev-landing-2/courses-grades.mp4',
+    poster: '/tutorials/add-course.jpg',
   },
 } satisfies Record<string, Tutorial>
 

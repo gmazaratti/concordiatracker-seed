@@ -54,8 +54,13 @@ function rebaseUpcoming(items: Assessment[]): Assessment[] {
 export function AddCourses({
   onAdded,
   concordia = true,
+  hint,
 }: {
   onAdded: () => void
+  /** "How this works", shown centred under the subtitle on the choice screen.
+   *  It used to be rendered by the page above this component, outside its
+   *  centred column, which left it hugging the left edge of a wide screen. */
+  hint?: React.ReactNode
   /** False hides the Concordia catalogue search — it can only ever come back
    *  empty for someone at another school, and a search box that never finds
    *  your class reads as the product being broken rather than the wrong
@@ -188,6 +193,7 @@ export function AddCourses({
             ? t('courses.addAnotherSub')
             : t('courses.addYoursSub')}
         </p>
+        {hint && <div className="mt-3 flex justify-center">{hint}</div>}
       </div>
 
       {has && <AddedList added={added} justAdded={justAdded} />}

@@ -1761,7 +1761,59 @@ html[data-reduce-motion] .ct-navrow-right {
 
 /* Room under the page for a floating helper card (the Getting started
    checklist sets --ct-float-pad to its own height while it is on screen), so
-   the last row of a page can always be scrolled out from under it. */
-#app-main {
-  padding-bottom: var(--ct-float-pad, 0px);
+   the last row of a page can always be scrolled out from under it.
+
+   A SPACER AFTER THE CONTENT, not padding on the scroller. Padding shrank the
+   scroller's content box, and the course page is sized to fill exactly that
+   box (h-full), so an open checklist cut the whole page short by ~400px
+   (QA, 2026-09-27). A spacer only adds scroll room. On wide screens the
+   course page scrolls inside its own columns instead, which carry the same
+   room themselves (.ct-float-clear), so its spacer is switched off there. */
+#app-main::after {
+  content: '';
+  display: block;
+  height: var(--ct-float-pad, 0px);
+}
+/* Messages fills the screen at every width: nothing scrolls but the list and
+   the conversation, so it gets no spacer at all (and no checklist). */
+#app-main:has(.ct-fill-page)::after {
+  display: none;
+}
+@media (min-width: 1024px) {
+  #app-main:has(.ct-fixed-page)::after {
+    display: none;
+  }
+  .ct-float-clear {
+    padding-bottom: var(--ct-float-pad, 0px);
+  }
+}
+
+/* ── Getting started: the reward moments ─────────────────────────────────── */
+/* A step just finished: the row washes sage and settles back. */
+@keyframes ct-step-flash {
+  0% { background-color: transparent; }
+  25% { background-color: var(--ct-accent-soft); }
+  100% { background-color: transparent; }
+}
+.ct-step-flash {
+  animation: ct-step-flash 1400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* ...and its label is struck through left to right, rather than appearing
+   already crossed out. */
+.ct-strike {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 55%;
+  background-size: 100% 1px;
+}
+@keyframes ct-strike-in {
+  from { background-size: 0% 1px; }
+  to { background-size: 100% 1px; }
+}
+.ct-strike-in {
+  animation: ct-strike-in 420ms cubic-bezier(0.4, 0, 0.2, 1) 180ms backwards;
+}
+/* The step you tapped and are working on. */
+.ct-step-active {
+  animation: ct-ring-pulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

@@ -55,7 +55,7 @@ function Card({ id, title, onSave }: { id: string; title: string; onSave: (g: No
       role="status"
       aria-live="polite"
       data-grade-prompt={id}
-      className="ct-animate-pop fixed right-4 bottom-20 left-4 z-[125] mx-auto max-w-sm rounded-2xl border border-border bg-surface p-3 shadow-lg md:right-6 md:bottom-6 md:left-auto"
+      className="ct-animate-pop fixed right-4 bottom-20 left-4 z-[125] mx-auto max-w-sm rounded-2xl border border-border bg-surface p-3 shadow-lg md:bottom-6"
     >
       {saved ? (
         <p className="flex items-center gap-2 text-[13px] font-medium text-success">
