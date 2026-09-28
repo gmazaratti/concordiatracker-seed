@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SettingsContext, type SettingsSection } from './settings'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
+
+/** Panes about buying, which the App Store build never opens (lib/store-policy). */
+const STORE_PANES: SettingsSection[] = ['billing', 'usage']
 
 const SECTIONS: SettingsSection[] = [
   'general',
@@ -25,7 +29,9 @@ const SECTIONS: SettingsSection[] = [
 function fromUrl(): SettingsSection | null {
   try {
     const raw = new URLSearchParams(window.location.search).get('settings')
-    return raw && SECTIONS.includes(raw as SettingsSection) ? (raw as SettingsSection) : null
+    if (!raw || !SECTIONS.includes(raw as SettingsSection)) return null
+    if (PURCHASES_HIDDEN && STORE_PANES.includes(raw as SettingsSection)) return null
+    return raw as SettingsSection
   } catch {
     return null
   }
@@ -50,6 +56,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [initial])
 
   const openSettings = useCallback((next?: SettingsSection) => {
+    // Every "Upgrade" button in the app calls this with 'billing'. In the App
+    // Store build those buttons are already hidden; this is the backstop, so
+    // one that was missed does nothing rather than opening a price.
+    if (PURCHASES_HIDDEN && next && STORE_PANES.includes(next)) return
     if (next) setSection(next)
     setOpen(true)
   }, [])

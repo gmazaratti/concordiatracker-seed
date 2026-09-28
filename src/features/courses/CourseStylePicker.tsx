@@ -6,6 +6,7 @@ import { COURSE_COLORS } from '@/lib/course-color'
 import { COURSE_GRADIENTS, COURSE_ICON_GROUPS, courseIcon } from '@/lib/course-style'
 import type { Course } from '@/data/types'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * Make a class look like itself: colour, gradient, icon.
@@ -79,7 +80,11 @@ export function CourseStylePicker({ course }: { course: Course }) {
                 ['gradient', 'Gradient', pro],
                 ['icon', 'Icon', pro],
               ] as const
-            ).map(([id, label, allowed]) => (
+            )
+              // App Store build: Pro tabs are absent for a free account, not
+              // padlocked (lib/store-policy).
+              .filter(([, , allowed]) => allowed || !PURCHASES_HIDDEN)
+              .map(([id, label, allowed]) => (
               <button
                 key={id}
                 type="button"

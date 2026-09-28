@@ -7,6 +7,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { SeatWatchModal } from '@/features/seats/SeatWatchModal'
 import { myWatches, removeWatch, seatsOpen, watchLimit, type SeatWatch } from '@/lib/seats'
 import { termLabel } from '@/lib/course-sections'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 const PAGE = 10
 
@@ -90,7 +91,9 @@ export function SeatWatchPanel() {
       )}
 
       {atLimit && used > 0 && (
-        <p className="mt-3 text-[12px] text-subtle">{t('planner.watch.atLimit')}</p>
+        <p className="mt-3 text-[12px] text-subtle">
+          {t(PURCHASES_HIDDEN ? 'planner.watch.atLimitApp' : 'planner.watch.atLimit')}
+        </p>
       )}
 
       {watches !== null && !atLimit && (

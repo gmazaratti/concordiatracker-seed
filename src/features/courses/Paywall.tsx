@@ -2,6 +2,7 @@ import { ArrowRight, Lock, Sparkles } from 'lucide-react'
 import { useSettings } from '@/app/providers/settings'
 import { UpgradeChip } from '@/components/UpgradeChip'
 import { useT } from '@/i18n/i18n'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** Wraps a paid feature: when locked, the real UI shows blurred behind a lock +
  * Semester-pass CTA, so the value is visible but gated (the tangible paid line).
@@ -18,6 +19,9 @@ export function PaywallLock({
   const t = useT()
   const { openSettings } = useSettings()
   if (!locked) return <>{children}</>
+  // In the App Store build a locked feature is absent, not padlocked: a lock
+  // with no way to open it is a dead end, and one with a way is a sale.
+  if (PURCHASES_HIDDEN) return null
   return (
     <div className="relative overflow-hidden rounded-xl">
       <div
@@ -52,6 +56,7 @@ export function PaywallLock({
 export function PaywallCallout() {
   const t = useT()
   const { openSettings } = useSettings()
+  if (PURCHASES_HIDDEN) return null
   return (
     <>
       <UpgradeChip

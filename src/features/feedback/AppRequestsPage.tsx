@@ -8,15 +8,19 @@ import { BugChannel } from './BugChannel'
 import { PinRequestsToast } from './PinRequestsToast'
 import { SurveyTab } from './survey/SurveyTab'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 const SURVEY_DAYS = 3
 
-const TABS = [
+const ALL_TABS = [
   { id: 'requests', label: 'Feature requests', icon: Lightbulb },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
   { id: 'survey', label: 'Quick survey', icon: ClipboardList },
 ] as const
-type TabId = (typeof TABS)[number]['id']
+type TabId = (typeof ALL_TABS)[number]['id']
+/** The survey's reward is days of Pro, so the App Store build leaves it out
+ *  (lib/store-policy). */
+const TABS = ALL_TABS.filter((t) => !PURCHASES_HIDDEN || t.id !== 'survey')
 
 /** `/app/requests` — the full feedback board rendered INSIDE the student app
  * shell, so the sidebar is always there (reached from the avatar menu and the
@@ -67,7 +71,7 @@ export function AppRequestsPage() {
         })}
       </div>
 
-      {current !== 'survey' && <SurveyNudge onGo={() => select('survey')} />}
+      {current !== 'survey' && !PURCHASES_HIDDEN && <SurveyNudge onGo={() => select('survey')} />}
       {current === 'requests' ? <RequestsBoard /> : current === 'bugs' ? <BugChannel /> : <SurveyTab />}
       {current === 'requests' && <PinRequestsToast />}
     </div>

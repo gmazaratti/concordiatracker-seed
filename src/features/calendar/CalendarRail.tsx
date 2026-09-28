@@ -8,6 +8,7 @@ import { Switch } from '@/features/settings/controls'
 import { ACADEMIC_META } from './calendar'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** The calendar rail: independent layer toggles, a compact legend, and the
  * Pro-gated calendar-sync stub. Mirrors Today's recessed glance-panel language. */
@@ -175,6 +176,9 @@ function SyncButton({ pro }: { pro: boolean }) {
     }
   }, [])
 
+  // Calendar sync is a Pro feature: absent for a free account in the App
+  // Store build rather than offered (lib/store-policy).
+  if (!pro && PURCHASES_HIDDEN) return null
   if (!pro) {
     return (
       <>

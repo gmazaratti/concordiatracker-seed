@@ -27,6 +27,8 @@ import { UsageSection } from './sections/UsageSection'
 import { DeveloperSection } from './sections/DeveloperSection'
 import { DevicesSection } from './sections/DevicesSection'
 import { useIsAdmin } from '@/features/admin/admin-data'
+import { useAppData } from '@/app/providers/app-data'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * `adminOnly` is a display rule, and only a display rule.
@@ -37,15 +39,89 @@ import { useIsAdmin } from '@/features/admin/admin-data'
  * about not putting a developer credential in front of a student who has no
  * use for one — clutter, not security.
  */
-const SECTIONS: { id: SettingsSection; labelKey: Key; icon: LucideIcon; adminOnly?: boolean }[] = [
+/**
+ * 
+
+[38;5;69m ██████╗  ████████╗   ██████╗   ██████╗   ███████╗         ██████╗  ██╗       [0m
+[38;5;69m██╗  [0m
+[38;5;69m██╔════╝  ╚══██╔══╝  ██╔═══██╗  ██╔══██╗  ██╔════╝        ██╔════╝  ██║       [0m
+[38;5;69m██║  [0m
+[38;5;189m╚█████╗      ██║     ██║   ██║  ██████╔╝  █████╗          ██║       ██║       [0m
+[38;5;189m██║  [0m
+[38;5;153m ╚═══██╗     ██║     ██║   ██║  ██╔══██╗  ██╔══╝          ██║       ██║       [0m
+[38;5;153m██║  [0m
+[38;5;153m██████╔╝     ██║     ╚██████╔╝  ██║  ██║  ███████╗        ╚██████╗  ███████╗  [0m
+[38;5;153m██║  [0m
+[38;5;75m╚═════╝      ╚═╝      ╚═════╝   ╚═╝  ╚═╝  ╚══════╝         ╚═════╝  ╚══════╝  [0m
+[38;5;75m╚═╝  [0m
+
+[38;5;8mv22608.1401.4.0 - Preview[0m
+
+Usage: [38;5;69mstore[0m [38;5;189m<command>[0m [38;5;8m[options][0m
+       [38;5;69mstore[0m [38;5;51m--help[0m
+
+Use '[38;5;69mstore[0m [38;5;189m<command>[0m [38;5;51m--help[0m' to get detailed help for any command.
+
+[38;5;69mDiscovery Commands:[0m
+[38;5;238m┌──────────────┬──────────────────────────────────────────┐[0m
+[38;5;238m│[0m [38;5;189mcommand[0m      [38;5;238m│[0m [38;5;189mdescription[0m                              [38;5;238m│[0m
+[38;5;238m├──────────────┼──────────────────────────────────────────┤[0m
+[38;5;238m│[0m addons       [38;5;238m│[0m List add-ons for a game                  [38;5;238m│[0m
+[38;5;238m│[0m browse-apps  [38;5;238m│[0m Browse ranked app lists                  [38;5;238m│[0m
+[38;5;238m│[0m browse-games [38;5;238m│[0m Browse ranked game lists                 [38;5;238m│[0m
+[38;5;238m│[0m extension    [38;5;238m│[0m Find apps that open specific file types  [38;5;238m│[0m
+[38;5;238m│[0m protocol     [38;5;238m│[0m Find apps that handle custom URL schemes [38;5;238m│[0m
+[38;5;238m│[0m publisher    [38;5;238m│[0m Find products from a publisher           [38;5;238m│[0m
+[38;5;238m│[0m search       [38;5;238m│[0m Search for apps and games                [38;5;238m│[0m
+[38;5;238m│[0m show         [38;5;238m│[0m Show product details and ratings         [38;5;238m│[0m
+[38;5;238m│[0m similar      [38;5;238m│[0m Find similar products                    [38;5;238m│[0m
+[38;5;238m└──────────────┴──────────────────────────────────────────┘[0m
+
+[38;5;69mOperations Commands:[0m
+[38;5;238m┌───────────┬─────────────────────────────────────────────┐[0m
+[38;5;238m│[0m [38;5;189mcommand[0m   [38;5;238m│[0m [38;5;189mdescription[0m                                 [38;5;238m│[0m
+[38;5;238m├───────────┼─────────────────────────────────────────────┤[0m
+[38;5;238m│[0m install   [38;5;238m│[0m Install an app from the Store               [38;5;238m│[0m
+[38;5;238m│[0m installed [38;5;238m│[0m List all installed apps                     [38;5;238m│[0m
+[38;5;238m│[0m update    [38;5;238m│[0m Check updates for a specific app            [38;5;238m│[0m
+[38;5;238m│[0m updates   [38;5;238m│[0m Check for updates across all installed apps [38;5;238m│[0m
+[38;5;238m└───────────┴─────────────────────────────────────────────┘[0m
+
+[38;5;69mHelper Commands:[0m
+[38;5;238m┌─────────────────┬─────────────────────────────────┐[0m
+[38;5;238m│[0m [38;5;189mcommand[0m         [38;5;238m│[0m [38;5;189mdescription[0m                     [38;5;238m│[0m
+[38;5;238m├─────────────────┼─────────────────────────────────┤[0m
+[38;5;238m│[0m app-categories  [38;5;238m│[0m List app categories             [38;5;238m│[0m
+[38;5;238m│[0m game-categories [38;5;238m│[0m List game categories            [38;5;238m│[0m
+[38;5;238m│[0m muid            [38;5;238m│[0m Get the Store device identifier [38;5;238m│[0m
+[38;5;238m└─────────────────┴─────────────────────────────────┘[0m
+
+[38;5;69mExamples:[0m
+  [38;5;8mstore search "Microsoft Teams"[0m
+  [38;5;8mstore show "Visual Studio Code"[0m
+  [38;5;8mstore browse-apps top-free --category productivity[0m
+  [38;5;8mstore browse-games top-paid --only-game-pass[0m
+  [38;5;8mstore similar firefox[0m
+  [38;5;8mstore updates[0m
+  [38;5;8mstore install whatsapp[0m: how the tab behaves in the App Store build (lib/store-policy).
+ * 'never' = it is about buying, so it is not there at all; 'pro' = a Pro
+ * feature, shown only to an account that already has it.
+ */
+const SECTIONS: {
+  id: SettingsSection
+  labelKey: Key
+  icon: LucideIcon
+  adminOnly?: boolean
+  store?: 'never' | 'pro'
+}[] = [
   { id: 'general', labelKey: 'settings.general', icon: SlidersHorizontal },
   { id: 'account', labelKey: 'settings.account', icon: UserRound },
-  { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync },
+  { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync, store: 'pro' },
   { id: 'moodle', labelKey: 'settings.moodle', icon: GraduationCap },
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
   { id: 'devices', labelKey: 'settings.devices', icon: MonitorSmartphone },
-  { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
-  { id: 'usage', labelKey: 'settings.usage', icon: Gauge },
+  { id: 'billing', labelKey: 'settings.billing', icon: CreditCard, store: 'never' },
+  { id: 'usage', labelKey: 'settings.usage', icon: Gauge, store: 'never' },
   { id: 'developer', labelKey: 'settings.developer', icon: Code2, adminOnly: true },
 ]
 
@@ -82,7 +158,12 @@ export function SettingsModal() {
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(closeSettings)
   const t = useT()
   const { isAdmin } = useIsAdmin()
-  const sections = SECTIONS.filter((s) => !s.adminOnly || isAdmin)
+  const { plan } = useAppData()
+  const sections = SECTIONS.filter(
+    (s) =>
+      (!s.adminOnly || isAdmin) &&
+      !(PURCHASES_HIDDEN && (s.store === 'never' || (s.store === 'pro' && plan !== 'semester'))),
+  )
   // A deep link (or a stale `section`) must not land on a hidden tab, and it
   // must not render a blank panel either. Fall back to the first one.
   const visible = sections.some((s) => s.id === section) ? section : sections[0].id

@@ -8,6 +8,7 @@ import { CHAT_THEMES, type ChatTheme } from '../chat-themes'
 import { Avatar } from './ChatAvatar'
 import type { Badge } from '../badges'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * Who you are talking to, and the two settings that belong to this chat.
@@ -104,16 +105,19 @@ export function ChatHeader({
         >
           <Eye size={17} aria-hidden />
         </button>
-        <button
-          type="button"
-          onClick={() => (pro ? setOpen((o) => (o === 'theme' ? null : 'theme')) : onUpgrade())}
-          aria-label="Chat colours"
-          aria-expanded={open === 'theme'}
-          title={pro ? 'Chat colours' : 'Chat colours come with the Semester pass'}
-          className={cn(icon, open === 'theme' && 'bg-surface-2 text-fg')}
-        >
-          <Palette size={17} aria-hidden />
-        </button>
+        {/* A Pro control: absent for a free account in the App Store build. */}
+        {(pro || !PURCHASES_HIDDEN) && (
+          <button
+            type="button"
+            onClick={() => (pro ? setOpen((o) => (o === 'theme' ? null : 'theme')) : onUpgrade())}
+            aria-label="Chat colours"
+            aria-expanded={open === 'theme'}
+            title={pro ? 'Chat colours' : 'Chat colours come with the Semester pass'}
+            className={cn(icon, open === 'theme' && 'bg-surface-2 text-fg')}
+          >
+            <Palette size={17} aria-hidden />
+          </button>
+        )}
 
         {open === 'receipts' && (
           <div className={cn(pop, 'w-[236px] p-3')}>

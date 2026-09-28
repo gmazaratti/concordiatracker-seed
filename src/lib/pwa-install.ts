@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 /*
  * PWA install helpers — platform detection + the Android/Chromium
  * `beforeinstallprompt` capture.
@@ -51,6 +52,9 @@ export async function promptInstall(): Promise<boolean> {
 /** True when the app is already running as an installed PWA (any platform). */
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false
+  // The App Store app IS the installed app; never ask it to add itself to the
+  // home screen, and never tell it push needs installing first.
+  if (Capacitor.isNativePlatform()) return true
   return (
     window.matchMedia?.('(display-mode: standalone)').matches ||
     // iOS Safari exposes this legacy flag instead of display-mode.

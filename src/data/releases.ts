@@ -6,6 +6,8 @@
  * `CURRENT_VERSION` and the notification logic read from index 0 automatically.
  */
 
+import { PURCHASES_HIDDEN, copyAllowedInApp } from '@/lib/store-policy'
+
 export type ReleaseChangeKind = 'new' | 'improved' | 'fixed'
 
 export type HeroIcon =
@@ -40,7 +42,7 @@ export interface Release {
 }
 
 /** Newest first — index 0 is the current release. */
-export const RELEASES: Release[] = [
+const ALL_RELEASES: Release[] = [
   {
     version: '2.0.0',
     name: 'ConcordiaTracker 2.0',
@@ -737,8 +739,37 @@ export const RELEASES: Release[] = [
   },
 ]
 
-/** The current (latest) version. */
-export const CURRENT_VERSION = RELEASES[0].version
+/**
+ * The notes as the App Store build shows them. Many releases describe web-only
+ * changes to pricing, trials and billing, and the app may not mention any of
+ * that (lib/store-policy), so those lines are dropped, a release left with
+ * nothing to say is dropped, and a release whose TITLE is about buying is
+ * shown under its version number instead. The version history stays true: it
+ * just leaves out what the app has no business describing.
+ */
+function forApp(r: Release): Release | null {
+  const changes = r.changes.filter((c) => copyAllowedInApp(c.text))
+  const hero = r.hero && {
+    headline: copyAllowedInApp(r.hero.headline) ? r.hero.headline : '',
+    tagline: copyAllowedInApp(r.hero.tagline) ? r.hero.tagline : '',
+    highlights: r.hero.highlights.filter((h) => copyAllowedInApp(h.title) && copyAllowedInApp(h.text)),
+  }
+  if (changes.length === 0 && !hero?.highlights.length) return null
+  return {
+    ...r,
+    name: copyAllowedInApp(r.name) ? r.name : `Version ${r.version}`,
+    changes,
+    hero: hero?.headline ? hero : undefined,
+  }
+}
+
+export const RELEASES: Release[] = PURCHASES_HIDDEN
+  ? ALL_RELEASES.map(forApp).filter((r): r is Release => r !== null)
+  : ALL_RELEASES
+
+/** The current (latest) version. From the full list, so the "what's new"
+ *  notice keys on the real version even when its notes are all web-only. */
+export const CURRENT_VERSION = ALL_RELEASES[0].version
 
 /** Semver compare: negative if a < b, 0 if equal, positive if a > b. */
 export function compareVersions(a: string, b: string): number {

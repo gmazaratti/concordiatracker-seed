@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** The slim, single-line form of a contextual Pro upsell — shown on mobile in
  * place of the full card so the prompt stays visible and tappable without eating
@@ -20,6 +21,8 @@ export function UpgradeChip({
   onClick?: () => void
   className?: string
 }) {
+  // No upsell of any kind inside the App Store build (lib/store-policy).
+  if (PURCHASES_HIDDEN) return null
   const cls = cn(
     'group flex w-full items-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-left transition-colors duration-150 hover:border-accent/50',
     className,

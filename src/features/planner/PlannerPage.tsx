@@ -12,7 +12,8 @@ import { ProgramProgress } from './ProgramProgress'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
-import { PLANNER_TABS, PLANNER_TAB_IDS, type NavItem, type PlannerTab } from './tabs'
+import { PLANNER_TAB_IDS, plannerTabsFor, type NavItem, type PlannerTab } from './tabs'
+import { useAppData } from '@/app/providers/app-data'
 
 /**
  * Planner: the pre-term half of the product.
@@ -31,6 +32,8 @@ import { PLANNER_TABS, PLANNER_TAB_IDS, type NavItem, type PlannerTab } from './
 
 export function PlannerPage() {
   const { t } = useI18n()
+  const { plan } = useAppData()
+  const tabs = plannerTabsFor(plan)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   /**
@@ -44,13 +47,15 @@ export function PlannerPage() {
   const [params, setParams] = useSearchParams()
   const fromUrl = params.get('tab')
   const tab: PlannerTab =
-    fromUrl && PLANNER_TAB_IDS.has(fromUrl) ? (fromUrl as PlannerTab) : 'record'
+    fromUrl && PLANNER_TAB_IDS.has(fromUrl) && tabs.some((x) => x.id === fromUrl)
+      ? (fromUrl as PlannerTab)
+      : 'record'
   const setTab = (next: PlannerTab) => setParams(next === 'record' ? {} : { tab: next })
 
   // The schedule builder and the prerequisite graph are the only sections that
   // want more than a reading column, so they are the only ones that get it.
   const wide = tab === 'schedule' || tab === 'tree'
-  const items: NavItem<PlannerTab>[] = PLANNER_TABS.map((item) => ({
+  const items: NavItem<PlannerTab>[] = tabs.map((item) => ({
     id: item.id,
     label: t(item.labelKey),
     icon: item.icon,

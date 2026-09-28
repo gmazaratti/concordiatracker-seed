@@ -14,6 +14,7 @@ import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
 import type { Assessment, AssessmentKind, Course } from '@/data/types'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 type Phase = 'idle' | 'parsing' | 'review' | 'error'
 const MAX_MB = 4
@@ -94,7 +95,9 @@ function usageState(u: ParseUsage): {
   // "Infinity of Infinity uploads left this month" -- caught on screen.
   // There is no count to show someone who has no cap.
   const allowance = u.unlimited
-    ? 'Unlimited uploads on your pass'
+    ? PURCHASES_HIDDEN
+      ? 'Unlimited uploads'
+      : 'Unlimited uploads on your pass'
     : `${remaining} of ${u.limit} uploads left this month`
   if (!u.unlimited && u.used >= u.limit) {
     return { remaining, blocked: true, allowance, message: `You've used all ${u.limit} uploads this month.` }
@@ -418,7 +421,7 @@ export function SyllabusUploadPage({
               <span className="font-medium text-warning">{u.message}</span>
             ) : (
               <span>
-                {u ? u.allowance : 'Up to 5 uploads per month on the free plan'}
+                {u ? u.allowance : PURCHASES_HIDDEN ? 'Up to 5 uploads per month' : 'Up to 5 uploads per month on the free plan'}
                 {' · '}parsing can take up to ~15 seconds
               </span>
             )}

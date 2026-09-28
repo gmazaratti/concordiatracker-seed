@@ -14,6 +14,8 @@ import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 import { getReduceMotion, setReduceMotion } from '@/lib/reduce-motion'
 import { OrgPostSwitch } from './OrgPostSwitch'
 import { MessageAlertSwitch } from './MessageAlertSwitch'
+import { useAppData } from '@/app/providers/app-data'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** General: appearance, lightweight preferences, notifications, updates, and the
  * real English/French switch. Untranslated strings fall back to English, so the
@@ -31,6 +33,7 @@ export function GeneralSection() {
   const { isAdmin } = useIsAdmin()
   const [demoGpa, setDemoGpa] = useState(demoGpaEnabled)
   const { lang, setLang, t } = useI18n()
+  const { plan } = useAppData()
 
   return (
     <div>
@@ -38,9 +41,13 @@ export function GeneralSection() {
         <Row label={t('settings.theme')} description="Swaps the whole product from one token set." stacked>
           <ThemePicker />
         </Row>
-        <Row label="Wallpaper" description="A photo behind Today, Courses and Calendar." stacked>
-          <WallpaperSection />
-        </Row>
+        {/* A Pro-only row, so in the App Store build a free account does not
+            see it at all (lib/store-policy). */}
+        {!(PURCHASES_HIDDEN && plan !== 'semester') && (
+          <Row label="Wallpaper" description="A photo behind Today, Courses and Calendar." stacked>
+            <WallpaperSection />
+          </Row>
+        )}
       </Group>
 
       <Group label={t('settings.preferences')}>

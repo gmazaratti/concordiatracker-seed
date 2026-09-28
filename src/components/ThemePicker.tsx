@@ -7,6 +7,7 @@ import { ColorPicker } from '@/components/ui/ColorPicker'
 import { Segmented } from '@/features/settings/controls'
 import { customTheme, BASE_CANVAS } from '@/lib/color'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * The Settings theme picker — a grid of miniature screens rather than a row of
@@ -70,7 +71,11 @@ export function ThemePicker() {
   return (
     <div>
       <div role="radiogroup" aria-label="Theme" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-        {[...THEMES, customOption].map((opt) => {
+        {[...THEMES, customOption]
+          // In the App Store build a theme you cannot use is not shown at all
+          // (lib/store-policy): no padlocks, no try-on, nothing to buy.
+          .filter((opt) => !(PURCHASES_HIDDEN && opt.pro && !pro))
+          .map((opt) => {
           const locked = Boolean(opt.pro) && !pro
           return (
             <Tile
@@ -84,7 +89,7 @@ export function ThemePicker() {
         })}
       </div>
 
-      {!pro && (
+      {!pro && !PURCHASES_HIDDEN && (
         <p className="mt-2.5 text-[11.5px] leading-relaxed text-subtle">
           Dark and Light are free, always. Tap a locked one to wear it for two minutes and see
           how it reads across your own term. The rest of the palette, and a colour of your own,

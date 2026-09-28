@@ -1,4 +1,5 @@
 import type { TourStep } from './tour'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * The guided walkthrough — a calm, ordered tour through every tab (Today →
@@ -11,7 +12,7 @@ import type { TourStep } from './tour'
  * engine. `route` is where the engine navigates first; omit `target` for a
  * centered explainer card.
  */
-export const TOUR_STEPS: TourStep[] = [
+const ALL_STEPS: TourStep[] = [
   {
     id: 'welcome',
     route: '/app',
@@ -130,3 +131,20 @@ export const TOUR_STEPS: TourStep[] = [
     body: 'The DEMO course is gone now: back to your real stuff. The “Getting started” card tracks your first steps, and you can replay this anytime from the menu.',
   },
 ]
+
+/**
+ * The App Store build tours only what the account can use and never says what
+ * is free or paid (lib/store-policy): the GPA-prediction stop is dropped, and
+ * the grade calculator is just the grade calculator.
+ */
+export const TOUR_STEPS: TourStep[] = PURCHASES_HIDDEN
+  ? ALL_STEPS.filter((s) => s.id !== 'course-gpa').map((s) =>
+      s.id === 'course-grade-needed'
+        ? {
+            ...s,
+            title: 'Grade calculator',
+            body: 'Pick a target grade and see the exact average you need on what’s left. Real arithmetic, no guessing.',
+          }
+        : s,
+    )
+  : ALL_STEPS

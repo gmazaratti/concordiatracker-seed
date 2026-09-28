@@ -3,12 +3,13 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '@/i18n/i18n'
 import {
   PHASE_LABEL,
-  PLANNER_TABS,
   PLANNER_TAB_IDS,
+  plannerTabsFor,
   plannerHref,
   type PlannerTab,
 } from '@/features/planner/tabs'
 import { cn } from '@/lib/cn'
+import { useAppData } from '@/app/providers/app-data'
 
 /**
  * The planner's sections, nested under Planner in the app sidebar.
@@ -25,6 +26,8 @@ import { cn } from '@/lib/cn'
  */
 export function PlannerSubNav({ open }: { open: boolean }) {
   const { t } = useI18n()
+  const { plan } = useAppData()
+  const tabs = plannerTabsFor(plan)
   const [params] = useSearchParams()
   const fromUrl = params.get('tab')
   const active: PlannerTab =
@@ -45,10 +48,10 @@ export function PlannerSubNav({ open }: { open: boolean }) {
     >
       <div className="overflow-hidden">
         <div className="mt-0.5 mb-1 ml-[26px] border-l border-border pl-2">
-          {PLANNER_TABS.map((item, i) => {
+          {tabs.map((item, i) => {
             const Icon = item.icon
             const on = active === item.id
-            const startsPhase = i === 0 || PLANNER_TABS[i - 1].phase !== item.phase
+            const startsPhase = i === 0 || tabs[i - 1].phase !== item.phase
             return (
               <Fragment key={item.id}>
                 {startsPhase && (

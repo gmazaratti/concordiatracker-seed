@@ -33,6 +33,7 @@ import { badgeForPerson } from '@/features/profile/badges'
 import { useCommunityData } from '@/app/providers/community-data'
 import { activityHref, onOwnProfile } from '@/features/community/sections'
 import { useTransitionClick } from '@/lib/view-transition'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** The people who built this — badged with a verification seal in the profile
  * block (cosmetic; admin rights are gated separately in the DB). Kept as
@@ -216,13 +217,17 @@ export function AvatarMenu({
               {t('nav.adminPanel')}
             </MenuLink>
           )}
-          <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
-            {t('nav.landing')}
-          </MenuLink>
+          {/* The landing page is mostly pricing, so the App Store build has no
+              way back to it (lib/store-policy). */}
+          {!PURCHASES_HIDDEN && (
+            <MenuLink to="/" icon={ArrowLeft} onSelect={() => setOpen(false)}>
+              {t('nav.landing')}
+            </MenuLink>
+          )}
 
           {/* Dev-only plan switch (self-grants "Semester"): admin-only so real
            * users can't flip their own plan. Real upgrades go through Settings → Billing. */}
-          {isAdmin && (
+          {isAdmin && !PURCHASES_HIDDEN && (
             <div className="my-1.5 px-1">
               <p className="flex items-center gap-1.5 px-1 pb-1 text-[11px] text-subtle">
                 Demo plan
@@ -300,7 +305,7 @@ export function AvatarMenu({
               <span className="block truncate text-[11px] font-medium text-accent">
                 {badge.role}
               </span>
-            ) : (
+            ) : PURCHASES_HIDDEN ? null : (
               <span className="block truncate text-[11px] text-subtle">
                 {plan === 'free' ? 'Free plan' : 'Semester pass'}
               </span>

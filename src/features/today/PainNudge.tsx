@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { UpgradeChip } from '@/components/UpgradeChip'
 import { useT } from '@/i18n/i18n'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** Shown ONLY in the pain moment: lots due at once, on the free plan. It points
  * to the GPA predictor (a paid feature that lives in Courses) so the value prop
@@ -9,6 +10,7 @@ import { useT } from '@/i18n/i18n'
  * collapses to a slim one-line chip so it stays visible without eating space. */
 export function PainNudge({ count }: { count: number }) {
   const t = useT()
+  if (PURCHASES_HIDDEN) return null
   return (
     <>
       <UpgradeChip

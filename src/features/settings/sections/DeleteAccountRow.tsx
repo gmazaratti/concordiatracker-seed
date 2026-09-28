@@ -4,6 +4,7 @@ import { useAuth } from '@/app/providers/auth'
 import { deleteMyAccount } from '@/lib/billing'
 import { submitChurn, type ChurnReason } from '@/lib/churn'
 import { ChurnReasonPicker } from './ChurnSurvey'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * Settings → Account → Delete account. REAL: it cancels any subscription, then
@@ -92,7 +93,9 @@ export function DeleteAccountRow() {
           <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
             <li>Your profile, courses, grades, tasks, messages, follows, notes and settings are deleted.</li>
             <li>So are your support tickets, bug reports, survey answers, device history, analytics and uploaded files.</li>
-            <li>A Pro subscription is cancelled immediately. Stripe keeps its own payment records, as the law requires.</li>
+            {!PURCHASES_HIDDEN && (
+              <li>A Pro subscription is cancelled immediately. Stripe keeps its own payment records, as the law requires.</li>
+            )}
             <li>Posts and events you published for a club stay with the club, without your name.</li>
             <li>We keep only an anonymous count of deletions, and your reason below if you give one, with nothing that identifies you.</li>
           </ul>

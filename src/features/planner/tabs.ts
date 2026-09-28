@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { Key } from '@/i18n/en'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /**
  * The planner's sections, as data.
@@ -84,6 +85,17 @@ export const PLANNER_TABS: {
 ]
 
 export const PLANNER_TAB_IDS = new Set<string>(PLANNER_TABS.map((x) => x.id))
+
+/**
+ * The sections this account sees. Money is a Pro section whose useful half is
+ * behind the paywall, so in the App Store build a free account does not get
+ * the tab at all rather than a page of inputs with nothing under them
+ * (lib/store-policy).
+ */
+export function plannerTabsFor(plan: 'free' | 'semester'): typeof PLANNER_TABS {
+  if (PURCHASES_HIDDEN && plan !== 'semester') return PLANNER_TABS.filter((x) => x.id !== 'money')
+  return PLANNER_TABS
+}
 
 /** The URL for a section. `record` is the default, so it carries no query —
  *  one canonical address for the landing state rather than two. */

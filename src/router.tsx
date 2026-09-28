@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { StudentLayout } from '@/layouts/StudentLayout'
 import { PortalLayout } from '@/layouts/TeacherLayout'
@@ -73,8 +74,18 @@ const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then
 const FaqPage = lazy(() => import('@/features/faq/FaqPage').then((x) => ({ default: x.FaqPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
 
+/**
+ * Marketing pages the App Store build never shows. They are mostly pricing, and
+ * the app may not point anyone at a purchase (lib/store-policy). Legal pages,
+ * shared events and schedules, profiles and the portals all stay.
+ */
+const MARKETING_PATH =
+  /^\/(r|ig|li|qr|faq|demo|dev(\/.*)?|concordia-gpa-calculator|concordia-syllabus-tracker)?\/?$/
+
 /** Route tree for the three contexts: public, student app, teacher portal. */
 export function AppRoutes() {
+  const { pathname } = useLocation()
+  if (PURCHASES_HIDDEN && MARKETING_PATH.test(pathname)) return <Navigate to="/app" replace />
   return (
     /* One boundary around the whole tree: a route-level chunk arrives in
        milliseconds on a warm connection, and a spinner per route would flash

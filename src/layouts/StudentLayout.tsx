@@ -36,6 +36,7 @@ import { TourWelcomePrompt } from '@/features/getting-started/TourWelcomePrompt'
 import { SurveyRewardPrompt } from '@/features/feedback/survey/SurveyRewardPrompt'
 import { ProGiftCelebration } from '@/features/pro-gift/ProGiftCelebration'
 import { SubscriptionCelebration } from '@/features/billing/SubscriptionCelebration'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 import { EndOfTermPrompt } from '@/features/courses/EndOfTermPrompt'
 import { Coachmark } from '@/features/getting-started/Coachmark'
 import { TourProvider } from '@/features/tour/TourProvider'
@@ -163,12 +164,15 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       />
       <TourOverlay />
       <TourWelcomePrompt />
-      <SurveyRewardPrompt />
+      {/* The survey's reward is days of Pro, and the celebrations below are
+          about buying or being given it: none of the three belongs in the App
+          Store build (lib/store-policy). */}
+      {!PURCHASES_HIDDEN && <SurveyRewardPrompt />}
       {/* Rendered last → its portal sits on top, so a Pro gift greets the user
           before any other one-time prompt. */}
-      <ProGiftCelebration />
+      {!PURCHASES_HIDDEN && <ProGiftCelebration />}
       <GradePrompt />
-      <SubscriptionCelebration />
+      {!PURCHASES_HIDDEN && <SubscriptionCelebration />}
       <EndOfTermPrompt />
       <AdminActivityToaster />
     </div>

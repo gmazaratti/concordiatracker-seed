@@ -606,6 +606,7 @@ export const en = {
   'planner.watch.open': 'Open',
   'planner.watch.stop': 'Stop watching {course}',
   'planner.watch.atLimit': 'You are using every watch on your plan. Remove one to add another.',
+  'planner.watch.atLimitApp': 'You are using every watch. Remove one to add another.',
   'planner.dir.placeholder': 'Search by code or title, for example COMP 248 or object oriented',
   'planner.dir.label': 'Search courses',
   'planner.dir.notSynced': 'The directory has not been synced yet.',

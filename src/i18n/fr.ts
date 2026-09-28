@@ -615,6 +615,7 @@ export const fr: Partial<Record<Key, string>> = {
   'planner.watch.stop': 'Cesser de surveiller {course}',
   'planner.watch.atLimit':
     'Vous utilisez toutes les veilles de votre forfait. Retirez-en une pour en ajouter une autre.',
+  'planner.watch.atLimitApp': 'Vous utilisez toutes vos veilles. Retirez-en une pour en ajouter une autre.',
   'planner.dir.placeholder':
     'Cherchez par sigle ou par titre, par exemple COMP 248 ou orienté objet',
   'planner.dir.label': 'Rechercher des cours',

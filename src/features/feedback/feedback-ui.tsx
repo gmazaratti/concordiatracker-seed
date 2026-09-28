@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BadgeCheck } from 'lucide-react'
 import { founderRole } from './founders'
 import { cn } from '@/lib/cn'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -117,6 +118,8 @@ export function TierChip({
       </span>
     )
   }
+  // A plan badge is a plan mention: not in the App Store build.
+  if (PURCHASES_HIDDEN) return null
   const pro = tier === 'pro'
   return (
     <span

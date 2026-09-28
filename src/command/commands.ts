@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
 import type { SettingsSection } from '@/app/providers/settings'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 export type CommandGroup = 'Navigate' | 'Actions'
 
@@ -76,7 +77,7 @@ const fill = (text: string) => (ctx: CommandContext) => ctx.setQuery(text)
  * the data-driven target commands (built in `dynamicCommands`) surface and
  * disambiguate as you type.
  */
-export const STATIC_COMMANDS: Command[] = [
+const ALL_STATIC_COMMANDS: Command[] = [
   // ---- Navigate ----
   { id: 'nav-today', title: 'Today', hint: 'Go to', group: 'Navigate', icon: Home, keywords: ['home', 'launch', 'due'], perform: go('/app') },
   { id: 'nav-courses', title: 'Courses', hint: 'Go to', group: 'Navigate', icon: BookOpen, keywords: ['grades', 'classes', 'gpa'], perform: go('/app/courses') },
@@ -154,6 +155,15 @@ export const STATIC_COMMANDS: Command[] = [
     },
   },
 ]
+
+/**
+ * The App Store build drops the two commands that lead to buying: Billing, and
+ * the landing page (which is mostly pricing). See lib/store-policy.
+ */
+const STORE_COMMANDS = new Set(['nav-billing', 'nav-landing'])
+export const STATIC_COMMANDS: Command[] = PURCHASES_HIDDEN
+  ? ALL_STATIC_COMMANDS.filter((c) => !STORE_COMMANDS.has(c.id))
+  : ALL_STATIC_COMMANDS
 
 /**
  * Data-driven target commands: one "Change grade for {title}" per assessment and
