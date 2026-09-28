@@ -169,7 +169,7 @@ export function BlueprintRow({
             {blueprint.dates.map((d, i) => (
               <li key={i} className="border-b border-border/60 px-3 py-2 text-[12px] last:border-b-0">
                 <span className="flex items-center gap-2.5">
-                  <span className="w-16 shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium text-muted">
+                  <span className="w-16 shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[11px] font-medium text-muted">
                     {KIND_LABEL[d.kind]}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-fg">{d.title}</span>

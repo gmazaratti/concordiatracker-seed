@@ -219,7 +219,7 @@ export function PasteTranscriptModal({ onClose }: { onClose: () => void }) {
                   </div>
                   {/* The line it came from, so a misread is obvious rather than
                       something to take on trust. */}
-                  <p className="mt-1 truncate font-mono text-[10.5px] text-subtle">{r.source}</p>
+                  <p className="mt-1 truncate font-mono text-[11px] text-subtle">{r.source}</p>
                   {skipReason(r, i) && (
                     <p className="mt-0.5 text-[11.5px] text-warning">{skipReason(r, i)}</p>
                   )}

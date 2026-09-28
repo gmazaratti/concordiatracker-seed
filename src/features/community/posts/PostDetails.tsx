@@ -261,7 +261,7 @@ export function PostDetails({
             <div className="mt-4 flex items-center gap-3 opacity-60">
               <Megaphone size={17} className="shrink-0 text-subtle" aria-hidden />
               <span className="flex-1 text-[13.5px] text-fg">Boost post</span>
-              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase">
+              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                 Soon
               </span>
             </div>

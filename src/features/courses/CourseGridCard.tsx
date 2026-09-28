@@ -69,12 +69,12 @@ export function CourseGridCard({
           {/* Waitlisted is worth seeing without opening the class: it is the one
               status where the credits on this card may never actually count. */}
           {course.enrollment === 'waitlisted' && (
-            <span className="rounded bg-white/20 px-1.5 py-0.5 text-[10.5px] font-semibold tracking-wide text-white">
+            <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
               Waitlisted
             </span>
           )}
           {course.enrollment === 'planned' && (
-            <span className="rounded border border-white/40 px-1.5 py-0.5 text-[10.5px] font-medium text-white/90">
+            <span className="rounded border border-white/40 px-1.5 py-0.5 text-[11px] font-medium text-white/90">
               Planned
             </span>
           )}

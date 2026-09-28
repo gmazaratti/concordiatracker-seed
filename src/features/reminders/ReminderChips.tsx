@@ -65,7 +65,7 @@ export function ReminderChips({
           >
             <Bell size={11} aria-hidden />
             {leadLabel(m)}
-            <span className="text-[10.5px] uppercase tracking-wide">· default</span>
+            <span className="text-[11px] uppercase tracking-wide">· default</span>
           </span>
         ))}
         {own.map((m) => (

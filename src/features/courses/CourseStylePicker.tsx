@@ -190,7 +190,7 @@ export function CourseStylePicker({ course }: { course: Course }) {
                 )}
                 {COURSE_ICON_GROUPS.map((group) => (
                   <div key={group.label} className="mb-3 last:mb-0">
-                    <p className="mb-1.5 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    <p className="mb-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                       {group.label}
                     </p>
                     <div className="grid grid-cols-6 gap-1.5">

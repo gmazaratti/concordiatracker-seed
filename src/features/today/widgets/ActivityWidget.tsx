@@ -68,7 +68,7 @@ export function ActivityWidget({ zone }: { zone?: 'rail' | 'wide' | 'half' }) {
       icon={Bell}
       action={
         unread > 0 ? (
-          <span className="rounded-full bg-accent px-1.5 text-[10.5px] font-semibold text-accent-contrast tabular-nums">
+          <span className="rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast tabular-nums">
             {unread}
           </span>
         ) : undefined

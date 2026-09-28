@@ -618,7 +618,7 @@ export function NextUp({ approved }: { approved: boolean }) {
         'Track it all from the sidebar: Events, Insights, Profile, Team.',
       ].map((t, i) => (
         <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed text-muted">
-          <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[10.5px] font-semibold text-accent">
+          <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">
             {i + 1}
           </span>
           {t}

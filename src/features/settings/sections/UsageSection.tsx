@@ -96,8 +96,8 @@ export function UsageSection() {
         <span
           className={
             semester
-              ? 'rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-success uppercase'
-              : 'rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase'
+              ? 'rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-success uppercase'
+              : 'rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-subtle uppercase'
           }
         >
           {semester ? 'Unlimited' : 'Limited'}

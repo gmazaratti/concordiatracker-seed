@@ -6,6 +6,7 @@ import {
   DEFAULT_CUSTOM,
   isProTheme,
   LAST_FREE_KEY,
+  resolveTheme,
   type CustomTheme,
   type Theme,
   type ThemeOrigin,
@@ -89,7 +90,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // What is on screen. A preview paints but is never saved, so the app you come
   // back to is the one you chose.
-  const active = preview ?? theme
+  // 'auto' follows the system appearance, live: switching iOS to dark at
+  // sunset switches the app with it.
+  const [systemDark, setSystemDark] = useState(() => {
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+    } catch {
+      return true
+    }
+  })
+  useEffect(() => {
+    let mq: MediaQueryList
+    try {
+      mq = window.matchMedia('(prefers-color-scheme: dark)')
+    } catch {
+      return
+    }
+    const on = (e: MediaQueryListEvent) => setSystemDark(e.matches)
+    // Also re-read on return: a web view that was in the background when the
+    // appearance flipped may not have been sent the change event.
+    const back = () => {
+      if (document.visibilityState === 'visible') setSystemDark(mq.matches)
+    }
+    mq.addEventListener('change', on)
+    document.addEventListener('visibilitychange', back)
+    return () => {
+      mq.removeEventListener('change', on)
+      document.removeEventListener('visibilitychange', back)
+    }
+  }, [])
+  const active = resolveTheme(preview ?? theme, systemDark)
 
   useEffect(() => {
     const root = document.documentElement
@@ -140,6 +170,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       /* localStorage unavailable — theme just won't persist */
     }
   }, [active, preview, theme, custom])
+
 
   /**
    * Apply a state change under the circular reveal.

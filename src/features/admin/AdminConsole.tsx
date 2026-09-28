@@ -188,7 +188,7 @@ export function AdminConsole() {
 
         {/* Hop into the other portals + back to the app */}
         <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-          <p className="px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">Jump to</p>
+          <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-subtle uppercase">Jump to</p>
           {PORTAL_LINKS.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
@@ -275,7 +275,7 @@ export function AdminConsole() {
                 })}
               </div>
               <div className="border-t border-border p-2">
-                <p className="px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">
+                <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-subtle uppercase">
                   Jump to
                 </p>
                 {PORTAL_LINKS.map(({ to, label, icon: Icon }) => (

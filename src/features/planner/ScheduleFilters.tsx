@@ -99,7 +99,7 @@ export function ScheduleFilters({
         <SlidersHorizontal size={13} aria-hidden />
         Filters
         {active > 0 && (
-          <span className="rounded-full bg-accent px-1.5 text-[10.5px] font-semibold text-accent-contrast">
+          <span className="rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
             {active}
           </span>
         )}

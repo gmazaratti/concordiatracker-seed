@@ -83,7 +83,7 @@ export function StudyPlanModal({ onClose }: { onClose: () => void }) {
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-[15px] font-semibold text-fg tabular-nums">{item.share}%</p>
-                      <p className="text-[10.5px] text-subtle">of your time</p>
+                      <p className="text-[11px] text-subtle">of your time</p>
                     </div>
                   </div>
                   {/* Share bar: a visual read of the same number. */}

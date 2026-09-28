@@ -191,7 +191,7 @@ export function SwipeRow({
                 a.onSelect()
               }}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-1 text-[10.5px] font-medium',
+                'flex flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium',
                 a.danger ? 'bg-danger text-accent-contrast' : 'bg-surface-2 text-fg',
               )}
             >

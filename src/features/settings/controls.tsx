@@ -154,7 +154,7 @@ export function Segmented<T extends string>({
  * Billing and echoed by the bracketed tags inside the legal documents). */
 export function Flag({ children = 'Draft' }: { children?: React.ReactNode }) {
   return (
-    <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-warning uppercase">
+    <span className="rounded bg-warning/15 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-warning uppercase">
       {children}
     </span>
   )

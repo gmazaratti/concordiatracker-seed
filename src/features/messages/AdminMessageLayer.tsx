@@ -119,10 +119,10 @@ export function AdminMessageLayer() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[12.5px] leading-tight font-semibold text-fg">Admin</span>
-          <span className="block text-[10.5px] leading-tight text-subtle">ConcordiaTracker</span>
+          <span className="block text-[11px] leading-tight text-subtle">ConcordiaTracker</span>
         </span>
         {queue.length > 1 && (
-          <span className="shrink-0 rounded-full bg-surface px-1.5 py-0.5 text-[10.5px] text-subtle">
+          <span className="shrink-0 rounded-full bg-surface px-1.5 py-0.5 text-[11px] text-subtle">
             {queue.length - 1} more
           </span>
         )}
@@ -134,7 +134,7 @@ export function AdminMessageLayer() {
           <p className="rounded-2xl rounded-tl-md bg-surface-2 px-3 py-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-fg">
             {msg.body}
           </p>
-          <p className="mt-1 pl-1 text-[10.5px] text-subtle">
+          <p className="mt-1 pl-1 text-[11px] text-subtle">
             {formatTime(new Date(msg.created_at))}
           </p>
         </div>

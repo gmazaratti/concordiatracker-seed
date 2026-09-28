@@ -86,7 +86,7 @@ export function AttachmentEmbed({
               <div className="p-2.5">
                 <div className="flex items-center gap-1.5">
                   <OrgLogo org={event.org} className="size-4 shrink-0 rounded" />
-                  <span className="min-w-0 truncate text-[10.5px] text-subtle">
+                  <span className="min-w-0 truncate text-[11px] text-subtle">
                     {event.org.name}
                   </span>
                   {event.org.verified && <VerifiedBadge size={11} />}
@@ -184,7 +184,7 @@ export function AttachmentEmbed({
             <span className="font-display text-[17px] leading-none font-semibold text-fg">
               {r.gpa === null ? '—' : r.gpa.toFixed(2)}
             </span>
-            <span className="text-[10.5px] text-subtle">
+            <span className="text-[11px] text-subtle">
               {r.gpa === null ? 'no graded courses' : `GPA · ${r.gradedCredits} graded credits`}
             </span>
           </p>
@@ -216,7 +216,7 @@ export function AttachmentEmbed({
               <BookOpen size={13} className="shrink-0" style={{ color: hex }} aria-hidden />
               <span className="text-[12.5px] font-semibold text-fg">{attachment.code}</span>
               {attachment.credits ? (
-                <span className="text-[10.5px] text-subtle">{attachment.credits} cr</span>
+                <span className="text-[11px] text-subtle">{attachment.credits} cr</span>
               ) : null}
             </span>
             {attachment.title && (

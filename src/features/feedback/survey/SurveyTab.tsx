@@ -107,7 +107,7 @@ function SurveyCard({
         <div className="flex items-center gap-2">
           <h3 className="text-[14.5px] font-semibold text-fg">{title}</h3>
           {done && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-1.5 py-0.5 text-[10.5px] font-semibold text-success">
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-1.5 py-0.5 text-[11px] font-semibold text-success">
               <Check size={10} strokeWidth={3} aria-hidden />
               Done
             </span>

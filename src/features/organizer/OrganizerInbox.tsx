@@ -347,7 +347,7 @@ function Conversation({
                 {/* WHO ON THE TEAM ANSWERED. The student never sees this — the
                     reply reaches them as the club — but a shared mailbox where
                     the team cannot tell who replied is one nobody can run. */}
-                <span className="mt-0.5 px-1 text-[10.5px] text-subtle">
+                <span className="mt-0.5 px-1 text-[11px] text-subtle">
                   {m.fromOrg && m.senderName ? `${m.senderName} · ` : ''}
                   {ago(m.createdAt)}
                 </span>

@@ -73,7 +73,7 @@ export function FeedPreview({
   return (
     <div className="ct-animate-fade fixed inset-0 z-[70] flex flex-col bg-canvas">
       <div className="flex shrink-0 items-center gap-3 border-b border-accent/40 bg-accent-soft px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))]">
-        <span className="rounded-full bg-accent px-2 py-0.5 text-[10.5px] font-semibold tracking-wide text-accent-contrast uppercase">
+        <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold tracking-wide text-accent-contrast uppercase">
           Preview
         </span>
         <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
@@ -172,7 +172,7 @@ export function FeedPreview({
               <div
                 key={n.to}
                 className={cn(
-                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium',
+                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium',
                   n.to === '/app/community' ? 'text-accent' : 'text-subtle',
                 )}
               >

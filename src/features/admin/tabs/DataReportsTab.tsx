@@ -138,7 +138,7 @@ function ReportRow({ report: r, onSaved }: { report: DataReport; onSaved: () => 
       {(r.current_value || r.suggested_value) && (
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-surface-2 px-3 py-2">
-            <p className="text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+            <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
               We show
             </p>
             <p className="mt-0.5 text-[12.5px] break-words text-muted">
@@ -146,7 +146,7 @@ function ReportRow({ report: r, onSaved }: { report: DataReport; onSaved: () => 
             </p>
           </div>
           <div className="rounded-lg border border-accent/40 bg-accent-soft/30 px-3 py-2">
-            <p className="text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+            <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
               They say
             </p>
             <p className="mt-0.5 text-[12.5px] break-words text-fg">

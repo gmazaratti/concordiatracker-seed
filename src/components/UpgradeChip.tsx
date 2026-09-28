@@ -31,7 +31,7 @@ export function UpgradeChip({
     <>
       <Icon size={15} className="shrink-0 text-accent" aria-hidden />
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg">{label}</span>
-      <span className="shrink-0 rounded bg-accent/15 px-1.5 py-px text-[10px] font-bold tracking-wide text-accent uppercase">
+      <span className="shrink-0 rounded bg-accent/15 px-1.5 py-px text-[11px] font-bold tracking-wide text-accent uppercase">
         Pro
       </span>
       <ArrowRight

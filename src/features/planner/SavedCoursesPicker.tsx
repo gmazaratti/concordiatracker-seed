@@ -101,7 +101,7 @@ function SavedCoursesModal({
                   <span className="flex items-baseline gap-2">
                     <span className="text-[12.5px] font-semibold text-fg">{r.code}</span>
                     {r.planned_term && (
-                      <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-subtle">
+                      <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-subtle">
                         {r.planned_term}
                       </span>
                     )}

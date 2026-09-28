@@ -129,7 +129,7 @@ export function RadarPage() {
       <header className="mb-5">
         <div className="flex items-center gap-2">
           <h2 className="font-display text-[20px] leading-tight font-medium text-fg">Radar</h2>
-          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase">
             Beta
           </span>
         </div>
@@ -258,12 +258,12 @@ function SignalCard({ signal }: { signal: Signal }) {
       <span className={cn('w-1 shrink-0', tone.rail)} aria-hidden />
       <div className="min-w-0 flex-1 p-3.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={cn('text-[10.5px] font-semibold tracking-wide uppercase', tone.text)}>
+          <span className={cn('text-[11px] font-semibold tracking-wide uppercase', tone.text)}>
             {signal.severity === 'watch' ? 'Keep an eye' : signal.severity}
           </span>
-          <span className="text-[10.5px] text-subtle">· {TOPIC_LABEL[signal.topic]}</span>
+          <span className="text-[11px] text-subtle">· {TOPIC_LABEL[signal.topic]}</span>
           {signal.by && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-subtle">
+            <span className="ml-auto inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-subtle">
               <CalendarClock size={10} aria-hidden />
               {formatMonthDay(parseDay(signal.by))}
             </span>

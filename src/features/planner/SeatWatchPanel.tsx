@@ -148,7 +148,7 @@ function WatchRow({ watch, onRemove }: { watch: SeatWatch; onRemove: () => void 
       </span>
 
       {free !== null && free > 0 && (
-        <span className="shrink-0 rounded bg-success/15 px-2 py-0.5 text-[10.5px] font-semibold tracking-wide text-success uppercase">
+        <span className="shrink-0 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold tracking-wide text-success uppercase">
           {t('planner.watch.open')}
         </span>
       )}

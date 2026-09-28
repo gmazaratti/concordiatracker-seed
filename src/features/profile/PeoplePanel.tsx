@@ -613,7 +613,7 @@ export function PeoplePanel() {
             >
               <SlidersHorizontal size={15} aria-hidden />
               {filters.size > 0 && (
-                <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-accent text-[9.5px] font-bold text-accent-contrast ring-2 ring-surface">
+                <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-accent text-[11px] font-bold text-accent-contrast ring-2 ring-surface">
                   {filters.size}
                 </span>
               )}
@@ -635,7 +635,7 @@ export function PeoplePanel() {
               >
                 {p.label}
                 {p.badge > 0 && (
-                  <span className="grid min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[10.5px] font-semibold text-accent-contrast">
+                  <span className="grid min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[11px] font-semibold text-accent-contrast">
                     {p.badge}
                   </span>
                 )}
@@ -682,7 +682,7 @@ export function PeoplePanel() {
               ) : (
                 <ul className="divide-y divide-border lg:divide-y-0">
                   {shownOrgThreads.length > 0 && (
-                    <li className="px-3 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    <li className="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                       Clubs
                     </li>
                   )}
@@ -740,7 +740,7 @@ export function PeoplePanel() {
                     </li>
                   ))}
                   {shownOrgThreads.length > 0 && shownThreads.length > 0 && (
-                    <li className="px-3 pt-3 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                    <li className="px-3 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                       People
                     </li>
                   )}
@@ -779,7 +779,7 @@ export function PeoplePanel() {
                   conversations, never mixed into them. */}
               {showPeople && (
                 <>
-                  <p className="px-3 pt-4 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                  <p className="px-3 pt-4 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                     On ConcordiaTracker
                   </p>
                   <ul className="divide-y divide-border lg:divide-y-0">

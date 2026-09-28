@@ -105,7 +105,7 @@ export function MoneyPage() {
       <header className="mb-5">
         <div className="flex items-center gap-2">
           <h2 className="font-display text-[20px] leading-tight font-medium text-fg">Money</h2>
-          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase">
             Beta
           </span>
         </div>

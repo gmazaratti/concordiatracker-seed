@@ -93,7 +93,7 @@ export function MonthView({
                   />
                 ))}
                 {items.length > MAX_DOTS && (
-                  <span className="text-[10px] leading-none font-medium text-subtle">
+                  <span className="text-[11px] leading-none font-medium text-subtle">
                     +{items.length - MAX_DOTS}
                   </span>
                 )}

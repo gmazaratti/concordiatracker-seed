@@ -46,7 +46,7 @@ export function GpaWhatIf({
         <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
           {t('courses.gpaWhatIf')}
         </p>
-        <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+        <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase">
           {t('courses.semesterTag')}
         </span>
       </div>

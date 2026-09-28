@@ -88,7 +88,7 @@ function Panel<T extends string>({
                 {startsPhase && (
                   <p
                     className={cn(
-                      'px-3 text-[10.5px] font-semibold tracking-wide text-subtle uppercase',
+                      'px-3 text-[11px] font-semibold tracking-wide text-subtle uppercase',
                       i === 0 ? 'pb-1.5' : 'pt-4 pb-1.5',
                     )}
                   >

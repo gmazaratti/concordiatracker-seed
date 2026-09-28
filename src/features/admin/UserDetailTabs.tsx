@@ -73,10 +73,10 @@ export function VisitsTab({
                       {v.pages.map((p) => (
                         <span
                           key={p.path}
-                          className="inline-flex items-center gap-1 rounded bg-surface-2/70 px-1.5 py-0.5 font-mono text-[10.5px] text-subtle"
+                          className="inline-flex items-center gap-1 rounded bg-surface-2/70 px-1.5 py-0.5 font-mono text-[11px] text-subtle"
                         >
                           {p.path}
-                          {p.views > 1 && <span className="text-[9.5px] text-muted">×{p.views}</span>}
+                          {p.views > 1 && <span className="text-[11px] text-muted">×{p.views}</span>}
                         </span>
                       ))}
                     </span>
@@ -91,7 +91,7 @@ export function VisitsTab({
                 <td className="px-3 py-2 tabular-nums text-muted">
                   {duration(v.active_seconds ?? v.seconds)}
                   {v.active_seconds != null && v.seconds > v.active_seconds * 2 && (
-                    <span className="block text-[10.5px] text-subtle">tab open {duration(v.seconds)}</span>
+                    <span className="block text-[11px] text-subtle">tab open {duration(v.seconds)}</span>
                   )}
                 </td>
                 <td className="px-3 py-2 tabular-nums text-muted">{v.views ?? v.events}</td>

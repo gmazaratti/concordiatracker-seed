@@ -160,13 +160,13 @@ export function MessageRow({
                 )}
               >
                 {g.emoji}
-                {g.count > 1 && <span className="text-[10.5px] text-muted tabular-nums">{g.count}</span>}
+                {g.count > 1 && <span className="text-[11px] text-muted tabular-nums">{g.count}</span>}
               </button>
             ))}
           </div>
         )}
 
-        {footer && <p className="mt-0.5 text-right text-[10.5px] text-subtle">{footer}</p>}
+        {footer && <p className="mt-0.5 text-right text-[11px] text-subtle">{footer}</p>}
       </div>
 
       {mine && tick && (

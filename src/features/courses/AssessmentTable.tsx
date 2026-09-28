@@ -51,7 +51,7 @@ export function AssessmentTable({
           <TabButton active={tab === 'notes'} onClick={() => setTab('notes')}>
             Notes
             {noted > 0 && (
-              <span className="ml-1.5 rounded-full bg-surface-2 px-1.5 text-[10px] text-subtle">
+              <span className="ml-1.5 rounded-full bg-surface-2 px-1.5 text-[11px] text-subtle">
                 {noted}
               </span>
             )}

@@ -131,7 +131,7 @@ export function SuggestedCourses({
                     {s.title}
                   </span>
                   {s.offered === false && (
-                    <span className="shrink-0 text-[10.5px] text-subtle">not offered</span>
+                    <span className="shrink-0 text-[11px] text-subtle">not offered</span>
                   )}
                 </span>
                 <span className={cn('mt-0.5 flex items-center gap-1 text-[11px]', m.tone)}>

@@ -301,6 +301,34 @@ html {
   border-bottom: env(safe-area-inset-bottom, 0px) solid transparent;
 }
 
+/*
+ * 44pt TOUCH TARGETS (HIG). Icon buttons are drawn at 20-40px so a toolbar
+ * reads as a toolbar, but on a touch screen a finger needs 44x44. Rather than
+ * making every glyph bigger, each small icon button gets an INVISIBLE hit area
+ * centred on it: a pseudo-element 44px square (the percentages resolve against
+ * the button itself, so a 28px button reaches 8px past each edge). Coarse
+ * pointers only, so a mouse keeps its exact targets and nothing moves.
+ * Buttons that are already positioned (absolute/fixed/sticky) anchor it
+ * themselves; the rest become `position: relative`, which moves nothing.
+ */
+@media (pointer: coarse) {
+  :is(button, a[href], [role='button']).grid:is(.size-5, .size-6, .size-7, .size-8, .size-9, .size-10):not(
+      .absolute,
+      .fixed,
+      .sticky
+    ) {
+    position: relative;
+  }
+  :is(button, a[href], [role='button']).grid:is(.size-5, .size-6, .size-7, .size-8, .size-9, .size-10)::after {
+    content: '';
+    position: absolute;
+    top: calc(50% - 22px);
+    bottom: calc(50% - 22px);
+    left: calc(50% - 22px);
+    right: calc(50% - 22px);
+  }
+}
+
 @layer base {
   html {
     background-color: var(--ct-canvas);

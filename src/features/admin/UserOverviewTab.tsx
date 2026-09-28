@@ -72,7 +72,7 @@ function CoursesPanel({ userId, onClose }: { userId: string; onClose: () => void
                     makes a panel worse than no panel. */}
                 <span
                   className={cn(
-                    'shrink-0 rounded px-1.5 py-0.5 text-[10.5px]',
+                    'shrink-0 rounded px-1.5 py-0.5 text-[11px]',
                     c.source ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-subtle',
                   )}
                 >

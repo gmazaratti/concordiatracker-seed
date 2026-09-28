@@ -153,7 +153,7 @@ export function AvatarMenu({
           >
             Notifications
             {bell > 0 && (
-              <span className="ml-auto rounded-full bg-accent px-1.5 text-[10.5px] font-semibold text-accent-contrast">
+              <span className="ml-auto rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
                 {bell}
               </span>
             )}
@@ -232,7 +232,7 @@ export function AvatarMenu({
             <div className="my-1.5 px-1">
               <p className="flex items-center gap-1.5 px-1 pb-1 text-[11px] text-subtle">
                 Demo plan
-                <span className="rounded bg-surface-2 px-1 py-0.5 text-[9px] font-medium tracking-wide text-subtle uppercase">
+                <span className="rounded bg-surface-2 px-1 py-0.5 text-[11px] font-medium tracking-wide text-subtle uppercase">
                   Dev
                 </span>
               </p>

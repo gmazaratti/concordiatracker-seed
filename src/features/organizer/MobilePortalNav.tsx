@@ -54,7 +54,7 @@ export function MobilePortalNav({
             end={end}
             className={({ isActive }) =>
               cn(
-                'flex shrink-0 flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-medium whitespace-nowrap transition-colors duration-150',
+                'flex shrink-0 flex-col items-center gap-0.5 px-3 py-2 text-[11px] font-medium whitespace-nowrap transition-colors duration-150',
                 isActive ? 'text-accent' : 'text-subtle',
               )
             }

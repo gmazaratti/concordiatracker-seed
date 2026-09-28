@@ -703,7 +703,7 @@ function CourseEdit({ course, setCourse }: { course: CourseFields; setCourse: (c
 function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className="text-[10px] font-semibold tracking-wide text-subtle uppercase">{label}</span>
+      <span className="text-[11px] font-semibold tracking-wide text-subtle uppercase">{label}</span>
       {children}
     </span>
   )

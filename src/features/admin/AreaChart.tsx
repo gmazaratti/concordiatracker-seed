@@ -162,7 +162,7 @@ export function AreaChart({
 
       {/* The scale, as text rather than an SVG axis, so it never stretches. */}
       <div
-        className="pointer-events-none absolute top-0 left-0 flex flex-col justify-between pr-2 text-right text-[10px] tabular-nums text-subtle"
+        className="pointer-events-none absolute top-0 left-0 flex flex-col justify-between pr-2 text-right text-[11px] tabular-nums text-subtle"
         style={{ width: `${(PAD_L / W) * 100}%`, height: height - PAD_B + 6, paddingTop: 6 }}
         aria-hidden
       >
@@ -172,7 +172,7 @@ export function AreaChart({
       </div>
 
       <div
-        className="mt-1 flex justify-between text-[10.5px] text-subtle"
+        className="mt-1 flex justify-between text-[11px] text-subtle"
         style={{ marginLeft: `${(PAD_L / W) * 100}%` }}
         aria-hidden
       >
@@ -189,7 +189,7 @@ export function AreaChart({
           }}
         >
           <p className="text-[13px] font-semibold text-fg tabular-nums">{format(hp.value)}</p>
-          <p className="text-[10.5px] whitespace-nowrap text-subtle">{longDay(hp.day)}</p>
+          <p className="text-[11px] whitespace-nowrap text-subtle">{longDay(hp.day)}</p>
         </div>
       )}
     </div>

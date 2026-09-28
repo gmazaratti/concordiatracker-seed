@@ -141,7 +141,7 @@ function Slot({
                and the two-line clamp caps the height either way. */
             'pointer-events-none absolute bottom-full left-1/2 mb-1.5 w-max max-w-[7rem]',
             '-translate-x-1/2 rounded-2xl rounded-bl-sm px-2 py-1 text-center',
-            'text-[10.5px] leading-[1.25] [display:-webkit-box] [-webkit-box-orient:vertical]',
+            'text-[11px] leading-[1.25] [display:-webkit-box] [-webkit-box-orient:vertical]',
             '[-webkit-line-clamp:2] overflow-hidden',
             faded ? 'bg-surface-2 text-subtle' : 'bg-surface-2 text-fg',
           )}
@@ -154,7 +154,7 @@ function Slot({
         {label}
       </span>
       {sub && (
-        <span className="block w-full truncate text-center text-[10px] text-subtle/70">{sub}</span>
+        <span className="block w-full truncate text-center text-[11px] text-subtle/70">{sub}</span>
       )}
     </>
   )

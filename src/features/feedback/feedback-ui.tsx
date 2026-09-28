@@ -32,7 +32,7 @@ export function Avatar({ name, avatarUrl, size = 'md' }: { name: string; avatarU
       className={cn(
         'grid shrink-0 place-items-center rounded-full bg-accent-soft font-semibold text-accent',
         sizeCls,
-        size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-[13px]' : 'text-[11px]',
+        size === 'sm' ? 'text-[11px]' : size === 'lg' ? 'text-[13px]' : 'text-[11px]',
       )}
     >
       {initials(name)}
@@ -60,7 +60,7 @@ export function VerifiedCheck({ founder = false }: { founder?: boolean }) {
 /** Admin-reply badge — set server-side (is_staff), so only real admins get it. */
 export function StaffBadge() {
   return (
-    <span className="inline-flex items-center rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">
+    <span className="inline-flex items-center rounded-full bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase">
       Admin
     </span>
   )
@@ -113,7 +113,7 @@ export function TierChip({
   const founder = founderRole(handle, name)
   if (founder) {
     return (
-      <span className="inline-flex items-center rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-accent-contrast uppercase">
+      <span className="inline-flex items-center rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent-contrast uppercase">
         {founder}
       </span>
     )
@@ -124,7 +124,7 @@ export function TierChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
+        'inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase',
         pro ? 'bg-accent-soft text-accent' : 'bg-surface-2 text-subtle',
       )}
     >

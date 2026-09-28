@@ -7,7 +7,7 @@ export function NavBadge({ badge, className }: { badge: Badge; className?: strin
   return (
     <span
       className={cn(
-        'inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums',
+        'inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold tabular-nums',
         badge.tone === 'danger' ? 'bg-danger text-white' : 'bg-accent text-accent-contrast',
         className,
       )}

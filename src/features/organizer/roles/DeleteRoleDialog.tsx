@@ -55,7 +55,7 @@ export function DeleteRoleDialog({
           <div className="mt-3 flex flex-wrap gap-2">
             {holders.slice(0, 8).map((m) => (
               <span key={m.id} className="flex items-center gap-1.5 rounded-full bg-surface-2 py-1 pr-2.5 pl-1 text-[12px] text-fg">
-                <MemberAvatar member={m} className="size-5" textClass="text-[9px]" />
+                <MemberAvatar member={m} className="size-5" textClass="text-[11px]" />
                 {m.name}
               </span>
             ))}

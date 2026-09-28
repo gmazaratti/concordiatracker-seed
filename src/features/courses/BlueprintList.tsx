@@ -255,7 +255,7 @@ function SectionTab({
     >
       {label}
       {yours && (
-        <span className="rounded bg-accent/15 px-1 py-0.5 text-[9px] font-bold tracking-wide text-accent uppercase">
+        <span className="rounded bg-accent/15 px-1 py-0.5 text-[11px] font-bold tracking-wide text-accent uppercase">
           yours
         </span>
       )}

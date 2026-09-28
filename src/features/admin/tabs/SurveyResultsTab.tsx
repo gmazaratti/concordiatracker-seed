@@ -175,7 +175,7 @@ function RatingBar({ label, counts, avg, n }: { label: string; counts: number[];
                 title={`${i + 1}★: ${c}`}
               />
             </div>
-            <span className="text-[10.5px] tabular-nums text-subtle">{i + 1}</span>
+            <span className="text-[11px] tabular-nums text-subtle">{i + 1}</span>
           </div>
         ))}
       </div>
@@ -228,7 +228,7 @@ function RespondentCard({ row }: { row: SurveyResponseRow }) {
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[13px] font-medium text-fg">{name}</span>
             {row.rewarded && (
-              <span className="inline-flex items-center gap-0.5 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              <span className="inline-flex items-center gap-0.5 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent">
                 <Crown size={10} aria-hidden /> Pro
               </span>
             )}

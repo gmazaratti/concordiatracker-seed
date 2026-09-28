@@ -132,7 +132,7 @@ export function OnlineNow({ count }: { count: number }) {
                             {r.name || r.email || 'Unnamed'}
                           </span>
                           {r.is_internal && (
-                            <span className="rounded bg-surface-2 px-1 text-[10px] text-subtle">
+                            <span className="rounded bg-surface-2 px-1 text-[11px] text-subtle">
                               you
                             </span>
                           )}
@@ -145,7 +145,7 @@ export function OnlineNow({ count }: { count: number }) {
                         <span className="block text-[11.5px] text-subtle tabular-nums">
                           {mins(r.seconds)}
                         </span>
-                        <span className="mt-0.5 block text-[10.5px] text-accent">Open · message</span>
+                        <span className="mt-0.5 block text-[11px] text-accent">Open · message</span>
                       </span>
                     </a>
                   </li>
@@ -154,7 +154,7 @@ export function OnlineNow({ count }: { count: number }) {
             )}
 
             {rows && rows.length !== real.length && (
-              <p className="mt-2 px-2 text-[10.5px] text-subtle">
+              <p className="mt-2 px-2 text-[11px] text-subtle">
                 The count on the card excludes your own accounts; this list shows them.
               </p>
             )}

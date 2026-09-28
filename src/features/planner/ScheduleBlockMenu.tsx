@@ -91,7 +91,7 @@ export function ScheduleBlockMenu({
       style={{ position: 'fixed', left: pos.left, top: pos.top, width: WIDTH }}
       className="z-[200] overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-lg"
     >
-      <p className="truncate px-3 py-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+      <p className="truncate px-3 py-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {target.code}
       </p>
       <Item
@@ -140,7 +140,7 @@ function Item({
       <Icon size={13} className="mt-0.5 shrink-0" aria-hidden />
       <span className="min-w-0">
         {label}
-        {hint && <span className="block text-[10.5px] leading-snug text-subtle">{hint}</span>}
+        {hint && <span className="block text-[11px] leading-snug text-subtle">{hint}</span>}
       </span>
     </button>
   )

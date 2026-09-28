@@ -72,7 +72,7 @@ function Description({ text }: { text: string | null | undefined }) {
           e.stopPropagation()
           setOpen((o) => !o)
         }}
-        className="mt-0.5 inline-block cursor-pointer text-[10.5px] font-medium text-accent hover:underline"
+        className="mt-0.5 inline-block cursor-pointer text-[11px] font-medium text-accent hover:underline"
       >
         {open ? 'Show less' : 'Read more'}
       </span>
@@ -318,7 +318,7 @@ export function PrereqGraph({
               prefer either. */}
           {starters.length > 0 && (
             <div className="mt-2">
-              <p className="mb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+              <p className="mb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
                 Yours
               </p>
               <div className="flex flex-wrap gap-1">
@@ -371,7 +371,7 @@ export function PrereqGraph({
                     >
                       <span className="flex items-baseline gap-1.5">
                         <span className="text-[12.5px] font-semibold text-fg">{codeOf(c)}</span>
-                        {on && <span className="text-[10.5px] text-accent">on the board</span>}
+                        {on && <span className="text-[11px] text-accent">on the board</span>}
                       </span>
                       <span className="mt-0.5 block truncate text-[11.5px] text-muted">
                         {c.title}
@@ -521,7 +521,7 @@ export function PrereqGraph({
                       {n.course.title}
                     </span>
                     {done && trusted && (
-                      <span className="mt-0.5 block text-[10px] font-medium text-success">
+                      <span className="mt-0.5 block text-[11px] font-medium text-success">
                         Done
                       </span>
                     )}

@@ -324,7 +324,7 @@ function OrgSwitcher({
             compact ? 'left-0 w-[calc(100vw-2rem)] max-w-sm' : 'inset-x-0',
           )}
         >
-          <p className="px-2 py-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">
+          <p className="px-2 py-1 text-[11px] font-medium tracking-wide text-subtle uppercase">
             Switch organization
           </p>
           {orgs.map((o) => {

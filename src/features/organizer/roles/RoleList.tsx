@@ -46,7 +46,7 @@ export function RoleList({
             {youHere && (
               <div className="my-1.5 flex items-center gap-2" aria-hidden>
                 <span className="h-px flex-1 bg-accent/40" />
-                <span className="text-[10.5px] font-semibold tracking-wide text-accent uppercase">You rank here</span>
+                <span className="text-[11px] font-semibold tracking-wide text-accent uppercase">You rank here</span>
                 <span className="h-px w-6 bg-accent/40" />
               </div>
             )}
@@ -77,7 +77,7 @@ export function RoleList({
               {people.length > 0 && (
                 <span className="flex shrink-0 -space-x-2">
                   {people.slice(0, 3).map((m) => (
-                    <MemberAvatar key={m.id} member={m} className="size-6 ring-2 ring-surface" textClass="text-[9px]" />
+                    <MemberAvatar key={m.id} member={m} className="size-6 ring-2 ring-surface" textClass="text-[11px]" />
                   ))}
                 </span>
               )}

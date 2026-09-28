@@ -82,7 +82,7 @@ export function SyncedList({
               <span className="shrink-0 text-right text-[11.5px] text-muted tabular-nums">
                 {formatDueDateTime(i.due)}
                 {i.moved_from && (
-                  <span className="block text-[10.5px] text-warning">moved by Moodle</span>
+                  <span className="block text-[11px] text-warning">moved by Moodle</span>
                 )}
               </span>
             </li>

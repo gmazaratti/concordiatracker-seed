@@ -333,7 +333,7 @@ function OutlineRow({
         </span>
         <span className="flex shrink-0 items-center gap-2.5">
           {outline.term && (
-            <span className="hidden rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-subtle sm:inline">
+            <span className="hidden rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle sm:inline">
               {outline.term}
             </span>
           )}
@@ -347,7 +347,7 @@ function OutlineRow({
             {outline.count} blueprint{outline.count === 1 ? '' : 's'}
           </span>
           {mine ? (
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-subtle uppercase">
+            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
               Enrolled
             </span>
           ) : (
@@ -396,7 +396,7 @@ function CatalogueRow({
               {course.subject} {course.catalog}
             </span>
             {mine && (
-              <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+              <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle">
                 Already added
               </span>
             )}

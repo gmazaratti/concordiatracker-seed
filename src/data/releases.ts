@@ -44,6 +44,26 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 const ALL_RELEASES: Release[] = [
   {
+    version: '2.1.0',
+    name: 'Reminders, and the Lock Screen',
+    date: '2026-09-28',
+    changes: [
+      { kind: 'new', text: 'Assignment reminders: pick default lead times in Settings, and add as many of your own to any assignment. They combine.' },
+      { kind: 'new', text: 'Two voices for reminders: Cool (the default, a little cheeky) or Formal. Try both from Settings.' },
+      { kind: 'new', text: 'On iPhone, reminders are scheduled on your phone, so they arrive even with no signal. Tapping one opens the assignment.' },
+      { kind: 'new', text: 'On iPhone, your next assignment due shows on the Lock Screen and in the Dynamic Island with a live countdown.' },
+      { kind: 'new', text: 'Lock Screen widgets for your next deadline, in all three sizes.' },
+      { kind: 'new', text: 'Add to Calendar on any assignment, and find your assignments from iPhone search.' },
+      { kind: 'new', text: 'Siri: "Add an assignment in ConcordiaTracker" and "What\'s due tomorrow in ConcordiaTracker".' },
+      { kind: 'new', text: 'History, on Today: everything you have finished, with an Undo on each.' },
+      { kind: 'new', text: 'An Automatic theme that follows your phone or computer between light and dark.' },
+      { kind: 'improved', text: 'Marking a Moodle item done now asks for your grade too, and adds it to the right course.' },
+      { kind: 'improved', text: 'The grade prompt can undo the tick itself, not just the grade, and handles several at once.' },
+      { kind: 'improved', text: 'Bigger touch targets, text that follows your iPhone text size, and swipe from the edge to go back.' },
+      { kind: 'fixed', text: 'A new profile photo shows everywhere at once, not just in Settings.' },
+    ],
+  },
+  {
     version: '2.0.0',
     name: 'ConcordiaTracker 2.0',
     date: '2026-09-23',

@@ -189,17 +189,17 @@ function SavedRow({
               {detail?.title ?? saved.title ?? ''}
             </span>
             {trusted && verdict === 'met' && (
-              <span className="rounded bg-success/15 px-1.5 py-0.5 text-[10.5px] font-medium text-success">
+              <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">
                 Prerequisites met
               </span>
             )}
             {trusted && verdict === 'not-met' && (
-              <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10.5px] font-medium text-danger">
+              <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[11px] font-medium text-danger">
                 Prerequisites not met
               </span>
             )}
             {trusted && verdict === 'blocked' && (
-              <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[10.5px] font-medium text-danger">
+              <span className="rounded bg-danger/15 px-1.5 py-0.5 text-[11px] font-medium text-danger">
                 Cannot take
               </span>
             )}

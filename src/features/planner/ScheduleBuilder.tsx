@@ -1189,7 +1189,7 @@ function Pane({
         <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
           {title}
           {count !== undefined && count > 0 && (
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle">
               {count}
             </span>
           )}

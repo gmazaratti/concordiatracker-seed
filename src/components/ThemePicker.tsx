@@ -230,7 +230,7 @@ function Tile({
           {option.label}
         </span>
         {locked ? (
-          <span className="shrink-0 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+          <span className="shrink-0 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent">
             Pro
           </span>
         ) : (

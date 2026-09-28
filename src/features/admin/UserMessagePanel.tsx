@@ -106,7 +106,7 @@ export function UserMessagePanel({ userId, name }: { userId: string; name: strin
               {m.reply && (
                 <p className="mt-1.5 rounded-md border-l-2 border-accent bg-surface-2 px-2.5 py-1.5 text-[12.5px] leading-relaxed text-fg">
                   {m.reply}
-                  <span className="mt-0.5 block text-[10.5px] text-subtle">
+                  <span className="mt-0.5 block text-[11px] text-subtle">
                     {name ?? 'They'} replied {when(m.replied_at)}
                   </span>
                 </p>

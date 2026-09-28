@@ -118,7 +118,7 @@ export function AssessmentRow({
               "Examen final" as "Exame…", which is a worse trade than a few
               pixels of alignment. It still has a floor, so the titles beside it
               stay in a column. */}
-          <span className="min-w-[74px] shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[10px] font-medium whitespace-nowrap text-muted">
+          <span className="min-w-[74px] shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[11px] font-medium whitespace-nowrap text-muted">
             {KIND_LABEL[assessment.kind]}
           </span>
           <div className="min-w-0 flex-1">
@@ -218,7 +218,7 @@ export function AssessmentRow({
               {resolved ? (
                 <>
                   <span className="block text-fg">{Math.round(draftPct!)}%</span>
-                  <span className="block text-[10px] text-subtle">{resolved.letter}</span>
+                  <span className="block text-[11px] text-subtle">{resolved.letter}</span>
                 </>
               ) : (
                 <span className="text-subtle">—</span>

@@ -149,7 +149,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
                   {m.body}
                   <span
                     className={cn(
-                      'mt-0.5 block text-[10.5px]',
+                      'mt-0.5 block text-[11px]',
                       m.fromOrg ? 'text-subtle' : 'text-accent-contrast/70',
                     )}
                   >

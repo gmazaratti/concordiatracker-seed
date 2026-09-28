@@ -101,7 +101,7 @@ export function PersonMenu({
       style={{ position: 'fixed', left: pos.left, top: pos.top, width: WIDTH }}
       className="ct-animate-pop z-[200] overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-lg"
     >
-      <p className="truncate px-3 py-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+      <p className="truncate px-3 py-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {target.name ?? `@${target.handle}`}
       </p>
 

@@ -134,7 +134,7 @@ export function PastCourseRow({ course, superseded }: { course: Course; supersed
         {/* Named, not hidden: the attempt happened and stays on the transcript,
             it just stops counting toward the GPA. */}
         {superseded && (
-          <span className="mt-0.5 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-subtle">
+          <span className="mt-0.5 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle">
             Repeated later, not counted
           </span>
         )}

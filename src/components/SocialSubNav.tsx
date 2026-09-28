@@ -65,7 +65,7 @@ export function SocialSubNav({ open }: { open: boolean }) {
                 />
                 <span className="min-w-0 flex-1 truncate">{s.label}</span>
                 {badge > 0 && (
-                  <span className="shrink-0 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-contrast">
+                  <span className="shrink-0 rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-contrast">
                     {badge > 9 ? '9+' : badge}
                   </span>
                 )}

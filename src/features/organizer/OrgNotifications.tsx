@@ -83,7 +83,7 @@ export function OrgBell({ orgId, className }: { orgId: string; className?: strin
       >
         <Bell size={18} aria-hidden />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10.5px] font-bold text-white ring-2 ring-canvas">
+          <span className="absolute -top-0.5 -right-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white ring-2 ring-canvas">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

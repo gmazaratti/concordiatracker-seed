@@ -156,7 +156,7 @@ export function AssistantTab() {
                   {r.status_now && (
                     <span
                       className={cn(
-                        'rounded px-1.5 py-0.5 text-[10.5px]',
+                        'rounded px-1.5 py-0.5 text-[11px]',
                         r.status_now === 'human_takeover'
                           ? 'bg-warning/15 text-warning'
                           : r.status_now === 'resolved'

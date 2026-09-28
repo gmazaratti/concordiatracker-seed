@@ -428,12 +428,12 @@ function CatalogPick({ course, onPick }: { course: EnrichedCourse; onPick: () =>
             {course.subject} {course.catalog}
           </span>
           {course.has_verified ? (
-            <span className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-accent">
+            <span className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold text-accent">
               <ShieldCheck size={11} aria-hidden />
               {t('courses.outlineVerified')}
             </span>
           ) : course.blueprint_count > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-muted">
+            <span className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
               <FileText size={11} aria-hidden />
               {course.blueprint_count === 1
                 ? t('courses.outlineOne')
@@ -598,7 +598,7 @@ function BlueprintPick({
             <span className="text-[13px] font-semibold text-fg">{bp.author}</span>
           )}
           {top && (
-            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[9.5px] font-bold tracking-wide text-accent uppercase">
+            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-accent uppercase">
               {t('courses.topPick')}
             </span>
           )}

@@ -59,7 +59,7 @@ function Table({ head, rows }: { head: string[]; rows: (string | number)[][] }) 
               <th
                 key={h}
                 className={cn(
-                  'pb-2 text-[10.5px] font-semibold tracking-wide whitespace-nowrap text-subtle uppercase',
+                  'pb-2 text-[11px] font-semibold tracking-wide whitespace-nowrap text-subtle uppercase',
                   i > 0 && 'pl-4 text-right',
                 )}
               >
@@ -219,7 +219,7 @@ export function CohortPanel({ c }: { c: CohortReport }) {
             <div className="-mx-4 overflow-x-auto px-4">
               <table className="w-full border-separate border-spacing-1 text-[12px] tabular-nums">
                 <thead>
-                  <tr className="text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+                  <tr className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
                     <th className="pr-3 pb-1 text-left font-semibold whitespace-nowrap">Signed up week of</th>
                     <th className="pr-3 pb-1 text-right font-semibold">People</th>
                     {Array.from({ length: width }, (_, i) => (
@@ -247,7 +247,7 @@ export function CohortPanel({ c }: { c: CohortReport }) {
                             style={{ backgroundColor: `color-mix(in srgb, var(--ct-accent) ${Math.round(share * 55)}%, var(--ct-surface-2))` }}
                           >
                             <span className="block leading-tight">{pct(n, x.size)}</span>
-                            <span className="block text-[10px] leading-tight text-muted">
+                            <span className="block text-[11px] leading-tight text-muted">
                               {n} of {x.size}
                             </span>
                           </td>

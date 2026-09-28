@@ -106,7 +106,7 @@ export function DevicesSection() {
           <p className="flex items-center gap-2 text-[13px] font-medium text-fg">
             <span className="truncate">{t('devices.on', { browser: name.browser, os: name.os })}</span>
             {d.is_current && (
-              <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-semibold text-accent">
+              <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
                 {t('devices.thisDevice')}
               </span>
             )}

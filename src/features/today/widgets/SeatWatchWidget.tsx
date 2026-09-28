@@ -91,7 +91,7 @@ export function SeatWatchWidget() {
                   {free !== null && free > 0 && (
                     <span
                       className={cn(
-                        'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
+                        'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase',
                         'bg-success/15 text-success',
                       )}
                     >

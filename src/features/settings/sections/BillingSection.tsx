@@ -345,7 +345,7 @@ function StatusChip({ status, isPro }: { status?: string; isPro: boolean }) {
           ? 'bg-success/15 text-success'
           : 'bg-surface-2 text-subtle'
   return (
-    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase', tone)}>
+    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase', tone)}>
       {label}
     </span>
   )

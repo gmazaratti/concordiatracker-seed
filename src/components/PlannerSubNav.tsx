@@ -57,7 +57,7 @@ export function PlannerSubNav({ open }: { open: boolean }) {
                 {startsPhase && (
                   <p
                     className={cn(
-                      'px-2 text-[10px] font-semibold tracking-wide text-subtle uppercase',
+                      'px-2 text-[11px] font-semibold tracking-wide text-subtle uppercase',
                       i === 0 ? 'pb-1' : 'pt-2.5 pb-1',
                     )}
                   >

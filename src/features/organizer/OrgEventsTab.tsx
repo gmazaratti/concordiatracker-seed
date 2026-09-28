@@ -140,7 +140,7 @@ function EventCard({ event, orgColor, past }: { event: ManagedEvent; orgColor: s
           <Icon size={15} />
         </span>
         {(past || event.isDraft) && (
-          <span className="absolute top-2.5 right-2.5 z-10 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          <span className="absolute top-2.5 right-2.5 z-10 rounded-full bg-black/55 px-1.5 py-0.5 text-[11px] font-medium text-white">
             {event.isDraft ? 'Draft' : 'Past'}
           </span>
         )}
@@ -188,7 +188,7 @@ function EventRow({ event, past }: { event: ManagedEvent; past: boolean }) {
             {(past || event.isDraft) && (
               <span
                 className={cn(
-                  'shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                  'shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium',
                   event.isDraft ? 'bg-warning/15 text-warning' : 'bg-surface-2 text-subtle',
                 )}
               >

@@ -90,7 +90,7 @@ export function CommunityBlueprintsPanel({
                         key={i}
                         className="flex items-center gap-2 rounded-md bg-surface-2/50 px-2.5 py-1.5"
                       >
-                        <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                        <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
                           {KIND_LABEL[d.kind]}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[12px] text-fg">{d.title}</span>

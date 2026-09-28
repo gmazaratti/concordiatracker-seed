@@ -137,7 +137,7 @@ export function SyllabusParseReveal({
                   key={a.id}
                   className="ct-reveal-item flex items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2"
                 >
-                  <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                  <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
                     {KIND_LABEL[a.kind]}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-[12px] text-fg">

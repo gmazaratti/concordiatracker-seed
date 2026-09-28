@@ -147,7 +147,7 @@ function Choice({ picked = false, children }: { picked?: boolean; children: Reac
         {picked && <span className="size-1.5 rounded-full bg-accent" />}
       </span>
       {children}
-      {picked && <span className="ml-auto text-[10.5px] font-semibold text-accent">PICK THIS</span>}
+      {picked && <span className="ml-auto text-[11px] font-semibold text-accent">PICK THIS</span>}
     </p>
   )
 }

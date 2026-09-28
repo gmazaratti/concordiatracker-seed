@@ -207,7 +207,7 @@ function TermArt() {
   return (
     <Frame>
       <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1.5">
-        <span className="flex-1 text-[9px] font-semibold text-fg">My schedule</span>
+        <span className="flex-1 text-[11px] font-semibold text-fg">My schedule</span>
         <span className="rounded border border-accent bg-accent-soft px-1.5 py-0.5 text-[8px] text-accent">
           Fall 2026
         </span>

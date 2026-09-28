@@ -32,7 +32,7 @@ export function HowItWorksSlide() {
           <div className="flex gap-1.5" aria-hidden>
             {['M', 'T', 'W', 'T', 'F'].map((d, i) => (
               <div key={i} className="flex-1 rounded-md border border-border bg-surface-2/60 px-1 py-1 text-center">
-                <span className="block text-[9px] text-subtle">{d}</span>
+                <span className="block text-[11px] text-subtle">{d}</span>
                 <span className="mx-auto mt-0.5 block size-1.5 rounded-full" style={{ backgroundColor: i === 2 ? 'var(--ct-accent)' : 'transparent' }} />
               </div>
             ))}

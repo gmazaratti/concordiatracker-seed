@@ -86,7 +86,7 @@ export function NewRoleMenu({
               </span>
               <span className="text-[13px] font-medium text-fg">Blank role</span>
             </button>
-            <p className="mt-1 flex items-center gap-1.5 px-2.5 pt-1.5 pb-1 text-[10.5px] font-semibold tracking-wide text-subtle uppercase">
+            <p className="mt-1 flex items-center gap-1.5 px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
               <Sparkles size={11} aria-hidden />
               Ready-made
             </p>
@@ -110,7 +110,7 @@ export function NewRoleMenu({
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2 text-[13px] font-medium text-fg">
                       {p.name}
-                      {off && <span className="text-[10.5px] font-normal text-subtle">{exists ? 'Added' : 'Above you'}</span>}
+                      {off && <span className="text-[11px] font-normal text-subtle">{exists ? 'Added' : 'Above you'}</span>}
                     </span>
                     <span className="block text-[11.5px] leading-snug text-subtle">{p.blurb}</span>
                   </span>

@@ -278,7 +278,7 @@ export function OverviewTab() {
                   {f.label}
                   {/* The count shows even when the filter is off, so turning
                       one on is never a guess about whether anything is there. */}
-                  <span className="text-[10.5px] tabular-nums opacity-70">{n}</span>
+                  <span className="text-[11px] tabular-nums opacity-70">{n}</span>
                 </button>
               )
             })}
@@ -415,14 +415,14 @@ function MiniCard({
 function Delta({ value, small = false }: { value: number | null; small?: boolean }) {
   if (value === null) {
     // Not "0%". Nothing to compare against is a different statement.
-    return <span className={cn('text-subtle', small ? 'text-[10.5px]' : 'text-[11.5px]')}>—</span>
+    return <span className={cn('text-subtle', small ? 'text-[11px]' : 'text-[11.5px]')}>—</span>
   }
   const up = value >= 0
   return (
     <span
       className={cn(
         'inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium tabular-nums',
-        small ? 'text-[10.5px]' : 'text-[11.5px]',
+        small ? 'text-[11px]' : 'text-[11.5px]',
         up ? 'bg-success/12 text-success' : 'bg-danger/12 text-danger',
       )}
       title="Against the previous window of the same length"

@@ -93,7 +93,7 @@ export function DebriefPanel() {
                     <span
                       key={w.week}
                       className={cn(
-                        'flex-1 text-center text-[10.5px] tabular-nums',
+                        'flex-1 text-center text-[11px] tabular-nums',
                         w.current ? 'font-semibold text-accent' : insight?.week === w.week ? 'text-fg' : 'text-subtle',
                       )}
                     >

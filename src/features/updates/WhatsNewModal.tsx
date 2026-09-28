@@ -114,7 +114,7 @@ function ReleaseEntry({
             v{release.version}
           </span>
           {latest && (
-            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-accent uppercase">
+            <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-accent uppercase">
               Latest
             </span>
           )}
@@ -129,7 +129,7 @@ function ReleaseEntry({
               <div key={kind}>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold tracking-wide uppercase',
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase',
                     meta.chip,
                   )}
                 >

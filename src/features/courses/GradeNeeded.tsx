@@ -18,7 +18,7 @@ export function GradeNeeded({ assessments }: { assessments: Assessment[] }) {
         <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
           {t('courses.gradeNeeded')}
         </p>
-        <span className="rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-success uppercase">
+        <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-success uppercase">
           {t('courses.freeTag')}
         </span>
       </div>

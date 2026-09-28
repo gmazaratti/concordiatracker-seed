@@ -96,7 +96,7 @@ function ReadOnlyAssessments({ assessments }: { assessments: Assessment[] }) {
         <ul className="divide-y divide-border">
           {assessments.map((a) => (
             <li key={a.id} className="flex items-center gap-2.5 px-4 py-3">
-              <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-muted">
+              <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-muted">
                 {KIND_LABEL[a.kind]}
               </span>
               <span className="min-w-0 flex-1 truncate text-[13px] text-fg">

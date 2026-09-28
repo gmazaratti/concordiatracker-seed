@@ -104,7 +104,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
 
           {courses.length > 0 && (
             <>
-              <p className="mt-3 px-3 pb-1 text-[10.5px] font-medium tracking-wide text-subtle uppercase">Your courses</p>
+              <p className="mt-3 px-3 pb-1 text-[11px] font-medium tracking-wide text-subtle uppercase">Your courses</p>
               {courses.map((c) => {
                 const activeCourse = c.courseId === activeCourseId
                 return (

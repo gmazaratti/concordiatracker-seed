@@ -179,7 +179,7 @@ export function LibraryWidget({ zone }: { zone: WidgetZone }) {
                   style={{ width: `${r.people === null || r.empty ? 0 : Math.max(pct, 3)}%` }}
                 />
               </div>
-              <p className="mt-0.5 text-[10.5px] text-subtle">
+              <p className="mt-0.5 text-[11px] text-subtle">
                 {r.people === null ? 'No recent count from this branch' : describeAge(r.ageMinutes)}
               </p>
             </li>

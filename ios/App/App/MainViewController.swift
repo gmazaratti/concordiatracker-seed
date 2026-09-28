@@ -35,6 +35,28 @@ class MainViewController: CAPBridgeViewController {
                        name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
         nc.addObserver(self, selector: #selector(keyboardWillHide(_:)),
                        name: UIResponder.keyboardWillHideNotification, object: nil)
+        nc.addObserver(self, selector: #selector(textSizeChanged),
+                       name: UIContentSizeCategory.didChangeNotification, object: nil)
+
+        // HIG: the edge swipe goes back, as it does everywhere else on iOS.
+        // The app is one page with history entries, so this walks those.
+        webView?.allowsBackForwardNavigationGestures = true
+        applyTextSize()
+    }
+
+    /// DYNAMIC TYPE. The page is CSS, so it cannot read the system text size
+    /// itself; zooming the web view by the ratio the system applies to body
+    /// text scales every word AND reflows the layout (the CSS viewport gets
+    /// narrower), the way Safari's own page zoom does. Clamped: past ~135% the
+    /// phone-width layouts stop being usable, and below 90% text gets too small
+    /// to read, so the extremes of the slider are honoured only up to there.
+    private func applyTextSize() {
+        let scale = UIFontMetrics(forTextStyle: .body).scaledValue(for: 17) / 17
+        webView?.pageZoom = min(1.35, max(0.9, scale))
+    }
+
+    @objc private func textSizeChanged() {
+        applyTextSize()
     }
 
     override func viewWillAppear(_ animated: Bool) {

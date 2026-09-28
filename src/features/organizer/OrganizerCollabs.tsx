@@ -155,7 +155,7 @@ function Section({
     <section>
       <h2 className="mb-2 flex items-center gap-2 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {title}
-        <span className="rounded-full bg-surface-2 px-1.5 text-[10.5px] font-bold text-muted">
+        <span className="rounded-full bg-surface-2 px-1.5 text-[11px] font-bold text-muted">
           {count}
         </span>
       </h2>
@@ -199,7 +199,7 @@ function Row({
             <img src={first.url} alt="" className="size-12 rounded-lg object-cover" />
           )
         ) : (
-          <span className="grid size-12 place-items-center rounded-lg bg-surface-2 text-[10px] text-subtle">
+          <span className="grid size-12 place-items-center rounded-lg bg-surface-2 text-[11px] text-subtle">
             post
           </span>
         )}

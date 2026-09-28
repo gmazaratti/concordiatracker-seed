@@ -205,7 +205,7 @@ export function PastCourseEntry() {
                   </span>
                   <span className="min-w-0 flex-1 truncate text-[12px] text-subtle">{c.title}</span>
                   {held.length > 0 && (
-                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] text-muted">
+                    <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted">
                       Added · {held[0].term}
                     </span>
                   )}

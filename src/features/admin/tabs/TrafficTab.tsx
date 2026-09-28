@@ -252,7 +252,7 @@ function DailyChart({ rows }: { rows: DailyRow[] }) {
       </div>
       <div className="mt-1.5 flex gap-1">
         {rows.map((r, i) => (
-          <span key={r.day} className="flex-1 text-center text-[9.5px] text-subtle">
+          <span key={r.day} className="flex-1 text-center text-[11px] text-subtle">
             {i % step === 0 ? r.day.slice(5) : ''}
           </span>
         ))}

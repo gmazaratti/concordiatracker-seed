@@ -378,16 +378,16 @@ function Branch({
               <span className="ml-2 text-[11.5px] text-subtle">{node.course.title}</span>
             )}
           </button>
-          {node.repeated && <span className="text-[10.5px] text-subtle">already shown above</span>}
+          {node.repeated && <span className="text-[11px] text-subtle">already shown above</span>}
           {!node.course && !isRoot && (
-            <span className="text-[10.5px] text-subtle">not in the calendar we mirror</span>
+            <span className="text-[11px] text-subtle">not in the calendar we mirror</span>
           )}
         </span>
 
         {trusted && !isRoot && (
           <span
             className={cn(
-              'shrink-0 rounded px-1.5 py-0.5 text-[10.5px] font-medium',
+              'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium',
               node.done ? 'bg-success/15 text-success' : 'bg-danger/10 text-danger',
             )}
           >

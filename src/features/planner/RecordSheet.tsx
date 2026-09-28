@@ -291,7 +291,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
     <div className="rounded-xl border border-border bg-canvas px-3 py-2.5">
       <p className="text-[11px] tracking-wide text-subtle uppercase">{label}</p>
       <p className="mt-0.5 font-display text-[19px] leading-none font-semibold text-fg">{value}</p>
-      {note && <p className="mt-1 text-[10.5px] leading-tight text-subtle">{note}</p>}
+      {note && <p className="mt-1 text-[11px] leading-tight text-subtle">{note}</p>}
     </div>
   )
 }

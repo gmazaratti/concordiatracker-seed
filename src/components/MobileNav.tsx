@@ -105,7 +105,7 @@ export function MobileNav() {
               }}
               className={({ isActive }) =>
                 cn(
-                  'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] transition-colors duration-150 active:scale-95',
+                  'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[11px] transition-colors duration-150 active:scale-95',
                   isActive ? 'text-accent' : 'text-subtle',
                 )
               }
@@ -132,7 +132,7 @@ export function MobileNav() {
           <Link
             to="/app"
             aria-label="Leave Social"
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] text-subtle transition-transform duration-150 active:scale-95"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[11px] text-subtle transition-transform duration-150 active:scale-95"
           >
             <ArrowLeft size={20} aria-hidden />
             <span className="w-full truncate text-center tracking-tight">Back</span>
@@ -186,7 +186,7 @@ export function MobileNav() {
                 to={communityHref(s.id)}
                 aria-current={on ? 'page' : undefined}
                 className={cn(
-                  'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] transition-colors duration-150 active:scale-95',
+                  'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[11px] transition-colors duration-150 active:scale-95',
                   on ? 'text-accent' : 'text-subtle',
                 )}
               >
@@ -198,7 +198,7 @@ export function MobileNav() {
                       at 9+ so the pill's width is stable. */}
                   {s.id === 'messages' && unread > 0 && (
                     <span
-                      className="absolute -top-1.5 -right-2.5 inline-flex min-w-[1.05rem] items-center justify-center rounded-full bg-accent px-1 py-px text-[10px] leading-none font-bold text-accent-contrast tabular-nums ring-2 ring-surface"
+                      className="absolute -top-1.5 -right-2.5 inline-flex min-w-[1.05rem] items-center justify-center rounded-full bg-accent px-1 py-px text-[11px] leading-none font-bold text-accent-contrast tabular-nums ring-2 ring-surface"
                       aria-label={`${unread} unread messages`}
                     >
                       {unread > 9 ? '9+' : unread}

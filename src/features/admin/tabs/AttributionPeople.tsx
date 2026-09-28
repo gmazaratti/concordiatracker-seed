@@ -21,7 +21,7 @@ function Face({ src, name, handle, size = 28 }: { src: string | null; name: stri
     <img src={src} alt="" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
   ) : (
     <span
-      className="grid shrink-0 place-items-center rounded-full bg-surface-2 text-[10.5px] font-semibold text-muted"
+      className="grid shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold text-muted"
       style={{ width: size, height: size }}
     >
       {initialsOf(name, handle)}

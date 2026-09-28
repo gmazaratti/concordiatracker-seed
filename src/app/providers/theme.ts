@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type Theme = 'dark' | 'maroon' | 'light' | 'purple' | 'rose' | 'custom'
+export type Theme = 'auto' | 'dark' | 'maroon' | 'light' | 'purple' | 'rose' | 'custom'
 
 export interface ThemeOption {
   id: Theme
@@ -22,6 +22,9 @@ export interface ThemeOption {
 }
 
 export const THEMES: ThemeOption[] = [
+  // Follows the phone or computer's own light/dark setting (HIG: support Dark
+  // Mode by construction). Resolved to Refined Dark or Light at paint time.
+  { id: 'auto', label: 'Automatic', swatch: ['#0f0f16', '#f5f6f4'], surface: '#191926', scheme: 'dark' },
   { id: 'dark', label: 'Refined Dark', swatch: ['#0f0f16', '#8fb39a'], surface: '#191926', scheme: 'dark' },
   { id: 'light', label: 'Light', swatch: ['#f5f6f4', '#46785a'], surface: '#ffffff', scheme: 'light' },
   { id: 'maroon', label: 'Concordia Maroon', swatch: ['#1a0d12', '#e8b84b'], surface: '#261620', scheme: 'dark', pro: true },
@@ -96,6 +99,12 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null)
  */
 /** localStorage: the last free theme the student chose (see ThemeProvider). */
 export const LAST_FREE_KEY = 'ct_theme_last_free'
+
+/** 'auto' as the palette it stands for right now; every other theme as itself. */
+export function resolveTheme(id: Theme, systemDark: boolean): Exclude<Theme, 'auto'> {
+  if (id !== 'auto') return id
+  return systemDark ? 'dark' : 'light'
+}
 
 export function freeFallbackFor(id: Theme, custom?: { base: 'dark' | 'light' }): Theme {
   const scheme = id === 'custom' ? (custom?.base ?? 'dark') : THEMES.find((t) => t.id === id)?.scheme
