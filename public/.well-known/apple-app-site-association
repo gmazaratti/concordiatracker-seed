@@ -1,0 +1,23 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["__APPLE_TEAM_ID__.com.concordiatracker.app"],
+        "components": [
+          { "/": "/join/*", "comment": "Club invites" },
+          { "/": "/organizer/join/*", "comment": "Club team invites" },
+          { "/": "/organizer/invite/*", "comment": "Organizer invites" },
+          { "/": "/events/*", "comment": "Events" },
+          { "/": "/e/*", "comment": "Shared events (the path the app actually shares)" },
+          { "/": "/reset-password", "comment": "Password reset link" },
+          { "/": "/reset-password/*", "comment": "Password reset link" },
+          { "/": "/app", "comment": "Sign-in and email-confirmation links land here" },
+          { "/": "/app/*", "comment": "Sign-in links and in-app pages" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["__APPLE_TEAM_ID__.com.concordiatracker.app"]
+  }
+}

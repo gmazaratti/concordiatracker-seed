@@ -1,0 +1,131 @@
+# Codemagic: iOS release builds, uploaded to TestFlight.
+#
+# Runs on Codemagic's macOS machines, so no local Mac is needed. Every secret
+# comes from Codemagic environment variable GROUPS (Codemagic → Team settings →
+# Global variables and secrets), never from this file or the repository:
+#
+#   group "app_store_connect"   (mark every value Secret)
+#     APP_STORE_CONNECT_ISSUER_ID       Issuer ID      (App Store Connect → Users and Access → Integrations → Keys)
+#     APP_STORE_CONNECT_KEY_IDENTIFIER  Key ID of that API key (App Manager or Admin role)
+#     APP_STORE_CONNECT_PRIVATE_KEY     the full contents of AuthKey_XXXXXXXXXX.p8
+#     APPLE_TEAM_ID                     the 10-character Team ID (Membership details)
+#
+#   group "web_build"           (the same public values Vercel builds the site with)
+#     VITE_SUPABASE_URL
+#     VITE_SUPABASE_ANON_KEY
+#     VITE_VAPID_PUBLIC_KEY
+#     VITE_STRIPE_PUBLISHABLE_KEY       (the app never shows payments, but the
+#                                        shared code reads it; the public key only)
+#
+# Signing is AUTOMATIC: xcodebuild signs with the App Store Connect API key
+# (-allowProvisioningUpdates + -authenticationKey…), creating or reusing the
+# certificates and profiles for both bundle ids (the app and its widget
+# extension). Nothing is exported from anyone's Mac.
+#
+# Before the first run, register both identifiers once at
+# developer.apple.com → Identifiers, with these capabilities ticked:
+#   com.concordiatracker.app          Push Notifications, Associated Domains, App Groups
+#   com.concordiatracker.app.widgets  App Groups
+#   App Group: group.com.concordiatracker.app (assigned to both)
+# and create the app record in App Store Connect with bundle id com.concordiatracker.app.
+
+workflows:
+  ios-release:
+    name: iOS release → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      groups:
+        - app_store_connect
+        - web_build
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        ARCHIVE_PATH: build/ios/App.xcarchive
+        EXPORT_PATH: build/ios/ipa
+    # Builds are started by hand from the Codemagic dashboard. To build every
+    # push to master instead, add:
+    #   triggering:
+    #     events: [push]
+    #     branch_patterns:
+    #       - pattern: master
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build the web app
+        script: npm run build
+
+      - name: Sync the web build into the iOS project
+        script: npx cap sync ios
+
+      - name: Write the App Store Connect key to a temporary file
+        script: |
+          set -e
+          mkdir -p "$CM_BUILD_DIR/private_keys"
+          KEY_PATH="$CM_BUILD_DIR/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$CM_ENV"
+
+      - name: Prepare a keychain for automatic signing
+        script: keychain initialize
+
+      - name: Archive (automatic signing via the API key)
+        script: |
+          set -e
+          xcodebuild archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Export the .ipa
+        script: |
+          set -e
+          mkdir -p build/ios
+          cat > build/ios/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+            <key>destination</key><string>export</string>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist build/ios/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID"
+
+      - name: Remove the key file
+        script: rm -rf "$CM_BUILD_DIR/private_keys"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/App.xcarchive/dSYMs/**
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true

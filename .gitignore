@@ -39,6 +39,7 @@ scripts/*
 !scripts/scrape-outlines.mjs
 !scripts/send-test-email.mjs
 !scripts/stamp-sw.mjs
+!scripts/stamp-aasa.mjs
 !scripts/verify-alfred.mjs
 !scripts/sync-sections.mjs
 # Kept even though it is a one-off: it is the record of WHICH reviews we
@@ -56,8 +57,10 @@ logo-drop/
 .env*
 email-preview.html
 
-# Capacitor: the native project is generated, not authored (see .github/workflows/ios.yml)
-ios/
+# Capacitor. ios/ IS committed now: it carries authored native code (the
+# sign-in sheet and widget plugins, the WidgetKit extension, entitlements,
+# Info.plist permission strings). Its own ios/.gitignore still keeps out the
+# generated parts (the copied web build, capacitor.config.json, build output).
 android/
 .record-export.test.tmp.mjs
 .outlines/

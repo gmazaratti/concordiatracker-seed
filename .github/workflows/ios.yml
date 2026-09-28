@@ -1,38 +1,24 @@
-# Builds the iOS app on a macOS runner.
+# Compiles the iOS app on a free GitHub macOS runner. UNSIGNED, no secrets.
 #
-# THE POINT OF THIS FILE: the only machine that can compile an iOS app is a Mac,
-# and this project is developed on Windows. GitHub gives every account macOS
-# runners, so the Mac is rented by the minute instead of bought.
+# THE POINT OF THIS FILE: the only machine that can compile an iOS app is a
+# Mac, and this project is developed on Windows. This is the free regression
+# test: it proves the web build, the Capacitor sync, the Swift in ios/ (the
+# sign-in sheet and widget plugins, the WidgetKit extension) and the Xcode
+# project all still compile, with no Apple credentials at all.
 #
-# It runs in two modes, and the first one is the one that matters day to day:
+# RELEASES DO NOT GO THROUGH HERE. Signed builds and TestFlight uploads run on
+# Codemagic (codemagic.yaml), which signs with an App Store Connect API key.
 #
-#   - No signing secrets  -> builds UNSIGNED. Proves the web build, the
-#     Capacitor sync and the Xcode project all still compile. This is the
-#     regression test, and it needs no Apple credentials at all.
-#
-#   - Signing secrets set -> archives, signs, and uploads to TestFlight.
-#
-# ios/ is NOT committed, so `cap add ios` regenerates it each run. That is fine
-# while the native layer is stock. The moment you need to edit Info.plist by
-# hand — a permission string, an associated domain — generate it once on a Mac
-# and commit it, or those edits will be wiped on every run.
+# ios/ is committed (it holds authored native code), so the project is used as
+# it is in the repository: `cap sync` only copies the web build in and refreshes
+# the Swift Package list. Dependencies are Swift packages, so there is no
+# CocoaPods step and no .xcworkspace.
 name: iOS
 
-# Manual only. There is a Mac now, and a Mac is faster than a runner and needs
-# no upload step to test on a real phone — so CI is the second opinion, not the
-# main path. It stays because it catches the one failure a local build can hide:
-# something that only compiles because of a tool already installed on that Mac.
-#
-# (Actions minutes are free on this repo regardless, since it is public. On a
-# private repo the macOS multiplier is 10x, which turns a 15-minute build into
-# 150 charged minutes and eats a Pro plan in two runs.)
+# Manual only: the macOS minute multiplier makes this worth running on purpose.
+# (Free on this repo regardless, since it is public.)
 on:
   workflow_dispatch:
-    inputs:
-      upload:
-        description: 'Upload to TestFlight (requires signing secrets)'
-        type: boolean
-        default: false
 
 jobs:
   build:
@@ -53,23 +39,16 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Add and sync the iOS platform
-        run: |
-          npx cap add ios
-          npx cap sync ios
+      - name: Sync the web build into the iOS project
+        run: npx cap sync ios
 
-      - name: Install CocoaPods dependencies
-        working-directory: ios/App
-        run: pod install
-
-      # Unsigned. Catches the failure that actually happens in practice — a
-      # plugin whose native half will not compile — without any credentials.
+      # Unsigned: catches the failure that actually happens in practice, native
+      # code that will not compile, without any credentials.
       - name: Build (unsigned)
-        if: ${{ !inputs.upload }}
         working-directory: ios/App
         run: |
           xcodebuild \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
@@ -77,81 +56,3 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build
-
-      # ---- Signed path. Everything below needs secrets you create once. ----
-
-      - name: Import signing certificate
-        if: ${{ inputs.upload }}
-        env:
-          CERT_P12: ${{ secrets.IOS_CERT_P12 }}
-          CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
-        run: |
-          # A throwaway keychain, unlocked for this job only. Never the login
-          # keychain: a runner is a shared machine and the job outlives nothing.
-          KEYCHAIN=$RUNNER_TEMP/build.keychain
-          security create-keychain -p "" "$KEYCHAIN"
-          security set-keychain-settings -lut 3600 "$KEYCHAIN"
-          security unlock-keychain -p "" "$KEYCHAIN"
-          echo "$CERT_P12" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN" -P "$CERT_PASSWORD" \
-            -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN"
-          security list-keychain -d user -s "$KEYCHAIN" login.keychain
-          rm $RUNNER_TEMP/cert.p12
-
-      - name: Install provisioning profile
-        if: ${{ inputs.upload }}
-        env:
-          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROFILE" | base64 --decode \
-            > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
-
-      - name: Archive and export
-        if: ${{ inputs.upload }}
-        working-directory: ios/App
-        env:
-          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          xcodebuild -workspace App.xcworkspace -scheme App \
-            -configuration Release -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            archive
-
-          cat > $RUNNER_TEMP/ExportOptions.plist <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>method</key><string>app-store-connect</string>
-            <key>teamID</key><string>$TEAM_ID</string>
-            <key>uploadSymbols</key><true/>
-          </dict></plist>
-          PLIST
-
-          xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/export
-
-      - name: Upload to TestFlight
-        if: ${{ inputs.upload }}
-        env:
-          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/private_keys
-          echo "$PRIVATE_KEY" | base64 --decode > ~/private_keys/AuthKey_$KEY_ID.p8
-          xcrun altool --upload-app -f $RUNNER_TEMP/export/*.ipa -t ios \
-            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"
-
-      - name: Keep the build for inspection
-        if: ${{ inputs.upload }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa
-          path: ${{ runner.temp }}/export/*.ipa
-          retention-days: 7

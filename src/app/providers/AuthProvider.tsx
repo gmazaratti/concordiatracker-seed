@@ -9,6 +9,7 @@ import { nativeOAuth } from '@/lib/native-auth'
 import { releaseNativePushToken } from '@/lib/native-push'
 import { siteOrigin } from '@/lib/site-origin'
 import { clearOfflineCache } from '@/lib/offline-cache'
+import { clearWidgets } from '@/lib/widget-bridge'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
@@ -186,8 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // notifications (a no-op in a browser).
     await releaseNativePushToken()
     await supabase.auth.signOut({ scope: 'local' })
-    // The saved offline copy holds grades: a shared phone must not keep them.
+    // The saved offline copy holds grades, and the widgets show deadlines: a
+    // shared phone must keep neither for the next person.
     clearOfflineCache()
+    void clearWidgets()
   }, [])
 
   const value = useMemo(
