@@ -54,6 +54,21 @@
     <meta name="referrer" content="strict-origin" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0f0f16" />
+    <script>
+      // The browser draws its own chrome (status bar, an installed app's frame)
+      // from the two tags above, so they follow the saved theme too. Runs after
+      // them because a script cannot edit a tag the parser has not reached yet.
+      // Canvas colours mirror src/index.css; ThemeProvider keeps them in step.
+      try {
+        var d = document.documentElement
+        var canvas = { dark: '#0f0f16', maroon: '#1a0d12', purple: '#181a3d', light: '#f5f6f4', rose: '#fdf6f8' }
+        var th = d.dataset.theme || 'dark'
+        var bg = d.style.getPropertyValue('--ct-canvas').trim() || canvas[th] || canvas.dark
+        var light = th === 'light' || th === 'rose'
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', bg)
+        document.querySelector('meta[name="color-scheme"]').setAttribute('content', light ? 'light' : 'dark')
+      } catch (e) {}
+    </script>
 
     <!-- Installed-app (PWA) standalone behaviour -->
     <meta name="mobile-web-app-capable" content="yes" />

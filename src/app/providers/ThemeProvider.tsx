@@ -112,6 +112,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const scheme =
       active === 'custom' ? base : (THEMES.find((t) => t.id === active)?.scheme ?? 'dark')
     void setNativeStatusBar(scheme)
+    // The browser's own chrome (the status bar, an installed app's frame) is
+    // coloured by these two meta tags, not by our CSS. index.html sets them
+    // before first paint from the saved theme; this keeps them in step after.
+    const canvas = getComputedStyle(root).getPropertyValue('--ct-canvas').trim()
+    if (canvas) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', canvas)
+    document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', scheme)
 
     // Only the chosen theme is persisted. Storing a preview would survive the
     // reload that is meant to end it.
