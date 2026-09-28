@@ -364,6 +364,8 @@ export const en = {
   'today.completedTodayCount': 'Completed today · {count}',
   'today.showWeight': 'Show weight %',
   'today.showWeightAria': 'Show weight on Today',
+  'today.courseIcons': 'Class icons',
+  'today.courseIconsAria': "Show each class's icon instead of a colour dot",
   'today.showProvenance': 'Show provenance',
   'today.showProvenanceAria': 'Show provenance on Today',
   'today.density': 'Density',

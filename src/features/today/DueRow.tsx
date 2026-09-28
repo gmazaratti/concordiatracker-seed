@@ -8,7 +8,7 @@ import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
 import { SwipeRow, type SwipeAction } from '@/components/SwipeRow'
 import { KIND_LABEL } from '@/lib/assessment'
-import { courseColor } from '@/lib/course-color'
+import { CourseMark } from '@/components/CourseMark'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
@@ -61,7 +61,6 @@ export function DueRow({
   }
 
   const compact = prefs.density === 'compact'
-  const hex = course ? courseColor(course.color).hex : undefined
   const unverified = assessment.provenance.status === 'unverified'
 
   const menuItems: MenuItem[] = [
@@ -155,11 +154,7 @@ export function DueRow({
             >
               {course && (
                 <span className="inline-flex items-center gap-1.5">
-                  <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: hex }}
-                    aria-hidden
-                  />
+                  <CourseMark course={course} icons={prefs.courseIcons ?? true} />
                   <span>{course.code}</span>
                 </span>
               )}

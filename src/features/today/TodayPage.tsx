@@ -26,9 +26,14 @@ import {
   MAX_MAIN,
   MAX_WIDGETS,
   sanitizeLayout,
+  sizeOf,
+  sizesFor,
+  zoneForSize,
+  SIZE_SPAN,
+  type WidgetSize,
 } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
-import { useTodayBackground } from './background/useTodayBackground'
+import { SizePicker } from './widgets/SizePicker'
 import { WidgetBoard, WidgetZoneView, type ZoneSpec } from './widgets/WidgetBoard'
 
 /** Which greeting to show — the hour is read at render time, like the rest of
@@ -79,7 +84,6 @@ export function TodayPage() {
   // Unknown ids are dropped, so a layout saved against an older build can never
   // crash Today or render a widget twice.
   const widgets = sanitizeLayout(uiState.todayWidgets)
-  useTodayBackground(uiState.todayBackground)
   /**
    * The wide column, migrating the old two-band layout on read.
    *
@@ -225,11 +229,42 @@ export function TodayPage() {
     />
   )
 
+  // Card sizes in the wide column. The rail is one narrow column, so there
+  // every card is drawn at its rail layout.
+  const sizeFor = (id: string): WidgetSize => {
+    const def = WIDGETS_BY_ID.get(id)
+    return def ? sizeOf(def, uiState.widgetSizes?.[id]) : 'l'
+  }
+  const setSize = (id: string, size: WidgetSize) =>
+    patchUiState({ widgetSizes: { ...uiState.widgetSizes, [id]: size } })
+
+  /**
+   * A card in the rail offers the same sizes. The rail is one narrow column,
+   * so a bigger size can only be honoured by moving the card to the wide
+   * column, which is what picking one does, in one write so it never shows
+   * in both places.
+   */
+  const railSizes = (id: string): WidgetSize[] => {
+    const def = WIDGETS_BY_ID.get(id)
+    if (!def) return []
+    const bigger = sizesFor(def).filter((sz) => sz !== 's')
+    return mainWidgets.length < MAX_MAIN ? ['s', ...bigger] : ['s']
+  }
+  const growFromRail = (id: string, size: WidgetSize) => {
+    if (size === 's' || mainWidgets.length >= MAX_MAIN) return
+    patchUiState({
+      todayWidgets: widgets.filter((w) => w !== id),
+      todayMain: [...mainWidgets.filter((w) => w !== id), id],
+      widgetSizes: { ...uiState.widgetSizes, [id]: size },
+    })
+  }
+
   /** Both zones render the same three special cases; only the size differs. */
   const renderIn = (zone: 'main' | 'rail') => (id: string) => {
-    if (id === DUE_ID) return dueList(zone === 'rail')
+    const size: WidgetSize = zone === 'rail' ? 's' : sizeFor(id)
+    if (id === DUE_ID) return dueList(size === 's')
     if (id === GLANCE_ID) return glance
-    return WIDGETS_BY_ID.get(id)?.render(zone === 'rail' ? 'rail' : 'wide')
+    return WIDGETS_BY_ID.get(id)?.render(zoneForSize(size))
   }
 
   return (
@@ -267,8 +302,20 @@ export function TodayPage() {
           <WidgetZoneView
             zone={zoneById('main')}
             emptyHint="Drop a widget here"
-            className="flex flex-col gap-3"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-6"
             renderItem={renderIn('main')}
+            itemClass={(id) => SIZE_SPAN[sizeFor(id)]}
+            renderControls={(id) => {
+              const def = WIDGETS_BY_ID.get(id)
+              return def ? (
+                <SizePicker
+                  sizes={sizesFor(def)}
+                  value={sizeFor(id)}
+                  onChange={(sz) => setSize(id, sz)}
+                  name={def.name}
+                />
+              ) : null
+            }}
           />
           <AnnouncementsDigest />
         </main>
@@ -282,6 +329,17 @@ export function TodayPage() {
             emptyHint="Drop a widget here"
             className="flex flex-col gap-3"
             renderItem={renderIn('rail')}
+            renderControls={(id) => {
+              const def = WIDGETS_BY_ID.get(id)
+              return def ? (
+                <SizePicker
+                  sizes={railSizes(id)}
+                  value="s"
+                  onChange={(sz) => growFromRail(id, sz)}
+                  name={def.name}
+                />
+              ) : null
+            }}
           />
           {/* Contextual nudges are NOT widgets: they appear because something
               needs attention, not because you chose them. */}

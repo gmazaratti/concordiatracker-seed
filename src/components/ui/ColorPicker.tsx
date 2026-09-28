@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Pipette } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { ColorWheel } from './ColorWheel'
 
 /** A tasteful spread of brand-friendly swatches across the hue wheel + a few
  * Concordia-ish tones. The hex field below covers any colour not in the grid. */
@@ -63,7 +64,8 @@ export function ColorPicker({
     if (!el) return
     const r = el.getBoundingClientRect()
     const spaceBelow = window.innerHeight - r.bottom
-    const above = spaceBelow < 280 && r.top > spaceBelow
+    // ~470px tall with the colour wheel; it flips up when there is more room there.
+    const above = spaceBelow < 480 && r.top > spaceBelow
     setPos({ left: r.left, top: above ? r.top - 4 : r.bottom + 4, above })
   }, [])
 
@@ -154,9 +156,18 @@ export function ColorPicker({
               left: pos.left,
               ...(pos.above ? { bottom: window.innerHeight - pos.top } : { top: pos.top }),
             }}
-            className="ct-animate-pop z-[200] w-[228px] rounded-xl border border-border bg-surface p-3 shadow-2xl"
+            className="ct-animate-pop z-[200] w-[228px] max-h-[calc(100vh-24px)] overflow-y-auto rounded-xl border border-border bg-surface p-3 shadow-2xl"
           >
-            <div className="grid grid-cols-6 gap-1.5">
+            {/* The wheel first: any colour, dragged to. The swatches below are
+                the shortcuts, and the hex field is exact. */}
+            <ColorWheel
+              value={isHex(hex) ? hex : value}
+              onChange={(c) => {
+                setHex(c)
+                onChange(c)
+              }}
+            />
+            <div className="mt-3 grid grid-cols-6 gap-1.5">
               {PALETTE.map((c) => {
                 const selected = c.toLowerCase() === value.toLowerCase()
                 return (

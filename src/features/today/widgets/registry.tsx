@@ -220,11 +220,49 @@ export const DEFAULT_WIDGETS = [GLANCE_ID, 'next-class']
  */
 export const DEFAULT_MAIN = [DUE_ID]
 
-/** Five full-width cards is already a long scroll before anything else. */
-export const MAX_MAIN = 5
+/** Eight cards: with Small and Medium sizes a row holds up to three, so this
+ *  is still two or three screens, not a settings page. */
+export const MAX_MAIN = 8
 
 export function fitsZone(w: WidgetDef, zone: WidgetZone): boolean {
   return (w.zones ?? ['rail']).includes(zone)
+}
+
+/**
+ * Card sizes in the wide column: a third, a half, or the full width.
+ *
+ * Derived from the layouts a widget already declares, so nothing is drawn at a
+ * size nobody designed: `rail` (a narrow card) is Small, `half` is Medium,
+ * `wide` is Wide. It also means every widget can now sit in the wide column —
+ * a side-only widget like Streak goes in as a Small card, which is why the old
+ * "side column only" note is gone.
+ */
+export type WidgetSize = 's' | 'm' | 'l'
+export const SIZE_LABEL: Record<WidgetSize, string> = { s: 'Small', m: 'Medium', l: 'Wide' }
+const SIZE_ZONE: Record<WidgetSize, WidgetZone> = { s: 'rail', m: 'half', l: 'wide' }
+
+export function sizesFor(w: WidgetDef): WidgetSize[] {
+  return (['s', 'm', 'l'] as WidgetSize[]).filter((sz) => fitsZone(w, SIZE_ZONE[sz]))
+}
+
+/** The size a card is drawn at: the one chosen if it is allowed, else the
+ *  largest allowed (a new card starts as big as it was designed to be). */
+export function sizeOf(w: WidgetDef, chosen: WidgetSize | undefined): WidgetSize {
+  const allowed = sizesFor(w)
+  if (chosen && allowed.includes(chosen)) return chosen
+  return allowed[allowed.length - 1] ?? 'l'
+}
+
+/** Which of the widget's own layouts to render for a size. */
+export function zoneForSize(size: WidgetSize): WidgetZone {
+  return SIZE_ZONE[size]
+}
+
+/** Grid spans on a 6-column grid (sm and up; phones stack everything). */
+export const SIZE_SPAN: Record<WidgetSize, string> = {
+  s: 'sm:col-span-2',
+  m: 'sm:col-span-3',
+  l: 'sm:col-span-6',
 }
 
 /** Everything the gallery may offer: the fixed ones are already on screen and

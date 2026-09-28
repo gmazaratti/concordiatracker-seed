@@ -55,6 +55,14 @@ export function CustomizeToday({
             ]}
           />
         </Line>
+
+        <Line label={t('today.courseIcons')}>
+          <Switch
+            label={t('today.courseIconsAria')}
+            checked={prefs.courseIcons ?? true}
+            onChange={(v) => onChange({ courseIcons: v })}
+          />
+        </Line>
       </div>
     </div>
   )
@@ -62,7 +70,7 @@ export function CustomizeToday({
 
 function Line({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
       <span className="text-[12px] text-muted">{label}</span>
       {children}
     </div>

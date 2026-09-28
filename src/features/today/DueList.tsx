@@ -6,7 +6,7 @@ import type { Assessment, AssessmentStatus, CalendarTask, Course } from '@/data/
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/StatusBadge'
-import { courseColor } from '@/lib/course-color'
+import { CourseMark } from '@/components/CourseMark'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
@@ -93,6 +93,7 @@ function buildSections(
   moodle: CalendarTask[],
   groupBy: TodayPrefs['groupBy'],
   courseById: (id: string) => Course | undefined,
+  icons: boolean,
 ): RowSection[] {
   if (groupBy === 'course') {
     const map = new Map<string, DueEntry[]>()
@@ -105,14 +106,13 @@ function buildSections(
       .sort((x, y) => (x[1][0].due ?? '').localeCompare(y[1][0].due ?? ''))
       .map(([courseId, items]) => {
         const course = courseById(courseId)
-        const hex = course ? courseColor(course.color).hex : undefined
         return {
           key: courseId,
           tone: 'muted' as const,
           items,
           label: (
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
+              <CourseMark course={course} icons={icons} />
               {course?.code ?? t('today.course')}
             </span>
           ),
@@ -196,7 +196,7 @@ export function DueList({
       else next.add(key)
       return next
     })
-  const sections = buildSections(t, groups, moodle, prefs.groupBy, courseById)
+  const sections = buildSections(t, groups, moodle, prefs.groupBy, courseById, prefs.courseIcons ?? true)
 
   return (
     <Card className="overflow-hidden">
@@ -317,7 +317,7 @@ export function DueList({
       )}
 
       {completed.length > 0 && (
-        <CompletedToday items={completed} courseById={courseById} onUndo={onUndo} />
+        <CompletedToday items={completed} courseById={courseById} icons={prefs.courseIcons ?? true} onUndo={onUndo} />
       )}
     </Card>
   )
@@ -387,10 +387,12 @@ function EmptyState() {
 function CompletedToday({
   items,
   courseById,
+  icons,
   onUndo,
 }: {
   items: Assessment[]
   courseById: (id: string) => Course | undefined
+  icons: boolean
   onUndo: (id: string) => void
 }) {
   const t = useT()
@@ -417,6 +419,7 @@ function CompletedToday({
               key={a.id}
               assessment={a}
               course={courseById(a.courseId)}
+              icons={icons}
               onUndo={() => onUndo(a.id)}
             />
           ))}
@@ -429,14 +432,15 @@ function CompletedToday({
 function CompletedRow({
   assessment,
   course,
+  icons,
   onUndo,
 }: {
   assessment: Assessment
   course: Course | undefined
+  icons: boolean
   onUndo: () => void
 }) {
   const t = useT()
-  const hex = course ? courseColor(course.color).hex : undefined
   return (
     <li className="flex items-center gap-3 px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -444,7 +448,7 @@ function CompletedRow({
           <StatusBadge status={assessment.status} />
           {course && (
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
+              <CourseMark course={course} icons={icons} />
               {course.code}
             </span>
           )}

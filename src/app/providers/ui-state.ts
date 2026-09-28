@@ -21,9 +21,14 @@ export interface UiState {
   /** Ordered widget ids on Today. Persisted here rather than in AppDataProvider
    * so a layout survives a reload and follows you between devices. */
   todayWidgets?: string[]
-  /** A photo behind Today (only the page, never the sidebar). `dim` is how
-   *  much of the page colour is laid over it, 0–90, so text stays readable. */
-  todayBackground?: { url: string; dim: number }
+  /** Card size per widget in Today's wide column (s/m/l). Absent = the largest
+   *  size the widget supports. */
+  widgetSizes?: Record<string, 's' | 'm' | 'l'>
+  /** The wallpaper behind Today, Courses and Calendar (never the sidebar).
+   *  One of: a built-in `preset`, or a `path` in the private wallpapers
+   *  bucket. `url` is the admin-only trial's public link, still honoured.
+   *  `dim` is how much of the page colour is laid over it, 0–90. */
+  todayBackground?: { preset?: string; path?: string; v?: number; url?: string; dim: number }
   checklistDismissed?: boolean
   /** Finished or skipped the teacher portal's setup wizard. */
   teacherSetupDone?: boolean

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, RotateCcw } from 'lucide-react'
 import { ThemePicker } from '@/components/ThemePicker'
+import { WallpaperSection } from '@/features/wallpaper/WallpaperSection'
 import { useUpdates } from '@/app/providers/updates'
 import { useIsAdmin } from '@/features/admin/admin-data'
 import { DEMO_GPA_TARGET, demoGpaEnabled, setDemoGpaEnabled } from '@/lib/demo-gpa'
@@ -36,6 +37,9 @@ export function GeneralSection() {
       <Group label={t('settings.appearance')}>
         <Row label={t('settings.theme')} description="Swaps the whole product from one token set." stacked>
           <ThemePicker />
+        </Row>
+        <Row label="Wallpaper" description="A photo behind Today, Courses and Calendar." stacked>
+          <WallpaperSection />
         </Row>
       </Group>
 

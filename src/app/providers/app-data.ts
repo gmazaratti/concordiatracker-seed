@@ -31,6 +31,9 @@ export interface TodayPrefs {
   groupBy: 'time' | 'course'
   /** Power-user opt-in: re-show full provenance badges on Today. */
   showProvenance: boolean
+  /** Show each class's icon (in its colour) instead of the colour dot, for
+   *  classes that have one. */
+  courseIcons: boolean
 }
 
 export const DEFAULT_TODAY_PREFS: TodayPrefs = {
@@ -38,6 +41,7 @@ export const DEFAULT_TODAY_PREFS: TodayPrefs = {
   density: 'comfortable',
   groupBy: 'time',
   showProvenance: false,
+  courseIcons: true,
 }
 
 /** Calendar view + which layers are on. Sticky across SPA nav, resets on reload. */

@@ -105,7 +105,7 @@ export function renderEmail(o: EmailOptions): string {
 
       <tr><td style="padding:0 4px 18px;">
         <a href="${SITE}" style="text-decoration:none;font-family:${FONT};font-size:17px;font-weight:700;color:${BRAND.ink};letter-spacing:-0.01em;">
-          <span style="display:inline-block;width:9px;height:9px;border-radius:9px;background:${BRAND.accent};margin-right:8px;"></span>ConcordiaTracker
+          <img src="${SITE}/icon-192.png" width="26" height="26" alt="" style="display:inline-block;width:26px;height:26px;border:0;border-radius:7px;vertical-align:middle;margin-right:9px;" /><span style="vertical-align:middle;">ConcordiaTracker</span>
         </a>
       </td></tr>
 

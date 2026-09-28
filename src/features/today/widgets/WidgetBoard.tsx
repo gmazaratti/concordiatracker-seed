@@ -12,7 +12,13 @@ import { createPortal } from 'react-dom'
 import { GripHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
-import { WIDGETS_BY_ID, fitsZone, type WidgetZone } from './registry'
+import { WIDGETS_BY_ID, fitsZone, sizesFor, type WidgetDef, type WidgetZone } from './registry'
+
+/** The wide column is a grid of sized cards, so it takes any widget (a
+ *  side-only one goes in Small); the rail still takes only rail layouts. */
+function zoneAccepts(w: WidgetDef, layout: WidgetZone): boolean {
+  return layout === 'wide' ? sizesFor(w).length > 0 : fitsZone(w, layout)
+}
 
 /**
  * One drag surface across every widget zone on Today.
@@ -205,7 +211,7 @@ export function WidgetBoard({
         const accepts =
           !!target &&
           !!w &&
-          fitsZone(w, target.layout) &&
+          zoneAccepts(w, target.layout) &&
           (target.ids.includes(id) || target.ids.length < target.max)
 
         setHoverZone(accepts && target ? target.id : null)
@@ -222,6 +228,12 @@ export function WidgetBoard({
             const oel = itemEls.current.get(`${target.id}:${otherId}`)
             if (!oel) return false
             const orr = oel.getBoundingClientRect()
+            // The wide column wraps into rows, so "before" means above this
+            // card's row, or in its row and left of its middle. The rail is
+            // one column, where only the vertical midpoint means anything.
+            if (target.layout === 'wide') {
+              return ev.clientY < orr.top || (ev.clientY <= orr.bottom && ev.clientX < orr.left + orr.width / 2)
+            }
             return ev.clientY < orr.top + orr.height / 2
           })
 
@@ -296,17 +308,23 @@ export function WidgetZoneView({
   className,
   renderItem,
   emptyHint,
+  itemClass,
+  renderControls,
 }: {
   zone: ZoneSpec
   className?: string
   renderItem: (id: string) => React.ReactNode
+  /** Extra classes per card (the grid span of its size). */
+  itemClass?: (id: string) => string | undefined
+  /** Edit-mode controls drawn over the card (the size picker). */
+  renderControls?: (id: string) => React.ReactNode
   /** Shown while dragging if the zone is empty, so it's a visible target. */
   emptyHint?: string
 }) {
   const { editing, requestEdit, drag, hoverZone, registerZone, registerItem, begin, remove } = useBoard()
   const w = drag ? WIDGETS_BY_ID.get(drag.id) : null
   const couldAccept =
-    !!drag && !!w && fitsZone(w, zone.layout) && (zone.ids.includes(drag.id) || zone.ids.length < zone.max)
+    !!drag && !!w && zoneAccepts(w, zone.layout) && (zone.ids.includes(drag.id) || zone.ids.length < zone.max)
 
   return (
     <div
@@ -347,6 +365,7 @@ export function WidgetZoneView({
               // it, which reads as a broken layout rather than as two things
               // that happen to have different amounts to say.
               'relative h-full',
+              itemClass?.(id),
               editing && 'cursor-grab touch-none select-none active:cursor-grabbing',
               editing && !held && 'ct-wiggle',
             )}
@@ -384,6 +403,12 @@ export function WidgetZoneView({
               >
                 <X size={13} aria-hidden />
               </button>
+            )}
+
+            {editing && !held && renderControls && (
+              <div className="absolute top-1.5 right-1.5 z-20" onPointerDown={(e) => e.stopPropagation()}>
+                {renderControls(id)}
+              </div>
             )}
 
             <div className={cn('h-full', held && 'invisible')}>{renderItem(id)}</div>

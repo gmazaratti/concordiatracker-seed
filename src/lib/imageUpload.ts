@@ -84,6 +84,36 @@ export async function uploadRenderedImage(blob: Blob, kind: ImageKind): Promise<
   return supabase.storage.from('org-media').getPublicUrl(path).data.publicUrl
 }
 
+/**
+ * Upload a wallpaper to the PRIVATE `wallpapers` bucket and return its storage
+ * path (not a URL: the bucket is private, so it is read through a signed URL).
+ * Same re-encode as every other image — nothing but a fresh raster leaves the
+ * browser — capped at 2400px. The bucket itself refuses a free account
+ * (db/wallpapers.sql), so this is not the only gate.
+ */
+export async function uploadWallpaper(file: File): Promise<string> {
+  const { data: auth } = await supabase.auth.getUser()
+  const uid = auth.user?.id
+  if (!uid) throw new Error('Please sign in first.')
+  if (!ACCEPT.includes(file.type)) throw new Error('Choose a PNG, JPG, WEBP, or GIF image.')
+  if (file.size > MAX_INPUT_BYTES) throw new Error('That image is too large (8 MB max).')
+  const blob = await reencodeToWebp(file, MAX_DIM.background, 'image/jpeg')
+  const type = isEncodedType(blob.type) ? blob.type : 'image/jpeg'
+  // ONE fixed name per account, overwritten on every upload: the bucket only
+  // accepts this name (db/wallpapers.sql), so an account can never hold two.
+  // A short cache lifetime, because the same path now means a new picture.
+  const path = `${uid}/wallpaper`
+  const { error } = await supabase.storage.from('wallpapers').upload(path, blob, {
+    contentType: type,
+    cacheControl: '60',
+    upsert: true,
+  })
+  if (error) {
+    throw new Error(/row-level security|policy/i.test(error.message) ? 'Wallpapers come with the Semester pass.' : error.message)
+  }
+  return path
+}
+
 async function reencodeToWebp(file: File, maxDim: number, fallback: 'image/jpeg' | 'image/png'): Promise<Blob> {
   const source = await loadImage(file)
   const w0 = 'width' in source ? source.width : 0

@@ -371,6 +371,8 @@ export const fr: Partial<Record<Key, string>> = {
   'today.completedTodayCount': 'Terminé aujourd’hui · {count}',
   'today.showWeight': 'Afficher la pondération',
   'today.showWeightAria': 'Afficher la pondération dans Aujourd’hui',
+  'today.courseIcons': 'Icônes des cours',
+  'today.courseIconsAria': "Afficher l'icône de chaque cours au lieu d'un point de couleur",
   'today.showProvenance': 'Afficher la provenance',
   'today.showProvenanceAria': 'Afficher la provenance dans Aujourd’hui',
   'today.density': 'Densité',

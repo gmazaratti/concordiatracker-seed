@@ -18,6 +18,7 @@ import { AvatarMenu } from '@/components/AvatarMenu'
 import { CommandPalette } from '@/command/CommandPalette'
 import { QuickActionLayer } from '@/command/QuickActionLayer'
 import { SettingsLayer } from '@/features/settings/SettingsLayer'
+import { useWallpaper } from '@/features/wallpaper/useWallpaper'
 import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { NotificationToast } from '@/features/community/NotificationToast'
@@ -54,6 +55,8 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   // outside /app, so the login screen and a public profile keep their
   // own titles.
   useAppTitle()
+  // The wallpaper, on Today, Courses and Calendar (Pro).
+  useWallpaper()
   /* THE ONE SCROLLER IN THE APP, so this is the one place that can remember
      where each page was left. */
   const scroller = useRef<HTMLElement>(null)

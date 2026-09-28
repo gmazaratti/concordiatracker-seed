@@ -6,7 +6,7 @@ import {
   MAX_MAIN,
   MAX_WIDGETS,
   WIDGETS_BY_ID,
-  fitsZone,
+  sizesFor,
   type WidgetContext,
   type WidgetDef,
 } from './registry'
@@ -178,8 +178,9 @@ export function WidgetGallery({
           The wide column
         </p>
         <p className="mb-2.5 text-[11.5px] leading-snug text-subtle">
-          Full-width cards, in order, with your due list among them. Drag on Today itself to
-          reorder. Double-click a card's header to start.
+          Cards in rows, with your due list among them. Each card can be Small, Medium or
+          Wide: double-click a card's header on Today to rearrange and resize, and
+          double-click again to finish.
         </p>
         <BandZone layout={mainLayout} onChange={onMainChange} ctx={ctx} max={MAX_MAIN} />
       </div>
@@ -207,11 +208,8 @@ function BandZone({
   // here MOVES it rather than being blocked, which is what "I want weather at
   // the top" should do. TodayPage strips it from the rail on the way through.
   const eligible = ADDABLE.filter(
-    (w) => !layout.includes(w.id) && fitsZone(w, 'wide') && (w.availableWhen?.(ctx) ?? true),
+    (w) => !layout.includes(w.id) && sizesFor(w).length > 0 && (w.availableWhen?.(ctx) ?? true),
   )
-  // Said out loud, because a shorter list here than in the library above
-  // reads as widgets having gone missing.
-  const sideOnly = ADDABLE.filter((w) => !fitsZone(w, 'wide')).map((w) => w.name)
 
   return (
     <>
@@ -270,12 +268,6 @@ function BandZone({
       {full && (
         <p className="text-[11.5px] text-subtle">
           {max} is the most that stays readable here.
-        </p>
-      )}
-      {sideOnly.length > 0 && (
-        <p className="mt-2 text-[11.5px] leading-snug text-subtle">
-          {sideOnly.join(' and ')} {sideOnly.length === 1 ? 'is' : 'are'} small enough for the side
-          column only: add {sideOnly.length === 1 ? 'it' : 'them'} from the library above.
         </p>
       )}
     </>
