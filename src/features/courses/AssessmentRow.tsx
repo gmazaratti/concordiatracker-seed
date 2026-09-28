@@ -1,4 +1,5 @@
 import { askForGrade } from '@/lib/grade-prompt'
+import { haptic } from '@/lib/haptics'
 import { useState } from 'react'
 import { Check, Pencil, Trash2, X } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
@@ -64,6 +65,7 @@ export function AssessmentRow({
   function changeStatus(next: AssessmentStatus) {
     if (next === assessment.status) return
     setStatus(assessment.id, next)
+    if (next === 'done') haptic('success')
     if (next === 'done' && !assessment.grade) askForGrade(assessment.id)
   }
   const isDone = assessment.status === 'done'

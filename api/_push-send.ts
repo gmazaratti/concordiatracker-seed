@@ -22,7 +22,10 @@ import {
   apnsHeaders,
   apnsToken,
   classifyApns,
+  liveActivityHeaders,
+  liveActivityStartBody,
   type ApnsEnv,
+  type LiveActivityStart,
   type PushMessage,
 } from './_apns.js'
 
@@ -95,7 +98,14 @@ export function closePush(): void {
   sessions.clear()
 }
 
-function apnsRequest(env: ApnsEnv, cfg: ApnsConfig, deviceToken: string, msg: PushMessage) {
+function apnsRequest(
+  env: ApnsEnv,
+  cfg: ApnsConfig,
+  deviceToken: string,
+  msg: PushMessage,
+  /** A non-alert request (a Live Activity start): its own headers and body. */
+  custom?: { headers: (jwt: string) => Record<string, string>; body: string },
+) {
   return new Promise<{ status: number; reason?: string }>((resolve) => {
     let settled = false
     const done = (v: { status: number; reason?: string }) => {
@@ -106,7 +116,7 @@ function apnsRequest(env: ApnsEnv, cfg: ApnsConfig, deviceToken: string, msg: Pu
     }
     try {
       const token = apnsToken(cfg.pem, cfg.keyId, cfg.teamId, Math.floor(Date.now() / 1000))
-      const req = session(env).request(apnsHeaders(token, cfg.bundleId, deviceToken, msg))
+      const req = session(env).request(custom ? custom.headers(token) : apnsHeaders(token, cfg.bundleId, deviceToken, msg))
       req.setTimeout(10_000, () => {
         req.close()
         done({ status: 0, reason: 'timeout' })
@@ -128,7 +138,7 @@ function apnsRequest(env: ApnsEnv, cfg: ApnsConfig, deviceToken: string, msg: Pu
         done({ status, reason })
       })
       req.on('error', () => done({ status: 0, reason: 'network' }))
-      req.end(apnsBody(msg))
+      req.end(custom ? custom.body : apnsBody(msg))
     } catch {
       done({ status: 0, reason: 'setup' })
     }
@@ -168,4 +178,32 @@ export async function sendPush(target: PushTarget, msg: PushMessage): Promise<Pu
     const code = (err as { statusCode?: number })?.statusCode
     return code === 404 || code === 410 ? { status: 'gone' } : { status: 'error' }
   }
+}
+
+/**
+ * Start the "next assignment due" Live Activity on one phone with the app
+ * closed, through its push-to-start token. Same host fallback as alerts: a
+ * TestFlight build is production, an Xcode build is sandbox. Never throws.
+ */
+export async function sendLiveActivityStart(
+  pushToStartToken: string,
+  env: ApnsEnv | null,
+  start: LiveActivityStart,
+): Promise<PushResult> {
+  const cfg = apnsConfig()
+  if (!cfg) return { status: 'skipped' }
+  const first: ApnsEnv = env ?? 'production'
+  const second: ApnsEnv = first === 'production' ? 'sandbox' : 'production'
+  const body = liveActivityStartBody(start, Math.floor(Date.now() / 1000))
+  for (const e of [first, second]) {
+    const r = await apnsRequest(e, cfg, pushToStartToken, { title: '' }, {
+      headers: (jwt) => liveActivityHeaders(jwt, cfg.bundleId, pushToStartToken),
+      body,
+    })
+    const outcome = classifyApns(r.status, r.reason)
+    if (outcome === 'ok') return e === env ? { status: 'ok' } : { status: 'ok', env: e }
+    if (outcome === 'gone') return { status: 'gone' }
+    if (outcome === 'error') return { status: 'error' }
+  }
+  return { status: 'gone' }
 }

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn'
+import { haptic } from '@/lib/haptics'
 
 /** A labeled group of rows — the calm card language from Today/Courses. */
 export function Group({
@@ -87,7 +88,10 @@ export function Switch({
       aria-checked={checked}
       aria-label={label}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        haptic('tap')
+        onChange(!checked)
+      }}
       className={cn(
         'inline-flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors duration-150 disabled:cursor-not-allowed',
         checked ? 'bg-accent' : 'bg-surface-2 ring-1 ring-border',
@@ -129,7 +133,10 @@ export function Segmented<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
-            onClick={() => onChange(o.value)}
+            onClick={() => {
+              if (o.value !== value) haptic('select')
+              onChange(o.value)
+            }}
             className={cn(
               'rounded-md px-3 py-1 text-[12px] font-medium transition-colors duration-150',
               selected ? 'bg-surface-2 text-fg' : 'text-muted hover:text-fg',

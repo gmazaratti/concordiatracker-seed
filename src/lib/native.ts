@@ -7,6 +7,7 @@ import { Keyboard } from '@capacitor/keyboard'
 import { PUBLIC_SITE } from './site-origin'
 import { inAppPathFor, openIncomingUrl, requestNavigate } from './native-nav'
 import { listenForPushTaps } from './native-push'
+import { listenForReminderTaps } from './assignment-reminders'
 
 /**
  * The handful of things the app has to do differently when it is an app.
@@ -182,4 +183,5 @@ export function initNative() {
   setUpKeyboard()
   handleUniversalLinks()
   listenForPushTaps()
+  listenForReminderTaps(requestNavigate)
 }

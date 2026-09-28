@@ -10,6 +10,7 @@ import { DEFAULT_SHORTCUT, formatShortcut } from '@/app/providers/command-palett
 import { cn } from '@/lib/cn'
 import { Group, Row, Switch, Segmented } from '../controls'
 import { PushControl } from './PushControl'
+import { ReminderSettings } from '@/features/reminders/ReminderSettings'
 import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 import { getReduceMotion, setReduceMotion } from '@/lib/reduce-motion'
 import { OrgPostSwitch } from './OrgPostSwitch'
@@ -27,7 +28,6 @@ export function GeneralSection() {
   // page is already in rather than resetting to off on every open.
   const [reducedMotion, setReducedMotion] = useState(getReduceMotion)
   const [weekStartMon, setWeekStartMon] = useState(true)
-  const [deadlineReminders, setDeadlineReminders] = useState(true)
   const [weeklyDigest, setWeeklyDigest] = useState(false)
   const [productUpdates, setProductUpdates] = useState(false)
   const { isAdmin } = useIsAdmin()
@@ -68,6 +68,8 @@ export function GeneralSection() {
 
       <PushControl />
 
+      <ReminderSettings />
+
       {/* REAL, unlike the three email switches below it, which are still local
           state. Worth keeping apart rather than mixing a stored preference in
           with placeholders. */}
@@ -77,9 +79,6 @@ export function GeneralSection() {
       </Group>
 
       <Group label={t('settings.email')}>
-        <Row label="Deadline reminders" description="A nudge before things are due.">
-          <Switch checked={deadlineReminders} onChange={setDeadlineReminders} label="Deadline reminders" />
-        </Row>
         <Row label="Weekly digest email" description="A Monday summary of the week ahead.">
           <Switch checked={weeklyDigest} onChange={setWeeklyDigest} label="Weekly digest email" />
         </Row>

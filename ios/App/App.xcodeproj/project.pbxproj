@@ -10,6 +10,14 @@
 		CA7A00000000000000000A11 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000A01 /* MainViewController.swift */; };
 		CA7A00000000000000000A12 /* NativeAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000A02 /* NativeAuthPlugin.swift */; };
 		CA7A00000000000000000A13 /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000A03 /* WidgetBridgePlugin.swift */; };
+		CA7A00000000000000000C11 /* DeadlineActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C01 /* DeadlineActivityPlugin.swift */; };
+		CA7A00000000000000000C12 /* CalendarBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C02 /* CalendarBridgePlugin.swift */; };
+		CA7A00000000000000000C13 /* SpotlightBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C03 /* SpotlightBridgePlugin.swift */; };
+		CA7A00000000000000000C14 /* AppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C04 /* AppIntents.swift */; };
+		CA7A00000000000000000C15 /* DeadlineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C05 /* DeadlineActivityAttributes.swift */; };
+		CA7A00000000000000000C16 /* DeadlineActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C05 /* DeadlineActivityAttributes.swift */; };
+		CA7A00000000000000000C17 /* DeadlineLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C06 /* DeadlineLiveActivity.swift */; };
+		CA7A00000000000000000C18 /* LockScreenDeadline.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000C07 /* LockScreenDeadline.swift */; };
 		CA7A00000000000000000A15 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000A05 /* PrivacyInfo.xcprivacy */; };
 		CA7A00000000000000000B11 /* ConcordiaWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000B01 /* ConcordiaWidgets.swift */; };
 		CA7A00000000000000000B12 /* SharedSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7A00000000000000000B02 /* SharedSnapshot.swift */; };
@@ -58,6 +66,13 @@
 		CA7A00000000000000000A01 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		CA7A00000000000000000A02 /* NativeAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAuthPlugin.swift; sourceTree = "<group>"; };
 		CA7A00000000000000000A03 /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C01 /* DeadlineActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeadlineActivityPlugin.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C02 /* CalendarBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarBridgePlugin.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C03 /* SpotlightBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightBridgePlugin.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C04 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C06 /* DeadlineLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeadlineLiveActivity.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C07 /* LockScreenDeadline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenDeadline.swift; sourceTree = "<group>"; };
+		CA7A00000000000000000C05 /* DeadlineActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeadlineActivityAttributes.swift; sourceTree = "<group>"; };
 		CA7A00000000000000000A04 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		CA7A00000000000000000A05 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CA7A00000000000000000B01 /* ConcordiaWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConcordiaWidgets.swift; sourceTree = "<group>"; };
@@ -104,6 +119,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CA7A00000000000000000C30 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				CA7A00000000000000000C05 /* DeadlineActivityAttributes.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		CA7A00000000000000000B30 /* ConcordiaWidgets */ = {
 			isa = PBXGroup;
 			children = (
@@ -112,6 +135,8 @@
 				CA7A00000000000000000B03 /* NextDeadlineWidget.swift */,
 				CA7A00000000000000000B04 /* NextClassWidget.swift */,
 				CA7A00000000000000000B05 /* LibraryWidget.swift */,
+				CA7A00000000000000000C06 /* DeadlineLiveActivity.swift */,
+				CA7A00000000000000000C07 /* LockScreenDeadline.swift */,
 				CA7A00000000000000000B06 /* Info.plist */,
 				CA7A00000000000000000B07 /* ConcordiaWidgets.entitlements */,
 			);
@@ -133,6 +158,7 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				CA7A00000000000000000B30 /* ConcordiaWidgets */,
+				CA7A00000000000000000C30 /* Shared */,
 				504EC3051FED79650016851F /* Products */,
 				CA7A00000000000000000B31 /* Frameworks */,
 			);
@@ -154,6 +180,10 @@
 				CA7A00000000000000000A01 /* MainViewController.swift */,
 				CA7A00000000000000000A02 /* NativeAuthPlugin.swift */,
 				CA7A00000000000000000A03 /* WidgetBridgePlugin.swift */,
+				CA7A00000000000000000C01 /* DeadlineActivityPlugin.swift */,
+				CA7A00000000000000000C02 /* CalendarBridgePlugin.swift */,
+				CA7A00000000000000000C03 /* SpotlightBridgePlugin.swift */,
+				CA7A00000000000000000C04 /* AppIntents.swift */,
 				CA7A00000000000000000A04 /* App.entitlements */,
 				CA7A00000000000000000A05 /* PrivacyInfo.xcprivacy */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -286,6 +316,9 @@
 				CA7A00000000000000000B13 /* NextDeadlineWidget.swift in Sources */,
 				CA7A00000000000000000B14 /* NextClassWidget.swift in Sources */,
 				CA7A00000000000000000B15 /* LibraryWidget.swift in Sources */,
+				CA7A00000000000000000C16 /* DeadlineActivityAttributes.swift in Sources */,
+				CA7A00000000000000000C17 /* DeadlineLiveActivity.swift in Sources */,
+				CA7A00000000000000000C18 /* LockScreenDeadline.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,6 +331,11 @@
 				CA7A00000000000000000A11 /* MainViewController.swift in Sources */,
 				CA7A00000000000000000A12 /* NativeAuthPlugin.swift in Sources */,
 				CA7A00000000000000000A13 /* WidgetBridgePlugin.swift in Sources */,
+				CA7A00000000000000000C11 /* DeadlineActivityPlugin.swift in Sources */,
+				CA7A00000000000000000C12 /* CalendarBridgePlugin.swift in Sources */,
+				CA7A00000000000000000C13 /* SpotlightBridgePlugin.swift in Sources */,
+				CA7A00000000000000000C14 /* AppIntents.swift in Sources */,
+				CA7A00000000000000000C15 /* DeadlineActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,7 +418,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -431,7 +469,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -449,7 +487,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -472,7 +510,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -494,7 +532,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ConcordiaWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -518,7 +556,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ConcordiaWidgets/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

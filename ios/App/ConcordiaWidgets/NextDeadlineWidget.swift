@@ -29,13 +29,19 @@ struct DeadlineProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<DeadlineEntry>) -> Void) {
         let now = Date()
         var entries = [entry(at: now)]
+        // Hourly for the next six hours, so the Lock Screen's "3h" / "45m"
+        // counts down between deadlines rather than only at them.
+        for h in 1...6 {
+            entries.append(entry(at: now.addingTimeInterval(Double(h) * 3600)))
+        }
         if let snap = SnapshotStore.load() {
             for d in snap.deadlines.sorted(by: { $0.due < $1.due }) where d.due > now {
                 entries.append(entry(at: d.due.addingTimeInterval(1)))
-                if entries.count >= 12 { break }
+                if entries.count >= 18 { break }
             }
         }
         // At least every few hours, so "Tomorrow" becomes "Today" on time.
+        entries.sort { $0.date < $1.date }
         completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(3 * 3600))))
     }
 
@@ -109,10 +115,30 @@ struct NextDeadlineView: View {
 struct NextDeadlineWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "NextDeadline", provider: DeadlineProvider()) { entry in
-            NextDeadlineView(entry: entry)
+            NextDeadlineFamilyView(entry: entry)
         }
         .configurationDisplayName("Next deadline")
         .description("What is due next, from your courses.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([
+            .systemSmall, .systemMedium,
+            .accessoryCircular, .accessoryRectangular, .accessoryInline
+        ])
+    }
+}
+
+/// Home Screen sizes draw the card; Lock Screen sizes draw the minimal view.
+struct NextDeadlineFamilyView: View {
+    @Environment(\.widgetFamily) var family
+    let entry: DeadlineEntry
+
+    var body: some View {
+        switch family {
+        case .accessoryCircular, .accessoryRectangular, .accessoryInline:
+            LockScreenDeadlineView(entry: entry)
+                .containerBackground(for: .widget) { Color.clear }
+                .widgetURL(URL(string: "https://concordiatracker.com/app"))
+        default:
+            NextDeadlineView(entry: entry)
+        }
     }
 }

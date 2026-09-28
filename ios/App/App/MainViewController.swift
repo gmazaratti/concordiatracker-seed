@@ -25,6 +25,10 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NativeAuthPlugin())
         bridge?.registerPluginInstance(WidgetBridgePlugin())
         bridge?.registerPluginInstance(NativeChromePlugin())
+        bridge?.registerPluginInstance(CalendarBridgePlugin())
+        bridge?.registerPluginInstance(SpotlightBridgePlugin())
+        bridge?.registerPluginInstance(DeadlineActivityPlugin())
+        bridge?.registerPluginInstance(SiriBridgePlugin())
 
         let nc = NotificationCenter.default
         nc.addObserver(self, selector: #selector(keyboardWillChange(_:)),

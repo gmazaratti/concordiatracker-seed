@@ -119,3 +119,52 @@ export const APNS_HOSTS = {
   sandbox: 'https://api.sandbox.push.apple.com',
 } as const
 export type ApnsEnv = keyof typeof APNS_HOSTS
+
+/**
+ * A push-to-start for the "next assignment due" Live Activity (iOS 17.2+).
+ *
+ * The phone registers a push-to-start token (a different token from its
+ * ordinary device token); this starts the activity with the app closed.
+ * THE SHAPE MUST DECODE into ios/App/Shared/DeadlineActivityAttributes.swift:
+ * `attributes` into the struct's stored properties and `content-state` into
+ * its ContentState. The due time is `dueEpoch`, plain Unix seconds, precisely
+ * so no Date coding strategy has to be agreed between here and Swift.
+ */
+export interface LiveActivityStart {
+  assessmentId: string
+  title: string
+  course: string
+  colorHex: string
+  path: string
+  dueEpoch: number
+  alertTitle: string
+  alertBody: string
+}
+
+export function liveActivityStartBody(s: LiveActivityStart, nowSec: number): string {
+  return JSON.stringify({
+    aps: {
+      timestamp: nowSec,
+      event: 'start',
+      'attributes-type': 'DeadlineActivityAttributes',
+      attributes: { assessmentId: s.assessmentId, colorHex: s.colorHex, path: s.path },
+      'content-state': { title: s.title, course: s.course, dueEpoch: s.dueEpoch, outcome: 'pending' },
+      // Stale at the deadline: the card then reads "Overdue" by itself.
+      'stale-date': Math.floor(s.dueEpoch),
+      'relevance-score': 80,
+      // Required for push-to-start; this is also what shows on arrival.
+      alert: { title: s.alertTitle, body: s.alertBody },
+    },
+  })
+}
+
+export function liveActivityHeaders(token: string, bundleId: string, pushToStartToken: string) {
+  return {
+    ':method': 'POST',
+    ':path': `/3/device/${pushToStartToken}`,
+    authorization: `bearer ${token}`,
+    'apns-topic': `${bundleId}.push-type.liveactivity`,
+    'apns-push-type': 'liveactivity',
+    'apns-priority': '10',
+  }
+}

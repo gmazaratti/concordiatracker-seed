@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation, useSearchParams } from 'react-router-dom'
 import { useTransitionClick } from '@/lib/view-transition'
+import { haptic } from '@/lib/haptics'
 import { ArrowLeft } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
@@ -98,7 +99,10 @@ export function MobileNav() {
               key={to}
               to={to}
               end={end}
-              onClick={transition(to, 'tab')}
+              onClick={(e) => {
+                haptic('tap')
+                transition(to, 'tab')(e)
+              }}
               className={({ isActive }) =>
                 cn(
                   'flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-[10px] transition-colors duration-150 active:scale-95',

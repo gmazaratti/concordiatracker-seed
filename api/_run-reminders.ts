@@ -14,11 +14,30 @@
  * to each owner's devices using the service-role key (cross-user read), then
  * marks them sent so they never repeat. Expired endpoints (404/410) are pruned.
  */
-import { SUB_COLS, closePush, sendPush, type PushMessage, type PushTarget } from './_push-send.js'
+import { SUB_COLS, closePush, sendLiveActivityStart, sendPush, type PushMessage, type PushTarget } from './_push-send.js'
+import { courseColor } from '../src/lib/course-color.js'
 import type { ApnsEnv } from './_apns.js'
 import { runBellPushes } from './_bell-push.js'
 import { bySection, fetchSchedule, num } from './_concordia.js'
 import { fail } from './_respond.js'
+import { reminderCopy } from '../src/lib/reminder-copy.js'
+
+/**
+ * A Moodle event's summary without the course short name or the trailing verb
+ * ("FINA-210-2262-B Assignment 2 is due" → "Assignment 2"). A small local
+ * copy of src/lib/moodle-match's, because that module imports through the
+ * `@/` alias and the API runs TypeScript with Node's own resolver: importing
+ * it here would fail at load and take every reminder down with it.
+ */
+function moodleTitle(summary: string): string {
+  return (
+    summary
+      .replace(/\b[A-Z]{3,4}[\s-]?\d{3}[A-Z]?(-\d{4}-[A-Z0-9]{1,4})?\b:?/g, ' ')
+      .replace(/\s+(is due|opens|closes|is open|due)\s*$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim() || summary
+  )
+}
 
 interface Reminder {
   id: string
@@ -28,6 +47,29 @@ interface Reminder {
   url: string
 }
 type SubRow = PushTarget
+
+interface LiveStartRow {
+  user_id: string
+  tokens: { token: string; env: ApnsEnv | null }[] | null
+  assessment_id: string
+  title: string
+  course: string
+  course_id: string | null
+  color: string
+  due_at: string
+}
+
+interface AssignmentReminderRow {
+  user_id: string
+  item_kind: 'assignment' | 'moodle'
+  item_id: string
+  title: string
+  course: string
+  course_id: string | null
+  due_at: string
+  offset_minutes: number
+  tone: string
+}
 
 interface AdminDigest {
   user_id: string
@@ -134,7 +176,9 @@ export async function runReminders(req: any, res: any) {
   // Due, un-sent reminders.
   const now = new Date().toISOString()
   const dueRes = await fetch(
-    `${supabaseUrl}/rest/v1/reminders?select=id,user_id,title,body,url` +
+    // Assignment reminders moved to claim_assignment_reminders below
+    // (db/assignment_reminders.sql copied the old lead times across).
+    `${supabaseUrl}/rest/v1/reminders?select=id,user_id,title,body,url&kind=neq.assignment` +
       `&sent_at=is.null&fire_at=lte.${now}&order=fire_at.asc&limit=${BATCH}`,
     { headers: svc },
   )
@@ -207,6 +251,97 @@ export async function runReminders(req: any, res: any) {
       headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ sent_at: new Date().toISOString() }),
     })
+  }
+
+  // Assignment reminders: every assignment's defaults + its own lead times,
+  // composed in the student's chosen voice by the same module the phone uses.
+  // WEB ONLY: the iPhone app schedules these itself as local notifications (so
+  // they fire offline), and pushing them to the phone too would double them.
+  // Claimed in the database as they are returned, so a second tick cannot
+  // resend. Best-effort, like everything after the reminders above.
+  let assignmentSent = 0
+  try {
+    const r = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_assignment_reminders`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (r.ok) {
+      const rows = (await r.json()) as AssignmentReminderRow[]
+      for (const row of rows) {
+        const words = reminderCopy({
+          tone: row.tone === 'formal' ? 'formal' : 'cool',
+          title: row.item_kind === 'moodle' ? moodleTitle(row.title) : row.title,
+          course: row.course,
+          offsetMinutes: row.offset_minutes,
+          seed: row.item_id,
+        })
+        const url =
+          row.item_kind === 'assignment' && row.course_id
+            ? `/app/courses/${row.course_id}?focus=${row.item_id}`
+            : '/app'
+        const subs = await subsFor(row.user_id)
+        assignmentSent += await deliver(
+          subs,
+          JSON.stringify({ ...words, url, tag: `ct-due-${row.item_id}-${row.offset_minutes}` }),
+          { webOnly: true },
+        )
+      }
+    }
+  } catch {
+    /* assignment reminders are best-effort — never block the rest */
+  }
+
+  // The "next assignment due" Live Activity, started on phones with the app
+  // closed (push-to-start, iOS 17.2+). The app starts it itself when it is open
+  // inside the window; this covers the hours it is not. Claimed per
+  // assignment-and-due-time in the database, so it starts once.
+  let liveStarted = 0
+  try {
+    const r = await fetch(`${supabaseUrl}/rest/v1/rpc/claim_live_activity_starts`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    if (r.ok) {
+      const rows = (await r.json()) as LiveStartRow[]
+      for (const row of rows) {
+        const minutesLeft = Math.max(1, Math.round((Date.parse(row.due_at) - Date.now()) / 3_600_000) * 60)
+        const words = reminderCopy({
+          tone: 'formal',
+          title: row.title,
+          course: row.course,
+          offsetMinutes: minutesLeft,
+          seed: row.assessment_id,
+        })
+        for (const t of row.tokens ?? []) {
+          const res = await sendLiveActivityStart(t.token, t.env, {
+            assessmentId: row.assessment_id,
+            title: row.title || 'Untitled',
+            course: row.course,
+            colorHex: courseColor(row.color).hex,
+            path: row.course_id ? `/app/courses/${row.course_id}?focus=${row.assessment_id}` : '/app',
+            dueEpoch: Date.parse(row.due_at) / 1000,
+            alertTitle: words.title,
+            alertBody: words.body,
+          })
+          if (res.status === 'ok') liveStarted++
+          if (res.status === 'gone' || (res.status === 'ok' && 'env' in res && res.env)) {
+            await fetch(`${supabaseUrl}/rest/v1/rpc/live_activity_token_result`, {
+              method: 'POST',
+              headers: { ...svc, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                p_token: t.token,
+                p_gone: res.status === 'gone',
+                p_env: res.status === 'ok' && 'env' in res ? res.env : null,
+              }),
+            })
+          }
+        }
+      }
+    }
+  } catch {
+    /* Live Activities are best-effort — never block the rest */
   }
 
   // Trial-ending warnings — 24h before the card is charged. The RPC claims the
@@ -405,5 +540,5 @@ export async function runReminders(req: any, res: any) {
     )
   }
 
-  res.status(200).json({ processed: processedIds.length, sent, trialSent, seatSent, adminSent, bellSent })
+  res.status(200).json({ processed: processedIds.length, sent, assignmentSent, liveStarted, trialSent, seatSent, adminSent, bellSent })
 }

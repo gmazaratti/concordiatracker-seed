@@ -45,12 +45,14 @@ import { TourOverlay } from '@/features/tour/TourOverlay'
 import { OfflineBanner, OfflineScreen } from '@/components/OfflineNotice'
 import { useOfflineState } from '@/lib/offline-state'
 import { useWidgetSnapshot } from '@/lib/widget-bridge'
+import { useNativeDeadlineSync } from '@/features/reminders/useNativeDeadlineSync'
+import { QuickAddAssignment } from '@/features/reminders/QuickAddAssignment'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
 export function StudentLayout({ children }: { children?: React.ReactNode } = {}) {
   const { user, loading } = useAuth()
-  const { onboardingCompleted, courses, pastCourses, assessments, dataLoading } = useAppData()
+  const { onboardingCompleted, courses, pastCourses, assessments, personalTasks, dataLoading } = useAppData()
   const { pathname } = useLocation()
   // A tab animates only once its (lazy) page has rendered: lib/view-transition.
   useEffect(() => {
@@ -69,6 +71,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   const offline = useOfflineState()
   // The iOS Home Screen widgets read a snapshot of the term (lib/widget-bridge).
   useWidgetSnapshot(courses, assessments, !dataLoading && !offline)
+  useNativeDeadlineSync(assessments, courses, personalTasks, !dataLoading && !offline)
 
   /**
    * A PROFILE OWNS THE WHOLE SCREEN, and so does Community.
@@ -187,6 +190,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
           before any other one-time prompt. */}
       {!PURCHASES_HIDDEN && <ProGiftCelebration />}
       <GradePrompt />
+      <QuickAddAssignment />
       {!PURCHASES_HIDDEN && <SubscriptionCelebration />}
       <EndOfTermPrompt />
       <AdminActivityToaster />

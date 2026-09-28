@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { haptic } from '@/lib/haptics'
 
 export interface SwipeAction {
   id: string
@@ -186,6 +187,7 @@ export function SwipeRow({
               onClick={() => {
                 setOpen(false)
                 put(0)
+                if (a.danger) haptic('warning')
                 a.onSelect()
               }}
               className={cn(

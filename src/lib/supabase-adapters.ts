@@ -161,6 +161,8 @@ export interface AssignmentRow {
   source_item?: string | null
   teacher_prev?: { due?: string | null; title?: string; weight?: number } | null
   teacher_changed_at?: string | null
+  /** db/assignment_reminders.sql: extra lead times (minutes) for this one. */
+  reminders?: number[] | null
 }
 
 const SEED_KINDS = new Set<string>(['assignment', 'quiz', 'midterm', 'final', 'lab', 'reading', 'project'])
@@ -234,6 +236,7 @@ export function assessmentFromRow(r: AssignmentRow): Assessment {
         : undefined,
     teacherPrev: r.teacher_prev ?? null,
     teacherChangedAt: r.teacher_changed_at ?? null,
+    reminders: r.reminders?.length ? [...r.reminders] : undefined,
   }
 }
 
@@ -273,6 +276,7 @@ export function assessmentPatchToRow(patch: Partial<Assessment>): Record<string,
   if ('description' in patch) row.description = patch.description ?? null
   if ('noDate' in patch) row.no_date = !!patch.noDate
   if ('teacherPrev' in patch) row.teacher_prev = patch.teacherPrev ?? null
+  if ('reminders' in patch) row.reminders = patch.reminders ?? []
   if (patch.provenance) {
     row.provenance_status = patch.provenance.status
     row.provenance_confirmations = patch.provenance.confirmations ?? 0

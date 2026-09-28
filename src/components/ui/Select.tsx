@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { haptic } from '@/lib/haptics'
 
 export interface SelectOption {
   value: string
@@ -83,6 +84,7 @@ export function Select({
     setOpen(true)
   }
   const choose = (v: string) => {
+    if (v !== value) haptic('select')
     onChange(v)
     setOpen(false)
     triggerRef.current?.focus()

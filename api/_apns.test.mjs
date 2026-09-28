@@ -14,6 +14,8 @@ import {
   apnsJwt,
   apnsToken,
   classifyApns,
+  liveActivityHeaders,
+  liveActivityStartBody,
   normalisePem,
 } from './_apns.ts'
 
@@ -95,6 +97,29 @@ console.log('\nthe request')
   check('topic is the bundle id', h['apns-topic'] === 'com.concordiatracker.app')
   check('push type is alert', h['apns-push-type'] === 'alert')
   check('collapse id capped at 64 bytes', Buffer.byteLength(h['apns-collapse-id']) <= 64)
+}
+
+{
+  // Push-to-start: must decode into DeadlineActivityAttributes on the phone.
+  const body = JSON.parse(
+    liveActivityStartBody(
+      {
+        assessmentId: 'a1', title: 'Assignment 1', course: 'COMM 305', colorHex: '#3b82f6',
+        path: '/app/courses/c1?focus=a1', dueEpoch: 1790000000.5, alertTitle: 'T', alertBody: 'B',
+      },
+      1789990000,
+    ),
+  ).aps
+  check('live activity: event is start', body.event === 'start')
+  check('live activity: attributes-type is the Swift struct', body['attributes-type'] === 'DeadlineActivityAttributes')
+  check('live activity: attributes carry id, colour, path', body.attributes.assessmentId === 'a1' && body.attributes.colorHex === '#3b82f6' && body.attributes.path.startsWith('/app/'))
+  check('live activity: content-state keys match ContentState', ['title', 'course', 'dueEpoch', 'outcome'].every((k) => k in body['content-state']))
+  check('live activity: due is plain epoch seconds', body['content-state'].dueEpoch === 1790000000.5)
+  check('live activity: alert present (required to start)', body.alert.title === 'T' && body.alert.body === 'B')
+  check('live activity: stale at the deadline', body['stale-date'] === 1790000000)
+  const lh = liveActivityHeaders('jwt', 'com.concordiatracker.app', 'tok')
+  check('live activity: push type', lh['apns-push-type'] === 'liveactivity')
+  check('live activity: topic suffix', lh['apns-topic'] === 'com.concordiatracker.app.push-type.liveactivity')
 }
 
 console.log(failures ? `\n${failures} failed\n` : '\nall passed\n')

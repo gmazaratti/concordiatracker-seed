@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
-import {
-  clearReminder,
-  getReminderOffset,
-  leadLabel,
-  REMINDER_OPTIONS,
-  setReminder,
-} from '@/lib/reminders'
+import { ReminderChips } from '@/features/reminders/ReminderChips'
+import { useReminderPrefs } from '@/features/reminders/useReminderPrefs'
+import { AssessmentNativeActions } from '@/features/reminders/AssessmentNativeActions'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
@@ -45,22 +41,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const [dueISO, setDueISO] = useState<string | null>(assessment?.due ?? null)
   const [noDate, setNoDate] = useState(!!assessment?.noDate)
   const [notes, setNotes] = useState(assessment?.notes ?? '')
-  const [reminderOffset, setReminderOffset] = useState(0)
-  const [reminderInitial, setReminderInitial] = useState(0)
-
-  // Load this assignment's saved reminder lead time (async; safe to set in .then).
-  useEffect(() => {
-    let active = true
-    void getReminderOffset('assignment', id).then((o) => {
-      if (active) {
-        setReminderOffset(o)
-        setReminderInitial(o)
-      }
-    })
-    return () => {
-      active = false
-    }
-  }, [id])
+  const [reminders, setReminders] = useState<number[]>(assessment?.reminders ?? [])
+  const [prefs] = useReminderPrefs()
 
   if (!assessment || !course) return null
 
@@ -77,26 +59,11 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const dueDirty = dueISO !== assessment.due
   const noDateDirty = noDate !== !!assessment.noDate
   const notesDirty = notes !== assessment.notes
-  const reminderDirty = reminderOffset !== reminderInitial
+  const reminderDirty = reminders.join(',') !== (assessment.reminders ?? []).join(',')
   const dirty = statusDirty || gradeDirty || dueDirty || noDateDirty || notesDirty || reminderDirty
 
   function save() {
     if (!assessment || !course || !dirty || gradeError) return
-
-    // Reminder side-write: (re)schedule when set + dated, clear when turned off.
-    if (reminderOffset > 0 && dueISO && (reminderDirty || dueDirty)) {
-      void setReminder({
-        kind: 'assignment',
-        refId: assessment.id,
-        dueISO,
-        offsetMinutes: reminderOffset,
-        title: assessment.title,
-        body: `${course.code} · due in ${leadLabel(reminderOffset)}`,
-        url: `/app/courses/${assessment.courseId}`,
-      })
-    } else if (reminderOffset === 0 && reminderInitial > 0) {
-      void clearReminder('assignment', assessment.id)
-    }
 
     const patch: Partial<Assessment> = {}
     if (statusDirty) patch.status = status
@@ -104,6 +71,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
     if (dueDirty) patch.due = dueISO
     if (noDateDirty) patch.noDate = noDate
     if (notesDirty) patch.notes = notes
+    if (reminderDirty) patch.reminders = reminders
 
     closeTarget()
 
@@ -114,6 +82,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
         due: assessment.due,
         noDate: !!assessment.noDate,
         notes: assessment.notes,
+        reminders: assessment.reminders ?? [],
       }
       updateAssessment(assessment.id, patch)
       // Changing a date "broadcasts" the correction back to the section (mocked) —
@@ -223,18 +192,17 @@ export function AssessmentDetailModal({ id }: { id: string }) {
         </div>
 
         <div className="mt-4">
-          <Field label="Reminder">
-            <Select
-              ariaLabel="Reminder"
-              value={String(reminderOffset)}
-              onChange={(v) => setReminderOffset(Number(v))}
-              tone="control"
-              options={REMINDER_OPTIONS.map((o) => ({ value: String(o.minutes), label: o.label }))}
+          <Field label="Reminders">
+            <ReminderChips
+              value={reminders}
+              onChange={setReminders}
+              defaults={prefs.defaults}
+              enabled={prefs.enabled}
             />
           </Field>
-          {reminderOffset > 0 && !dueISO && (
+          {!dueISO && (
             <p className="mt-1 text-[12px] text-warning">
-              Add a due date so the reminder has a time to fire.
+              Add a due date so the reminders have a time to fire.
             </p>
           )}
         </div>
@@ -251,6 +219,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
             />
           </Field>
         </div>
+
+        <AssessmentNativeActions assessment={assessment} course={course} />
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <button

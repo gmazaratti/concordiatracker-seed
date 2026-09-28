@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDueDateTime, noDateLabel, tbdLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { haptic } from '@/lib/haptics'
 import { Select } from './Select'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -81,6 +82,7 @@ export function DateTimePicker({
   // so choosing one clears it — the two can never both be true.
   const onChangeDate = (iso: string | null) => {
     if (noDate) onNoDate?.(false)
+    haptic('select')
     onChange(iso)
   }
   // With no date the calendar still has to open on some month and focus some

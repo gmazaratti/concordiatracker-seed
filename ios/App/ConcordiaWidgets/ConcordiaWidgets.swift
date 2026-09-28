@@ -8,5 +8,7 @@ struct ConcordiaWidgets: WidgetBundle {
         NextDeadlineWidget()
         NextClassWidget()
         LibraryWidget()
+        // The "next assignment due" Live Activity (Lock Screen + Dynamic Island).
+        DeadlineLiveActivity()
     }
 }

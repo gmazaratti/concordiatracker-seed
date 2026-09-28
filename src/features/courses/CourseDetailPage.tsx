@@ -40,7 +40,9 @@ export function CourseDetailPage() {
      *  to notice a small link and type it out by hand. */
     autofill?: boolean
   } | null
-  const focusId = state?.focus
+  // `?focus=` is the same thing as a link: a notification, a Spotlight result
+  // or a shared URL cannot carry router state, only an address.
+  const focusId = state?.focus ?? (new URLSearchParams(location.search).get('focus') || undefined)
   const importItems = state?.importItems
   const importDetails = state?.importDetails
   const {

@@ -10,6 +10,8 @@ import { releaseNativePushToken } from '@/lib/native-push'
 import { siteOrigin } from '@/lib/site-origin'
 import { clearOfflineCache } from '@/lib/offline-cache'
 import { clearWidgets } from '@/lib/widget-bridge'
+import { cancelLocalReminders } from '@/lib/assignment-reminders'
+import { endDeadlineActivity, spotlightClear, unregisterLiveActivityToken } from '@/lib/native-extras'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
@@ -186,11 +188,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // While the session still exists: stop this phone getting the account's
     // notifications (a no-op in a browser).
     await releaseNativePushToken()
+    // Same for the Live Activity's push-to-start token: it needs the session.
+    await unregisterLiveActivityToken()
     await supabase.auth.signOut({ scope: 'local' })
     // The saved offline copy holds grades, and the widgets show deadlines: a
     // shared phone must keep neither for the next person.
     clearOfflineCache()
     void clearWidgets()
+    // Nobody else's deadlines on this phone: reminders, the Live Activity and
+    // Spotlight results all belong to the account that just left.
+    void cancelLocalReminders()
+    void endDeadlineActivity('none')
+    void spotlightClear()
   }, [])
 
   const value = useMemo(

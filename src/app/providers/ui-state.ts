@@ -30,6 +30,23 @@ export interface UiState {
    *  `dim` is how much of the page colour is laid over it, 0–90. */
   todayBackground?: { preset?: string; path?: string; v?: number; url?: string; dim: number }
   checklistDismissed?: boolean
+  /**
+   * Assignment reminders (lib/assignment-reminders). Stored here, on the
+   * profile row, because the SERVER reads it too: the phone schedules its own
+   * notifications from these, and the cron sends browsers the same reminders
+   * in the same voice. Absent keys mean the defaults (on, 1 day + 1 hour,
+   * cool, Live Activity 6 hours out).
+   */
+  assignmentReminders?: {
+    enabled?: boolean
+    /** Minutes before the deadline, applied to every assignment. */
+    defaults?: number[]
+    tone?: 'cool' | 'formal'
+    /** iPhone: the "next assignment due" Live Activity. */
+    liveActivity?: boolean
+    /** Start the Live Activity this many hours before a deadline. */
+    liveWindowHours?: number
+  }
   /** Finished or skipped the teacher portal's setup wizard. */
   teacherSetupDone?: boolean
   communityVisited?: boolean

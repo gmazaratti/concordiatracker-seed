@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { haptic } from '@/lib/haptics'
 
 export interface MenuItem {
   id: string
@@ -72,6 +73,8 @@ export function DropdownMenu({
   const select = (i: number) => {
     setOpen(false)
     triggerRef.current?.focus()
+    // A destructive item (Delete) warns in the hand as well as in red.
+    if (items[i]?.danger) haptic('warning')
     items[i]?.onSelect()
   }
 

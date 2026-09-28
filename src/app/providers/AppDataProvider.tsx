@@ -13,6 +13,7 @@ import { coursePercent, percentToGrade } from '@/lib/gpa'
 import { courseKey, findSameCourse } from '@/lib/course-match'
 import { normalizeTerm } from '@/lib/term'
 import { isFinishedTerm } from '@/features/planner/past-terms'
+import { donateAddAssignment } from '@/lib/native-extras'
 import { catalogueFacts } from '@/lib/catalog'
 import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
@@ -433,6 +434,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       // Returned so a caller that needs the new ids (an undo) has them.
       const created = data ? (data as AssignmentRow[]).map(assessmentFromRow) : []
       if (created.length) updateAssessments((list) => [...list, ...created])
+      // One assignment added by hand is what Siri should learn to suggest; a
+      // syllabus import of twelve is not.
+      if (created.length === 1) donateAddAssignment(created[0].title)
       return created
     },
     [authUser, updateAssessments],

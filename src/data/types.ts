@@ -123,6 +123,12 @@ export interface Assessment {
    *  it. Only the keys that changed. Null once acknowledged. */
   teacherPrev?: { due?: string | null; title?: string; weight?: number } | null
   teacherChangedAt?: string | null
+  /**
+   * This assignment's OWN reminders, in minutes before it is due. They are
+   * added to the defaults in Settings, never instead of them
+   * (lib/reminder-copy mergeOffsets). Absent = just the defaults.
+   */
+  reminders?: number[]
 }
 
 /** A personal calendar task/note the user adds (the "My calendar" layer, beyond

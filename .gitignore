@@ -63,6 +63,7 @@ email-preview.html
 # generated parts (the copied web build, capacitor.config.json, build output).
 android/
 .record-export.test.tmp.mjs
+.reminders.test.tmp.mjs
 .outlines/
 .econcordia.bundle.mjs
 .econcordia.test.tmp.mjs
