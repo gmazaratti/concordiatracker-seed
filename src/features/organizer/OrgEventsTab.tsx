@@ -136,7 +136,7 @@ function EventCard({ event, orgColor, past }: { event: ManagedEvent; orgColor: s
     >
       <div className="relative h-24 w-full overflow-hidden" style={{ backgroundColor: orgColor }} aria-hidden>
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-black/35" />
-        <span className="absolute top-2.5 left-2.5 grid size-7 place-items-center rounded-md bg-white/20 text-white backdrop-blur-sm">
+        <span className="absolute top-2.5 left-2.5 grid size-7 place-items-center rounded-md bg-black/40 text-white">
           <Icon size={15} />
         </span>
         {(past || event.isDraft) && (

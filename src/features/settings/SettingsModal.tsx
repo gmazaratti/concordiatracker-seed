@@ -185,7 +185,7 @@ export function SettingsModal() {
      * is small enough for it to work: see AvatarMenu.
      */
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-stretch justify-center bg-black/55 backdrop-blur-sm sm:items-center sm:p-4"
+      className="ct-animate-fade fixed inset-0 z-50 flex items-stretch justify-center bg-black/55 sm:items-center sm:p-4"
       onMouseDown={closeSettings}
     >
       <div

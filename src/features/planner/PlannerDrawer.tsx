@@ -57,7 +57,7 @@ function Panel<T extends string>({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/55"
       />
       <div
         {...dismiss}

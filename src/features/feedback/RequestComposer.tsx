@@ -88,7 +88,7 @@ export function RequestComposer({
   return (
     <>
       <button
-        className="fixed inset-0 z-30 cursor-default bg-canvas/60 backdrop-blur-sm"
+        className="fixed inset-0 z-30 cursor-default bg-black/55"
         onClick={collapse}
         aria-label="Close composer"
         tabIndex={-1}

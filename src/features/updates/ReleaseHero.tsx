@@ -66,7 +66,7 @@ export function ReleaseHero({ release }: { release: Release }) {
           {hero.highlights.map((h) => {
             const Icon = h.icon ? ICON[h.icon] : Sparkles
             return (
-              <li key={h.title} className="flex gap-3 rounded-2xl border border-border/70 bg-canvas/60 p-3.5 backdrop-blur-sm">
+              <li key={h.title} className="flex gap-3 rounded-2xl border border-border/70 bg-canvas/60 p-3.5">
                 <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                   <Icon size={18} aria-hidden />
                 </span>

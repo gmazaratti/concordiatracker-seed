@@ -47,7 +47,7 @@ export function EventMedia({
       </span>
       {v.handle ? (
         <>
-          <span className="absolute top-3 left-3 grid size-7 place-items-center rounded-md bg-white/20 text-white backdrop-blur-sm">
+          <span className="absolute top-3 left-3 grid size-7 place-items-center rounded-md bg-black/40 text-white">
             <Icon size={v.icon} />
           </span>
           <span className="absolute bottom-3 left-3.5 text-[13px] font-semibold tracking-wide text-white">

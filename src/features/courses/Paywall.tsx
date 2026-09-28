@@ -30,7 +30,7 @@ export function PaywallLock({
       >
         {children}
       </div>
-      <div className="absolute inset-0 grid place-items-center bg-canvas/55 p-4 text-center backdrop-blur-[1px]">
+      <div className="absolute inset-0 grid place-items-center bg-canvas/85 p-4 text-center">
         <div className="flex flex-col items-center gap-2">
           <span className="grid size-9 place-items-center rounded-lg bg-accent/15 text-accent">
             <Lock size={16} aria-hidden />
