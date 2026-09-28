@@ -5,6 +5,7 @@ import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
 import { currentTermName, isFinishedTerm, isUpcomingTerm } from '@/features/planner/past-terms'
 import { coursePercent, currentGpa } from '@/lib/gpa'
+import { looksFinished } from '@/lib/leftover-course'
 import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
 import { useT } from '@/i18n/i18n'
@@ -46,8 +47,27 @@ export function CoursesPage() {
     () => courses.filter((c) => c.term && isUpcomingTerm(c.term) && c.term !== currentTermName()),
     [courses],
   )
-  // A finished term is not this term, archived or not (see UnfiledPastCourses).
-  const unfiled = useMemo(() => courses.filter((c) => c.term && isFinishedTerm(c.term)), [courses])
+  // A finished term name alone is NOT enough to move a live course out of This
+  // term: a class added in late August is filed under Summer and is the one the
+  // student is attending in September (TKT-1034). Only a course with evidence it
+  // is over (a final grade, or all its work dated before this term) is offered
+  // for filing; everything else stays visible here.
+  const unfiled = useMemo(() => {
+    const now = new Date()
+    return courses.filter(
+      (c) =>
+        c.term &&
+        isFinishedTerm(c.term, now) &&
+        looksFinished(
+          {
+            finalPercent: c.finalPercent,
+            finalLetter: c.finalLetter,
+            dues: assessments.filter((a) => a.courseId === c.id).map((a) => a.due),
+          },
+          now,
+        ),
+    )
+  }, [courses, assessments])
   const thisTerm = useMemo(
     () => courses.filter((c) => !upcoming.includes(c) && !unfiled.includes(c)),
     [courses, upcoming, unfiled],
