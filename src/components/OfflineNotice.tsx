@@ -1,7 +1,8 @@
-import { CloudOff, RefreshCw, WifiOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { CheckCircle2, CloudOff, RefreshCw, WifiOff } from 'lucide-react'
 import { useOfflineState, useOnline } from '@/lib/offline-state'
 import { formatTime } from '@/lib/date'
-import { usePendingWrites } from '@/lib/offline-fetch'
+import { usePendingChangeCount } from '@/lib/offline-fetch'
 
 /**
  * What the app says when the network is gone. Two shapes, for two situations.
@@ -19,8 +20,37 @@ import { usePendingWrites } from '@/lib/offline-fetch'
 export function OfflineBanner() {
   const offline = useOfflineState()
   const online = useOnline()
-  const pending = usePendingWrites().length
+  const pending = usePendingChangeCount()
   const waiting = pending === 1 ? '1 change' : `${pending} changes`
+  // "All changes synced", briefly, when the queue empties — so reconnecting
+  // ends in a confirmation rather than a banner that quietly disappears.
+  const [synced, setSynced] = useState<number | null>(null)
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined
+    const on = (e: Event) => {
+      const n = (e as CustomEvent<{ changes?: number }>).detail?.changes ?? 0
+      if (!n) return
+      setSynced(n)
+      clearTimeout(t)
+      t = setTimeout(() => setSynced(null), 2800)
+    }
+    window.addEventListener('ct:offline-synced', on)
+    return () => {
+      window.removeEventListener('ct:offline-synced', on)
+      clearTimeout(t)
+    }
+  }, [])
+
+  if (online && !pending && synced) {
+    return (
+      <div role="status" className="flex items-center gap-2 border-b border-success/30 bg-success/10 px-4 py-2 text-[12.5px] text-fg">
+        <CheckCircle2 size={14} className="shrink-0 text-success" aria-hidden />
+        <span className="min-w-0 flex-1">
+          All changes synced{synced > 1 ? ` (${synced})` : ''}.
+        </span>
+      </div>
+    )
+  }
 
   // Online, nothing queued, live data: nothing to say.
   if (online && !pending && !offline?.savedAt) return null
@@ -75,7 +105,7 @@ export function OfflineBanner() {
 export function OfflineScreen() {
   const online = useOnline()
   return (
-    <div className="grid h-[100dvh] place-items-center bg-canvas px-6 text-center">
+    <div className="grid h-[var(--ct-app-h,100dvh)] place-items-center bg-canvas px-6 text-center">
       <div className="flex max-w-sm flex-col items-center gap-3">
         <span className="grid size-12 place-items-center rounded-2xl bg-surface-2 text-subtle">
           <CloudOff size={22} aria-hidden />

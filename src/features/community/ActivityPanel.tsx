@@ -210,7 +210,7 @@ export function ActivityPanel({ onClose }: { onClose: () => void }) {
           // and nothing else — a pinch on a notification list only ever
           // happens by accident, and it leaves the page zoomed with no
           // obvious way back.
-          'inset-0 h-[100dvh] touch-pan-y',
+          'inset-0 h-[var(--ct-app-h,100dvh)] touch-pan-y',
           // Desktop: anchored to the right edge, its own column.
           'md:inset-y-0 md:left-auto md:h-full md:w-[27rem] md:border-l md:border-border md:shadow-2xl',
         )}

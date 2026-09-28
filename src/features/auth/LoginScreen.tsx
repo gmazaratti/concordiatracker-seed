@@ -171,7 +171,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="safe-y min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
+    <div className="safe-y min-h-[var(--ct-app-h,100dvh)] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
       {/* Phone: the form alone, full width. The showcase is a desktop panel. */}
       <main className="relative flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
         {/* A way out that is not the browser's Back button: straight to the
@@ -405,7 +405,7 @@ export function LoginScreen() {
       {/* Slides in from the right at 300ms, pure CSS. The flow lines live
           INSIDE this panel, so they arrive with it on the first frame rather
           than after it. */}
-      <div className="ct-auth-panel-in sticky top-4 hidden h-[calc(100dvh-2rem)] lg:block">
+      <div className="ct-auth-panel-in sticky top-4 hidden h-[calc(var(--ct-app-h,100dvh)-2rem)] lg:block">
         <AuthShowcase />
       </div>
     </div>

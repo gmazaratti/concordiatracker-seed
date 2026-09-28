@@ -4,7 +4,9 @@ import {
   idsFromFilter,
   injectInsertDefaults,
   readKey,
+  isSilentWrite,
   replayOutcome,
+  retryDelay,
   syntheticReply,
   uidFromAuth,
 } from './offline-rules'
@@ -347,6 +349,7 @@ export function createOfflineFetch(base: typeof fetch, supabaseUrl: string): typ
       try {
         const res = await base(input, init)
         markLive()
+        networkProven()
         if (res.ok) {
           const copy = res.clone()
           void copy.text().then((text) => {
@@ -490,10 +493,34 @@ function enqueue(
 
 let flushing: Promise<void> | null = null
 let retryTimer: ReturnType<typeof setTimeout> | null = null
+/** Consecutive failed attempts, for the backoff (offline-rules retryDelay). */
+let failures = 0
+/** A replayed request that has not answered in this long is treated as a
+ *  dead connection, not a slow one: after airplane mode iOS can hand back a
+ *  socket that died with the radio, and a fetch on it hangs for a minute or
+ *  more — which is what left build 11 "Syncing…" until the app was restarted. */
+const REPLAY_TIMEOUT_MS = 12_000
 
 function scheduleFlush(delay = 0) {
   if (retryTimer) clearTimeout(retryTimer)
-  retryTimer = setTimeout(() => void flushQueue(), delay)
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    void flushQueue()
+  }, delay)
+}
+
+function retryLater() {
+  failures += 1
+  scheduleFlush(retryDelay(failures))
+}
+
+/** Anything that proves the network is back (a real read answered) nudges
+ *  the queue, rather than waiting for an `online` event WKWebView may have
+ *  delivered before the connection was actually usable. */
+function networkProven() {
+  if (!queue.length || flushing) return
+  failures = 0
+  scheduleFlush(0)
 }
 
 const TABLE_WORDS: Record<string, string> = {
@@ -504,43 +531,64 @@ const TABLE_WORDS: Record<string, string> = {
   user_profile: 'A profile change did not save',
 }
 
-/** Replay everything queued, oldest first, stopping at the first sign the
- *  network is still gone. Safe to call any time; concurrent calls share one run. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((res) => setTimeout(() => res(null), ms))])
+}
+
+/** Replay everything queued, oldest first. On any sign the network is not
+ *  really back yet it stops and tries again on a short backoff — it never just
+ *  gives up, which is the bug that needed a restart to sync. Safe to call any
+ *  time; concurrent calls share one run. */
 export function flushQueue(): Promise<void> {
   if (flushing) return flushing
   flushing = (async () => {
     let synced = 0
+    let counted = 0
     try {
-      if (offlineNow() || queue.length === 0) return
-      let token = await tokenProvider()
+      if (queue.length === 0) return
+      if (offlineNow()) return // the `online` event starts us again
+      let token = await withTimeout(tokenProvider(), 8_000)
       const me = token ? uidFromAuth(`Bearer ${token}`) : null
-      if (!me) return
+      if (!me) {
+        // No session yet (a token renewal that needs this very connection).
+        retryLater()
+        return
+      }
       while (true) {
         const next = queue.find((q) => q.uid === me)
         if (!next) break
-        const send = async (t: string) =>
+        const send = (t: string) =>
           baseFetch(next.url, {
             method: next.method,
             headers: { ...next.headers, Authorization: `Bearer ${t}` },
             body: next.body ?? undefined,
+            signal: AbortSignal.timeout(REPLAY_TIMEOUT_MS),
           })
         let res: Response
         try {
           res = await send(token!)
           if (replayOutcome(res.status, next.op) === 'refresh-token') {
-            token = await tokenProvider(true)
-            if (!token) return
+            token = await withTimeout(tokenProvider(true), 8_000)
+            if (!token) {
+              retryLater()
+              return
+            }
             res = await send(token)
           }
         } catch {
-          scheduleFlush(15_000)
+          // A network failure or the timeout: not back yet.
+          retryLater()
           return
         }
         const outcome = replayOutcome(res.status, next.op)
         if (outcome === 'retry-later' || outcome === 'refresh-token') {
-          scheduleFlush(30_000)
+          retryLater()
           return
         }
+        failures = 0
+        // The server answered: whatever the banner said about being offline
+        // is no longer true.
+        markLive()
         if (outcome === 'refused') {
           const detail = await res.text().catch(() => '')
           let parsed: unknown = detail
@@ -554,19 +602,31 @@ export function flushQueue(): Promise<void> {
         queue = queue.filter((q) => q.id !== next.id)
         saveQueue()
         synced += 1
+        if (!isSilentWrite(next)) counted += 1
       }
     } finally {
       flushing = null
       if (synced > 0 && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ct:offline-synced', { detail: { count: synced } }))
+        window.dispatchEvent(new CustomEvent('ct:offline-synced', { detail: { count: synced, changes: counted } }))
       }
     }
   })()
   return flushing
 }
 
+/** How many queued writes are real changes (what the banner counts). */
+export function usePendingChangeCount(): number {
+  const list = usePendingWrites()
+  let n = 0
+  for (const q of list) if (!isSilentWrite(q)) n += 1
+  return n
+}
+
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => scheduleFlush(300))
+  window.addEventListener('online', () => {
+    failures = 0
+    scheduleFlush(500)
+  })
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && queue.length) scheduleFlush(300)
   })

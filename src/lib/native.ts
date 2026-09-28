@@ -175,8 +175,28 @@ function handleUniversalLinks() {
 }
 
 /** Everything above, in the order it should happen. Called from main.tsx. */
+/**
+ * The app's height, in pixels, from the web view itself.
+ *
+ * MainViewController resizes the web view frame by frame as the keyboard
+ * moves. Screens used to be sized in `100dvh`, which WKWebView does not
+ * recompute on every frame of a native resize — so on the way up the page
+ * trailed the keyboard, and on the way DOWN it stayed short until the unit
+ * caught up, then snapped (build 11 QA). `window.innerHeight` is the layout
+ * viewport, updated with each resize; screens read it through `--ct-app-h`
+ * (falling back to `100dvh` in a browser, where none of this applies).
+ */
+function trackAppHeight() {
+  const root = document.documentElement
+  const set = () => root.style.setProperty('--ct-app-h', `${window.innerHeight}px`)
+  set()
+  window.addEventListener('resize', set)
+  window.visualViewport?.addEventListener('resize', set)
+}
+
 export function initNative() {
   if (!isNative()) return
+  trackAppHeight()
   routeApiToSite()
   interceptExternalLinks()
   handleAppBack()

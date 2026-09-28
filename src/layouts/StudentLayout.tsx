@@ -1,6 +1,6 @@
 import { GradePrompt } from '@/features/courses/GradePrompt'
 import { cn } from '@/lib/cn'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
 import { useScrollMemory } from '@/app/hooks/useScrollMemory'
@@ -24,7 +24,7 @@ import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { NotificationToast } from '@/features/community/NotificationToast'
 import { ActivityLayer } from '@/features/community/ActivityLayer'
-import { markTabRendered } from '@/lib/view-transition'
+import { markTabRendered, tabKey } from '@/lib/view-transition'
 import { LiveMessages } from '@/features/profile/LiveMessages'
 import { ThemePreviewBar } from '@/components/ThemePreviewBar'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
@@ -68,6 +68,23 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
      where each page was left. */
   const scroller = useRef<HTMLElement>(null)
   useScrollMemory(scroller)
+  /*
+   * A TAB SWITCH FADES THE PAGE IN. Opacity only, on the scroller: no
+   * transform (which would make <main> the containing block for every fixed
+   * overlay a page opens) and no View Transition (which snapshots the page
+   * and paints it over the floating tab pill — the build-11 dip). Moving
+   * within a tab (a course, a profile) does not fade: that is the same place.
+   */
+  const tab = tabKey(pathname)
+  const lastTab = useRef(tab)
+  useLayoutEffect(() => {
+    if (lastTab.current === tab) return
+    lastTab.current = tab
+    const m = scroller.current
+    if (!m || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (document.documentElement.hasAttribute('data-reduce-motion')) return
+    m.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' })
+  }, [tab])
   const offline = useOfflineState()
   // The iOS Home Screen widgets read a snapshot of the term (lib/widget-bridge).
   useWidgetSnapshot(courses, assessments, !dataLoading && !offline)
@@ -94,7 +111,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
   // returning, already-onboarded user never flashes the app before redirecting.
   if (loading || (user && onboardingCompleted === null)) {
     return (
-      <div className="grid h-[100dvh] place-items-center bg-canvas">
+      <div className="grid h-[var(--ct-app-h,100dvh)] place-items-center bg-canvas">
         <Loader2 className="size-6 animate-spin text-accent" aria-label="Loading" />
       </div>
     )
@@ -104,7 +121,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
 
   return (
     <TourProvider>
-    <div className="flex h-[100dvh] overflow-hidden bg-canvas">
+    <div className="flex h-[var(--ct-app-h,100dvh)] overflow-hidden bg-canvas">
       <Sidebar />
 
       {/* Screens that draw their own top bar (Community, a profile) get the

@@ -206,7 +206,7 @@ export function PostComposer({
       {/* A phone-shaped panel on a desktop: these three screens were drawn
           for one column, and stretching them across 1440px would put the
           photo in one corner and Share in another. */}
-      <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-canvas sm:h-[min(880px,calc(100dvh-2rem))] sm:max-w-[470px] sm:rounded-2xl sm:border sm:border-border">
+      <div className="relative flex h-[var(--ct-app-h,100dvh)] w-full flex-col overflow-hidden bg-canvas sm:h-[min(880px,calc(100dvh-2rem))] sm:max-w-[470px] sm:rounded-2xl sm:border sm:border-border">
         {step === 'pick' && (
           <PickStep
             orgs={orgs}

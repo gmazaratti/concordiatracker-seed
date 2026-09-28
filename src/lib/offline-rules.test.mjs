@@ -1,6 +1,8 @@
 // Node-run checks for lib/offline-rules.ts (`npm run test:offline`).
 import {
   classify,
+  isSilentWrite,
+  retryDelay,
   idsFromFilter,
   injectInsertDefaults,
   readKey,
@@ -37,6 +39,23 @@ check('a toggle RPC is never queued', eq(classify('POST', '/rest/v1/rpc/toggle_s
 check('a toggle RPC is never cached', eq(classify('POST', '/rest/v1/rpc/toggle_repost'), { type: 'pass' }))
 check('follow RPC is never cached', eq(classify('POST', '/rest/v1/rpc/follow_user'), { type: 'pass' }))
 check('unknown RPC passes', eq(classify('POST', '/rest/v1/rpc/send_message_request'), { type: 'pass' }))
+
+check('page-view analytics is never queued', eq(classify('POST', '/rest/v1/site_events'), { type: 'pass' }))
+check('device history is never queued', eq(classify('POST', '/rest/v1/user_device_history'), { type: 'pass' }))
+check('analytics reads are still reads', eq(classify('GET', '/rest/v1/site_events'), { type: 'read' }))
+
+// ── isSilentWrite (what the "N changes" counter skips) ────────────────────
+check('mark-read RPC is silent', isSilentWrite({ op: 'rpc', table: 'mark_thread_read', body: '{}' }))
+check('read_at update is silent', isSilentWrite({ op: 'update', table: 'messages', body: '{"read_at":"x"}' }))
+check('ui_state update is silent', isSilentWrite({ op: 'update', table: 'user_profile', body: '{"ui_state":{}}' }))
+check('marking done is counted', !isSilentWrite({ op: 'update', table: 'assignments', body: '{"status":"done","done":true}' }))
+check('a sent message is counted', !isSilentWrite({ op: 'insert', table: 'messages', body: '{"body":"hi"}' }))
+check('a delete is counted', !isSilentWrite({ op: 'delete', table: 'todos', body: null }))
+
+// ── retryDelay ─────────────────────────────────────────────────────────────
+check('first retry is quick', retryDelay(0) === 2000)
+check('backs off', retryDelay(2) === 10000)
+check('caps at 30s', retryDelay(99) === 30000)
 
 // ── uidFromAuth ────────────────────────────────────────────────────────────
 const tok = (payload) =>

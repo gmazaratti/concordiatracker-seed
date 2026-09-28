@@ -67,7 +67,7 @@ export function SidePanel({
         className={cn(
           'fixed z-[80] flex flex-col bg-canvas outline-none',
           leaving ? 'ct-panel-right-out' : 'ct-panel-right',
-          'inset-0 h-[100dvh] touch-pan-y',
+          'inset-0 h-[var(--ct-app-h,100dvh)] touch-pan-y',
           'md:inset-y-0 md:left-auto md:h-full md:w-[26rem] md:border-l md:border-border md:shadow-2xl',
           className,
         )}

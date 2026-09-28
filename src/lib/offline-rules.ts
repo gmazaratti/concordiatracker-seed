@@ -99,6 +99,15 @@ export const INSERT_DEFAULTS: Record<string, { id: boolean; createdAt: boolean }
   assignments: { id: true, createdAt: false },
 }
 
+/**
+ * Tables written automatically, never by something the person did: page-view
+ * and heartbeat analytics, device bookkeeping. Queuing them offline turned
+ * every tab switch into a "change waiting to sync" (build 11 QA). They are
+ * never queued: offline, they simply fail, and their callers already ignore
+ * that.
+ */
+export const NEVER_QUEUE = new Set(['site_events', 'analytics_events', 'email_events', 'user_device_history'])
+
 export type RequestClass =
   | { type: 'read' }
   | { type: 'write'; table: string; op: 'insert' | 'update' | 'delete' | 'rpc' }
@@ -119,6 +128,7 @@ export function classify(method: string, pathname: string): RequestClass {
   const table = rest.split('/')[0]
   if (!table) return { type: 'pass' }
   if (m === 'GET' || m === 'HEAD') return { type: 'read' }
+  if (NEVER_QUEUE.has(table)) return { type: 'pass' }
   if (m === 'POST') return { type: 'write', table, op: 'insert' }
   if (m === 'PATCH') return { type: 'write', table, op: 'update' }
   if (m === 'DELETE') return { type: 'write', table, op: 'delete' }
@@ -249,4 +259,28 @@ export function replayOutcome(status: number, op: 'insert' | 'update' | 'delete'
   if (status === 401) return 'refresh-token'
   if (status >= 500 || status === 408 || status === 429) return 'retry-later'
   return 'refused'
+}
+
+/**
+ * A queued write the person would not recognise as "a change they made":
+ * marking something read or seen, or a flag the app sets on its own. It still
+ * goes up, in order, but it is not counted in "N changes waiting to sync" —
+ * a number that grew while you were only reading was the other half of the
+ * build-11 complaint.
+ */
+export function isSilentWrite(q: { op: string; table: string; body: string | null }): boolean {
+  if (q.op === 'rpc') return true
+  if (q.op !== 'update' || !q.body) return false
+  try {
+    const keys = Object.keys(JSON.parse(q.body) as Record<string, unknown>)
+    return keys.length > 0 && keys.every((k) => k === 'read_at' || k === 'ui_state')
+  } catch {
+    return false
+  }
+}
+
+/** How long to wait before the next replay attempt, by consecutive failure. */
+export function retryDelay(failures: number): number {
+  const steps = [2_000, 5_000, 10_000, 20_000, 30_000]
+  return steps[Math.min(Math.max(failures, 0), steps.length - 1)]
 }

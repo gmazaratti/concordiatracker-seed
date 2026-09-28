@@ -59,7 +59,7 @@ export function FollowListPage({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex h-[100dvh] flex-col bg-canvas"
+      className="fixed inset-0 z-[70] flex h-[var(--ct-app-h,100dvh)] flex-col bg-canvas"
       role="dialog"
       aria-modal="true"
     >

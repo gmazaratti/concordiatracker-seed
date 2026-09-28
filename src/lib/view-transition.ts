@@ -9,8 +9,8 @@ import { useNavigate } from 'react-router-dom'
  * - `enter-app`: landing page → dashboard. The landing settles back and fades,
  *   the app rises in over it.
  * - `leave-app`: dashboard → landing page, the same move in reverse.
- * - `tab`: between the app's tabs. Only the main column moves (the sidebar is
- *   the same on both sides, so animating it would read as a flicker).
+ * - `tab`: accepted for the callers' sake but NOT animated here any more;
+ *   see useTransitionClick. StudentLayout fades the page in instead.
  *
  * Falls back to a plain navigation where the API is missing (Firefox), when
  * the viewer asked for reduced motion, and for modifier-clicks (new tab).
@@ -71,12 +71,16 @@ export function useTransitionClick() {
   const navigate = useNavigate()
   return (to: string, kind: TransitionKind, extra?: () => void) => (e: React.MouseEvent) => {
     extra?.()
+    /*
+     * TABS DO NOT USE THE VIEW TRANSITIONS API ANY MORE. It snapshots the page
+     * and draws the incoming snapshot above everything — the floating tab
+     * pill included — so the pill dipped behind the new page for the length
+     * of the transition, and its own row morph was cross-faded with a frozen
+     * copy of itself (the left-right flicker into Social). The page fades in
+     * by itself instead (StudentLayout), and the pill is never snapshotted.
+     */
+    if (kind === 'tab') return
     if (!canAnimate(e)) return
-    if (kind === 'tab') {
-      const here = window.location.pathname
-      if (tabKey(here) === tabKey(to) && here === to) return
-      if (!renderedTabs.has(tabKey(to))) return
-    }
     e.preventDefault()
     runTransition(kind, () => navigate(to))
   }

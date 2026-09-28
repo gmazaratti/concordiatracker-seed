@@ -906,7 +906,7 @@ export function PeoplePanel() {
         className={cn(
           'min-h-0 flex-1',
           detailOpen
-            ? 'fixed inset-x-0 top-0 z-50 flex h-[100dvh] bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:h-auto lg:bg-transparent lg:pt-0 lg:pb-0'
+            ? 'fixed inset-x-0 top-0 z-50 flex h-[var(--ct-app-h,100dvh)] bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:h-auto lg:bg-transparent lg:pt-0 lg:pb-0'
             : 'hidden lg:flex',
         )}
       >
