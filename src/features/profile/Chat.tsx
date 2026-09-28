@@ -231,9 +231,11 @@ export function Chat({
               quote={quoteOf(m, rows ?? [], me, otherName)}
               reactions={extras.byMessage.get(m.id) ?? []}
               me={me}
-              tick={mine && extras.receipts.shared ? { read: extras.readAt[m.id] ?? null } : null}
+              tick={mine && extras.receipts.shared && !m.pending ? { read: extras.readAt[m.id] ?? null } : null}
               footer={
-                mine && extras.receipts.shared && m.id === lastMine
+                m.pending
+                  ? 'Sending…'
+                  : mine && extras.receipts.shared && m.id === lastMine
                   ? extras.readAt[m.id]
                     ? seenLabel(extras.readAt[m.id], now)
                     : 'Sent'

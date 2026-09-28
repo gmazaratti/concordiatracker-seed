@@ -45,6 +45,7 @@ import { describeFilters, matchesFilters, type MessageFilterId } from './message
 import { SupportConversation, SupportPane } from './SupportThreads'
 import { useSupportThreads } from './use-support-threads'
 import { matchesQuery, sameHandle } from '@/lib/handles'
+import { useOnline } from '@/lib/offline-state'
 
 /** Module-level so reading the clock is allowed (`react-hooks/purity` bars it
  *  inside a component body) — the same shape as `usageState` and `splitByTime`. */
@@ -177,6 +178,7 @@ export function PeoplePanel() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [friends, setFriends] = useState<Friend[] | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
+  const online = useOnline()
   const { user: authUser } = useAuth()
   const meId = authUser?.id ?? ''
   const [active, setActive] = useState<Friend | null>(null)
@@ -652,10 +654,19 @@ export function PeoplePanel() {
             <>
               {accepted.length === 0 && orgThreads.length === 0 && !showPeople ? (
                 <div className="lg:p-4">
-                  <Empty
-                    title="No conversations yet"
-                    body="Open a classmate's profile and press Message. If they do not follow you back you get one message to say who you are."
-                  />
+                  {/* Offline with nothing saved is not "no conversations":
+                      the list simply has not been able to load. */}
+                  {online ? (
+                    <Empty
+                      title="No conversations yet"
+                      body="Open a classmate's profile and press Message. If they do not follow you back you get one message to say who you are."
+                    />
+                  ) : (
+                    <Empty
+                      title="You’re offline"
+                      body="Your conversations load when you’re back online. Anything you send in the meantime goes out then."
+                    />
+                  )}
                 </div>
               ) : nothingShown && !showPeople ? (
                 /* Says WHICH narrowing emptied the list, and offers the way

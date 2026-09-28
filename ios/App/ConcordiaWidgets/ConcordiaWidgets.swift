@@ -10,5 +10,7 @@ struct ConcordiaWidgets: WidgetBundle {
         LibraryWidget()
         // The "next assignment due" Live Activity (Lock Screen + Dynamic Island).
         DeadlineLiveActivity()
+        // The focus timer's Live Activity (Dynamic Island + Lock Screen).
+        FocusLiveActivity()
     }
 }

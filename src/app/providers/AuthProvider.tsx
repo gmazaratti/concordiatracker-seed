@@ -9,12 +9,31 @@ import { nativeOAuth } from '@/lib/native-auth'
 import { releaseNativePushToken } from '@/lib/native-push'
 import { siteOrigin } from '@/lib/site-origin'
 import { clearOfflineCache } from '@/lib/offline-cache'
+import { isAuthRetryableFetchError } from '@supabase/supabase-js'
+import { clearOfflineStore, flushQueue } from '@/lib/offline-fetch'
 import { clearWidgets } from '@/lib/widget-bridge'
 import { cancelLocalReminders } from '@/lib/assignment-reminders'
 import { endDeadlineActivity, spotlightClear, unregisterLiveActivityToken } from '@/lib/native-extras'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
+/**
+ * The session supabase-js keeps in localStorage, read directly. Used ONLY when
+ * the client could not renew an expired token because there is no network
+ * (see the getSession call below). supabase-js derives the key from the first
+ * label of the project URL's host; the same rule is applied here.
+ */
+function storedSession(): Session | null {
+  try {
+    const host = new URL(import.meta.env.VITE_SUPABASE_URL as string).hostname.split('.')[0]
+    const raw = localStorage.getItem(`sb-${host}-auth-token`)
+    const parsed = raw ? (JSON.parse(raw) as Session) : null
+    return parsed?.user && parsed.access_token ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   /* Record this device against the account once per session, so Settings →
@@ -39,9 +58,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let pendingToken = authReturn.hasToken
     let pendingRecovery = authReturn.type === 'recovery'
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return
-      setSession(data.session)
+      /*
+       * OFFLINE WITH AN EXPIRED TOKEN IS STILL SIGNED IN. An access token
+       * lasts an hour, and renewing it needs the network — so opening the app
+       * in the metro after lunch got `session: null` back and showed the
+       * sign-in screen, in front of a term that is saved on this very phone.
+       * When the renewal failed only for want of a connection, the session
+       * this device holds is still the right answer to "who is this"; it is
+       * renewed the moment the connection returns (autoRefreshToken).
+       */
+      const offlineSession =
+        !data.session && error && isAuthRetryableFetchError(error) ? storedSession() : null
+      setSession(data.session ?? offlineSession)
       setLoading(false)
       /**
        * A stored session can outlive its account (deleted server-side while a
@@ -190,10 +220,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await releaseNativePushToken()
     // Same for the Live Activity's push-to-start token: it needs the session.
     await unregisterLiveActivityToken()
+    // Anything made offline goes up now, under this account, while it still
+    // can. Whatever cannot (still offline) is dropped below with the rest.
+    await flushQueue().catch(() => {})
     await supabase.auth.signOut({ scope: 'local' })
     // The saved offline copy holds grades, and the widgets show deadlines: a
     // shared phone must keep neither for the next person.
     clearOfflineCache()
+    void clearOfflineStore()
     void clearWidgets()
     // Nobody else's deadlines on this phone: reminders, the Live Activity and
     // Spotlight results all belong to the account that just left.

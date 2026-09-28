@@ -1,6 +1,7 @@
 import { demoDmCandidates, demoMarkRead, demoOrgMessages, demoOrgThreads, demoReply, isDemoOrgId } from './demo-org'
 import { supabase } from './supabase'
 import type { Attachment } from './social'
+import { localUser } from './local-user'
 
 /**
  * Messaging a club, and a club answering.
@@ -27,7 +28,7 @@ export async function sendMessageToOrg(
   body: string,
   attachment?: Attachment,
 ): Promise<string | null> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const text = body.trim()
   if (!text) return 'Write something first.'
@@ -82,7 +83,7 @@ export async function replyAsOrg(
     demoReply(orgId, toUserId, body.trim())
     return null
   }
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const text = body.trim()
   if (!text) return 'Write something first.'

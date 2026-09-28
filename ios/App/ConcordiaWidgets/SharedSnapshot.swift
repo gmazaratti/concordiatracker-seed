@@ -92,18 +92,7 @@ enum Brand {
     }
 }
 
-extension View {
-    /// iOS 17 requires widgets to declare their background; earlier versions do
-    /// not have the modifier. One helper so every widget does it the same way.
-    @ViewBuilder
-    func widgetBackground() -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            self.containerBackground(for: .widget) { Color(.systemBackground) }
-        } else {
-            self.padding().background(Color(.systemBackground))
-        }
-    }
-}
+// widgetBackground(tint:) lives in WidgetStyle.swift with the rest of the look.
 
 /// "Today 3:00 PM", "Tomorrow", "Mon", "Nov 4": relative to when it renders.
 enum Relative {

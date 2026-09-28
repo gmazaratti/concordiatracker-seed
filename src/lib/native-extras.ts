@@ -68,6 +68,15 @@ interface DeadlineActivityPlugin {
   addListener(event: 'pushToStartToken', fn: (e: { token: string }) => void): Promise<{ remove: () => void }>
 }
 
+interface FocusActivityPlugin {
+  start(o: { mode: 'focus' | 'break'; totalSeconds: number; remainingSeconds: number }): Promise<{
+    started: boolean
+    reason?: string
+  }>
+  update(o: { mode: 'focus' | 'break'; remainingSeconds: number; paused: boolean }): Promise<void>
+  end(): Promise<void>
+}
+
 interface SiriBridgePlugin {
   donateAddAssignment(o: { title: string }): Promise<void>
 }
@@ -76,6 +85,7 @@ const CalendarBridge = registerPlugin<CalendarBridgePlugin>('CalendarBridge')
 const SpotlightBridge = registerPlugin<SpotlightBridgePlugin>('SpotlightBridge')
 const DeadlineActivity = registerPlugin<DeadlineActivityPlugin>('DeadlineActivity')
 const SiriBridge = registerPlugin<SiriBridgePlugin>('SiriBridge')
+const FocusActivity = registerPlugin<FocusActivityPlugin>('FocusActivity')
 
 export const nativeIOS = (): boolean => {
   try {
@@ -143,6 +153,39 @@ export async function endDeadlineActivity(outcome: 'done' | 'overdue' | 'none'):
   if (!nativeIOS()) return
   try {
     await DeadlineActivity.end({ outcome })
+  } catch {
+    /* nothing running */
+  }
+}
+
+/*
+ * The focus timer's Live Activity (ios/App/App/FocusActivityPlugin.swift).
+ * The web timer owns the clock; these only tell the island what it shows.
+ * Every call is a no-op off iOS, and swallows an older binary without the
+ * plugin, because the timer must work whether or not the island does.
+ */
+export async function startFocusActivity(mode: 'focus' | 'break', totalMs: number, remainingMs: number): Promise<void> {
+  if (!nativeIOS()) return
+  try {
+    await FocusActivity.start({ mode, totalSeconds: totalMs / 1000, remainingSeconds: remainingMs / 1000 })
+  } catch {
+    /* no plugin in this build */
+  }
+}
+
+export async function pauseFocusActivity(mode: 'focus' | 'break', remainingMs: number): Promise<void> {
+  if (!nativeIOS()) return
+  try {
+    await FocusActivity.update({ mode, remainingSeconds: remainingMs / 1000, paused: true })
+  } catch {
+    /* no plugin in this build */
+  }
+}
+
+export async function endFocusActivity(): Promise<void> {
+  if (!nativeIOS()) return
+  try {
+    await FocusActivity.end()
   } catch {
     /* nothing running */
   }

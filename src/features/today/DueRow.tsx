@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowUpRight, Check, CircleDashed, Pencil, Trash2 } from 'lucide-react'
+import { PendingSyncMark } from '@/components/PendingSyncMark'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
@@ -175,6 +176,7 @@ export function DueRow({
                   </span>
                 )
               )}
+              <PendingSyncMark table="assignments" id={assessment.id} />
             </span>
           </span>
 

@@ -1,14 +1,15 @@
 import { CloudOff, RefreshCw, WifiOff } from 'lucide-react'
 import { useOfflineState, useOnline } from '@/lib/offline-state'
 import { formatTime } from '@/lib/date'
+import { usePendingWrites } from '@/lib/offline-fetch'
 
 /**
  * What the app says when the network is gone. Two shapes, for two situations.
  *
- * OfflineBanner — there IS a saved copy, so the app works and shows it. One
- * line says so, and says the one thing that matters for acting on it: edits
- * will not save. It turns into "Back online · Refresh" when the connection
- * returns, because the copy on screen is now the old one.
+ * OfflineBanner — offline, the app shows what is saved on this device and
+ * QUEUES what you do (lib/offline-fetch), so the line says that, and how many
+ * changes are waiting. Back online it reads "Syncing N changes…" while the
+ * queue goes up, then "Back online · Refresh" if the screen is an old copy.
  *
  * OfflineScreen — nothing saved on this device yet (a first launch in
  * airplane mode). An empty Today would read as "you have nothing due", which
@@ -18,33 +19,55 @@ import { formatTime } from '@/lib/date'
 export function OfflineBanner() {
   const offline = useOfflineState()
   const online = useOnline()
-  if (!offline?.savedAt) return null
-  const when = formatTime(new Date(offline.savedAt))
+  const pending = usePendingWrites().length
+  const waiting = pending === 1 ? '1 change' : `${pending} changes`
+
+  // Online, nothing queued, live data: nothing to say.
+  if (online && !pending && !offline?.savedAt) return null
+
+  if (!online) {
+    return (
+      <div
+        role="status"
+        className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2 text-[12.5px] text-fg"
+      >
+        <WifiOff size={14} className="shrink-0 text-warning" aria-hidden />
+        <span className="min-w-0 flex-1">
+          You&rsquo;re offline
+          {offline?.savedAt ? `, showing what was saved at ${formatTime(new Date(offline.savedAt))}` : ''}.{' '}
+          {pending
+            ? `${waiting} will sync when you're back.`
+            : 'What you do now saves when you’re back.'}
+        </span>
+      </div>
+    )
+  }
+
+  if (pending) {
+    // Back online and the queue is going up now.
+    return (
+      <div role="status" className="flex items-center gap-2 border-b border-border bg-surface px-4 py-2 text-[12.5px] text-fg">
+        <RefreshCw size={14} className="shrink-0 animate-spin text-accent" aria-hidden />
+        <span className="min-w-0 flex-1">Syncing {waiting}…</span>
+      </div>
+    )
+  }
+
+  const when = formatTime(new Date(offline!.savedAt!))
   return (
     <div
       role="status"
       className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2 text-[12.5px] text-fg"
     >
-      {online ? (
-        <>
-          <RefreshCw size={14} className="shrink-0 text-warning" aria-hidden />
-          <span className="min-w-0 flex-1">Back online. This is your term as of {when}.</span>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[12px] font-semibold text-accent-contrast"
-          >
-            Refresh
-          </button>
-        </>
-      ) : (
-        <>
-          <WifiOff size={14} className="shrink-0 text-warning" aria-hidden />
-          <span className="min-w-0 flex-1">
-            You&rsquo;re offline. Showing your term as of {when}. Changes won&rsquo;t save until you&rsquo;re back.
-          </span>
-        </>
-      )}
+      <RefreshCw size={14} className="shrink-0 text-warning" aria-hidden />
+      <span className="min-w-0 flex-1">Back online. This is your term as of {when}.</span>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="shrink-0 rounded-md bg-accent px-2.5 py-1 text-[12px] font-semibold text-accent-contrast"
+      >
+        Refresh
+      </button>
     </div>
   )
 }

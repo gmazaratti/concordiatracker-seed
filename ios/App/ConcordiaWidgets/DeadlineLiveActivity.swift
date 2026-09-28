@@ -19,38 +19,47 @@ struct DeadlineLiveActivity: Widget {
         } dynamicIsland: { context in
             let tint = Brand.course(context.attributes.colorHex)
             let phase = Phase(context)
+            // COMPACT on purpose. The first version stacked a large countdown,
+            // a centred headline and a two-line footer, which stretched the
+            // island to almost twice the height it needs. Now it is one row
+            // (course + countdown) and two small lines (title, due), with the
+            // system's side margins trimmed so nothing wraps early.
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label {
-                        Text(context.state.course.isEmpty ? "Due" : context.state.course)
-                            .font(.caption.weight(.semibold))
-                    } icon: {
+                    HStack(spacing: 5) {
                         Image(systemName: phase.symbol)
+                            .font(.footnote.weight(.semibold))
+                        Text(context.state.course.isEmpty ? "Due" : context.state.course)
+                            .font(.caption.weight(.bold))
+                            .lineLimit(1)
                     }
                     .foregroundStyle(tint)
-                    .lineLimit(1)
+                    .padding(.leading, 2)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     CountdownText(context: context, phase: phase)
-                        .font(.system(.title2, design: .rounded).weight(.heavy))
+                        .font(.system(.body, design: .rounded).weight(.bold))
+                        .monospacedDigit()
                         .foregroundStyle(phase.urgent ? Color.orange : Color.primary)
                         .multilineTextAlignment(.trailing)
-                }
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.title)
-                        .font(.headline)
                         .lineLimit(1)
+                        .frame(maxWidth: 96, alignment: .trailing)
+                        .padding(.trailing, 2)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(phase.headline)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(context.state.title)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(phase.urgent ? Color.orange : Color.primary)
-                        Text("Due \(context.state.due, format: .dateTime.weekday(.abbreviated).hour().minute())")
-                            .font(.caption)
+                            .lineLimit(1)
+                        Text(phase.done || phase.overdue
+                            ? phase.headline
+                            : "Due \(context.state.due.formatted(.dateTime.weekday(.abbreviated).hour().minute()))")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
                 }
             } compactLeading: {
                 Image(systemName: phase.symbol)
@@ -65,6 +74,8 @@ struct DeadlineLiveActivity: Widget {
                     .foregroundStyle(tint)
             }
             .keylineTint(tint)
+            .contentMargins(.horizontal, 14, for: .expanded)
+            .contentMargins(.bottom, 10, for: .expanded)
             .widgetURL(link(context.attributes.path))
         }
     }

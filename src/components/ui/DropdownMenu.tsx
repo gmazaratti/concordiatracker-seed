@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -15,20 +15,39 @@ export interface MenuItem {
   separated?: boolean
 }
 
-type Pos = { right: number; top?: number; bottom?: number }
+type Pos = { left: number; top: number; maxWidth: number }
 
-/** Estimate the menu height to decide whether to flip upward, then anchor the
- * menu's right edge to the trigger's right edge (fixed-positioned). */
-function computePos(el: HTMLElement, items: MenuItem[]): Pos {
-  const r = el.getBoundingClientRect()
-  const seps = items.filter((i) => i.separated).length
-  const estH = items.length * 32 + seps * 9 + 10
-  const spaceBelow = window.innerHeight - r.bottom
-  const flipUp = spaceBelow < estH + 8 && r.top > spaceBelow
-  const right = Math.max(8, Math.round(window.innerWidth - r.right))
-  return flipUp
-    ? { right, bottom: Math.round(window.innerHeight - r.top + 4) }
-    : { right, top: Math.round(r.bottom + 4) }
+const PAD = 8
+
+/**
+ * Where the menu goes, from the trigger's rect and the menu's REAL size.
+ *
+ * It used to pin the menu's right edge to the trigger's right edge and never
+ * look at the other side. On a trigger near the left of the screen (the `+`
+ * on your own profile) that put the menu's left edge ~130px off-screen, and
+ * on iOS a fixed element hanging off the page drags the whole view sideways.
+ * Now: prefer aligning right edges; if that would leave the screen, align left
+ * edges instead; then clamp into what is VISIBLE (the visual viewport, which
+ * on iOS can be narrower than the layout viewport and offset inside it).
+ * Vertically: below the trigger, or above it when there is no room, and never
+ * past either edge.
+ */
+function place(trigger: DOMRect, w: number, h: number): Pos {
+  const vv = window.visualViewport
+  const vLeft = vv?.offsetLeft ?? 0
+  const vTop = vv?.offsetTop ?? 0
+  const vW = vv?.width ?? window.innerWidth
+  const vH = vv?.height ?? window.innerHeight
+  const maxWidth = Math.max(160, vW - PAD * 2)
+  const width = Math.min(w, maxWidth)
+  let left = trigger.right - width
+  if (left < vLeft + PAD) left = trigger.left
+  left = Math.min(Math.max(left, vLeft + PAD), vLeft + vW - width - PAD)
+  const below = trigger.bottom + 4
+  const above = trigger.top - 4 - h
+  let top = below + h > vTop + vH - PAD && above >= vTop + PAD ? above : below
+  top = Math.min(Math.max(top, vTop + PAD), Math.max(vTop + PAD, vTop + vH - h - PAD))
+  return { left: Math.round(left), top: Math.round(top), maxWidth: Math.round(maxWidth) }
 }
 
 /**
@@ -60,12 +79,25 @@ export function DropdownMenu({
   const menuRef = useRef<HTMLDivElement>(null)
 
   const openMenu = (last = false) => {
-    const el = triggerRef.current
-    if (!el) return
-    setPos(computePos(el, items))
+    if (!triggerRef.current) return
+    // Placed after it renders (below), once its real size is known. Until
+    // then it is laid out invisibly so the measurement is honest.
+    setPos(null)
     setActive(last ? items.length - 1 : 0)
     setOpen(true)
   }
+
+  const measure = () => {
+    const t = triggerRef.current
+    const m = menuRef.current
+    if (!t || !m) return
+    setPos(place(t.getBoundingClientRect(), m.offsetWidth, m.offsetHeight))
+  }
+
+  // Before paint, so the menu never flashes in the wrong place.
+  useLayoutEffect(() => {
+    if (open) measure()
+  }, [open])
   const close = (restoreFocus: boolean) => {
     setOpen(false)
     if (restoreFocus) triggerRef.current?.focus()
@@ -87,10 +119,7 @@ export function DropdownMenu({
   // Reposition on scroll/resize + dismiss on outside mousedown.
   useEffect(() => {
     if (!open) return
-    const reposition = () => {
-      const el = triggerRef.current
-      if (el) setPos(computePos(el, items))
-    }
+    const reposition = () => measure()
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node
       if (triggerRef.current?.contains(t) || menuRef.current?.contains(t)) return
@@ -151,14 +180,17 @@ export function DropdownMenu({
       </button>
 
       {open &&
-        pos &&
         createPortal(
           <div
             ref={menuRef}
             role="menu"
             aria-label={ariaLabel}
             onKeyDown={onMenuKeyDown}
-            style={{ position: 'fixed', right: pos.right, top: pos.top, bottom: pos.bottom }}
+            style={
+              pos
+                ? { position: 'fixed', left: pos.left, top: pos.top, maxWidth: pos.maxWidth }
+                : { position: 'fixed', left: 0, top: 0, visibility: 'hidden' }
+            }
             className="ct-animate-pop z-[200] min-w-[180px] rounded-lg border border-border bg-surface p-1 shadow-2xl"
           >
             {items.map((it, i) => (

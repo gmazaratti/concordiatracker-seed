@@ -2,6 +2,7 @@ import { demoDeletePost, demoDiscardDraftById, demoDrafts, demoSaveDraft, isDemo
 import { supabase } from './supabase'
 import { missingColumn } from './pg-errors'
 import type { PostDetailsValue } from './post-details'
+import { localUser } from './local-user'
 
 /**
  * Posts, reposts and stories — the read/write surface for the publishing half
@@ -228,7 +229,7 @@ export async function publishPost(
   details?: PostDetailsValue,
   opts?: { draft?: boolean },
 ): Promise<{ id: string } | { error: string }> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return { error: 'You need to be signed in.' }
   if (media.length === 0) return { error: 'Add at least one photo or video.' }
   const row: Record<string, unknown> = {
@@ -393,7 +394,7 @@ export async function deletePost(id: string): Promise<boolean> {
  *  callers put the heart back when this comes back null. */
 export async function togglePostLike(postId: string, like: boolean): Promise<boolean | null> {
   if (isDemoContentId(postId)) return like
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return null
   if (like) {
     const { error } = await supabase
@@ -448,7 +449,7 @@ export async function loadComments(postId: string): Promise<PostComment[]> {
 }
 
 export async function addComment(postId: string, body: string): Promise<string | null> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const text = body.trim()
   if (!text) return 'Write something first.'
@@ -687,7 +688,7 @@ export async function publishStory(
     hours?: number
   },
 ): Promise<string | null> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const hours = Math.min(72, Math.max(24, story.hours ?? 24))
   const { error } = await supabase.from('org_stories').insert({

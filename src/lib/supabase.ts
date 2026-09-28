@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { reportWriteError, writeErrorText } from './write-errors'
+import { createOfflineFetch, setTokenProvider } from './offline-fetch'
 
 /**
  * The single Supabase client for the app. Reads the project URL + public anon
@@ -30,10 +31,23 @@ function devOfflineFetch(): typeof fetch | undefined {
   } catch {
     return undefined
   }
+  // Airplane mode also says so: the offline paths key on navigator.onLine.
+  try {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false })
+  } catch {
+    /* read-only in this engine: the failing fetch is still a fair test */
+  }
   return () => Promise.reject(new TypeError('Failed to fetch'))
 }
 
 const offlineFetch = devOfflineFetch()
+
+/*
+ * Every request goes through lib/offline-fetch: reads are remembered so the app
+ * has something true to show with no signal, and writes that cannot reach the
+ * server are queued and replayed instead of failing.
+ */
+const network: typeof fetch = offlineFetch ?? ((input, init) => fetch(input, init))
 
 export const supabase = createClient(url ?? '', anonKey ?? '', {
   auth: {
@@ -41,7 +55,18 @@ export const supabase = createClient(url ?? '', anonKey ?? '', {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-  ...(offlineFetch ? { global: { fetch: offlineFetch } } : {}),
+  global: { fetch: createOfflineFetch(network, url ?? '') },
+})
+
+// Queued writes replay under the session of the moment, never the token that
+// happened to be current when they were made.
+setTokenProvider(async (refresh) => {
+  if (refresh) {
+    const { data } = await supabase.auth.refreshSession()
+    return data.session?.access_token ?? null
+  }
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 })
 
 /**

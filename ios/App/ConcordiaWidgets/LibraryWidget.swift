@@ -78,37 +78,63 @@ struct LibraryView: View {
     let entry: LibraryEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("LIBRARIES")
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            WidgetHeader(icon: "books.vertical.fill", title: "LIBRARIES", tint: Brand.accent)
+            Spacer(minLength: 4)
             if entry.failed {
-                Spacer(minLength: 0)
                 Text("Can't reach the library count right now.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             } else {
-                ForEach(entry.readings.prefix(2)) { r in
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(r.name).font(.caption).foregroundColor(.secondary).lineLimit(1)
-                        Text(label(r)).font(.headline)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(entry.readings.prefix(2)) { r in
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(r.name)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text(figure(r))
+                                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
+                                if let unit = unit(r) {
+                                    Text(unit)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
-                Spacer(minLength: 0)
-                Text("Updated \(entry.date, style: .time)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                Spacer(minLength: 4)
+                // Concordia counts PEOPLE in the building, not free seats; the
+                // footer says how fresh the number is.
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 6, height: 6)
+                    Text("Updated \(entry.date, style: .time)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetBackground()
+        .widgetBackground(tint: Brand.accent)
         .widgetURL(URL(string: "https://concordiatracker.com/app"))
     }
 
-    private func label(_ r: LibraryReading) -> String {
+    /// The number itself, or the word that replaces it.
+    private func figure(_ r: LibraryReading) -> String {
         if r.empty { return "Empty" }
-        if let n = r.people, !r.stale { return "\(n) people" }
-        return "No reading"
+        if let n = r.people, !r.stale { return "\(n)" }
+        return "—"
+    }
+
+    private func unit(_ r: LibraryReading) -> String? {
+        if r.empty { return nil }
+        if r.people != nil, !r.stale { return "people" }
+        return "no reading"
     }
 }
 

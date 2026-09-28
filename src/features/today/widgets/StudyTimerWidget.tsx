@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Pause, Play, RotateCcw, Timer } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { WidgetCard } from './WidgetCard'
+import { endFocusActivity, pauseFocusActivity, startFocusActivity } from '@/lib/native-extras'
 
 /**
  * A focus timer. 25 on, 5 off — the pomodoro default, because arguing about the
@@ -39,6 +40,9 @@ export function StudyTimerWidget() {
         setMode(next)
         setEndsAt(null)
         setLeft(next === 'focus' ? FOCUS_MS : BREAK_MS)
+        // The block is over; the island says "Done" by itself (it goes stale
+        // at the end), and is cleared here once the app has seen it finish.
+        void endFocusActivity()
       }
     }, 250)
     return () => window.clearInterval(id)
@@ -60,8 +64,17 @@ export function StudyTimerWidget() {
               type="button"
               onClick={() => {
                 // Reading the clock in a handler is fine; during render it isn't.
-                if (running) setEndsAt(null)
-                else setEndsAt(Date.now() + left)
+                // On iPhone the Dynamic Island and Lock Screen follow along
+                // (a Live Activity), paused when this is paused.
+                if (running) {
+                  const remaining = Math.max(0, endsAt - Date.now())
+                  setEndsAt(null)
+                  setLeft(remaining)
+                  void pauseFocusActivity(mode, remaining)
+                } else {
+                  setEndsAt(Date.now() + left)
+                  void startFocusActivity(mode, total, left)
+                }
               }}
               aria-label={running ? 'Pause timer' : 'Start timer'}
               className="grid size-8 place-items-center rounded-lg bg-accent text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
@@ -73,6 +86,7 @@ export function StudyTimerWidget() {
               onClick={() => {
                 setEndsAt(null)
                 setLeft(total)
+                void endFocusActivity()
               }}
               aria-label="Reset timer"
               className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"

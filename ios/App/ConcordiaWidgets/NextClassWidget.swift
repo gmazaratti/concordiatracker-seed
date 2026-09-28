@@ -51,39 +51,60 @@ struct NextClassView: View {
     let entry: ClassEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("NEXT CLASS")
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.secondary)
-            if let c = entry.next {
-                HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Brand.course(c.color))
-                        .frame(width: 4, height: 30)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(c.code).font(.headline)
-                        Text(c.title).font(.caption).foregroundColor(.secondary).lineLimit(1)
+        let tint = entry.next.map { Brand.course($0.color) } ?? Brand.accent
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .widgetBackground(tint: tint)
+            .widgetURL(URL(string: "https://concordiatracker.com/app/calendar"))
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let c = entry.next {
+            let tint = Brand.course(c.color)
+            let now = c.start <= entry.date
+            VStack(alignment: .leading, spacing: 0) {
+                WidgetHeader(icon: "book.closed.fill", title: now ? "IN CLASS" : "NEXT CLASS", tint: tint)
+                Spacer(minLength: 6)
+                WidgetHero(text: c.code)
+                Text(c.title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                // When: a solid pill while it is on, a tinted one before.
+                HStack(spacing: 4) {
+                    Image(systemName: now ? "circle.fill" : "clock")
+                        .font(.system(size: now ? 6 : 10, weight: .bold))
+                    if now {
+                        Text("Now · until \(c.end, style: .time)")
+                    } else {
+                        Text("in ") + Text(c.start, style: .relative)
                     }
                 }
-                Spacer(minLength: 0)
-                if c.start <= entry.date {
-                    Text("Now, until \(c.end, style: .time)").font(.subheadline.weight(.medium))
-                } else {
-                    Text(c.start, style: .relative).font(.subheadline.weight(.medium))
-                }
+                .font(.system(size: 12, weight: .semibold))
+                .lineLimit(1)
+                .foregroundStyle(now ? Color.white : tint)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(now ? AnyShapeStyle(tint) : AnyShapeStyle(tint.opacity(0.16)), in: Capsule())
                 if let room = c.location, !room.isEmpty {
-                    Text(room).font(.caption).foregroundColor(.secondary)
+                    Label(room, systemImage: "mappin.and.ellipse")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .padding(.top, 5)
                 }
-            } else {
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                WidgetHeader(icon: "book.closed.fill", title: "NEXT CLASS", tint: Brand.accent)
                 Spacer(minLength: 0)
                 Text(entry.hasData ? "No classes coming up." : "Open ConcordiaTracker to see your classes here.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetBackground()
-        .widgetURL(URL(string: "https://concordiatracker.com/app/calendar"))
     }
 }
 

@@ -6,6 +6,7 @@ import type { Assessment, AssessmentStatus } from '@/data/types'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { Select } from '@/components/ui/Select'
 import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
+import { PendingSyncMark } from '@/components/PendingSyncMark'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
@@ -144,6 +145,7 @@ export function AssessmentRow({
                 </span>
               )}
               <ProvenanceBadge provenance={assessment.provenance} tone="quiet" onlyOfficial />
+              <PendingSyncMark table="assignments" id={assessment.id} />
             </div>
           </div>
         </div>

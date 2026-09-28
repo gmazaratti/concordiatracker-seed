@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { RecordSnapshot } from './record-export'
+import { localUser } from './local-user'
 
 /**
  * People and direct messages.
@@ -103,6 +104,9 @@ export interface Message {
   read_at: string | null
   /** The message this one quotes, in the same conversation. */
   reply_to?: string | null
+  /** Written while offline and still waiting to reach the server (the chat
+   *  shows "Sending…" until it does). Never set on a row the server returned. */
+  pending?: boolean
 }
 
 /**
@@ -158,7 +162,7 @@ export async function listFriends(): Promise<Friend[]> {
  * buttons read wrong.
  */
 export async function requestFriend(handle: string): Promise<string | null> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const { data, error } = await supabase.rpc('follow_user', { p_handle: handle, p_follow: true })
   if (error) return 'Could not follow that account.'
@@ -179,7 +183,7 @@ export async function removeFriend(handle: string): Promise<boolean> {
 
 /** The conversation with one person, oldest first. */
 export async function listMessages(otherId: string, limit = 100): Promise<Message[]> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return []
   const { data, error } = await supabase
     .from('messages')
@@ -199,7 +203,7 @@ export async function sendMessage(
   attachment?: Attachment,
   replyTo?: string | null,
 ): Promise<string | null> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 'You need to be signed in.'
   const { error } = await supabase.from('messages').insert({
     sender: me.user.id,
@@ -250,7 +254,7 @@ export function dmRefusal(reason: string | null): string {
 }
 
 export async function markRead(otherId: string): Promise<void> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return
   await supabase
     .from('messages')
@@ -261,7 +265,7 @@ export async function markRead(otherId: string): Promise<void> {
 }
 
 export async function unreadCount(): Promise<number> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return 0
   const { count } = await supabase
     .from('messages')
@@ -437,7 +441,7 @@ export async function isFollowing(handle: string): Promise<boolean> {
 }
 
 export async function followUser(handle: string): Promise<boolean> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return false
   const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
   if (!theirId || theirId === me.user.id) return false
@@ -450,7 +454,7 @@ export async function followUser(handle: string): Promise<boolean> {
 }
 
 export async function unfollowUser(handle: string): Promise<boolean> {
-  const { data: me } = await supabase.auth.getUser()
+  const { data: me } = await localUser()
   if (!me.user) return false
   const { data: theirId } = await supabase.rpc('user_id_for_handle', { p_handle: handle })
   if (!theirId) return false

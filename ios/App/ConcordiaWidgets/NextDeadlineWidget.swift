@@ -59,56 +59,115 @@ struct NextDeadlineView: View {
     let entry: DeadlineEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("NEXT DUE")
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.secondary)
-            if !entry.hasData {
-                Spacer(minLength: 0)
-                Text("Open ConcordiaTracker to see your deadlines here.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-            } else if let first = entry.upcoming.first {
-                row(first, big: true)
-                if family == .systemMedium {
-                    ForEach(Array(entry.upcoming.dropFirst().prefix(2))) { d in
-                        row(d, big: false)
-                    }
-                }
-                Spacer(minLength: 0)
-            } else {
-                Spacer(minLength: 0)
-                Text("All caught up").font(.headline)
-                Text("Nothing due.").font(.footnote).foregroundColor(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetBackground()
-        .widgetURL(URL(string: "https://concordiatracker.com/app"))
+        let tint = entry.upcoming.first.map { Brand.course($0.color) } ?? Brand.accent
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .widgetBackground(tint: tint)
+            .widgetURL(URL(string: "https://concordiatracker.com/app"))
     }
 
     @ViewBuilder
-    private func row(_ d: WidgetSnapshot.Deadline, big: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(d.title)
-                .font(big ? .headline : .subheadline)
-                .lineLimit(big ? 2 : 1)
-            HStack(spacing: 4) {
-                Circle().fill(Brand.course(d.color)).frame(width: 6, height: 6)
-                // The course code gives way first; the date never wraps (a
-                // small widget used to break "Tomorrow" across two lines).
-                Text(d.course).font(.caption).foregroundColor(.secondary)
-                    .lineLimit(1).truncationMode(.tail)
-                Text("·").font(.caption).foregroundColor(.secondary)
-                Text(Relative.due(d.due, now: entry.date))
-                    .font(.caption.weight(.medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .layoutPriority(1)
-                    // Saturated colour only when it is urgent, as in the app.
-                    .foregroundColor(d.due < entry.date.addingTimeInterval(86_400) ? .orange : .primary)
+    private var content: some View {
+        if !entry.hasData {
+            VStack(alignment: .leading, spacing: 8) {
+                WidgetHeader(icon: "hourglass", title: "NEXT DUE", tint: Brand.accent)
+                Spacer(minLength: 0)
+                Text("Open ConcordiaTracker to see your deadlines here.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        } else if let first = entry.upcoming.first {
+            if family == .systemMedium {
+                HStack(alignment: .top, spacing: 14) {
+                    hero(first)
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: 1)
+                    later
+                }
+            } else {
+                hero(first)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                WidgetHeader(icon: "checkmark", title: "NEXT DUE", tint: Brand.accent)
+                Spacer(minLength: 0)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(Brand.accent)
+                WidgetHero(text: "All caught up")
+                Text("Nothing due.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// The next deadline: when (the big figure), what, and which course.
+    private func hero(_ d: WidgetSnapshot.Deadline) -> some View {
+        let tint = Brand.course(d.color)
+        return VStack(alignment: .leading, spacing: 0) {
+            WidgetHeader(icon: "hourglass", title: "NEXT DUE", tint: tint)
+            Spacer(minLength: 6)
+            // Saturated colour only when it is urgent, as in the app.
+            WidgetHero(text: Relative.due(d.due, now: entry.date), color: urgent(d) ? .orange : .primary)
+            Text(d.title)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(2)
+                .padding(.top, 2)
+            Spacer(minLength: 6)
+            CourseTag(code: d.course, color: tint)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The two after it, as a short list.
+    private var later: some View {
+        let rest = Array(entry.upcoming.dropFirst().prefix(2))
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("THEN")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.6)
+                .foregroundStyle(.secondary)
+            if rest.isEmpty {
+                Text("Nothing else coming up.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(rest) { d in
+                HStack(alignment: .top, spacing: 7) {
+                    Circle()
+                        .fill(Brand.course(d.color))
+                        .frame(width: 7, height: 7)
+                        .padding(.top, 5)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(d.title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        HStack(spacing: 4) {
+                            // The course code gives way first; the date never
+                            // wraps (a small widget once broke "Tomorrow" in two).
+                            Text(d.course)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Text("·").foregroundStyle(.secondary)
+                            Text(Relative.due(d.due, now: entry.date))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(urgent(d) ? Color.orange : Color.primary)
+                                .lineLimit(1)
+                                .layoutPriority(1)
+                        }
+                        .font(.system(size: 11))
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func urgent(_ d: WidgetSnapshot.Deadline) -> Bool {
+        d.due < entry.date.addingTimeInterval(86_400)
     }
 }
 

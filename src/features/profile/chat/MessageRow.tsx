@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, CheckCheck, Plus } from 'lucide-react'
+import { Check, CheckCheck, Clock3, Plus } from 'lucide-react'
 import type { Message } from '@/lib/social'
 import { HEART, REACTIONS, type Reaction } from '@/lib/message-extras'
 import { AttachmentEmbed } from '../AttachmentEmbed'
@@ -114,7 +114,9 @@ export function MessageRow({
             </span>
           </div>
         )}
-        <div {...interactions} className="touch-manipulation">
+        {/* Waiting to reach the server: dimmed, like a message still in the
+            outbox, until the queue delivers it. */}
+        <div {...interactions} className={cn('touch-manipulation transition-opacity duration-200', m.pending && 'opacity-60')}>
           {m.body.trim() ? (
             <div
               className={cn(
@@ -166,8 +168,18 @@ export function MessageRow({
           </div>
         )}
 
-        {footer && <p className="mt-0.5 text-right text-[11px] text-subtle">{footer}</p>}
+        {footer && (
+          <p className="mt-0.5 text-right text-[11px] text-subtle" role={m.pending ? 'status' : undefined}>
+            {footer}
+          </p>
+        )}
       </div>
+
+      {mine && m.pending && (
+        <span className="mb-1 shrink-0 text-subtle" title="Sending" aria-label="Sending">
+          <Clock3 size={13} />
+        </span>
+      )}
 
       {mine && tick && (
         <span

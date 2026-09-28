@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { warm } from '@/lib/img-cache'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
+import { isNetworkError } from '@/lib/offline-cache'
 
 export interface PublicProfile {
   /** Needed to tell whether this person owns an organisation — the organizer
@@ -70,6 +71,10 @@ interface BlueprintRpcRow {
 export interface PublicProfileState {
   loading: boolean
   notFound: boolean
+  /** The lookup could not reach the server and nothing is saved on this
+   *  device. NOT the same as notFound: "this person does not exist" is a
+   *  claim, and a phone in airplane mode has no grounds to make it. */
+  unreachable?: boolean
   profile: PublicProfile | null
   courses: PublicCourse[]
   blueprints: PublicBlueprint[]
@@ -146,8 +151,15 @@ export function usePublicProfile(handle: string): PublicProfileState {
       if (active) setState(next)
     }
     void (async () => {
-      const { data } = await supabase.rpc('get_public_profile', { p_handle: handle })
+      const { data, error } = await supabase.rpc('get_public_profile', { p_handle: handle })
       if (!active) return
+      if (error && isNetworkError(error)) {
+        // Keep whatever this session already showed; otherwise say offline.
+        const known = cache.get(key)
+        if (known) setState(known)
+        else setState({ loading: false, notFound: false, unreachable: true, profile: null, courses: [], blueprints: [] })
+        return
+      }
       const row = (data as ProfileRpcRow[] | null)?.[0]
       if (!row) {
         put({ loading: false, notFound: true, profile: null, courses: [], blueprints: [] })

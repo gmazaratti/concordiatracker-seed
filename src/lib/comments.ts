@@ -1,6 +1,7 @@
 import { isDemoContentId } from './demo-org'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { localUser } from './local-user'
 
 /**
  * Comments, with one place that knows what a post's comments are.
@@ -149,7 +150,7 @@ export function useComments(postId: string, enabled = true): {
   const add = useCallback(
     async (body: string, parentId?: string | null): Promise<string | null> => {
       if (isDemoContentId(postId)) return 'This is the demo: comments are not saved here.'
-      const { data: me } = await supabase.auth.getUser()
+      const { data: me } = await localUser()
       if (!me.user) return 'You need to be signed in.'
       const text = body.trim()
       if (!text) return 'Write something first.'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   Bookmark,
@@ -20,7 +20,6 @@ import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { BackButton } from '@/components/BackButton'
 import { sameHandle } from '@/lib/handles'
 import { cn } from '@/lib/cn'
-import { supabase } from '@/lib/supabase'
 import { EditProfileModal } from './EditProfileModal'
 import { ScheduleAccess } from './ScheduleAccess'
 import { usePublicProfile, type PublicBlueprint, type PublicProfile } from './usePublicProfile'
@@ -36,6 +35,7 @@ import { RepostsTab } from '@/features/community/posts/RepostsTab'
 import { useSupport } from '@/app/providers/support'
 import { useCommunityData } from '@/app/providers/community-data'
 import { useAppData } from '@/app/providers/app-data'
+import { useAuth } from '@/app/providers/auth'
 
 /**
  * Public user profile at `/@handle` — viewable by ANYONE (anon included). The
@@ -135,7 +135,7 @@ export function ProfileView({
    */
   embedded?: boolean
 }) {
-  const { loading, notFound, profile, blueprints, reload } = usePublicProfile(handle)
+  const { loading, notFound, unreachable, profile, blueprints, reload } = usePublicProfile(handle)
   // Your own photo comes from the live profile row, not this page's cached
   // copy, so changing it in Settings shows here on the same frame.
   const { user: me } = useAppData()
@@ -223,6 +223,14 @@ export function ProfileView({
         )}
         {loading ? (
           <ProfileSkeleton />
+        ) : unreachable && !profile ? (
+          <OfflineProfile
+            self={viewer === 'self'}
+            handle={handle}
+            name={viewer === 'self' ? me.name : undefined}
+            avatarUrl={viewer === 'self' ? me.avatarUrl : undefined}
+            program={viewer === 'self' ? me.program : undefined}
+          />
         ) : notFound || !profile ? (
           <NotFound handle={handle} />
         ) : (
@@ -347,27 +355,20 @@ function ProfileMeta({ handle, profile }: { handle: string; profile: PublicProfi
  * distinguishable from "not you" so the page never flashes the wrong control.
  */
 function useViewer(handle: string): 'self' | 'other' | 'anon' | 'loading' {
-  const [state, setState] = useState<'self' | 'other' | 'anon' | 'loading'>('loading')
-  useEffect(() => {
-    let alive = true
-    void (async () => {
-      const { data } = await supabase.auth.getUser()
-      if (!alive) return
-      if (!data.user) return setState('anon')
-      const { data: row } = await supabase
-        .from('user_profile')
-        .select('handle')
-        .eq('user_id', data.user.id)
-        .maybeSingle()
-      if (!alive) return
-      const mine = (row as { handle?: string } | null)?.handle ?? ''
-      setState(sameHandle(mine, handle) ? 'self' : 'other')
-    })()
-    return () => {
-      alive = false
-    }
-  }, [handle])
-  return state
+  /*
+   * FROM THIS DEVICE, NOT THE NETWORK. This used to ask the server who is
+   * signed in (`auth.getUser()`), which fails in airplane mode — and a failed
+   * answer read as "signed out", so your own profile rendered as a stranger's
+   * page. Who is signed in is the local session; which handle is yours is the
+   * profile row the app already holds (and keeps a copy of offline).
+   */
+  const { user: authUser, loading } = useAuth()
+  const { user, onboardingCompleted } = useAppData()
+  if (loading) return 'loading'
+  if (!authUser) return 'anon'
+  if (user.handle) return sameHandle(user.handle, handle) ? 'self' : 'other'
+  // The row has not arrived yet; `false` means it did and has no handle.
+  return onboardingCompleted === null ? 'loading' : 'other'
 }
 
 
@@ -406,6 +407,55 @@ function TabEmpty({ children }: { children: React.ReactNode }) {
     <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[12.5px] leading-relaxed text-subtle">
       {children}
     </p>
+  )
+}
+
+/**
+ * No network and nothing saved for this profile. Your OWN profile still shows
+ * who you are from the account this device holds; somebody else's says it
+ * will load when you are back online. Never "isn't here": with no connection
+ * there are no grounds to claim a person does not exist.
+ */
+function OfflineProfile({
+  self,
+  handle,
+  name,
+  avatarUrl,
+  program,
+}: {
+  self: boolean
+  handle: string
+  name?: string
+  avatarUrl?: string
+  program?: string
+}) {
+  if (self) {
+    return (
+      <div className="space-y-4">
+        <ProfileHeader
+          handle={handle}
+          name={name}
+          avatarUrl={avatarUrl}
+          program={program || undefined}
+          links={{}}
+          isPublic
+          isSelf
+          onEdit={() => {}}
+          onMessage={() => {}}
+        />
+        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-[13px] text-muted">
+          You&rsquo;re offline. Your posts, followers and outlines will load when you&rsquo;re back online.
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="grid place-items-center gap-3 py-24 text-center">
+      <p className="text-[15px] font-medium text-fg">@{handle}</p>
+      <p className="max-w-xs text-[13px] text-subtle">
+        You&rsquo;re offline. This profile will load when you&rsquo;re back online.
+      </p>
+    </div>
   )
 }
 

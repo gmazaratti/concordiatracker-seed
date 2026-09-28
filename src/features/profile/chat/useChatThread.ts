@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { listSchedules, type SavedSchedule } from '@/lib/schedules'
 import { listMessages, markRead, type Message } from '@/lib/social'
 import { setOpenThread } from '@/lib/message-toast'
+import { usePendingWrites } from '@/lib/offline-fetch'
+import { localUser } from '@/lib/local-user'
 
 /**
  * One conversation's data: its messages, whether they are typing, and the
@@ -35,7 +37,7 @@ export function useChatThread(other: string) {
       const [msgs, saved, auth] = await Promise.all([
         listMessages(other),
         listSchedules(),
-        supabase.auth.getUser(),
+        localUser(),
       ])
       if (!alive) return
       setRows(msgs)
@@ -103,5 +105,42 @@ export function useChatThread(other: string) {
   }
   const reload = () => setTick((n) => n + 1)
 
-  return { rows, schedules, me, theyType, reload, announceTyping }
+  /*
+   * MESSAGES SENT OFFLINE. They are in the write queue (lib/offline-fetch),
+   * not in the thread the server returns, so they are merged in here and
+   * marked pending — the row reads "Sending…" until the queue delivers it.
+   * When it does, the thread re-reads and the server's copy (same id, chosen
+   * on this device) replaces it.
+   */
+  const queued = usePendingWrites()
+  useEffect(() => {
+    const again = () => setTick((n) => n + 1)
+    window.addEventListener('ct:offline-synced', again)
+    return () => window.removeEventListener('ct:offline-synced', again)
+  }, [])
+  const merged = useMemo(() => {
+    if (!rows) return rows
+    const have = new Set(rows.map((r) => r.id))
+    const extra: Message[] = []
+    for (const q of queued) {
+      if (q.table !== 'messages' || q.op !== 'insert') continue
+      for (const r of q.rows) {
+        if (r.recipient !== other || (me && r.sender !== me) || have.has(String(r.id))) continue
+        extra.push({
+          id: String(r.id),
+          sender: String(r.sender),
+          recipient: String(r.recipient),
+          body: String(r.body ?? ''),
+          attachment: (r.attachment as Message['attachment']) ?? null,
+          created_at: String(r.created_at ?? q.at),
+          read_at: null,
+          reply_to: (r.reply_to as string | undefined) ?? null,
+          pending: true,
+        })
+      }
+    }
+    return extra.length ? [...rows, ...extra] : rows
+  }, [rows, queued, other, me])
+
+  return { rows: merged, schedules, me, theyType, reload, announceTyping }
 }

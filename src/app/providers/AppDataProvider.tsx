@@ -47,7 +47,7 @@ import type {
   Grade,
 } from '@/data/types'
 import { isNetworkError, readSnapshot, saveSnapshot } from '@/lib/offline-cache'
-import { markLive, markOffline } from '@/lib/offline-state'
+import { markOffline } from '@/lib/offline-state'
 
 
 // Stable empty refs so a signed-out / loading state doesn't churn consumers.
@@ -206,7 +206,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         return
       }
       fromCache.current = false
-      markLive()
+      // NOT markLive() here: lib/offline-fetch may have answered these reads
+      // from this device's last copy, so success is not proof of a connection.
+      // The fetch layer marks the app live when a real response arrives.
       setLoaded({
         ownerId: authUser.id,
         courses: ((cRes.data as CourseRow[]) ?? []).map(courseFromRow),
