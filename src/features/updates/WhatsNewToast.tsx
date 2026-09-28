@@ -34,7 +34,7 @@ export function WhatsNewToast() {
 
   return (
     <div
-      className="ct-toast-in fixed inset-x-3 top-[calc(4.5rem_+_env(safe-area-inset-top))] z-[60] md:inset-x-auto md:top-auto md:right-4 md:bottom-4"
+      className="ct-toast-in fixed inset-x-3 top-[calc(4.5rem_+_env(safe-area-inset-top))] z-[60] md:inset-x-auto md:top-auto md:right-4 md:bottom-[calc(1rem+var(--ct-corner,0px))]"
       role="status"
       aria-live="polite"
     >

@@ -171,7 +171,7 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
+    <div className="safe-y min-h-[100dvh] bg-canvas lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-4 lg:p-4">
       {/* Phone: the form alone, full width. The showcase is a desktop panel. */}
       <main className="relative flex items-center justify-center px-5 py-10 sm:px-8 lg:py-12">
         {/* A way out that is not the browser's Back button: straight to the

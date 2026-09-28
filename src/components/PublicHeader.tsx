@@ -12,8 +12,15 @@ import { cn } from '@/lib/cn'
 
 type Anchor = { href: string; label: string }
 
+/* Hover: the text brightens and a hairline grows out from the middle of the
+   word. Transform-only, so it never moves the row; the global reduced-motion
+   rule zeroes the duration and it simply appears. Focus shows the same line. */
 const link =
-  'hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg sm:block'
+  'relative hidden rounded-md px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-200 hover:text-fg sm:block ' +
+  'after:pointer-events-none after:absolute after:inset-x-3 after:bottom-0.5 after:h-px after:origin-center after:scale-x-0 after:rounded-full after:bg-current after:transition-transform after:duration-200 after:ease-out ' +
+  'hover:after:scale-x-100 focus-visible:after:scale-x-100'
+/* The buttons lift a pixel: the same feedback, in the grammar of a button. */
+const lift = 'hover:-translate-y-px'
 
 /**
  * The public site's navbar: logo, in-page anchors, docs, clubs, teachers,
@@ -62,7 +69,7 @@ export function PublicHeader({
   return (
     <header
       className={cn(
-        'border-b border-border/60 bg-canvas/80 backdrop-blur',
+        'border-b border-border/60 bg-canvas/80 pt-[env(safe-area-inset-top)] backdrop-blur',
         fixed ? 'fixed inset-x-0 top-0 z-50' : 'sticky top-0 z-20',
       )}
       style={height ? { height } : undefined}
@@ -108,12 +115,12 @@ export function PublicHeader({
               personally shown it. `lg:` so the mobile header stays two
               items: it overflowed at 375px once already. */}
           <Link to="/organizer" className="hidden lg:block">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className={lift}>
               For clubs
             </Button>
           </Link>
           <Link to="/teacher" className="hidden sm:block">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className={lift}>
               {t('landing.forTeachers')}
             </Button>
           </Link>
@@ -127,7 +134,9 @@ export function PublicHeader({
             <LangToggle className="mr-1" />
           )}
           <Link to="/app" className="flex" onClick={signedIn ? transition('/app', 'enter-app') : undefined}>
-            <Button size="sm">{t(ctaKey)}</Button>
+            <Button size="sm" className={lift}>
+              {t(ctaKey)}
+            </Button>
           </Link>
         </nav>
       </div>

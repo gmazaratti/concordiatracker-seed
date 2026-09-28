@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Upload } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { percentToGrade } from '@/lib/gpa'
 import { courseColor } from '@/lib/course-color'
@@ -13,9 +13,13 @@ import { useT } from '@/i18n/i18n'
 export function CourseHeader({
   course,
   currentPercent,
+  onImport,
 }: {
   course: Course
   currentPercent: number | null
+  /** Opens the outline import. On the banner because it acts on the whole
+   *  class, and the banner is the one thing every state of this page shows. */
+  onImport?: () => void
 }) {
   const t = useT()
   const graded = currentPercent === null ? null : percentToGrade(currentPercent)
@@ -64,8 +68,18 @@ export function CourseHeader({
                 <span className="text-white/70">Untitled course</span>
               )}
             </h1>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2 print:hidden">
               <CourseStylePicker course={course} />
+              {onImport && (
+                <button
+                  type="button"
+                  onClick={onImport}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-[12px] font-medium text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/25"
+                >
+                  <Upload size={13} aria-hidden />
+                  Import an outline
+                </button>
+              )}
             </div>
           </div>
 

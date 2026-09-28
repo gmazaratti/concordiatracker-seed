@@ -105,7 +105,7 @@ export function AdminMessageLayer() {
       aria-live="polite"
       aria-label="Message from ConcordiaTracker admin"
       className={cn(
-        'ct-admin-msg fixed right-3 bottom-20 z-[60] w-[min(22.5rem,calc(100vw-1.5rem))] md:bottom-4',
+        'ct-admin-msg fixed right-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] w-[min(22.5rem,calc(100vw-1.5rem))] md:bottom-4',
         'flex flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-2xl',
       )}
     >

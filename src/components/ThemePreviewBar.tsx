@@ -25,7 +25,7 @@ export function ThemePreviewBar() {
   return (
     <div
       role="status"
-      className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-5 print:hidden"
+      className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 md:bottom-5 print:hidden"
     >
       <div className="ct-animate-pop flex max-w-full items-center gap-2.5 rounded-full border border-border-strong bg-surface/95 py-1.5 pr-1.5 pl-3.5 shadow-lg backdrop-blur">
         <Eye size={14} className="shrink-0 text-accent" aria-hidden />

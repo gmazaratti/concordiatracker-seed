@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle, ArrowUpRight, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { HowTo } from '@/features/moodle/MoodleGuide'
+import { MoodleVideo } from '@/features/moodle/MoodleVideo'
 import { MoodleCourses } from '@/features/moodle/MoodleCourses'
 import type { CalendarTask } from '@/data/types'
 import { GraduationCap } from 'lucide-react'
@@ -122,6 +123,9 @@ export function MoodleStep({ onConnected }: { onConnected: () => void }) {
       sub="Paste one link from Moodle and every deadline your professors have posted shows up here, re-checked every night. Read-only, and never your password."
       extra={
         <div className="mt-6 w-full space-y-3 text-left">
+        {/* The whole setup, playing, above the steps: most people copy what
+            they watch faster than they follow what they read. */}
+        <MoodleVideo />
         <HowTo />
 
         <div className="space-y-2">

@@ -107,7 +107,7 @@ export function TeacherOnboarding({
   return createPortal(
     // Opaque from the first frame: only the contents fade, so nothing behind
     // shows through while it appears (the club wizard's dashboard flash).
-    <div className="fixed inset-0 z-[80] bg-canvas">
+    <div className="safe-b fixed inset-0 z-[80] bg-canvas">
       <div className="ct-animate-fade relative isolate flex size-full">
         <div className="ct-grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />
 

@@ -193,7 +193,9 @@ export function AddCourses({
             ? t('courses.addAnotherSub')
             : t('courses.addYoursSub')}
         </p>
-        {hint && <div className="mt-3 flex justify-center">{hint}</div>}
+        {/* The walkthrough plays inline until the first course is in; after
+            that the list of what you added is the more useful thing here. */}
+        {hint && !has && <div className="mt-4">{hint}</div>}
       </div>
 
       {has && <AddedList added={added} justAdded={justAdded} />}

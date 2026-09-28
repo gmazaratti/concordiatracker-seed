@@ -216,7 +216,7 @@ export const en = {
 
   'landing.signInUp': 'Sign in / Sign Up',
   'landing.dashboard': 'Dashboard',
-  'landing.freeToStart': 'Free to start.',
+  'landing.freeToStart': 'The essentials are free, for good. No card needed.',
   'landing.noSignup': 'No sign-up: jump straight into a real demo term.',
   'landing.featuresHeading': 'Three things most trackers get wrong.',
   'landing.featuresEyebrow': 'Why it’s different',

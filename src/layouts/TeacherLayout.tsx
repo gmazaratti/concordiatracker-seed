@@ -37,8 +37,8 @@ export function PortalLayout({ role }: { role: PortalRole }) {
   // Signed out → slim chrome (the sign-in / invite / request pages).
   if (!currentTeacher) {
     return (
-      <div className="flex min-h-svh flex-col bg-canvas">
-        <header className="border-b border-border bg-surface/40">
+      <div className="flex min-h-svh flex-col bg-canvas pb-[env(safe-area-inset-bottom)]">
+        <header className="border-b border-border bg-surface/40 pt-[env(safe-area-inset-top)]">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-3">
             <Link to="/teacher" className="flex items-center gap-2 text-[14px] font-medium text-fg">
               <GraduationCap size={18} className="text-accent" aria-hidden />

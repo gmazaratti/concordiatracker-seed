@@ -223,7 +223,7 @@ export const fr: Partial<Record<Key, string>> = {
 
   'landing.signInUp': 'Connexion / Inscription',
   'landing.dashboard': 'Tableau de bord',
-  'landing.freeToStart': 'Gratuit pour commencer.',
+  'landing.freeToStart': 'L’essentiel est gratuit, pour de bon. Aucune carte requise.',
   'landing.noSignup': 'Aucune inscription: accédez directement à une session de démonstration réelle.',
   'landing.featuresHeading': 'Trois choses que la plupart des outils ratent.',
   'landing.featuresEyebrow': 'Pourquoi c’est différent',

@@ -11,7 +11,7 @@ import {
   type ThemeOrigin,
 } from './theme'
 import { customTheme } from '@/lib/color'
-import { setNativeStatusBar } from '@/lib/native'
+import { setNativeBackground, setNativeStatusBar } from '@/lib/native'
 
 const DEFAULT_THEME: Theme = 'dark'
 const STORAGE_KEY = 'ct_theme'
@@ -116,7 +116,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // coloured by these two meta tags, not by our CSS. index.html sets them
     // before first paint from the saved theme; this keeps them in step after.
     const canvas = getComputedStyle(root).getPropertyValue('--ct-canvas').trim()
-    if (canvas) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', canvas)
+    if (canvas) {
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', canvas)
+      void setNativeBackground(canvas)
+    }
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', scheme)
 
     // Only the chosen theme is persisted. Storing a preview would survive the

@@ -8,6 +8,7 @@ import { Switch } from '@/features/settings/controls'
 import { supabase } from '@/lib/supabase'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 import { BioField } from '@/components/ui/BioField'
+import { ProfilePhotoRow } from '@/features/settings/sections/ProfilePhotoRow'
 
 /**
  * Edit your profile, on your profile.
@@ -129,6 +130,9 @@ export function EditProfileModal({
           </p>
         ) : (
           <div className="mt-4 space-y-4">
+            {/* The photo lives here too: you change a picture while looking
+                at the profile it is on, not in a settings panel. */}
+            <ProfilePhotoRow provider={(authUser?.app_metadata?.provider as string | undefined) ?? 'email'} />
             <Field label="Display name">
               <input
                 value={name}

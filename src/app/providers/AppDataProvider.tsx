@@ -12,6 +12,7 @@ import { term } from '@/data/mock'
 import { coursePercent, percentToGrade } from '@/lib/gpa'
 import { courseKey, findSameCourse } from '@/lib/course-match'
 import { normalizeTerm } from '@/lib/term'
+import { isFinishedTerm } from '@/features/planner/past-terms'
 import { catalogueFacts } from '@/lib/catalog'
 import { useAuth } from './auth'
 import { useSupabaseProfile } from './useSupabaseProfile'
@@ -496,6 +497,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           code: init?.code ?? '',
           name: title,
           term: normalizeTerm(init?.term ?? term.name),
+          // A course for a term that is already over (an old outline, an
+          // earlier semester) is history, not this term: it files straight
+          // into Past semesters instead of sitting among the classes you are
+          // attending, where its open assessments also read as overdue.
+          archived: isFinishedTerm(normalizeTerm(init?.term ?? term.name)),
           // Was below the spread that set it, so an explicit credit count was
           // always overwritten with 3.
           credits,
@@ -522,6 +528,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             code: init?.code ?? '',
             name: title,
             term: normalizeTerm(init?.term ?? term.name),
+          // A course for a term that is already over (an old outline, an
+          // earlier semester) is history, not this term: it files straight
+          // into Past semesters instead of sitting among the classes you are
+          // attending, where its open assessments also read as overdue.
+          archived: isFinishedTerm(normalizeTerm(init?.term ?? term.name)),
             credits,
             color,
             section: init?.section ?? '',

@@ -55,6 +55,7 @@ export function ImageCropper({
   onCancel,
   onDone,
   busy = false,
+  noun,
 }: {
   /** The file just chosen — or an existing URL being re-cropped. */
   file: File | string
@@ -63,7 +64,10 @@ export function ImageCropper({
   /** Hands back a re-drawn file at the exported size; the caller uploads it. */
   onDone: (file: File) => void
   busy?: boolean
+  /** What the picture is, for the title ("Position your photo"). */
+  noun?: string
 }) {
+  const what = noun ?? (kind === 'logo' ? 'logo' : 'banner')
   const spec = IMAGE_SPECS[kind]
   const { ref: dialogRef, onKeyDown: dismissKeys } = useModalDismiss<HTMLDivElement>(onCancel)
 
@@ -260,7 +264,7 @@ export function ImageCropper({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Position your ${kind === 'logo' ? 'logo' : 'banner'}`}
+        aria-label={`Position your ${what}`}
         tabIndex={-1}
         onKeyDown={onKeyDown}
         className="ct-sheet-in flex max-h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface outline-none sm:max-w-2xl sm:rounded-2xl"
@@ -268,7 +272,7 @@ export function ImageCropper({
         <header className="flex items-center gap-3 border-b border-border px-4 py-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-[14px] font-semibold text-fg">
-              Position your {kind === 'logo' ? 'logo' : 'banner'}
+              Position your {what}
             </h2>
             <p className="truncate text-[11.5px] text-subtle">
               Drag to move · scroll or pinch to zoom · this is the real shape

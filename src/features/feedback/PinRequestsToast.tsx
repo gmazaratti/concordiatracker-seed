@@ -13,7 +13,7 @@ export function PinRequestsToast() {
   const pinned = !!uiState.feedbackPinned
 
   return (
-    <div className="ct-animate-pop fixed right-4 bottom-20 z-40 max-w-[calc(100vw-2rem)] md:bottom-5">
+    <div className="ct-animate-pop fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 max-w-[calc(100vw-2rem)] md:bottom-5">
       <div className="flex items-center gap-2 rounded-full border border-border bg-surface py-1.5 pr-1.5 pl-3.5 shadow-[var(--ct-shadow)]">
         <span className="hidden text-[12.5px] text-muted sm:inline">
           {pinned ? 'Pinned to your sidebar' : 'Keep this handy?'}

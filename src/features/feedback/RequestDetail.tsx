@@ -107,7 +107,7 @@ export function RequestDetail({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto bg-canvas">
+    <div className="safe-y fixed inset-0 z-[60] overflow-y-auto bg-canvas">
       <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-3xl items-center px-5 py-3">
           <button

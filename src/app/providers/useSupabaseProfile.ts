@@ -166,8 +166,11 @@ export function useSupabaseProfile() {
       if (!active || !data) return
       const loaded = data as ProfileRow
       // Keep the Google avatar fresh so the feedback feed's denormalized
-      // author_avatar can read it.
-      const changed = av && av !== loaded.avatar_url
+      // author_avatar can read it. Only while the stored photo IS Google's (or
+      // there is none): a photo the student uploaded must never be replaced by
+      // their Google picture on the next sign-in.
+      const ownsPhoto = !!loaded.avatar_url && !/googleusercontent\.com/.test(loaded.avatar_url)
+      const changed = av && !ownsPhoto && av !== loaded.avatar_url
       setRow(changed ? { ...loaded, avatar_url: av } : loaded)
       if (changed) {
         fireWrite(supabase.from('user_profile').update({ avatar_url: av }).eq('user_id', au.id))
@@ -186,7 +189,7 @@ export function useSupabaseProfile() {
   }, [row, authUser])
 
   const updateProfile = useCallback(
-    (patch: Partial<{ name: string; school: string; program: string }>) => {
+    (patch: Partial<{ name: string; school: string; program: string; avatar_url: string | null }>) => {
       setRow((r) => (r ? { ...r, ...patch } : r)) // optimistic: UI updates live
       pendingRef.current = { ...pendingRef.current, ...patch }
       if (timerRef.current) clearTimeout(timerRef.current)

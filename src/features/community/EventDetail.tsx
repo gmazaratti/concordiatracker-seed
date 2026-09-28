@@ -63,7 +63,7 @@ export function EventDetail({
 
   return (
     <>
-      <div className="ct-animate-fade fixed inset-0 z-50 bg-canvas" onKeyDown={onKeyDown}>
+      <div className="ct-animate-fade safe-y fixed inset-0 z-50 bg-canvas" onKeyDown={onKeyDown}>
         <div
           ref={ref}
           role="dialog"

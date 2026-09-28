@@ -102,7 +102,7 @@ export function UserDetailPanel({
         aria-label={`${user.name || user.email || 'User'} details`}
         onKeyDown={onKeyDown}
         onMouseDown={(e) => e.stopPropagation()}
-        className="ct-slide-over relative flex h-full w-full max-w-2xl flex-col border-l border-border bg-canvas shadow-2xl"
+        className="ct-slide-over relative flex h-full pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] w-full max-w-2xl flex-col border-l border-border bg-canvas shadow-2xl"
       >
         <header className="shrink-0 border-b border-border px-5 py-4">
           <div className="flex items-start gap-3">

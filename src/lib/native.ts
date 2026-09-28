@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { App } from '@capacitor/app'
@@ -48,6 +48,28 @@ export async function setNativeStatusBar(scheme: 'dark' | 'light') {
     await StatusBar.setStyle({ style: scheme === 'light' ? Style.Light : Style.Dark })
   } catch {
     /* not fatal — the bar just keeps its previous style */
+  }
+}
+
+const NativeChrome = registerPlugin<{ setBackground(o: { color: string }): Promise<void> }>(
+  'NativeChrome',
+)
+
+/**
+ * Paint the native layers behind the page (the window, the web view) in the
+ * theme's canvas, so a keyboard transition or an over-scroll never reveals
+ * black. Takes a CSS colour; anything that is not #rgb/#rrggbb is ignored
+ * rather than guessed at.
+ */
+export async function setNativeBackground(css: string) {
+  if (!isNative()) return
+  let hex = css.trim().toLowerCase()
+  if (/^#[0-9a-f]{3}$/.test(hex)) hex = '#' + [...hex.slice(1)].map((c) => c + c).join('')
+  if (!/^#[0-9a-f]{6}$/.test(hex)) return
+  try {
+    await NativeChrome.setBackground({ color: hex })
+  } catch {
+    /* an older binary without the plugin: keeps its launch colour */
   }
 }
 
@@ -126,10 +148,11 @@ export function routeApiToSite() {
 }
 
 /**
- * The keyboard. The web view already shrinks to make room (capacitor.config),
- * so the page must not ALSO scroll itself to reveal the field: two mechanisms
- * doing one job is what makes a composer jump. The accessory bar (the ‹ › Done
- * strip) stays, because Done is how people expect to dismiss it.
+ * The keyboard. The web view is resized natively the moment the keyboard is
+ * announced (MainViewController.swift), so the page must not ALSO scroll
+ * itself to reveal the field: two mechanisms doing one job is what makes a
+ * composer jump. The accessory bar (the ‹ › Done strip) stays, because Done is
+ * how people expect to dismiss it.
  */
 function setUpKeyboard() {
   void Keyboard.setScroll({ isDisabled: true }).catch(() => {})

@@ -1,8 +1,10 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, ChevronRight, X } from 'lucide-react'
 import { Confetti } from '@/components/Confetti'
 import { Mascot } from '@/components/Mascot'
 import { cn } from '@/lib/cn'
+import { useCornerOccupant } from '@/lib/corner'
 
 export interface Step {
   id: string
@@ -88,10 +90,13 @@ export function StepRow({
  * was no moment to celebrate.
  */
 export function ChecklistDone({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLElement>(null)
+  useCornerOccupant(ref)
   return (
     <>
       <Confetti count={70} />
       <section
+        ref={ref}
         role="status"
         aria-label="Getting started complete"
         className="ct-animate-pop fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-accent bg-surface p-5 text-center shadow-[var(--ct-shadow)] md:bottom-5"

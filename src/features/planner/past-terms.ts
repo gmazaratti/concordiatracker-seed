@@ -88,6 +88,15 @@ export function isUpcomingTerm(term: string, now = new Date()): boolean {
 }
 
 /**
+ * Is this term IDENTIFIABLY over? An unreadable term (rank 0) is not, so a
+ * course with a typo'd or empty term is never filed away by a guess.
+ */
+export function isFinishedTerm(term: string, now = new Date()): boolean {
+  const r = termRank(term)
+  return r > 0 && r < termRank(currentTermName(now))
+}
+
+/**
  * Every term worth offering, future first, then back through the past.
  *
  * One list rather than two, because a student registering in July is entering

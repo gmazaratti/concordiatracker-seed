@@ -85,8 +85,8 @@ export function OrganizerLayout() {
     // Anything else needs a club; without one it rendered an empty shell.
     if (!openPath) return <Navigate to="/organizer" replace />
     return (
-      <div className="flex min-h-svh flex-col bg-canvas">
-        <header className="border-b border-border bg-surface/40">
+      <div className="flex min-h-svh flex-col bg-canvas pb-[env(safe-area-inset-bottom)]">
+        <header className="border-b border-border bg-surface/40 pt-[env(safe-area-inset-top)]">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-3">
             <Link to="/organizer" className="flex items-center gap-2 text-[14px] font-medium text-fg">
               <CalendarDays size={18} className="text-accent" aria-hidden />

@@ -125,7 +125,7 @@ export function RecordSheet({
       aria-modal="true"
       aria-label="Academic record"
       tabIndex={-1}
-      className="ct-print-root fixed inset-0 z-[80] flex flex-col bg-canvas"
+      className="ct-print-root safe-y fixed inset-0 z-[80] flex flex-col bg-canvas"
     >
       <header className="ct-print-hide flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <button

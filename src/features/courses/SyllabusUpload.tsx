@@ -10,6 +10,7 @@ import { ScanTips } from './ScanTips'
 import { matchAll } from './duplicate-assessments'
 import { syllabusTarget } from '@/lib/course-match'
 import { normalizeTerm } from '@/lib/term'
+import { isFinishedTerm } from '@/features/planner/past-terms'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/cn'
@@ -554,7 +555,9 @@ export function SyllabusUploadPage({
                 ? `Add ${items.length - confidentDupes} to this course`
                 : matched
                   ? `Add ${items.length - confidentDupes} to your ${matched.code}`
-                  : `Add ${items.length} to a new course`}
+                  : isFinishedTerm(normalizeTerm(course.term))
+                    ? `Add ${items.length} to past semesters (${normalizeTerm(course.term)})`
+                    : `Add ${items.length} to a new course`}
             </button>
             <button
               type="button"

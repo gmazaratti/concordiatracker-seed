@@ -281,6 +281,26 @@ html {
 }
 
 /* ---- Base layer ---- */
+/*
+ * SAFE AREAS for full-screen surfaces (the notch, the Dynamic Island, the home
+ * indicator). Transparent BORDERS rather than padding, on purpose: a border is
+ * outside a scroll container's scrollport, so a sticky header inside stops
+ * below the notch instead of sliding under it, and nothing scrolls through the
+ * strip. The element's own background is painted under a transparent border,
+ * so the strip is always the surface's colour. Zero everywhere but a phone.
+ * Use `max-sm:safe-y` for things that are only full-screen on a phone.
+ */
+@utility safe-y {
+  border-top: env(safe-area-inset-top, 0px) solid transparent;
+  border-bottom: env(safe-area-inset-bottom, 0px) solid transparent;
+}
+@utility safe-t {
+  border-top: env(safe-area-inset-top, 0px) solid transparent;
+}
+@utility safe-b {
+  border-bottom: env(safe-area-inset-bottom, 0px) solid transparent;
+}
+
 @layer base {
   html {
     background-color: var(--ct-canvas);
@@ -547,6 +567,24 @@ html {
 
 .ct-animate-fade {
   animation: ct-fade-in 160ms ease-out;
+}
+
+/* The grade prompt: rises from the bottom edge it lives on and sinks back
+   into it, rather than popping. Both ends are driven by a JS timer (see
+   GradePrompt), so the global reduced-motion rule simply makes them instant. */
+@keyframes ct-grade-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ct-grade-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(14px) scale(0.98); }
+}
+.ct-grade-in {
+  animation: ct-grade-in 280ms cubic-bezier(0.2, 0.9, 0.25, 1) backwards;
+}
+.ct-grade-out {
+  animation: ct-grade-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .ct-animate-pop {

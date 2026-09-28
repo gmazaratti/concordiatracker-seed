@@ -12,7 +12,17 @@
           { "/": "/reset-password", "comment": "Password reset link" },
           { "/": "/reset-password/*", "comment": "Password reset link" },
           { "/": "/app", "comment": "Sign-in and email-confirmation links land here" },
-          { "/": "/app/*", "comment": "Sign-in links and in-app pages" }
+          { "/": "/app/*", "comment": "Sign-in links and in-app pages" },
+          { "/": "/", "comment": "The home page: with the app installed, the app is the product" },
+          { "/": "/@*", "comment": "Profiles (/@handle)" },
+          { "/": "/s/*", "comment": "Shared schedules" },
+          { "/": "/onboarding", "comment": "Setup after a first sign-in" },
+          { "/": "/feedback", "comment": "Feature requests" },
+          { "/": "/feedback/*", "comment": "A feature request" },
+          { "/": "/organizer", "comment": "Organizer portal" },
+          { "/": "/organizer/*", "comment": "Organizer portal pages" },
+          { "/": "/teacher", "comment": "Teacher portal" },
+          { "/": "/teacher/*", "comment": "Teacher portal pages" }
         ]
       }
     ]

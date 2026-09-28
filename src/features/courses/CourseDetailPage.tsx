@@ -143,7 +143,11 @@ export function CourseDetailPage() {
           Losing the banner is how you end up entering a mark on the wrong
           course. */}
       <div className="lg:shrink-0">
-        <CourseHeader course={course} currentPercent={standing.currentPercent} />
+        <CourseHeader
+          course={course}
+          currentPercent={standing.currentPercent}
+          onImport={() => setImporting(true)}
+        />
       </div>
 
       <CourseAnnouncements courseCode={course.code} />
@@ -254,18 +258,7 @@ export function CourseDetailPage() {
                   </Link>
                 </div>
               </div>
-            ) : (
-              <div className="flex justify-end print:hidden">
-                <button
-                  type="button"
-                  onClick={() => setImporting(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-                >
-                  <Upload size={12} aria-hidden />
-                  Import an outline
-                </button>
-              </div>
-            )}
+            ) : null}
             <ManualCourseAssessments
               courseId={course.id}
               assessments={courseAssessments}
@@ -319,20 +312,6 @@ export function CourseDetailPage() {
           </aside>
 
           <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            {/* A course with an outline could not receive another one, so a
-                corrected syllabus meant retyping it. Anything that looks like an
-                assessment already here is flagged and skipped, so importing
-                twice cannot double your grade breakdown. */}
-            <div className="flex justify-end print:hidden">
-              <button
-                type="button"
-                onClick={() => setImporting(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-              >
-                <Upload size={12} aria-hidden />
-                Import an outline
-              </button>
-            </div>
             <TeacherChangeCard items={courseAssessments.filter((a) => a.teacherPrev)} />
             {(coursePeerCorrections.length > 0 || moodleMismatches.length > 0) && (
               <div className="flex flex-col gap-2">

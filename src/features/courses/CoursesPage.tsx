@@ -3,7 +3,7 @@ import { LayoutGrid, Plus, Rows3 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
-import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
+import { currentTermName, isFinishedTerm, isUpcomingTerm } from '@/features/planner/past-terms'
 import { coursePercent, currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { daysUntil } from '@/lib/date'
@@ -17,6 +17,7 @@ import { PaywallCallout } from './Paywall'
 import { MoodleClassNudge, MoodleConnectCard } from './MoodleClassNudge'
 import { AddCourseChooser } from './AddCourseChooser'
 import { TranscriptView } from './TranscriptView'
+import { UnfiledPastCourses } from './UnfiledPastCourses'
 import { AddForTerm, UpcomingCourses } from './UpcomingTerms'
 
 /** Courses — the grade hub. The class list switches between a dense List (rows)
@@ -45,9 +46,11 @@ export function CoursesPage() {
     () => courses.filter((c) => c.term && isUpcomingTerm(c.term) && c.term !== currentTermName()),
     [courses],
   )
+  // A finished term is not this term, archived or not (see UnfiledPastCourses).
+  const unfiled = useMemo(() => courses.filter((c) => c.term && isFinishedTerm(c.term)), [courses])
   const thisTerm = useMemo(
-    () => courses.filter((c) => !upcoming.includes(c)),
-    [courses, upcoming],
+    () => courses.filter((c) => !upcoming.includes(c) && !unfiled.includes(c)),
+    [courses, upcoming, unfiled],
   )
   const shown = useMemo(
     () => sortByOrder(tab === 'upcoming' ? upcoming : thisTerm),
@@ -157,7 +160,12 @@ export function CoursesPage() {
         })}
       </div>
 
-      {showPast && <TranscriptView />}
+      {showPast && (
+        <>
+          <UnfiledPastCourses courses={unfiled} />
+          <TranscriptView />
+        </>
+      )}
 
       {/* Upcoming is its own view, not the current-term grid with a filter: it
           has no rail, because a GPA and an overdue count for classes that have

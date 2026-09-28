@@ -72,7 +72,7 @@ export function NotificationToast() {
       role="status"
       aria-live="polite"
       className={cn(
-        'ct-animate-pop fixed right-4 bottom-20 z-[70] flex max-w-[min(22rem,calc(100vw-2rem))] items-start gap-3',
+        'ct-animate-pop fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[70] flex max-w-[min(22rem,calc(100vw-2rem))] items-start gap-3',
         'rounded-xl border border-border bg-surface px-3.5 py-3 shadow-2xl md:bottom-4',
       )}
     >

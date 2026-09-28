@@ -10,6 +10,7 @@ import { ProgramPicker, type ProgramSelection } from '@/components/ui/ProgramPic
 import { programById } from '@/data/programs'
 import { Group, Row } from '../controls'
 import { SignInMethods } from './SignInMethods'
+import { ProfilePhotoRow } from './ProfilePhotoRow'
 import { useT } from '@/i18n/i18n'
 
 const COOLDOWN_MS = 14 * 86_400_000
@@ -93,11 +94,7 @@ export function AccountSection() {
         <Row label="Major / Program" description="Search Concordia's program list, or choose Other." stacked>
           <ProgramField />
         </Row>
-        <Row label="Profile photo" description={provider === 'google' ? 'Synced from your Google account.' : 'Your initials, until you add a photo.'}>
-          <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-            {user.initials}
-          </span>
-        </Row>
+        <ProfilePhotoRow provider={provider} />
       </Group>
 
       <SignInMethods />

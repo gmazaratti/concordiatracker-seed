@@ -110,7 +110,7 @@ function PostDetailModal({
 
   return createPortal(
     <div
-      className="ct-animate-fade fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+      className="ct-animate-fade safe-y fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
       onMouseDown={onClose}
       role="dialog"
       aria-modal="true"

@@ -1,4 +1,5 @@
 import { GradePrompt } from '@/features/courses/GradePrompt'
+import { cn } from '@/lib/cn'
 import { useEffect, useRef } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAppTitle } from '@/app/hooks/useAppTitle'
@@ -103,7 +104,10 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
     <div className="flex h-[100dvh] overflow-hidden bg-canvas">
       <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* Screens that draw their own top bar (Community, a profile) get the
+          status-bar inset HERE, once, so none of them can forget it: before
+          this, their "+" and bell sat under the clock in the iOS app. */}
+      <div className={cn('flex min-w-0 flex-1 flex-col', ownsTheWholeScreen && 'max-md:safe-t')}>
         {/* Mobile top bar: pad past the status bar / notch in standalone mode */}
         {!ownsTheWholeScreen && (
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 pb-3 pt-[calc(0.75rem_+_env(safe-area-inset-top))] md:hidden">

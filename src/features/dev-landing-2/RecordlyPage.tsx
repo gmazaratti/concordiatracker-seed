@@ -38,6 +38,18 @@ export function RecordlyPage() {
   usePageMeta({ title: TITLE, description: DESCRIPTION, path: '/' })
   const t = useT()
 
+  // "See how it works" glides to the demo instead of jumping. Scripted rather
+  // than `scroll-behavior: smooth` on <html>, which would also animate every
+  // in-app scroll restore. Reduced motion jumps, as it should.
+  const toDemo = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const target = document.getElementById('features')
+    if (!target) return
+    e.preventDefault()
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    history.replaceState(null, '', '#features')
+  }
+
   return (
     <div id="top" className="min-h-[100dvh] overflow-x-clip bg-canvas font-sans text-fg antialiased">
       <PublicHeader
@@ -77,7 +89,7 @@ export function RecordlyPage() {
                     <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
                   </Button>
                 </Link>
-                <a href="#features" className="w-full sm:w-auto">
+                <a href="#features" onClick={toDemo} className="w-full sm:w-auto">
                   <Button variant="outline" size="lg" className="w-full sm:w-auto">
                     {t('landing.ctaSecondary')}
                   </Button>

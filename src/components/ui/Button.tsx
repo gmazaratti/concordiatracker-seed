@@ -38,7 +38,7 @@ export function Button({
         // far more than hover: hover doesn't exist on a phone, so without this
         // most of the UI gave touch users no acknowledgement at all until the
         // action completed. Transform is compositor-only, so it's free.
-        'inline-flex items-center justify-center whitespace-nowrap transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100',
+        'inline-flex items-center justify-center whitespace-nowrap transition-[color,background-color,border-color,transform,translate,scale] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100',
         VARIANTS[variant],
         SIZES[size],
         className,

@@ -360,7 +360,7 @@ export function SchedulePreview({
       aria-modal="true"
       aria-label={attachment.name}
       tabIndex={-1}
-      className="fixed inset-0 z-[80] flex flex-col bg-canvas"
+      className="safe-y fixed inset-0 z-[80] flex flex-col bg-canvas"
     >
       {/* A sticky bar with the way out in it. The previous version was a
           centred dialog wider than its own box, so the close control ended up

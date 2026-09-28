@@ -72,12 +72,13 @@ const config: CapacitorConfig = {
       overlaysWebView: true,
     },
     Keyboard: {
-      // The web view shrinks when the keyboard opens, so `100dvh`, the chat
-      // composer and every bottom sheet sit above it with no JavaScript. The
-      // alternative ('none') leaves the page under the keyboard and relies on
-      // the visual-viewport maths the web build needs for Safari; the native
-      // shell does not have to guess.
-      resize: 'native',
+      // 'none' because the web view IS resized, but by MainViewController.swift
+      // rather than by this plugin: the plugin's 'native' mode waits for the
+      // keyboard animation to finish (+0.2s) before shrinking the page, which
+      // is the jump and the black band QA reported. Resizing the moment iOS
+      // announces the keyboard keeps `100dvh`, the chat composer and every
+      // bottom sheet above it with no JavaScript.
+      resize: 'none',
       resizeOnFullScreen: true,
       style: 'DEFAULT',
     },

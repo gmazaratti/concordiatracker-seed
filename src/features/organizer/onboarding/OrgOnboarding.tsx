@@ -251,7 +251,7 @@ function OrgOnboarding({
     // OPAQUE FROM THE FIRST FRAME. The fade used to be on this layer, so for
     // its first frames the page underneath showed straight through — the
     // dashboard "flashed" before setup. Only the contents fade now.
-    <div className="fixed inset-0 z-[80] bg-canvas">
+    <div className="safe-b fixed inset-0 z-[80] bg-canvas">
     <div className="ct-animate-fade relative isolate flex size-full">
       {/* Grid as a background layer, not on this container: its radial mask
           applies to every descendant and would hold the whole wizard at ≤50%

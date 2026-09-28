@@ -78,7 +78,9 @@ export interface AppDataContextValue {
   applyProUntil: (iso: string) => void
   /** Edit the signed-in user's profile (name / school / program) — persisted to
    * Supabase `user_profile`; read by Settings + Community ("for your program"). */
-  updateProfile: (patch: Partial<{ name: string; school: string; program: string }>) => void
+  updateProfile: (
+    patch: Partial<{ name: string; school: string; program: string; avatar_url: string | null }>,
+  ) => void
   /** Set the program from a canonical selection (id + display name); logs an
    * "Other" entry for review. */
   setProgram: (sel: { id: string; name: string }) => void

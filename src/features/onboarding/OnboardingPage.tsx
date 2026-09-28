@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
 import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
 import { HeardAboutSlide } from './HeardAboutSlide'
@@ -14,7 +15,7 @@ import { HANDLE_RE, useHandleCheck } from './handle'
 import type { ProgramSelection } from '@/components/ui/ProgramPicker'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
-import { TutorialHint } from '@/components/TutorialHint'
+import { TutorialClip } from '@/components/TutorialClip'
 
 // 4 setup steps + 6 intro steps.
 // Setup: name, handle, major, theme. Intro: welcome, heard-about, add-courses,
@@ -41,6 +42,7 @@ const TOTAL = 11
 export function OnboardingPage() {
   const t = useT()
   const { user, onboardingCompleted, completeOnboarding } = useAppData()
+  const { user: authUser, loading: authLoading } = useAuth()
   // (program is collected via the searchable picker — structured, not free text)
   const navigate = useNavigate()
 
@@ -172,6 +174,11 @@ export function OnboardingPage() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
+  // Signed out, the profile never resolves, so this used to spin forever.
+  // /app is the sign-in screen, and after signing in it sends a new account
+  // straight back here.
+  if (!authLoading && !authUser) return <Navigate to="/app" replace />
+
   if (onboardingCompleted === null || !decided || leaving) {
     return (
       <div className="grid h-svh place-items-center bg-canvas">
@@ -252,7 +259,13 @@ export function OnboardingPage() {
               <AddCourses
                 onAdded={() => setAddedCourse(true)}
                 concordia={atConcordia}
-                hint={<TutorialHint id="add-course" />}
+                hint={
+                  <TutorialClip
+                    src="/dev-landing-2/courses-grades.mp4"
+                    poster="/tutorials/add-course.jpg"
+                    label="Adding a course and entering a grade"
+                  />
+                }
               />
             ) : step === STEP_HOW ? (
               <HowItWorksSlide />

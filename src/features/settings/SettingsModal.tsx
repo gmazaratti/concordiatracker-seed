@@ -196,7 +196,7 @@ export function SettingsModal() {
         tabIndex={-1}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
-        className="ct-animate-pop flex w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-[620px] sm:max-h-[88vh] sm:max-w-4xl sm:flex-row sm:rounded-2xl sm:border sm:border-border"
+        className="ct-animate-pop max-sm:safe-t flex w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-[620px] sm:max-h-[88vh] sm:max-w-4xl sm:flex-row sm:rounded-2xl sm:border sm:border-border"
       >
         {/* Section nav: left rail on desktop, horizontal scroll row on mobile */}
         <div className="flex shrink-0 flex-col border-b border-border bg-surface-2/30 sm:w-56 sm:border-r sm:border-b-0">

@@ -89,10 +89,16 @@ struct NextDeadlineView: View {
                 .lineLimit(big ? 2 : 1)
             HStack(spacing: 4) {
                 Circle().fill(Brand.course(d.color)).frame(width: 6, height: 6)
+                // The course code gives way first; the date never wraps (a
+                // small widget used to break "Tomorrow" across two lines).
                 Text(d.course).font(.caption).foregroundColor(.secondary)
+                    .lineLimit(1).truncationMode(.tail)
                 Text("·").font(.caption).foregroundColor(.secondary)
                 Text(Relative.due(d.due, now: entry.date))
                     .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .layoutPriority(1)
                     // Saturated colour only when it is urgent, as in the app.
                     .foregroundColor(d.due < entry.date.addingTimeInterval(86_400) ? .orange : .primary)
             }

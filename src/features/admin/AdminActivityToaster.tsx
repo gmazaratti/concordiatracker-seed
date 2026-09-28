@@ -73,7 +73,7 @@ export function AdminActivityToaster() {
     <div
       role="status"
       aria-live="polite"
-      className="ct-animate-pop fixed right-4 bottom-20 z-50 w-[320px] max-w-[calc(100vw-2rem)] md:bottom-4"
+      className="ct-animate-pop fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 w-[320px] max-w-[calc(100vw-2rem)] md:bottom-4"
     >
       <div className="flex items-start gap-3 rounded-xl border border-accent/40 bg-surface p-3.5 shadow-[var(--ct-shadow)]">
         <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">

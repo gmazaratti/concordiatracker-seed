@@ -8,6 +8,7 @@ import { useTour } from '@/features/tour/tour'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import { cn } from '@/lib/cn'
 import { ChecklistDone, StepRow } from './checklist-parts'
+import { useCornerOccupant } from '@/lib/corner'
 import { readActive, readOpen, writeActive, writeOpen } from './checklist-storage'
 import { buildSteps } from './checklist-steps'
 
@@ -47,6 +48,8 @@ export function GettingStartedChecklist() {
     document.addEventListener('pointerdown', onDown, true)
     return () => document.removeEventListener('pointerdown', onDown, true)
   }, [open])
+
+  useCornerOccupant(cardRef)
 
   // And the page can always scroll its last row clear of it: the app's scroller
   // gets bottom padding the height of the card for as long as it is on screen.
