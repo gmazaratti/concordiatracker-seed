@@ -6,13 +6,25 @@ import { sortTermsDesc } from '@/lib/term'
 import { COURSE_COLORS } from '@/lib/course-color'
 import { Button } from '@/components/ui/Button'
 import { AddPastCourseModal } from './AddPastCourseModal'
+import { MoveConfirm } from './MoveConfirm'
+import { currentTermName } from '@/features/planner/past-terms'
 import { cn } from '@/lib/cn'
 
 /** Past semesters — a transcript: each finished term with its courses, letter
  * grades and term GPA, plus the cumulative GPA across everything graded. */
 export function TranscriptView() {
-  const { pastCourses, assessments, unarchiveCourse } = useAppData()
+  const { pastCourses, courses, assessments, moveToCurrentTerm } = useAppData()
   const [adding, setAdding] = useState(false)
+  /** The row asking "move this to the current term?" (one at a time). */
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const nowTerm = currentTermName()
+  const key = (code: string) => code.replace(/[\s-]+/g, '').toUpperCase()
+  // The same course is already live this term: moving would make a duplicate
+  // (and the database refuses it), so the row says so instead of offering it.
+  const liveThisTerm = useMemo(
+    () => new Set(courses.filter((c) => c.term === nowTerm && c.code).map((c) => key(c.code))),
+    [courses, nowTerm],
+  )
 
   const terms = useMemo(
     () => termRecords(pastCourses, assessments, sortTermsDesc),
@@ -97,7 +109,8 @@ export function TranscriptView() {
                     const letter = c.finalLetter ?? (typeof pct === 'number' ? percentToGrade(pct).letter : null)
                     const hex = COURSE_COLORS.find((x) => x.id === c.color)?.hex
                     return (
-                      <li key={c.id} className="group flex items-center gap-3 px-3.5 py-2.5">
+                      <li key={c.id} className="group px-3.5 py-2.5">
+                        <div className="flex items-center gap-3">
                         <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[13px] font-medium text-fg">{c.code || 'Untitled'}</p>
@@ -117,13 +130,31 @@ export function TranscriptView() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => unarchiveCourse(c.id)}
-                          title="Move back to the current term"
-                          aria-label={`Restore ${c.code} to the current term`}
-                          className="shrink-0 rounded-md p-1 text-subtle opacity-0 transition-opacity hover:text-fg focus-visible:opacity-100 group-hover:opacity-100"
+                          onClick={() => setConfirming(confirming === c.id ? null : c.id)}
+                          title={`Move to ${nowTerm}`}
+                          aria-label={`Move ${c.code || 'this course'} to ${nowTerm}`}
+                          aria-expanded={confirming === c.id}
+                          // Visible on touch screens (no hover to reveal it);
+                          // hover-revealed only where a pointer can hover.
+                          className="shrink-0 rounded-md p-1 text-subtle transition-opacity hover:text-fg focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
                         >
                           <Undo2 size={14} aria-hidden />
                         </button>
+                        </div>
+                        {confirming === c.id && (
+                          <MoveConfirm
+                            code={c.code || 'This course'}
+                            term={nowTerm}
+                            duplicate={!!c.code && liveThisTerm.has(key(c.code))}
+                            // A hand-entered grade has no assessments to rebuild it from.
+                            losesTypedGrade={!!letter && !assessments.some((a) => a.courseId === c.id)}
+                            onMove={() => {
+                              moveToCurrentTerm(c.id)
+                              setConfirming(null)
+                            }}
+                            onCancel={() => setConfirming(null)}
+                          />
+                        )}
                       </li>
                     )
                   })}

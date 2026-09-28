@@ -3,6 +3,7 @@ import { Clock, Loader2, Send } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatDueDateTime } from '@/lib/date'
 import { ticketThread, replyToTicket, type TicketMessage } from '@/lib/tickets'
+import { useAutoGrow } from '@/app/hooks/useAutoGrow'
 
 /**
  * The conversation view — shared by the student's support panel and the admin
@@ -27,6 +28,8 @@ export function TicketThread({
   const [messages, setMessages] = useState<TicketMessage[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const composerRef = useRef<HTMLTextAreaElement>(null)
+  useAutoGrow(composerRef, draft)
   const [sending, setSending] = useState(false)
   const [loadedFor, setLoadedFor] = useState(ticketId)
   // A retry counter rather than a re-fetch call: the fetch stays inside the
@@ -177,6 +180,7 @@ export function TicketThread({
       <div className="flex items-end gap-2 border-t border-border p-2.5">
         <div className="flex min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent">
           <textarea
+            ref={composerRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -189,7 +193,7 @@ export function TicketThread({
             rows={1}
             placeholder={perspective === 'staff' ? 'Reply to this person…' : 'Write a message…'}
             aria-label="Your message"
-            className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
+            className="max-h-[40vh] min-h-[30px] flex-1 resize-none self-center overflow-y-auto bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
           />
           {/* Grows in with the first character — see Chat.tsx. */}
           <button

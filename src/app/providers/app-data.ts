@@ -155,6 +155,8 @@ export interface AppDataContextValue {
   archiveCourse: (id: string) => void
   /** Undo an archive — back to the current term, grade unfrozen. */
   unarchiveCourse: (id: string) => void
+  /** Back to live, relabelled as the current term (clears the final grade). */
+  moveToCurrentTerm: (id: string) => void
   /** Add a course from before you used the app (no assessments). The grade is
    * OPTIONAL: without it the course still counts for credits and prerequisites
    * and is skipped by GPA. Returns the new id. */

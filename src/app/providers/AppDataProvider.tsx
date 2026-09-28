@@ -12,7 +12,7 @@ import { term } from '@/data/mock'
 import { coursePercent, percentToGrade } from '@/lib/gpa'
 import { courseKey, findSameCourse } from '@/lib/course-match'
 import { normalizeTerm } from '@/lib/term'
-import { isFinishedTerm } from '@/features/planner/past-terms'
+import { currentTermName, isFinishedTerm } from '@/features/planner/past-terms'
 import { donateAddAssignment } from '@/lib/native-extras'
 import { catalogueFacts } from '@/lib/catalog'
 import { useAuth } from './auth'
@@ -640,6 +640,27 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [updateCourses],
   )
 
+  /**
+   * "I'm taking this now": back to live AND relabelled as the current term.
+   * Unarchiving alone keeps a stale term name (the TKT-1034 mislabel), which
+   * would leave the course looking finished. The final grade is cleared as
+   * on unarchive; the UI confirms first when that grade was typed by hand.
+   */
+  const moveToCurrentTerm = useCallback(
+    (id: string) => {
+      if (isSampleId(id)) return
+      const patch: Partial<Course> = {
+        archived: false,
+        term: currentTermName(),
+        finalPercent: undefined,
+        finalLetter: undefined,
+      }
+      updateCourses((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      fireWrite(supabase.from('courses').update(courseToRow(patch)).eq('id', id), 'That course did not move')
+    },
+    [updateCourses],
+  )
+
   /** Add a course from BEFORE you used the app — transcript-style: no
    * assessments, just the final grade you already earned.
    *
@@ -840,6 +861,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       pastCourses,
       archiveCourse,
       unarchiveCourse,
+      moveToCurrentTerm,
       addPastCourse,
       shareCourseAsBlueprint,
       addBlankAssessment,
@@ -894,6 +916,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
       pastCourses,
       archiveCourse,
       unarchiveCourse,
+      moveToCurrentTerm,
       addPastCourse,
       shareCourseAsBlueprint,
       addBlankAssessment,
