@@ -6,9 +6,7 @@ import { term } from '@/data/mock'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
-import { daysUntil } from '@/lib/date'
 import { groupDue, PAIN_THRESHOLD } from './due'
-import { coveredTaskIds, pairMoodleToAssessments } from '@/lib/moodle-match'
 import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
@@ -17,49 +15,15 @@ import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { useT, useI18n } from '@/i18n/i18n'
-import { useUiState } from '@/app/providers/ui-state'
-import {
-  WIDGETS_BY_ID,
-  GLANCE_ID,
-  DUE_ID,
-  DEFAULT_MAIN,
-  MAX_MAIN,
-  MAX_WIDGETS,
-  sanitizeLayout,
-  sizeOf,
-  sizesFor,
-  zoneForSize,
-  SIZE_SPAN,
-  type WidgetSize,
-} from './widgets/registry'
+import { SIZE_SPAN, WIDGETS_BY_ID, GLANCE_ID, DUE_ID, sizesFor, zoneForSize, type WidgetSize } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
 import { SizePicker } from './widgets/SizePicker'
-import { WidgetBoard, WidgetZoneView, type ZoneSpec } from './widgets/WidgetBoard'
-
-/** Which greeting to show — the hour is read at render time, like the rest of
- * Today's clock-relative copy. */
-function greetingKey(): 'today.goodMorning' | 'today.goodAfternoon' | 'today.goodEvening' {
-  const h = new Date().getHours()
-  if (h < 12) return 'today.goodMorning'
-  if (h < 18) return 'today.goodAfternoon'
-  return 'today.goodEvening'
-}
+import { WidgetBoard, WidgetZoneView } from './widgets/WidgetBoard'
+import { greetingKey, useTodosDue } from './today-helpers'
+import { useTodayLayout } from './useTodayLayout'
 
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
-/** Overdue and near-term totals for Moodle rows. Module-level so reading the
- *  clock is allowed (`react-hooks/purity` bars it inside a component). */
-function countNear(tasks: { due: string }[]): { overdue: number; near: number } {
-  let overdue = 0
-  let near = 0
-  for (const tk of tasks) {
-    const d = daysUntil(tk.due)
-    if (d < 0) overdue++
-    if (d < 7) near++
-  }
-  return { overdue, near }
-}
-
 export function TodayPage() {
   const t = useT()
   const { lang } = useI18n()
@@ -80,73 +44,17 @@ export function TodayPage() {
     updateTodayPrefs,
   } = useAppData()
   const { flashUndo } = useQuickActions()
-  const { uiState, patchUiState } = useUiState()
-  // Unknown ids are dropped, so a layout saved against an older build can never
-  // crash Today or render a widget twice.
-  const widgets = sanitizeLayout(uiState.todayWidgets)
-  /**
-   * The wide column, migrating the old two-band layout on read.
-   *
-   * Anyone who had put something above or below their deadlines keeps exactly
-   * the arrangement they had — the list simply says so explicitly now, with
-   * the due list in the middle where it always was.
-   */
-  const savedMain =
-    uiState.todayMain ??
-    [...(uiState.todayTopWidgets ?? []), DUE_ID, ...(uiState.todayBelowWidgets ?? [])]
-  const rawMain = sanitizeLayout(savedMain, DEFAULT_MAIN)
-  // The one invariant: the due list is on this screen somewhere. A saved
-  // layout that has lost it (an old write, a bad merge) gets it back at the
-  // top rather than rendering a Today with no deadlines on it.
-  const mainWidgets =
-    rawMain.includes(DUE_ID) || widgets.includes(DUE_ID) ? rawMain : [DUE_ID, ...rawMain]
+  const { widgets, mainWidgets, setZone, zones, sizeFor, setSize, railSizes, growFromRail } =
+    useTodayLayout()
   // Edit mode is explicit rather than long-press-only: widgets contain links,
   // so at rest every tap would race a drag.
   const [editing, setEditing] = useState(false)
-
-  /**
-   * Zones are exclusive: a widget lives in exactly one. Writing both at once
-   * means dragging the due list into the rail removes it from the main column
-   * in the same update, instead of showing it twice or silently refusing.
-   */
-  function setZone(zone: 'rail' | 'main', next: string[]) {
-    const others = (list: string[]) => list.filter((id) => !next.includes(id))
-    patchUiState({
-      todayWidgets: zone === 'rail' ? next : others(widgets),
-      todayMain: zone === 'main' ? next : others(mainWidgets),
-    })
-  }
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
   const groups = useMemo(() => groupDue(assessments), [assessments])
 
-  /**
-   * Todos that are NOT a second copy of something already here.
-   *
-   * THIS IS THE DUPLICATE ANSWER. A synced "Assignment 2 is due" and the
-   * Assignment 2 on your course are the same piece of work, and showing both
-   * would double the list for anyone whose syllabus is also in Moodle. The
-   * assessment wins — it carries the weight and your grade — and the synced
-   * copy is dropped. What survives is the deadlines no syllabus lists, which
-   * is exactly what connecting Moodle was for — alongside anything you put on
-   * your own calendar, because a study block you set for this evening belongs
-   * on the screen you check this evening.
-   *
-   * Anything still open, and undone.
-   */
-  const todosDue = useMemo(() => {
-    const covered = coveredTaskIds(pairMoodleToAssessments(personalTasks, assessments, courses))
-    return personalTasks.filter((tk) => !tk.done && !covered.has(tk.id))
-  }, [personalTasks, assessments, courses])
-  /**
-   * The same two numbers the rail shows, for the Moodle half.
-   *
-   * Counted here rather than left out, because a rail reading "3 left" beside
-   * a list of five rows is the kind of small inconsistency that makes someone
-   * distrust both numbers.
-   */
-  const todoCounts = useMemo(() => countNear(todosDue), [todosDue])
+  const { todosDue, todoCounts } = useTodosDue(personalTasks, assessments, courses)
 
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
   // Cumulative across FINISHED terms — the sub-line under this term's GPA.
@@ -189,12 +97,6 @@ export function TodayPage() {
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
   const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
-  // Zones are declared once so the drag controller and the views agree on
-  // capacity, layout, and where a widget currently lives.
-  const zones: ZoneSpec[] = [
-    { id: 'main', ids: mainWidgets, setIds: (n) => setZone('main', n), layout: 'wide', max: MAX_MAIN },
-    { id: 'rail', ids: widgets, setIds: (n) => setZone('rail', n), layout: 'rail', max: MAX_WIDGETS },
-  ]
   const zoneById = (id: string) => zones.find((z) => z.id === id)!
 
   const dueList = (compact: boolean) => (
@@ -228,36 +130,6 @@ export function TodayPage() {
       cumulativeGpa={cumulativeGpa}
     />
   )
-
-  // Card sizes in the wide column. The rail is one narrow column, so there
-  // every card is drawn at its rail layout.
-  const sizeFor = (id: string): WidgetSize => {
-    const def = WIDGETS_BY_ID.get(id)
-    return def ? sizeOf(def, uiState.widgetSizes?.[id]) : 'l'
-  }
-  const setSize = (id: string, size: WidgetSize) =>
-    patchUiState({ widgetSizes: { ...uiState.widgetSizes, [id]: size } })
-
-  /**
-   * A card in the rail offers the same sizes. The rail is one narrow column,
-   * so a bigger size can only be honoured by moving the card to the wide
-   * column, which is what picking one does, in one write so it never shows
-   * in both places.
-   */
-  const railSizes = (id: string): WidgetSize[] => {
-    const def = WIDGETS_BY_ID.get(id)
-    if (!def) return []
-    const bigger = sizesFor(def).filter((sz) => sz !== 's')
-    return mainWidgets.length < MAX_MAIN ? ['s', ...bigger] : ['s']
-  }
-  const growFromRail = (id: string, size: WidgetSize) => {
-    if (size === 's' || mainWidgets.length >= MAX_MAIN) return
-    patchUiState({
-      todayWidgets: widgets.filter((w) => w !== id),
-      todayMain: [...mainWidgets.filter((w) => w !== id), id],
-      widgetSizes: { ...uiState.widgetSizes, [id]: size },
-    })
-  }
 
   /** Both zones render the same three special cases; only the size differs. */
   const renderIn = (zone: 'main' | 'rail') => (id: string) => {
