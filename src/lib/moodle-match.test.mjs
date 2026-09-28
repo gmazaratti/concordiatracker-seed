@@ -40,6 +40,8 @@ eq('"opens" too', stripMoodleTitle('COMP 248 Quiz 3 opens'), 'Quiz 3')
 eq('"closes"', stripMoodleTitle('Quiz 3 closes'), 'Quiz 3')
 eq('a bare title is untouched', stripMoodleTitle('Midterm Exam'), 'Midterm Exam')
 eq('no-space course codes', stripMoodleTitle('COMP248 Lab 4 is due'), 'Lab 4')
+eq('a full Moodle short name leaves no term/section residue', stripMoodleTitle('FINA-210-2262-B: Join a Group is due'), 'Join a Group')
+eq('a four-digit number in a real title survives', stripMoodleTitle('Essay on 1984 is due'), 'Essay on 1984')
 eq('a hyphenated code', stripMoodleTitle('COMM-305 Case Study 1 due'), 'Case Study 1')
 eq('stacked whitespace collapses', stripMoodleTitle('  COMM 305   Assignment 2   is due '), 'Assignment 2')
 

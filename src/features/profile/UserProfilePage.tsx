@@ -35,6 +35,7 @@ import { SavedTab } from './SavedTab'
 import { RepostsTab } from '@/features/community/posts/RepostsTab'
 import { useSupport } from '@/app/providers/support'
 import { useCommunityData } from '@/app/providers/community-data'
+import { useAppData } from '@/app/providers/app-data'
 
 /**
  * Public user profile at `/@handle` — viewable by ANYONE (anon included). The
@@ -135,6 +136,9 @@ export function ProfileView({
   embedded?: boolean
 }) {
   const { loading, notFound, profile, blueprints, reload } = usePublicProfile(handle)
+  // Your own photo comes from the live profile row, not this page's cached
+  // copy, so changing it in Settings shows here on the same frame.
+  const { user: me } = useAppData()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   /**
@@ -235,7 +239,7 @@ export function ProfileView({
             <ProfileHeader
               handle={profile.handle}
               name={profile.name}
-              avatarUrl={profile.avatarUrl}
+              avatarUrl={viewer === 'self' ? me.avatarUrl : profile.avatarUrl}
               program={profile.program}
               bio={profile.bio}
               links={profile.links}

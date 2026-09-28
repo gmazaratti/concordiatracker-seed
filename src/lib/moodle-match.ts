@@ -33,7 +33,12 @@ const CODE = /\b([A-Za-z]{3,4})[\s-]?(\d{3}[A-Za-z]?)\b/g
  * because a title can carry more than one verb phrase ("Quiz 1 opens").
  */
 export function stripMoodleTitle(summary: string): string {
-  let s = summary.replace(CODE, ' ')
+  // A full Moodle short name is FINA-210-2262-B: removing the course code
+  // leaves "-2262-B" (term code + section) behind, which is not a title either.
+  let s = summary
+    .replace(CODE, ' ')
+    .replace(/(^|\s)-?\d{4}-[A-Z0-9]{1,4}\b:?/gi, ' ')
+    .replace(/^[\s:–-]+/, '')
   let before = ''
   while (before !== s) {
     before = s

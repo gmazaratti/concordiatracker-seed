@@ -416,8 +416,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
   // Insert new assessments (the DB generates the uuid ids; we adopt them back).
   const addAssessments = useCallback(
-    async (items: Assessment[]) => {
-      if (!authUser || items.length === 0) return
+    async (items: Assessment[]): Promise<Assessment[]> => {
+      if (!authUser || items.length === 0) return []
       const rows = items.map((a) => assessmentToInsert(a, authUser.id))
       const first = await supabase.from('assignments').insert(rows).select('*')
       let data = first.data
@@ -430,7 +430,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         })
         data = (await supabase.from('assignments').insert(stripped).select('*')).data
       }
-      if (data) updateAssessments((list) => [...list, ...(data as AssignmentRow[]).map(assessmentFromRow)])
+      // Returned so a caller that needs the new ids (an undo) has them.
+      const created = data ? (data as AssignmentRow[]).map(assessmentFromRow) : []
+      if (created.length) updateAssessments((list) => [...list, ...created])
+      return created
     },
     [authUser, updateAssessments],
   )

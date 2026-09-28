@@ -11,6 +11,7 @@ import { programById } from '@/data/programs'
 import { Group, Row } from '../controls'
 import { SignInMethods } from './SignInMethods'
 import { ProfilePhotoRow } from './ProfilePhotoRow'
+import { UserAvatar } from '@/components/UserAvatar'
 import { useT } from '@/i18n/i18n'
 
 const COOLDOWN_MS = 14 * 86_400_000
@@ -54,9 +55,7 @@ export function AccountSection() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-4 rounded-xl border border-border bg-surface-2/25 px-4 py-4">
-        <span className="grid size-14 shrink-0 place-items-center rounded-full bg-accent-soft text-[18px] font-semibold text-accent">
-          {user.initials}
-        </span>
+        <UserAvatar className="size-14" textClass="text-[18px]" />
         <div className="min-w-0">
           <p className="truncate text-[15px] font-medium text-fg">{user.name}</p>
           <p className="truncate text-[12px] text-subtle">{user.email}</p>

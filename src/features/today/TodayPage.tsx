@@ -1,4 +1,4 @@
-import { askForGrade } from '@/lib/grade-prompt'
+import { askForGrade, askForTaskGrade } from '@/lib/grade-prompt'
 import { haptic } from '@/lib/haptics'
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
@@ -78,6 +78,15 @@ export function TodayPage() {
       askForGrade(id)
     }
   }
+  /** A synced Moodle item: same tick, same feel, same "what did you get?". */
+  function toggleMoodle(id: string) {
+    const task = personalTasks.find((tk) => tk.id === id)
+    toggleTask(id)
+    if (task && !task.done) {
+      haptic('success')
+      askForTaskGrade(id)
+    }
+  }
   /** Tick one line of a task's checklist without opening anything. */
   function toggleStep(id: string, index: number) {
     const task = personalTasks.find((tk) => tk.id === id)
@@ -115,7 +124,7 @@ export function TodayPage() {
       onResolve={resolve}
       onDelete={deleteItem}
       onUndo={undo}
-      onToggleMoodle={toggleTask}
+      onToggleMoodle={toggleMoodle}
       onToggleStep={toggleStep}
       onPrefsChange={updateTodayPrefs}
     />

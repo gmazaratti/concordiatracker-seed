@@ -4,6 +4,7 @@ import { useAppData } from '@/app/providers/app-data'
 import { ImageCropper } from '@/components/ui/ImageCropper'
 import { IMAGE_ACCEPT_ATTR, uploadOrgImage } from '@/lib/imageUpload'
 import { Row } from '../controls'
+import { UserAvatar } from '@/components/UserAvatar'
 
 /**
  * Change your profile picture: pick an image, position it in the circle it
@@ -46,13 +47,7 @@ export function ProfilePhotoRow({ provider }: { provider: string }) {
   return (
     <Row label="Profile photo" description={err || description}>
       <div className="flex items-center gap-2">
-        {user.avatarUrl ? (
-          <img src={user.avatarUrl} alt="" className="size-9 rounded-full object-cover" />
-        ) : (
-          <span className="grid size-9 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-            {user.initials}
-          </span>
-        )}
+        <UserAvatar className="size-9" textClass="text-[12px]" />
         <button
           type="button"
           onClick={() => input.current?.click()}

@@ -118,7 +118,7 @@ export interface AppDataContextValue {
    * grade, notes in one write). */
   updateAssessment: (id: string, patch: Partial<Assessment>) => void
   /** Append parsed assessments (the syllabus parse-reveal commits through here). */
-  addAssessments: (items: Assessment[]) => void
+  addAssessments: (items: Assessment[]) => Promise<Assessment[]>
   /** Remove an assessment from the in-memory store (the Today "Delete" action). */
   removeAssessment: (id: string) => void
   /** Recolor a class (the Google-Classroom per-class color). In-memory. */

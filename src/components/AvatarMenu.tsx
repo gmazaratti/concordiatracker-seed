@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
+import { UserAvatar } from '@/components/UserAvatar'
 import { useAuth } from '@/app/providers/auth'
 import { useSettings } from '@/app/providers/settings'
 import { useActivityBadge } from '@/app/usePeopleBadge'
@@ -269,17 +270,8 @@ export function AvatarMenu({
         <span className="relative size-8 shrink-0">
           {icon ? (
             <span className="grid size-8 place-items-center rounded-lg text-fg">{icon}</span>
-          ) : user.avatarUrl ? (
-            <img
-              src={user.avatarUrl}
-              alt=""
-              referrerPolicy="no-referrer"
-              className="size-8 rounded-full bg-surface-2 object-cover"
-            />
           ) : (
-            <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[12px] font-semibold text-accent">
-              {user.initials}
-            </span>
+            <UserAvatar className="size-8" textClass="text-[12px]" />
           )}
           {/* Persistent unseen-update cue on the always-visible profile avatar
            * (both the mobile top bar and the desktop sidebar footer), so it never

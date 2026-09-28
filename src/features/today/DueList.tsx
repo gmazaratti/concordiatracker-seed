@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { byDue, daysUntil } from '@/lib/date'
-import { CheckCircle2, ChevronDown, Plus, SlidersHorizontal } from 'lucide-react'
+import { CheckCircle2, ChevronDown, History, Plus, SlidersHorizontal } from 'lucide-react'
+import { HistoryModal } from './HistoryModal'
 import type { Assessment, AssessmentStatus, CalendarTask, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
@@ -185,6 +186,7 @@ export function DueList({
   const t = useT()
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [addingTask, setAddingTask] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   // Long sections (a pile of overdue, say) collapse past this — the list stays
   // one calm screen and the rest sits behind "Show N more".
   const CAP = compact ? 3 : 5
@@ -210,6 +212,16 @@ export function DueList({
           )}
           {/* Tasks are added from the calendar's day view, which nobody finds
               from here. The same editor, one tap from the list it adds to. */}
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            aria-label={t('today.history')}
+            title={t('today.history')}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <History size={14} aria-hidden />
+            <span className="hidden sm:inline">{t('today.history')}</span>
+          </button>
           <button
             type="button"
             onClick={() => setAddingTask(true)}
@@ -239,6 +251,8 @@ export function DueList({
       </div>
 
       {customizeOpen && <CustomizeToday prefs={prefs} onChange={onPrefsChange} />}
+
+      {historyOpen && createPortal(<HistoryModal onClose={() => setHistoryOpen(false)} />, document.body)}
 
       {addingTask &&
         createPortal(

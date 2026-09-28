@@ -3,6 +3,7 @@ import { BookOpen, FlaskConical, GraduationCap, LayoutDashboard, Loader2, LogOut
 import { useTeacher } from '@/app/providers/teacher'
 import { useAuth } from '@/app/providers/auth'
 import { useAppData } from '@/app/providers/app-data'
+import { UserAvatar } from '@/components/UserAvatar'
 import { TEACHER_SECTIONS, type PortalRole } from '@/data/teacher'
 import { cn } from '@/lib/cn'
 
@@ -158,11 +159,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
         {/* Signed-in user + exits */}
         <div className="flex flex-col gap-1 border-t border-border pt-2">
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" className="size-8 shrink-0 rounded-full bg-surface-2 object-cover" />
-            ) : (
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{user.initials}</span>
-            )}
+            <UserAvatar className="size-8" textClass="text-[11px]" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12.5px] font-medium text-fg">{user.name}</p>
               <p className="truncate text-[11px] text-subtle">{user.email}</p>
