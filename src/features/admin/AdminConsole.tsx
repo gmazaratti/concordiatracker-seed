@@ -22,6 +22,7 @@ import {
   Loader2,
   ShieldAlert,
   ShieldCheck,
+  Smartphone,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -41,6 +42,7 @@ import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { SocialTab } from './tabs/SocialTab'
 import { ParsesTab } from './parses/ParsesTab'
 import { ProductTab } from './product/ProductTab'
+import { AppVersionTab } from './tabs/AppVersionTab'
 import { cn } from '@/lib/cn'
 
 const TABS = [
@@ -63,6 +65,7 @@ const TABS = [
   { id: 'social', label: 'Social graph', icon: Ban },
   { id: 'data', label: 'Data reports', icon: ClipboardCheck },
   { id: 'bugs', label: 'Bug reports', icon: Bug },
+  { id: 'app', label: 'App version', icon: Smartphone },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -142,6 +145,7 @@ export function AdminConsole() {
         {current === 'social' && <SocialTab />}
         {current === 'data' && <DataReportsTab />}
         {current === 'bugs' && <BugReportsTab />}
+        {current === 'app' && <AppVersionTab />}
         {current === 'assistant' && <AssistantTab />}
         {current === 'parses' && <ParsesTab />}
       </div>

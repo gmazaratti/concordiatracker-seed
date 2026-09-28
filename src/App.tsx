@@ -9,6 +9,7 @@ import { AppRoutes } from '@/router'
 import { RouteAnalytics } from '@/app/RouteAnalytics'
 import { AuthIntentRedirect } from '@/app/AuthIntentRedirect'
 import { NativeBridge } from '@/app/NativeBridge'
+import { ForceUpdateGate } from '@/app/ForceUpdateGate'
 import { isNative } from '@/lib/native'
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <AuthIntentRedirect />
           <NativeBridge />
           <AppRoutes />
+          <ForceUpdateGate />
           {/*
             Vercel's own measurement. Two deliberate conditions:
 

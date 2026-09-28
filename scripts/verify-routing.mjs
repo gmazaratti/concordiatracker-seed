@@ -280,6 +280,7 @@ check(
   resolve('/api/stripe-checkout'),
 )
 check('/api/library still resolves', resolve('/api/library') === '/api/sections?feed=library', resolve('/api/library'))
+check('/api/app-version resolves', resolve('/api/app-version') === '/api/sections?feed=app-version', resolve('/api/app-version'))
 
 
 console.log('\nPaths that must return a real 404')

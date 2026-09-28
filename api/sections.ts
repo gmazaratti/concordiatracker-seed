@@ -1,7 +1,8 @@
 /**
  * GET/POST /api/sections?subject=COMP&catalog=248
  *
- * Also the front door for `/api/library` (`?feed=library`, via a rewrite) --
+ * Also the front door for `/api/app-version` (`?feed=app-version`) and
+ * for `/api/library` (`?feed=library`, via a rewrite) --
  * see the note in `_library.ts`. Two Concordia Open Data proxies behind one
  * function, because the platform allows twelve and we needed one back.
  *
@@ -12,6 +13,7 @@
  */
 import { bySection, fetchSchedule, meetingTimeString, num } from './_concordia.js'
 import { libraryHandler } from './_library.js'
+import { appVersionHandler } from './_app-version.js'
 import { fail } from './_respond.js'
 
 export interface SectionOption {
@@ -40,6 +42,7 @@ export interface SectionOption {
 export default async function handler(req: any, res: any) {
   const q = req.query ?? {}
   if (String(q.feed ?? '') === 'library') return libraryHandler(req, res)
+  if (String(q.feed ?? '') === 'app-version') return appVersionHandler(req, res)
 
   const subject = String(q.subject ?? '').trim().toUpperCase()
   const catalog = String(q.catalog ?? '').trim()

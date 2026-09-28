@@ -78,6 +78,7 @@ export const OPENAPI = {
   servers: [{ url: SITE, description: 'Production' }],
   externalDocs: { description: 'Documentation', url: SITE + '/docs/introduction' },
   tags: [
+    { name: 'App', description: 'What the native app asks before it starts.' },
     { name: 'Courses', description: 'Concordia course and section lookup.' },
     { name: 'Support', description: 'Support tickets, usable without an account.' },
     { name: 'Billing', description: 'Stripe checkout and subscription management.' },
@@ -139,6 +140,49 @@ export const OPENAPI = {
                     subject: { type: 'string' },
                     catalog: { type: 'string' },
                     sections: { type: 'array', items: { $ref: '#/components/schemas/Section' } },
+                  },
+                },
+              },
+            },
+          },
+          ...commonErrors,
+        },
+      },
+    },
+
+    '/api/app-version': {
+      get: {
+        operationId: 'getAppVersion',
+        tags: ['App'],
+        summary: 'Minimum and latest native app build',
+        description:
+          'What the iOS app asks on launch. A build below minBuild is shown a blocking update ' +
+          'screen; one below latestBuild a dismissible banner. The app fails open, so an error ' +
+          'here never stops it launching. Edited from the admin console, cached for a minute.',
+        security: [],
+        parameters: [
+          {
+            name: 'platform',
+            in: 'query',
+            required: false,
+            description: 'The platform. Only ios for now.',
+            schema: { type: 'string', enum: ['ios'], default: 'ios' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'The builds for that platform.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['platform', 'minBuild', 'latestBuild', 'storeUrl', 'updatedAt'],
+                  properties: {
+                    platform: { type: 'string' },
+                    minBuild: { type: 'integer', minimum: 1 },
+                    latestBuild: { type: 'integer', minimum: 1 },
+                    storeUrl: { type: 'string', format: 'uri' },
+                    updatedAt: { type: 'string', format: 'date-time' },
                   },
                 },
               },

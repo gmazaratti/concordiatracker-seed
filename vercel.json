@@ -81,6 +81,10 @@
       "destination": "/api/sections?feed=library"
     },
     {
+      "source": "/api/app-version",
+      "destination": "/api/sections?feed=app-version"
+    },
+    {
       "source": "/api/run-reminders",
       "destination": "/api/sync-catalog?job=reminders"
     },
