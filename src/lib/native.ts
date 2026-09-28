@@ -3,6 +3,10 @@ import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
+import { Keyboard } from '@capacitor/keyboard'
+import { PUBLIC_SITE } from './site-origin'
+import { inAppPathFor, openIncomingUrl, requestNavigate } from './native-nav'
+import { listenForPushTaps } from './native-push'
 
 /**
  * The handful of things the app has to do differently when it is an app.
@@ -71,6 +75,13 @@ export function interceptExternalLinks() {
     if (url.origin === window.location.origin) return
     if (!/^https?:$/.test(url.protocol)) return // mailto:, tel: — let iOS have them
     e.preventDefault()
+    // A link to our own site (an event someone shared, a profile) is a page
+    // the app already has: open it here, not in a browser tab.
+    const own = inAppPathFor(url.href)
+    if (own) {
+      requestNavigate(own)
+      return
+    }
     void Browser.open({ url: url.href })
   })
 }
@@ -91,9 +102,61 @@ export function handleAppBack() {
   })
 }
 
+/**
+ * THE API LIVES ON THE WEBSITE, NOT IN THE APP.
+ *
+ * The app's pages are bundled and served from `capacitor://localhost`, so a
+ * relative `fetch('/api/…')` would ask the phone itself, which has no server.
+ * Every such call is sent to the real domain instead, in one place, so none of
+ * the dozen call sites has to know it might be running in an app. The API
+ * answers the app's origin with CORS (middleware.ts + vercel.json).
+ */
+export function routeApiToSite() {
+  if (!isNative()) return
+  const original = window.fetch.bind(window)
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === 'string' && input.startsWith('/api/')) {
+      return original(PUBLIC_SITE + input, init)
+    }
+    if (input instanceof URL && input.origin === window.location.origin && input.pathname.startsWith('/api/')) {
+      return original(new URL(input.pathname + input.search, PUBLIC_SITE), init)
+    }
+    return original(input, init)
+  }
+}
+
+/**
+ * The keyboard. The web view already shrinks to make room (capacitor.config),
+ * so the page must not ALSO scroll itself to reveal the field: two mechanisms
+ * doing one job is what makes a composer jump. The accessory bar (the ‹ › Done
+ * strip) stays, because Done is how people expect to dismiss it.
+ */
+function setUpKeyboard() {
+  void Keyboard.setScroll({ isDisabled: true }).catch(() => {})
+  void Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {})
+}
+
+/**
+ * Universal links: a concordiatracker.com URL tapped anywhere else on the
+ * phone opens here (public/.well-known/apple-app-site-association). A cold
+ * start delivers the URL through `getLaunchUrl`, a warm one through the event.
+ */
+function handleUniversalLinks() {
+  void App.addListener('appUrlOpen', ({ url }) => void openIncomingUrl(url))
+  void App.getLaunchUrl()
+    .then((r) => {
+      if (r?.url) void openIncomingUrl(r.url)
+    })
+    .catch(() => {})
+}
+
 /** Everything above, in the order it should happen. Called from main.tsx. */
 export function initNative() {
   if (!isNative()) return
+  routeApiToSite()
   interceptExternalLinks()
   handleAppBack()
+  setUpKeyboard()
+  handleUniversalLinks()
+  listenForPushTaps()
 }

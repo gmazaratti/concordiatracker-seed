@@ -18,12 +18,30 @@ if (!url || !anonKey) {
   )
 }
 
+/**
+ * Dev servers only: `localStorage.ct_force_offline = '1'` makes every database
+ * call fail the way airplane mode does, to exercise the offline screens
+ * (lib/offline-cache). `import.meta.env.DEV` is false in every production
+ * bundle, so no real user can switch this on.
+ */
+function devOfflineFetch(): typeof fetch | undefined {
+  try {
+    if (!import.meta.env.DEV || localStorage.getItem('ct_force_offline') !== '1') return undefined
+  } catch {
+    return undefined
+  }
+  return () => Promise.reject(new TypeError('Failed to fetch'))
+}
+
+const offlineFetch = devOfflineFetch()
+
 export const supabase = createClient(url ?? '', anonKey ?? '', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
+  ...(offlineFetch ? { global: { fetch: offlineFetch } } : {}),
 })
 
 /**

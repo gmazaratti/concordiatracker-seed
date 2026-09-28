@@ -8,6 +8,7 @@ import { initialsOf } from '@/lib/initials'
 import type { OrgRoleDef } from '@/lib/org-roles'
 import { findInvitees, inviteByEmail, inviteUser, type Invitee } from '@/lib/org-invites'
 import { cn } from '@/lib/cn'
+import { siteOrigin } from '@/lib/site-origin'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -327,7 +328,7 @@ function InviteLink({ token }: { token: string }) {
         <button
           type="button"
           onClick={() =>
-            navigator.clipboard?.writeText(`${window.location.origin}${path}`).then(
+            navigator.clipboard?.writeText(`${siteOrigin()}${path}`).then(
               () => setCopied(true),
               () => setCopied(false),
             )

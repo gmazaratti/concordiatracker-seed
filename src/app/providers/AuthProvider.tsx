@@ -4,6 +4,11 @@ import { touchDevices } from '@/lib/devices'
 import { supabase } from '@/lib/supabase'
 import { AuthContext } from './auth'
 import { authReturn, rememberOAuthAttempt } from '@/lib/auth-return'
+import { isNative } from '@/lib/native'
+import { nativeOAuth } from '@/lib/native-auth'
+import { releaseNativePushToken } from '@/lib/native-push'
+import { siteOrigin } from '@/lib/site-origin'
+import { clearOfflineCache } from '@/lib/offline-cache'
 
 /** Tracks the Supabase session: loads it once, then keeps it in sync via the
  * auth-state listener (covers sign-in, sign-out, token refresh, OAuth return). */
@@ -106,6 +111,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const startOAuth = useCallback(async (provider: 'google' | 'apple') => {
     rememberOAuthAttempt(provider)
+    // In the App Store app the provider page opens in the system sign-in
+    // sheet and hands the session straight back (lib/native-auth).
+    if (isNative()) return { error: (await nativeOAuth(provider)).error }
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/app` },
@@ -135,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/app` },
+      options: { emailRedirectTo: `${siteOrigin()}/app` },
     })
     if (error) return { error: error.message, needsConfirmation: false }
     return { error: null, needsConfirmation: !data.session }
@@ -149,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const sendPasswordReset = useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${siteOrigin()}/reset-password`,
     })
     return { error: error?.message ?? null }
   }, [])
@@ -162,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /** Add a second sign-in method to the account you are signed into. */
   const linkProvider = useCallback(async (provider: 'google' | 'apple') => {
     rememberOAuthAttempt(provider)
+    if (isNative()) return { error: (await nativeOAuth(provider, 'link')).error }
     const { error } = await supabase.auth.linkIdentity({
       provider,
       options: { redirectTo: `${window.location.origin}/app?settings=account` },
@@ -173,7 +182,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     /* THIS DEVICE ONLY. supabase-js defaults to scope 'global', so every
        "Sign out" used to end the account's sessions on every device at once.
        Signing out everywhere is now its own button in Settings → Devices. */
+    // While the session still exists: stop this phone getting the account's
+    // notifications (a no-op in a browser).
+    await releaseNativePushToken()
     await supabase.auth.signOut({ scope: 'local' })
+    // The saved offline copy holds grades: a shared phone must not keep them.
+    clearOfflineCache()
   }, [])
 
   const value = useMemo(

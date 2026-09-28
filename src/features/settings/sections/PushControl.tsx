@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, Check, Loader2, Send } from 'lucide-react'
 import {
   enablePush,
@@ -10,16 +10,31 @@ import { isIOS, isStandalone } from '@/lib/pwa-install'
 import { cn } from '@/lib/cn'
 import { Group, Row } from '../controls'
 import { useT } from '@/i18n/i18n'
+import { enableNativePush, isNativePush, nativePushPermission } from '@/lib/native-push'
+import { PushTypeSwitches } from './PushTypeSwitches'
 
 type Busy = 'enable' | 'test' | null
 
-/** Real Web Push controls: opt in on this device, then fire a test notification.
- * On iOS this only works inside the home-screen-installed PWA (iOS 16.4+). */
+/** Push controls: opt in on this device, then fire a test notification.
+ * In a browser this is Web Push (on iOS only inside the home-screen-installed
+ * PWA, iOS 16.4+). In the App Store app it is APNs (lib/native-push). */
 export function PushControl() {
   const t = useT()
+  const native = isNativePush()
   const [perm, setPerm] = useState<NotificationPermission | 'unsupported'>(() =>
-    notificationPermission(),
+    native ? 'default' : notificationPermission(),
   )
+  // The app's permission lives in iOS and can only be read asynchronously.
+  useEffect(() => {
+    if (!native) return
+    let alive = true
+    void nativePushPermission().then((p) => {
+      if (alive) setPerm(p === 'granted' ? 'granted' : p === 'denied' ? 'denied' : 'default')
+    })
+    return () => {
+      alive = false
+    }
+  }, [native])
   const [busy, setBusy] = useState<Busy>(null)
   const [note, setNote] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null)
 
@@ -29,8 +44,8 @@ export function PushControl() {
   async function onEnable() {
     setBusy('enable')
     setNote(null)
-    const r = await enablePush()
-    setPerm(notificationPermission())
+    const r = native ? await enableNativePush() : await enablePush()
+    setPerm(native ? ((await nativePushPermission()) === 'granted' ? 'granted' : 'denied') : notificationPermission())
     setBusy(null)
     if (r.ok) setNote({ tone: 'ok', text: 'Notifications are on for this device.' })
     else if (r.reason === 'denied')
@@ -59,7 +74,7 @@ export function PushControl() {
           label="Add to your home screen first"
           description="On iPhone, push only works from the installed app: tap Share → Add to Home Screen, then open it from there."
         />
-      ) : !isPushSupported() ? (
+      ) : !native && !isPushSupported() ? (
         <Row
           label="Not supported here"
           description="This browser doesn’t support push notifications."
@@ -112,6 +127,8 @@ export function PushControl() {
           </Row>
         </>
       )}
+
+      <PushTypeSwitches />
 
       {note && (
         <div className="px-4 py-3">

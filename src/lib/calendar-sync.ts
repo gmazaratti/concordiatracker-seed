@@ -1,3 +1,4 @@
+import { siteOrigin } from '@/lib/site-origin'
 import { supabase } from '@/lib/supabase'
 
 /**
@@ -59,7 +60,7 @@ export const setFeedLayers = (layers: { assessments?: boolean; tasks?: boolean }
  * student is looking at can differ, and a link they cannot open is worse than
  * no button. The origin they are on is the origin that works.
  */
-export function feedUrls(token: string, origin = window.location.origin) {
+export function feedUrls(token: string, origin = siteOrigin()) {
   const https = `${origin}/api/calendar/${token}.ics`
   // webcal:// is the scheme Apple registers, and the reason one tap on an
   // iPhone opens Calendar with a subscribe sheet instead of downloading a file.

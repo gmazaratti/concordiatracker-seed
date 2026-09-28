@@ -39,6 +39,7 @@ import { CollabHeader, CollaboratorsSheet } from './CollabHeader'
 import { removeCollaborator } from '@/lib/collab'
 import { useMyOrgs } from '../useMyOrgs'
 import { CommentsSheet } from './CommentsSheet'
+import { siteOrigin } from '@/lib/site-origin'
 
 /**
  * One post in the feed.
@@ -324,7 +325,7 @@ export function PostCard({
   }
 
   const slug = post.handle.replace(/^@/, '')
-  const link = `${window.location.origin}/app/community/org/${slug}`
+  const link = `${siteOrigin()}/app/community/org/${slug}`
 
   const like = async () => {
     const next = !liked

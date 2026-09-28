@@ -167,6 +167,23 @@
           "value": "text/plain; charset=utf-8"
         }
       ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "capacitor://localhost"
+        },
+        {
+          "key": "Access-Control-Expose-Headers",
+          "value": "Retry-After"
+        },
+        {
+          "key": "Vary",
+          "value": "Origin"
+        }
+      ]
     }
   ],
   "crons": [

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { siteOrigin } from '@/lib/site-origin'
 
 /** One club invite, as the admin list shows it (see db/club_invites.sql). */
 export interface ClubInvite {
@@ -64,7 +65,7 @@ export const isUnlimited = (n: number) => n >= UNLIMITED
 export const neverExpires = (iso: string) => new Date(iso).getFullYear() >= 2099
 
 export function inviteUrl(token: string): string {
-  return `${window.location.origin}/join/${token}`
+  return `${siteOrigin()}/join/${token}`
 }
 
 export type InviteState = 'unused' | 'opened' | 'claimed' | 'used-up' | 'expired' | 'revoked'

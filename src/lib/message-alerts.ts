@@ -1,3 +1,4 @@
+import { haptic } from './haptics'
 import { useSyncExternalStore } from 'react'
 
 /**
@@ -58,11 +59,9 @@ export async function enableAlerts(): Promise<'granted' | 'denied' | 'unsupporte
  * but nobody should believe the phone buzzes because this line exists.
  */
 export function buzz(): void {
-  try {
-    navigator.vibrate?.(30)
-  } catch {
-    /* refused by the platform; nothing to do about it */
-  }
+  // The App Store app has a real Taptic Engine; lib/haptics uses it there and
+  // falls back to the vibrate call above everywhere else.
+  haptic('tap')
 }
 
 /**

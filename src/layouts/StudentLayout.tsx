@@ -41,6 +41,8 @@ import { EndOfTermPrompt } from '@/features/courses/EndOfTermPrompt'
 import { Coachmark } from '@/features/getting-started/Coachmark'
 import { TourProvider } from '@/features/tour/TourProvider'
 import { TourOverlay } from '@/features/tour/TourOverlay'
+import { OfflineBanner, OfflineScreen } from '@/components/OfflineNotice'
+import { useOfflineState } from '@/lib/offline-state'
 
 /** Chrome for the authenticated student app context. Gated: the whole `/app`
  * area requires a signed-in session — otherwise the login screen takes over. */
@@ -62,6 +64,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
      where each page was left. */
   const scroller = useRef<HTMLElement>(null)
   useScrollMemory(scroller)
+  const offline = useOfflineState()
 
   /**
    * A PROFILE OWNS THE WHOLE SCREEN, and so does Community.
@@ -75,6 +78,10 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
    */
   const ownsTheWholeScreen =
     pathname.startsWith('/@') || pathname.startsWith('/app/community')
+
+  // Offline with nothing saved on this device: say so, rather than spin
+  // forever or show an empty term (components/OfflineNotice).
+  if (user && offline && offline.savedAt === null) return <OfflineScreen />
 
   // First-login onboarding gate. Wait for the profile to load (null) so a
   // returning, already-onboarded user never flashes the app before redirecting.
@@ -109,6 +116,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
             message can arrive on any screen and it must not scroll with the
             one you happen to be on. */}
         <MessageToast />
+        <OfflineBanner />
 
         <main ref={scroller} id="app-main" className="relative flex-1 overflow-y-auto">
           {/* `children` for the one page that lives at a top-level URL but

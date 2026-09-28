@@ -17,6 +17,7 @@ import {
 import { FollowListPage, type FollowListKind } from './FollowListPage'
 import { RichBio } from '@/components/RichBio'
 import { cn } from '@/lib/cn'
+import { siteOrigin } from '@/lib/site-origin'
 
 /**
  * The profile header, laid out to match Instagram's.
@@ -289,7 +290,7 @@ function Actions({
           className={flat}
           onClick={() => {
             void navigator.clipboard
-              ?.writeText(`${window.location.origin}/@${handle}`)
+              ?.writeText(`${siteOrigin()}/@${handle}`)
               .then(() => setCopied(true))
               .catch(() => {})
           }}

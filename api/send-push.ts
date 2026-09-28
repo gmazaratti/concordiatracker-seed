@@ -10,14 +10,8 @@
  * The matching VAPID PRIVATE key is read from the server env (VAPID_PRIVATE_KEY);
  * only the PUBLIC key is embedded here (it's public by design).
  */
-import webpush from 'web-push'
 import { fail } from './_respond.js'
-
-interface SubRow {
-  endpoint: string
-  p256dh: string
-  auth: string
-}
+import { SUB_COLS, closePush, sendPush, type PushTarget } from './_push-send.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
@@ -26,12 +20,11 @@ export default async function handler(req: any, res: any) {
     return
   }
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:concordiatracker@gmail.com'
+  // Delivery keys (VAPID for browsers, APNS_* for iPhones) are checked per
+  // device inside sendPush; this endpoint only needs to reach the database.
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
-  if (!publicKey || !privateKey || !supabaseUrl || !anon) {
+  if (!supabaseUrl || !anon) {
     fail(res, 500, 'Push is not configured on the server yet.')
     return
   }
@@ -60,43 +53,36 @@ export default async function handler(req: any, res: any) {
 
   // Load the caller's OWN subscriptions (RLS scopes this to them).
   const subsRes = await fetch(
-    `${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh,auth&user_id=eq.${userId}`,
+    `${supabaseUrl}/rest/v1/push_subscriptions?select=${SUB_COLS}&user_id=eq.${userId}`,
     { headers: { apikey: anon, Authorization: `Bearer ${token}` } },
   )
   if (!subsRes.ok) {
     fail(res, 500, 'Could not load your devices.')
     return
   }
-  const subs: SubRow[] = await subsRes.json()
+  const subs: PushTarget[] = await subsRes.json()
   if (!subs.length) {
     fail(res, 409, 'No device is subscribed yet. Enable notifications first.')
     return
   }
 
-  webpush.setVapidDetails(subject, publicKey, privateKey)
-  const payload = JSON.stringify({
+  const msg = {
     title: 'Notifications are on 🎉',
     body: "You'll get your deadline reminders right here.",
     url: '/app',
     tag: 'ct-test',
-  })
+  }
 
   let sent = 0
+  let skipped = 0
   const stale: string[] = []
-  await Promise.all(
-    subs.map(async (s) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
-        )
-        sent++
-      } catch (err: unknown) {
-        const code = (err as { statusCode?: number })?.statusCode
-        if (code === 404 || code === 410) stale.push(s.endpoint)
-      }
-    }),
-  )
+  for (const s of subs) {
+    const r = await sendPush(s, msg)
+    if (r.status === 'ok') sent++
+    else if (r.status === 'gone') stale.push(s.endpoint)
+    else if (r.status === 'skipped') skipped++
+  }
+  closePush()
 
   // Prune endpoints the push service says are gone (the caller's own rows).
   for (const endpoint of stale) {
@@ -106,5 +92,11 @@ export default async function handler(req: any, res: any) {
     )
   }
 
+  // Nothing delivered because the server has no keys for this kind of device
+  // is a configuration problem, and saying "sent" would hide it.
+  if (sent === 0 && skipped > 0) {
+    fail(res, 503, 'Push is not configured on the server for this device yet.')
+    return
+  }
   res.status(200).json({ sent })
 }

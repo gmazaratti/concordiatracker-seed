@@ -44,6 +44,8 @@ import type {
   Course,
   Grade,
 } from '@/data/types'
+import { isNetworkError, readSnapshot, saveSnapshot } from '@/lib/offline-cache'
+import { markLive, markOffline } from '@/lib/offline-state'
 
 
 // Stable empty refs so a signed-out / loading state doesn't churn consumers.
@@ -137,16 +139,72 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     [flushAssessmentWrite],
   )
 
+  // Whether `loaded` is the device's saved copy (offline) rather than live
+  // rows. A saved copy is never saved back over itself.
+  const fromCache = useRef(false)
+  // Keep this device's offline copy current: every change to live data is
+  // written a moment after it settles, so airplane mode shows the latest term.
+  useEffect(() => {
+    if (!loaded || fromCache.current) return
+    const t = setTimeout(
+      () => saveSnapshot(loaded.ownerId, { courses: loaded.courses, assessments: loaded.assessments, tasks: loaded.tasks }),
+      800,
+    )
+    return () => clearTimeout(t)
+  }, [loaded])
+
   // Load the user's courses + assignments on sign-in.
   useEffect(() => {
     if (!authUser) return
     let active = true
+    // Known to be offline (airplane mode): the saved copy now, rather than
+    // after the client has retried three doomed requests for seven seconds.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      const uid = authUser.id
+      void Promise.resolve().then(() => {
+        if (!active) return
+        const snap = readSnapshot(uid)
+        fromCache.current = true
+        if (snap) {
+          setLoaded({ ownerId: uid, courses: snap.courses, assessments: snap.assessments, tasks: snap.tasks })
+          markOffline(snap.savedAt)
+        } else {
+          markOffline(null)
+        }
+      })
+      return () => {
+        active = false
+      }
+    }
     Promise.all([
       supabase.from('courses').select('*').eq('user_id', authUser.id),
       supabase.from('assignments').select('*').eq('user_id', authUser.id).eq('deleted', false),
       supabase.from('todos').select('*').eq('user_id', authUser.id),
     ]).then(([cRes, aRes, tRes]) => {
       if (!active) return
+      /*
+       * NO NETWORK IS NOT "NO COURSES". This used to map a failed fetch to
+       * empty lists, so airplane mode showed a Today with nothing due, which
+       * reads as data loss. A network failure now falls back to the last copy
+       * saved on this device (lib/offline-cache) and says so; with no copy,
+       * the shell shows the offline screen instead of an empty term. A
+       * REFUSAL from the server (not a network failure) still behaves as
+       * before, because an old copy must never paper over a real error.
+       */
+      const unreachable = [cRes, aRes, tRes].some((r) => isNetworkError(r.error))
+      if (unreachable) {
+        const snap = readSnapshot(authUser.id)
+        fromCache.current = true
+        if (snap) {
+          setLoaded({ ownerId: authUser.id, courses: snap.courses, assessments: snap.assessments, tasks: snap.tasks })
+          markOffline(snap.savedAt)
+        } else {
+          markOffline(null)
+        }
+        return
+      }
+      fromCache.current = false
+      markLive()
       setLoaded({
         ownerId: authUser.id,
         courses: ((cRes.data as CourseRow[]) ?? []).map(courseFromRow),

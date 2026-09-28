@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { readRefSource } from '@/lib/ref-source'
 import { signupAttribution } from '@/lib/attribution'
 import { missingColumn } from '@/lib/pg-errors'
+import { isNetworkError, readProfileRow, saveProfileRow } from '@/lib/offline-cache'
+import { markOffline } from '@/lib/offline-state'
 import { onOwnProfileChange } from '@/lib/profile-live'
 import { useAuth } from './auth'
 import { supabase, fireWrite } from '@/lib/supabase'
@@ -95,8 +97,32 @@ export function useSupabaseProfile() {
     void (async () => {
       const meta = au.user_metadata as Record<string, unknown> | undefined
       const av = metaAvatar(meta)
+      // Known to be offline: the saved copy straight away (see below).
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        const saved = readProfileRow<ProfileRow>(au.id)
+        if (saved && active) setRow(saved)
+        else markOffline(null)
+        return
+      }
       // 1. Try to load the existing row.
-      let { data } = await supabase.from('user_profile').select(COLS).eq('user_id', au.id).maybeSingle()
+      const first = await supabase.from('user_profile').select(COLS).eq('user_id', au.id).maybeSingle()
+      let data = first.data
+      /*
+       * A READ THAT FAILED IS NOT A MISSING ROW. Treating it as one sent the
+       * app into step 2 below, an UPSERT, which on a flaky connection could
+       * overwrite a real profile's name with the one from the sign-in
+       * provider, and with no connection at all ended in an endless spinner.
+       * A network failure uses this device's saved copy instead
+       * (lib/offline-cache); any other error stops here rather than creating.
+       */
+      if (first.error) {
+        if (isNetworkError(first.error)) {
+          const saved = readProfileRow<ProfileRow>(au.id)
+          if (saved && active) setRow(saved)
+          else markOffline(null)
+        }
+        return
+      }
       // 2. First sign-in → create it. Upsert is idempotent on user_id, so it's
       //    safe even if this runs twice (StrictMode / a racing tab).
       if (!data) {
@@ -153,6 +179,11 @@ export function useSupabaseProfile() {
     // Intentionally keyed on the user id only; authUser is read inside.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUser?.id])
+
+  // Keep this device's offline copy of the profile current.
+  useEffect(() => {
+    if (row && authUser && row.user_id === authUser.id) saveProfileRow(row.user_id, row)
+  }, [row, authUser])
 
   const updateProfile = useCallback(
     (patch: Partial<{ name: string; school: string; program: string }>) => {

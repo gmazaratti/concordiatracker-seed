@@ -72,6 +72,7 @@ import { UnscheduledStrip } from './UnscheduledStrip'
 import { ScheduleTips } from './ScheduleTips'
 import { currentTermName, laterTerms } from './past-terms'
 import { SavedCoursesButton } from './SavedCoursesPicker'
+import { siteOrigin } from '@/lib/site-origin'
 
 /**
  * Build a week from real sections.
@@ -438,13 +439,13 @@ export function ScheduleBuilder() {
     setTermCode(s.term_code ?? '')
     setPicked(s.sections ?? [])
     setBlocks(s.blocks ?? [])
-    setShareUrl(s.share_token ? `${location.origin}/s/${s.share_token}` : null)
+    setShareUrl(s.share_token ? `${siteOrigin()}/s/${s.share_token}` : null)
   }
 
   async function share() {
     if (!currentId) return
     const token = await shareSchedule(currentId)
-    if (token) setShareUrl(`${location.origin}/s/${token}`)
+    if (token) setShareUrl(`${siteOrigin()}/s/${token}`)
   }
 
   return (

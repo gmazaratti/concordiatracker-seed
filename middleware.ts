@@ -19,10 +19,43 @@
  * fall-through is the risky half, and it is the half that was measured.
  */
 export const config = {
-  matcher: ['/', '/about', '/contact', '/developers', '/docs/:path*'],
+  matcher: ['/', '/about', '/contact', '/developers', '/docs/:path*', '/api/:path*'],
+}
+
+/**
+ * THE APP STORE APP CALLS THE API CROSS-ORIGIN.
+ *
+ * Its pages are served from `capacitor://localhost`, so every `/api/*` call
+ * (rewritten to this domain in src/lib/native.ts) is cross-origin and, because
+ * it carries an Authorization header, is preceded by a CORS preflight. The
+ * functions themselves answer OPTIONS with 405, which fails a preflight, so it
+ * is answered here, before them, and only for that one origin. The matching
+ * `Access-Control-Allow-Origin` on the real responses is a static header in
+ * vercel.json. Browsers on the website are same-origin and never preflight.
+ */
+const APP_ORIGIN = 'capacitor://localhost'
+
+function preflight(request: Request): Response | undefined {
+  if (request.method !== 'OPTIONS') return undefined
+  if (request.headers.get('origin') !== APP_ORIGIN) return undefined
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': APP_ORIGIN,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers':
+        request.headers.get('access-control-request-headers') ?? 'authorization, content-type',
+      'Access-Control-Max-Age': '86400',
+      Vary: 'Origin',
+    },
+  })
 }
 
 export default async function middleware(request: Request): Promise<Response | undefined> {
+  // The API only ever needs the preflight answer; everything else falls
+  // through to the function untouched.
+  if (new URL(request.url).pathname.startsWith('/api/')) return preflight(request)
+
   const accept = request.headers.get('accept') ?? ''
 
   // Anything not explicitly asking for markdown falls through to the static

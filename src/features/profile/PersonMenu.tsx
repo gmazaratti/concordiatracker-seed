@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Ban, Check, Link2, MessageSquare, MoreVertical, Rss, UserRound } from 'lucide-react'
 import { blockUser, haveIBlocked, unblockUser, unfollowUser } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { siteOrigin } from '@/lib/site-origin'
 
 /**
  * The actions that belong to a person, reachable two ways.
@@ -90,7 +91,7 @@ export function PersonMenu({
     }
   }, [onClose])
 
-  const url = `${window.location.origin}/@${target.handle}`
+  const url = `${siteOrigin()}/@${target.handle}`
 
   return createPortal(
     <div

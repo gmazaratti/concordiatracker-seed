@@ -14,24 +14,38 @@ import type { CapacitorConfig } from '@capacitor/cli'
  * `appId` is the bundle identifier and is effectively permanent: it is the
  * primary key for the app in App Store Connect, in provisioning profiles, and
  * in every push certificate. Changing it later means a new app listing.
+ *
+ * THE LAUNCH COLOUR IS FIXED, AND IT IS THE DEFAULT DARK CANVAS (#0f0f16).
+ * iOS draws the launch screen before a single line of our code runs, so it
+ * cannot follow the theme a student picked. The three candidates were the dark
+ * canvas, the light canvas, and a mid grey that belongs to neither. Mid grey
+ * flashes for EVERYONE; either canvas flashes only for people on the other
+ * one. Dark wins because it is the theme every new account starts on and the
+ * background of the app icon, so the launch reads as the icon opening rather
+ * than as a colour. The same value is used for the web view's own background
+ * and the splash, so there is exactly one colour between tap and first paint.
  */
+const LAUNCH_BACKGROUND = '#0f0f16'
+
 const config: CapacitorConfig = {
   appId: 'com.concordiatracker.app',
   appName: 'ConcordiaTracker',
   webDir: 'dist',
 
   ios: {
-    // Matches the web background, so the gap between the splash screen and the
-    // first paint is not a white flash on a dark app.
-    backgroundColor: '#0f0f16',
+    backgroundColor: LAUNCH_BACKGROUND,
     // The web layer already handles safe areas via env(safe-area-inset-*) in
     // all three layouts, so the native view should go edge to edge and let it.
     contentInset: 'never',
-    // Rubber-band scrolling on the WHOLE web view fights the app's own scroll
-    // regions — the sidebar is deliberately locked and `main` is the only
-    // scroller. Individual elements still bounce.
     scrollEnabled: true,
+    // Only our own domains may be NAVIGATED to inside the web view (fetches to
+    // the API are not navigations and are unaffected). Requires the matching
+    // WKAppBoundDomains list in ios/App/App/Info.plist. Sign-in no longer
+    // navigates the web view at all: it runs in the system browser sheet
+    // (see native-auth.ts), which is exactly why this can stay strict.
     limitsNavigationsToAppBoundDomains: true,
+    // Taps on a link and hold on text behave like the rest of iOS.
+    allowsLinkPreview: false,
   },
 
   server: {
@@ -47,15 +61,30 @@ const config: CapacitorConfig = {
       // fixed duration is either too short (white flash) or too long (the app
       // feels slow) and is never right on both an old phone and a new one.
       launchAutoHide: false,
-      backgroundColor: '#0f0f16',
+      backgroundColor: LAUNCH_BACKGROUND,
       showSpinner: false,
     },
     StatusBar: {
       // Light glyphs on our dark canvas. Re-applied at runtime when the theme
       // changes, since a light theme needs the opposite.
       style: 'DARK',
-      backgroundColor: '#0f0f16',
+      backgroundColor: LAUNCH_BACKGROUND,
       overlaysWebView: true,
+    },
+    Keyboard: {
+      // The web view shrinks when the keyboard opens, so `100dvh`, the chat
+      // composer and every bottom sheet sit above it with no JavaScript. The
+      // alternative ('none') leaves the page under the keyboard and relies on
+      // the visual-viewport maths the web build needs for Safari; the native
+      // shell does not have to guess.
+      resize: 'native',
+      resizeOnFullScreen: true,
+      style: 'DEFAULT',
+    },
+    PushNotifications: {
+      // A push that arrives while the app is open still shows its banner: a
+      // seat opening or a deadline reminder is exactly as urgent then.
+      presentationOptions: ['badge', 'sound', 'alert'],
     },
   },
 }

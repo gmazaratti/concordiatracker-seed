@@ -34,6 +34,7 @@ import { cn } from '@/lib/cn'
 import { VerifiedBadge } from '../VerifiedBadge'
 import { animClass, fontClass, storyAge } from './story-text'
 import { ShareSheet } from '../ShareSheet'
+import { siteOrigin } from '@/lib/site-origin'
 
 const SEGMENT_MS = 5000
 /** Past this much downward travel, letting go closes the reel. */
@@ -682,7 +683,7 @@ export function StoryViewer({
       {sharing && story && (
         <ShareSheet
           title={`${ring.handle.replace(/^@/, '')}'s story`}
-          link={`${window.location.origin}/app/community/org/${ring.handle.replace(/^@/, '')}`}
+          link={`${siteOrigin()}/app/community/org/${ring.handle.replace(/^@/, '')}`}
           onClose={() => {
             setSharing(false)
             setPaused(false)

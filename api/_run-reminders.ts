@@ -14,7 +14,9 @@
  * to each owner's devices using the service-role key (cross-user read), then
  * marks them sent so they never repeat. Expired endpoints (404/410) are pruned.
  */
-import webpush from 'web-push'
+import { SUB_COLS, closePush, sendPush, type PushMessage, type PushTarget } from './_push-send.js'
+import type { ApnsEnv } from './_apns.js'
+import { runBellPushes } from './_bell-push.js'
 import { bySection, fetchSchedule, num } from './_concordia.js'
 import { fail } from './_respond.js'
 
@@ -25,11 +27,7 @@ interface Reminder {
   body: string
   url: string
 }
-interface SubRow {
-  endpoint: string
-  p256dh: string
-  auth: string
-}
+type SubRow = PushTarget
 
 interface AdminDigest {
   user_id: string
@@ -121,18 +119,17 @@ export async function runReminders(req: any, res: any) {
     return
   }
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:concordiatracker@gmail.com'
+  // The delivery keys (VAPID for browsers, APNS_* for iPhones) are checked
+  // per device by sendPush: missing ones skip that kind of device rather than
+  // stopping every reminder.
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!publicKey || !privateKey || !supabaseUrl || !serviceKey) {
+  if (!supabaseUrl || !serviceKey) {
     fail(res, 500, 'Reminder sending is not configured.')
     return
   }
 
   const svc = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
-  webpush.setVapidDetails(subject, publicKey, privateKey)
 
   // Due, un-sent reminders.
   const now = new Date().toISOString()
@@ -155,7 +152,7 @@ export async function runReminders(req: any, res: any) {
     const cached = subsByUser.get(userId)
     if (cached) return cached
     const r = await fetch(
-      `${supabaseUrl}/rest/v1/push_subscriptions?select=endpoint,p256dh,auth&user_id=eq.${userId}`,
+      `${supabaseUrl}/rest/v1/push_subscriptions?select=${SUB_COLS}&user_id=eq.${userId}`,
       { headers: svc },
     )
     const list: SubRow[] = r.ok ? await r.json() : []
@@ -166,6 +163,29 @@ export async function runReminders(req: any, res: any) {
   let sent = 0
   const stale = new Set<string>()
   const processedIds: string[] = []
+  // An iPhone token that only worked on the other APNs host (a TestFlight build
+  // vs a debug build) is remembered, so the next push goes straight there.
+  const envFix = new Map<string, ApnsEnv>()
+
+  /**
+   * Push one message to every device a person has, web and iPhone alike, and
+   * report how many took it. `webOnly` is for messages that may not reach the
+   * App Store app at all (the trial-ending notice is about billing, and the
+   * app never mentions billing: src/lib/store-policy.ts).
+   */
+  async function deliver(subs: SubRow[], payload: string, opts?: { webOnly?: boolean }): Promise<number> {
+    const msg = JSON.parse(payload) as PushMessage
+    let ok = 0
+    for (const s of subs) {
+      if (opts?.webOnly && s.kind === 'apns') continue
+      const r = await sendPush(s, msg)
+      if (r.status === 'ok') {
+        ok++
+        if ('env' in r && r.env && s.id) envFix.set(s.id, r.env)
+      } else if (r.status === 'gone') stale.add(s.endpoint)
+    }
+    return ok
+  }
 
   for (const rem of due) {
     const subs = await subsFor(rem.user_id)
@@ -175,18 +195,7 @@ export async function runReminders(req: any, res: any) {
       url: rem.url,
       tag: `ct-reminder-${rem.id}`,
     })
-    for (const s of subs) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
-        )
-        sent++
-      } catch (err: unknown) {
-        const code = (err as { statusCode?: number })?.statusCode
-        if (code === 404 || code === 410) stale.add(s.endpoint)
-      }
-    }
+    sent += await deliver(subs, payload)
     // Mark sent regardless (at-most-once) so a missing subscription doesn't loop.
     processedIds.push(rem.id)
   }
@@ -222,18 +231,7 @@ export async function runReminders(req: any, res: any) {
           // the first one's notification.
           tag: `ct-trial-${t.trial_end}`,
         })
-        for (const s of subs) {
-          try {
-            await webpush.sendNotification(
-              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-              payload,
-            )
-            trialSent++
-          } catch (err: unknown) {
-            const code = (err as { statusCode?: number })?.statusCode
-            if (code === 404 || code === 410) stale.add(s.endpoint)
-          }
-        }
+        trialSent += await deliver(subs, payload, { webOnly: true })
       }
     }
   } catch {
@@ -311,18 +309,7 @@ export async function runReminders(req: any, res: any) {
         url: '/app/courses',
         tag: `ct-seat-${a.id}`,
       })
-      for (const s of subs) {
-        try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload,
-          )
-          seatSent++
-        } catch (err: unknown) {
-          const code = (err as { statusCode?: number })?.statusCode
-          if (code === 404 || code === 410) stale.add(s.endpoint)
-        }
-      }
+      seatSent += await deliver(subs, payload)
     }
   } catch {
     /* seat watching is best-effort — never block reminders */
@@ -340,18 +327,7 @@ export async function runReminders(req: any, res: any) {
     if (digRes.ok) {
       const digests = (await digRes.json()) as AdminDigest[]
       const pushAll = async (subs: SubRow[], payload: string) => {
-        for (const s of subs) {
-          try {
-            await webpush.sendNotification(
-              { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-              payload,
-            )
-            adminSent++
-          } catch (err: unknown) {
-            const code = (err as { statusCode?: number })?.statusCode
-            if (code === 404 || code === 410) stale.add(s.endpoint)
-          }
-        }
+        adminSent += await deliver(subs, payload)
       }
       for (const d of digests) {
         const subs = await subsFor(d.user_id)
@@ -403,6 +379,24 @@ export async function runReminders(req: any, res: any) {
     /* admin digest is best-effort — never block reminders */
   }
 
+  // Notifications from the bell (club posts, new followers, feature-request
+  // updates), each claimed exactly once. Best-effort like everything above.
+  let bellSent = 0
+  try {
+    bellSent = await runBellPushes({ supabaseUrl, svc, subsFor, deliver })
+  } catch {
+    /* the bell is best-effort — never block reminders */
+  }
+
+  for (const [id, env] of envFix) {
+    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ apns_env: env }),
+    }).catch(() => {})
+  }
+  closePush()
+
   // Prune dead endpoints.
   for (const endpoint of stale) {
     await fetch(
@@ -411,5 +405,5 @@ export async function runReminders(req: any, res: any) {
     )
   }
 
-  res.status(200).json({ processed: processedIds.length, sent, trialSent, seatSent, adminSent })
+  res.status(200).json({ processed: processedIds.length, sent, trialSent, seatSent, adminSent, bellSent })
 }

@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Check, Copy, MessageSquare, Share2 } from 'lucide-react'
+import { Check, Copy, MessageSquare, Share, Share2 } from 'lucide-react'
+import { canShare, shareLink } from '@/lib/share'
 import type { CampusEvent } from '@/data/community'
 import { ModalShell } from '@/command/ModalShell'
 import { ShareSheet } from './ShareSheet'
+import { siteOrigin } from '@/lib/site-origin'
 
 /** "Share this event" popup — a direct, public link + a copy button. The link
  * (`/e/:id`) is viewable by anyone, no account needed (see `PublicEventPage`). */
 export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState(false)
-  const url = `${window.location.origin}/e/${event.id}`
+  const url = `${siteOrigin()}/e/${event.id}`
 
   function copy() {
     navigator.clipboard?.writeText(url).then(
@@ -52,6 +54,20 @@ export function ShareEventModal({ event, onClose }: { event: CampusEvent; onClos
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
+
+        {/* The phone's own share sheet (Messages, AirDrop, Instagram…) where
+            the platform has one: in the App Store app always, in a browser
+            only where Web Share exists. Otherwise the copy button stands. */}
+        {canShare() && (
+          <button
+            type="button"
+            onClick={() => void shareLink({ title: event.title, url })}
+            className="mt-3 flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent"
+          >
+            <Share size={15} className="shrink-0 text-accent" aria-hidden />
+            <span className="min-w-0 flex-1 text-[13px] font-medium text-fg">Share to another app</span>
+          </button>
+        )}
 
         {/*
           THE WHOLE SEND HAPPENS HERE. This used to navigate to Messages with

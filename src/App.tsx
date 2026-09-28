@@ -8,6 +8,7 @@ import { AppProviders } from '@/app/providers/AppProviders'
 import { AppRoutes } from '@/router'
 import { RouteAnalytics } from '@/app/RouteAnalytics'
 import { AuthIntentRedirect } from '@/app/AuthIntentRedirect'
+import { NativeBridge } from '@/app/NativeBridge'
 import { isNative } from '@/lib/native'
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
         <BrowserRouter>
           <RouteAnalytics />
           <AuthIntentRedirect />
+          <NativeBridge />
           <AppRoutes />
           {/*
             Vercel's own measurement. Two deliberate conditions:

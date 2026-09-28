@@ -26,6 +26,7 @@ import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { cn } from '@/lib/cn'
 import { ProfilePreview } from './ProfilePreview'
 import { tidyHandle, type HandleState } from './handle-check'
+import { siteOrigin } from '@/lib/site-origin'
 
 export const FIELD =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -576,7 +577,7 @@ export function TeamStep({ org }: { org: OrgAccount }) {
  *  promised. */
 function InviteLink({ token }: { token: string }) {
   const [copied, setCopied] = useState(false)
-  const url = `${window.location.origin}/organizer/join/${token}`
+  const url = `${siteOrigin()}/organizer/join/${token}`
   return (
     <div className="mt-3 rounded-xl border border-border bg-surface p-3">
       <p className="flex items-center gap-1.5 text-[12px] font-medium text-muted">
