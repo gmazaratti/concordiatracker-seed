@@ -1,3 +1,4 @@
+import { trackViewport } from './viewport-tracker'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { StatusBar, Style } from '@capacitor/status-bar'
@@ -186,62 +187,19 @@ function handleUniversalLinks() {
     .catch(() => {})
 }
 
-/** Everything above, in the order it should happen. Called from main.tsx. */
-/** A URL bar or a pinch is not a keyboard; below this it is not counted. */
-const KEYBOARD_FLOOR = 80
-
 /**
- * The visible area, as CSS variables (see index.css for what each means).
+ * Everything above, in the order it should happen. Called from main.tsx.
  *
- * WHY THIS AND NOT A NATIVE RESIZE. Builds up to 12 resized the whole
- * WKWebView frame by frame from Swift. WebKit relays out its content
- * asynchronously after a frame change, so the page always trailed the native
- * frame by a frame or more: the composer jumped, and a band showed between it
- * and the keyboard. With the web view left alone, WebKit shrinks the visual
- * viewport in step with the keyboard itself, and reading that is one source of
- * truth with no second system to fall out of sync with.
- *
- * rAF-coalesced: iOS fires `resize` and `scroll` together, many times per
- * keyboard animation, and one write per frame is all layout can use. Only
- * the three variables are written, on <html>, so the page reflows through CSS
- * rather than through React re-renders.
- *
- * Called once for the life of the app, so there is nothing to clean up.
+ * The viewport tracker is the one piece that also runs in a BROWSER: mobile
+ * Safari has the same keyboard problem, and there it only engages while an
+ * on-screen keyboard is up (lib/keyboard-viewport.ts decides).
  */
-function trackViewport() {
-  const root = document.documentElement
-  const vv = window.visualViewport
-  let frame = 0
-  let kbOpen = false
-
-  const write = () => {
-    frame = 0
-    const height = vv ? vv.height : window.innerHeight
-    const top = vv ? Math.max(0, vv.offsetTop) : 0
-    const covered = Math.max(0, window.innerHeight - (height + top))
-    const keyboard = covered > KEYBOARD_FLOOR ? covered : 0
-    root.style.setProperty('--ct-app-h', `${Math.round(height)}px`)
-    root.style.setProperty('--ct-app-top', `${Math.round(top)}px`)
-    root.style.setProperty('--ct-kb', `${Math.round(keyboard)}px`)
-    const open = keyboard > 0
-    if (open !== kbOpen) {
-      kbOpen = open
-      root.classList.toggle('ct-kb-open', open)
-    }
-  }
-  const schedule = () => {
-    if (!frame) frame = requestAnimationFrame(write)
-  }
-
-  write()
-  window.addEventListener('resize', schedule)
-  vv?.addEventListener('resize', schedule)
-  vv?.addEventListener('scroll', schedule)
-}
-
 export function initNative() {
-  if (!isNative()) return
-  trackViewport()
+  if (!isNative()) {
+    trackViewport(false)
+    return
+  }
+  trackViewport(true)
   routeApiToSite()
   interceptExternalLinks()
   handleAppBack()

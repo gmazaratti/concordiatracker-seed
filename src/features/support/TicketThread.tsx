@@ -5,6 +5,7 @@ import { formatDueDateTime } from '@/lib/date'
 import { ticketThread, replyToTicket, type TicketMessage } from '@/lib/tickets'
 import { useAutoGrow } from '@/app/hooks/useAutoGrow'
 import { useStickToBottom } from '@/app/hooks/useStickToBottom'
+import { MESSAGE_FIELD } from '@/features/profile/chat/message-field'
 
 /**
  * The conversation view — shared by the student's support panel and the admin
@@ -193,6 +194,7 @@ export function TicketThread({
               }
             }}
             rows={1}
+            {...MESSAGE_FIELD}
             placeholder={perspective === 'staff' ? 'Reply to this person…' : 'Write a message…'}
             aria-label="Your message"
             className="max-h-[40vh] min-h-[30px] flex-1 resize-none self-center overflow-y-auto bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"

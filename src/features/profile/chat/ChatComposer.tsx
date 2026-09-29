@@ -2,6 +2,7 @@ import { forwardRef } from 'react'
 import { Plus, Reply, Send, X } from 'lucide-react'
 import type { Attachment, Message } from '@/lib/social'
 import { describe } from './chat-helpers'
+import { MESSAGE_FIELD } from './message-field'
 import { cn } from '@/lib/cn'
 
 /**
@@ -96,7 +97,7 @@ export const ChatComposer = forwardRef<
               }
             }}
             rows={1}
-            enterKeyHint="send"
+            {...MESSAGE_FIELD}
             placeholder={p.placeholder}
             className="max-h-28 min-h-[30px] min-w-0 flex-1 resize-none self-center bg-transparent py-1 text-[16px] leading-snug text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
           />

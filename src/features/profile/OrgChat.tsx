@@ -6,6 +6,7 @@ import { myThreadWithOrg, sendMessageToOrg, type OrgDm } from '@/lib/org-message
 import { shortAgo } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { useStickToBottom } from '@/app/hooks/useStickToBottom'
+import { MESSAGE_FIELD } from '@/features/profile/chat/message-field'
 import { FallbackImg } from '@/components/ui/FallbackImg'
 
 /** Module level so reading the clock is allowed — `react-hooks/purity` bars it
@@ -179,6 +180,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
                 }
               }}
               rows={1}
+              {...MESSAGE_FIELD}
               maxLength={2000}
               placeholder={`Message ${org.name}…`}
               className="max-h-28 min-h-[30px] flex-1 resize-none self-center bg-transparent py-1 text-[15px] text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"

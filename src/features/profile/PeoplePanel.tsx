@@ -900,8 +900,10 @@ export function PeoplePanel() {
         the LAYOUT viewport, which does not move with the browser chrome and
         leaves the composer behind the URL bar. Safe-area padding at both
         ends because `viewport-fit=cover` puts us under the notch and the
-        home indicator on purpose. In the iOS app the height is the VISIBLE
-        area (lib/native.ts), so the composer sits on the keyboard, and the
+        home indicator on purpose. While a keyboard is up (the iOS app, and
+        mobile Safari) the height is the VISIBLE area and the top follows
+        Safari's pan (lib/viewport-tracker.ts), so the composer sits on the
+        keyboard and nothing is left to scroll away, and the
         bottom pad is `--ct-safe-bottom`, which is 0 while the keyboard is up:
         the indicator is under the keyboard then, and padding for it anyway is
         the band that showed between the two. This element owns that inset

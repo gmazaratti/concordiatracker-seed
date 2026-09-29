@@ -18,8 +18,11 @@
 html {
   background-color: var(--ct-canvas);
   /*
-   * THE KEYBOARD, AS CSS. lib/native.ts writes these from `visualViewport`
-   * in the iOS app; in a browser nobody writes them and the fallbacks apply.
+   * THE KEYBOARD, AS CSS. lib/viewport-tracker.ts writes these from
+   * `visualViewport`: always in the iOS app, and in a browser only while an
+   * on-screen keyboard is up (touch, a text field focused, zoom at 1). The
+   * rest of the time a browser has none of them and the fallbacks apply, so
+   * desktop and pinch-zoom never see this.
    *   --ct-app-h   the height you can see (keyboard excluded)
    *   --ct-app-top where that visible area starts, if iOS panned it
    *   --ct-kb      how much of the screen the keyboard covers
