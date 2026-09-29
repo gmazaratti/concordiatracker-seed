@@ -30,8 +30,16 @@ export const KEYBOARD_FLOOR = 80
 
 export interface ViewportReading {
   native: boolean
-  /** window.innerHeight: the layout viewport. */
-  innerHeight: number
+  /**
+   * The screen height the keyboard is measured AGAINST, which must not itself
+   * shrink with the keyboard. NOT `window.innerHeight` alone: on iOS it can
+   * return the same value as `visualViewport.height` while the keyboard is up
+   * (WebKit bugs 226689 / 247410), and then "full height minus visible
+   * height" reads ~0, so 41d25a1 never saw a keyboard on a real iPhone. The
+   * tracker passes the largest of the layout viewport (`clientHeight`),
+   * `innerHeight`, and the tallest visible height seen with no field focused.
+   */
+  layoutHeight: number
   /** visualViewport.height / offsetTop / scale, or null without the API. */
   vvHeight: number | null
   vvTop: number | null
@@ -47,9 +55,9 @@ export type KeyboardState =
   | { engaged: true; height: number; top: number; keyboard: number }
 
 export function keyboardState(r: ViewportReading): KeyboardState {
-  const height = r.vvHeight ?? r.innerHeight
+  const height = r.vvHeight ?? r.layoutHeight
   const top = Math.max(0, r.vvTop ?? 0)
-  const covered = Math.max(0, r.innerHeight - (height + top))
+  const covered = Math.max(0, r.layoutHeight - (height + top))
   const keyboard = covered > KEYBOARD_FLOOR ? covered : 0
 
   if (r.native) {

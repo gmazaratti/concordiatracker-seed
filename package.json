@@ -41,7 +41,7 @@
     "test:record": "node src/lib/record-export.test.mjs",
     "test:reminders": "node src/lib/reminders.test.mjs",
     "test:version": "node src/lib/version-gate.test.mjs",
-    "test:keyboard": "node src/lib/keyboard-viewport.test.mjs",
+    "test:keyboard": "node src/lib/keyboard-viewport.test.mjs && node src/lib/viewport-tracker.test.mjs",
     "test:offline": "node src/lib/offline-rules.test.mjs",
     "test:econcordia": "node api/_econcordia.test.mjs",
     "scrape:outlines": "node scripts/scrape-outlines.mjs",

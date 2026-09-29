@@ -1,4 +1,4 @@
-import { keyboardState, raisesKeyboard } from './keyboard-viewport'
+import { keyboardState, raisesKeyboard } from './keyboard-viewport.ts'
 
 /**
  * The visible area, as CSS variables (see index.css for what each means).
@@ -32,17 +32,33 @@ export function trackViewport(native: boolean) {
   let frame = 0
   let engaged = false
   let kbOpen = false
+  /**
+   * The tallest visible height seen with no text field focused, i.e. with no
+   * keyboard. The reference the keyboard is measured against, because iOS can
+   * report `innerHeight` already shrunk to the visible area while the keyboard
+   * is up (see keyboard-viewport.ts). Reset when the WIDTH changes, which is a
+   * rotation or a window resize, not a keyboard.
+   */
+  let resting = 0
+  let restingWidth = window.innerWidth
 
   const write = () => {
     frame = 0
+    const typing = raisesKeyboard(document.activeElement as HTMLInputElement | null)
+    const visible = vv ? vv.height : window.innerHeight
+    if (window.innerWidth !== restingWidth) {
+      restingWidth = window.innerWidth
+      resting = 0
+    }
+    if (!typing) resting = Math.max(resting, visible)
     const s = keyboardState({
       native,
-      innerHeight: window.innerHeight,
+      layoutHeight: Math.max(document.documentElement.clientHeight, window.innerHeight, resting),
       vvHeight: vv ? vv.height : null,
       vvTop: vv ? vv.offsetTop : null,
       vvScale: vv ? vv.scale : null,
       coarse: !!coarse?.matches,
-      typing: raisesKeyboard(document.activeElement as HTMLInputElement | null),
+      typing,
     })
     if (s.engaged) {
       engaged = true

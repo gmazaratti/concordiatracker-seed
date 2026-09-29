@@ -11,7 +11,7 @@ function check(name, ok, detail = '') {
 }
 
 // A 390x844 phone with a 336px keyboard, as Safari reports it.
-const phone = { native: false, innerHeight: 844, vvHeight: 508, vvTop: 0, vvScale: 1, coarse: true, typing: true }
+const phone = { native: false, layoutHeight: 844, vvHeight: 508, vvTop: 0, vvScale: 1, coarse: true, typing: true }
 
 const s = keyboardState(phone)
 check('phone + keyboard + typing engages', s.engaged)
