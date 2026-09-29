@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, X } from 'lucide-react'
+import { useVisualViewport } from '@/app/hooks/useVisualViewport'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { orgSlug, type EventOrg } from '@/data/community'
 import { cn } from '@/lib/cn'
@@ -69,6 +70,10 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
   const [people, setPeople] = useState<PublicPerson[]>([])
   const [recents, setRecents] = useState<RecentEntry[]>(() => readRecents())
+  // PINNED TO WHAT IS ON SCREEN. `inset-0` is the layout viewport, and iOS
+  // scrolls the visual one up when the keyboard opens, which carried the
+  // header (and the only way out) above the top of the screen.
+  const vp = useVisualViewport(true)
 
   /**
    * Focus the FIELD, not the back arrow.
@@ -146,7 +151,8 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label="Search Community"
-      className="ct-sheet-in fixed inset-0 z-[90] flex flex-col bg-canvas"
+      style={vp.ready ? { top: vp.top, height: vp.height, bottom: 'auto' } : undefined}
+      className="ct-sheet-in fixed inset-0 z-[90] flex flex-col overflow-hidden bg-canvas"
     >
       <header className="flex shrink-0 items-center gap-2 px-3 pt-[calc(0.625rem_+_env(safe-area-inset-top))] pb-2.5">
         <button
@@ -186,6 +192,15 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             </button>
           )}
         </div>
+        {/* A worded way out, on the side the thumb is on. The arrow on the
+            left also closes, but an arrow reads as navigation. */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-full px-2.5 py-2 text-[14px] font-medium text-accent transition-colors duration-150 hover:bg-surface-2"
+        >
+          Cancel
+        </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">

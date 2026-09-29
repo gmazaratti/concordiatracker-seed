@@ -13,7 +13,7 @@ import { useSettings } from '@/app/providers/settings'
 import { useAppData } from '@/app/providers/app-data'
 import { useAuth } from '@/app/providers/auth'
 import { fireWrite, supabase } from '@/lib/supabase'
-import { Group, Row, Segmented, Switch, Flag } from '../controls'
+import { Group, Row, Segmented, Switch } from '../controls'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 import { useT } from '@/i18n/i18n'
 import { AnalyticsSetting } from './AnalyticsSetting'
@@ -216,7 +216,7 @@ const DOCS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/educator', label: 'Educator Agreement', icon: Scale },
 ]
 
-/** Privacy: a Law 25 note, links out to the (draft) legal documents, and the
+/** Privacy: a Law 25 note, links out to the legal documents, and the
  * data-rights contact path. */
 export function PrivacySection() {
   const t = useT()
@@ -247,7 +247,6 @@ export function PrivacySection() {
           >
             <Icon size={16} className="shrink-0 text-subtle" aria-hidden />
             <span className="text-[13px] font-medium text-fg">{label}</span>
-            <Flag />
             <ChevronRight size={16} className="ml-auto shrink-0 text-subtle" aria-hidden />
           </Link>
         ))}

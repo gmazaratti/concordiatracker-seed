@@ -155,14 +155,18 @@ export function AdminConsole() {
   return (
     <div className="flex h-svh overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
-        <div className="flex items-center gap-2 px-2 py-3">
+      {/* THE TAB LIST SCROLLS, NOTHING ELSE DOES. A flex child keeps its full
+          content height unless told it may shrink, so at 150%+ zoom the list
+          pushed "Jump to" past the bottom of an aside that clips it. The list
+          yields (min-h-0 + its own scroll) and the head and foot never do. */}
+      <aside className="hidden min-h-0 w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
+        <div className="flex shrink-0 items-center gap-2 px-2 py-3">
           <ShieldCheck size={18} className="text-accent" aria-hidden />
           <span className="text-[14px] font-semibold text-fg">ConcordiaTracker</span>
           <span className="text-[11px] text-subtle">Admin</span>
         </div>
 
-        <nav role="tablist" aria-label="Admin sections" aria-orientation="vertical" onKeyDown={onKeyDown} className="mt-1 flex flex-col gap-0.5">
+        <nav role="tablist" aria-label="Admin sections" aria-orientation="vertical" onKeyDown={onKeyDown} className="mt-1 -mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-1 pb-2">
           {TABS.map((t, i) => {
             const Icon = t.icon
             const active = t.id === current
@@ -188,10 +192,8 @@ export function AdminConsole() {
           })}
         </nav>
 
-        <div className="flex-1" />
-
         {/* Hop into the other portals + back to the app */}
-        <div className="flex flex-col gap-0.5 border-t border-border pt-2">
+        <div className="flex shrink-0 flex-col gap-0.5 border-t border-border pt-2">
           <p className="px-3 pb-1 text-[11px] font-medium tracking-wide text-subtle uppercase">Jump to</p>
           {PORTAL_LINKS.map(({ to, label, icon: Icon }) => (
             <Link

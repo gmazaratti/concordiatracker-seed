@@ -4,23 +4,6 @@ import { Logo } from '@/components/Logo'
 import { LEGAL_DOCS, type Block, type LegalDoc, type ListItem } from './legal-content'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 
-/** Highlights bracketed review placeholders ([AGE_MINIMUM — TBD], [VERIFY]…) so
- * unresolved items are impossible to miss in the draft. */
-function withFlags(text: string) {
-  return text.split(/(\[[^\]]+\])/g).map((part, i) =>
-    /^\[[^\]]+\]$/.test(part) ? (
-      <span
-        key={i}
-        className="rounded bg-warning/15 px-1 py-0.5 font-mono text-[0.85em] font-medium text-warning"
-      >
-        {part}
-      </span>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  )
-}
-
 /** The reading-column legal page (Terms / Privacy / Educator), matching the
  * reference structure — numbered sections, callouts — in the locked theme.
  * The doc is taken from an explicit prop (clean routes like `/terms`) or the
@@ -95,7 +78,7 @@ export function LegalPage({ doc: docProp }: { doc?: LegalDoc['slug'] }) {
 function BlockView({ block }: { block: Block }) {
   switch (block.kind) {
     case 'p':
-      return <p className="text-[14px] leading-relaxed text-muted">{withFlags(block.text)}</p>
+      return <p className="text-[14px] leading-relaxed text-muted">{block.text}</p>
     case 'list':
       return (
         <ul className="space-y-2">
@@ -111,7 +94,7 @@ function BlockView({ block }: { block: Block }) {
       return (
         <div className="rounded-xl border border-border bg-surface px-4 py-3.5">
           {block.title && <p className="text-[13px] font-semibold text-fg">{block.title}</p>}
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{withFlags(block.text)}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted">{block.text}</p>
         </div>
       )
     case 'highlight':
@@ -134,11 +117,6 @@ function BlockView({ block }: { block: Block }) {
                 {it.label}
                 <ExternalLink size={13} className="text-subtle" aria-hidden />
               </a>
-              {it.verify && (
-                <span className="rounded bg-warning/15 px-1 py-0.5 font-mono text-[11px] font-medium text-warning">
-                  [VERIFY]
-                </span>
-              )}
             </li>
           ))}
         </ul>
@@ -147,10 +125,10 @@ function BlockView({ block }: { block: Block }) {
 }
 
 function renderItem(it: ListItem) {
-  if (typeof it === 'string') return withFlags(it)
+  if (typeof it === 'string') return it
   return (
     <>
-      <span className="font-medium text-fg">{it.label}:</span> {withFlags(it.text)}
+      <span className="font-medium text-fg">{it.label}:</span> {it.text}
     </>
   )
 }

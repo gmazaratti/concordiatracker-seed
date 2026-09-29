@@ -34,7 +34,7 @@ export type Block =
   | { kind: 'list'; items: ListItem[] }
   | { kind: 'callout'; title?: string; text: string }
   | { kind: 'highlight'; text: string }
-  | { kind: 'links'; items: { label: string; href: string; verify?: boolean }[] }
+  | { kind: 'links'; items: { label: string; href: string }[] }
 
 export interface LegalSection {
   n: number

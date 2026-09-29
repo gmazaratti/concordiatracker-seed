@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVisualViewport } from '@/app/hooks/useVisualViewport'
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useCommandPalette } from '@/app/providers/command-palette'
 import { useTheme } from '@/app/providers/theme'
 import { useAppData } from '@/app/providers/app-data'
@@ -165,12 +165,22 @@ function CommandPaletteDialog() {
             aria-activedescendant={
               results[activeIndex] ? `cmd-${results[activeIndex].id}` : undefined
             }
-            placeholder="Search courses, people, clubs…  (try “Change grade for…”)"
-            className="w-full bg-transparent py-4 text-[15px] text-fg outline-none placeholder:text-subtle"
+            placeholder="Search courses, people, clubs…"
+            className="w-full min-w-0 bg-transparent py-4 text-[15px] text-fg outline-none placeholder:text-subtle"
           />
           <kbd className="hidden shrink-0 rounded border border-border bg-canvas px-1.5 py-0.5 text-[11px] text-muted sm:block">
             Esc
           </kbd>
+          {/* THE ONLY WAY OUT ON A PHONE: there is no Escape key, and once the
+              list fills the visible area there is no backdrop left to tap. */}
+          <button
+            type="button"
+            onClick={closePalette}
+            aria-label="Close search"
+            className="-mr-1.5 grid size-9 shrink-0 place-items-center rounded-full text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+          >
+            <X size={18} aria-hidden />
+          </button>
         </div>
 
         <div
