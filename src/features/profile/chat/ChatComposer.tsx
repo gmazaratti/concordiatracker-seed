@@ -43,7 +43,7 @@ export const ChatComposer = forwardRef<
         e.preventDefault()
         p.onSubmit()
       }}
-      className="shrink-0 border-t border-border/70 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:p-2.5"
+      className="shrink-0 border-t border-border/70 px-2 pt-2 pb-2 sm:p-2.5"
     >
       {p.replyTo && (
         <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border-l-2 border-accent bg-surface-2 px-2.5 py-1.5">

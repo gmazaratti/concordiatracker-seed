@@ -72,12 +72,13 @@ const config: CapacitorConfig = {
       overlaysWebView: true,
     },
     Keyboard: {
-      // 'none' because the web view IS resized, but by MainViewController.swift
-      // rather than by this plugin: the plugin's 'native' mode waits for the
-      // keyboard animation to finish (+0.2s) before shrinking the page, which
-      // is the jump and the black band QA reported. Resizing the moment iOS
-      // announces the keyboard keeps `100dvh`, the chat composer and every
-      // bottom sheet above it with no JavaScript.
+      // 'none': NOTHING resizes the web view for the keyboard, not this plugin
+      // and not MainViewController. 'native' resizes the frame once the
+      // keyboard has landed (a jump), and resizing it ourselves frame by frame
+      // still trailed, because WebKit relays out a resized web view a frame
+      // late. Left alone, WebKit shrinks the VISUAL viewport in step with the
+      // keyboard, and lib/native.ts (trackViewport) turns that into
+      // `--ct-app-h`, which every full-height screen and the chat read.
       resize: 'none',
       resizeOnFullScreen: true,
       style: 'DEFAULT',

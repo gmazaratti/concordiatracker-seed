@@ -900,13 +900,18 @@ export function PeoplePanel() {
         the LAYOUT viewport, which does not move with the browser chrome and
         leaves the composer behind the URL bar. Safe-area padding at both
         ends because `viewport-fit=cover` puts us under the notch and the
-        home indicator on purpose.
+        home indicator on purpose. In the iOS app the height is the VISIBLE
+        area (lib/native.ts), so the composer sits on the keyboard, and the
+        bottom pad is `--ct-safe-bottom`, which is 0 while the keyboard is up:
+        the indicator is under the keyboard then, and padding for it anyway is
+        the band that showed between the two. This element owns that inset
+        for every thread (DM, club, support); the composers add none.
       */}
       <div
         className={cn(
           'min-h-0 flex-1',
           detailOpen
-            ? 'fixed inset-x-0 top-0 z-50 flex h-[var(--ct-app-h,100dvh)] bg-canvas pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:static lg:z-auto lg:h-auto lg:bg-transparent lg:pt-0 lg:pb-0'
+            ? 'fixed inset-x-0 top-[var(--ct-app-top,0px)] z-50 flex h-[var(--ct-app-h,100dvh)] bg-canvas pt-[env(safe-area-inset-top)] pb-[var(--ct-safe-bottom)] lg:static lg:z-auto lg:h-auto lg:bg-transparent lg:pt-0 lg:pb-0'
             : 'hidden lg:flex',
         )}
       >

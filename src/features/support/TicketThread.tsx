@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn'
 import { formatDueDateTime } from '@/lib/date'
 import { ticketThread, replyToTicket, type TicketMessage } from '@/lib/tickets'
 import { useAutoGrow } from '@/app/hooks/useAutoGrow'
+import { useStickToBottom } from '@/app/hooks/useStickToBottom'
 
 /**
  * The conversation view — shared by the student's support panel and the admin
@@ -36,6 +37,7 @@ export function TicketThread({
   // effect, so nothing setStates synchronously in an effect body.
   const [attempt, setAttempt] = useState(0)
   const endRef = useRef<HTMLDivElement>(null)
+  useStickToBottom(endRef)
 
   // Clearing the old thread on a ticket switch is an adjust-state-during-render,
   // not an effect: resetting in the effect body would render the previous

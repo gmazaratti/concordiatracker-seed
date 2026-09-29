@@ -153,7 +153,7 @@ export function AdminConsole() {
   )
 
   return (
-    <div className="flex h-svh overflow-hidden bg-canvas">
+    <div className="flex h-[var(--ct-app-h,100svh)] overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
       {/* THE TAB LIST SCROLLS, NOTHING ELSE DOES. A flex child keeps its full
           content height unless told it may shrink, so at 150%+ zoom the list

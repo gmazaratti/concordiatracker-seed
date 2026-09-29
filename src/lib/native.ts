@@ -149,15 +149,27 @@ export function routeApiToSite() {
 }
 
 /**
- * The keyboard. The web view is resized natively the moment the keyboard is
- * announced (MainViewController.swift), so the page must not ALSO scroll
- * itself to reveal the field: two mechanisms doing one job is what makes a
- * composer jump. The accessory bar (the ‹ › Done strip) stays, because Done is
- * how people expect to dismiss it.
+ * The keyboard.
+ *
+ * The web view is NOT resized for the keyboard (Keyboard.resize = 'none', and
+ * MainViewController no longer touches the frame). WebKit shrinks the VISUAL
+ * viewport as the keyboard slides in, and `trackViewport` below turns that
+ * into the page's height, so layout follows the keyboard from one source.
+ *
+ * `setScroll` off: WKWebView would otherwise scroll itself to reveal a focused
+ * field. The page is already sized to what is visible, so there is nothing to
+ * reveal, and that scroll is a second mechanism moving the same pixels.
+ *
+ * The accessory bar (the ‹ › ✓ strip between the composer and the keys) is
+ * WKWebView's form assistant, not ours. It is OFF: it sat between the
+ * composer and the keyboard, which is exactly where Instagram has nothing,
+ * and ‹ › walk the page's other fields, which is meaningless in a chat. The
+ * keyboard is dismissed the iOS way instead: by scrolling the conversation or
+ * tapping outside the field.
  */
 function setUpKeyboard() {
   void Keyboard.setScroll({ isDisabled: true }).catch(() => {})
-  void Keyboard.setAccessoryBarVisible({ isVisible: true }).catch(() => {})
+  void Keyboard.setAccessoryBarVisible({ isVisible: false }).catch(() => {})
 }
 
 /**
@@ -175,28 +187,61 @@ function handleUniversalLinks() {
 }
 
 /** Everything above, in the order it should happen. Called from main.tsx. */
+/** A URL bar or a pinch is not a keyboard; below this it is not counted. */
+const KEYBOARD_FLOOR = 80
+
 /**
- * The app's height, in pixels, from the web view itself.
+ * The visible area, as CSS variables (see index.css for what each means).
  *
- * MainViewController resizes the web view frame by frame as the keyboard
- * moves. Screens used to be sized in `100dvh`, which WKWebView does not
- * recompute on every frame of a native resize — so on the way up the page
- * trailed the keyboard, and on the way DOWN it stayed short until the unit
- * caught up, then snapped (build 11 QA). `window.innerHeight` is the layout
- * viewport, updated with each resize; screens read it through `--ct-app-h`
- * (falling back to `100dvh` in a browser, where none of this applies).
+ * WHY THIS AND NOT A NATIVE RESIZE. Builds up to 12 resized the whole
+ * WKWebView frame by frame from Swift. WebKit relays out its content
+ * asynchronously after a frame change, so the page always trailed the native
+ * frame by a frame or more: the composer jumped, and a band showed between it
+ * and the keyboard. With the web view left alone, WebKit shrinks the visual
+ * viewport in step with the keyboard itself, and reading that is one source of
+ * truth with no second system to fall out of sync with.
+ *
+ * rAF-coalesced: iOS fires `resize` and `scroll` together, many times per
+ * keyboard animation, and one write per frame is all layout can use. Only
+ * the three variables are written, on <html>, so the page reflows through CSS
+ * rather than through React re-renders.
+ *
+ * Called once for the life of the app, so there is nothing to clean up.
  */
-function trackAppHeight() {
+function trackViewport() {
   const root = document.documentElement
-  const set = () => root.style.setProperty('--ct-app-h', `${window.innerHeight}px`)
-  set()
-  window.addEventListener('resize', set)
-  window.visualViewport?.addEventListener('resize', set)
+  const vv = window.visualViewport
+  let frame = 0
+  let kbOpen = false
+
+  const write = () => {
+    frame = 0
+    const height = vv ? vv.height : window.innerHeight
+    const top = vv ? Math.max(0, vv.offsetTop) : 0
+    const covered = Math.max(0, window.innerHeight - (height + top))
+    const keyboard = covered > KEYBOARD_FLOOR ? covered : 0
+    root.style.setProperty('--ct-app-h', `${Math.round(height)}px`)
+    root.style.setProperty('--ct-app-top', `${Math.round(top)}px`)
+    root.style.setProperty('--ct-kb', `${Math.round(keyboard)}px`)
+    const open = keyboard > 0
+    if (open !== kbOpen) {
+      kbOpen = open
+      root.classList.toggle('ct-kb-open', open)
+    }
+  }
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(write)
+  }
+
+  write()
+  window.addEventListener('resize', schedule)
+  vv?.addEventListener('resize', schedule)
+  vv?.addEventListener('scroll', schedule)
 }
 
 export function initNative() {
   if (!isNative()) return
-  trackAppHeight()
+  trackViewport()
   routeApiToSite()
   interceptExternalLinks()
   handleAppBack()

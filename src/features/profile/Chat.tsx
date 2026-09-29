@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
 import { useSettings } from '@/app/providers/settings'
+import { useStickToBottom } from '@/app/hooks/useStickToBottom'
 import { badgeForPerson } from './badges'
 import { useCommunityData } from '@/app/providers/community-data'
 import { chatTheme } from './chat-themes'
@@ -101,6 +102,8 @@ export function Chat({
     const box = endRef.current?.parentElement
     if (box) box.scrollTop = box.scrollHeight
   }, [rows, theyType])
+  // The keyboard shortens the thread; keep the newest message in view.
+  useStickToBottom(endRef)
 
   /**
    * WHERE YOU LEFT OFF.

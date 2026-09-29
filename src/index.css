@@ -17,6 +17,26 @@
  * never show through as pure black. var resolves per [data-theme]. */
 html {
   background-color: var(--ct-canvas);
+  /*
+   * THE KEYBOARD, AS CSS. lib/native.ts writes these from `visualViewport`
+   * in the iOS app; in a browser nobody writes them and the fallbacks apply.
+   *   --ct-app-h   the height you can see (keyboard excluded)
+   *   --ct-app-top where that visible area starts, if iOS panned it
+   *   --ct-kb      how much of the screen the keyboard covers
+   * --ct-safe-bottom is the home-indicator inset MINUS the keyboard, so a
+   * composer pads for the indicator at rest and for nothing once the keyboard
+   * is up. It shrinks continuously as the keyboard rises instead of switching,
+   * which would jump by the indicator's height at the start of the animation.
+   */
+  --ct-kb: 0px;
+  --ct-safe-bottom: max(0px, calc(env(safe-area-inset-bottom, 0px) - var(--ct-kb)));
+}
+
+/* While the keyboard is up, only inner containers scroll; the document never
+ * does, so nothing can pan out from under the composer. */
+html.ct-kb-open,
+html.ct-kb-open body {
+  overflow: hidden;
 }
 
 /* =========================================================================

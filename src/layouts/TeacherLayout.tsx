@@ -64,7 +64,7 @@ export function PortalLayout({ role }: { role: PortalRole }) {
   const courses = currentTeacher.courses
 
   return (
-    <div className="flex h-svh overflow-hidden bg-canvas">
+    <div className="flex h-[var(--ct-app-h,100svh)] overflow-hidden bg-canvas">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface/40 p-3 md:flex">
         {/* Identity + status, grouped above a divider that separates it from nav */}

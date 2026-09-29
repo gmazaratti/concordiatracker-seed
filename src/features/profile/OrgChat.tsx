@@ -5,6 +5,7 @@ import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { myThreadWithOrg, sendMessageToOrg, type OrgDm } from '@/lib/org-messages'
 import { shortAgo } from '@/lib/social'
 import { cn } from '@/lib/cn'
+import { useStickToBottom } from '@/app/hooks/useStickToBottom'
 import { FallbackImg } from '@/components/ui/FallbackImg'
 
 /** Module level so reading the clock is allowed — `react-hooks/purity` bars it
@@ -43,6 +44,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
   const end = useRef<HTMLDivElement | null>(null)
+  useStickToBottom(end)
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
 
