@@ -203,15 +203,18 @@ export function DueList({
       return next
     })
   const sections = buildSections(t, groups, moodle, prefs.groupBy, courseById, prefs.courseIcons ?? true)
+  // Counted off the rows ON SCREEN, Moodle and tasks included: counting only
+  // assessments put "2 items" over a list of five.
+  const shownTotal = sections.reduce((n, sec) => n + sec.items.length, 0)
 
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-[13px] font-semibold tracking-wide text-fg uppercase">{t('today.due')}</h2>
         <div className="flex items-center gap-1.5">
-          {groups.total > 0 && (
+          {shownTotal > 0 && (
             <span className="text-[12px] text-subtle">
-              {groups.total} {groups.total === 1 ? t('today.itemOne') : t('today.itemMany')}
+              {shownTotal} {shownTotal === 1 ? t('today.itemOne') : t('today.itemMany')}
             </span>
           )}
           {/* Tasks are added from the calendar's day view, which nobody finds

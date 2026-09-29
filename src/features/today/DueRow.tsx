@@ -10,21 +10,9 @@ import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
 import { SwipeRow, type SwipeAction } from '@/components/SwipeRow'
 import { KIND_LABEL } from '@/lib/assessment'
 import { CourseMark } from '@/components/CourseMark'
-import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
-import { DUE_COLUMN } from './due-column'
-
-/** Due labels lean on color only as urgency reinforcement — the text says it too,
- * and everything that isn't urgent stays neutral so the row reads calm. */
-function dueTone(due: string | null): string {
-  // No date, no urgency colour: the row still says "Date not set", quietly.
-  if (!due) return 'text-subtle'
-  const days = daysUntil(due)
-  if (days < 0) return 'text-danger'
-  if (days === 0) return 'text-warning'
-  return 'text-fg'
-}
+import { DueLabel } from './DueLabel'
 
 /** A calm active row: title + course + due (primary). The course reads as a small
  * identity DOT + plain code (no full-color pill); saturated color is reserved for
@@ -189,11 +177,7 @@ export function DueRow({
             </span>
           </span>
 
-          <span
-            className={cn(DUE_COLUMN, 'pt-px text-[13px] font-semibold', dueTone(assessment.due))}
-          >
-            {relativeDueLabel(assessment.due)}
-          </span>
+          <DueLabel due={assessment.due} />
         </button>
 
         <DropdownMenu
