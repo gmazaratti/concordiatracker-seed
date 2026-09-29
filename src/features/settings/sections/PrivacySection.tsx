@@ -17,6 +17,7 @@ import { Group, Row, Segmented, Switch, Flag } from '../controls'
 import { cleanLinks, type ProfileLinks } from '@/lib/social'
 import { useT } from '@/i18n/i18n'
 import { AnalyticsSetting } from './AnalyticsSetting'
+import { BlockedAccountsGroup } from './BlockedAccountsGroup'
 
 /** Public-profile controls — the opt-in toggle, the bio, and a link to view it.
  * Reads profile_public/bio defensively (degrades if not migrated yet). */
@@ -227,10 +228,13 @@ export function PrivacySection() {
 
       <AnalyticsSetting />
 
+      <BlockedAccountsGroup />
+
+      {/* The legal documents were finalized on 2026-08-22; this line still
+          called them "drafts pending review", which a reviewer reads as the
+          Terms not being in force. */}
       <p className="mb-5 text-[13px] leading-relaxed text-muted">
-        ConcordiaTracker complies with Quebec&rsquo;s Law 25. The full documents
-        below are <span className="font-medium text-warning">drafts pending review</span>{' '}
-       : not finalized legal text.
+        ConcordiaTracker complies with Quebec&rsquo;s Law 25. The full documents are below.
       </p>
 
       <Group label={t('settings.legalDocs')}>

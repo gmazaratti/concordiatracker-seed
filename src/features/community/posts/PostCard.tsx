@@ -31,8 +31,7 @@ import { RepostGlyph } from './RepostGlyph'
 import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
 import { ShareSheet } from '../ShareSheet'
-import { ModalShell } from '@/command/ModalShell'
-import { submitTicket } from '@/lib/tickets'
+import { ReportSheet } from '@/components/ReportSheet'
 import { muteOrg } from '../muted-orgs'
 import { PostFollowButton } from './PostFollowButton'
 import { CollabHeader, CollaboratorsSheet } from './CollabHeader'
@@ -621,10 +620,12 @@ export function PostCard({
       )}
 
       {reporting && (
-        <ReportPost
-          slug={slug}
-          postId={post.id}
-          onDone={() => setReporting(false)}
+        <ReportSheet
+          target="post"
+          subject={`Reported post by @${slug}`}
+          details={[`Post: ${post.id}`, `Account: @${slug}`, post.caption ? `Caption: ${post.caption}` : '']}
+          preview={post.caption || undefined}
+          onClose={() => setReporting(false)}
         />
       )}
 
@@ -803,110 +804,6 @@ function Arrow({
   )
 }
 
-const REASONS = [
-  'Spam or a scam',
-  'Misleading or false',
-  'Harassment or hate',
-  'Nudity or sexual content',
-  'Something else',
-]
-
-/**
- * Reporting a post.
- *
- * IT FILES A REAL SUPPORT TICKET rather than posting to a queue nobody
- * reads. The product already has one inbox for "a human needs to look at
- * this", it is already in the admin console, and the reporter can already
- * follow it in Messages — a second, invisible moderation queue would be a
- * promise we are not yet staffed to keep.
- *
- * The confirmation says what will actually happen, including that it is not
- * anonymous to us, because a report form that implies more than it does is
- * worse than none.
- */
-function ReportPost({
-  slug,
-  postId,
-  onDone,
-}: {
-  slug: string
-  postId: string
-  onDone: () => void
-}) {
-  const [reason, setReason] = useState<string | null>(null)
-  const [sent, setSent] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const send = async (r: string) => {
-    setReason(r)
-    setBusy(true)
-    try {
-      const { caseId } = await submitTicket({
-        subject: `Reported post by @${slug}`,
-        message: `Reason: ${r}\
-Post: ${postId}\
-Account: @${slug}`,
-        category: 'other',
-      })
-      setSent(caseId || 'received')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not send that report.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <ModalShell label="Report post" onClose={onDone} widthClass="sm:max-w-sm">
-      <div className="px-4 pt-3 pb-4">
-        {sent ? (
-          <div className="py-4 text-center">
-            <p className="text-[15px] font-semibold text-fg">Thanks, we have it</p>
-            <p className="mx-auto mt-1 max-w-xs text-[13px] leading-relaxed text-subtle">
-              {sent === 'received'
-                ? 'Someone will take a look.'
-                : `It is ${sent} in your Messages, under Support, if you want to add anything.`}
-            </p>
-            <button
-              type="button"
-              onClick={onDone}
-              className="mt-4 rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-accent-contrast"
-            >
-              Done
-            </button>
-          </div>
-        ) : (
-          <>
-            <h2 className="pr-9 text-[15px] font-semibold text-fg">Report this post</h2>
-            <p className="mt-1 mb-3 text-[12.5px] leading-relaxed text-subtle">
-              It opens a support conversation you can follow. Not anonymous to us.
-            </p>
-            <ul>
-              {REASONS.map((r) => (
-                <li key={r}>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void send(r)}
-                    className={cn(
-                      'w-full rounded-xl px-2 py-2.5 text-left text-[14px] text-fg',
-                      'transition-colors duration-150 hover:bg-surface-2 disabled:opacity-50',
-                      reason === r && 'bg-surface-2',
-                    )}
-                  >
-                    {r}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {error && <p className="pt-2 text-[12px] text-warning">{error}</p>}
-          </>
-        )}
-      </div>
-    </ModalShell>
-  )
-}
 const MINUTE = 60_000
 const HOUR = 3_600_000
 const DAY = 86_400_000

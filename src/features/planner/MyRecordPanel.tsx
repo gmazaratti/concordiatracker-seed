@@ -14,8 +14,7 @@ import { browseCourses, type CatalogCourse } from '@/lib/catalog'
 import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
 import { GpaBreakdown } from './GpaBreakdown'
-import { demoGpa, demoGpaEnabled } from '@/lib/demo-gpa'
-import { useIsAdmin } from '@/features/admin/admin-data'
+import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { PastCourseRow } from './PastCourseRow'
 import { Step } from './Step'
 import { YEARS } from './past-terms'
@@ -68,8 +67,7 @@ export function MyRecordPanel() {
   )
 
   // Presentation only, admin only, and it never writes — see lib/demo-gpa.ts.
-  const { isAdmin } = useIsAdmin()
-  const shownGpa = isAdmin ? demoGpa(summary.gpa, demoGpaEnabled()) : summary.gpa
+  const shownGpa = useShownGpa()(summary.gpa)
   const superseded = useMemo(
     () => supersededCourseIds(pastCourses, assessments),
     [pastCourses, assessments],

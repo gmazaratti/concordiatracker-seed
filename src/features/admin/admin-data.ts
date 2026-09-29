@@ -446,9 +446,17 @@ export function shortId(id: string): string {
 
 // ── Admin gate ────────────────────────────────────────────────────────────────
 /** Resolves whether the signed-in user is a platform admin (via the is_admin RPC). */
+/** Last answer per account, so a remount (every page change) does not flash the
+ *  non-admin state for a round trip before the RPC answers again. */
+let adminCache: { uid: string; isAdmin: boolean } | null = null
+
 export function useIsAdmin(): { loading: boolean; isAdmin: boolean } {
   const { user } = useAuth()
-  const [state, setState] = useState<{ loading: boolean; isAdmin: boolean }>({ loading: true, isAdmin: false })
+  const [state, setState] = useState<{ loading: boolean; isAdmin: boolean }>(() =>
+    adminCache && user && adminCache.uid === user.id
+      ? { loading: false, isAdmin: adminCache.isAdmin }
+      : { loading: true, isAdmin: false },
+  )
 
   useEffect(() => {
     let active = true
@@ -458,6 +466,7 @@ export function useIsAdmin(): { loading: boolean; isAdmin: boolean } {
         return
       }
       const { data } = await supabase.rpc('is_admin')
+      adminCache = { uid: user.id, isAdmin: data === true }
       if (active) setState({ loading: false, isAdmin: data === true })
     })()
     return () => {

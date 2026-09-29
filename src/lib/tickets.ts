@@ -142,3 +142,25 @@ export async function openTicketCount(): Promise<number> {
   if (error) return 0
   return typeof data === 'number' ? data : 0
 }
+
+/** The account behind a ticket, for the admin inbox (db/admin_ticket_people.sql). */
+export interface TicketPerson {
+  user_id: string
+  name: string | null
+  handle: string | null
+  avatar_url: string | null
+  program: string | null
+  is_pro: boolean
+  plan_status: string | null
+  joined_at: string | null
+  ticket_count: number
+}
+
+export async function adminTicketPeople(userIds: string[]): Promise<Map<string, TicketPerson>> {
+  const ids = [...new Set(userIds)]
+  if (ids.length === 0) return new Map()
+  const { data, error } = await supabase.rpc('admin_ticket_people', { p_users: ids })
+  // A missing function (migration not run) costs the faces, never the queue.
+  if (error) return new Map()
+  return new Map(((data ?? []) as TicketPerson[]).map((p) => [p.user_id, p]))
+}

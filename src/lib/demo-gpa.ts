@@ -29,12 +29,29 @@ export function demoGpaEnabled(): boolean {
   }
 }
 
+const subs = new Set<() => void>()
+/** In-memory copy, so a toggle takes effect even where storage is blocked. */
+let current: boolean | null = null
+
 export function setDemoGpaEnabled(on: boolean): void {
+  current = on
   try {
     localStorage.setItem(KEY, on ? 'on' : 'off')
   } catch {
     /* private mode — it just will not persist */
   }
+  // Every GPA on screen re-reads it: the switch used to change nothing until
+  // the page that showed the figure was remounted.
+  subs.forEach((f) => f())
+}
+
+/** For `useSyncExternalStore` (see `useShownGpa`). */
+export function subscribeDemoGpa(f: () => void): () => void {
+  subs.add(f)
+  return () => subs.delete(f)
+}
+export function demoGpaSnapshot(): boolean {
+  return current ?? demoGpaEnabled()
 }
 
 /**

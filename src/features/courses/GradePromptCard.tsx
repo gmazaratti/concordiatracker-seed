@@ -36,6 +36,7 @@ export function GradePromptCard({
   onSave,
   onUndoGrade,
   onUndoDone,
+  onAwaiting,
 }: {
   promptKey: PromptKey
   title: string
@@ -48,6 +49,9 @@ export function GradePromptCard({
   onSave: (g: Grade, weight?: number) => void | Promise<void>
   onUndoGrade: () => void
   onUndoDone: () => void
+  /** "Handed in, no mark yet": keeps it on Today under Waiting for a grade.
+   *  Absent when it is already in that state. */
+  onAwaiting?: () => void
 }) {
   const [text, setText] = useState('')
   const [weightText, setWeightText] = useState('')
@@ -205,6 +209,18 @@ export function GradePromptCard({
                   Save
                 </button>
               </form>
+            )}
+            {gradeable && onAwaiting && (
+              <button
+                type="button"
+                onClick={() => {
+                  onAwaiting()
+                  leave()
+                }}
+                className="mt-2 text-[12px] text-subtle underline-offset-2 transition-colors duration-150 hover:text-fg hover:underline"
+              >
+                No grade yet: I'm waiting for it
+              </button>
             )}
             {read.kind === 'invalid' && <p className="mt-1.5 text-[11.5px] text-danger">{read.error}</p>}
             {needsWeight && gradeable && weightText.trim() !== '' && !weightOk && (

@@ -1,4 +1,5 @@
 import { askForGrade, askForTaskGrade } from '@/lib/grade-prompt'
+import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { haptic } from '@/lib/haptics'
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
@@ -57,6 +58,7 @@ export function TodayPage() {
 
   const { todosDue, todoCounts } = useTodosDue(personalTasks, assessments, courses)
 
+  const shown = useShownGpa()
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
   // Cumulative across FINISHED terms — the sub-line under this term's GPA.
   const cumulativeGpa = useMemo(
@@ -64,18 +66,32 @@ export function TodayPage() {
     [pastCourses, assessments],
   )
 
+  // Submitted-but-ungraded work shows in its own section, so it is left out of
+  // "Completed today" rather than appearing twice.
   const completed = resolvedIds
     .map((id) => assessments.find((a) => a.id === id))
-    .filter((a): a is Assessment => !!a && !isOpen(a.status))
+    .filter((a): a is Assessment => !!a && !isOpen(a.status) && a.status !== 'awaiting-grade')
+  const awaiting = useMemo(
+    () =>
+      assessments
+        .filter((a) => a.status === 'awaiting-grade' && !a.grade)
+        .sort((a, b) => (a.due ?? '').localeCompare(b.due ?? '')),
+    [assessments],
+  )
 
   function resolve(id: string, status: AssessmentStatus) {
+    // "Mark graded" on a submitted item is the student saying there is no grade
+    // to type: file it as done without asking for one.
+    const wasAwaiting = assessments.find((a) => a.id === id)?.status === 'awaiting-grade'
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
     // Finished: a tick you can feel, then an offer to record the grade (a
     // small card, never a dialog).
     if (status === 'done') {
       haptic('success')
-      askForGrade(id)
+      if (!wasAwaiting) askForGrade(id)
+    } else if (status === 'awaiting-grade') {
+      haptic('tap')
     }
   }
   /** A synced Moodle item: same tick, same feel, same "what did you get?". */
@@ -119,6 +135,7 @@ export function TodayPage() {
       groups={groups}
       moodle={todosDue}
       completed={completed}
+      awaiting={awaiting}
       prefs={todayPrefs}
       courseById={courseById}
       onResolve={resolve}
@@ -133,7 +150,7 @@ export function TodayPage() {
   const glance = (
     <GlanceStrip
       term={term}
-      gpa={gpa}
+      gpa={shown(gpa)}
       overdue={groups.overdue.length + todoCounts.overdue}
       itemsLeft={groups.count + todoCounts.near}
       nextUp={groups.nextUp}
@@ -141,7 +158,7 @@ export function TodayPage() {
       doneToday={completed.length}
       courseCount={courses.length}
       credits={credits}
-      cumulativeGpa={cumulativeGpa}
+      cumulativeGpa={shown(cumulativeGpa)}
     />
   )
 

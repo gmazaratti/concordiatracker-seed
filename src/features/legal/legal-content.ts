@@ -283,7 +283,9 @@ const privacy: LegalDoc = {
 const terms: LegalDoc = {
   slug: 'terms',
   title: 'Terms of Service',
-  lastUpdated: LAST_UPDATED,
+  // Its own date: the objectionable-content rules (App Store guideline 1.2)
+  // changed the Terms without touching the other documents.
+  lastUpdated: 'September 28, 2026',
   intro: 'The agreement between you and ConcordiaTracker.',
   sections: [
     { n: 1, title: 'Acceptance of Terms', blocks: [{ kind: 'p', text: 'By accessing ConcordiaTracker.com (“the Site”), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.' }] },
@@ -344,8 +346,10 @@ const terms: LegalDoc = {
             'Attempt to reverse-engineer, decompile, or disassemble any part of the service.',
             'Upload malicious content, spam, or attempt to breach security measures.',
             'Share your account credentials or allow unauthorized access.',
+            'Post, send or display objectionable content, including harassment, bullying, hate speech, threats, sexual content, spam or impersonation, in posts, stories, comments, messages or your profile.',
           ],
         },
+        { kind: 'p', text: 'There is no tolerance for objectionable content or abusive users. You can report any post, message or account from the app, and block any account so it can no longer message you or see your profile. We review reports within 24 hours, remove content that breaks these Terms, and suspend or remove the accounts responsible.' },
       ],
     },
     { n: 7, title: 'Intellectual Property', blocks: [{ kind: 'p', text: 'The ConcordiaTracker name, logo, user interface, and underlying code are the property of ConcordiaTracker and are protected by applicable intellectual property laws. User-entered data (courses, grades, assignments) remains the property of the user.' }] },

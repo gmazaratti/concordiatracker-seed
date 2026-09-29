@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ban, Check, Link2, MessageSquare, MoreVertical, Rss, UserRound } from 'lucide-react'
+import { Ban, Check, Flag, Link2, MessageSquare, MoreVertical, Rss, UserRound } from 'lucide-react'
+import { ReportSheet } from '@/components/ReportSheet'
 import { blockUser, haveIBlocked, unblockUser, unfollowUser } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { siteOrigin } from '@/lib/site-origin'
@@ -34,7 +35,7 @@ export interface PersonTarget {
 const WIDTH = 210
 // Grows with the menu: the flip-up calculation uses it, and an undersized
 // estimate puts the last item off the bottom of the screen.
-const HEIGHT = 248
+const HEIGHT = 290
 
 export function PersonMenu({
   target,
@@ -57,6 +58,9 @@ export function PersonMenu({
   // A block that quietly does nothing is the worst version of this feature:
   // you would believe you were no longer reachable. Say so instead.
   const [failed, setFailed] = useState(false)
+  // Report replaces the menu with the report sheet (a dialog on top of a menu
+  // is two layers to dismiss).
+  const [reporting, setReporting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -76,6 +80,7 @@ export function PersonMenu({
   }))
 
   useEffect(() => {
+    if (reporting) return
     const onDown = (e: MouseEvent) => {
       if (ref.current?.contains(e.target as Node)) return
       onClose()
@@ -89,9 +94,20 @@ export function PersonMenu({
       document.removeEventListener('keydown', onKey)
       window.removeEventListener('scroll', onClose, true)
     }
-  }, [onClose])
+  }, [onClose, reporting])
 
   const url = `${siteOrigin()}/@${target.handle}`
+
+  if (reporting) {
+    return (
+      <ReportSheet
+        target="account"
+        subject={`Reported account @${target.handle}`}
+        details={[`Account: @${target.handle}`, target.name ? `Name: ${target.name}` : '']}
+        onClose={onClose}
+      />
+    )
+  }
 
   return createPortal(
     <div
@@ -148,12 +164,14 @@ export function PersonMenu({
           }}
         />
       )}
+      <div className="my-1 border-t border-border" />
+      <Item icon={Flag} label="Report" danger onSelect={() => setReporting(true)} />
+
       {/* Rendered only once we know which way round it goes — showing "Block"
           to someone who has already blocked them, and silently doing nothing
           when they click it, is worse than a moment with no row. */}
       {blocked === false && (
         <>
-          {!target.following && <div className="my-1 border-t border-border" />}
           <Item
             icon={Ban}
             label={confirmBlock ? 'Block? Are you sure?' : 'Block'}
@@ -177,7 +195,6 @@ export function PersonMenu({
       )}
       {blocked === true && (
         <>
-          <div className="my-1 border-t border-border" />
           <Item
             icon={Ban}
             label="Unblock"

@@ -8,6 +8,7 @@ import type { TodayPrefs } from '@/app/providers/app-data'
 import { Card } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/StatusBadge'
 import { CourseMark } from '@/components/CourseMark'
+import { AwaitingGrade } from './AwaitingGrade'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
@@ -154,6 +155,7 @@ export function DueList({
   groups,
   moodle,
   completed,
+  awaiting,
   prefs,
   compact = false,
   courseById,
@@ -173,6 +175,8 @@ export function DueList({
    *  plus anything you put on your own calendar for today. */
   moodle: CalendarTask[]
   completed: Assessment[]
+  /** Handed in, no grade yet: kept on Today in their own section, uncounted. */
+  awaiting: Assessment[]
   prefs: TodayPrefs
   courseById: (id: string) => Course | undefined
   onResolve: (id: string, status: AssessmentStatus) => void
@@ -329,6 +333,13 @@ export function DueList({
           )
         })
       )}
+
+      <AwaitingGrade
+        items={awaiting}
+        courseById={courseById}
+        icons={prefs.courseIcons ?? true}
+        onMarkGraded={(id) => onResolve(id, 'done')}
+      />
 
       {completed.length > 0 && (
         <CompletedToday items={completed} courseById={courseById} icons={prefs.courseIcons ?? true} onUndo={onUndo} />

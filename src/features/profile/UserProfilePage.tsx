@@ -260,6 +260,7 @@ export function ProfileView({
                  problem should not have to find that support lives behind
                  the avatar menu, and a DM has no case number. */
               onHelp={badge?.kind === 'staff' && viewer === 'other' ? () => openSupport() : undefined}
+              onRelationChanged={reload}
             />
 
             {profile.isPublic && (

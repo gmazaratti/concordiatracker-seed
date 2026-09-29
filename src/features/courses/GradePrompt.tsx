@@ -51,7 +51,19 @@ export function GradePrompt() {
         title={a.title}
         behind={behind}
         gradeable
-        onSave={(g) => setGrade(a.id, g)}
+        onSave={(g) => {
+          setGrade(a.id, g)
+          // Graded now, so no longer "waiting": file it as done.
+          if (a.status === 'awaiting-grade') setStatus(a.id, 'done')
+        }}
+        onAwaiting={
+          a.status === 'awaiting-grade'
+            ? undefined
+            : () => {
+                setStatus(a.id, 'awaiting-grade')
+                haptic('tap')
+              }
+        }
         onUndoGrade={() => setGrade(a.id, null)}
         onUndoDone={() => {
           setStatus(a.id, 'not-started')

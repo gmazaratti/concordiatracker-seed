@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Bell, BellRing, GraduationCap, LifeBuoy, Pencil, Share2 } from 'lucide-react'
+import { Bell, BellRing, GraduationCap, LifeBuoy, MoreHorizontal, Pencil, Share2 } from 'lucide-react'
+import { PersonMenu, type PersonTarget } from './PersonMenu'
 import { CachedImg } from '@/components/ui/CachedImg'
 import { VerifiedBadge } from '@/features/community/VerifiedBadge'
 import { ProfileLinksRow } from '@/features/community/ProfileLinksRow'
@@ -50,6 +51,7 @@ export function ProfileHeader({
   onEdit,
   onMessage,
   onHelp,
+  onRelationChanged,
 }: {
   handle: string
   name?: string
@@ -65,7 +67,10 @@ export function ProfileHeader({
   onMessage: () => void
   /** Only passed on the support account — a real ticket, not a DM. */
   onHelp?: () => void
+  /** A block or unblock from the ⋯ menu: the page re-reads the profile. */
+  onRelationChanged?: () => void
 }) {
+  const [menu, setMenu] = useState<PersonTarget | null>(null)
   const { orgNameByOwner } = useCommunityData()
   // Seeded from the last answer so the counts and the Follow button are
   // already right on the first frame of a profile you have opened before.
@@ -156,7 +161,18 @@ export function ProfileHeader({
         onNotify={() => setNotify((v) => !v)}
         handle={handle}
         onHelp={onHelp}
+        onMore={(at) => setMenu({ handle, name: name ?? null, following, at })}
       />
+      {menu && (
+        <PersonMenu
+          target={menu}
+          onClose={() => setMenu(null)}
+          onChanged={() => {
+            void profileSocial(handle).then(setSocial)
+            onRelationChanged?.()
+          }}
+        />
+      )}
 
       {list && <FollowListPage handle={handle} kind={list} onClose={() => setList(null)} />}
     </header>
@@ -261,6 +277,7 @@ function Actions({
   onNotify,
   handle,
   onHelp,
+  onMore,
 }: {
   isSelf: boolean
   following: boolean
@@ -273,6 +290,8 @@ function Actions({
   onNotify: () => void
   handle: string
   onHelp?: () => void
+  /** Report / block / copy link — the actions that are about the account. */
+  onMore: (at: { x: number; y: number }) => void
 }) {
   const [copied, setCopied] = useState(false)
   const flat =
@@ -342,6 +361,20 @@ function Actions({
           )}
         >
           {notify ? <BellRing size={15} aria-hidden /> : <Bell size={15} aria-hidden />}
+        </button>
+        {/* Report and Block live here (App Store guideline 1.2 asks for both on
+            any account that can reach you). */}
+        <button
+          type="button"
+          aria-label="More: report or block"
+          title="Report or block"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect()
+            onMore({ x: r.right - 210, y: r.bottom + 4 })
+          }}
+          className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-muted transition-colors duration-150 hover:text-fg"
+        >
+          <MoreHorizontal size={16} aria-hidden />
         </button>
       </div>
       {dmWhy && <p className="mt-1.5 text-[11.5px] leading-relaxed text-subtle">{dmWhy}</p>}

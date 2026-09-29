@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { LayoutGrid, Plus, Rows3 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import type { CoursesView } from '@/app/providers/app-data'
@@ -84,6 +85,7 @@ export function CoursesPage() {
     return map
   }, [courses, assessments])
 
+  const showGpa = useShownGpa()
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
   /**
    * Everything graded, this term and every term before it.
@@ -254,12 +256,12 @@ export function CoursesPage() {
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
           <TermGlance
             termName={term.name.split(' ')[0]}
-            gpa={gpa}
+            gpa={showGpa(gpa)}
             credits={credits}
             coursesGraded={coursesGraded}
             coursesTotal={courses.length}
             openItems={open.length}
-            overallGpa={overallGpa}
+            overallGpa={showGpa(overallGpa)}
             overallCredits={overallCredits}
             overdue={open.filter((a) => !!a.due && daysUntil(a.due) < 0).length}
           />

@@ -1,5 +1,6 @@
 import { Group } from '../controls'
 import { TokenPanel } from '@/features/tokens/TokenPanel'
+import { AdminAlertsGroup } from './AdminAlertsGroup'
 
 /**
  * Settings → Developer.
@@ -12,6 +13,9 @@ import { TokenPanel } from '@/features/tokens/TokenPanel'
 export function DeveloperSection() {
   return (
     <>
+      {/* The Developer tab is admin-only, so these are the admin's own alerts. */}
+      <AdminAlertsGroup />
+
       <Group label="API tokens" padded>
         <TokenPanel scope="me" />
       </Group>

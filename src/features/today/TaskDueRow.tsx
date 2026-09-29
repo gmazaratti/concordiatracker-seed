@@ -4,6 +4,7 @@ import type { CalendarTask } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { relativeDueLabel, daysUntil } from '@/lib/date'
 import { cn } from '@/lib/cn'
+import { DUE_COLUMN } from './due-column'
 
 /**
  * A todo on Today — a Moodle deadline, or one you wrote yourself.
@@ -76,7 +77,10 @@ export function TaskDueRow({
       </button>
 
       <div className="min-w-0 flex-1">
-        <p className={cn('text-[14px] text-fg', task.done && 'text-muted line-through')}>
+        <p
+          className={cn('line-clamp-2 break-words text-[14px] leading-snug text-fg', task.done && 'text-muted line-through')}
+          title={task.title}
+        >
           {task.title}
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12px] text-subtle">
@@ -146,7 +150,8 @@ export function TaskDueRow({
 
       <span
         className={cn(
-          'mt-0.5 shrink-0 text-[12.5px] tabular-nums',
+          DUE_COLUMN,
+          'mt-0.5 text-[12.5px] tabular-nums',
           late ? 'font-medium text-danger' : 'text-fg',
         )}
       >

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { GraduationCap, Plus, Undo2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { currentGpa, percentToGrade, termRecords } from '@/lib/gpa'
@@ -30,7 +31,8 @@ export function TranscriptView() {
     () => termRecords(pastCourses, assessments, sortTermsDesc),
     [pastCourses, assessments],
   )
-  const cumulative = useMemo(() => currentGpa(pastCourses, assessments), [pastCourses, assessments])
+  const shown = useShownGpa()
+  const cumulative = shown(useMemo(() => currentGpa(pastCourses, assessments), [pastCourses, assessments]))
   const totalCredits = useMemo(
     () => terms.reduce((sum, t) => sum + t.credits, 0),
     [terms],

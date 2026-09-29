@@ -80,6 +80,11 @@ interface AdminDigest {
   new_users: { name: string; email: string }[]
   /** Orgs waiting for approval — also individual, for the same reason. */
   new_orgs?: { name: string; handle: string }[]
+  /** New support tickets (db/admin_alerts.sql). One push each. */
+  new_tickets?: { case_id: string; subject: string; who: string }[]
+  /** Finished syllabus scans, successes and failures (already filtered by the
+   *  admin's own preferences in the database). */
+  new_scans?: { ok: boolean; file: string; course: string | null; items: number | null; error: string; who: string }[]
 }
 
 /** Digest body for everything EXCEPT signups, e.g. "1 feature request · 2 applications". */
@@ -492,6 +497,69 @@ export async function runReminders(req: any, res: any) {
               body: `${o.name} · ${o.handle}`,
               url: '/admin?tab=portals',
               tag: `ct-org-${o.handle}`,
+            }),
+          )
+        }
+        // A customer waiting is the most urgent thing here: one push each.
+        for (const t of d.new_tickets ?? []) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: `New ticket · ${t.case_id}`,
+              body: `${t.who}: ${t.subject}`,
+              url: '/admin?tab=tickets',
+              tag: `ct-ticket-${t.case_id}`,
+            }),
+          )
+        }
+        // A failed scan is a student who hit a wall: named, one each (capped so
+        // a broken model does not become fifty buzzes).
+        const scans = d.new_scans ?? []
+        const failed = scans.filter((x) => !x.ok)
+        for (const f of failed.slice(0, 5)) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: 'Scan failed',
+              body: `${f.who} · ${f.file}${f.error ? ` · ${f.error}` : ''}`,
+              url: '/admin?tab=parses',
+              tag: `ct-scanfail-${f.who}-${f.file}`,
+            }),
+          )
+        }
+        if (failed.length > 5) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: `${failed.length - 5} more scans failed`,
+              body: 'Open Parses to see them and retry.',
+              url: '/admin?tab=parses',
+              tag: 'ct-scanfail-more',
+            }),
+          )
+        }
+        // Successes are good news, not work: named when few, summed when many.
+        const ok = scans.filter((x) => x.ok)
+        if (ok.length > 0 && ok.length <= 3) {
+          for (const x of ok) {
+            await pushAll(
+              subs,
+              JSON.stringify({
+                title: 'Syllabus scanned',
+                body: `${x.who} · ${x.course ?? x.file}${x.items ? ` · ${x.items} items` : ''}`,
+                url: '/admin?tab=parses',
+                tag: `ct-scan-${x.who}-${x.file}`,
+              }),
+            )
+          }
+        } else if (ok.length > 3) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: `${ok.length} syllabi scanned`,
+              body: [...new Set(ok.map((x) => x.who))].slice(0, 3).join(', '),
+              url: '/admin?tab=parses',
+              tag: 'ct-scan-batch',
             }),
           )
         }

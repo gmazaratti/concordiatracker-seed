@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpRight, Check, CircleDashed, Pencil, Trash2 } from 'lucide-react'
+import { ArrowUpRight, Check, CircleDashed, Hourglass, Pencil, Trash2 } from 'lucide-react'
 import { PendingSyncMark } from '@/components/PendingSyncMark'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
@@ -13,6 +13,7 @@ import { CourseMark } from '@/components/CourseMark'
 import { daysUntil, relativeDueLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
+import { DUE_COLUMN } from './due-column'
 
 /** Due labels lean on color only as urgency reinforcement — the text says it too,
  * and everything that isn't urgent stays neutral so the row reads calm. */
@@ -72,6 +73,12 @@ export function DueRow({
       onSelect: () => openAssessment(assessment.id),
     },
     {
+      id: 'awaiting',
+      label: t('today.submitted'),
+      icon: Hourglass,
+      onSelect: () => onResolve('awaiting-grade'),
+    },
+    {
       id: 'open',
       label: t('today.openInCourse'),
       icon: ArrowUpRight,
@@ -97,7 +104,9 @@ export function DueRow({
    * gesture that does something the visible menu does not offer is a gesture
    * nobody can discover or verify.
    */
-  const swipeActions: SwipeAction[] = menuItems.map((m) => ({
+  // The tray fits three; "submitted" stays a menu-only action so the swipe
+  // keeps its three (edit, open, delete) at full size.
+  const swipeActions: SwipeAction[] = menuItems.filter((m) => m.id !== 'awaiting').map((m) => ({
     id: m.id,
     label: m.id === 'open' ? t('today.openShort') : m.label,
     icon: m.icon!,
@@ -146,7 +155,7 @@ export function DueRow({
           className="-my-1 flex min-w-0 flex-1 items-start gap-3 rounded-md py-1 text-left transition-colors duration-150 hover:bg-surface-2/40"
         >
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[14px] font-medium text-fg">{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
+            <span className="line-clamp-2 break-words text-[14px] leading-snug font-medium text-fg" title={assessment.title || undefined}>{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
             <span
               className={cn(
                 'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-subtle',
@@ -181,7 +190,7 @@ export function DueRow({
           </span>
 
           <span
-            className={cn('shrink-0 pt-px text-[13px] font-semibold', dueTone(assessment.due))}
+            className={cn(DUE_COLUMN, 'pt-px text-[13px] font-semibold', dueTone(assessment.due))}
           >
             {relativeDueLabel(assessment.due)}
           </span>

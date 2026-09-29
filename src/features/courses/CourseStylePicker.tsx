@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check, Lock, Palette, Sparkles } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useSettings } from '@/app/providers/settings'
@@ -23,19 +24,28 @@ import { PURCHASES_HIDDEN } from '@/lib/store-policy'
  */
 type Tab = 'color' | 'gradient' | 'icon'
 
+/** The panel's width; the grids inside are laid out for it. */
+const PANEL_W = 276
+
 export function CourseStylePicker({ course }: { course: Course }) {
   const { setCourseColor, updateCourse, plan } = useAppData()
   const { openSettings } = useSettings()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('color')
   const ref = useRef<HTMLDivElement>(null)
+  const popRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const pro = plan !== 'free'
   const current = courseIcon(course.icon)
 
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      // The panel is portaled, so it is NOT inside `ref`; check both, or every
+      // click inside the picker would count as outside and close it.
+      if (ref.current?.contains(t) || popRef.current?.contains(t)) return
+      setOpen(false)
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false)
@@ -47,6 +57,37 @@ export function CourseStylePicker({ course }: { course: Course }) {
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
+
+  /*
+   * PORTALED AND CLAMPED. It used to hang `absolute right-0` off the Style
+   * button, which sits at the LEFT of the banner — so a 276px panel anchored by
+   * its right edge ran off the left side of the screen, and the banner's own
+   * clipping cut it. It now lives on <body> as `position: fixed`, starts at the
+   * button's left edge and is pushed back inside the viewport (and above the
+   * button when there is no room below). Recomputed on scroll and resize.
+   */
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => {
+      const b = ref.current?.getBoundingClientRect()
+      if (!b) return
+      const vw = window.visualViewport?.width ?? window.innerWidth
+      const vh = window.visualViewport?.height ?? window.innerHeight
+      const w = Math.min(PANEL_W, vw - 16)
+      const h = popRef.current?.offsetHeight ?? 360
+      const left = Math.max(8, Math.min(b.left, vw - w - 8))
+      const below = b.bottom + 8
+      const top = below + h > vh - 8 && b.top - 8 - h > 8 ? b.top - 8 - h : below
+      setPos({ left, top })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, tab])
 
   /** A locked click sells rather than fails — and says what it is selling. */
   const gate = () => {
@@ -68,10 +109,16 @@ export function CourseStylePicker({ course }: { course: Course }) {
         Style
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
+          ref={popRef}
           role="menu"
-          className="ct-animate-pop absolute top-full right-0 z-40 mt-2 w-[276px] rounded-xl border border-border bg-surface shadow-2xl"
+          className="ct-animate-pop fixed z-[200] rounded-xl border border-border bg-surface shadow-2xl"
+          style={{
+            width: `min(${PANEL_W}px, calc(100vw - 16px))`,
+            left: pos?.left ?? -9999,
+            top: pos?.top ?? -9999,
+          }}
         >
           <div className="flex gap-1 border-b border-border p-1.5">
             {(
@@ -227,7 +274,8 @@ export function CourseStylePicker({ course }: { course: Course }) {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
