@@ -2,7 +2,7 @@
 
 Everything Alfred needs to work the support queue. Hand him this file.
 
-Running clubs (stories, posts, events, invites, stats) with the  assistant key is
+Running clubs (stories, posts, events, invites, stats) with the `ct_ast_` assistant key is
 documented endpoint by endpoint in **docs/alfred-assistant-api.md**.
 
 ---
