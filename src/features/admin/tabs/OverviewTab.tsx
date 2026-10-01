@@ -70,8 +70,8 @@ export function OverviewTab() {
   const [days, setDays] = useState<number>(30)
   const [metric, setMetric] = useState<Metric>('visitors')
   // ON by default (owner's call): the Overview opens on demo figures, for
-  // screenshots and recordings. The toggle switches to the real ones, and the
-  // Notes line below the stats still says plainly when demo is on.
+  // screenshots and recordings. NOTHING on screen says so — no note, no lit
+  // button, no tooltip — by request: the owner knows by pressing it.
   const [demo, setDemo] = useState(true)
   const [kinds, setKinds] = useState<Set<ActivityKind>>(() => new Set(DEFAULT_ACTIVITY_KINDS))
   const [raw, setRaw] = useState<Overview | null>(null)
@@ -134,18 +134,15 @@ export function OverviewTab() {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto font-display text-[17px] font-semibold text-fg">Overview</h2>
 
-        {/* The inflate button. Unlabelled and unrelated-looking, as asked —
-            it only changes what is drawn and writes nothing anywhere. */}
+        {/* The inflate button. Unlabelled, unrelated-looking and IDENTICAL in
+            both states, as asked: no pressed state, no tooltip, nothing that
+            says which figures are showing. It only changes what is drawn and
+            writes nothing anywhere. */}
         <button
           type="button"
           onClick={() => setDemo((d) => !d)}
-          aria-pressed={demo}
-          aria-label={demo ? 'Show real figures' : 'Show demo figures'}
-          title={demo ? 'Back to real figures' : 'Demo figures'}
-          className={cn(
-            'grid size-7 place-items-center rounded-md transition-colors duration-200',
-            demo ? 'bg-accent-soft text-accent' : 'text-subtle/50 hover:text-subtle',
-          )}
+          aria-label="Display"
+          className="grid size-7 place-items-center rounded-md text-subtle/50 transition-colors duration-200 hover:text-subtle"
         >
           <Shapes size={14} aria-hidden />
         </button>
@@ -343,7 +340,7 @@ export function OverviewTab() {
       <NeedsAttention o={o} />
 
 
-      <Notes o={o} demo={demo} />
+      <Notes o={o} />
     </div>
   )
 }
@@ -501,9 +498,8 @@ function NeedsAttention({ o }: { o: Overview }) {
  * thins out costs three lines and stops a number being trusted past what it
  * can carry.
  */
-function Notes({ o, demo }: { o: Overview; demo: boolean }) {
+function Notes({ o }: { o: Overview }) {
   const notes: string[] = []
-  if (demo) notes.push('Demo mode is on: every figure above is inflated and none of it is real.')
   if (o.stripe.mode === 'test') {
     notes.push('Stripe is in TEST mode on this deployment, so the money is not real money.')
   }

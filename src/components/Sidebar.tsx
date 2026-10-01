@@ -66,19 +66,19 @@ export function Sidebar() {
         collapsed ? 'w-[68px]' : 'w-64',
       )}
     >
-      {/* THE TOGGLE STRADDLES THE EDGE: half on the rail, half off it,
-          vertically centred. It belongs to the boundary it moves, so that is
-          where it sits, and it stays in the same place in both states rather
-          than hopping from beside the wordmark to a corner. z-30 keeps it
-          above <main>, which follows the aside in the DOM and would otherwise
-          paint over the half that sticks out. */}
+      {/* THE TOGGLE STRADDLES THE EDGE: half on the rail, half off it, level
+          with the wordmark (38px = the rail's 12px padding + the header's
+          12px + half its 28px row, where the old button sat). It stays in the
+          same place in both states. z-30 keeps it above <main>, which follows
+          the aside in the DOM and would otherwise paint over the half that
+          sticks out. */}
       <button
         type="button"
         onClick={toggle}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         aria-expanded={!collapsed}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="absolute top-1/2 right-0 z-30 grid size-6 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border bg-canvas text-subtle shadow-sm transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        className="absolute top-[38px] right-0 z-30 grid size-6 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border bg-canvas text-subtle shadow-sm transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
       >
         <ChevronLeft
           size={14}
