@@ -10,6 +10,8 @@ import { PendingSyncMark } from '@/components/PendingSyncMark'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
+import { examPeriodHint } from '@/lib/exam-period'
+import { activeLang } from '@/lib/date'
 import { KIND_LABEL } from '@/lib/assessment'
 import { gradeToPercent, readGradeInput } from '@/lib/grade'
 import { draftPatch, draftView, EMPTY_DRAFT, type AssessmentDraft } from '@/lib/assessment-draft'
@@ -31,7 +33,7 @@ export function AssessmentRow({
   /** Briefly glow this row (e.g. after "Open in course" scrolls to it). */
   highlighted?: boolean
 }) {
-  const { setStatus, setGrade, setNotes, removeAssessment, addAssessments } = useAppData()
+  const { setStatus, setGrade, setNotes, removeAssessment, addAssessments, courses } = useAppData()
   const { openAssessment, flashUndo } = useQuickActions()
   // Only what the student has TYPED lives here; the status saves the moment it
   // is picked. See lib/assessment-draft for why an untouched field must read
@@ -50,6 +52,13 @@ export function AssessmentRow({
   const draftPct = gradeToPercent(parsedDraft)
   const resolved = draftPct === null ? null : percentToGrade(draftPct)
   const due = dueLabel(assessment.due, assessment.status)
+  // An undated final names its exam period instead of "no date". Context, not
+  // a date: muted and italic, never the due-label tone.
+  const examHint = examPeriodHint(
+    assessment,
+    courses.find((c) => c.id === assessment.courseId)?.term,
+    activeLang(),
+  )
 
   function commit() {
     if (planned.kind !== 'patch') return
@@ -128,7 +137,11 @@ export function AssessmentRow({
               <span className="shrink-0 text-[11px] text-subtle">{assessment.weight}%</span>
             </div>
             <div className="mt-0.5 flex items-center gap-x-2 text-[11px]">
-              <span className={cn('font-medium', due.tone)}>{due.label}</span>
+              {examHint ? (
+                <span className="text-subtle italic">{examHint}</span>
+              ) : (
+                <span className={cn('font-medium', due.tone)}>{due.label}</span>
+              )}
               {/* Phone only, and only when there is something to say. The
                   status dropdown lives in the sheet down here, so without
                   this a marked-late item would look untouched — but printing

@@ -99,7 +99,7 @@ function buildSections(
 ): RowSection[] {
   if (groupBy === 'course') {
     const map = new Map<string, DueEntry[]>()
-    for (const a of [...groups.active, ...groups.later, ...groups.undated].sort(byDue)) {
+    for (const a of [...groups.active, ...groups.later].sort(byDue)) {
       const arr = map.get(a.courseId) ?? []
       arr.push({ kind: 'assessment', id: a.id, due: a.due, item: a })
       map.set(a.courseId, arr)
@@ -130,6 +130,16 @@ function buildSections(
         tone: 'muted' as const,
         items: merge([], moodle),
         label: <span className="inline-flex items-center gap-1.5">Not tied to a class</span>,
+      })
+    }
+    // Undated items stay out of the course groups too: filed under a class
+    // they would sit in a dated list as if "no date" were a time.
+    if (groups.undated.length) {
+      sections.push({
+        key: 'undated',
+        tone: 'muted' as const,
+        items: merge(groups.undated, []),
+        label: <span className="inline-flex items-center gap-1.5">{t('today.noDateYet')}</span>,
       })
     }
     return sections
@@ -285,6 +295,7 @@ export function DueList({
               label={section.label}
               tone={section.tone}
               divider={i > 0}
+              quiet={section.key === 'undated'}
               scroll={isOpen}
               compact={compact}
             >
@@ -355,6 +366,7 @@ function Section({
   label,
   tone,
   divider = false,
+  quiet = false,
   scroll = false,
   compact = false,
   children,
@@ -362,13 +374,22 @@ function Section({
   label: React.ReactNode
   tone: 'danger' | 'muted'
   divider?: boolean
+  /** The "No date yet" group: set apart from the dated timeline (a dashed
+   *  rule, a recessed ground) so nothing in it reads as scheduled. */
+  quiet?: boolean
   /** Expanded: bound the height and scroll inside instead of growing. */
   scroll?: boolean
   compact?: boolean
   children: React.ReactNode
 }) {
   return (
-    <section className={cn(divider && 'border-t border-border')}>
+    <section
+      className={cn(
+        quiet
+          ? 'border-t border-dashed border-border-strong bg-surface-2/30'
+          : divider && 'border-t border-border',
+      )}
+    >
       <p
         className={cn(
           'px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide uppercase',

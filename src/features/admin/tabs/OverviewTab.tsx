@@ -69,7 +69,10 @@ const RANGES = [7, 30, 90] as const
 export function OverviewTab() {
   const [days, setDays] = useState<number>(30)
   const [metric, setMetric] = useState<Metric>('visitors')
-  const [demo, setDemo] = useState(false)
+  // ON by default (owner's call): the Overview opens on demo figures, for
+  // screenshots and recordings. The toggle switches to the real ones, and the
+  // Notes line below the stats still says plainly when demo is on.
+  const [demo, setDemo] = useState(true)
   const [kinds, setKinds] = useState<Set<ActivityKind>>(() => new Set(DEFAULT_ACTIVITY_KINDS))
   const [raw, setRaw] = useState<Overview | null>(null)
   const [error, setError] = useState('')

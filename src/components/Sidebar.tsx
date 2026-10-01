@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useTransitionClick } from '@/lib/view-transition'
-import { Inbox, PanelLeftClose, Settings } from 'lucide-react'
+import { ChevronLeft, Inbox, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
 import { useT } from '@/i18n/i18n'
@@ -66,8 +66,28 @@ export function Sidebar() {
         collapsed ? 'w-[68px]' : 'w-64',
       )}
     >
-      {/* The wordmark keeps its place; the toggle sits beside it. A control
-          that lives at the bottom of a rail is a control nobody finds. */}
+      {/* THE TOGGLE STRADDLES THE EDGE: half on the rail, half off it,
+          vertically centred. It belongs to the boundary it moves, so that is
+          where it sits, and it stays in the same place in both states rather
+          than hopping from beside the wordmark to a corner. z-30 keeps it
+          above <main>, which follows the aside in the DOM and would otherwise
+          paint over the half that sticks out. */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!collapsed}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="absolute top-1/2 right-0 z-30 grid size-6 translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border bg-canvas text-subtle shadow-sm transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      >
+        <ChevronLeft
+          size={14}
+          strokeWidth={2.25}
+          className={cn('transition-transform duration-200', collapsed && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+
       <div
         className={cn(
           'flex items-center py-3',
@@ -75,22 +95,6 @@ export function Sidebar() {
         )}
       >
         <Logo showText={!collapsed} />
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={cn(
-            'grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg',
-            collapsed ? 'absolute top-3 right-2' : 'ml-auto',
-          )}
-        >
-          <PanelLeftClose
-            size={16}
-            className={cn('transition-transform duration-200', collapsed && 'rotate-180')}
-            aria-hidden
-          />
-        </button>
       </div>
 
       {!collapsed && <SearchTrigger className="mb-2" />}

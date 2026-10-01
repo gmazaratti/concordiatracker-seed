@@ -21,6 +21,10 @@ export function AssessmentTable({
   const [tab, setTab] = useState<Tab>('grades')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const sorted = [...assessments].sort(byDue)
+  // Undated items get their own block below the timeline: "no date" is not a
+  // position in it, and sorting them to the bottom made them read as last.
+  const dated = sorted.filter((a) => a.due)
+  const undated = sorted.filter((a) => !a.due)
   const noted = assessments.filter((a) => a.notes.trim() !== '').length
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function AssessmentTable({
       </div>
 
       <div className="divide-y divide-border">
-        {sorted.map((a) => (
+        {dated.map((a) => (
           <AssessmentRow
             key={a.id}
             assessment={a}
@@ -72,6 +76,23 @@ export function AssessmentTable({
           />
         ))}
       </div>
+      {undated.length > 0 && (
+        <section className="border-t border-dashed border-border-strong bg-surface-2/30">
+          <p className="px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+            No date yet
+          </p>
+          <div className="divide-y divide-border">
+            {undated.map((a) => (
+              <AssessmentRow
+                key={a.id}
+                assessment={a}
+                tab={tab}
+                highlighted={a.id === highlightId}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </Card>
   )
 }

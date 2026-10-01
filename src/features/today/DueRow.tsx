@@ -13,6 +13,8 @@ import { CourseMark } from '@/components/CourseMark'
 import { cn } from '@/lib/cn'
 import { useT } from '@/i18n/i18n'
 import { DueLabel } from './DueLabel'
+import { examPeriodHint } from '@/lib/exam-period'
+import { activeLang } from '@/lib/date'
 
 /** A calm active row: title + course + due (primary). The course reads as a small
  * identity DOT + plain code (no full-color pill); saturated color is reserved for
@@ -177,7 +179,7 @@ export function DueRow({
             </span>
           </span>
 
-          <DueLabel due={assessment.due} />
+          <DueLabel due={assessment.due} hint={examPeriodHint(assessment, course?.term, activeLang())} />
         </button>
 
         <DropdownMenu

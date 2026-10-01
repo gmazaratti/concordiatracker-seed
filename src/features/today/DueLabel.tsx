@@ -13,7 +13,27 @@ import { DUE_COLUMN } from './due-column'
  * Colour leans on urgency only (red overdue, amber today, otherwise plain);
  * something already done is muted rather than red.
  */
-export function DueLabel({ due, done = false }: { due: string | null; done?: boolean }) {
+export function DueLabel({
+  due,
+  done = false,
+  hint = null,
+}: {
+  due: string | null
+  done?: boolean
+  /** Context for an undated item (an undated final's exam period). Rendered
+   *  muted, italic and regular weight so it can never be read as a date. */
+  hint?: string | null
+}) {
+  if (!due && hint && !done) {
+    return (
+      <span
+        className={cn(DUE_COLUMN, 'pt-px text-[12px] font-normal text-subtle italic')}
+        title="The Examinations Office has not scheduled this yet"
+      >
+        {hint}
+      </span>
+    )
+  }
   return (
     <span className={cn(DUE_COLUMN, 'pt-px text-[13px] font-semibold', tone(due, done))}>
       {relativeDueLabel(due)}
