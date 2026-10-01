@@ -11,6 +11,7 @@ import { TeacherChangeCard } from './TeacherChangeCard'
 import { findMoodleMismatches } from '@/lib/moodle-match'
 import { CourseHeader } from './CourseHeader'
 import { CourseInfoPanel } from './CourseInfoPanel'
+import { SectionDeadlinesCard } from './SectionDeadlinesCard'
 import { GradeBreakdown } from './GradeBreakdown'
 import { AssessmentTable } from './AssessmentTable'
 import { ManualAssessmentEditor } from './ManualAssessmentEditor'
@@ -178,6 +179,7 @@ export function CourseDetailPage() {
               totalAssessments={0}
               editableIdentity={manual}
             />
+            <SectionDeadlinesCard course={course} />
           </aside>
 
           <main className="min-w-0 flex-1 lg:min-h-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5">
@@ -220,6 +222,7 @@ export function CourseDetailPage() {
               totalAssessments={courseAssessments.length}
               editableIdentity
             />
+            <SectionDeadlinesCard course={course} />
             {!empty && <GradeBreakdown assessments={courseAssessments} color={course.color} />}
             {!empty && <GradeNeeded assessments={courseAssessments} />}
             {!empty && (
@@ -296,6 +299,7 @@ export function CourseDetailPage() {
                 totalAssessments={courseAssessments.length}
               />
             </div>
+            <SectionDeadlinesCard course={course} />
             <div data-tour="breakdown">
               <GradeBreakdown assessments={courseAssessments} color={course.color} />
             </div>

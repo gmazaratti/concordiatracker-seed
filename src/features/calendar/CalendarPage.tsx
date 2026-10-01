@@ -4,6 +4,8 @@ import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { coveredTaskIds, pairMoodleToAssessments } from '@/lib/moodle-match'
 import { ACADEMIC_CALENDAR } from '@/data/academic-calendar'
+import { sectionDeadlineEvents } from '@/lib/section-deadlines'
+import { useDeadlineRows } from '@/lib/section-deadlines-data'
 import { term } from '@/data/mock'
 import { Segmented } from '@/features/settings/controls'
 import { useT } from '@/i18n/i18n'
@@ -63,9 +65,16 @@ export function CalendarPage() {
     return personalTasks.filter((tk) => !covered.has(tk.id))
   }, [personalTasks, assessments, courses])
 
+  // The registrar's own dates for any section that does not follow the
+  // standard ones, filed with the rest of the university's calendar.
+  const deadlineRows = useDeadlineRows()
+  const academic = useMemo(
+    () => [...ACADEMIC_CALENDAR, ...sectionDeadlineEvents(courses, deadlineRows)],
+    [courses, deadlineRows],
+  )
   const source: CalendarSource = useMemo(
-    () => ({ assessments, tasks: visibleTasks, academic: ACADEMIC_CALENDAR }),
-    [assessments, visibleTasks],
+    () => ({ assessments, tasks: visibleTasks, academic }),
+    [assessments, visibleTasks, academic],
   )
 
   function step(delta: number) {

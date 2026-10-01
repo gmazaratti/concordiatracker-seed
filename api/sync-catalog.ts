@@ -13,6 +13,7 @@ import { syncOutlines } from './_sync-outlines.js'
 import { syncSections } from './_sync-sections.js'
 import { syncMoodle } from './_sync-moodle.js'
 import { runReminders } from './_run-reminders.js'
+import { syncDeadlinesJob } from './_sync-deadlines.js'
 import { fail } from './_respond.js'
 
 /**
@@ -78,6 +79,10 @@ export default async function handler(req: any, res: any) {
   }
   if (req.query?.job === 'moodle') {
     await syncMoodle(req, res)
+    return
+  }
+  if (req.query?.job === 'deadlines') {
+    await syncDeadlinesJob(req, res)
     return
   }
   if (req.query?.job === 'reminders') {

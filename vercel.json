@@ -85,6 +85,10 @@
       "destination": "/api/sections?feed=app-version"
     },
     {
+      "source": "/api/shuttle",
+      "destination": "/api/sections?feed=shuttle"
+    },
+    {
       "source": "/api/run-reminders",
       "destination": "/api/sync-catalog?job=reminders"
     },

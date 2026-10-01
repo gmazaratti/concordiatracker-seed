@@ -1,7 +1,10 @@
-import { BarChart3, Bus, Library, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bike, Bus, Clock, Library, TrainFront, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { LibraryWidget } from './LibraryWidget'
 import { ShuttleWidget } from './ShuttleWidget'
+import { BixiWidget } from './BixiWidget'
+import { TransitWidget } from './TransitWidget'
+import { LibraryHoursWidget } from './LibraryHoursWidget'
 import { WeatherWidget } from './WeatherWidget'
 import { CountdownWidget } from './CountdownWidget'
 import { GradeGoalWidget } from './GradeGoalWidget'
@@ -135,6 +138,30 @@ export const WIDGETS: WidgetDef[] = [
     icon: Library,
     zones: ['rail', 'half', 'wide'],
     render: (zone) => <LibraryWidget zone={zone} />,
+  },
+  {
+    id: 'library-hours',
+    name: 'Library hours',
+    description: 'Today’s opening hours at Webster and Vanier.',
+    icon: Clock,
+    zones: ['rail', 'half', 'wide'],
+    render: () => <LibraryHoursWidget />,
+  },
+  {
+    id: 'transit',
+    name: 'Transit',
+    description: 'Next STM buses and metros at the stops by SGW or Loyola.',
+    icon: TrainFront,
+    zones: ['rail', 'half', 'wide'],
+    render: () => <TransitWidget />,
+  },
+  {
+    id: 'bixi',
+    name: 'BIXI',
+    description: 'Bikes and free docks at the stations next to campus.',
+    icon: Bike,
+    zones: ['rail', 'half', 'wide'],
+    render: () => <BixiWidget />,
   },
   {
     id: 'weather',

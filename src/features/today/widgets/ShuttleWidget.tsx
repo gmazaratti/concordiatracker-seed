@@ -5,10 +5,12 @@ import {
   SHUTTLE_RIDE_MINUTES,
   SHUTTLE_STOPS,
   nextDepartures,
+  nextPeriod,
   scheduleValidTo,
   type StopId,
 } from '@/data/shuttle'
 import { WidgetCard, WidgetEmpty } from './WidgetCard'
+import { useShuttlePeriods } from './useShuttlePeriods'
 
 /**
  * Next SGW ↔ Loyola shuttle departures.
@@ -19,8 +21,12 @@ import { WidgetCard, WidgetEmpty } from './WidgetCard'
  */
 export function ShuttleWidget() {
   const [from, setFrom] = useState<StopId>('sgw')
+  const periods = useShuttlePeriods()
   const now = new Date()
-  const { period, next, doneForToday, noServiceToday } = nextDepartures(from, now)
+  const { period, next, doneForToday, noServiceToday } = nextDepartures(from, now, 3, periods)
+  const upcoming = nextPeriod(now, periods)
+  const fmt = (d: string) =>
+    new Date(`${d}T12:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   const to = from === 'sgw' ? 'loy' : 'sgw'
 
   return (
@@ -41,18 +47,16 @@ export function ShuttleWidget() {
       }
     >
       {!period ? (
-        // Past the last published period. Refuse to guess — a confidently wrong
-        // departure time makes someone miss a bus.
+        // No period covers today. Refuse to guess — a confidently wrong
+        // departure time makes someone miss a bus. Between two published
+        // periods (Thanksgiving Monday, say) name when service resumes.
         <WidgetEmpty>
-          No published schedule for today. The timetable we have runs to{' '}
-          {new Date(`${scheduleValidTo()}T12:00`).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-          })}
-          .
+          {upcoming
+            ? `No shuttle today. The ${upcoming.label.toLowerCase()} schedule starts ${fmt(upcoming.validFrom)}.`
+            : `No published schedule for today. The timetable we have runs to ${fmt(scheduleValidTo(periods))}.`}
         </WidgetEmpty>
       ) : noServiceToday ? (
-        <WidgetEmpty>No shuttle today: it runs Monday to Friday.</WidgetEmpty>
+        <WidgetEmpty>No shuttle today on this schedule.</WidgetEmpty>
       ) : doneForToday ? (
         <WidgetEmpty>Last bus has left for today.</WidgetEmpty>
       ) : (
