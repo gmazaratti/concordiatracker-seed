@@ -5,6 +5,7 @@ import {
   createAssistantToken,
   listAssistantTokens,
   revokeAssistantToken,
+  rotateAssistantToken,
   type AssistantToken,
 } from './assistant-data'
 
@@ -17,7 +18,7 @@ import {
 export function AssistantTokens() {
   const [rows, setRows] = useState<AssistantToken[] | null>(null)
   const [err, setErr] = useState('')
-  const [name, setName] = useState('Alfred')
+  const [name, setName] = useState('alfred-assistant')
   const [fresh, setFresh] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [armed, setArmed] = useState<string | null>(null)
@@ -42,6 +43,23 @@ export function AssistantTokens() {
       setTick((n) => n + 1)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Could not create the token.')
+    }
+  }
+
+  // Rotate: the old key stops working the moment the new one exists. Armed
+  // like revoke, because whatever holds the old key stops working with it.
+  const [rotating, setRotating] = useState<string | null>(null)
+  async function rotate(id: string) {
+    if (rotating !== id) return setRotating(id)
+    setRotating(null)
+    setErr('')
+    try {
+      setFresh(await rotateAssistantToken(id))
+      setCopied(false)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not rotate the token.')
+    } finally {
+      setTick((n) => n + 1)
     }
   }
 
@@ -118,6 +136,9 @@ export function AssistantTokens() {
                   {t.last_used_at ? `Used ${t.use_count} times, last ${new Date(t.last_used_at).toLocaleString()}` : 'Never used'}
                 </span>
               </span>
+              <Button size="sm" variant="outline" onClick={() => void rotate(t.id)}>
+                {rotating === t.id ? 'Confirm rotate' : 'Rotate'}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => void revoke(t.id)}>
                 {armed === t.id ? 'Confirm revoke' : 'Revoke'}
               </Button>

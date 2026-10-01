@@ -254,6 +254,47 @@ export async function hidePost(jwt: string, userId: string, handle: string, id: 
   return ok({ hidden: true, post_id: id })
 }
 
+/**
+ * Edit a post's caption and details. Media is deliberately not editable here:
+ * a post whose pictures change under its likes and comments is a different
+ * post, and taking it down and publishing a new one says so honestly.
+ */
+const POST_FIELDS = ['caption', 'place', 'place_url', 'audience', 'hide_likes', 'hide_shares', 'event_id'] as const
+
+export async function editPost(
+  jwt: string,
+  userId: string,
+  handle: string,
+  id: string,
+  body: Record<string, unknown>,
+): Promise<Out> {
+  const g = await gate(jwt, userId, handle)
+  if (!g.ok) return g.out
+  const patch: Record<string, unknown> = {}
+  for (const f of POST_FIELDS) if (f in body) patch[f] = body[f]
+  if (Object.keys(patch).length === 0) return bad(400, `Nothing to change. Editable fields: ${POST_FIELDS.join(', ')}.`)
+  if (typeof patch.caption === 'string' && patch.caption.length > 2200) return bad(400, 'A caption can be at most 2200 characters.')
+  if ('audience' in patch && !['everyone', 'followers'].includes(String(patch.audience))) {
+    return bad(400, '"audience" must be "everyone" or "followers".')
+  }
+  patch.edited_at = new Date().toISOString()
+  patch.last_edited_by = userId
+  patch.last_edited_at = patch.edited_at
+  const r = await asUser<Record<string, unknown>[]>(
+    jwt,
+    `org_posts?id=eq.${encodeURIComponent(id)}&org_id=eq.${g.org.id}&deleted=is.false&select=id,caption,media,place,place_url,audience,hide_likes,hide_shares,event_id,created_at,edited_at`,
+    { method: 'PATCH', body: patch, prefer: 'return=representation' },
+  )
+  if (!r.ok) return bad(r.status, r.error?.message ?? 'Could not edit that post.')
+  if (!r.data?.length) return bad(404, `${norm(handle)} has no live post with that id.`)
+  await rpcAsUser(jwt, 'ct_agent_audit', {
+    p_action: 'agent.post.edit',
+    p_target: g.org.id,
+    p_value: mark(g, { post_id: id, fields: Object.keys(patch).filter((k) => !k.startsWith('last_') && k !== 'edited_at') }),
+  })
+  return ok({ post: r.data[0] })
+}
+
 /* ── Stories ──────────────────────────────────────────────────────────────*/
 
 export async function listStories(jwt: string, handle: string): Promise<Out> {
@@ -466,14 +507,16 @@ export async function revokeInvite(jwt: string, userId: string, handle: string, 
 export async function orgInsights(jwt: string, handle: string): Promise<Out> {
   const org = await findOrg(jwt, handle)
   if (!org) return bad(404, `No organisation with the handle ${norm(handle)}.`)
-  const social = await rpcAsUser<Record<string, unknown>>(jwt, 'org_social', { p_handle: org.handle })
-  const events = await asUser<{ id: string }[]>(jwt, `events?org_id=eq.${org.id}&select=id`)
-  const posts = await asUser<{ id: string }[]>(jwt, `org_posts?org_id=eq.${org.id}&deleted=is.false&select=id`)
+  // db/assistant_tools.sql: one aggregate per question, gated on being able
+  // to act for this org. The 30-day series is the organizer Overview's own.
+  const stats = await rpcAsUser<Record<string, unknown>>(jwt, 'org_stats', { p_org: org.id })
+  if (!stats.ok) return bad(stats.status === 403 ? 403 : 502, stats.error?.message ?? 'Could not read stats for that organisation.')
+  const series = await rpcAsUser<Record<string, unknown>[]>(jwt, 'org_daily_series', { p_org: org.id, p_days: 30 })
   return ok({
     handle: org.handle,
-    social: Array.isArray(social.data) ? social.data[0] ?? social.data : social.data,
-    events: events.data?.length ?? 0,
-    posts: posts.data?.length ?? 0,
-    privacy: 'Counts only. Which students followed, watched or added an event is never returned.',
+    stats: stats.data,
+    daily_30d: Array.isArray(series.data) ? series.data : [],
+    privacy: 'Counts only. Which students followed, liked, watched or set a reminder is never returned.',
+    note: 'Post views and event RSVPs are not tracked by ConcordiaTracker, so they are absent rather than zero. "event_reminders" counts students who tapped Remind me on an event.',
   })
 }

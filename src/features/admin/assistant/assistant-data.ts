@@ -36,6 +36,16 @@ export async function createAssistantToken(name: string): Promise<string> {
   return row.token
 }
 
+/** Revoke one key and mint its replacement in one transaction (same label).
+ *  Returns the new token ONCE. db/assistant_tools.sql. */
+export async function rotateAssistantToken(id: string): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_rotate_assistant_token', { p_id: id })
+  if (error) throw new Error(error.message)
+  const row = (Array.isArray(data) ? data[0] : data) as { token?: string } | null
+  if (!row?.token) throw new Error('No token came back.')
+  return row.token
+}
+
 export async function revokeAssistantToken(id: string): Promise<void> {
   const { error } = await supabase.rpc('admin_revoke_assistant_token', { p_id: id })
   if (error) throw new Error(error.message)

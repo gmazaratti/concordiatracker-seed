@@ -64,6 +64,7 @@ import {
   createPost,
   createStory,
   getTeam,
+  editPost,
   hidePost,
   deleteEvent,
   deleteStory,
@@ -117,7 +118,7 @@ const INDEX = {
       'GET|PATCH /api/v1/orgs/{handle}',
       'POST /api/v1/orgs/{handle}/logo | /banner | /media   (image bytes)',
       'GET|POST /api/v1/orgs/{handle}/events, PATCH /events/{id}',
-      'GET|POST /api/v1/orgs/{handle}/posts, DELETE /posts/{id}',
+      'GET|POST /api/v1/orgs/{handle}/posts, PATCH|DELETE /posts/{id}',
       'GET|POST /api/v1/orgs/{handle}/stories',
       'GET|POST /api/v1/orgs/{handle}/invites, DELETE /invites/{id}',
       'GET /api/v1/orgs/{handle}/team, GET /api/v1/orgs/{handle}/insights',
@@ -519,7 +520,8 @@ export default async function handler(req: any, res: any) {
 
         case 'posts':
           if (itemId) {
-            if (M !== 'DELETE') return void fail(res, 405, 'DELETE to take a post down.')
+            if (M === 'PATCH') return void send(res, await editPost(jwt, uid, handle, decodeURIComponent(itemId), readBody(req)))
+            if (M !== 'DELETE') return void fail(res, 405, 'PATCH to edit a post, DELETE to take it down.')
             return void send(res, await hidePost(jwt, uid, handle, decodeURIComponent(itemId)))
           }
           if (M === 'GET') return void send(res, await listPosts(jwt, handle))

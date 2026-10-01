@@ -2023,6 +2023,18 @@ export const OPENAPI = {
         },
         responses: { '200': { description: 'The updated event.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
       },
+      delete: {
+        operationId: 'deleteOrganizationEvent',
+        tags: ['Organizations API'],
+        summary: 'Delete an event',
+        description: 'Removes the event from the feed, the org profile and every calendar it was added to. Recorded in the audit log.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'Confirmation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
     },
 
     '/api/v1/orgs/{handle}/posts': {
@@ -2074,6 +2086,37 @@ export const OPENAPI = {
     },
 
     '/api/v1/orgs/{handle}/posts/{id}': {
+      patch: {
+        operationId: 'updateOrganizationPost',
+        tags: ['Organizations API'],
+        summary: 'Edit a post',
+        description: 'Caption and details only; the images of a published post do not change. Only the fields you send are changed.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  caption: { type: 'string', maxLength: 2200 },
+                  place: { type: 'string' },
+                  place_url: { type: 'string' },
+                  audience: { type: 'string', enum: ['everyone', 'followers'] },
+                  hide_likes: { type: 'boolean' },
+                  hide_shares: { type: 'boolean' },
+                  event_id: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'The updated post.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
       delete: {
         operationId: 'removeOrganizationPost',
         tags: ['Organizations API'],
@@ -2134,6 +2177,21 @@ export const OPENAPI = {
           },
         },
         responses: { '201': { description: 'The story.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
+      },
+    },
+
+    '/api/v1/orgs/{handle}/stories/{id}': {
+      delete: {
+        operationId: 'deleteOrganizationStory',
+        tags: ['Organizations API'],
+        summary: 'Take a story down',
+        description: 'Deletes a story before its 24, 48 or 72 hours run out. Recorded in the audit log.',
+        security: [{ adminToken: [] }],
+        parameters: [
+          { name: 'handle', in: 'path', required: true, description: 'The organisation handle. The @ is optional.', schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, description: 'The item id.', schema: { type: 'string' } },
+        ],
+        responses: { '200': { description: 'Confirmation.', content: { 'application/json': { schema: { type: 'object', additionalProperties: true } } } } },
       },
     },
 
