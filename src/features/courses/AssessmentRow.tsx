@@ -1,4 +1,3 @@
-import { askForGrade } from '@/lib/grade-prompt'
 import { haptic } from '@/lib/haptics'
 import { useState } from 'react'
 import { Check, Pencil, Trash2, X } from 'lucide-react'
@@ -69,14 +68,14 @@ export function AssessmentRow({
     setDraft(EMPTY_DRAFT)
   }
 
-  // A status is one decision, so it saves when it is made — from the round
-  // check or the dropdown alike — and "what did you get?" follows at once in
-  // both. It used to wait for Save on the dropdown path only.
+  // A status is one decision, so it saves when it is made, from the round
+  // check or the dropdown alike. NO "what did you get?" card here: on this page
+  // the grade field is on the same row, so a popup asking for it is a second
+  // copy of a control already in front of you. Only Today asks.
   function changeStatus(next: AssessmentStatus) {
     if (next === assessment.status) return
     setStatus(assessment.id, next)
     if (next === 'done') haptic('success')
-    if (next === 'done' && !assessment.grade) askForGrade(assessment.id)
   }
   const isDone = assessment.status === 'done'
   function toggleDone() {

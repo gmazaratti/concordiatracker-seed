@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import type { Assessment, Grade } from '@/data/types'
 import { dismissGradePrompt, useGradePrompts, type PromptKey } from '@/lib/grade-prompt'
-import { codesIn, stripMoodleTitle } from '@/lib/moodle-match'
+import { codesIn, stripMoodleTitle, titlesMatch } from '@/lib/moodle-match'
 import { haptic } from '@/lib/haptics'
 import { GradePromptCard } from './GradePromptCard'
 
@@ -81,13 +81,46 @@ export function GradePrompt() {
     .find(Boolean)
   const title = stripMoodleTitle(task.title) || task.title
 
+  // THE COURSE MAY ALREADY HAVE THIS ONE, with its weight from the outline.
+  // Then the grade belongs on that assessment and there is nothing to ask
+  // about what it is worth: asking would be asking you to retype a number the
+  // app already holds.
+  const existing = course
+    ? assessments.find((a) => a.courseId === course.id && titlesMatch(a.title, title))
+    : undefined
+  if (existing) {
+    return (
+      <GradePromptCard
+        key={head}
+        promptKey={head}
+        title={existing.title}
+        behind={behind}
+        gradeable
+        onSave={(g) => {
+          setGrade(existing.id, g)
+          if (existing.status !== 'done') setStatus(existing.id, 'done')
+        }}
+        onUndoGrade={() => setGrade(existing.id, existing.grade ?? null)}
+        onUndoDone={() => {
+          if (task.done) toggleTask(task.id)
+          haptic('tap')
+          dismissGradePrompt(head)
+        }}
+      />
+    )
+  }
+  // Not in the course yet, so a grade creates it and it needs a weight. When
+  // the course's other items of the same kind all agree ("Quiz 2", "Quiz 3"
+  // both 10%), that IS the answer and it is shown, not asked.
+  const known = course ? siblingWeight(title, assessments.filter((a) => a.courseId === course.id)) : null
+
   async function saveTaskGrade(grade: Grade, weight?: number) {
     if (!course || !task || weight === undefined) return
     const item: Assessment = {
       id: crypto.randomUUID(),
       courseId: course.id,
       title,
-      kind: 'assignment',
+      kind: known?.kind ?? 'assignment',
       due: task.due,
       weight,
       // Typed in by the student from a Moodle event: nobody has confirmed it.
@@ -108,6 +141,8 @@ export function GradePrompt() {
       behind={behind}
       gradeable={!!course}
       needsWeight
+      knownWeight={known?.weight}
+      knownWeightFrom={known?.label}
       courseCode={course?.code}
       onSave={saveTaskGrade}
       onUndoGrade={() => {
@@ -122,4 +157,26 @@ export function GradePrompt() {
       }}
     />
   )
+}
+
+/**
+ * The weight a new item probably has, from the course's other items that share
+ * its first word ("Quiz 1" → the other quizzes). Only when they ALL agree: two
+ * quizzes at 10% and one at 15% means we do not know, so the card asks.
+ */
+function siblingWeight(
+  title: string,
+  inCourse: Assessment[],
+): { weight: number; kind: Assessment['kind']; label: string } | null {
+  const word = title.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '')
+  if (!word || word.length < 3) return null
+  const same = inCourse.filter(
+    (a) => a.weight > 0 && a.title.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '') === word,
+  )
+  if (same.length === 0) return null
+  const w = same[0].weight
+  if (!same.every((a) => a.weight === w)) return null
+  const many = word === 'quiz' ? 'quizzes' : word.endsWith('s') ? word : `${word}s`
+  const plural = same.length === 1 ? same[0].title : `your other ${many}`
+  return { weight: w, kind: same[0].kind, label: plural }
 }

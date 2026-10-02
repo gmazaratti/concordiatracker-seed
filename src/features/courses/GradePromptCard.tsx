@@ -32,6 +32,8 @@ export function GradePromptCard({
   behind,
   gradeable,
   needsWeight = false,
+  knownWeight,
+  knownWeightFrom,
   courseCode,
   onSave,
   onUndoGrade,
@@ -45,6 +47,11 @@ export function GradePromptCard({
   gradeable: boolean
   /** A Moodle item becomes an assessment, which needs to know what it is worth. */
   needsWeight?: boolean
+  /** The weight the course's similar items all share, when they agree. It is
+   *  shown as a fact with a Change link, not put in a box to fill in. */
+  knownWeight?: number
+  /** What it was taken from ("your other quizzes"), for the sentence. */
+  knownWeightFrom?: string
   courseCode?: string
   onSave: (g: Grade, weight?: number) => void | Promise<void>
   onUndoGrade: () => void
@@ -54,7 +61,8 @@ export function GradePromptCard({
   onAwaiting?: () => void
 }) {
   const [text, setText] = useState('')
-  const [weightText, setWeightText] = useState('')
+  const [weightText, setWeightText] = useState(knownWeight != null ? String(knownWeight) : '')
+  const [editingWeight, setEditingWeight] = useState(knownWeight == null)
   const [touched, setTouched] = useState(false)
   const [saved, setSaved] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -147,67 +155,81 @@ export function GradePromptCard({
         ) : (
           <>
             <div className="flex items-start gap-2">
-              <p className="min-w-0 flex-1 text-[13px] text-fg">
-                <span className="font-medium">Done: {title}.</span>{' '}
-                {gradeable ? (
-                  <span className="text-muted">Got a grade yet?</span>
-                ) : (
-                  <span className="text-muted">Marked done.</span>
-                )}
-                {behind > 0 && <span className="ml-1 text-[11.5px] text-subtle">({behind} more after this)</span>}
+              <p className="flex min-w-0 flex-1 items-start gap-1.5 text-[13px] text-fg">
+                <Check size={15} className="mt-px shrink-0 text-success" aria-hidden />
+                <span className="min-w-0">
+                  <span className="font-medium">{title}</span> <span className="text-muted">marked done</span>
+                  {behind > 0 && <span className="ml-1 text-[11.5px] text-subtle">({behind} more after this)</span>}
+                </span>
               </p>
               <UndoButton onClick={undoDone} label="Undo" title="Mark it not done" />
               <CloseButton onClick={leave} label={gradeable ? 'Skip entering a grade' : 'Close'} />
             </div>
             {gradeable && (
               <form
-                className="mt-2 flex flex-wrap items-center gap-2"
+                className="mt-2.5"
                 onSubmit={(e) => {
                   e.preventDefault()
                   void save()
                 }}
               >
-                <input
-                  value={text}
-                  onChange={(e) => {
-                    setText(e.target.value)
-                    setTouched(true)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') leave()
-                  }}
-                  inputMode="decimal"
-                  placeholder="85 or 17/20"
-                  aria-label={`Grade for ${title}`}
-                  aria-invalid={read.kind === 'invalid'}
-                  className="w-24 min-w-0 flex-1 rounded-lg border border-border bg-canvas px-2.5 py-1.5 text-[13px] text-fg outline-none placeholder:text-subtle focus:border-border-strong"
-                />
-                {needsWeight && (
-                  <label className="flex items-center gap-1 text-[12px] text-subtle">
-                    <input
-                      value={weightText}
-                      onChange={(e) => {
-                        setWeightText(e.target.value)
-                        setTouched(true)
-                      }}
-                      inputMode="decimal"
-                      placeholder="10"
-                      aria-label={`What ${title} is worth, as a percentage of ${courseCode ?? 'the course'}`}
-                      className="w-12 rounded-lg border border-border bg-canvas px-2 py-1.5 text-center text-[13px] text-fg outline-none placeholder:text-subtle focus:border-border-strong"
-                    />
-                    % of {courseCode}
-                  </label>
-                )}
-                <span className="w-14 shrink-0 text-[12px] tabular-nums text-subtle" aria-live="polite">
-                  {pct != null ? `${Math.round(pct)}% ${percentToGrade(pct).letter}` : ''}
-                </span>
-                <button
-                  type="submit"
-                  disabled={!canSave}
-                  className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast disabled:opacity-50"
-                >
-                  Save
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={text}
+                    onChange={(e) => {
+                      setText(e.target.value)
+                      setTouched(true)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') leave()
+                    }}
+                    inputMode="decimal"
+                    placeholder="Your grade, e.g. 85 or 17/20"
+                    aria-label={`Your grade for ${title}`}
+                    aria-invalid={read.kind === 'invalid'}
+                    className="min-w-0 flex-1 rounded-lg border border-border bg-canvas px-2.5 py-1.5 text-[13px] text-fg outline-none placeholder:text-subtle focus:border-border-strong"
+                  />
+                  {pct != null && (
+                    <span className="shrink-0 text-[12px] tabular-nums text-subtle" aria-live="polite">
+                      {Math.round(pct)}% {percentToGrade(pct).letter}
+                    </span>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={!canSave}
+                    className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-opacity duration-150 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+                {needsWeight &&
+                  (editingWeight ? (
+                    <label className="mt-2 flex items-center gap-1.5 text-[12px] text-muted">
+                      Worth
+                      <input
+                        value={weightText}
+                        onChange={(e) => {
+                          setWeightText(e.target.value)
+                          setTouched(true)
+                        }}
+                        inputMode="decimal"
+                        aria-label={`What ${title} is worth, as a percentage of your ${courseCode ?? 'course'} grade`}
+                        className="w-14 rounded-lg border border-border bg-canvas px-2 py-1 text-center text-[13px] text-fg outline-none focus:border-border-strong"
+                      />
+                      % of your {courseCode ?? 'course'} grade
+                    </label>
+                  ) : (
+                    <p className="mt-2 text-[12px] text-subtle">
+                      Counts for {knownWeight}% of {courseCode ?? 'the course'}, like {knownWeightFrom}.{' '}
+                      <button
+                        type="button"
+                        onClick={() => setEditingWeight(true)}
+                        className="text-muted underline underline-offset-2 hover:text-fg"
+                      >
+                        Change
+                      </button>
+                    </p>
+                  ))}
               </form>
             )}
             {gradeable && onAwaiting && (
