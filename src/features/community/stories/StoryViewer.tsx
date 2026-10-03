@@ -35,6 +35,8 @@ import { VerifiedBadge } from '../VerifiedBadge'
 import { animClass, fontClass, storyAge } from './story-text'
 import { ShareSheet } from '../ShareSheet'
 import { siteOrigin } from '@/lib/site-origin'
+import { DOUBLE_TAP_MS, DOUBLE_TAP_PX, useHeartBursts } from '@/lib/heart-bursts'
+import { HeartBursts } from '@/components/HeartBurst'
 
 const SEGMENT_MS = 5000
 /** Past this much downward travel, letting go closes the reel. */
@@ -98,6 +100,18 @@ export function StoryViewer({
   const [liked, setLiked] = useState(false)
   const timer = useRef<number | null>(null)
   const replyRef = useRef<HTMLInputElement>(null)
+  // Double-tap to like (see frameClick).
+  const { bursts, burst } = useHeartBursts()
+  const lastTap = useRef<{ t: number; x: number; y: number } | null>(null)
+  const tapStep = useRef<number | null>(null)
+  // A step still waiting out the double-tap window must not fire after the
+  // viewer has closed (it could call onClose a second time).
+  useEffect(() => {
+    const pending = tapStep
+    return () => {
+      if (pending.current) window.clearTimeout(pending.current)
+    }
+  }, [])
   /** How far the reel has been dragged down, in px. Drives both the transform
    *  and the backdrop's opacity, so the gesture is 1:1 the whole way. */
   const [drag, setDrag] = useState(0)
@@ -333,6 +347,43 @@ export function StoryViewer({
   }
 
   /*
+   * DOUBLE-TAP TO LIKE, WITHOUT TAKING THE SINGLE TAP AWAY.
+   *
+   * A tap on the left or right third still steps the reel; it just waits
+   * DOUBLE_TAP_MS to find out it was not the first half of a double-tap
+   * (Instagram does the same, for the same reason: there is no other way to
+   * know). A second tap inside that window cancels the step and toggles the
+   * like instead, through the same toggleLike the heart button uses. The
+   * middle third has no single-tap action, so a double-tap there costs
+   * nothing. Keyboard presses (detail 0) step at once, as before.
+   */
+  const frameClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.detail === 0) return
+    const box = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - box.left
+    const y = e.clientY - box.top
+    const p = lastTap.current
+    if (tapStep.current) {
+      window.clearTimeout(tapStep.current)
+      tapStep.current = null
+    }
+    if (p && e.timeStamp - p.t < DOUBLE_TAP_MS && Math.hypot(x - p.x, y - p.y) < DOUBLE_TAP_PX) {
+      lastTap.current = null
+      burst(x, y, !liked)
+      toggleLike()
+      return
+    }
+    lastTap.current = { t: e.timeStamp, x, y }
+    const step = x < box.width / 3 ? prev : x > (box.width * 2) / 3 ? next : null
+    if (step) {
+      tapStep.current = window.setTimeout(() => {
+        tapStep.current = null
+        step()
+      }, DOUBLE_TAP_MS)
+    }
+  }
+
+  /*
    * ONE COLUMN WIDTH FOR THE WHOLE REEL.
    *
    * The frame is 9:16 and centred; the header and the reply bar ran the full
@@ -538,7 +589,8 @@ export function StoryViewer({
                between frames — advancing used to be an instant cut, which is
                what made it feel snappy in the bad sense. */
             key={story.id}
-            className="ct-story-in relative aspect-[9/16] max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden [container-type:inline-size]"
+            onClick={frameClick}
+            className="ct-story-in relative aspect-[9/16] touch-manipulation select-none max-h-full w-full max-w-[min(100%,calc((100vh-13rem)*9/16))] overflow-hidden [container-type:inline-size]"
           >
             <img
               src={story.imageUrl}
@@ -569,13 +621,26 @@ export function StoryViewer({
             ))}
 
             {/* Halves of the frame step the reel, the way everyone expects. */}
+            {/* The thirds are still real buttons for the keyboard and screen
+                readers (detail 0 steps at once); a pointer tap bubbles to
+                frameClick, which steps after the double-tap window. */}
             <button
               type="button"
               aria-label="Previous"
-              onClick={prev}
+              onClick={(e) => {
+                if (e.detail === 0) prev()
+              }}
               className="absolute inset-y-0 left-0 w-1/3"
             />
-            <button type="button" aria-label="Next" onClick={next} className="absolute inset-y-0 right-0 w-1/3" />
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={(e) => {
+                if (e.detail === 0) next()
+              }}
+              className="absolute inset-y-0 right-0 w-1/3"
+            />
+            <HeartBursts bursts={bursts} />
             <span className="pointer-events-none absolute inset-y-0 left-0 hidden w-10 items-center justify-center text-white/40 sm:flex">
               <ChevronLeft size={22} aria-hidden />
             </span>

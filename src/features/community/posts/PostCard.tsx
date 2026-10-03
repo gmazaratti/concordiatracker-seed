@@ -39,6 +39,8 @@ import { removeCollaborator } from '@/lib/collab'
 import { useMyOrgs } from '../useMyOrgs'
 import { CommentsSheet } from './CommentsSheet'
 import { siteOrigin } from '@/lib/site-origin'
+import { DOUBLE_TAP_MS, DOUBLE_TAP_PX, useHeartBursts } from '@/lib/heart-bursts'
+import { HeartBursts } from '@/components/HeartBurst'
 
 /**
  * One post in the feed.
@@ -94,6 +96,10 @@ export function PostCard({
   const [reporting, setReporting] = useState(false)
   const [showCollabs, setShowCollabs] = useState(false)
   const strip = useRef<HTMLDivElement | null>(null)
+  // Double-tap to like. A single tap on the photo does nothing, so the first
+  // tap is never delayed; only a second one close in time and place counts.
+  const { bursts, burst } = useHeartBursts()
+  const lastTap = useRef<{ t: number; x: number; y: number } | null>(null)
 
   /**
    * ENDING A COLLABORATION IS SYMMETRIC, and the label says which end you are.
@@ -337,6 +343,24 @@ export function PostCard({
     }
   }
 
+  /** Same like() as the button, so a double-tap like IS a button like. Taps on
+   *  a control inside the media (arrows, dots, the sound toggle) are not taps
+   *  on the photo. A drag never arrives here: the strip swallows its click. */
+  const onMediaClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    const box = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - box.left
+    const y = e.clientY - box.top
+    const prev = lastTap.current
+    if (prev && e.timeStamp - prev.t < DOUBLE_TAP_MS && Math.hypot(x - prev.x, y - prev.y) < DOUBLE_TAP_PX) {
+      lastTap.current = null
+      burst(x, y, !liked)
+      void like()
+      return
+    }
+    lastTap.current = { t: e.timeStamp, x, y }
+  }
+
   const repost = async () => {
     const next = !reposted
     setReposted(next)
@@ -420,7 +444,7 @@ export function PostCard({
       </header>
 
       {/* Media. One image fills; several scroll-snap. */}
-      <div className="group/media relative -mx-4 sm:mx-0">
+      <div className="group/media relative -mx-4 select-none sm:mx-0" onClick={onMediaClick}>
         <div
           ref={strip}
           onPointerDown={onDragDown}
@@ -447,7 +471,7 @@ export function PostCard({
              carousel does not resize under your thumb as you swipe. */
           style={{ aspectRatio: postAspect(post.media) }}
           className={cn(
-            'flex snap-x snap-mandatory overflow-x-auto rounded-none sm:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            'flex touch-manipulation snap-x snap-mandatory overflow-x-auto rounded-none sm:rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             post.media.length > 1 && '[@media(hover:hover)]:cursor-grab',
           )}
         >
@@ -455,6 +479,7 @@ export function PostCard({
             <Slide key={i} media={m} active={slide === i} eager={i === 0} />
           ))}
         </div>
+        <HeartBursts bursts={bursts} />
         {post.media.length > 1 && (
           <>
             {/*
