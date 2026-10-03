@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "conu.app" }],
+      "destination": "https://concordiatracker.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.conu.app" }],
+      "destination": "https://concordiatracker.com/:path*",
+      "permanent": true
+    },
+    {
       "source": "/dev/landing/2",
       "destination": "/",
       "statusCode": 301
