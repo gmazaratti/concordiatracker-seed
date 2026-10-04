@@ -100,8 +100,8 @@ where o.handle = '@concordiagamedev';
 -- Concordia's own mark and a campus banner; the maroon is their real brand
 -- colour, which the placeholder rose was not.
 update public.organizations
-   set logo = '/logos/concordia.png',
-       banner = '/logos/concordia-banner.jpg',
+   set logo = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/concordia-logo.png',
+       banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/concordia-banner.jpg',
        color = '#912338'
  where handle = '@concordia';
 
