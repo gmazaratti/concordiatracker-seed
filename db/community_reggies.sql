@@ -106,7 +106,7 @@ update public.organizations
  where handle = '@concordia';
 
 update public.organizations
-   set banner = '/logos/jmis-banner.jpg',
+   set banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/jmis-banner.jpg',
        email  = 'directors@jmis.ca'
  where handle = '@jmis';
 
