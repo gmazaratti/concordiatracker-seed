@@ -17,13 +17,14 @@ where handle = '@gamedev.conu';
 update public.organizations
 set name  = 'CSU Advocacy Center',
     links = '{"website":"https://www.csu.qc.ca/csu-advocacy-center/"}'::jsonb,
-    logo  = '/logos/csu-advocacy.png'
+    logo  = '/logos/csu-advocacy.png',
+    banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/csu-advocacy-banner.jpg'
 where handle = '@conu.caps';
 
 -- Logos / banner for the rest of the dropped set
 update public.organizations set logo = '/logos/birks.png'          where handle = '@concordia.hub';
-update public.organizations set logo = '/logos/ginacody.png', banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/ginacody-banner.jpg' where handle = '@ginacody';
-update public.organizations set logo = '/logos/hackconcordia.jpg'  where handle = '@hackconcordia';
+update public.organizations set logo = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/ginacody-logo.jpg', banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/ginacody-banner.jpg' where handle = '@ginacody';
+update public.organizations set logo = '/logos/hackconcordia.jpg', banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/hackconcordia-banner.jpg' where handle = '@hackconcordia';
 update public.organizations set logo = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/library-logo.jpg', banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/library-banner.jpg' where handle = '@concordia.library';
 
 -- Keep the weekly seed-event refresh tracking the RENAMED handle (the deployed
