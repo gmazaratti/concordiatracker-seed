@@ -76,7 +76,7 @@ export function OrgProfileHeaderView({
         <div className="min-w-0 flex-1 sm:pt-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h1 className="text-[20px] leading-tight font-semibold text-fg">{slug}</h1>
-            {org.verified && <VerifiedBadge size={16} />}
+            {org.verified && <VerifiedBadge size={16} handle={org.handle} />}
             {/* SAID IN WORDS, not only in a seal. The seal means "this account
                 is who it says it is"; this says "this is a club, not a
                 person", which is a different fact and the one the brief asked

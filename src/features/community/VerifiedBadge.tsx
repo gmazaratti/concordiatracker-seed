@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn'
+import { isOfficialOrg, OFFICIAL_TONE } from './official'
 
 /** A crisp, FILLED verified badge — a scalloped seal in `info` blue with a white
  * check (Twitter-quality). Meaning: an authenticated real org (anti-impersonation),
@@ -8,7 +9,11 @@ export function VerifiedBadge({
   className,
   tone = 'text-info',
   label = 'Verified org',
+  handle,
 }: {
+  /** An org's handle. An official Concordia account (see official.ts) gets the
+   *  maroon seal, overriding `tone` and `label`. */
+  handle?: string | null
   size?: number
   className?: string
   /** Blue for an organisation, green for us, amber for someone who runs a
@@ -16,6 +21,10 @@ export function VerifiedBadge({
   tone?: string
   label?: string
 }) {
+  if (isOfficialOrg(handle)) {
+    tone = OFFICIAL_TONE
+    label = 'Official Concordia account'
+  }
   return (
     <svg
       viewBox="0 0 24 24"

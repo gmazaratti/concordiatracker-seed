@@ -107,7 +107,7 @@ export function OrgChat({ org, onBack }: { org: OrgChatTarget; onBack: () => voi
         >
           <span className="flex items-center gap-1.5">
             <span className="truncate text-[14px] font-medium text-fg">{org.name}</span>
-            {org.verified && <VerifiedBadge size={13} />}
+            {org.verified && <VerifiedBadge size={13} handle={org.handle} />}
           </span>
           <span className="block truncate text-[12px] text-subtle">
             {org.handle} · Organization

@@ -294,7 +294,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-1 text-[14px] font-medium text-fg">
                               <span className="truncate">{row.org.name}</span>
-                              {row.org.verified && <VerifiedBadge size={13} />}
+                              {row.org.verified && <VerifiedBadge size={13} handle={row.org.handle} />}
                             </span>
                             <span className="block truncate text-[12.5px] text-subtle">
                               {row.org.handle}

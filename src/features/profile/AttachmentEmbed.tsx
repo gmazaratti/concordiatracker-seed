@@ -89,7 +89,7 @@ export function AttachmentEmbed({
                   <span className="min-w-0 truncate text-[11px] text-subtle">
                     {event.org.name}
                   </span>
-                  {event.org.verified && <VerifiedBadge size={11} />}
+                  {event.org.verified && <VerifiedBadge size={11} handle={event.org.handle} />}
                 </div>
                 <p className="mt-1 line-clamp-2 text-[12.5px] font-medium text-fg">
                   {event.title}

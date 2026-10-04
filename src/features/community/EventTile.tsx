@@ -87,7 +87,7 @@ export function HostRow({ org }: { org: EventOrg }) {
       <div className="min-w-0">
         <p className="flex items-center gap-1 text-[13px] leading-tight font-semibold text-fg">
           <span className="truncate">{org.name}</span>
-          {org.verified && <VerifiedBadge size={14} />}
+          {org.verified && <VerifiedBadge size={14} handle={org.handle} />}
         </p>
         <p className="truncate text-[12px] leading-tight text-subtle">{org.handle}</p>
       </div>

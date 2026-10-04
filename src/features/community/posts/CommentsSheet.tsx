@@ -170,7 +170,7 @@ function PostDetailModal({
                 className="flex items-center gap-1.5"
               >
                 <span className="truncate text-[13.5px] font-semibold text-fg">{slug}</span>
-                {post.verified && <VerifiedBadge size={13} />}
+                {post.verified && <VerifiedBadge size={13} handle={post.handle} />}
               </Link>
               <span className="block truncate text-[12px] text-subtle">{post.orgName}</span>
             </span>

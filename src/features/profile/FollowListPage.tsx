@@ -267,7 +267,7 @@ function OrgList({ q, onClose }: { q: string; onClose: () => void }) {
             <span className="min-w-0">
               <span className="flex items-center gap-1 text-[13.5px] font-medium text-fg">
                 <span className="truncate">{o.handle}</span>
-                {o.verified && <VerifiedBadge size={13} />}
+                {o.verified && <VerifiedBadge size={13} handle={o.handle} />}
               </span>
               <span className="block truncate text-[12.5px] text-subtle">{o.name}</span>
             </span>

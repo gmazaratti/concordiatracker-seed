@@ -86,7 +86,7 @@ export function CollabHeader({
         <Face logo={post.logo} color={post.color} glyph={post.glyph} name={post.orgName} className="size-8" />
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-[13.5px] font-semibold text-fg">{slug}</span>
-          {post.verified && <VerifiedBadge size={13} />}
+          {post.verified && <VerifiedBadge size={13} handle={post.handle} />}
         </span>
       </Link>
     )
@@ -127,7 +127,7 @@ export function CollabHeader({
           <span className="font-normal text-muted"> and </span>
           {rest > 0 ? `${rest + 1} others` : slugOf(first.handle)}
         </span>
-        {post.verified && rest === 0 && <VerifiedBadge size={13} />}
+        {post.verified && rest === 0 && <VerifiedBadge size={13} handle={post.handle} />}
       </span>
     </button>
   )
@@ -180,7 +180,7 @@ export function CollaboratorsSheet({
                   <span className="truncate text-[14px] font-semibold text-fg">
                     {slugOf(r.handle)}
                   </span>
-                  {r.verified && <VerifiedBadge size={13} />}
+                  {r.verified && <VerifiedBadge size={13} handle={r.handle} />}
                 </span>
                 <span className="block truncate text-[12.5px] text-subtle">
                   {r.name}

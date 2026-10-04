@@ -24,7 +24,7 @@ where handle = '@conu.caps';
 update public.organizations set logo = '/logos/birks.png'          where handle = '@concordia.hub';
 update public.organizations set logo = '/logos/ginacody.png'       where handle = '@ginacody';
 update public.organizations set logo = '/logos/hackconcordia.jpg'  where handle = '@hackconcordia';
-update public.organizations set banner = '/logos/library-banner.jpg' where handle = '@concordia.library';
+update public.organizations set logo = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/library-logo.jpg', banner = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/library-banner.jpg' where handle = '@concordia.library';
 
 -- Keep the weekly seed-event refresh tracking the RENAMED handle (the deployed
 -- function still lists @gamedev.conu; without this, GameDev's events would age

@@ -58,7 +58,7 @@ export function CommunityStep() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className="truncate text-[13px] font-semibold text-fg">{o.name}</span>
-                  {o.verified && <VerifiedBadge />}
+                  {o.verified && <VerifiedBadge handle={o.handle} />}
                 </div>
                 <span className="block truncate text-[12px] text-subtle">{o.handle}</span>
               </div>

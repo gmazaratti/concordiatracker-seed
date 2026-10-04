@@ -395,7 +395,7 @@ function HostCard({
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 text-[15px] font-semibold text-fg">
           <span className="truncate">{org.name}</span>
-          {org.verified && <VerifiedBadge size={15} />}
+          {org.verified && <VerifiedBadge size={15} handle={org.handle} />}
         </p>
         <p className="truncate text-[12px] text-subtle">
           {org.handle}

@@ -476,7 +476,7 @@ export function StoryViewer({
             <span className="truncate text-[13.5px] font-semibold text-white">
               {ring.handle.replace(/^@/, '')}
             </span>
-            {ring.verified && <VerifiedBadge size={13} />}
+            {ring.verified && <VerifiedBadge size={13} handle={ring.handle} />}
           </span>
         </Link>
         {story && (

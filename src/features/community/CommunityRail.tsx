@@ -111,7 +111,7 @@ function OrgRow({ org }: { org: EventOrg }) {
         <span className="min-w-0">
           <span className="flex items-center gap-1">
             <span className="truncate text-[12.5px] font-medium text-fg">{org.name}</span>
-            {org.verified && <VerifiedBadge size={12} />}
+            {org.verified && <VerifiedBadge size={12} handle={org.handle} />}
           </span>
           <span className="block truncate text-[11px] text-subtle">{org.handle}</span>
         </span>

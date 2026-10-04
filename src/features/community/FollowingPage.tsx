@@ -86,7 +86,7 @@ export function FollowingPage() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1 text-[14px] font-medium text-fg">
                     <span className="truncate">{org.name}</span>
-                    {org.verified && <VerifiedBadge size={13} />}
+                    {org.verified && <VerifiedBadge size={13} handle={org.handle} />}
                   </span>
                   <span className="block truncate text-[12.5px] text-subtle">{org.handle}</span>
                 </span>
