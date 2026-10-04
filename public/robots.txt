@@ -19,6 +19,9 @@ Allow: /dev/original-landing
 # Machine-readable indexes for agents and answer engines.
 # llms.txt carries a "when to use this" section; openapi.json describes the API.
 Sitemap: https://concordiatracker.com/sitemap.xml
+# Every approved club's public page, generated live so a new club is listed
+# without a redeploy.
+Sitemap: https://concordiatracker.com/sitemap-clubs.xml
 
 # https://concordiatracker.com/llms.txt
 # https://concordiatracker.com/openapi.json

@@ -1,10 +1,11 @@
-import { Clock, MapPin, MessageSquare, Phone } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import type { EventOrg } from '@/data/community'
 import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { VerifiedBadge } from './VerifiedBadge'
 import { ContactButton } from './ContactButton'
 import { ProfileLinksRow } from './ProfileLinksRow'
+import { VenueInfo } from './VenueInfo'
 import { orgProfileLinks } from './social'
 import { RichBio } from '@/components/RichBio'
 import { FallbackImg } from '@/components/ui/FallbackImg'
@@ -105,7 +106,7 @@ export function OrgProfileHeaderView({
               belongs to. */}
           <ProfileLinksRow links={orgProfileLinks(org.links)} />
 
-          {org.venue && <VenueBlock venue={org.venue} />}
+          {org.venue && <VenueInfo venue={org.venue} />}
 
           <div className="mt-4 flex flex-wrap gap-2">
             <FollowButton handle={org.handle} />
@@ -139,36 +140,5 @@ function Count({ n, label, plural = true }: { n: number; label: string; plural?:
         {plural && n !== 1 ? 's' : ''}
       </span>
     </span>
-  )
-}
-
-function VenueBlock({ venue }: { venue: NonNullable<EventOrg['venue']> }) {
-  return (
-    <div className="mt-3 max-w-md rounded-xl border border-border bg-surface/50 px-3.5 py-3">
-      {venue.address && (
-        <p className="flex items-start gap-2 text-[13px] text-fg">
-          <MapPin size={13} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
-          {venue.address}
-        </p>
-      )}
-      {venue.phone && (
-        <p className="mt-1.5 flex items-center gap-2 text-[13px]">
-          <Phone size={13} className="shrink-0 text-subtle" aria-hidden />
-          <a href={`tel:${venue.phone.replace(/[^\d+]/g, '')}`} className="text-fg hover:underline">
-            {venue.phone}
-          </a>
-        </p>
-      )}
-      {venue.hours && venue.hours.length > 0 && (
-        <div className="mt-2.5 flex items-start gap-2 border-t border-border/70 pt-2.5">
-          <Clock size={13} className="mt-0.5 shrink-0 text-subtle" aria-hidden />
-          <ul className="text-[12.5px] leading-relaxed text-muted">
-            {venue.hours.map((h) => (
-              <li key={h}>{h}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
   )
 }

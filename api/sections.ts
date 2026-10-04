@@ -15,6 +15,7 @@ import { bySection, fetchSchedule, meetingTimeString, num } from './_concordia.j
 import { libraryHandler } from './_library.js'
 import { appVersionHandler } from './_app-version.js'
 import { shuttleHandler } from './_shuttle.js'
+import { clubPageHandler, clubSitemapHandler } from './_club-page.js'
 import { fail } from './_respond.js'
 
 export interface SectionOption {
@@ -45,6 +46,8 @@ export default async function handler(req: any, res: any) {
   if (String(q.feed ?? '') === 'library') return libraryHandler(req, res)
   if (String(q.feed ?? '') === 'app-version') return appVersionHandler(req, res)
   if (String(q.feed ?? '') === 'shuttle') return shuttleHandler(req, res)
+  if (String(q.feed ?? '') === 'club') return clubPageHandler(req, res)
+  if (String(q.feed ?? '') === 'club-sitemap') return clubSitemapHandler(req, res)
 
   const subject = String(q.subject ?? '').trim().toUpperCase()
   const catalog = String(q.catalog ?? '').trim()

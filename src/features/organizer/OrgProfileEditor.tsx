@@ -13,6 +13,7 @@ import { ImageUploadField } from '@/components/ui/ImageUploadField'
 import { SocialFieldIcon } from '@/features/community/SocialLinks'
 import { SOCIAL_FIELDS } from '@/features/community/social'
 import { BioField } from '@/components/ui/BioField'
+import { PublicPageLink } from './PublicPageLink'
 
 const field =
   'w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
@@ -231,6 +232,7 @@ function ProfileForm({
             </Link>
           )}
         </div>
+        {approved && <PublicPageLink org={org} />}
         {!approved && (
           <p className="text-[12px] text-subtle">
             Your public profile goes live once an admin approves your org.

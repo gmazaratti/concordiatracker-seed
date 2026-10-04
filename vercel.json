@@ -109,6 +109,14 @@
       "destination": "/api/sections?feed=app-version"
     },
     {
+      "source": "/c/:handle",
+      "destination": "/api/sections?feed=club&handle=:handle"
+    },
+    {
+      "source": "/sitemap-clubs.xml",
+      "destination": "/api/sections?feed=club-sitemap"
+    },
+    {
       "source": "/api/shuttle",
       "destination": "/api/sections?feed=shuttle"
     },

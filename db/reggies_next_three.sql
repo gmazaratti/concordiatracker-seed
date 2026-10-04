@@ -52,15 +52,19 @@ begin
          and (start at time zone tz)::date = d
     ) then
       insert into public.events
-        (org_id, title, start, mode, location, category, description, posted_at, series_id, recurrence)
+        (org_id, title, start, mode, location, category, description, posted_at, series_id, recurrence, image)
       values
         (org, 'Thirsty Thursdays', (d + time '20:00') at time zone tz, 'in-person',
          'Reggies · Hall building mezzanine', 'nightlife',
          'The weekly night at Reggies: cheap pints, a full room and whoever is around. Doors from 8 PM until close — the bar runs to 2 AM on a Thursday. Student ID at the door; 18+.',
-         now(), 'reggies-thirsty-thursdays', 'Every Thursday');
+         now(), 'reggies-thirsty-thursdays', 'Every Thursday', 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-event.jpg');
       added := added + 1;
     end if;
   end loop;
+
+  -- The night's photo on every Thursday, including the ones already listed.
+  update public.events set image = 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-event.jpg'
+   where series_id = 'reggies-thirsty-thursdays' and image is distinct from 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-event.jpg';
   return added;
 end $$;
 

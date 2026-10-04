@@ -179,8 +179,8 @@ const ORG = {
     verified: true,
     glyph: 'RG',
     color: '#d6322e',
-    logo: '/logos/reggies.png',
-    banner: '/logos/reggies-banner.jpg',
+    logo: 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-logo.jpg',
+    banner: 'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-banner.jpg',
     bio: "Concordia's own bar, on the mezzanine of the Hall building. Pints, pub food and a room that is already full of people you know. Open to students and the neighbourhood alike.",
     links: { instagram: 'https://www.instagram.com/reggiesmtl/', website: 'https://reggies.ca' },
     venue: {

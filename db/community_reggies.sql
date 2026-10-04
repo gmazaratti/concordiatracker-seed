@@ -35,8 +35,8 @@ values (
   true,
   'RG',
   '#d6322e',
-  '/logos/reggies.png',
-  '/logos/reggies-banner.jpg',
+  'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-logo.jpg',
+  'https://auth.concordiatracker.com/storage/v1/object/public/org-media/platform/reggies-banner.jpg',
   'Concordia''s own bar, on the mezzanine of the Hall building. Pints, pub food and a room that is already full of people you know — open to students and the neighbourhood alike.',
   '{"instagram":"https://www.instagram.com/reggiesmtl/","website":"https://reggies.ca"}'::jsonb,
   jsonb_build_object(
