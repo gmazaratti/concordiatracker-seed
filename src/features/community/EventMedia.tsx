@@ -18,7 +18,9 @@ const VARIANT: Record<
  *  1. A real org-supplied image (`event.image`) → the image (object-cover). If it
  *     ever fails to load it hides itself, revealing the branded banner beneath, so
  *     it's never an empty/broken box.
- *  2. No image → a branded banner: a gradient derived from the HOST ORG's brand
+ *  2. No image of its own → the HOST ORG's profile banner, so an event reads as
+ *     theirs without the club re-uploading the same picture for every one.
+ *  3. Neither → a branded banner: a gradient derived from the HOST ORG's brand
  *     colour + the org's initials as a large faded monogram, so every org's events
  *     read with a consistent identity colour (JMSB, Gina Cody, …). */
 export function EventMedia({
@@ -33,6 +35,7 @@ export function EventMedia({
   const v = VARIANT[variant]
   const color = event.org.color
   const Icon = CATEGORY_META[event.category].icon
+  const image = event.image || event.org.banner
 
   return (
     <div
@@ -61,9 +64,9 @@ export function EventMedia({
       )}
 
       {/* Real image, on top: hides itself on error so the branded banner shows. */}
-      {event.image && (
+      {image && (
         <FallbackImg
-          src={event.image}
+          src={image}
           className="absolute inset-0 size-full object-cover"
         />
       )}
