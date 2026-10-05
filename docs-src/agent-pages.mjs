@@ -957,5 +957,9 @@ export async function buildAgentPages({ dist, pages }) {
     written.push(`prerendered/${route}.html`)
   }
 
+  /* 5. Keyword landing pages + FAQ, each with its own head and content. */
+  const { writeSeoPages } = await import('./seo-pages.mjs')
+  written.push(...(await writeSeoPages({ dist, appShell, setRootContent })))
+
   return { written, legalOk, legalTotal: Object.keys(aliases).length }
 }

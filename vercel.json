@@ -81,8 +81,12 @@
       "destination": "/prerendered/dev-original-landing.html"
     },
     {
-      "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|reset-password|faq|concordia-gpa-calculator|concordia-syllabus-tracker)",
+      "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|reset-password)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/:page(faq|concordia-gpa-calculator|concordia-syllabus-tracker|concordia-schedule-builder)",
+      "destination": "/prerendered/:page.html"
     },
     {
       "source": "/:src(r|ig|li|qr)",

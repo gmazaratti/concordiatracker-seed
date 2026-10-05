@@ -30,6 +30,7 @@ import { Loader2 } from 'lucide-react'
  */
 const ConcordiaGpaCalculatorPage = lazy(() => import('@/features/landing/SeoLandingPages').then((x) => ({ default: x.ConcordiaGpaCalculatorPage })))
 const ConcordiaSyllabusTrackerPage = lazy(() => import('@/features/landing/SeoLandingPages').then((x) => ({ default: x.ConcordiaSyllabusTrackerPage })))
+const ConcordiaScheduleBuilderPage = lazy(() => import('@/features/landing/SeoLandingPages').then((x) => ({ default: x.ConcordiaScheduleBuilderPage })))
 const CoursesPage = lazy(() => import('@/features/courses/CoursesPage').then((x) => ({ default: x.CoursesPage })))
 const CourseDetailPage = lazy(() => import('@/features/courses/CourseDetailPage').then((x) => ({ default: x.CourseDetailPage })))
 const BlueprintBrowserPage = lazy(() => import('@/features/courses/BlueprintBrowserPage').then((x) => ({ default: x.BlueprintBrowserPage })))
@@ -80,7 +81,7 @@ const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').
  * shared events and schedules, profiles and the portals all stay.
  */
 const MARKETING_PATH =
-  /^\/(r|ig|li|qr|faq|demo|dev(\/.*)?|concordia-gpa-calculator|concordia-syllabus-tracker)?\/?$/
+  /^\/(r|ig|li|qr|faq|demo|dev(\/.*)?|concordia-gpa-calculator|concordia-syllabus-tracker|concordia-schedule-builder)?\/?$/
 
 /** Route tree for the three contexts: public, student app, teacher portal. */
 export function AppRoutes() {
@@ -110,6 +111,7 @@ export function AppRoutes() {
         <Route path="dev/original-landing" element={<OriginalLanding />} />
         <Route path="concordia-gpa-calculator" element={<ConcordiaGpaCalculatorPage />} />
         <Route path="concordia-syllabus-tracker" element={<ConcordiaSyllabusTrackerPage />} />
+        <Route path="concordia-schedule-builder" element={<ConcordiaScheduleBuilderPage />} />
       </Route>
 
       {/* Student app context */}

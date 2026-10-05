@@ -124,7 +124,6 @@ const appRoutes = [
   '/organizer/event/ev-1',
   '/organizer/join/tok123',
   '/organizer/apply',
-  '/faq',
   '/join/tok123',
   '/admin',
   '/feedback',
@@ -137,14 +136,25 @@ const appRoutes = [
   '/reset-password',
   '/s/sometoken',
   '/legal/privacy',
-  '/concordia-gpa-calculator',
-  '/concordia-syllabus-tracker',
   '/alex_d',
   '/maya',
 ]
 for (const r of appRoutes) {
   const dest = resolve(r)
   check(`${r} → app shell`, dest === '/index.html', dest ?? '(no match)')
+}
+
+console.log('\nKeyword pages + FAQ reach their prerendered HTML, each with its own head')
+for (const p of ['/faq', '/concordia-gpa-calculator', '/concordia-syllabus-tracker', '/concordia-schedule-builder']) {
+  const file = `/prerendered${p}.html`
+  const dest = resolve(p)
+  check(`${p} → ${file}`, dest === file, dest ?? '(no match)')
+  if (dest === file && isStatic(file)) {
+    const html = await readFile(path.join(DIST, file), 'utf8')
+    check(`${p} canonical is itself`, html.includes(`<link rel="canonical" href="https://concordiatracker.com${p}" />`))
+    check(`${p} does not carry the homepage title`, !html.includes('<title>ConcordiaTracker — GPA, syllabus'))
+    check(`${p} has its content in the HTML`, html.includes('id="ct-prerender"'))
+  } else check(`${file} exists`, isStatic(file), file)
 }
 
 console.log('\nSource links (/r /ig /li /qr) reach the prerendered, noindex copy of the homepage')
