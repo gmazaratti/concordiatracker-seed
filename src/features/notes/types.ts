@@ -22,6 +22,8 @@ export interface NoteMeta {
 
 export interface Note extends NoteMeta {
   content: JSONContent
+  /** Page setup, as stored (read with readPage). */
+  page?: unknown
 }
 
 /** A folder. A CLASS is a folder too: `courseId` is set and its name follows

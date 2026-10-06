@@ -1,13 +1,13 @@
 import { useEditorState, type Editor } from '@tiptap/react'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Code, Highlighter, Italic, Link2, List, ListChecks,
-  ListOrdered, Minus, Plus, Quote, Redo2, RemoveFormatting, SeparatorHorizontal, SquareCode, Strikethrough,
+  ImagePlus, ListOrdered, Minus, Plus, Quote, Redo2, RemoveFormatting, SeparatorHorizontal, SquareCode, Strikethrough,
   Underline, Undo2,
 } from 'lucide-react'
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
 import { Select } from '@/components/ui/Select'
-import { DEFAULT_FONT_SIZE, FONT_SIZES, HIGHLIGHTS, TEXT_COLORS, ZOOMS } from './editor-extensions'
-import { ToolBtn, ToolSep, SwatchPopover, LinkPopover } from './toolbar-parts'
+import { DEFAULT_FONT_SIZE, FONTS, FONT_SIZES, HIGHLIGHTS, TEXT_COLORS, ZOOMS } from './editor-extensions'
+import { ToolBtn, ToolSep, ColorPopover, LinkPopover } from './toolbar-parts'
 
 const STYLES = [
   { value: 'p', label: 'Normal text' },
@@ -22,11 +22,18 @@ const STYLES = [
  * Every control is also a shortcut or a markdown rule, so nothing here is the
  * only way to do anything.
  */
-export function NoteToolbar({ editor, zoom, onZoom, disabled }: { editor: Editor; zoom: number; onZoom: (z: number) => void; disabled?: boolean }) {
+export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
+  editor: Editor
+  zoom: number
+  onZoom: (z: number) => void
+  disabled?: boolean
+  onImage: () => void
+}) {
   const s = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
       style: e.isActive('heading', { level: 1 }) ? 'h1' : e.isActive('heading', { level: 2 }) ? 'h2' : e.isActive('heading', { level: 3 }) ? 'h3' : 'p',
+      font: (e.getAttributes('textStyle').fontFamily as string | undefined) ?? '',
       size: parseInt(String(e.getAttributes('textStyle').fontSize ?? ''), 10) || DEFAULT_FONT_SIZE,
       bold: e.isActive('bold'),
       italic: e.isActive('italic'),
@@ -59,6 +66,10 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled }: { editor: Editor
       <Select size="sm" tone="control" ariaLabel="Zoom" value={String(zoom)} onChange={(v) => onZoom(Number(v))}
         options={ZOOMS.map((z) => ({ value: String(z), label: `${z}%` }))} className="w-[5.4rem] shrink-0" />
       <ToolSep />
+      <Select size="sm" tone="control" ariaLabel="Font" value={s.font}
+        onChange={(v) => (v ? c().setFontFamily(v).run() : c().unsetFontFamily().run())}
+        options={FONTS.map((f) => ({ value: f.value ?? '', label: f.label }))} className="w-[8.4rem] shrink-0" />
+      <ToolSep />
       <Select size="sm" tone="control" ariaLabel="Text style" value={s.style} onChange={setStyle} options={STYLES} className="w-[7.6rem] shrink-0" />
       <ToolSep />
       <ToolBtn icon={Minus} label="Smaller text" onClick={() => stepSize(-1)} />
@@ -68,14 +79,15 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled }: { editor: Editor
       <ToolBtn icon={Bold} label="Bold (Ctrl+B)" active={s.bold} onClick={() => c().toggleBold().run()} />
       <ToolBtn icon={Italic} label="Italic (Ctrl+I)" active={s.italic} onClick={() => c().toggleItalic().run()} />
       <ToolBtn icon={Underline} label="Underline (Ctrl+U)" active={s.underline} onClick={() => c().toggleUnderline().run()} />
-      <SwatchPopover label="Text colour" current={s.color} swatches={TEXT_COLORS} glyph="A"
+      <ColorPopover label="Text colour" current={s.color} palette={TEXT_COLORS} glyph="A" noneLabel="Default colour"
         onPick={(v) => (v ? c().setColor(v).run() : c().unsetColor().run())} />
-      <SwatchPopover label="Highlight" current={s.highlight} swatches={HIGHLIGHTS} icon={Highlighter}
+      <ColorPopover label="Highlight" current={s.highlight} palette={HIGHLIGHTS} icon={Highlighter} noneLabel="No highlight"
         onPick={(v) => (v ? c().setHighlight({ color: v }).run() : c().unsetHighlight().run())} />
       <ToolSep />
       <LinkPopover icon={Link2} current={s.link}
         onApply={(href) => c().extendMarkRange('link').setLink({ href }).run()}
         onRemove={() => c().extendMarkRange('link').unsetLink().run()} />
+      <ToolBtn icon={ImagePlus} label="Insert image" onClick={onImage} />
       <DropdownMenu ariaLabel="Alignment" icon={AlignIcon} triggerClassName="size-8 shrink-0" items={[
         { id: 'l', label: 'Left', icon: AlignLeft, onSelect: () => c().setTextAlign('left').run() },
         { id: 'c', label: 'Center', icon: AlignCenter, onSelect: () => c().setTextAlign('center').run() },

@@ -2108,8 +2108,12 @@ html:has(
 .ct-note-doc pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .ct-note-doc hr { border: 0; border-top: 1px solid var(--ct-border); margin: 1.4em 0; }
 .ct-note-doc ul[data-type='taskList'] { list-style: none; padding-left: 0.2em; }
-.ct-note-doc ul[data-type='taskList'] li { display: flex; align-items: flex-start; gap: 0.55em; }
-.ct-note-doc ul[data-type='taskList'] li > label { margin-top: 0.3em; flex: none; }
+/* The checkbox sits on the FIRST line of its item whatever size that line is
+   set in: baseline alignment follows the text, where a fixed one-line box
+   only matched the default size. */
+.ct-note-doc ul[data-type='taskList'] li { display: flex; align-items: baseline; gap: 0.55em; }
+.ct-note-doc ul[data-type='taskList'] li > label { flex: none; display: inline-flex; margin: 0; }
+.ct-note-doc ul[data-type='taskList'] li > label > input { margin: 0; transform: translateY(0.12em); }
 .ct-note-doc ul[data-type='taskList'] li > div { flex: 1; min-width: 0; }
 .ct-note-doc ul[data-type='taskList'] input[type='checkbox'] { width: 15px; height: 15px; accent-color: var(--ct-accent); cursor: pointer; }
 .ct-note-doc ul[data-type='taskList'] li[data-checked='true'] > div { color: var(--ct-subtle); text-decoration: line-through; }
@@ -2140,3 +2144,50 @@ html:has(
 /* A row that scrolls sideways when it must, without a scrollbar eating its height. */
 .ct-no-scrollbar { scrollbar-width: none; }
 .ct-no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Someone else's cursor while co-editing: a 2px bar in their colour with their
+   name above it. The label sits above the line so it never covers the text
+   being typed; it fades a little so a crowded paragraph stays readable. */
+.ct-caret-remote {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+.ct-caret-label {
+  position: absolute;
+  top: -1.45em;
+  left: -2px;
+  padding: 1px 6px;
+  border-radius: 4px 4px 4px 0;
+  font: 600 11px/1.4 Inter, system-ui, sans-serif;
+  color: #fff;
+  white-space: nowrap;
+  user-select: none;
+  animation: ct-notes-in 180ms ease-out backwards;
+}
+/* What they have selected, tinted (the extension sets the colour inline). */
+.ct-note-doc .collaboration-carets__selection { border-radius: 2px; }
+
+/* Text with a comment on it. */
+.ct-note-doc .ct-comment {
+  background: rgba(255, 196, 0, 0.22);
+  border-bottom: 2px solid rgba(255, 196, 0, 0.75);
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.ct-note-doc .ct-comment-active { background: rgba(255, 196, 0, 0.45); }
+
+/* Images in notes never overflow the page. */
+.ct-note-doc img { max-width: 100%; height: auto; }
+
+/* PDF export: a letter page of its own (other printouts keep theirs), with
+   colours and highlights printed rather than dropped. */
+@page note { size: letter; margin: 0.9in; }
+@media print {
+  .ct-pdf-root { page: note; width: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ct-pdf-root .ct-note-doc { min-height: 0; }
+  .ct-pdf-root .ct-note-image, .ct-pdf-root pre, .ct-pdf-root blockquote { break-inside: avoid; }
+}

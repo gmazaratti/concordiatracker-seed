@@ -93,7 +93,10 @@
     "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.12.0",
     "@supabase/supabase-js": "^2.108.2",
+    "@tiptap/extension-collaboration": "^3.31.4",
+    "@tiptap/extension-collaboration-caret": "^3.31.4",
     "@tiptap/extension-highlight": "^3.31.4",
+    "@tiptap/extension-image": "^3.31.4",
     "@tiptap/extension-list": "^3.31.4",
     "@tiptap/extension-text-align": "^3.31.4",
     "@tiptap/extension-text-style": "^3.31.4",
@@ -101,6 +104,7 @@
     "@tiptap/pm": "^3.31.4",
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
+    "@tiptap/y-tiptap": "^3.0.9",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "lucide-react": "^1.18.0",
@@ -108,7 +112,9 @@
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0",
     "stripe": "^22.3.2",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.0",

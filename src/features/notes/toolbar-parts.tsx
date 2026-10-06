@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Ban, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { HsvPicker } from '@/components/ui/HsvPicker'
 
 /** A toolbar button. mousedown is cancelled so the editor keeps its selection. */
 export function ToolBtn({ icon: Icon, label, onClick, active, disabled }: {
@@ -54,35 +55,52 @@ function usePopover() {
   return { open, setOpen, toggle, btnRef: btn, panelRef: panel, pos }
 }
 
-export function SwatchPopover({ label, current, swatches, onPick, icon: Icon, glyph }: {
+/**
+ * Text colour or highlight: a palette like a word processor's, a way back to
+ * the default, and Custom — a real picker with a hex field for anything else.
+ */
+export function ColorPopover({ label, current, palette, onPick, icon: Icon, glyph, noneLabel }: {
   label: string
   current: string | null
-  swatches: { label: string; value: string | null }[]
+  palette: string[]
   onPick: (v: string | null) => void
   icon?: LucideIcon
   glyph?: string
+  noneLabel: string
 }) {
   const { open, setOpen, toggle, btnRef, panelRef, pos } = usePopover()
+  const [custom, setCustom] = useState(false)
   return (
     <>
       <button ref={btnRef} type="button" title={label} aria-label={label} aria-expanded={open}
-        onMouseDown={(e) => e.preventDefault()} onClick={toggle}
+        onMouseDown={(e) => e.preventDefault()} onClick={() => { setCustom(false); toggle() }}
         className="flex size-8 shrink-0 flex-col items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
         {Icon ? <Icon size={15} aria-hidden /> : <span className="text-[14px] leading-none font-semibold">{glyph}</span>}
         <span className="mt-0.5 h-[3px] w-4 rounded-full" style={{ background: current ?? 'currentColor' }} />
       </button>
       {open && createPortal(
         <div ref={panelRef} role="dialog" aria-label={label} style={pos}
-          className="ct-animate-pop fixed z-[200] grid grid-cols-5 gap-1.5 rounded-xl border border-border bg-surface p-2.5 shadow-xl">
-          {swatches.map((s) => (
-            <button key={s.label} type="button" title={s.label} aria-label={s.label}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => { onPick(s.value); setOpen(false) }}
-              className={cn('grid size-7 place-items-center rounded-full border border-border transition-transform duration-150 hover:scale-110', current === s.value && 'ring-2 ring-accent')}
-              style={{ background: s.value ?? 'transparent' }}>
-              {!s.value && <Ban size={13} className="text-subtle" aria-hidden />}
-            </button>
-          ))}
+          onMouseDown={(e) => { if (!(e.target instanceof HTMLInputElement)) e.preventDefault() }}
+          className="ct-animate-pop fixed z-[200] flex flex-col gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-xl">
+          <button type="button" onClick={() => { onPick(null); setOpen(false) }}
+            className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] text-fg hover:bg-surface-2">
+            <Ban size={14} className="text-subtle" aria-hidden />{noneLabel}
+          </button>
+          {custom ? (
+            <HsvPicker value={current && current.startsWith('#') ? current : '#3e63dd'} onChange={(hex) => onPick(hex)} />
+          ) : (
+            <div className="grid grid-cols-8 gap-1">
+              {palette.map((c) => (
+                <button key={c} type="button" title={c} aria-label={c} onClick={() => { onPick(c); setOpen(false) }}
+                  className={cn('size-6 rounded-full border border-border transition-transform duration-150 hover:scale-110', current === c && 'ring-2 ring-accent ring-offset-1 ring-offset-surface')}
+                  style={{ background: c }} />
+              ))}
+            </div>
+          )}
+          <button type="button" onClick={() => setCustom((x) => !x)}
+            className="rounded-md px-1.5 py-1 text-left text-[12.5px] font-medium text-accent hover:bg-surface-2">
+            {custom ? 'Back to the palette' : 'Custom colour…'}
+          </button>
         </div>, document.body)}
     </>
   )

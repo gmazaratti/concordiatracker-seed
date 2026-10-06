@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronRight, FolderPlus, Inbox, Search, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, FolderPlus, Inbox, Search, Share2, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
 import { Button } from '@/components/ui/Button'
@@ -110,6 +110,12 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
       </nav>
 
       <header className="mt-1 flex flex-wrap items-end gap-3">
+        {folderId !== null && (
+          <Link to={crumbs.length > 1 ? `/app/notes/f/${crumbs[crumbs.length - 2].id}` : '/app/notes'} aria-label="Back" title="Back"
+            className="mb-1 grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
+            <ArrowLeft size={17} aria-hidden />
+          </Link>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-display text-[30px] leading-tight font-semibold text-fg">{title}</h1>
           {subtitle && <p className="truncate text-[14px] text-muted">{subtitle}</p>}
@@ -124,6 +130,12 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
             </button>
           )}
         </label>
+        {here && (
+          <Button variant="outline" size="sm" onClick={() => menus.openShare('folder', here.id, label(here))}>
+            <Share2 size={15} aria-hidden />
+            Share folder
+          </Button>
+        )}
         {!general && (
           <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
             <FolderPlus size={15} aria-hidden />

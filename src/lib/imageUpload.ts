@@ -114,7 +114,7 @@ export async function uploadWallpaper(file: File): Promise<string> {
   return path
 }
 
-async function reencodeToWebp(file: File, maxDim: number, fallback: 'image/jpeg' | 'image/png'): Promise<Blob> {
+export async function reencodeToWebp(file: File, maxDim: number, fallback: 'image/jpeg' | 'image/png'): Promise<Blob> {
   const source = await loadImage(file)
   const w0 = 'width' in source ? source.width : 0
   const h0 = 'height' in source ? source.height : 0
