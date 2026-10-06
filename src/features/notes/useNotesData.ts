@@ -1,23 +1,33 @@
 import { useCallback, useEffect, useState } from 'react'
+import { localUser } from '@/lib/local-user'
+import { supabase } from '@/lib/supabase'
 import * as api from './notes-api'
+import { sharedWithMe, type SharedItem } from './sharing-api'
 import type { NoteFolder, NoteMeta, NoteTemplate } from './types'
 import { BUILT_IN_TEMPLATES } from './templates'
 
 /**
- * The notes list, folders and templates for the Notes page.
+ * Everything the Notes screens list: my notes, my folders (classes included),
+ * what others shared with me, and templates.
  *
- * Kept in a module-level cache as well as state, so leaving Notes and coming
- * back paints the list at once and refreshes behind it instead of flashing
- * empty. Every change is applied here first (optimistic) and then written;
- * a write that fails reports itself through write-errors and the next refresh
- * puts the list back to the truth.
+ * Kept in a module-level cache as well as state, so going home → folder →
+ * note → back paints instantly and refreshes behind it. Changes apply here
+ * first and are written after; a failed write reports itself (write-errors)
+ * and the next refresh restores the truth.
  */
 interface Cache {
+  myId: string
   notes: NoteMeta[]
   folders: NoteFolder[]
+  shared: SharedItem[]
   templates: NoteTemplate[]
 }
 let cache: Cache | null = null
+
+// One account's notes must never paint for the next account on this device.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') cache = null
+})
 
 export function useNotesData() {
   const [state, setState] = useState<Cache | null>(cache)
@@ -35,17 +45,28 @@ export function useNotesData() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([api.listNotes(), api.listFolders(), api.listTemplates().catch(() => [])])
-      .then(([notes, folders, custom]) => {
+    void (async () => {
+      try {
+        const { data } = await localUser()
+        const myId = data.user?.id
+        if (!myId) throw new Error('Sign in to see your notes.')
+        await api.ensureClassFolders().catch(() => {})
+        const [notes, folders, shared, custom] = await Promise.all([
+          api.listNotes(),
+          api.listFolders(myId),
+          sharedWithMe().catch(() => [] as SharedItem[]),
+          api.listTemplates().catch(() => [] as NoteTemplate[]),
+        ])
         if (cancelled) return
-        const next = { notes, folders, templates: [...BUILT_IN_TEMPLATES, ...custom] }
+        // listNotes reads everything RLS lets me see; my own list is mine only.
+        const next: Cache = { myId, notes, folders, shared, templates: [...BUILT_IN_TEMPLATES, ...custom] }
         cache = next
         setState(next)
         setError(null)
-      })
-      .catch((e: unknown) => {
+      } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Your notes could not be loaded.')
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
@@ -62,7 +83,6 @@ export function useNotesData() {
     [commit],
   )
 
-  /** Apply to the list immediately; the editor persists content itself. */
   const patchLocal = useCallback(
     (id: string, patch: Partial<NoteMeta>) =>
       commit((c) => ({ ...c, notes: c.notes.map((n) => (n.id === id ? { ...n, ...patch } : n)) })),
@@ -87,37 +107,41 @@ export function useNotesData() {
     [commit, refresh],
   )
 
-  const restore = useCallback(
-    async (id: string) => {
-      const ok = await api.restoreNote(id)
-      refresh()
-      return ok
-    },
-    [refresh],
-  )
-
   const addFolder = useCallback(
-    async (name: string) => {
-      const f = await api.createFolder(name)
+    async (init: Parameters<typeof api.createFolder>[0]) => {
+      const f = await api.createFolder(init)
       if (f) commit((c) => ({ ...c, folders: [...c.folders, f] }))
       return f
     },
     [commit],
   )
 
-  const renameFolder = useCallback(
-    async (id: string, name: string) => {
-      commit((c) => ({ ...c, folders: c.folders.map((f) => (f.id === id ? { ...f, name } : f)) }))
-      return api.renameFolder(id, name)
+  const patchFolder = useCallback(
+    async (id: string, patch: api.FolderPatch) => {
+      commit((c) => ({ ...c, folders: c.folders.map((f) => (f.id === id ? { ...f, ...patch } : f)) }))
+      const ok = await api.updateFolder(id, patch)
+      if (!ok) refresh()
+      return ok
     },
-    [commit],
+    [commit, refresh],
+  )
+
+  /** Several position changes from one drag, applied together. */
+  const reposition = useCallback(
+    async (changes: { id: string; position: number }[]) => {
+      const byId = new Map(changes.map((c) => [c.id, c.position]))
+      commit((c) => ({ ...c, folders: c.folders.map((f) => (byId.has(f.id) ? { ...f, position: byId.get(f.id)! } : f)) }))
+      const results = await Promise.all(changes.map((ch) => api.updateFolder(ch.id, { position: ch.position })))
+      if (results.some((r) => !r)) refresh()
+    },
+    [commit, refresh],
   )
 
   const removeFolder = useCallback(
     async (id: string) => {
       commit((c) => ({
         ...c,
-        folders: c.folders.filter((f) => f.id !== id),
+        folders: c.folders.filter((f) => f.id !== id).map((f) => (f.parentId === id ? { ...f, parentId: null } : f)),
         notes: c.notes.map((n) => (n.folderId === id ? { ...n, folderId: null } : n)),
       }))
       return api.deleteFolder(id)
@@ -145,17 +169,19 @@ export function useNotesData() {
   return {
     loading: !state && !error,
     error,
+    myId: state?.myId ?? null,
     notes: state?.notes ?? [],
     folders: state?.folders ?? [],
+    shared: state?.shared ?? [],
     templates: state?.templates ?? BUILT_IN_TEMPLATES,
     refresh,
     createNote,
     patchLocal,
     patchNote,
     trash,
-    restore,
     addFolder,
-    renameFolder,
+    patchFolder,
+    reposition,
     removeFolder,
     addTemplate,
     removeTemplate,

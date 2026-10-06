@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { RotateCcw } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { listVersions } from './notes-api'
 import type { NoteVersion } from './types'
+import { noteExtensions } from './editor-extensions'
 
-const EXTENSIONS = [StarterKit, TaskList, TaskItem]
+const EXTENSIONS = noteExtensions()
 
 /**
  * Earlier states of a note, newest first, written by the database (one per ten

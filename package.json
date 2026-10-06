@@ -76,7 +76,7 @@
     "db:memberguard": "npx supabase db query --linked -f db/org_member_guard.test.sql",
     "test:integrity": "node src/lib/course-integrity.test.mjs",
     "test:parseguard": "node api/_parse-guard.test.mjs",
-    "test:notes": "node src/features/notes/auto-link.test.mjs"
+    "test:notes": "node src/features/notes/auto-link.test.mjs && node src/features/notes/folder-tree.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
@@ -93,7 +93,10 @@
     "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.12.0",
     "@supabase/supabase-js": "^2.108.2",
+    "@tiptap/extension-highlight": "^3.31.4",
     "@tiptap/extension-list": "^3.31.4",
+    "@tiptap/extension-text-align": "^3.31.4",
+    "@tiptap/extension-text-style": "^3.31.4",
     "@tiptap/extensions": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
     "@tiptap/react": "^3.31.4",

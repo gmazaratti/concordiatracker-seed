@@ -4,6 +4,8 @@ import type { JSONContent } from '@tiptap/react'
  *  list of two hundred notes does not download two hundred documents. */
 export interface NoteMeta {
   id: string
+  /** Who owns it. Not me means it was shared with me. */
+  ownerId: string
   title: string
   folderId: string | null
   /** courses.id, which is TEXT ("manual-course-1"), not a uuid. */
@@ -12,6 +14,8 @@ export interface NoteMeta {
   lectureDate: string | null
   assignmentIds: string[]
   pinned: boolean
+  /** The first lines of the note, for cards. Written by the database. */
+  excerpt: string
   createdAt: string
   updatedAt: string
 }
@@ -20,12 +24,22 @@ export interface Note extends NoteMeta {
   content: JSONContent
 }
 
+/** A folder. A CLASS is a folder too: `courseId` is set and its name follows
+ *  the course code. Folders nest through `parentId`. */
 export interface NoteFolder {
   id: string
   name: string
   parentId: string | null
   position: number
+  courseId: string | null
+  icon: string
+  color: string
+  pinned: boolean
+  /** Set when the folder is someone else's, shared with me. */
+  sharedRole?: 'viewer' | 'editor'
 }
+
+export type NoteRole = 'owner' | 'editor' | 'viewer'
 
 export interface NoteVersion {
   id: string
@@ -44,9 +58,3 @@ export interface NoteTemplate {
 
 export const EMPTY_DOC: JSONContent = { type: 'doc', content: [] }
 
-/** Which notes the list is showing. */
-export type NotesFilter =
-  | { kind: 'all' }
-  | { kind: 'general' }
-  | { kind: 'course'; courseId: string }
-  | { kind: 'folder'; folderId: string }

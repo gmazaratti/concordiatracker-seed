@@ -27,7 +27,7 @@ export function CourseNotesCard({ course }: { course: Course }) {
   }, [course.id])
 
   const sorted = (notes ?? []).slice().sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt))
-  const notebook = `/app/notes?c=${encodeURIComponent(course.id)}`
+  const notebook = `/app/notes/c/${encodeURIComponent(course.id)}`
 
   return (
     <Card className="hidden overflow-hidden md:block">
@@ -53,7 +53,7 @@ export function CourseNotesCard({ course }: { course: Course }) {
           {sorted.slice(0, SHOW).map((n) => (
             <li key={n.id}>
               <Link
-                to={`${notebook}&note=${n.id}`}
+                to={`/app/notes/n/${n.id}`}
                 className="flex items-center gap-2 px-3.5 py-2 text-[13px] transition-colors duration-150 hover:bg-surface-2"
               >
                 {n.pinned && <Pin size={12} className="shrink-0 text-accent" aria-label="Pinned" />}

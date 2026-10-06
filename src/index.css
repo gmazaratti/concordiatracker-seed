@@ -2121,3 +2121,22 @@ html:has(
   height: 0;
   pointer-events: none;
 }
+
+/* The page a note is written on. The theme's raised surface, so it is a sheet
+   of paper in light themes and a lit page in dark ones, never glaring white
+   on a dark screen. */
+.ct-note-paper { background: var(--ct-surface); }
+
+/* Screens in Notes arrive with a short rise. Opacity and transform only, and
+   `backwards` fill: a `both` fill leaves a settled transform behind, and any
+   transform makes the element the containing block for fixed children (the
+   portaled menus and pickers inside these screens). */
+@keyframes ct-notes-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.ct-notes-in { animation: ct-notes-in 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* A row that scrolls sideways when it must, without a scrollbar eating its height. */
+.ct-no-scrollbar { scrollbar-width: none; }
+.ct-no-scrollbar::-webkit-scrollbar { display: none; }
