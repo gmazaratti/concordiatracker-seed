@@ -9,6 +9,7 @@ import { MascotLoading } from '@/components/Mascot'
 import { ScanTips } from './ScanTips'
 import { matchAll } from './duplicate-assessments'
 import { syllabusTarget } from '@/lib/course-match'
+import { storeSyllabusFile } from './course-files'
 import { normalizeTerm } from '@/lib/term'
 import { isFinishedTerm } from '@/features/planner/past-terms'
 import { DateTimePicker } from '@/components/ui/DateTimePicker'
@@ -328,6 +329,9 @@ export function SyllabusUploadPage({
         if (Object.keys(fill).length > 0) updateCourse(matched.id, fill)
       }
       if (add.length > 0) await addAssessments(add)
+      // Keep the PDF so it can be opened from the course page. Background only:
+      // a failed upload costs the file card, never the import.
+      if (lastFile) void storeSyllabusFile(targetId, lastFile)
       setSaving(false)
       if (onDone) {
         onDone(intoCourseId ? undefined : { courseId: targetId, code: course.code.trim(), count: add.length })
@@ -380,6 +384,7 @@ export function SyllabusUploadPage({
       noDate: it.noDate && !it.due,
     }))
     await addAssessments(assessments)
+    if (lastFile) void storeSyllabusFile(id, lastFile)
     setSaving(false)
     // Embedded callers stay where they are: onboarding is a sequence of steps
     // and yanking someone out of it onto a course page abandons the rest.

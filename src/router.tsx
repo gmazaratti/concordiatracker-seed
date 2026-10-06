@@ -36,6 +36,7 @@ const CourseDetailPage = lazy(() => import('@/features/courses/CourseDetailPage'
 const BlueprintBrowserPage = lazy(() => import('@/features/courses/BlueprintBrowserPage').then((x) => ({ default: x.BlueprintBrowserPage })))
 const SyllabusUploadPage = lazy(() => import('@/features/courses/SyllabusUpload').then((x) => ({ default: x.SyllabusUploadPage })))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage').then((x) => ({ default: x.CalendarPage })))
+const NotesPage = lazy(() => import('@/features/notes/NotesPage').then((x) => ({ default: x.NotesPage })))
 const PlannerPage = lazy(() => import('@/features/planner/PlannerPage').then((x) => ({ default: x.PlannerPage })))
 const CommunityPage = lazy(() => import('@/features/community/CommunityPage').then((x) => ({ default: x.CommunityPage })))
 const FollowingPage = lazy(() => import('@/features/community/FollowingPage').then((x) => ({ default: x.FollowingPage })))
@@ -123,6 +124,7 @@ export function AppRoutes() {
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="planner" element={<PlannerPage />} />
+        <Route path="notes" element={<NotesPage />} />
         {/* Both folded into Planner. Kept as redirects so anything already
             pointing here — the Today widget, a bookmark — still lands right. */}
         <Route path="radar" element={<Navigate to="/app/planner?tab=radar" replace />} />

@@ -33,6 +33,7 @@ const ROUTES: [prefix: string, name: string][] = [
   ['/app/courses', 'Courses'],
   ['/app/calendar', 'Calendar'],
   ['/app/planner', 'Planner'],
+  ['/app/notes', 'Notes'],
   ['/app/community/notifications', 'Notifications'],
   ['/app/community/following', 'Following'],
   ['/app/community/org', 'Organization'],

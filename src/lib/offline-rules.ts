@@ -15,6 +15,7 @@
 /** RPCs that only READ. Safe to answer from the last copy when offline. */
 export const READ_RPCS = new Set([
   'am_following',
+  'search_notes',
   'browse_courses',
   'can_see_schedule',
   'can_view_follow_lists',

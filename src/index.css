@@ -2063,3 +2063,61 @@ html:has(
   opacity: 0;
   pointer-events: none;
 }
+
+/* ── Notes editor ────────────────────────────────────────────────────────────
+   The written note. Tokens only, so every theme (and a custom accent) reads
+   correctly. The editor is plain ProseMirror output, styled here rather than
+   per node, so the read-only history preview looks identical to the editor. */
+.ct-note-doc {
+  outline: none;
+  color: var(--ct-fg);
+  font-size: 15.5px;
+  line-height: 1.7;
+  min-height: 50vh;
+}
+.ct-note-doc > * + * { margin-top: 0.6em; }
+.ct-note-doc h1 { font-size: 1.75em; line-height: 1.2; font-weight: 700; margin-top: 1.2em; }
+.ct-note-doc h2 { font-size: 1.35em; line-height: 1.25; font-weight: 650; margin-top: 1.1em; }
+.ct-note-doc h3 { font-size: 1.12em; line-height: 1.3; font-weight: 650; margin-top: 1em; }
+.ct-note-doc > :first-child { margin-top: 0; }
+.ct-note-doc ul, .ct-note-doc ol { padding-left: 1.4em; }
+.ct-note-doc ul { list-style: disc; }
+.ct-note-doc ol { list-style: decimal; }
+.ct-note-doc li > p { margin: 0; }
+.ct-note-doc li + li { margin-top: 0.15em; }
+.ct-note-doc a { color: var(--ct-accent); text-decoration: underline; text-underline-offset: 2px; }
+.ct-note-doc blockquote { border-left: 3px solid var(--ct-border-strong); padding-left: 1em; color: var(--ct-muted); }
+.ct-note-doc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--ct-surface-2);
+  border: 1px solid var(--ct-border);
+  border-radius: 6px;
+  padding: 0.1em 0.35em;
+}
+.ct-note-doc pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13.5px;
+  line-height: 1.55;
+  background: var(--ct-surface-2);
+  border: 1px solid var(--ct-border);
+  border-radius: 10px;
+  padding: 0.85em 1em;
+  overflow-x: auto;
+}
+.ct-note-doc pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.ct-note-doc hr { border: 0; border-top: 1px solid var(--ct-border); margin: 1.4em 0; }
+.ct-note-doc ul[data-type='taskList'] { list-style: none; padding-left: 0.2em; }
+.ct-note-doc ul[data-type='taskList'] li { display: flex; align-items: flex-start; gap: 0.55em; }
+.ct-note-doc ul[data-type='taskList'] li > label { margin-top: 0.3em; flex: none; }
+.ct-note-doc ul[data-type='taskList'] li > div { flex: 1; min-width: 0; }
+.ct-note-doc ul[data-type='taskList'] input[type='checkbox'] { width: 15px; height: 15px; accent-color: var(--ct-accent); cursor: pointer; }
+.ct-note-doc ul[data-type='taskList'] li[data-checked='true'] > div { color: var(--ct-subtle); text-decoration: line-through; }
+/* The placeholder on the empty first line. */
+.ct-note-doc p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--ct-subtle);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

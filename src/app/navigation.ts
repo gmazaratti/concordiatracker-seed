@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Compass,
   Home,
+  NotebookPen,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -17,6 +18,9 @@ export interface NavItem {
   icon: LucideIcon
   /** exact match (so /app doesn't stay active on /app/courses) */
   end?: boolean
+  /** Shown in the desktop sidebar only. Notes has no phone layout yet, so it
+   *  stays off the bottom bar rather than leading somewhere unfinished. */
+  desktopOnly?: boolean
 }
 
 /**
@@ -32,11 +36,16 @@ export interface NavItem {
  * at a different time of year. Its four sections (seat watch, course directory,
  * prerequisite tree, schedule builder) are one job, not four, which is exactly
  * why they sit behind one tab instead of four.
+ *
+ * Notes is the second, and passes the same test: it is where a student sits
+ * through a lecture, not a tool used for a minute. It is desktop-only until it
+ * has a phone layout.
  */
 export const STUDENT_NAV: NavItem[] = [
   { to: '/app', label: 'Today', labelKey: 'nav.today', icon: Home, end: true },
   { to: '/app/courses', label: 'Courses', labelKey: 'nav.courses', icon: BookOpen },
   { to: '/app/calendar', label: 'Calendar', labelKey: 'nav.calendar', icon: CalendarDays },
   { to: '/app/planner', label: 'Planner', labelKey: 'nav.planner', icon: Compass },
+  { to: '/app/notes', label: 'Notes', labelKey: 'nav.notes', icon: NotebookPen, desktopOnly: true },
   { to: '/app/community', label: 'Social', labelKey: 'nav.community', icon: Users },
 ]

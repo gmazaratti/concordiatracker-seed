@@ -16,6 +16,7 @@ export const en = {
   'nav.courses': 'Courses',
   'nav.calendar': 'Calendar',
   'nav.community': 'Social',
+  'nav.notes': 'Notes',
   'nav.planner': 'Planner',
   'nav.search': 'Search',
   'nav.settings': 'Settings',

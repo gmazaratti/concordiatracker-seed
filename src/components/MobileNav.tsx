@@ -55,7 +55,8 @@ export function MobileNav() {
   const raw = params.get('c')
   const section: CommunitySection = isCommunitySection(raw) ? raw : DEFAULT_SECTION
 
-  const main: PillItem[] = STUDENT_NAV.map(({ to, labelKey, icon: Icon }) => {
+  const mobileNav = STUDENT_NAV.filter((n) => !n.desktopOnly)
+  const main: PillItem[] = mobileNav.map(({ to, labelKey, icon: Icon }) => {
     const badge = badges[to]
     return {
       key: to,
@@ -65,7 +66,7 @@ export function MobileNav() {
       render: (on) => <Icon size={24} strokeWidth={on ? 2.4 : 1.9} aria-hidden />,
     }
   })
-  const mainActive = STUDENT_NAV.findIndex((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
+  const mainActive = mobileNav.findIndex((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
 
   const community: PillItem[] = [
     {
