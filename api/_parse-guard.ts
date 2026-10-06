@@ -80,6 +80,63 @@ export interface CleanCourse {
   taName: string
   taEmail: string
   gradingScale: string
+  /** Where the class meets, as the outline writes it. */
+  location: string
+  /**
+   * When the class meets, in the exact text form the app's schedule parser
+   * reads ("Tue · Thu 16:15–17:30", patterns separated by "; "). Built here
+   * from validated parts, never passed through from the model as text.
+   */
+  meetingTimes: string
+}
+
+const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
+const MAX_MEETINGS = 6
+
+/** "9:05" / "16:15" → minutes, or null. 24-hour only: the prompt asks for it, and
+ *  a bare "4:15" with no am/pm is exactly the ambiguity that sends someone to a
+ *  class twelve hours early, so anything outside 00:00–23:59 is refused. */
+function clock(value: unknown): number | null {
+  if (typeof value !== 'string') return null
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+  if (!m) return null
+  const h = Number(m[1])
+  const min = Number(m[2])
+  if (h > 23 || min > 59) return null
+  return h * 60 + min
+}
+
+const hhmm = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`
+
+/**
+ * The model's meeting list → the app's meeting-times string. Unknown days are
+ * dropped, a pattern with no days or an end not after its start is dropped, and
+ * a class shorter than 20 minutes or longer than 6 hours is dropped too: those
+ * are a misread, and a wrong class time is worse than none.
+ */
+export function cleanMeetings(value: unknown): string {
+  if (!Array.isArray(value)) return ''
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const item of value.slice(0, MAX_MEETINGS * 2)) {
+    if (!item || typeof item !== 'object') continue
+    const m = item as Record<string, unknown>
+    const raw = Array.isArray(m.days) ? m.days : []
+    const days = DAY_ORDER.filter((d) =>
+      raw.some((x) => typeof x === 'string' && x.trim().slice(0, 3).toLowerCase() === d.toLowerCase()),
+    )
+    const start = clock(m.start)
+    const end = clock(m.end)
+    if (!days.length || start === null || end === null) continue
+    const length = end - start
+    if (length < 20 || length > 360) continue
+    const text = `${days.join(' · ')} ${hhmm(start)}–${hhmm(end)}`
+    if (seen.has(text)) continue
+    seen.add(text)
+    out.push(text)
+    if (out.length >= MAX_MEETINGS) break
+  }
+  return out.join('; ')
 }
 
 /** Titles that name submitted work repeated through the term. */
@@ -145,6 +202,8 @@ export function cleanParse(raw: { course?: unknown; assessments?: unknown }): {
     taName: cleanText(c.taName, 100),
     taEmail: cleanEmail(c.taEmail),
     gradingScale: cleanText(c.gradingScale, 300),
+    location: cleanText(c.location, 120),
+    meetingTimes: cleanMeetings(c.meetings),
   }
 
   const list = Array.isArray(raw.assessments) ? raw.assessments : []

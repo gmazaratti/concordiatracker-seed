@@ -7,6 +7,7 @@ import { NotePage } from './NotePage'
 import { useNotesData } from './useNotesData'
 import { claimLink } from './sharing-api'
 import { ensureClassFolders } from './notes-api'
+import { FileRoute } from './files/FileRoute'
 
 /**
  * /app/notes                 the home grid (classes and folders, one kind)
@@ -14,6 +15,7 @@ import { ensureClassFolders } from './notes-api'
  * /app/notes/c/:courseId     a class's notebook, resolved to its folder
  * /app/notes/n/:id           a note
  * /app/notes/s/:token        a share link: joins, then opens what it points at
+ * /app/notes/file/:key       a file, full screen (what a file link in a note points at)
  */
 export function NotesRoutes() {
   return (
@@ -30,6 +32,7 @@ export function NotesRoutes() {
           <Route path="c/:courseId" element={<ClassRoute />} />
           <Route path="n/:id" element={<NoteRoute />} />
           <Route path="s/:token" element={<LinkRoute />} />
+          <Route path="file/:key" element={<FileRoute />} />
           <Route path="*" element={<Navigate to="/app/notes" replace />} />
         </Routes>
       </div>

@@ -16,6 +16,9 @@ import { NoteDialogs, type DialogState } from './NoteDialogs'
 import { SlidesPanel } from './SlidesPanel'
 import { TaskBar } from './TaskBar'
 import { MarginComments } from './comments/MarginComments'
+import { FilePanel } from './files/FilePanel'
+import { FileLinkPicker } from './files/FileLinkPicker'
+import { fileLinkKey, insertFileLink, usePlaceOf } from './files/file-links'
 import { useAutosave } from './useAutosave'
 import { useNotesData } from './useNotesData'
 import { useLocalPref } from './useLocalPref'
@@ -54,6 +57,10 @@ export function NoteWorkspace({ note, role, provider, legacy, people, loadPeople
   const [today] = useState(() => new Date().toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' }))
   const [paper, setPaper] = useState<HTMLDivElement | null>(null)
   const editorRef = useRef<Editor | null>(null)
+  const [fileKey, setFileKey] = useState<string | null>(null)
+  const [linking, setLinking] = useState(false)
+  const openFileRef = useRef<(key: string) => void>(() => {})
+  const placeOf = usePlaceOf()
   const [mentionSource] = useState(() => new LiveMentionSource(note.id))
   const canEdit = (role === 'owner' || role === 'editor') && !legacy
   const allCourses = useMemo(() => [...courses, ...pastCourses], [courses, pastCourses])
@@ -86,6 +93,14 @@ export function NoteWorkspace({ note, role, provider, legacy, people, loadPeople
       transformPastedHTML: cleanPastedHtml,
       handlePaste: (_v, e): boolean => onImages([...(e.clipboardData?.files ?? [])]),
       handleDrop: (_v, e): boolean => onImages([...((e as DragEvent).dataTransfer?.files ?? [])]),
+      // A link to one of your files opens it beside the note instead of leaving it.
+      handleClick: (_v, _pos, e): boolean => {
+        const key = fileLinkKey(e.target)
+        if (!key) return false
+        e.preventDefault()
+        openFileRef.current(key)
+        return true
+      },
     },
     // Only MY changes refresh the searchable copy; a classmate's edits are
     // saved by them, so every client writing the same thing is avoided.
@@ -97,6 +112,9 @@ export function NoteWorkspace({ note, role, provider, legacy, people, loadPeople
   }, [provider, legacy])
 
   useEffect(() => { editorRef.current = editor }, [editor])
+  useEffect(() => {
+    openFileRef.current = (key) => { setFileKey(key); setTab('file'); setPanel(true) }
+  }, [setPanel])
   // Real page breaks only in the Pages layout; the extension reports the page count.
   useEffect(() => {
     if (!editor) return
@@ -155,7 +173,7 @@ export function NoteWorkspace({ note, role, provider, legacy, people, loadPeople
         ]} />
 
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-canvas px-3">
-        {editor && <NoteToolbar editor={editor} zoom={zoom} onZoom={setZoom} disabled={!canEdit} insert={insertActions} />}
+        {editor && <NoteToolbar editor={editor} zoom={zoom} onZoom={setZoom} disabled={!canEdit} insert={{ ...insertActions, linkFile: () => setLinking(true) }} />}
         <input ref={imageInput} type="file" accept="image/*" multiple hidden
           onChange={(e) => { onImages([...(e.target.files ?? [])]); e.target.value = '' }} />
         <input ref={fileInput} type="file" accept={FILE_ACCEPT} multiple hidden
@@ -185,13 +203,18 @@ export function NoteWorkspace({ note, role, provider, legacy, people, loadPeople
           comments={{ threads: comments.threads, people, myId: data.myId, role, active: comments.active, draft: comments.draft,
             onActive: comments.setActive, onPostDraft: (b) => void comments.postDraft(b), onCancelDraft: () => comments.setDraft(null),
             onReply: (t, b) => void comments.reply(t, b), onResolve: (t, r) => void comments.resolve(t, r), onDelete: (id) => void comments.remove(id) }}
-          slides={<SlidesPanel provider={provider} noteId={note.id} canEdit={canEdit} />} />
+          slides={<SlidesPanel provider={provider} noteId={note.id} canEdit={canEdit} />}
+          file={fileKey ? <FilePanel fileKey={fileKey} onClose={() => { setFileKey(null); setTab('details') }} /> : null} />
       </div>
 
       <NoteDialogs state={dialog} onClose={() => setDialog(null)} noteId={note.id} title={live.title} page={live.page} canEdit={canEdit} editor={lastEditor}
         onPage={(p) => { live.writePage(p); void data.patchNote(note.id, { page: p }) }}
         onRestore={(content) => editor?.commands.setContent(content)} onTemplate={(name, c) => data.addTemplate(name, c)} onShared={loadPeople}
         onVoice={onVoice} />
+      {linking && (
+        <FileLinkPicker placeOf={placeOf} onClose={() => setLinking(false)}
+          onPick={(f) => { if (editor) insertFileLink(editor, f); setLinking(false) }} />
+      )}
     </div>
   )
 }

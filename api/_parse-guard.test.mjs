@@ -16,6 +16,7 @@ import {
   cleanDate,
   cleanWeight,
   cleanText,
+  cleanMeetings,
   isPdf,
   pdfPageCount,
   wordRatio,
@@ -123,6 +124,28 @@ const flood = cleanParse({ assessments: Array.from({ length: 500 }, (_, i) => ({
 check(`at most ${MAX_ITEMS} assessments are kept`, flood.assessments.length === MAX_ITEMS)
 check('…and the student is told', flood.warnings.some((w) => w.includes(String(MAX_ITEMS))))
 check('a missing course is an empty course, not a crash', cleanParse({}).course.code === '')
+
+// ── Class meeting times ────────────────────────────────────────────────────
+const reli = cleanMeetings([{ days: ['Tue', 'Thu'], start: '16:15', end: '17:30' }])
+check("Tuesdays and Thursdays 4:15–5:30 becomes the app's form", reli === 'Tue · Thu 16:15–17:30', reli)
+check('days come out in week order', cleanMeetings([{ days: ['Thu', 'Mon'], start: '9:00', end: '10:15' }]) === 'Mon · Thu 09:00–10:15')
+check('a lecture and a tutorial are two patterns', cleanMeetings([
+  { days: ['Mon', 'Wed'], start: '10:15', end: '11:30' },
+  { days: ['Fri'], start: '13:15', end: '14:05' },
+]) === 'Mon · Wed 10:15–11:30; Fri 13:15–14:05')
+check('an hour past 23 is refused', cleanMeetings([{ days: ['Tue'], start: '25:00', end: '26:00' }]) === '')
+check('an end before its start is dropped', cleanMeetings([{ days: ['Tue'], start: '17:30', end: '16:15' }]) === '')
+check('a 10-minute "class" is a misread and dropped', cleanMeetings([{ days: ['Tue'], start: '16:15', end: '16:25' }]) === '')
+check('unknown days are dropped, known ones kept', cleanMeetings([{ days: ['Tue', 'Blursday'], start: '16:15', end: '17:30' }]) === 'Tue 16:15–17:30')
+check('no days at all yields nothing', cleanMeetings([{ days: [], start: '16:15', end: '17:30' }]) === '')
+check('free text from the model is not passed through', cleanMeetings('Tue 4pm; drop table') === '')
+check('duplicates collapse', cleanMeetings([
+  { days: ['Tue'], start: '16:15', end: '17:30' },
+  { days: ['Tue'], start: '16:15', end: '17:30' },
+]) === 'Tue 16:15–17:30')
+const withMeet = cleanParse({ course: { code: 'RELI 230', location: 'H 557', meetings: [{ days: ['Tue', 'Thu'], start: '16:15', end: '17:30' }] } })
+check('cleanParse carries meetings and the room',
+  withMeet.course.meetingTimes === 'Tue · Thu 16:15–17:30' && withMeet.course.location === 'H 557', withMeet.course)
 
 console.log(failures === 0 ? '\nparse guard: all checks passed' : `\n${failures} check(s) failed`)
 process.exit(failures === 0 ? 0 : 1)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { JSONContent } from '@tiptap/react'
-import { Check, Copy, ExternalLink, FileDown, Loader2 } from 'lucide-react'
+import { Check, Copy, ExternalLink, FileDown, HardDriveUpload, Loader2 } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { Button } from '@/components/ui/Button'
 import { noteToHtml } from './to-html'
@@ -10,13 +10,14 @@ import type { PageSetup } from '../page-setup'
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 
 /**
- * Export to Word and to Google Docs. No extension and no Google sign-in:
+ * Export to Word and to Google Docs. No extension needed:
  *
  *   Word        a real .docx, built in the browser (it also opens in Pages,
  *               LibreOffice, and in Google Docs when uploaded to Drive).
- *   Google Docs copy the note with its formatting and pictures, open a new
- *               Google Doc, paste. Two clicks, and nothing of yours passes
- *               through our servers or needs access to your Drive.
+ *   Drive       save it to Google Drive as a Google Doc, straight from the
+ *               browser with the drive.file scope (only files this app makes).
+ *   Google Docs or copy the note with its formatting and pictures, open a new
+ *               Google Doc, paste: no Google sign-in at all.
  */
 export function ExportDialog({ title, content, setup, onClose }: { title: string; content: JSONContent; setup: PageSetup; onClose: () => void }) {
   const [html, setHtml] = useState<string | null>(null)
@@ -24,6 +25,21 @@ export function ExportDialog({ title, content, setup, onClose }: { title: string
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [titleAtTop, setTitleAtTop] = useState(true)
+  const [drive, setDrive] = useState<{ busy: boolean; url: string | null }>({ busy: false, url: null })
+
+  const toDrive = async () => {
+    setDrive({ busy: true, url: null })
+    setError('')
+    try {
+      const [{ noteToDocx }, { saveDocxToDrive }] = await Promise.all([import('./to-docx'), import('./drive')])
+      const blob = await noteToDocx(title, content, setup, titleAtTop)
+      const r = await saveDocxToDrive(title || 'Note', blob)
+      setDrive({ busy: false, url: r.url })
+    } catch (e) {
+      setDrive({ busy: false, url: null })
+      setError(e instanceof Error ? e.message : 'The note could not be saved to Drive.')
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -80,6 +96,20 @@ export function ExportDialog({ title, content, setup, onClose }: { title: string
 
         <section className="flex flex-col gap-2 border-t border-border pt-4">
           <p className="text-[13.5px] font-semibold text-fg">Google Docs</p>
+          <p className="text-[12.5px] text-muted">Save it straight to your Drive as a Google Doc. ConcordiaTracker can only see files it saves there, never the rest of your Drive.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => void toDrive()} disabled={drive.busy}>
+              {drive.busy ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <HardDriveUpload size={14} aria-hidden />}
+              {drive.busy ? 'Saving…' : 'Save to Google Drive'}
+            </Button>
+            {drive.url && (
+              <a href={drive.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent-soft px-2.5 text-[13px] font-medium text-accent hover:underline">
+                <ExternalLink size={14} aria-hidden /> Open it in Google Docs
+              </a>
+            )}
+          </div>
+          <p className="pt-1 text-[12px] text-subtle">Or, without signing in to Google:</p>
           <ol className="flex flex-col gap-2 text-[12.5px] text-muted">
             <li className="flex items-center gap-2">
               <span className="grid size-5 shrink-0 place-items-center rounded-full bg-surface-2 text-[11px] font-semibold text-fg">1</span>

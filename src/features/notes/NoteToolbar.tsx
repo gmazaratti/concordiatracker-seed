@@ -1,5 +1,6 @@
 import { useEditorState, type Editor } from '@tiptap/react'
 import {
+  Paperclip,
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Code, Highlighter, Italic, Link2, List, ListChecks,
   AtSign, CalendarClock, FileUp, ImagePlus, ListOrdered, Mic, Minus, PenTool, Plus, Quote, Redo2, RemoveFormatting, SeparatorHorizontal, SquareCode, Strikethrough,
   Underline, Undo2,
@@ -19,6 +20,8 @@ export interface InsertActions {
   drawing: () => void
   date: () => void
   mention: () => void
+  /** Link to one of your files (PDFs, slides…), opened beside the note. */
+  linkFile?: () => void
 }
 
 const STYLES = [
@@ -104,6 +107,7 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled, insert }: {
       <DropdownMenu ariaLabel="Insert" icon={Plus} triggerClassName="size-8 shrink-0" items={[
         { id: 'image', label: 'Image', icon: ImagePlus, onSelect: insert.image },
         { id: 'file', label: 'File (PDF, Word, slides…)', icon: FileUp, onSelect: insert.file },
+        ...(insert.linkFile ? [{ id: 'linkfile', label: 'Link to one of my files', icon: Paperclip, onSelect: insert.linkFile }] : []),
         { id: 'voice', label: 'Voice note', icon: Mic, onSelect: insert.voice },
         { id: 'drawing', label: 'Drawing', icon: PenTool, onSelect: insert.drawing },
         { id: 'date', label: 'Date or time', icon: CalendarClock, onSelect: insert.date, separated: true },

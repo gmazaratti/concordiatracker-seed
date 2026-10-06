@@ -87,6 +87,8 @@ Rules:
   - code (e.g., "COMP 248"), title, term (e.g., "Fall 2026"), and section — the section identifier, e.g., "BB", "001", "Section A".
   - instructorName and instructorEmail — the professor's full name and email address.
   - taName and taEmail — the teaching assistant's name and email, ONLY if a TA is listed; otherwise leave both as empty strings.
+  - meetings — when the CLASS itself meets each week (lectures, tutorials, labs), NOT office hours and NOT exam dates. One entry per distinct time: days as three-letter English names ("Mon","Tue","Wed","Thu","Fri","Sat","Sun"), start and end in 24-hour "HH:MM" (4:15 pm → "16:15"). Days that share a time go in ONE entry ("Tuesdays and Thursdays 4:15–5:30 pm" → {"days":["Tue","Thu"],"start":"16:15","end":"17:30"}). Use an empty array if the document does not state a weekly time.
+  - location — the room or building where the class meets (e.g., "H 557", "Hall Building Rm 557"), as written; otherwise an empty string. Not the office-hours room.
   - gradingScale — the letter-grade scale or grade cutoffs if the syllabus states one (e.g., "A: 90-100, A-: 85-89, B+: 80-84, ..."), as a single concise line; otherwise an empty string.
   Use empty strings for anything not found. Never invent contact details or a grading scale.
 - Keep titles short (under 150 characters) and descriptions under 400 characters.
@@ -117,6 +119,21 @@ export const SCHEMA = {
         taName: { type: 'STRING' },
         taEmail: { type: 'STRING' },
         gradingScale: { type: 'STRING' },
+        location: { type: 'STRING' },
+        meetings: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              days: {
+                type: 'ARRAY',
+                items: { type: 'STRING', enum: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+              },
+              start: { type: 'STRING' },
+              end: { type: 'STRING' },
+            },
+          },
+        },
       },
     },
     assessments: {

@@ -9,6 +9,7 @@ import { NoteCard } from './NoteCard'
 import { NewNoteButton } from './NewNoteButton'
 import { SearchResults } from './SearchResults'
 import { SharedSection } from './SharedSection'
+import { FolderFiles } from './files/FolderFiles'
 import { FolderDialog } from './FolderDialog'
 import { useNotesData } from './useNotesData'
 import { useNotesDnd } from './useNotesDnd'
@@ -204,6 +205,10 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
                 </Section>
               ))
             ))}
+
+          {folderId !== null && !tasksView && (
+            <FolderFiles folderId={current} courseId={here?.courseId ?? null} myId={data.myId ?? null} folderName={title} />
+          )}
 
           {folderId === null && <SharedSection items={data.shared} />}
         </>

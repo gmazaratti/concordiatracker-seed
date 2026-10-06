@@ -31,10 +31,13 @@ interface CourseFields {
   taName: string
   taEmail: string
   gradingScale: string
+  meetingTimes: string
+  location: string
 }
 const EMPTY_COURSE: CourseFields = {
   code: '', title: '', term: '', section: '',
   instructorName: '', instructorEmail: '', taName: '', taEmail: '', gradingScale: '',
+  meetingTimes: '', location: '',
 }
 
 interface ReviewItem {
@@ -189,6 +192,8 @@ export function SyllabusUploadPage({
       taName: c.taName ?? '',
       taEmail: c.taEmail ?? '',
       gradingScale: c.gradingScale ?? '',
+      meetingTimes: c.meetingTimes ?? '',
+      location: c.location ?? '',
     })
     setItems(toReview(parsed))
     setWarnings(parsed.warnings ?? [])
@@ -317,15 +322,20 @@ export function SyllabusUploadPage({
       if (course.gradingScale.trim()) {
         updateCourse(targetId, { gradingScale: course.gradingScale.trim() })
       }
-      // A course found by its code keeps what the student already typed and
-      // gains only what was blank — the outline does not get to overwrite them.
-      if (matched) {
+      // The existing course keeps what the student already typed and gains only
+      // what was blank — the outline does not get to overwrite them. That holds
+      // whether it was found by its code or the upload was started from its page.
+      const into = matched ?? courses.find((c) => c.id === targetId)
+      if (into) {
+        const matched = into
         const fill: Partial<Course> = {}
         if (!matched.instructor?.name && course.instructorName.trim()) {
           fill.instructor = { name: course.instructorName.trim(), email: course.instructorEmail.trim() }
         }
         if (!matched.section && course.section.trim()) fill.section = course.section.trim()
         if (!matched.title && course.title.trim()) fill.title = course.title.trim()
+        if (!matched.meetingTimes?.trim() && course.meetingTimes.trim()) fill.meetingTimes = course.meetingTimes.trim()
+        if (!matched.location?.trim() && course.location.trim()) fill.location = course.location.trim()
         if (Object.keys(fill).length > 0) updateCourse(matched.id, fill)
       }
       if (add.length > 0) await addAssessments(add)
@@ -364,6 +374,8 @@ export function SyllabusUploadPage({
       ...(course.term.trim() ? { term: course.term.trim() } : {}),
       instructor: { name: course.instructorName.trim(), email: course.instructorEmail.trim() },
       ta,
+      ...(course.meetingTimes.trim() ? { meetingTimes: course.meetingTimes.trim() } : {}),
+      ...(course.location.trim() ? { location: course.location.trim() } : {}),
     })
     // Grading scale needs a (possibly unmigrated) column — write it on its own so
     // a missing column can't take the rest of the logistics down with it.
@@ -669,10 +681,11 @@ function CourseEdit({ course, setCourse }: { course: CourseFields; setCourse: (c
 
   const found = [
     course.instructorName.trim() && course.instructorName.trim(),
+    course.meetingTimes.trim() && course.meetingTimes.trim(),
     course.taName.trim() && `TA: ${course.taName.trim()}`,
     course.gradingScale.trim() && 'grading scale',
   ].filter(Boolean)
-  const summary = found.length ? found.join(' · ') : 'Add instructor, TA & grading'
+  const summary = found.length ? found.join(' · ') : 'Add instructor, class times, TA & grading'
 
   return (
     <div className="rounded-xl border border-border bg-surface p-3">
@@ -696,6 +709,8 @@ function CourseEdit({ course, setCourse }: { course: CourseFields; setCourse: (c
         <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2.5">
           <input className={FIELD} placeholder="Instructor" value={course.instructorName} onChange={(e) => set({ instructorName: e.target.value })} />
           <input className={FIELD} placeholder="Instructor email" value={course.instructorEmail} onChange={(e) => set({ instructorEmail: e.target.value })} />
+          <input className={FIELD} placeholder="Meets (e.g. Tue · Thu 16:15–17:30)" value={course.meetingTimes} onChange={(e) => set({ meetingTimes: e.target.value })} />
+          <input className={FIELD} placeholder="Room (e.g. H 557)" value={course.location} onChange={(e) => set({ location: e.target.value })} />
           <input className={FIELD} placeholder="TA (optional)" value={course.taName} onChange={(e) => set({ taName: e.target.value })} />
           <input className={FIELD} placeholder="TA email (optional)" value={course.taEmail} onChange={(e) => set({ taEmail: e.target.value })} />
           <input className={cn(FIELD, 'col-span-2')} placeholder="Grading scale (e.g. A: 90–100, B+: 85–89…)" value={course.gradingScale} onChange={(e) => set({ gradingScale: e.target.value })} />

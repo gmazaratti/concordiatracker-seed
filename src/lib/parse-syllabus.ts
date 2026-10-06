@@ -26,6 +26,10 @@ export interface ParsedSyllabus {
     taName?: string
     taEmail?: string
     gradingScale?: string
+    /** Where the class meets, as the outline writes it. */
+    location?: string
+    /** "Tue · Thu 16:15–17:30" form, built and validated on the server. */
+    meetingTimes?: string
   }
   assessments: ParsedAssessment[]
   /** Things the server wants the student to check (an impossible weight total). */

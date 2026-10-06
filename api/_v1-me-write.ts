@@ -370,6 +370,8 @@ export async function courseFromOutline(
       ta_name: c.taName ?? '',
       ta_email: c.taEmail ?? '',
       grading_scale: c.gradingScale ?? '',
+      time: c.meetingTimes ?? '',
+      location: c.location ?? '',
       credits: 3,
       color: 'blue',
     },

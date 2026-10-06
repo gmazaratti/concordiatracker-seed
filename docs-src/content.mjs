@@ -1598,7 +1598,7 @@ export const PAGES = {
     title: 'Notes',
     section: 'Notes',
     description:
-      'Notes is a document editor for class notes and personal to-dos: every class is a folder, notes file themselves into the class you are sitting in, and a task can sit on Today and in your calendar.',
+      'Notes is a document editor for class notes, files and personal to-dos: every class is a folder that also holds its syllabus and your PDFs, notes file themselves into the class you are sitting in, and a task can sit on Today and in your calendar.',
     blocks: [
       {
         p: 'Notes is where you write: class notes, readings, plans, and to-dos. It works on a computer (on a phone the tab is hidden for now, because writing and formatting a document needs the room).',
@@ -1609,6 +1609,16 @@ export const PAGES = {
       },
       {
         p: 'Start a note during a class on your schedule and it files itself into that class, named after the week ("Week 5 FINA 210"). Started inside a class folder, it goes there with the current week. You can remove the link if it guessed wrong.',
+      },
+      { h2: 'Files' },
+      {
+        p: 'Folders hold files as well as notes: PDFs, slides, Word documents, spreadsheets and pictures, up to 25 MB each. Press **Upload file** in a folder, or drag files from your computer anywhere onto the page. Click a file to open it; PDFs and pictures open right in the app, other kinds download.',
+      },
+      {
+        p: 'The syllabus you uploaded when you created a course appears in that class’s folder automatically, marked **Syllabus**. It is the same file as on the course page, not a copy, so deleting it in one place removes it from both.',
+      },
+      {
+        p: 'To refer to a file from a note, use **Insert → Link to one of my files**. Clicking the link opens the file in the side panel, beside the page, so you can read the slides and write about them at once. Files in a folder you share are visible to the people you shared it with.',
       },
       { h2: 'Tasks' },
       {
@@ -1704,7 +1714,8 @@ export const PAGES = {
         ul: [
           '**PDF**: **⋯ → Export as PDF** opens your browser’s print dialog; choose Save as PDF. Your header and footer print on every page.',
           '**Word**: **⋯ → Export to Word or Google Docs → Download .docx**. Headings, lists, colours, links, pictures, and the header and footer with page numbers come with it. It also opens in Pages and LibreOffice.',
-          '**Google Docs**: in the same dialog, copy the note, open a new Google Doc, and paste. The formatting and pictures come with it, and nothing needs access to your Google account.',
+          '**Google Drive**: in the same dialog, **Save to Google Drive** puts the note in your Drive as a Google Doc, with its header, footer and page numbers. Google asks once for permission, and ConcordiaTracker can only see the files it saves there, never the rest of your Drive.',
+          '**Google Docs without signing in**: copy the note, open a new Google Doc, and paste. The formatting and pictures come with it.',
         ],
       },
       {
