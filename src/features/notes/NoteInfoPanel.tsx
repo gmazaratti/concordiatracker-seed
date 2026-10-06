@@ -24,7 +24,8 @@ export function NoteInfoPanel(props: {
   folders: NoteFolder[]
   assessments: Assessment[]
   people: NotePerson[]
-  live: Map<string, string>
+  /** Who has the note open: 'active' looking at it, 'idle' in a background tab. */
+  live: Map<string, 'active' | 'idle'>
   onChange: (patch: Partial<NoteMeta>) => void
   onShare: () => void
 }) {
@@ -109,16 +110,17 @@ export function NoteInfoPanel(props: {
         </div>
         <ul className="flex flex-col gap-2.5">
           {people.map((p) => {
-            const color = props.live.get(p.userId)
+            const status = props.live.get(p.userId)
+            const ring = status === 'active' ? 'var(--ct-success)' : status === 'idle' ? 'var(--ct-subtle)' : null
             return (
               <li key={p.userId} className="flex items-center gap-2.5">
-                <span className="relative rounded-full transition-shadow duration-300" style={color ? { boxShadow: `0 0 0 2px ${color}` } : undefined}>
+                <span className="relative rounded-full transition-shadow duration-300" style={ring ? { boxShadow: `0 0 0 2px var(--ct-surface), 0 0 0 4px ${ring}` } : undefined}>
                   <PersonAvatar person={{ handle: p.handle ?? '', name: p.name, avatar_url: p.avatarUrl }} className="size-8" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] text-fg">{p.name || `@${p.handle}`}</span>
-                  <span className={cn('block truncate text-[11.5px]', color ? 'text-success' : 'text-subtle')}>
-                    {color ? 'Here now' : p.lastViewedAt ? `Viewed ${ago(p.lastViewedAt)}` : 'Not opened yet'}
+                  <span className={cn('block truncate text-[11.5px]', status === 'active' ? 'text-success' : 'text-subtle')}>
+                    {status === 'active' ? 'Here now' : status === 'idle' ? 'Open in another tab' : p.lastViewedAt ? `Viewed ${ago(p.lastViewedAt)}` : 'Not opened yet'}
                     {p.lastEditedAt ? ` · edited ${ago(p.lastEditedAt)}` : ''}
                   </span>
                 </span>

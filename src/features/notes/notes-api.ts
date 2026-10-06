@@ -192,20 +192,18 @@ export async function searchNotes(q: string): Promise<SearchHit[]> {
   }))
 }
 
+/** Earlier versions, newest first, with who wrote each one. */
 export async function listVersions(noteId: string): Promise<NoteVersion[]> {
-  const { data, error } = await supabase
-    .from('note_versions')
-    .select('id,title,content,created_at')
-    .eq('note_id', noteId)
-    .order('created_at', { ascending: false })
+  const { data, error } = await supabase.rpc('note_version_list', { p_note: noteId })
   if (error) throw error
-  return ((data ?? []) as { id: string; title: string; content: JSONContent; created_at: string }[]).map((v) => ({
+  type Row = { id: string; title: string; content: JSONContent; created_at: string; edited_by: string | null; editor_name: string | null; editor_handle: string | null; editor_avatar: string | null }
+  return ((data ?? []) as Row[]).map((v) => ({
     id: v.id,
     title: v.title,
     content: v.content,
     createdAt: v.created_at,
+    editor: v.edited_by ? { id: v.edited_by, name: v.editor_name, handle: v.editor_handle, avatar: v.editor_avatar } : null,
   }))
 }
-
 
 export * from './folders-api'

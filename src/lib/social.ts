@@ -93,6 +93,13 @@ export type Attachment =
    * changing your mind later is the same switch it always was.
    */
   | { kind: 'schedule_request' }
+  /**
+   * A photo. The PATH in the private dm-media bucket, never a URL: a signed
+   * link expires, and the database rebuilds this from validated fields
+   * (db/notes_batch3.sql, ct_check_image_attachment), so nothing else a
+   * client puts here reaches the other person.
+   */
+  | { kind: 'image'; path: string; w: number; h: number }
 
 export interface Message {
   id: string
@@ -584,6 +591,8 @@ export function threadPreview(t: Thread, mine: boolean): string {
         return verb('sent an outline')
       case 'schedule_request':
         return mine ? 'You asked to see their schedule' : 'Asked to see your schedule'
+      case 'image':
+        return verb('sent a photo')
     }
   }
   const body = (t.last_body ?? '').trim()

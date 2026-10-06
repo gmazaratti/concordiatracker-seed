@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
@@ -7,6 +7,7 @@ import { useComments } from '@/lib/comments'
 import { postAspect, type FeedPost } from '@/lib/social-posts'
 import { VerifiedBadge } from '../VerifiedBadge'
 import { CommentThread } from './CommentThread'
+import { useIsDesktop } from './useIsDesktop'
 
 const slugOf = (h: string) => h.replace(/^@/, '')
 
@@ -190,17 +191,3 @@ function PostDetailModal({
  * A hook rather than a CSS breakpoint: the two shells are different DOM, not
  * different styling on the same DOM, so the choice has to happen in render.
  */
-function useIsDesktop(): boolean {
-  const [wide, setWide] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(QUERY).matches,
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(QUERY)
-    const on = (e: MediaQueryListEvent) => setWide(e.matches)
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-  return wide
-}
-
-const QUERY = '(min-width: 1024px)'

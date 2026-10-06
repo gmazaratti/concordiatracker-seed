@@ -124,7 +124,7 @@ export function RepostsTab({
   )
 }
 
-function Tile({
+export function Tile({
   children,
   label,
   onOpen,
@@ -148,7 +148,7 @@ function Tile({
 /** A post's first frame, with the corner glyph that says there is more to it —
  *  a stack for a carousel, a triangle for a clip, exactly as the reference
  *  marks them. Both are information: a square with neither is one picture. */
-function PostTileMedia({ post }: { post: FeedPost }) {
+export function PostTileMedia({ post }: { post: FeedPost }) {
   const first = post.media[0]
   if (!first) {
     return (
@@ -183,7 +183,7 @@ function EventTileMedia({ event }: { event: CampusEvent }) {
   return <EventMedia event={event} variant="banner" className="size-full !rounded-none" />
 }
 
-function GridSkeleton() {
+export function GridSkeleton() {
   return (
     <div className="-mx-4 mt-0.5 grid grid-cols-3 gap-0.5 sm:mx-0 sm:gap-1" aria-hidden>
       {Array.from({ length: 9 }, (_, i) => (

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { HsvPicker } from '@/components/ui/HsvPicker'
 import { cn } from '@/lib/cn'
 import { PAGE_COLORS, type PageSetup } from './page-setup'
+import { HeaderFooterFields } from './HeaderFooterFields'
 
 /**
  * Page setup for this note: separate pages (a letter sheet, broken where the
@@ -15,6 +16,10 @@ export function PageSetupDialog({ value, onSave, onClose }: { value: PageSetup; 
   const [layout, setLayout] = useState(value.layout)
   const [color, setColor] = useState(value.color)
   const [custom, setCustom] = useState(!PAGE_COLORS.some((c) => c.value === value.color))
+  const [bands, setBands] = useState({
+    header: value.header, footer: value.footer, headerLine: value.headerLine,
+    footerLine: value.footerLine, firstPage: value.firstPage, browserHeaders: value.browserHeaders,
+  })
 
   return (
     <ModalShell label="Page setup" onClose={onClose}>
@@ -25,7 +30,7 @@ export function PageSetupDialog({ value, onSave, onClose }: { value: PageSetup; 
           <legend className="mb-2 text-[12px] font-semibold tracking-wide text-subtle uppercase">Layout</legend>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { v: 'pages', icon: FileText, title: 'Pages', body: 'Letter-size sheets, with a line where each page ends.' },
+              { v: 'pages', icon: FileText, title: 'Pages', body: 'Separate letter-size sheets, like a printed document.' },
               { v: 'pageless', icon: ScrollText, title: 'Pageless', body: 'One endless page. Good for long notes and wide images.' },
             ] as const).map((o) => (
               <button key={o.v} type="button" onClick={() => setLayout(o.v)} aria-pressed={layout === o.v}
@@ -61,9 +66,14 @@ export function PageSetupDialog({ value, onSave, onClose }: { value: PageSetup; 
           {custom && <div className="mt-3"><HsvPicker value={color.startsWith('#') ? color : '#fdf6e3'} onChange={setColor} /></div>}
         </fieldset>
 
+        <fieldset>
+          <legend className="mb-2 text-[12px] font-semibold tracking-wide text-subtle uppercase">Header and footer</legend>
+          <HeaderFooterFields value={bands} onChange={setBands} />
+        </fieldset>
+
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave({ layout, color })}>Apply</Button>
+          <Button onClick={() => onSave({ layout, color, ...bands })}>Apply</Button>
         </div>
       </div>
     </ModalShell>

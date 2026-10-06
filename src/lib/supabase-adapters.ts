@@ -298,6 +298,8 @@ export interface TodoRow {
   /** Both optional: appended by the caller only once the migration is in. */
   steps?: TaskStep[] | null
   repeat_group?: string | null
+  /** The note this task is written in, when it was made from Notes. */
+  note_id?: string | null
 }
 
 export function taskFromRow(r: TodoRow): CalendarTask {
@@ -311,6 +313,7 @@ export function taskFromRow(r: TodoRow): CalendarTask {
     movedFrom: r.moved_from ?? undefined,
     steps: r.steps && r.steps.length ? r.steps : undefined,
     repeatGroup: r.repeat_group ?? undefined,
+    noteId: r.note_id ?? undefined,
   }
 }
 
@@ -320,6 +323,7 @@ export interface NewTask {
   note?: string
   steps?: TaskStep[]
   repeatGroup?: string
+  noteId?: string
 }
 
 export function taskToInsert(task: NewTask, userId: string): Record<string, unknown> {
@@ -331,6 +335,8 @@ export function taskToInsert(task: NewTask, userId: string): Record<string, unkn
     done: false,
     steps: task.steps ?? [],
     repeat_group: task.repeatGroup ?? null,
+    // Only sent when set, so creating an ordinary task never depends on the column.
+    ...(task.noteId ? { note_id: task.noteId } : {}),
   }
 }
 

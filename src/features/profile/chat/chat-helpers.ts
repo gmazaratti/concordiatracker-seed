@@ -22,5 +22,6 @@ export function describe(a: Attachment): string {
   if (a.kind === 'event') return `Event · ${a.title}`
   if (a.kind === 'record') return `Record · ${a.snapshot.credits} credits`
   if (a.kind === 'schedule_request') return 'Schedule request'
+  if (a.kind === 'image') return 'Photo'
   return `Outline · ${a.code}`
 }

@@ -44,6 +44,28 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 const ALL_RELEASES: Release[] = [
   {
+    version: '2.2.0',
+    name: 'Notes, together',
+    date: '2026-10-06',
+    changes: [
+      { kind: 'new', text: 'Several people can type in one note at once, each with a coloured cursor and their name above it.' },
+      { kind: 'new', text: 'See who is in a note: a green ring when they are looking at it, grey when it is open in another tab.' },
+      { kind: 'new', text: 'Comments on highlighted text, from a button in the page margin, with replies and resolve.' },
+      { kind: 'new', text: '@mention a classmate the note is shared with to notify them, or @ a date and add it to your calendar.' },
+      { kind: 'new', text: 'Real pages, with headers and footers: page numbers, the title and the date on every page.' },
+      { kind: 'new', text: 'Export to Word, paste into Google Docs, or save as PDF without the browser adding its own header.' },
+      { kind: 'new', text: 'Tasks in Notes: a note with a due date shows on Today and in your calendar.' },
+      { kind: 'new', text: 'Images you can resize, crop and round; files, voice notes and drawings with palm rejection.' },
+      { kind: 'new', text: 'Flashcards, a quiz and a study guide made from your notes, and lecture slides beside the page.' },
+      { kind: 'new', text: 'Version history shows who changed what.' },
+      { kind: 'new', text: 'Line spacing, any text size, fonts, custom colours with hex codes, and emoji.' },
+      { kind: 'new', text: 'Send photos in messages, with emoji, and the time shows in the middle of a chat after a break.' },
+      { kind: 'improved', text: 'Share a whole folder, and go back up from inside one.' },
+      { kind: 'fixed', text: 'Text pasted from a dark page no longer comes in invisible on a white page.' },
+      { kind: 'fixed', text: 'Right-clicking a folder no longer opens it.' },
+    ],
+  },
+  {
     version: '2.1.0',
     name: 'Reminders, and the Lock Screen',
     date: '2026-09-28',

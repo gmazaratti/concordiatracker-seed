@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ChevronRight, FolderPlus, Inbox, Search, Share2, X } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { term } from '@/data/mock'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { FolderCard } from './FolderCard'
@@ -17,17 +16,17 @@ import { useNoteMenus } from './useNoteMenus'
 import { useFlip } from './useFlip'
 import { childrenOf, pathTo, reorder } from './folder-tree'
 import { groupNotes } from './note-format'
-import { autoLinkFor, weekOfTerm } from './auto-link'
-import type { NoteFolder, NoteTemplate } from './types'
+import { useNewNote } from './useNewNote'
+import type { NoteFolder } from './types'
 
 /**
  * The Notes home (folderId null) and the inside of any folder: one grid of
  * folders — classes are folders — then the notes in this folder.
  * Drag a card onto a folder to put it inside; drag beside a card to reorder.
  */
-export function FolderBrowser({ folderId }: { folderId: string | null | 'general' }) {
+export function FolderBrowser({ folderId }: { folderId: string | null | 'general' | 'tasks' }) {
   const navigate = useNavigate()
-  const { courses, pastCourses } = useAppData()
+  const { courses, pastCourses, personalTasks, toggleTask } = useAppData()
   const data = useNotesData()
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
@@ -36,16 +35,22 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
   const allCourses = useMemo(() => [...courses, ...pastCourses], [courses, pastCourses])
   const courseById = useMemo(() => new Map(allCourses.map((c) => [c.id, c])), [allCourses])
   const general = folderId === 'general'
-  const here = general || folderId === null ? null : (data.folders.find((f) => f.id === folderId) ?? null)
-  const current = folderId === null || general ? null : folderId
+  const tasksView = folderId === 'tasks'
+  const special = general || tasksView
+  const here = special || folderId === null ? null : (data.folders.find((f) => f.id === folderId) ?? null)
+  const current = folderId === null || special ? null : folderId
+  // A task is a note with a calendar task attached to it.
+  const taskByNote = useMemo(() => new Map(personalTasks.filter((t) => t.noteId).map((t) => [t.noteId as string, t])), [personalTasks])
 
   const label = (f: NoteFolder) => (f.courseId ? courseById.get(f.courseId)?.code || f.name : f.name)
   const style = (f: NoteFolder) => (f.courseId ? courseById.get(f.courseId)?.color ?? f.color : f.color)
   const mine = data.notes.filter((n) => n.ownerId === data.myId)
 
-  const subfolders = general ? [] : childrenOf(data.folders, current)
+  const subfolders = special ? [] : childrenOf(data.folders, current)
   const pinned = folderId === null ? data.folders.filter((f) => f.pinned) : []
-  const notesHere = general ? mine.filter((n) => !n.folderId) : current ? data.notes.filter((n) => n.folderId === current) : []
+  const notesHere = tasksView
+    ? data.notes.filter((n) => taskByNote.has(n.id)).sort((a, b) => taskOrder(taskByNote.get(a.id), taskByNote.get(b.id)))
+    : general ? mine.filter((n) => !n.folderId) : current ? data.notes.filter((n) => n.folderId === current) : []
   const stats = (id: string) => {
     const list = data.notes.filter((n) => n.folderId === id)
     return { count: list.length, folders: data.folders.filter((f) => f.parentId === id).length, updatedAt: list.reduce<string | null>((m, n) => (!m || n.updatedAt > m ? n.updatedAt : m), null) }
@@ -70,26 +75,12 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
     },
   })
 
-  const newNote = async (template: NoteTemplate | null) => {
-    const now = new Date()
-    let init: Parameters<typeof data.createNote>[0] = { content: template?.content }
-    if (here) {
-      init = { ...init, folderId: here.id }
-      if (here.courseId) init = { ...init, courseId: here.courseId, week: weekOfTerm(now, term.start, term.end) }
-    } else if (!general) {
-      // Writing during a scheduled class files the note in that class.
-      const link = autoLinkFor(courses, now, term)
-      const cls = link && data.folders.find((f) => f.courseId === link.courseId)
-      if (link) init = { ...init, courseId: link.courseId, week: link.week, lectureDate: link.lectureDate, title: link.title, folderId: cls?.id ?? null }
-    }
-    const meta = await data.createNote(init).catch(() => null)
-    if (meta) navigate(`/app/notes/n/${meta.id}`, { state: { autoLinked: !here && !general && !!init.courseId } })
-  }
+  const { newNote, newTask } = useNewNote(data, here, special)
 
   const crumbs = here ? pathTo(data.folders, here.id) : []
-  const title = general ? 'General' : here ? label(here) : 'Notes'
+  const title = general ? 'General' : tasksView ? 'Tasks' : here ? label(here) : 'Notes'
   const subtitle = here?.courseId ? courseById.get(here.courseId)?.title : undefined
-  const groups = groupNotes(notesHere, !!here?.courseId)
+  const groups = tasksView ? [{ label: 'Tasks', notes: notesHere }] : groupNotes(notesHere, !!here?.courseId)
 
   return (
     <div className="ct-notes-in mx-auto w-full max-w-6xl px-6 pt-6 pb-16 lg:px-10">
@@ -136,13 +127,14 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
             Share folder
           </Button>
         )}
-        {!general && (
+        {!special && (
           <Button variant="outline" size="sm" onClick={() => setCreating(true)}>
             <FolderPlus size={15} aria-hidden />
             New folder
           </Button>
         )}
-        <NewNoteButton templates={data.templates} onNew={(t) => void newNote(t)} onDeleteTemplate={(id) => void data.removeTemplate(id)} />
+        <NewNoteButton templates={data.templates} taskFirst={tasksView} onNew={(t) => void newNote(t)} onNewTask={() => void newTask()}
+          onDeleteTemplate={(id) => void data.removeTemplate(id)} />
       </header>
 
       {query.trim() ? (
@@ -182,6 +174,12 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
                     count={mine.filter((n) => !n.folderId).length} updatedAt={null} onOpen={() => navigate('/app/notes/f/general')} />
                 </div>
               )}
+              {folderId === null && !data.loading && (
+                <div className="h-40">
+                  <FolderCard name="Tasks" subtitle="Personal to-dos, also on Today" icon="tasks" color="green" drop={null} noun={['task', 'tasks']}
+                    count={data.notes.filter((n) => taskByNote.has(n.id)).length} updatedAt={null} onOpen={() => navigate('/app/notes/f/tasks')} />
+                </div>
+              )}
             </Section>
           )}
 
@@ -189,14 +187,16 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
             (notesHere.length === 0 ? (
               <div className="mt-10 flex flex-col items-center gap-2 text-center">
                 <Inbox size={26} className="text-subtle" aria-hidden />
-                <p className="text-[14px] text-muted">No notes here yet. Press New note to start one.</p>
+                <p className="text-[14px] text-muted">
+                  {tasksView ? 'No tasks yet. Press New task to track something, like updating your site.' : 'No notes here yet. Press New note to start one.'}
+                </p>
               </div>
             ) : (
               groups.map((g) => (
                 <Section key={g.label || 'notes'} label={g.label || 'Notes'}>
                   {g.notes.map((n) => (
                     <div key={n.id} className="h-48">
-                      <NoteCard note={n} dragging={dnd.dragged?.id === n.id} onOpen={() => open.note(n.id)}
+                      <NoteCard note={n} task={taskByNote.get(n.id)} onToggleTask={(id) => toggleTask(id)} dragging={dnd.dragged?.id === n.id} onOpen={() => open.note(n.id)}
                         onContextMenu={(e) => menus.noteMenu(e, n, n.ownerId === data.myId)}
                         dragProps={n.ownerId === data.myId ? dnd.dragProps('note', n.id) : undefined} />
                     </div>
@@ -219,6 +219,13 @@ export function FolderBrowser({ folderId }: { folderId: string | null | 'general
       )}
     </div>
   )
+}
+
+/** Open tasks first, soonest due first; done ones after. */
+function taskOrder(a?: { done: boolean; due: string }, b?: { done: boolean; due: string }): number {
+  if (!a || !b) return 0
+  if (a.done !== b.done) return a.done ? 1 : -1
+  return (a.due || '9').localeCompare(b.due || '9')
 }
 
 function Section({ label, children, gridRef }: { label: string; children: React.ReactNode; gridRef?: React.RefObject<HTMLDivElement | null> }) {

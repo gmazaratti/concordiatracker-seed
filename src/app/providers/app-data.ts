@@ -34,6 +34,8 @@ export interface TodayPrefs {
   /** Show each class's icon (in its colour) instead of the colour dot, for
    *  classes that have one. */
   courseIcons: boolean
+  /** Show tasks written in Notes (personal ones, like "update my site"). */
+  showNoteTasks: boolean
 }
 
 export const DEFAULT_TODAY_PREFS: TodayPrefs = {
@@ -42,6 +44,7 @@ export const DEFAULT_TODAY_PREFS: TodayPrefs = {
   groupBy: 'time',
   showProvenance: false,
   courseIcons: true,
+  showNoteTasks: true,
 }
 
 /** Calendar view + which layers are on. Sticky across SPA nav, resets on reload. */

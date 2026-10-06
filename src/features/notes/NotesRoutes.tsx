@@ -49,6 +49,7 @@ function FolderRoute() {
   const { id = '' } = useParams()
   const data = useNotesData()
   if (id === 'general') return <FolderBrowser key="general" folderId="general" />
+  if (id === 'tasks') return <FolderBrowser key="tasks" folderId="tasks" />
   if (data.loading) return <div className="mx-auto mt-16 h-40 w-full max-w-6xl px-10"><div className="ct-shimmer h-full rounded-2xl" /></div>
   return data.folders.some((f) => f.id === id) ? <FolderBrowser key={id} folderId={id} /> : <SharedFolderView key={id} folderId={id} />
 }

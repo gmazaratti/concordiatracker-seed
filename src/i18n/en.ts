@@ -374,6 +374,7 @@ export const en = {
   'today.allCaughtUpSub': 'Nothing outstanding right now. Enjoy the breathing room: new deadlines show up here the moment they land.',
   'today.completedTodayCount': 'Completed today · {count}',
   'today.showWeight': 'Show weight %',
+  'today.showNoteTasks': 'Show tasks from Notes',
   'today.showWeightAria': 'Show weight on Today',
   'today.courseIcons': 'Class icons',
   'today.courseIconsAria': "Show each class's icon instead of a colour dot",

@@ -56,7 +56,12 @@ export function TodayPage() {
 
   const groups = useMemo(() => groupDue(assessments), [assessments])
 
-  const { todosDue, todoCounts } = useTodosDue(personalTasks, assessments, courses)
+  // Tasks written in Notes can be hidden from Today without leaving Notes.
+  const todayTasks = useMemo(
+    () => (todayPrefs.showNoteTasks === false ? personalTasks.filter((tk) => !tk.noteId) : personalTasks),
+    [personalTasks, todayPrefs.showNoteTasks],
+  )
+  const { todosDue, todoCounts } = useTodosDue(todayTasks, assessments, courses)
 
   const shown = useShownGpa()
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])

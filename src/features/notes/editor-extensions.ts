@@ -11,6 +11,11 @@ import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { NoteImage } from './media/note-image'
 import { CommentHighlights } from './comments/CommentHighlights'
+import { LineHeight } from './extensions/line-height'
+import { Pagination } from './extensions/pagination'
+import { NoteFile } from './media/note-file'
+import { NoteDrawing } from './drawing/note-drawing'
+import { NoteDate, noteMention, type MentionSource } from './mentions/mention-extensions'
 
 export interface CollabOptions {
   doc: Y.Doc
@@ -27,7 +32,7 @@ export interface CollabOptions {
  * With collaboration on, undo/redo comes from Yjs (it only undoes YOUR
  * changes, never a classmate's), so StarterKit's own history is switched off.
  */
-export function noteExtensions(opts: { placeholder?: string; collab?: CollabOptions } = {}): Extensions {
+export function noteExtensions(opts: { placeholder?: string; collab?: CollabOptions; mentions?: MentionSource } = {}): Extensions {
   const exts: Extensions = [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -43,6 +48,12 @@ export function noteExtensions(opts: { placeholder?: string; collab?: CollabOpti
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     NoteImage,
+    NoteFile,
+    NoteDrawing,
+    NoteDate,
+    noteMention(opts.mentions),
+    LineHeight,
+    Pagination,
   ]
   if (opts.placeholder) exts.push(Placeholder.configure({ placeholder: opts.placeholder }))
   if (opts.collab) {

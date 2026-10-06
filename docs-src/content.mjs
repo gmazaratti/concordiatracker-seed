@@ -29,6 +29,10 @@ export const NAV = [
     pages: ['today', 'calendar', 'calendar-sync', 'moodle-sync', 'notifications'],
   },
   {
+    title: 'Notes',
+    pages: ['notes', 'notes-sharing', 'notes-export', 'notes-study'],
+  },
+  {
     title: 'Planner',
     pages: [
       'planner',
@@ -197,7 +201,7 @@ export const PAGES = {
         p: 'From there everything else follows automatically. Deadlines appear on Today and the calendar, and as you enter grades the app computes your standing in each course and your GPA on Concordia’s 4.30 scale. If you connect Moodle, dated Moodle events join your calendar too and are checked again every night.',
       },
       {
-        p: 'Beyond your own courses, the **Community** tab is where student clubs and organizations publish events and posts, and the **Planner** is where you look ahead to next term.',
+        p: 'Beyond your own courses, **Notes** is a shared document editor for class notes and personal tasks, the **Community** tab is where student clubs and organizations publish events and posts, and the **Planner** is where you look ahead to next term.',
       },
 
       { h2: 'Start here' },
@@ -220,6 +224,12 @@ export const PAGES = {
             title: 'Grade calculators',
             desc: 'What you need on what is left, and where your GPA lands.',
             href: '/docs/grade-calculators',
+          },
+          {
+            icon: 'book',
+            title: 'Notes',
+            desc: 'Class notes and tasks you can write together, export to Word or Google Docs, and study from.',
+            href: '/docs/notes',
           },
           {
             icon: 'card',
@@ -1569,7 +1579,7 @@ export const PAGES = {
         p: 'You follow people the same way you follow clubs. When two people follow each other they are connected, which is what lets you send each other messages freely and, if you choose, share your class schedule. Someone you are not connected to can send you one first message, without links, which you can answer or ignore. Settings let you limit who can message you.',
       },
       {
-        p: 'Messages also holds your conversations with clubs and your support tickets, each in its own filter.',
+        p: 'Messages also holds your conversations with clubs and your support tickets, each in its own filter. You can send photos (once someone has written back to you) and emoji, and when a conversation picks up again after a break of an hour or more, the time shows in the middle of the chat.',
       },
 
       { h2: 'Your profile' },
@@ -1578,6 +1588,150 @@ export const PAGES = {
       },
       {
         note: 'Follower and following **counts** show on every profile. The **lists** behind them are open on public profiles only: on a private profile, only you and the people you follow back can see them. Your grades are never on your profile or anywhere else another person can see.',
+      },
+    ],
+  },
+
+  /* ── Notes ─────────────────────────────────────────────────────────────── */
+
+  notes: {
+    title: 'Notes',
+    section: 'Notes',
+    description:
+      'Notes is a document editor for class notes and personal to-dos: every class is a folder, notes file themselves into the class you are sitting in, and a task can sit on Today and in your calendar.',
+    blocks: [
+      {
+        p: 'Notes is where you write: class notes, readings, plans, and to-dos. It works on a computer (on a phone the tab is hidden for now, because writing and formatting a document needs the room).',
+      },
+      { h2: 'Folders, and every class is one' },
+      {
+        p: 'Your classes appear as folders automatically, in their course colour, and you can make your own folders too. Folders can go inside other folders, a class folder can be dragged into one of your own, and anything can be **pinned** to the top. Right-click a folder or a note for its options: rename, change the icon and colour, pin, share, move, or delete.',
+      },
+      {
+        p: 'Start a note during a class on your schedule and it files itself into that class, named after the week ("Week 5 FINA 210"). Started inside a class folder, it goes there with the current week. You can remove the link if it guessed wrong.',
+      },
+      { h2: 'Tasks' },
+      {
+        p: 'A **task** is a note with a due date: “update my personal site”, “renew my bus pass”. Make one from **New note → Task**, from the **Tasks** folder, or turn any note into one with **⋯ → Make this a task**. It shows on Today and in your calendar like any other task, and opening it opens the document, so the details live with the reminder.',
+      },
+      {
+        note: 'Tasks from Notes can be hidden from Today without deleting them: Today → Customize → Show tasks from Notes.',
+      },
+      { h2: 'Writing' },
+      {
+        ul: [
+          'Ten fonts, sizes you can type in (6 to 96), bold, italic, underline, strikethrough, text colour and highlight, each with a full colour picker and hex codes.',
+          'Line spacing: for the highlighted text, or for the whole note when nothing is highlighted.',
+          'Headings, bulleted, numbered and checklist lists, quotes, code, and dividers. Markdown shortcuts work too: # for a heading, - for a list, [ ] for a checklist.',
+          'Emoji, from the smiley in the toolbar.',
+          'Images: insert, paste or drop them in, then drag a corner to resize, crop them, and switch rounded corners on or off.',
+          'Files and voice notes: attach a PDF, Word, PowerPoint or Excel file, or record a voice note of up to ten minutes.',
+          'Drawings: pen, highlighter, eraser, lines and shapes. With a stylus, your palm is ignored.',
+          '@ for a person or a date (see Sharing and working together).',
+        ],
+      },
+      {
+        p: 'Hover any button in the toolbar to see what it does and its keyboard shortcut. Everything saves as you type; the top bar says **Saved**.',
+      },
+      {
+        p: 'Text copied from a dark website or app no longer pastes in white: grey and white text colours and dark backgrounds are dropped on paste, so the text takes the page’s colour. Real colours like red or blue are kept.',
+      },
+    ],
+  },
+
+  'notes-sharing': {
+    title: 'Sharing and working together',
+    section: 'Notes',
+    description:
+      'Share a note or a whole folder by name or by link, edit at the same time as classmates with their named cursors, comment on text, @mention people and dates, and see who changed what.',
+    blocks: [
+      { h2: 'Sharing' },
+      {
+        p: 'Share a note, or a whole folder, from **Share** or a right-click. Share with someone by their @handle, or make a link. Either way you choose **viewer** (can read, copy and comment) or **editor** (can also write). Sharing a folder shares everything in it, including notes added later.',
+      },
+      { h2: 'Editing at the same time' },
+      {
+        p: 'Several people can type in one note at once. Each person’s cursor has its own colour with their name above it, and everyone’s words arrive as they type. Nothing waits on a lock and nobody’s writing is lost.',
+      },
+      {
+        p: 'The faces in the top bar show who has the note open: a **green** ring means they are looking at it right now, a **grey** ring means it is open in another tab or a window in the background, and when they close it their face goes away. The Details panel shows the same, along with when each person last viewed and edited it.',
+      },
+      { h2: 'Comments' },
+      {
+        p: 'Highlight some text and a comment button appears in the right margin, level with what you selected. Comments open in the side panel, can be replied to and resolved, and every line with a comment shows a bubble in the margin. Viewers can comment too.',
+      },
+      { h2: 'Mentions and dates' },
+      {
+        p: 'Type **@** to mention someone or insert a date. Mentioning someone the note is shared with sends them a notification; mentioning anyone else just links to their profile. Click a mention to see who that is.',
+      },
+      {
+        p: 'A date in the text is a chip. Click it to change it, or to **Add to calendar** with a title and notes: it then shows on Today and in your calendar.',
+      },
+      { h2: 'Version history' },
+      {
+        p: '**⋯ → Version history** lists earlier states of the note, one for every ten minutes of editing, with **who** wrote each one and **what they changed**: added words in green and removed words struck through, against the version before. Restoring a version is itself an edit, so it can be undone from the same list.',
+      },
+    ],
+  },
+
+  'notes-export': {
+    title: 'Pages, headers and exporting',
+    section: 'Notes',
+    description:
+      'Choose separate pages or one endless page, add headers and footers with page numbers, and export a note as a PDF, a Word document, or into Google Docs.',
+    blocks: [
+      { h2: 'Page setup' },
+      {
+        p: '**⋯ → Page setup** chooses between **Pages** (separate letter-size sheets with space between them; text moves to the next page rather than running across the edge) and **Pageless** (one continuous page). It also sets the page colour, including any colour you pick.',
+      },
+      { h2: 'Headers and footers' },
+      {
+        p: 'Page setup also has a header and a footer, each with text on the left, the centre and the right. Fill-ins keep them current on every page:',
+      },
+      {
+        ul: [
+          '**{page}**: the page number, so “Degryse {page}” reads Degryse 1, Degryse 2, and so on.',
+          '**{pages}**: how many pages there are (“Page {page} of {pages}”).',
+          '**{title}**: the note’s title.',
+          '**{date}**: today’s date.',
+        ],
+      },
+      {
+        p: 'You can add a line under the header or above the footer, and leave them off the first page for a title page.',
+      },
+      { h2: 'Exporting' },
+      {
+        ul: [
+          '**PDF**: **⋯ → Export as PDF** opens your browser’s print dialog; choose Save as PDF. Your header and footer print on every page.',
+          '**Word**: **⋯ → Export to Word or Google Docs → Download .docx**. Headings, lists, colours, links, pictures, and the header and footer with page numbers come with it. It also opens in Pages and LibreOffice.',
+          '**Google Docs**: in the same dialog, copy the note, open a new Google Doc, and paste. The formatting and pictures come with it, and nothing needs access to your Google account.',
+        ],
+      },
+      {
+        note: 'When printing, browsers add their own title, date and web address at the top and bottom unless you say otherwise. Page setup has a switch for this, off by default: Chrome and Edge follow it. In Safari, untick “Print headers and footers” in the print dialog.',
+      },
+    ],
+  },
+
+  'notes-study': {
+    title: 'Studying from your notes',
+    section: 'Notes',
+    description:
+      'Flashcards, a quiz and a study guide made from your own notes, plus lecture slides open beside the note you are writing.',
+    blocks: [
+      {
+        p: '**⋯ → Study** turns a note into study material, made from your own words. Anyone the note is shared with can use them too.',
+      },
+      {
+        ul: [
+          '**Flashcards**: every line written as “Term: definition” (or with a dash), every line that starts in bold, and every heading with the lines under it. Flip, shuffle, and mark what you knew. Copy them all to paste into Quizlet or Anki.',
+          '**Quiz**: multiple choice from your cards; it needs at least four.',
+          '**Study guide**: your headings, with the key (bold) terms under each, and anything on a checklist you have not ticked.',
+        ],
+      },
+      { h2: 'Slides beside your notes' },
+      {
+        p: 'The **Slides** tab in the side panel keeps the lecture slides with the note, open next to the page you are writing on. Add a PDF; PowerPoint files are kept for download (save them as PDF to read them here). Everyone in the note sees the same slides.',
       },
     ],
   },

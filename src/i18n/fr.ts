@@ -381,6 +381,7 @@ export const fr: Partial<Record<Key, string>> = {
   'today.allCaughtUpSub': 'Rien en attente pour l’instant. Profitez du répit: les nouvelles échéances apparaîtront ici dès qu’elles arriveront.',
   'today.completedTodayCount': 'Terminé aujourd’hui · {count}',
   'today.showWeight': 'Afficher la pondération',
+  'today.showNoteTasks': 'Afficher les tâches de Notes',
   'today.showWeightAria': 'Afficher la pondération dans Aujourd’hui',
   'today.courseIcons': 'Icônes des cours',
   'today.courseIconsAria': "Afficher l'icône de chaque cours au lieu d'un point de couleur",

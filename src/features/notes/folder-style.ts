@@ -11,6 +11,7 @@ import {
   Heart,
   Landmark,
   Lightbulb,
+  ListChecks,
   Music,
   Palette,
   PenLine,
@@ -36,6 +37,7 @@ export const FOLDER_ICONS: { key: string; icon: LucideIcon; label: string }[] = 
   { key: 'palette', icon: Palette, label: 'Art' },
   { key: 'music', icon: Music, label: 'Music' },
   { key: 'lightbulb', icon: Lightbulb, label: 'Ideas' },
+  { key: 'tasks', icon: ListChecks, label: 'Tasks' },
   { key: 'star', icon: Star, label: 'Important' },
   { key: 'heart', icon: Heart, label: 'Personal' },
 ]

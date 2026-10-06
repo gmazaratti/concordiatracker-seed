@@ -14,9 +14,9 @@ import { BackButton } from '@/components/BackButton'
 import { useEventActions } from './useEventActions'
 import { useCommunity } from './useCommunity'
 import { useMyOrgs } from './useMyOrgs'
-import { PostCard } from './posts/PostCard'
+import { PostLightbox } from './posts/PostLightbox'
 import { PostComposer } from './posts/PostComposer'
-import { RepostsTab } from './posts/RepostsTab'
+import { GridSkeleton, PostTileMedia, RepostsTab, Tile } from './posts/RepostsTab'
 import { MessageOrgModal } from './MessageOrgModal'
 import { OrgProfileHeaderView } from './OrgProfileHeaderView'
 
@@ -110,8 +110,8 @@ export function OrgProfilePage() {
  * The profile itself — the same shape a student's profile has, marked as an
  * organisation.
  *
- * TABS, AND EVENTS IS FIRST. A club is judged on what it is running next, so
- * that is the landing tab; posts are the second thing you look at and reposts
+ * TABS, AND POSTS ARE FIRST, as a three-across grid like any photo profile
+ * (four across on a very wide screen); events are the second tab and reposts
  * the third. It is its own component because the page above it has to decide
  * whether the org exists before any hook here can run — calling them in the
  * parent would mean hooks above an early return.
@@ -147,15 +147,16 @@ function OrgProfileBody({
    */
   const [params, setParams] = useSearchParams()
   const urlTab = params.get('tab')
-  const tab = urlTab === 'posts' || urlTab === 'reposts' ? urlTab : 'events'
+  const tab = urlTab === 'events' || urlTab === 'reposts' ? urlTab : 'posts'
   const setTab = (next: string) => {
     const p = new URLSearchParams(params)
-    if (next === 'events') p.delete('tab')
+    if (next === 'posts') p.delete('tab')
     else p.set('tab', next)
     setParams(p, { replace: true })
   }
   const [posts, setPosts] = useState<FeedPost[] | null>(null)
   const [composing, setComposing] = useState(false)
+  const [openPost, setOpenPost] = useState<FeedPost | null>(null)
   const [messaging, setMessaging] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const mine = myOrgs.find((o) => o.handle.replace(/^@/, '') === slug)
@@ -195,7 +196,8 @@ function OrgProfileBody({
   }, [tab, orgId, refresh])
 
   return (
-    <div className="ct-page-in mx-auto w-full max-w-3xl px-5 py-5 sm:px-6">
+    <div className="ct-page-in mx-auto w-full max-w-3xl px-5 py-5 sm:px-6 2xl:max-w-6xl">
+      <div className="mx-auto w-full max-w-3xl">
       {/* Back, not a link to Community: a link pushes a fresh feed at the top
           of the list, and you came here from somewhere partway down it. */}
       <BackButton fallback="/app/community" label="Community" showLabel className="mb-3" />
@@ -213,14 +215,15 @@ function OrgProfileBody({
         active={tab}
         onChange={setTab}
         tabs={[
-          { id: 'events', label: 'Events', icon: CalendarDays, count: upcoming.length },
           { id: 'posts', label: 'Posts', icon: Grid3x3, count: social.posts },
+          { id: 'events', label: 'Events', icon: CalendarDays, count: upcoming.length },
           { id: 'reposts', label: 'Reposts', icon: Repeat2 },
         ]}
       />
+      </div>
 
       {tab === 'events' && (
-        <>
+        <div className="mx-auto w-full max-w-3xl">
           <section className="pt-5">
             <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
             {upcoming.length > 0 ? (
@@ -238,7 +241,7 @@ function OrgProfileBody({
               <EventGrid events={past} relevant={relevant} isAdded={isAdded} add={add} openEvent={openEvent} muted />
             </section>
           )}
-        </>
+        </div>
       )}
 
       {tab === 'posts' && (
@@ -254,27 +257,37 @@ function OrgProfileBody({
             </button>
           )}
           {posts === null ? (
-            <p className="py-10 text-center text-[13px] text-subtle">Loading…</p>
+            <GridSkeleton />
           ) : posts.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-5 py-10 text-center text-[13px] text-subtle">
               {org.name} has not posted anything yet.
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="-mx-5 grid grid-cols-3 gap-0.5 sm:mx-0 sm:gap-1 2xl:grid-cols-4">
               {posts.map((po) => (
-                <PostCard
-                  key={po.id}
-                  post={po}
-                  canManage={social.iManage}
-                  onChanged={() => setRefresh((n) => n + 1)}
-                />
+                <Tile key={po.id} label={po.caption || 'Post'} onOpen={() => setOpenPost(po)}>
+                  <PostTileMedia post={po} />
+                </Tile>
               ))}
             </div>
           )}
         </section>
       )}
 
-      {tab === 'reposts' && <RepostsTab handle={slug} isOrg onOpenEvent={openEvent} />}
+      {tab === 'reposts' && (
+        <div className="mx-auto w-full max-w-3xl">
+          <RepostsTab handle={slug} isOrg onOpenEvent={openEvent} />
+        </div>
+      )}
+
+      {openPost && (
+        <PostLightbox
+          post={openPost}
+          canManage={social.iManage}
+          onChanged={() => setRefresh((n) => n + 1)}
+          onClose={() => setOpenPost(null)}
+        />
+      )}
 
       {messaging && (
         <MessageOrgModal

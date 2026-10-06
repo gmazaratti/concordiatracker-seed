@@ -26,6 +26,8 @@ import { ChatComposer } from './chat/ChatComposer'
 import { Avatar } from './chat/ChatAvatar'
 import { quoteOf } from './chat/chat-helpers'
 import { cn } from '@/lib/cn'
+import { DM_IMAGE_ACCEPT, uploadDmImage } from '@/lib/dm-media'
+import { timeDivider } from './chat/chat-time'
 
 /**
  * One conversation.
@@ -79,6 +81,9 @@ export function Chat({
   const [info, setInfo] = useState<Message | null>(null)
   const [reporting, setReporting] = useState<Message | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [thumb, setThumb] = useState<string | null>(null)
+  const photoInput = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
@@ -133,12 +138,32 @@ export function Chat({
     setDivider({ friend: friend.user_id, id: at && rows[0]?.id !== at ? at : null })
   }
 
+  /** Prepare and upload a photo; it waits above the box until you press Send. */
+  async function pickPhoto(file: File) {
+    setPhotoBusy(true)
+    setError(null)
+    try {
+      const a = await uploadDmImage(file)
+      setPending({ kind: 'image', ...a })
+      setThumb(URL.createObjectURL(file))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That photo could not be sent.')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+  const clearThumb = () => {
+    if (thumb) URL.revokeObjectURL(thumb)
+    setThumb(null)
+  }
+
   async function submit() {
     if (!body.trim() && !pending) return
     const msg = await sendMessage(friend.user_id, body || ' ', pending ?? undefined, replyTo?.id)
     if (msg) return setError(msg)
     setBody('')
     setPending(null)
+    clearThumb()
     setReplyTo(null)
     setError(null)
     reload()
@@ -191,6 +216,8 @@ export function Chat({
         {(rows ?? []).map((m, i) => {
           const mine = m.sender === me
           const prev = (rows ?? [])[i - 1]
+          // A break in the conversation (an hour or more) gets the time in the middle.
+          const when = timeDivider(prev?.created_at ?? null, m.created_at, now)
           const next = (rows ?? [])[i + 1]
           // Only the last of a run gets a tail and a timestamp, so a burst of
           // three reads as one thought rather than three notifications.
@@ -213,6 +240,9 @@ export function Chat({
               className={cn(mine ? 'ml-auto max-w-[78%]' : 'mr-auto max-w-[78%]')}
             >
             <Fragment>
+              {when && (
+                <p className="py-2 text-center text-[11.5px] font-medium text-subtle" role="separator">{when}</p>
+              )}
               {divider.id === m.id && (
                 <div className="flex items-center gap-3 py-2" role="separator">
                   <span className="h-px flex-1 bg-border" />
@@ -284,8 +314,12 @@ export function Chat({
         canSend={canSend}
         attachOpen={attachOpen}
         onAttach={() => setAttachOpen(true)}
+        onPhoto={() => photoInput.current?.click()}
+        photoBusy={photoBusy}
+        pendingThumb={pending?.kind === 'image' ? thumb : null}
+        onEmoji={(e) => setBody((b) => b + e)}
         pending={pending}
-        onClearPending={() => setPending(null)}
+        onClearPending={() => { setPending(null); clearThumb() }}
         replyTo={replyTo}
         replyName={replyTo?.sender === me ? 'yourself' : otherName}
         onClearReply={() => setReplyTo(null)}
@@ -293,6 +327,8 @@ export function Chat({
         warning={extras.error}
         error={error}
       />
+      <input ref={photoInput} type="file" accept={DM_IMAGE_ACCEPT} hidden
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickPhoto(f); e.target.value = '' }} />
       {attachOpen && (
         <AttachSheet
           source={attachSource}

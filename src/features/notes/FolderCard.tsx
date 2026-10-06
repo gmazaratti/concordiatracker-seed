@@ -11,6 +11,9 @@ export type DropMode = 'into' | 'before' | 'after' | null
  * The card is the drag handle and the drop target: dropping onto its middle
  * puts the dragged thing inside; near its edges, beside it.
  */
+/** When the last right-click menu opened, shared by every card. */
+let lastMenu = 0
+
 export function FolderCard({
   name,
   subtitle,
@@ -26,6 +29,7 @@ export function FolderCard({
   onOpen,
   onContextMenu,
   dragProps,
+  noun = ['note', 'notes'],
 }: {
   name: string
   subtitle?: string
@@ -42,14 +46,24 @@ export function FolderCard({
   onOpen: () => void
   onContextMenu?: (e: React.MouseEvent) => void
   dragProps?: React.HTMLAttributes<HTMLElement> & { draggable?: boolean }
+  /** What is being counted, singular and plural. */
+  noun?: [string, string]
 }) {
   const Icon = FOLDER_ICON_MAP[icon] ?? DEFAULT_FOLDER_ICON
   const hex = folderHex(color)
   return (
     <button
       type="button"
-      onClick={onOpen}
-      onContextMenu={onContextMenu}
+      onClick={(e) => {
+        // A ctrl-click on a Mac is a right-click, and the menu it opened must
+        // not be followed by the folder opening underneath it.
+        if (e.ctrlKey || e.button !== 0 || Date.now() - lastMenu < 700) return
+        onOpen()
+      }}
+      onContextMenu={(e) => {
+        lastMenu = Date.now()
+        onContextMenu?.(e)
+      }}
       {...dragProps}
       className={cn(
         'group relative flex h-full w-full flex-col gap-3 rounded-2xl border border-border bg-surface p-4 text-left',
@@ -80,7 +94,7 @@ export function FolderCard({
       <span className="mt-auto flex items-center gap-2 text-[12px] text-subtle">
         <span>
           {folders > 0 && `${folders} ${folders === 1 ? 'folder' : 'folders'} · `}
-          {count} {count === 1 ? 'note' : 'notes'}
+          {count} {count === 1 ? noun[0] : noun[1]}
         </span>
         {updatedAt && (
           <>

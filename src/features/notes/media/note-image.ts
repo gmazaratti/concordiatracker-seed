@@ -11,8 +11,14 @@ export const NoteImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      path: { default: null },
-      size: { default: 'full' },
+      path: { default: null, rendered: false },
+      size: { default: 'full', rendered: false },
+      /** Width as a share of the page, set by dragging a corner (overrides size). */
+      widthPct: { default: null, rendered: false },
+      /** Rounded corners, on by default. */
+      rounded: { default: true, rendered: false },
+      /** The kept part of the picture, as fractions {x, y, w, h}, or null for all of it. */
+      crop: { default: null, rendered: false },
     }
   },
   addNodeView() {

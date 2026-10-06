@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { usePopover } from '@/components/ui/usePopover'
 import { createPortal } from 'react-dom'
 import { Ban, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
@@ -13,7 +14,7 @@ export function ToolBtn({ icon: Icon, label, onClick, active, disabled }: {
   disabled?: boolean
 }) {
   return (
-    <button type="button" title={label} aria-label={label} aria-pressed={active} disabled={disabled}
+    <button type="button" aria-label={label} aria-pressed={active} disabled={disabled}
       onMouseDown={(e) => e.preventDefault()} onClick={onClick}
       className={cn(
         'grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg disabled:pointer-events-none disabled:opacity-35',
@@ -25,35 +26,6 @@ export function ToolBtn({ icon: Icon, label, onClick, active, disabled }: {
 }
 
 export const ToolSep = () => <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-border" />
-
-/** A small panel under a toolbar button, portaled so the toolbar's horizontal
- *  scroll never clips it, and closed by Escape or a click elsewhere. */
-function usePopover() {
-  const [open, setOpen] = useState(false)
-  const btn = useRef<HTMLButtonElement>(null)
-  const panel = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ left: 0, top: 0 })
-  useEffect(() => {
-    if (!open) return
-    const down = (e: PointerEvent) => {
-      if (!panel.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) setOpen(false)
-    }
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    window.addEventListener('pointerdown', down, true)
-    window.addEventListener('keydown', key)
-    return () => {
-      window.removeEventListener('pointerdown', down, true)
-      window.removeEventListener('keydown', key)
-    }
-  }, [open])
-  /** Measured when it opens, not in an effect, so the panel never paints at 0,0. */
-  const toggle = () => {
-    const r = btn.current?.getBoundingClientRect()
-    if (r) setPos({ left: Math.min(r.left, window.innerWidth - 260), top: r.bottom + 6 })
-    setOpen((o) => !o)
-  }
-  return { open, setOpen, toggle, btnRef: btn, panelRef: panel, pos }
-}
 
 /**
  * Text colour or highlight: a palette like a word processor's, a way back to
@@ -72,7 +44,7 @@ export function ColorPopover({ label, current, palette, onPick, icon: Icon, glyp
   const [custom, setCustom] = useState(false)
   return (
     <>
-      <button ref={btnRef} type="button" title={label} aria-label={label} aria-expanded={open}
+      <button ref={btnRef} type="button" aria-label={label} aria-expanded={open}
         onMouseDown={(e) => e.preventDefault()} onClick={() => { setCustom(false); toggle() }}
         className="flex size-8 shrink-0 flex-col items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
         {Icon ? <Icon size={15} aria-hidden /> : <span className="text-[14px] leading-none font-semibold">{glyph}</span>}
@@ -122,7 +94,7 @@ export function LinkPopover({ icon: Icon, current, onApply, onRemove }: {
   }
   return (
     <>
-      <button ref={btnRef} type="button" title="Link (Ctrl+K)" aria-label="Link" aria-pressed={!!current}
+      <button ref={btnRef} type="button" aria-label="Link (Ctrl+K)" aria-pressed={!!current}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => { setValue(current ?? ''); toggle() }}
         className={cn('grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg', current && 'bg-accent-soft text-accent')}>

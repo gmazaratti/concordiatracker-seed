@@ -24,6 +24,14 @@ export function CustomizeToday({
           />
         </Line>
 
+        <Line label={t('today.showNoteTasks')}>
+          <Switch
+            label={t('today.showNoteTasks')}
+            checked={prefs.showNoteTasks !== false}
+            onChange={(v) => onChange({ showNoteTasks: v })}
+          />
+        </Line>
+
         <Line label={t('today.showProvenance')}>
           <Switch
             label={t('today.showProvenanceAria')}

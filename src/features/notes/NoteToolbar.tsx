@@ -1,13 +1,25 @@
 import { useEditorState, type Editor } from '@tiptap/react'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Code, Highlighter, Italic, Link2, List, ListChecks,
-  ImagePlus, ListOrdered, Minus, Plus, Quote, Redo2, RemoveFormatting, SeparatorHorizontal, SquareCode, Strikethrough,
+  AtSign, CalendarClock, FileUp, ImagePlus, ListOrdered, Mic, Minus, PenTool, Plus, Quote, Redo2, RemoveFormatting, SeparatorHorizontal, SquareCode, Strikethrough,
   Underline, Undo2,
 } from 'lucide-react'
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
 import { Select } from '@/components/ui/Select'
 import { DEFAULT_FONT_SIZE, FONTS, FONT_SIZES, HIGHLIGHTS, TEXT_COLORS, ZOOMS } from './editor-extensions'
 import { ToolBtn, ToolSep, ColorPopover, LinkPopover } from './toolbar-parts'
+import { FontSizeInput, LineSpacing } from './toolbar-extra'
+import { EmojiButton } from '@/components/ui/EmojiButton'
+
+/** Things that go INTO a note, as opposed to formatting what is there. */
+export interface InsertActions {
+  image: () => void
+  file: () => void
+  voice: () => void
+  drawing: () => void
+  date: () => void
+  mention: () => void
+}
 
 const STYLES = [
   { value: 'p', label: 'Normal text' },
@@ -22,12 +34,12 @@ const STYLES = [
  * Every control is also a shortcut or a markdown rule, so nothing here is the
  * only way to do anything.
  */
-export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
+export function NoteToolbar({ editor, zoom, onZoom, disabled, insert }: {
   editor: Editor
   zoom: number
   onZoom: (z: number) => void
   disabled?: boolean
-  onImage: () => void
+  insert: InsertActions
 }) {
   const s = useEditorState({
     editor,
@@ -45,6 +57,7 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
       bullet: e.isActive('bulletList'),
       ordered: e.isActive('orderedList'),
       task: e.isActive('taskList'),
+      lineHeight: (e.getAttributes('paragraph').lineHeight as string | null) ?? (e.getAttributes('heading').lineHeight as string | null) ?? null,
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
     }),
@@ -59,7 +72,7 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
 
   return (
     <div role="toolbar" aria-label="Formatting" aria-disabled={disabled}
-      className={`ct-no-scrollbar flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto ${disabled ? 'pointer-events-none opacity-45' : ''}`}>
+      className={`ct-tips ct-no-scrollbar flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto ${disabled ? 'pointer-events-none opacity-45' : ''}`}>
       <ToolBtn icon={Undo2} label="Undo (Ctrl+Z)" onClick={() => c().undo().run()} disabled={!s.canUndo} />
       <ToolBtn icon={Redo2} label="Redo (Ctrl+Shift+Z)" onClick={() => c().redo().run()} disabled={!s.canRedo} />
       <ToolSep />
@@ -73,7 +86,7 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
       <Select size="sm" tone="control" ariaLabel="Text style" value={s.style} onChange={setStyle} options={STYLES} className="w-[7.6rem] shrink-0" />
       <ToolSep />
       <ToolBtn icon={Minus} label="Smaller text" onClick={() => stepSize(-1)} />
-      <span className="grid h-7 w-9 shrink-0 place-items-center rounded-md border border-border text-[12.5px] text-fg tabular-nums" aria-label="Text size">{s.size}</span>
+      <FontSizeInput size={s.size} onSize={(n) => c().setFontSize(`${n}px`).run()} />
       <ToolBtn icon={Plus} label="Larger text" onClick={() => stepSize(1)} />
       <ToolSep />
       <ToolBtn icon={Bold} label="Bold (Ctrl+B)" active={s.bold} onClick={() => c().toggleBold().run()} />
@@ -87,13 +100,22 @@ export function NoteToolbar({ editor, zoom, onZoom, disabled, onImage }: {
       <LinkPopover icon={Link2} current={s.link}
         onApply={(href) => c().extendMarkRange('link').setLink({ href }).run()}
         onRemove={() => c().extendMarkRange('link').unsetLink().run()} />
-      <ToolBtn icon={ImagePlus} label="Insert image" onClick={onImage} />
+      <EmojiButton onPick={(e) => c().insertContent(e).run()} />
+      <DropdownMenu ariaLabel="Insert" icon={Plus} triggerClassName="size-8 shrink-0" items={[
+        { id: 'image', label: 'Image', icon: ImagePlus, onSelect: insert.image },
+        { id: 'file', label: 'File (PDF, Word, slides…)', icon: FileUp, onSelect: insert.file },
+        { id: 'voice', label: 'Voice note', icon: Mic, onSelect: insert.voice },
+        { id: 'drawing', label: 'Drawing', icon: PenTool, onSelect: insert.drawing },
+        { id: 'date', label: 'Date or time', icon: CalendarClock, onSelect: insert.date, separated: true },
+        { id: 'mention', label: 'Mention someone', icon: AtSign, onSelect: insert.mention },
+      ]} />
       <DropdownMenu ariaLabel="Alignment" icon={AlignIcon} triggerClassName="size-8 shrink-0" items={[
         { id: 'l', label: 'Left', icon: AlignLeft, onSelect: () => c().setTextAlign('left').run() },
         { id: 'c', label: 'Center', icon: AlignCenter, onSelect: () => c().setTextAlign('center').run() },
         { id: 'r', label: 'Right', icon: AlignRight, onSelect: () => c().setTextAlign('right').run() },
         { id: 'j', label: 'Justify', icon: AlignJustify, onSelect: () => c().setTextAlign('justify').run() },
       ]} />
+      <LineSpacing editor={editor} current={s.lineHeight} />
       <ToolSep />
       <ToolBtn icon={ListChecks} label="Checklist" active={s.task} onClick={() => c().toggleTaskList().run()} />
       <ToolBtn icon={List} label="Bulleted list" active={s.bullet} onClick={() => c().toggleBulletList().run()} />

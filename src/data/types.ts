@@ -161,6 +161,8 @@ export interface CalendarTask {
    * than as a day you misremembered. Cleared once acknowledged.
    */
   movedFrom?: string
+  /** Set when the task is a document in Notes: the row opens the note. */
+  noteId?: string
 }
 
 /** A teaching contact — instructor or TA. Editable inline on the course detail. */

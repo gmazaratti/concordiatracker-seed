@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarDays, Check, ChevronDown, GraduationCap, ListChecks, RotateCcw, Trash2 } from 'lucide-react'
+import { CalendarDays, Check, FileText, ChevronDown, GraduationCap, ListChecks, RotateCcw, Trash2 } from 'lucide-react'
 import type { CalendarTask } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
 import { useAppData } from '@/app/providers/app-data'
@@ -61,6 +61,9 @@ export function TaskDueRow({
       icon: task.done ? RotateCcw : Check,
       onSelect: onToggle,
     },
+    ...(task.noteId
+      ? [{ id: 'note', label: 'Open note', icon: FileText, onSelect: () => navigate(`/app/notes/n/${task.noteId}`) } satisfies MenuItem]
+      : []),
     {
       id: 'calendar',
       label: 'Open in calendar',
@@ -110,7 +113,13 @@ export function TaskDueRow({
             )}
             title={task.title}
           >
-            {task.title}
+            {task.noteId ? (
+              <button type="button" onClick={() => navigate(`/app/notes/n/${task.noteId}`)} className="text-left hover:underline">
+                {task.title}
+              </button>
+            ) : (
+              task.title
+            )}
           </p>
           <p
             className={cn(
@@ -120,10 +129,12 @@ export function TaskDueRow({
           >
             {moodle ? (
               <GraduationCap size={12} className="shrink-0" aria-hidden />
+            ) : task.noteId ? (
+              <FileText size={12} className="shrink-0" aria-hidden />
             ) : (
               <ListChecks size={12} className="shrink-0" aria-hidden />
             )}
-            <span className="shrink-0">{moodle ? 'Moodle' : 'Task'}</span>
+            <span className="shrink-0">{moodle ? 'Moodle' : task.noteId ? 'Note task' : 'Task'}</span>
             {moodle && course && (
               <>
                 <span aria-hidden className="shrink-0">·</span>

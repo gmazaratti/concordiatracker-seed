@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
-import { Plus, Reply, Send, X } from 'lucide-react'
+import { ImagePlus, Loader2, Plus, Reply, Send, X } from 'lucide-react'
+import { EmojiButton } from '@/components/ui/EmojiButton'
 import type { Attachment, Message } from '@/lib/social'
 import { describe } from './chat-helpers'
 import { MESSAGE_FIELD } from './message-field'
@@ -28,6 +29,13 @@ export const ChatComposer = forwardRef<
     canSend: boolean
     attachOpen: boolean
     onAttach: () => void
+    /** Choose a photo to send (the file picker). */
+    onPhoto: () => void
+    /** A photo is being prepared and uploaded. */
+    photoBusy: boolean
+    /** A local preview of the photo waiting to be sent. */
+    pendingThumb: string | null
+    onEmoji: (e: string) => void
     pending: Attachment | null
     onClearPending: () => void
     replyTo: Message | null
@@ -62,6 +70,7 @@ export const ChatComposer = forwardRef<
       {p.warning && <p className="mb-2 text-[12px] text-warning">{p.warning}</p>}
       {p.pending && (
         <div className="ct-animate-pop mb-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1.5">
+          {p.pendingThumb && <img src={p.pendingThumb} alt="" className="size-10 shrink-0 rounded-md object-cover" />}
           <span className="min-w-0 flex-1 truncate text-[11.5px] text-fg">{describe(p.pending)}</span>
           <button type="button" onClick={p.onClearPending} className="text-[11px] text-subtle hover:text-fg">
             Remove
@@ -85,7 +94,8 @@ export const ChatComposer = forwardRef<
 
         {/* ONE PILL holding the text and the send — the button inside it is
             what makes the row read as one field instead of three controls. */}
-        <div className="flex min-h-10 min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-3.5 transition-colors duration-150 focus-within:border-accent sm:min-h-[42px]">
+        <div className="flex min-h-10 min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-1.5 transition-colors duration-150 focus-within:border-accent sm:min-h-[42px]">
+          <EmojiButton onPick={p.onEmoji} className="size-8 self-center rounded-full" />
           <textarea
             ref={ref}
             value={p.body}
@@ -101,6 +111,13 @@ export const ChatComposer = forwardRef<
             placeholder={p.placeholder}
             className="max-h-28 min-h-[30px] min-w-0 flex-1 resize-none self-center bg-transparent py-1 text-[16px] leading-snug text-fg placeholder:text-subtle focus:outline-none lg:text-[14px]"
           />
+          {/* The photo button gives way to Send once there is something to send. */}
+          {!p.canSend && (
+            <button type="button" onClick={p.onPhoto} disabled={p.photoBusy} aria-label="Send a photo"
+              className="grid size-8 shrink-0 place-items-center self-center rounded-full text-muted transition-colors duration-150 hover:text-fg disabled:opacity-60">
+              {p.photoBusy ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <ImagePlus size={18} aria-hidden />}
+            </button>
+          )}
           {/* THE SEND ARRIVES WITH THE FIRST CHARACTER; `disabled` stays for
               the keyboard, because hiding is not disabling. */}
           <button

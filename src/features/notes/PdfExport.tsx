@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { EditorContent, useEditor, type JSONContent } from '@tiptap/react'
 import { noteExtensions } from './editor-extensions'
 import { pageTheme, type PageSetup } from './page-setup'
+import { printBandsCss } from './print-bands'
 
 /**
  * Export to PDF: a print-only copy of the note — the same schema, so headings,
@@ -47,9 +48,12 @@ export function PdfExport({ title, content, setup, onDone }: { title: string; co
   }, [editor, title, onDone])
 
   const custom = setup.color !== 'theme'
+  const date = new Date().toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' })
   return createPortal(
     <div className="ct-print-root ct-pdf-root" data-theme={pageTheme(setup.color) ?? 'light'} aria-hidden
       style={{ position: 'fixed', left: -10000, top: 0, width: 816, background: custom ? setup.color : '#ffffff' }}>
+      {/* The header and footer of every printed page (Chrome and Edge). */}
+      <style>{printBandsCss(setup, title, date)}</style>
       <div className="text-fg">
         <EditorContent editor={editor} />
       </div>

@@ -71,6 +71,8 @@ function pageName(pathname: string, params: URLSearchParams): string | null {
   // Not an app route — a public profile rendered inside the shell, say. Those
   // set their own title through usePageMeta and it should stand.
   if (!pathname.startsWith('/app')) return null
+  // An open note names its own tab after its title (NoteWorkspace).
+  if (pathname.startsWith('/app/notes/n/')) return null
 
   const hit = ROUTES.find(([p]) => pathname === p || pathname.startsWith(`${p}/`))
   if (!hit) return null

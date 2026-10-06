@@ -12,12 +12,55 @@ import { parseHex, readableOn } from '@/lib/color'
  * then carries the matching LIGHT or DARK token set, so text, code blocks and
  * checkboxes stay readable on it whatever the app theme is.
  */
+/** Text in a header or footer: left, centre and right, each with optional
+ *  {page}, {pages}, {title} and {date} that fill in per page. */
+export interface Band { left: string; center: string; right: string }
+
 export interface PageSetup {
   layout: 'pages' | 'pageless'
   color: string
+  header: Band
+  footer: Band
+  /** A thin rule under the header / above the footer. */
+  headerLine: boolean
+  footerLine: boolean
+  /** Show the header and footer on page 1 too (off for a title page). */
+  firstPage: boolean
+  /** Let the browser add its own title, date and address when printing. */
+  browserHeaders: boolean
 }
 
-export const DEFAULT_PAGE: PageSetup = { layout: 'pages', color: 'theme' }
+const EMPTY: Band = { left: '', center: '', right: '' }
+export const DEFAULT_PAGE: PageSetup = {
+  layout: 'pages', color: 'theme', header: EMPTY, footer: EMPTY,
+  headerLine: false, footerLine: false, firstPage: true, browserHeaders: false,
+}
+
+export const BAND_TOKENS = [
+  { token: '{page}', label: 'Page number' },
+  { token: '{pages}', label: 'Page count' },
+  { token: '{title}', label: 'Title' },
+  { token: '{date}', label: 'Date' },
+] as const
+
+const clip = (v: unknown) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').slice(0, 80) : '')
+function readBand(raw: unknown): Band {
+  const b = (raw ?? {}) as Partial<Band>
+  return { left: clip(b.left), center: clip(b.center), right: clip(b.right) }
+}
+
+export function hasBand(b: Band): boolean {
+  return !!(b.left.trim() || b.center.trim() || b.right.trim())
+}
+
+/** A header or footer cell with its fill-ins replaced, for one page. */
+export function fillBand(text: string, ctx: { page: number; pages: number; title: string; date: string }): string {
+  return text
+    .replace(/\{pages\}/g, String(ctx.pages))
+    .replace(/\{page\}/g, String(ctx.page))
+    .replace(/\{title\}/g, ctx.title || 'Untitled note')
+    .replace(/\{date\}/g, ctx.date)
+}
 
 export const PAGE_COLORS: { value: string; label: string; swatch: string }[] = [
   { value: 'theme', label: 'Match the app', swatch: 'var(--ct-surface)' },
@@ -33,6 +76,12 @@ export function readPage(raw: unknown): PageSetup {
   return {
     layout: p.layout === 'pageless' ? 'pageless' : 'pages',
     color: typeof p.color === 'string' && (p.color === 'theme' || /^#[0-9a-f]{6}$/i.test(p.color)) ? p.color : 'theme',
+    header: readBand(p.header),
+    footer: readBand(p.footer),
+    headerLine: p.headerLine === true,
+    footerLine: p.footerLine === true,
+    firstPage: p.firstPage !== false,
+    browserHeaders: p.browserHeaders === true,
   }
 }
 

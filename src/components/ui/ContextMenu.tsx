@@ -28,6 +28,10 @@ export function ContextMenu({
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ left: x, top: y })
   const [active, setActive] = useState(0)
+  // On a Mac a right-click can be followed by the release of the same press
+  // landing on the menu (or a ctrl-click arriving as a click too). An item is
+  // only chosen by a press that STARTED after the menu was open.
+  const [openedAt] = useState(() => Date.now())
 
   useLayoutEffect(() => {
     const el = ref.current
@@ -97,7 +101,8 @@ export function ContextMenu({
               role="menuitem"
               tabIndex={i === active ? 0 : -1}
               onMouseEnter={() => setActive(i)}
-              onClick={() => {
+              onClick={(e) => {
+                if (e.detail > 0 && Date.now() - openedAt < 350) return
                 onClose()
                 it.onSelect()
               }}

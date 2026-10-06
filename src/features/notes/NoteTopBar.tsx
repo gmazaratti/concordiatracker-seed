@@ -11,6 +11,8 @@ export interface LivePerson {
   name: string
   color: string
   avatar: string | null
+  /** Looking at the note now, or with it open in a background tab. */
+  status?: 'active' | 'idle'
 }
 
 /** Title, save state and who is here on the left; actions on the right. */
@@ -32,11 +34,14 @@ export function NoteTopBar(p: {
   onTrash: () => void
   panel: boolean
   onPanel: () => void
+  /** Exports, study tools and the like: added after "Export as PDF". */
+  extra?: MenuItem[]
 }) {
   const owner = p.role === 'owner'
   const menu: MenuItem[] = [
     ...(p.canEdit ? [{ id: 'page', label: 'Page setup', icon: Settings2, onSelect: p.onPageSetup }] : []),
     { id: 'pdf', label: 'Export as PDF', icon: FileDown, onSelect: p.onExport },
+    ...(p.extra ?? []),
     { id: 'history', label: 'Version history', icon: History, onSelect: p.onHistory },
     ...(owner
       ? [
@@ -46,8 +51,8 @@ export function NoteTopBar(p: {
       : []),
   ]
   return (
-    <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-canvas px-3">
-      <Link to={p.back} aria-label="Back" title="Back" className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
+    <div className="ct-tips flex h-12 shrink-0 items-center gap-2 border-b border-border bg-canvas px-3">
+      <Link to={p.back} aria-label="Back" className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
         <ArrowLeft size={17} aria-hidden />
       </Link>
       <input value={p.title} onChange={(e) => p.onTitle(e.target.value)} readOnly={!p.canEdit} maxLength={200} placeholder="Untitled note" aria-label="Title"
@@ -59,7 +64,9 @@ export function NoteTopBar(p: {
 
       <div className="ml-2 flex shrink-0 -space-x-1.5">
         {p.here.slice(0, 5).map((h) => (
-          <span key={h.uid} title={`${h.name} is here`} className="ct-animate-pop rounded-full" style={{ boxShadow: `0 0 0 2px var(--ct-canvas), 0 0 0 4px ${h.color}` }}>
+          <span key={h.uid} role="img" aria-label={h.status === 'idle' ? `${h.name} has this note open in another tab` : `${h.name} is in this note now`}
+            className="ct-animate-pop rounded-full transition-shadow duration-300"
+            style={{ boxShadow: `0 0 0 2px var(--ct-canvas), 0 0 0 4px ${h.status === 'idle' ? 'var(--ct-subtle)' : 'var(--ct-success)'}` }}>
             <PersonAvatar person={{ handle: '', name: h.name, avatar_url: h.avatar }} className="size-7" />
           </span>
         ))}
@@ -74,7 +81,7 @@ export function NoteTopBar(p: {
         </button>
       )}
       <DropdownMenu ariaLabel="Note options" triggerClassName="size-8 shrink-0" items={menu} />
-      <button type="button" aria-pressed={p.panel} aria-label={p.panel ? 'Hide the side panel' : 'Show the side panel'} title={p.panel ? 'Hide the side panel' : 'Show the side panel'} onClick={p.onPanel}
+      <button type="button" aria-pressed={p.panel} aria-label={p.panel ? 'Hide the side panel' : 'Show the side panel'} onClick={p.onPanel}
         className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg">
         {p.panel ? <PanelRightClose size={16} aria-hidden /> : <PanelRight size={16} aria-hidden />}
       </button>

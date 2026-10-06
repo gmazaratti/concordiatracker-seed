@@ -2191,3 +2191,7 @@ html:has(
   .ct-pdf-root .ct-note-doc { min-height: 0; }
   .ct-pdf-root .ct-note-image, .ct-pdf-root pre, .ct-pdf-root blockquote { break-inside: avoid; }
 }
+
+/* A page break inside a note: empty space that carries the text onto the next
+   sheet (see extensions/pagination.ts). Never selectable, never a list bullet. */
+.ct-note-doc .ct-page-gap { display: block; list-style: none; user-select: none; pointer-events: none; }

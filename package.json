@@ -76,7 +76,7 @@
     "db:memberguard": "npx supabase db query --linked -f db/org_member_guard.test.sql",
     "test:integrity": "node src/lib/course-integrity.test.mjs",
     "test:parseguard": "node api/_parse-guard.test.mjs",
-    "test:notes": "node src/features/notes/auto-link.test.mjs && node src/features/notes/folder-tree.test.mjs"
+    "test:notes": "node src/features/profile/chat/chat-time.test.mjs && node src/features/notes/auto-link.test.mjs && node src/features/notes/folder-tree.test.mjs && node src/features/notes/batch3.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
@@ -98,15 +98,18 @@
     "@tiptap/extension-highlight": "^3.31.4",
     "@tiptap/extension-image": "^3.31.4",
     "@tiptap/extension-list": "^3.31.4",
+    "@tiptap/extension-mention": "^3.31.4",
     "@tiptap/extension-text-align": "^3.31.4",
     "@tiptap/extension-text-style": "^3.31.4",
     "@tiptap/extensions": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
+    "@tiptap/suggestion": "^3.31.4",
     "@tiptap/y-tiptap": "^3.0.9",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "docx": "^9.8.1",
     "lucide-react": "^1.18.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

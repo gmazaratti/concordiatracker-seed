@@ -48,6 +48,8 @@ export interface NoteVersion {
   title: string
   content: JSONContent
   createdAt: string
+  /** Who wrote this state (the last person to save before it was replaced). */
+  editor: { id: string; name: string | null; handle: string | null; avatar: string | null } | null
 }
 
 export interface NoteTemplate {
