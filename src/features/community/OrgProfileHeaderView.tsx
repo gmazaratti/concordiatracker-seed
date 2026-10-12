@@ -1,3 +1,4 @@
+import type React from 'react'
 import { MessageSquare } from 'lucide-react'
 import type { EventOrg } from '@/data/community'
 import { OrgLogo } from './OrgLogo'
@@ -32,6 +33,8 @@ export function OrgProfileHeaderView({
   upcoming,
   mine,
   onMessage,
+  actions,
+  blocked,
 }: {
   org: EventOrg
   followers: number
@@ -40,6 +43,10 @@ export function OrgProfileHeaderView({
   /** Your own club hides Message — its inbox is in the portal. */
   mine?: boolean
   onMessage?: () => void
+  /** Extra controls after Contact — the profile passes Report / Block. */
+  actions?: React.ReactNode
+  /** You blocked this club: only the ⋯ (to unblock) stays. */
+  blocked?: boolean
 }) {
   const slug = org.handle.replace(/^@/, '')
 
@@ -109,11 +116,11 @@ export function OrgProfileHeaderView({
           {org.venue && <VenueInfo venue={org.venue} />}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <FollowButton handle={org.handle} />
+            {!blocked && <FollowButton handle={org.handle} />}
             {/* A real conversation with the CLUB, not an email to whoever set
                 it up. Hidden on your own club — its inbox is in the portal,
                 and the database refuses a message to yourself anyway. */}
-            {!mine && (
+            {!mine && !blocked && (
               <button
                 type="button"
                 onClick={onMessage}
@@ -123,7 +130,8 @@ export function OrgProfileHeaderView({
                 Message
               </button>
             )}
-            <ContactButton org={org} />
+            {!blocked && <ContactButton org={org} />}
+            {actions}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn'
  * Messages → Support. It says so up front, including that it is not anonymous
  * to us and that the other person is not told.
  */
-export type ReportTarget = 'post' | 'message' | 'account'
+export type ReportTarget = 'post' | 'message' | 'account' | 'comment' | 'event' | 'story' | 'club'
 
 const REASONS = [
   'Spam or scam',
@@ -34,6 +34,10 @@ const NOUN: Record<ReportTarget, string> = {
   post: 'post',
   message: 'message',
   account: 'account',
+  comment: 'comment',
+  event: 'event',
+  story: 'story',
+  club: 'club',
 }
 
 export function ReportSheet({

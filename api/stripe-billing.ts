@@ -16,6 +16,7 @@ import { authedUser, getProfile, getStripe, readJson, siteUrl, supabaseAdmin } f
 import { deleteAccount } from './_delete-account.js'
 import { startCheckout } from './_stripe-checkout.js'
 import { fail } from './_respond.js'
+import { syncIapForUser } from './_revenuecat.js'
 
 type Action = 'summary' | 'cancel' | 'resume' | 'update-card' | 'checkout-status'
 
@@ -39,7 +40,7 @@ export default async function handler(req: any, res: any) {
       return
     }
 
-    const { action = 'summary', sessionId, confirm } = readJson<{ action?: Action | 'delete-account'; sessionId?: string; confirm?: string }>(req)
+    const { action = 'summary', sessionId, confirm } = readJson<{ action?: Action | 'delete-account' | 'iap-sync'; sessionId?: string; confirm?: string }>(req)
 
     // Permanent deletion of the caller's own account (api/_delete-account.ts).
     // Lives here because it must cancel billing first and this function
@@ -66,6 +67,12 @@ export default async function handler(req: any, res: any) {
         return
       }
       res.status(200).json(result)
+      return
+    }
+
+    // The iOS app, straight after an Apple purchase or a restore (api/_revenuecat.ts).
+    if (action === 'iap-sync') {
+      res.status(200).json(await syncIapForUser(user.id))
       return
     }
 

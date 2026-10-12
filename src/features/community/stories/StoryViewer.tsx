@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
+  Ban,
   ChevronLeft,
   ChevronRight,
   EyeOff,
@@ -17,6 +18,8 @@ import {
   X,
 } from 'lucide-react'
 import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import { ReportSheet } from '@/components/ReportSheet'
+import { BlockOrgDialog } from '../BlockOrgDialog'
 import { useFollows } from '@/app/providers/follows'
 import { muteOrg } from '../muted-orgs'
 import { usePrefersReducedMotion } from '@/app/hooks/usePrefersReducedMotion'
@@ -118,12 +121,13 @@ export function StoryViewer({
   const [swiping, setSwiping] = useState(false)
   const touch = useRef<{ x: number; y: number; id: number; moved: boolean } | null>(null)
   const { isFollowing, toggleFollow } = useFollows()
-  const navigate = useNavigate()
   // The club's own team can take a story down or back to drafts. The database
   // checks the same thing (ct_can_act_as_org + post_create); this only
   // decides whether the menu offers it.
   const { orgs: myOrgs } = useMyOrgs()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const [blocking, setBlocking] = useState(false)
   const [manageErr, setManageErr] = useState<string | null>(null)
 
   const orgId = ring?.orgId
@@ -547,10 +551,24 @@ export function StoryViewer({
               danger: true,
               separated: true,
               onSelect: () => {
-                onClose()
-                navigate('/app/community?support=1')
+                setPaused(true)
+                setReporting(true)
               },
             },
+            ...(canManage
+              ? []
+              : [
+                  {
+                    id: 'block',
+                    label: `Block ${ring.handle.replace(/^@/, '')}`,
+                    icon: Ban,
+                    danger: true,
+                    onSelect: () => {
+                      setPaused(true)
+                      setBlocking(true)
+                    },
+                  },
+                ]),
           ]}
         />
         <button
@@ -760,6 +778,29 @@ export function StoryViewer({
         <p role="alert" className="absolute inset-x-3 top-16 z-20 rounded-xl bg-danger/85 px-3 py-2 text-[13px] text-white">
           {manageErr}
         </p>
+      )}
+
+      {reporting && story && (
+        <ReportSheet
+          target="story"
+          subject={`Reported story by ${ring.handle}`}
+          details={[`Story: ${story.id}`, `Club: ${ring.handle} (${ring.orgId})`, story.caption ? `Caption: ${story.caption}` : '']}
+          preview={story.caption || undefined}
+          onClose={() => {
+            setReporting(false)
+            setPaused(false)
+          }}
+        />
+      )}
+      {blocking && (
+        <BlockOrgDialog
+          org={{ id: ring.orgId, handle: ring.handle, name: ring.name }}
+          onClose={() => {
+            setBlocking(false)
+            setPaused(false)
+          }}
+          onBlocked={onClose}
+        />
       )}
 
       {/* Deleting is final — a story has no trash — so it asks once, and

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { PersonAvatar } from '@/features/community/PersonAvatar'
 import { listBlocks, unblockUser, type BlockedUser } from '@/lib/social'
 import { Group } from '../controls'
+import { unblockOrg, useOrgBlocks } from '@/lib/org-blocks'
+import { OrgLogo } from '@/features/community/OrgLogo'
 
 /**
  * Settings → Privacy → Blocked accounts.
@@ -15,6 +17,7 @@ export function BlockedAccountsGroup() {
   const [rows, setRows] = useState<BlockedUser[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const clubs = useOrgBlocks()
 
   useEffect(() => {
     let alive = true
@@ -37,13 +40,33 @@ export function BlockedAccountsGroup() {
     <Group label="Blocked accounts">
       {rows === null ? (
         <p className="px-4 py-3 text-[12.5px] text-subtle">Loading…</p>
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && clubs.rows.length === 0 ? (
         <p className="px-4 py-3 text-[12.5px] leading-relaxed text-subtle">
-          You haven&rsquo;t blocked anyone. Block someone from the ⋯ on their profile or in a
-          conversation; they won&rsquo;t be told.
+          You haven&rsquo;t blocked anyone. Block a person or a club from the ⋯ on their profile,
+          a post, a comment or a conversation; they won&rsquo;t be told.
         </p>
       ) : (
         <ul className="divide-y divide-border">
+          {clubs.rows.map((o) => (
+            <li key={o.org_id} className="flex items-center gap-3 px-4 py-2.5">
+              <OrgLogo
+                org={{ name: o.name, handle: o.handle, glyph: o.glyph ?? o.name.slice(0, 2), color: o.color ?? '#555', logo: o.logo ?? undefined, verified: false, bio: '' }}
+                className="size-8 shrink-0"
+                rounded="rounded-full"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium text-fg">{o.name}</span>
+                <span className="block truncate text-[11.5px] text-subtle">{o.handle} · Club</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => void unblockOrg(o.org_id).then((ok) => !ok && setError('That did not go through. Nothing changed.'))}
+                className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[12px] font-medium text-fg transition-colors duration-150 hover:bg-surface-2"
+              >
+                Unblock
+              </button>
+            </li>
+          ))}
           {rows.map((b) => (
             <li key={b.handle} className="flex items-center gap-3 px-4 py-2.5">
               <PersonAvatar person={b} className="size-8 shrink-0" />

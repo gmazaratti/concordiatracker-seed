@@ -19,6 +19,8 @@ import { PostComposer } from './posts/PostComposer'
 import { GridSkeleton, PostTileMedia, RepostsTab, Tile } from './posts/RepostsTab'
 import { MessageOrgModal } from './MessageOrgModal'
 import { OrgProfileHeaderView } from './OrgProfileHeaderView'
+import { BlockedOrgNotice, OrgSafetyMenu } from './OrgSafetyMenu'
+import { isOrgBlocked, useOrgBlocks } from '@/lib/org-blocks'
 
 /** Counts and my relationship to this club, from one definer call. Followers
  *  CANNOT be counted client-side — org_follows is select-own, so a browser
@@ -160,6 +162,7 @@ function OrgProfileBody({
   const [messaging, setMessaging] = useState(false)
   const [refresh, setRefresh] = useState(0)
   const mine = myOrgs.find((o) => o.handle.replace(/^@/, '') === slug)
+  const blocks = useOrgBlocks()
 
   /*
    * THE ID, RESOLVED ONCE. The URL carries a handle; posts and the inbox both
@@ -195,6 +198,8 @@ function OrgProfileBody({
     }
   }, [tab, orgId, refresh])
 
+  const blocked = !mine && !!orgId && isOrgBlocked(blocks, orgId)
+
   return (
     <div className="ct-page-in mx-auto w-full max-w-3xl px-5 py-5 sm:px-6 2xl:max-w-6xl">
       <div className="mx-auto w-full max-w-3xl">
@@ -209,8 +214,13 @@ function OrgProfileBody({
         upcoming={upcoming.length}
         mine={!!mine}
         onMessage={() => setMessaging(true)}
+        blocked={blocked}
+        actions={!mine && orgId ? <OrgSafetyMenu org={{ id: orgId, handle: org.handle, name: org.name }} /> : null}
       />
 
+      {blocked && orgId ? (
+        <BlockedOrgNotice org={{ id: orgId, name: org.name }} />
+      ) : (
       <ProfileTabs
         active={tab}
         onChange={setTab}
@@ -220,9 +230,10 @@ function OrgProfileBody({
           { id: 'reposts', label: 'Reposts', icon: Repeat2 },
         ]}
       />
+      )}
       </div>
 
-      {tab === 'events' && (
+      {!blocked && tab === 'events' && (
         <div className="mx-auto w-full max-w-3xl">
           <section className="pt-5">
             <h2 className="mb-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">Upcoming</h2>
@@ -244,7 +255,7 @@ function OrgProfileBody({
         </div>
       )}
 
-      {tab === 'posts' && (
+      {!blocked && tab === 'posts' && (
         <section className="pt-4">
           {mine && (
             <button
@@ -274,7 +285,7 @@ function OrgProfileBody({
         </section>
       )}
 
-      {tab === 'reposts' && (
+      {!blocked && tab === 'reposts' && (
         <div className="mx-auto w-full max-w-3xl">
           <RepostsTab handle={slug} isOrg onOpenEvent={openEvent} />
         </div>

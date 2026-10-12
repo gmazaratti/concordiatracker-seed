@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
+  Ban,
   Bell,
   BellRing,
   CalendarCheck,
   CalendarPlus,
   ChevronRight,
   Clock,
+  Flag,
   MapPin,
+  MoreHorizontal,
   Repeat2,
   Share2,
   UserPlus,
@@ -30,6 +33,11 @@ import { VerifiedBadge } from './VerifiedBadge'
 import { OrgLogo } from './OrgLogo'
 import { FollowButton } from './FollowButton'
 import { ShareEventModal } from './ShareEventModal'
+import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import { ReportSheet } from '@/components/ReportSheet'
+import { BlockOrgDialog } from './BlockOrgDialog'
+import { useCommunityData } from '@/app/providers/community-data'
+import { useMyOrgs } from './useMyOrgs'
 import { useCommunity } from './useCommunity'
 import { ContactButton } from './ContactButton'
 
@@ -55,6 +63,11 @@ export function EventDetail({
   const l = useLocalizedEvent(event)
   const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
   const [shareOpen, setShareOpen] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const [blocking, setBlocking] = useState(false)
+  const orgId = useCommunityData().orgIdByHandle[event.org.handle] ?? null
+  const { orgs: myOrgs } = useMyOrgs()
+  const isMine = !!orgId && myOrgs.some((o) => o.id === orgId)
 
   // Reset scroll when navigating between events (e.g. "more from this host").
   useEffect(() => {
@@ -81,14 +94,27 @@ export function EventDetail({
               <ArrowLeft size={16} aria-hidden />
               Events
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-            >
-              <X size={18} aria-hidden />
-            </button>
+            <div className="flex items-center gap-1">
+              <DropdownMenu
+                ariaLabel="Event options"
+                icon={MoreHorizontal}
+                triggerClassName="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+                items={[
+                  { id: 'report', label: 'Report event', icon: Flag, danger: true, onSelect: () => setReporting(true) },
+                  ...(orgId && !isMine
+                    ? [{ id: 'block', label: `Block ${event.org.handle.replace(/^@/, '')}`, icon: Ban, danger: true, onSelect: () => setBlocking(true) }]
+                    : []),
+                ]}
+              />
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="grid size-8 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              >
+                <X size={18} aria-hidden />
+              </button>
+            </div>
           </header>
 
           <EventDetailView
@@ -101,6 +127,22 @@ export function EventDetail({
         </div>
       </div>
       {shareOpen && <ShareEventModal event={event} onClose={() => setShareOpen(false)} />}
+      {reporting && (
+        <ReportSheet
+          target="event"
+          subject={`Reported event by ${event.org.handle}`}
+          details={[`Event: ${event.id}`, `Title: ${l.title}`, `Club: ${event.org.name} ${event.org.handle}`]}
+          preview={l.title}
+          onClose={() => setReporting(false)}
+        />
+      )}
+      {blocking && orgId && (
+        <BlockOrgDialog
+          org={{ id: orgId, handle: event.org.handle, name: event.org.name }}
+          onClose={() => setBlocking(false)}
+          onBlocked={onClose}
+        />
+      )}
     </>
   )
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Bookmark,
   ChevronLeft,
+  Ban,
   ChevronRight,
   Clock,
   EyeOff,
@@ -32,6 +33,7 @@ import { savedAmong, toggleSave } from '@/lib/saves'
 import { cn } from '@/lib/cn'
 import { ShareSheet } from '../ShareSheet'
 import { ReportSheet } from '@/components/ReportSheet'
+import { BlockOrgDialog } from '../BlockOrgDialog'
 import { muteOrg } from '../muted-orgs'
 import { PostFollowButton } from './PostFollowButton'
 import { CollabHeader, CollaboratorsSheet } from './CollabHeader'
@@ -94,6 +96,7 @@ export function PostCard({
   const commitDelete = useRef<(() => void) | null>(null)
   const [saved, setSaved] = useState(false)
   const [reporting, setReporting] = useState(false)
+  const [blocking, setBlocking] = useState(false)
   const [showCollabs, setShowCollabs] = useState(false)
   const strip = useRef<HTMLDivElement | null>(null)
   // Double-tap to like. A single tap on the photo does nothing, so the first
@@ -439,6 +442,9 @@ export function PostCard({
                 setGone(true)
               },
             },
+            ...(canManage
+              ? []
+              : [{ id: 'block', label: `Block ${slug}`, icon: Ban, danger: true, onSelect: () => setBlocking(true) }]),
           ]}
         />
       </header>
@@ -642,6 +648,14 @@ export function PostCard({
 
       {showComments && (
         <CommentsSheet post={post} onCount={setCount} onClose={() => setShowComments(false)} />
+      )}
+
+      {blocking && (
+        <BlockOrgDialog
+          org={{ id: post.orgId, handle: post.handle, name: post.orgName }}
+          onClose={() => setBlocking(false)}
+          onBlocked={() => setGone(true)}
+        />
       )}
 
       {reporting && (

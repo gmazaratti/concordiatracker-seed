@@ -291,6 +291,7 @@ check(
 )
 check('/api/library still resolves', resolve('/api/library') === '/api/sections?feed=library', resolve('/api/library'))
 check('/api/app-version resolves', resolve('/api/app-version') === '/api/sections?feed=app-version', resolve('/api/app-version'))
+check('/api/revenuecat-webhook reaches the webhook', resolve('/api/revenuecat-webhook') === '/api/stripe-webhook?source=revenuecat', resolve('/api/revenuecat-webhook'))
 check('/api/shuttle resolves', resolve('/api/shuttle') === '/api/sections?feed=shuttle', resolve('/api/shuttle'))
 check('/c/:handle reaches the club page', resolve('/c/reggiesmtl') === '/api/sections?feed=club&handle=reggiesmtl', resolve('/c/reggiesmtl'))
 check('/c/ with a dotted handle', resolve('/c/concordia.library') === '/api/sections?feed=club&handle=concordia.library', resolve('/c/concordia.library'))

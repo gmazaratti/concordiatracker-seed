@@ -29,6 +29,7 @@ import { DevicesSection } from './sections/DevicesSection'
 import { useIsAdmin } from '@/features/admin/admin-data'
 import { useAppData } from '@/app/providers/app-data'
 import { PURCHASES_HIDDEN } from '@/lib/store-policy'
+import { IapBillingSection } from './sections/IapBillingSection'
 
 /**
  * `adminOnly` is a display rule, and only a display rule.
@@ -120,7 +121,7 @@ const SECTIONS: {
   { id: 'moodle', labelKey: 'settings.moodle', icon: GraduationCap },
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
   { id: 'devices', labelKey: 'settings.devices', icon: MonitorSmartphone },
-  { id: 'billing', labelKey: 'settings.billing', icon: CreditCard, store: 'never' },
+  { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
   { id: 'usage', labelKey: 'settings.usage', icon: Gauge, store: 'never' },
   { id: 'developer', labelKey: 'settings.developer', icon: Code2, adminOnly: true },
 ]
@@ -131,7 +132,7 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
   calendarSync: CalendarSyncSection,
   moodle: MoodleSection,
   privacy: PrivacySection,
-  billing: BillingSection,
+  billing: PURCHASES_HIDDEN ? IapBillingSection : BillingSection,
   usage: UsageSection,
   devices: DevicesSection,
   developer: DeveloperSection,

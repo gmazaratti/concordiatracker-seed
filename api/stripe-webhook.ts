@@ -14,6 +14,7 @@ import { getProfile, getStripe, patchProfile, supabaseAdmin } from './_stripe.js
 import { fail } from './_respond.js'
 import { formatAmount, formatEmailDate, sendEmail } from './_email.js'
 import { handleResendWebhook } from './_resend-webhook.js'
+import { handleRevenueCatWebhook } from './_revenuecat.js'
 
 // Signature verification needs the untouched bytes, so opt out of body parsing.
 export const config = { api: { bodyParser: false } }
@@ -74,10 +75,15 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
   // subscription's event would overwrite the row and drop a paying student to
   // free. A non-entitling event is only allowed to write if it's about the
   // subscription we currently consider theirs.
+  // An Apple subscription that is still paid for keeps Pro: a cancelled Stripe
+  // plan only ever revokes what Stripe granted.
+  let appleKeepsPro = false
   if (!entitled) {
-    const current = await getProfile(userId, 'stripe_subscription_id')
+    const current = await getProfile(userId, 'stripe_subscription_id,iap_expires_at')
     const currentId = current?.stripe_subscription_id as string | undefined
     if (currentId && currentId !== sub.id) return
+    const iap = current?.iap_expires_at as string | null | undefined
+    appleKeepsPro = !!iap && Date.parse(iap) > Date.now()
   }
 
   const item = sub.items?.data?.[0]
@@ -109,7 +115,7 @@ async function syncSubscription(sub: Stripe.Subscription): Promise<void> {
     current_period_end: iso(periodEnd),
     cancel_at_period_end: !!sub.cancel_at_period_end,
     trial_end: iso(sub.trial_end),
-    plan_status: entitled ? 'pro' : 'free',
+    plan_status: entitled || appleKeepsPro ? 'pro' : 'free',
   })
 }
 
@@ -123,6 +129,11 @@ export default async function handler(req: any, res: any) {
   // /api/email-events (Resend) shares this function for its raw body only.
   if (req.query?.source === 'resend') {
     await handleResendWebhook(req, res, await rawBody(req))
+    return
+  }
+  // /api/revenuecat-webhook (Apple purchases) likewise.
+  if (req.query?.source === 'revenuecat') {
+    await handleRevenueCatWebhook(req, res, await rawBody(req))
     return
   }
 

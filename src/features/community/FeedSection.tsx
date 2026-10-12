@@ -6,6 +6,7 @@ import { PostSkeleton, StoriesRowSkeleton } from '@/components/ui/Skeleton'
 import { warm } from '@/lib/img-cache'
 import { useMyOrgs } from './useMyOrgs'
 import { mutedOrgs } from './muted-orgs'
+import { isOrgBlocked, useOrgBlocks } from '@/lib/org-blocks'
 import { StoriesRow } from './stories/StoriesRow'
 import { StoryViewer } from './stories/StoryViewer'
 import { StoryComposer } from './stories/StoryComposer'
@@ -97,6 +98,8 @@ export function FeedSection() {
     }
   }, [refresh])
 
+  const blocks = useOrgBlocks()
+  const shownRings = useMemo(() => rings.filter((r) => !isOrgBlocked(blocks, r.orgId)), [rings, blocks])
   const myOrgIds = useMemo(() => new Set(myOrgs.map((o) => o.id)), [myOrgs])
   /*
    * "Stop suggesting this club" has to actually stop it. Filtered on read
@@ -110,8 +113,8 @@ export function FeedSection() {
   const shown = useMemo(() => {
     if (!posts) return posts
     const muted = mutedOrgs()
-    return muted.size === 0 ? posts : posts.filter((p) => !muted.has(p.orgId))
-  }, [posts])
+    return posts.filter((p) => !muted.has(p.orgId) && !isOrgBlocked(blocks, p.orgId))
+  }, [posts, blocks])
 
   const entries = useMemo<FeedEntry[] | null>(
     () =>
@@ -146,9 +149,9 @@ export function FeedSection() {
         <StoriesRowSkeleton />
       ) : (
         <StoriesRow
-          rings={rings}
+          rings={shownRings}
           myOrgs={myOrgs}
-          onOpen={(id) => setWatching(rings.find((r) => r.orgId === id) ?? null)}
+          onOpen={(id) => setWatching(shownRings.find((r) => r.orgId === id) ?? null)}
           onCompose={() => setComposing('story')}
         />
       )}
@@ -204,7 +207,7 @@ export function FeedSection() {
 
       {watching && (
         <StoryViewer
-          rings={rings}
+          rings={shownRings}
           startOrgId={watching.orgId}
           onClose={() => setWatching(null)}
           onSeen={() => setRefresh((n) => n + 1)}

@@ -1,25 +1,22 @@
 import { Capacitor } from '@capacitor/core'
 
 /**
- * WHAT THE NATIVE APP MAY SAY ABOUT MONEY: NOTHING.
+ * WHAT THE NATIVE APP MAY SAY ABOUT MONEY: ONLY APPLE'S IN-APP PURCHASE.
  *
- * The App Store build does not sell anything. Apple's rules (3.1.1 / 3.1.3)
- * forbid unlocking features with a purchase made outside the app from inside
- * the app, and forbid pointing people at one. So in the native shell there is
- * no upgrade button, no price, no plan name, no "comes with the Semester pass",
- * and no link to where one could be bought.
+ * Since October 2026 the App Store build sells Pro itself, through Apple In-App
+ * Purchase (lib/iap.ts, Settings → Billing = IapBillingSection). What it must
+ * never do (App Store 3.1.1 / 3.1.3) is mention or link to the website's Stripe
+ * checkout, its prices, or any other way to pay. So in the native shell:
+ *   - every "Upgrade" button opens the in-app purchase screen;
+ *   - web pricing, the Stripe billing screen, Stripe celebrations, marketing
+ *     pages and release notes about web billing stay hidden.
  *
- * An account that already has Pro (bought on the web) keeps every Pro feature
- * here, silently: the app reflects what the account is, it just never talks
- * about how it got that way.
- *
- * A FREE account in the app does not see Pro features at all rather than
- * seeing them locked. A padlock is itself an invitation to buy, and a locked
- * card with no way to unlock it is a dead end.
+ * An account that already has Pro from the website keeps it here (allowed for
+ * multiplatform services, 3.1.3(b)); the app just never says where it came from.
  *
  * Read once at module load: whether we are running in the native shell cannot
  * change during a session, and a constant is what lets every caller branch
- * without a hook.
+ * without a hook. The name predates IAP: read it as "web purchasing hidden".
  */
 export const PURCHASES_HIDDEN: boolean = (() => {
   try {

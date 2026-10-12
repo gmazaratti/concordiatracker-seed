@@ -14,8 +14,10 @@
 #     VITE_SUPABASE_URL
 #     VITE_SUPABASE_ANON_KEY
 #     VITE_VAPID_PUBLIC_KEY
-#     VITE_STRIPE_PUBLISHABLE_KEY       (the app never shows payments, but the
+#     VITE_STRIPE_PUBLISHABLE_KEY       (the app never shows Stripe, but the
 #                                        shared code reads it; the public key only)
+#     VITE_REVENUECAT_IOS_KEY           RevenueCat's PUBLIC iOS SDK key (appl_…),
+#                                        for Pro through Apple In-App Purchase
 #
 # Signing is AUTOMATIC: xcodebuild signs with the App Store Connect API key
 # (-allowProvisioningUpdates + -authenticationKey…), creating or reusing the

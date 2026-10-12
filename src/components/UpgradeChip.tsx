@@ -21,8 +21,9 @@ export function UpgradeChip({
   onClick?: () => void
   className?: string
 }) {
-  // No upsell of any kind inside the App Store build (lib/store-policy).
-  if (PURCHASES_HIDDEN) return null
+  // In the App Store build a `to` link may point at the web pricing page, so
+  // only button-style chips (which open the in-app purchase screen) show.
+  if (PURCHASES_HIDDEN && to) return null
   const cls = cn(
     'group flex w-full items-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 text-left transition-colors duration-150 hover:border-accent/50',
     className,

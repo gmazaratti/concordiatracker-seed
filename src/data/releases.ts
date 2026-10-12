@@ -44,6 +44,19 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 const ALL_RELEASES: Release[] = [
   {
+    version: '2.3.0',
+    name: 'Safer Community',
+    date: '2026-10-11',
+    changes: [
+      { kind: 'new', text: 'Report any post, story, event, comment or club from its ⋯ menu.' },
+      { kind: 'new', text: 'Block a club: its posts, stories and events leave your feed right away, and you can undo it in Settings, Privacy.' },
+      { kind: 'new', text: 'Block someone from their comment, and their comments disappear for you at once.' },
+      { kind: 'improved', text: 'Every block is sent to us, so the content behind it gets reviewed.' },
+      { kind: 'improved', text: 'The sign-in screen shows the Terms of Use and our zero-tolerance rule before you sign in.' },
+      { kind: 'new', text: 'Pro can be bought in the iPhone app with Apple, with Restore Purchases.' },
+    ],
+  },
+  {
     version: '2.2.0',
     name: 'Notes, together',
     date: '2026-10-06',

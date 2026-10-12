@@ -327,7 +327,10 @@ export function LoginScreen() {
                 {/* ONE LINE, DIRECTLY ABOVE THE BUTTON IT GATES: the last thing
                     read before the last thing pressed, which is where an
                     agreement belongs. */}
-                {creating && (
+                {/* APP STORE 1.2: the Terms (our EULA) and the zero-tolerance line are
+                    on this screen in BOTH modes, before anyone signs in. Creating an
+                    account asks for a tick; signing in states it. */}
+                {creating ? (
                   <label className="flex cursor-pointer items-center gap-2 text-[13px] leading-snug text-muted">
                     <input
                       ref={agreeRef}
@@ -342,7 +345,7 @@ export function LoginScreen() {
                     <span>
                       {t('auth.agreePre')}{' '}
                       <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-                        {t('auth.termsShort')}
+                        {t('auth.eulaTerms')}
                       </a>{' '}
                       {t('auth.and')}{' '}
                       <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
@@ -350,7 +353,20 @@ export function LoginScreen() {
                       </a>
                     </span>
                   </label>
+                ) : (
+                  <p className="text-[12.5px] leading-snug text-muted">
+                    {t('auth.eulaPre')}{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                      {t('auth.eulaTerms')}
+                    </a>{' '}
+                    {t('auth.and')}{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                      {t('auth.privacy')}
+                    </a>
+                    .
+                  </p>
                 )}
+                <p className="-mt-1 text-[12px] leading-snug text-subtle">{t('auth.eulaZero')}</p>
 
                 <Rise at={600} on={intro} className="mt-1">
                   <Button type="submit" size="lg" disabled={busy || blocked} className="w-full rounded-full">

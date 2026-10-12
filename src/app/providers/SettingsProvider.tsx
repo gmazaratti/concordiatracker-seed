@@ -3,7 +3,9 @@ import { SettingsContext, type SettingsSection } from './settings'
 import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
 /** Panes about buying, which the App Store build never opens (lib/store-policy). */
-const STORE_PANES: SettingsSection[] = ['billing', 'usage']
+// Panes the App Store build never shows. Billing is NOT one of them any more:
+// in the app it is the Apple In-App Purchase screen (IapBillingSection).
+const STORE_PANES: SettingsSection[] = ['usage']
 
 const SECTIONS: SettingsSection[] = [
   'general',
@@ -56,9 +58,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [initial])
 
   const openSettings = useCallback((next?: SettingsSection) => {
-    // Every "Upgrade" button in the app calls this with 'billing'. In the App
-    // Store build those buttons are already hidden; this is the backstop, so
-    // one that was missed does nothing rather than opening a price.
+    // Every "Upgrade" button calls this with 'billing'. In the App Store build
+    // that pane is the Apple In-App Purchase screen, never web checkout.
     if (PURCHASES_HIDDEN && next && STORE_PANES.includes(next)) return
     if (next) setSection(next)
     setOpen(true)

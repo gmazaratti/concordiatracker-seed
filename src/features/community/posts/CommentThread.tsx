@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Pin, Send, Trash2 } from 'lucide-react'
+import { Ban, Flag, Heart, MoreHorizontal, Pin, Send, Trash2 } from 'lucide-react'
+import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import { ReportSheet } from '@/components/ReportSheet'
+import { BlockPersonDialog } from '../BlockOrgDialog'
 import { PersonAvatar } from '../PersonAvatar'
 import { buildThreads, type CommentThread as Thread, type PostComment } from '@/lib/comments'
 import type { FeedPost } from '@/lib/social-posts'
@@ -76,6 +79,8 @@ function Row({
   onReply,
   onPin,
   onHide,
+  onReport,
+  onBlock,
 }: {
   c: PostComment
   isReply?: boolean
@@ -83,6 +88,8 @@ function Row({
   onReply: () => void
   onPin: () => void
   onHide: () => void
+  onReport: () => void
+  onBlock: () => void
 }) {
   return (
     <div className={cn('flex gap-3', isReply && 'pl-10')}>
@@ -132,6 +139,17 @@ function Row({
             >
               <Trash2 size={12} aria-hidden />
             </button>
+          )}
+          {!c.isMine && (
+            <DropdownMenu
+              ariaLabel={`Options for ${c.handle}'s comment`}
+              icon={MoreHorizontal}
+              triggerClassName="grid size-5 place-items-center rounded text-subtle hover:text-fg"
+              items={[
+                { id: 'report', label: 'Report comment', icon: Flag, danger: true, onSelect: onReport },
+                { id: 'block', label: `Block @${c.handle}`, icon: Ban, danger: true, onSelect: onBlock },
+              ]}
+            />
           )}
         </div>
       </div>
@@ -189,6 +207,9 @@ export function CommentThread({
   const [busy, setBusy] = useState(false)
   const [replyTo, setReplyTo] = useState<PostComment | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [reporting, setReporting] = useState<PostComment | null>(null)
+  const [blocking, setBlocking] = useState<string | null>(null)
+  const [blockedHandles, setBlockedHandles] = useState<Set<string>>(() => new Set())
   // Only to decide whether the home-indicator inset is needed: the keyboard is
   // covering it when it is up. The position itself is the overlay's job now.
   const { keyboard } = useVisualViewport(liftComposer)
@@ -208,7 +229,10 @@ export function CommentThread({
     setLocalError(null)
   }
 
-  const groups = comments ? buildThreads(comments) : null
+  // A block takes the person's words off the screen in the same frame; the
+  // server already leaves them out of every later read (post_comment_list).
+  const visible = comments && blockedHandles.size > 0 ? comments.filter((c) => !blockedHandles.has(c.handle.toLowerCase())) : comments
+  const groups = visible ? buildThreads(visible) : null
   const shown: Thread[] = groups ? [...groups.pinned, ...groups.rest] : []
 
   return (
@@ -234,6 +258,8 @@ export function CommentThread({
                   onReply={() => setReplyTo(t.comment)}
                   onPin={() => onPin(t.comment.id, !t.comment.pinnedAt)}
                   onHide={() => onHide(t.comment.id)}
+                  onReport={() => setReporting(t.comment)}
+                  onBlock={() => setBlocking(t.comment.handle)}
                 />
                 {t.replies.map((r) => (
                   <Row
@@ -244,6 +270,8 @@ export function CommentThread({
                     onReply={() => setReplyTo(t.comment)}
                     onPin={() => onPin(r.id, !r.pinnedAt)}
                     onHide={() => onHide(r.id)}
+                    onReport={() => setReporting(r)}
+                    onBlock={() => setBlocking(r.handle)}
                   />
                 ))}
               </li>
@@ -328,6 +356,22 @@ export function CommentThread({
           </button>
         </div>
       </div>
+      {reporting && (
+        <ReportSheet
+          target="comment"
+          subject={`Reported comment by @${reporting.handle}`}
+          details={[`Comment: ${reporting.id}`, `Post: ${post.id}`, `Author: @${reporting.handle}`, `Text: ${reporting.body}`]}
+          preview={reporting.body}
+          onClose={() => setReporting(null)}
+        />
+      )}
+      {blocking && (
+        <BlockPersonDialog
+          handle={blocking}
+          onClose={() => setBlocking(null)}
+          onBlocked={() => setBlockedHandles((s) => new Set(s).add(blocking.toLowerCase()))}
+        />
+      )}
     </>
   )
 }

@@ -19,9 +19,6 @@ export function PaywallLock({
   const t = useT()
   const { openSettings } = useSettings()
   if (!locked) return <>{children}</>
-  // In the App Store build a locked feature is absent, not padlocked: a lock
-  // with no way to open it is a dead end, and one with a way is a sale.
-  if (PURCHASES_HIDDEN) return null
   return (
     <div className="relative overflow-hidden rounded-xl">
       <div
@@ -41,7 +38,7 @@ export function PaywallLock({
             onClick={() => openSettings('billing')}
             className="mt-0.5 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
           >
-            {t('courses.unlockWith')}
+            {PURCHASES_HIDDEN ? 'Unlock with Pro' : t('courses.unlockWith')}
             <ArrowRight size={14} aria-hidden />
           </button>
         </div>
@@ -56,7 +53,6 @@ export function PaywallLock({
 export function PaywallCallout() {
   const t = useT()
   const { openSettings } = useSettings()
-  if (PURCHASES_HIDDEN) return null
   return (
     <>
       <UpgradeChip
@@ -76,7 +72,7 @@ export function PaywallCallout() {
       <div className="min-w-0 flex-1">
         <p className="text-[13px] font-medium text-fg">{t('courses.predictGpa')}</p>
         <p className="text-[12px] text-muted">
-          {t('courses.seeWhereGradesLand')} <span className="text-accent">{t('today.semesterPass')}</span>
+          {t('courses.seeWhereGradesLand')} <span className="text-accent">{PURCHASES_HIDDEN ? 'Pro' : t('today.semesterPass')}</span>
         </p>
       </div>
       <ArrowRight

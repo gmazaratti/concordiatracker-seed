@@ -145,6 +145,10 @@
       "destination": "/api/stripe-webhook?source=resend"
     },
     {
+      "source": "/api/revenuecat-webhook",
+      "destination": "/api/stripe-webhook?source=revenuecat"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/not-found?json=1"
     },

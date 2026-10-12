@@ -93,7 +93,12 @@ export function DeleteAccountRow() {
           <ul className="mt-1 list-disc space-y-0.5 pl-4 text-muted">
             <li>Your profile, courses, grades, tasks, messages, follows, notes and settings are deleted.</li>
             <li>So are your support tickets, bug reports, survey answers, device history, analytics and uploaded files.</li>
-            {!PURCHASES_HIDDEN && (
+            {PURCHASES_HIDDEN ? (
+              <li>
+                A Pro subscription bought in this app is billed by Apple and is not cancelled by deleting your
+                account: turn off auto-renew in your Apple ID&rsquo;s subscription settings first.
+              </li>
+            ) : (
               <li>A Pro subscription is cancelled immediately. Stripe keeps its own payment records, as the law requires.</li>
             )}
             <li>Posts and events you published for a club stay with the club, without your name.</li>

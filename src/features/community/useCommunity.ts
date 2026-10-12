@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useCommunityData } from '@/app/providers/community-data'
 import type { CampusEvent, EventOrg } from '@/data/community'
+import { isOrgBlocked, useOrgBlocks } from '@/lib/org-blocks'
 
 /**
  * The single read surface for student-facing Community data — now backed by the
@@ -12,10 +13,13 @@ import type { CampusEvent, EventOrg } from '@/data/community'
  */
 export function useCommunity() {
   const { orgs: communityOrgs, events: communityEvents, loading } = useCommunityData()
+  const blocks = useOrgBlocks()
 
   return useMemo(() => {
     const orgs = communityOrgs
-    const events = communityEvents
+    // A blocked club's events leave every list at once (App Store 1.2). Its
+    // profile still resolves, so the student can find it again to unblock.
+    const events = blocks.handles.size === 0 ? communityEvents : communityEvents.filter((e) => !isOrgBlocked(blocks, e.org.handle))
 
     const slug = (org: EventOrg) => org.handle.replace(/^@/, '')
 
@@ -58,5 +62,5 @@ export function useCommunity() {
           .sort((a, b) => a.postedDaysAgo - b.postedDaysAgo)
       },
     }
-  }, [communityOrgs, communityEvents, loading])
+  }, [communityOrgs, communityEvents, loading, blocks])
 }
