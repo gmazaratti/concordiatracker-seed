@@ -162,6 +162,14 @@ export function useSupabaseProfile() {
           const reload = await supabase.from('user_profile').select(COLS).eq('user_id', au.id).maybeSingle()
           data = reload.data
         }
+        // A promo link (concordiatracker.com/l) can carry a signup grant. The
+        // database decides everything (db/link_grants.sql: new account only,
+        // never over a subscription, once per account); a refusal is silent.
+        if (data && readRefSource()) {
+          const { data: grant } = await supabase.rpc('claim_signup_grant')
+          const g = grant as { granted?: boolean; pro_until?: string } | null
+          if (g?.granted && g.pro_until) data = { ...data, pro_until: g.pro_until }
+        }
       }
       if (!active || !data) return
       const loaded = data as ProfileRow

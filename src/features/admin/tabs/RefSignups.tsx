@@ -12,6 +12,7 @@ interface RefRow {
 /** Source links we hand out, by the cookie value they set (lib/ref-source.ts). */
 const LINKS: Record<string, { label: string; path: string }> = {
   reddit: { label: 'Reddit', path: '/r' },
+  'linkedin-l': { label: 'LinkedIn (14 days Pro)', path: '/l' },
 }
 
 const AGO = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })

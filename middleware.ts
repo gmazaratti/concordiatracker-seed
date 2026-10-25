@@ -19,7 +19,7 @@
  * fall-through is the risky half, and it is the half that was measured.
  */
 export const config = {
-  matcher: ['/', '/about', '/contact', '/developers', '/docs/:path*', '/api/:path*'],
+  matcher: ['/', '/l', '/about', '/contact', '/developers', '/docs/:path*', '/api/:path*'],
 }
 
 /**
@@ -51,7 +51,34 @@ function preflight(request: Request): Response | undefined {
   })
 }
 
+/**
+ * concordiatracker.com/l, the LinkedIn link. A real 302 with a Set-Cookie, so
+ * the source is recorded before any JavaScript runs, and the same source in the
+ * query string as a fallback for a browser that refuses the cookie
+ * (src/lib/ref-source.ts picks up either). The value must match ref-source's
+ * slug rule and the database CHECK; a signup with it gets the 14-day Pro grant
+ * in db/link_grants.sql, decided server-side.
+ */
+const LINK_SOURCES: Record<string, string> = { '/l': 'linkedin-l' }
+
+function sourceLink(request: Request): Response | undefined {
+  const url = new URL(request.url)
+  const source = LINK_SOURCES[url.pathname.replace(/\/$/, '')]
+  if (!source) return undefined
+  const secure = url.protocol === 'https:' ? '; Secure' : ''
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `/?src=${source}`,
+      'Set-Cookie': `ct_ref=${source}; Max-Age=${60 * 60 * 24 * 30}; Path=/; SameSite=Lax${secure}`,
+      'Cache-Control': 'no-store',
+    },
+  })
+}
+
 export default async function middleware(request: Request): Promise<Response | undefined> {
+  const link = sourceLink(request)
+  if (link) return link
   // The API only ever needs the preflight answer; everything else falls
   // through to the function untouched.
   if (new URL(request.url).pathname.startsWith('/api/')) return preflight(request)

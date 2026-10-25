@@ -78,6 +78,8 @@ export function channelFor(i: {
   if (/^\/(join|organizer\/join|organizer\/invite|teacher\/invite)(\/|$)/.test(path)) return 'invite'
   const fromUtm = t ? utmChannel(t.utm_source ?? '', t.utm_medium ?? '') : null
   if (fromUtm) return fromUtm
+  // A variant of a named link (linkedin-l) still belongs to its channel.
+  if (i.sourceRef && /^linkedin-/.test(i.sourceRef)) return 'linkedin'
   if (i.sourceRef && /^[a-z_]{1,32}$/.test(i.sourceRef)) return i.sourceRef
   if (i.referralCode) return 'referral'
   if (t?.referrer_host) return referrerChannel(t.referrer_host)
