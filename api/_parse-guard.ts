@@ -244,3 +244,94 @@ export function cleanParse(raw: { course?: unknown; assessments?: unknown }): {
   }
   return { course, assessments, warnings }
 }
+
+/**
+ * Is a model's syllabus extraction good enough to show a student?
+ *
+ * It reads the RAW answer (before cleanParse narrows it),
+ * because cleanParse quietly turns an impossible date into null and a bad kind
+ * into "assignment"; those are exactly the slips that should send the document
+ * to a stronger model instead of reaching a student as if they were the
+ * syllabus.
+ *
+ * What fails validation:
+ *   - no assessments at all, or no course code (the two facts every real
+ *     outline carries and every misread loses first);
+ *   - an assessment missing its title, with a kind outside the allowed set, or
+ *     a noDateNeeded that is not a boolean;
+ *   - a due date that does not parse as a real calendar date;
+ *   - weights that cannot be right: when EVERY item states a weight they must
+ *     total 100 (98 to 102, for rounding like 3 x 33.33), and when only some
+ *     do, the stated ones must not already pass 102.
+ */
+export interface Validation {
+  ok: boolean
+  problems: string[]
+}
+
+export function validateExtraction(raw: unknown): Validation {
+  const problems: string[] = []
+  if (!raw || typeof raw !== 'object') return { ok: false, problems: ['not_an_object'] }
+  const r = raw as { course?: unknown; assessments?: unknown }
+
+  const course = (r.course && typeof r.course === 'object' ? r.course : {}) as Record<string, unknown>
+  if (typeof course.code !== 'string' || !course.code.trim()) problems.push('missing_course_code')
+
+  const list = Array.isArray(r.assessments) ? r.assessments : null
+  if (!list || list.length === 0) {
+    problems.push('no_assessments')
+    return { ok: false, problems }
+  }
+
+  let weighted = 0
+  let total = 0
+  list.forEach((item, i) => {
+    if (!item || typeof item !== 'object') {
+      problems.push(`item_${i}_not_an_object`)
+      return
+    }
+    const a = item as Record<string, unknown>
+    if (typeof a.title !== 'string' || !a.title.trim()) problems.push(`item_${i}_missing_title`)
+    if (!(KINDS as readonly string[]).includes(a.kind as string)) problems.push(`item_${i}_bad_kind`)
+    if (typeof a.noDateNeeded !== 'boolean') problems.push(`item_${i}_missing_noDateNeeded`)
+    if (a.due !== null && a.due !== undefined && a.due !== '' && cleanDate(a.due) === null) {
+      problems.push(`item_${i}_bad_date`)
+    }
+    if (a.weight !== null && a.weight !== undefined) {
+      const w = Number(a.weight)
+      if (!Number.isFinite(w) || w < 0 || w > 100) problems.push(`item_${i}_bad_weight`)
+      else {
+        weighted++
+        total += w
+      }
+    }
+  })
+
+  if (weighted === list.length && (total < 98 || total > 102)) {
+    problems.push(`weights_total_${Math.round(total * 100) / 100}`)
+  } else if (weighted > 0 && weighted < list.length && total > 102) {
+    problems.push(`partial_weights_exceed_100_${Math.round(total * 100) / 100}`)
+  }
+
+  return { ok: problems.length === 0, problems }
+}
+
+/** Gemini's schema dialect (OBJECT, nullable) → JSON Schema (object, ["string","null"]). */
+export function toJsonSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(toJsonSchema)
+  if (!node || typeof node !== 'object') return node
+  const n = node as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(n)) {
+    if (k === 'nullable') continue
+    if (k === 'type' && typeof v === 'string') {
+      const t = v.toLowerCase()
+      out.type = n.nullable === true ? [t, 'null'] : t
+    } else if (k === 'properties' && v && typeof v === 'object') {
+      out.properties = Object.fromEntries(Object.entries(v).map(([p, s]) => [p, toJsonSchema(s)]))
+    } else {
+      out[k] = toJsonSchema(v)
+    }
+  }
+  return out
+}

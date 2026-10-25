@@ -21,7 +21,8 @@
  * with nothing wrong with it. The handler is still the Web-standard
  * Request/Response shape (the `POST` export), so nothing below changed.
  */
-import { extractOutline, MAX_BYTES } from './_parse-core.js'
+import { MAX_BYTES } from './_parse-core.js'
+import { extractOutline } from './_parse-route.js'
 import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
 
 export const config = { maxDuration: 60 }

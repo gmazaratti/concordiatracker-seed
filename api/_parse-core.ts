@@ -1,6 +1,7 @@
 /**
- * The syllabus extractor itself — the prompt, the schema, and the one call to
- * the model. Shared by the web upload (`api/parse-syllabus.ts`) and the
+ * The syllabus extractor's prompt and schema, and the Gemini call. Since
+ * 2026-10-25 Claude reads first and this path is the fallback: the entry point
+ * every caller uses is extractOutline in _parse-route.ts. Shared by the web upload (`api/parse-syllabus.ts`) and the
  * personal API (`POST /api/v1/me/courses/from-outline`).
  *
  * WHY IT MOVED OUT OF THE HANDLER. Two callers wanting the same extraction is
@@ -284,7 +285,7 @@ function readModelJson(
  * apart is worth it. PHIL 235, which an earlier session wrote off as
  * unreadable, went from 0 items to 4 that way.
  */
-export async function extractOutline(
+export async function extractWithGemini(
   buf: ArrayBuffer,
   mimeType: string,
   budgetMs: number = MODEL_TIMEOUT_MS,

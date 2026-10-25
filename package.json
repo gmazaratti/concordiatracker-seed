@@ -57,6 +57,7 @@
     "test:agent": "node api/_v1-agent.test.mjs",
     "test:apns": "node api/_apns.test.mjs",
     "test:iap": "node api/_iap-state.test.mjs",
+    "parse:test": "node scripts/parse-test.mjs",
     "test:moodle": "node src/lib/moodle-match.test.mjs",
     "test:repeat": "node src/features/calendar/task-repeat.test.mjs",
     "test:oauth": "node src/lib/oauth-identity.test.mjs",
@@ -80,6 +81,7 @@
     "test:notes": "node src/features/profile/chat/chat-time.test.mjs && node src/features/notes/auto-link.test.mjs && node src/features/notes/folder-tree.test.mjs && node src/features/notes/batch3.test.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/core": "^8.5.0",

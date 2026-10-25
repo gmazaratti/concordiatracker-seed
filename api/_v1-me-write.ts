@@ -10,7 +10,8 @@
  * body field that can point at somebody else's row.
  */
 import { svc, rpcRaw, iso } from './_v1-auth.js'
-import { extractOutline, MAX_BYTES } from './_parse-core.js'
+import { MAX_BYTES } from './_parse-core.js'
+import { extractOutline } from './_parse-route.js'
 import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
 import { assignment, course, mine, type AssignRow, type CourseRow } from './_v1-me.js'
 

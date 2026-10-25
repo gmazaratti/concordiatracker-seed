@@ -22,6 +22,8 @@ import {
   wordRatio,
   textIsReadable,
   MAX_ITEMS,
+  validateExtraction,
+  toJsonSchema,
 } from './_parse-guard.ts'
 
 let failures = 0
@@ -146,6 +148,45 @@ check('duplicates collapse', cleanMeetings([
 const withMeet = cleanParse({ course: { code: 'RELI 230', location: 'H 557', meetings: [{ days: ['Tue', 'Thu'], start: '16:15', end: '17:30' }] } })
 check('cleanParse carries meetings and the room',
   withMeet.course.meetingTimes === 'Tue · Thu 16:15–17:30' && withMeet.course.location === 'H 557', withMeet.course)
+
+// ── Validation: what sends an answer to the next model ─────────────────────
+const good = {
+  course: { code: 'COMM 305' },
+  assessments: [
+    { title: 'Midterm', kind: 'midterm', due: '2026-11-01', weight: 30, description: '', noDateNeeded: false },
+    { title: 'Assignments', kind: 'assignment', due: null, weight: 25, description: '', noDateNeeded: false },
+    { title: 'Final', kind: 'final', due: null, weight: 45, description: '', noDateNeeded: false },
+  ],
+}
+const swap0 = (patch) => ({ ...good, assessments: [{ ...good.assessments[0], ...patch }, ...good.assessments.slice(1)] })
+check('a complete outline passes', validateExtraction(good).ok, validateExtraction(good))
+check('no assessments fails', validateExtraction({ course: { code: 'X 1' }, assessments: [] }).problems.includes('no_assessments'))
+check('no course code fails', validateExtraction({ ...good, course: {} }).problems.includes('missing_course_code'))
+check('an impossible date fails', validateExtraction(swap0({ due: '2026-02-30' })).problems.includes('item_0_bad_date'))
+check('a prose date fails', validateExtraction(swap0({ due: 'Week 5' })).problems.includes('item_0_bad_date'))
+check('a kind outside the set fails', validateExtraction(swap0({ kind: 'exam' })).problems.includes('item_0_bad_kind'))
+check('a missing title fails', validateExtraction(swap0({ title: ' ' })).problems.includes('item_0_missing_title'))
+check('weights totalling 90 fail', !validateExtraction(swap0({ weight: 20 })).ok)
+check('3 x 33.33 passes (rounding)', validateExtraction({
+  course: { code: 'A 1' },
+  assessments: [1, 2, 3].map((i) => ({ title: `T${i}`, kind: 'quiz', due: null, weight: 33.33, description: '', noDateNeeded: false })),
+}).ok)
+check('an unstated weight is fine while the stated ones stay under 100', validateExtraction(swap0({ weight: null })).ok)
+check('stated weights already past 100 fail', !validateExtraction({
+  ...good,
+  assessments: [{ ...good.assessments[0], weight: null }, { ...good.assessments[1], weight: 60 }, { ...good.assessments[2], weight: 50 }],
+}).ok)
+check('a datetime passes', validateExtraction(swap0({ due: '2026-11-01T23:59' })).ok)
+
+// ── The schema Claude is given is the schema Gemini is given ───────────────
+const js = toJsonSchema({
+  type: 'OBJECT',
+  properties: { due: { type: 'STRING', nullable: true }, k: { type: 'STRING', enum: ['a'] }, list: { type: 'ARRAY', items: { type: 'NUMBER' } } },
+  required: ['k'],
+})
+check('types lower-cased, nullable becomes a type union, enums and required kept',
+  js.type === 'object' && JSON.stringify(js.properties.due) === '{"type":["string","null"]}' &&
+  js.properties.k.enum[0] === 'a' && js.properties.list.items.type === 'number' && js.required[0] === 'k', js)
 
 console.log(failures === 0 ? '\nparse guard: all checks passed' : `\n${failures} check(s) failed`)
 process.exit(failures === 0 ? 0 : 1)
