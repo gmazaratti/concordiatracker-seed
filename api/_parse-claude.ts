@@ -6,8 +6,9 @@
  * shape is _parse-core's SCHEMA, converted to JSON Schema rather than rewritten,
  * so the two providers cannot drift apart in what they are asked for.
  *
- * WHY A FORCED TOOL CALL, NOT `output_config.format`. Structured outputs are
- * documented for claude-haiku-4-5 but not for claude-sonnet-4-5, and the
+ * WHY A FORCED TOOL CALL, NOT `output_config.format`. It is the one request
+ * shape both models accept (Haiku 5.5 takes a forced tool_choice and skips
+ * thinking for it; Sonnet 4.6 takes it with thinking off by default), and the
  * escalation must ask both models the same way. A tool whose input_schema is
  * the schema, with tool_choice naming it, works on both. The schema is a
  * request, not a guarantee, so the answer is validated (validateExtraction)
@@ -26,8 +27,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { PROMPT, SCHEMA, toBase64 } from './_parse-core.js'
 import { toJsonSchema, validateExtraction } from './_parse-guard.js'
 
-export const CLAUDE_FIRST = 'claude-haiku-4-5'
-export const CLAUDE_ESCALATE = 'claude-sonnet-4-5'
+export const CLAUDE_FIRST = 'claude-haiku-5-5'
+export const CLAUDE_ESCALATE = 'claude-sonnet-4-6'
 const TOOL = 'record_syllabus'
 
 const INPUT_SCHEMA = toJsonSchema(SCHEMA) as Anthropic.Tool.InputSchema

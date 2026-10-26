@@ -1,8 +1,11 @@
 /**
  * The syllabus extraction entry point: Claude first, Gemini as the safety net.
  *
- *   1. claude-haiku-4-5 reads the PDF.            (about $0.004 a syllabus)
- *   2. If its answer fails validation, claude-sonnet-4-5 once.   (about $0.08)
+ *   1. claude-haiku-5-5 reads the PDF.
+ *   2. If its answer fails validation, claude-sonnet-4-6 once.
+ *   (2026-10-25: claude-sonnet-4-5 answered 404 for this key; claude-haiku-4-5
+ *   cost $0.026 on a 24k-token outline. The [parse] log line carries the real
+ *   token counts per extraction.)
  *   3. If that fails too, or Claude cannot be called at all (no key, auth,
  *      credits exhausted, outage, timeout), the existing Gemini path,
  *      unchanged (_parse-core.ts extractWithGemini).
