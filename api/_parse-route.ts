@@ -85,6 +85,11 @@ export async function extractOutline(
       // Only a wrong answer earns the escalation. Credits, auth, outages and
       // timeouts go to Gemini.
       if (a.miss !== 'invalid') break
+      // No course code AND no assessments: the file is very likely not a
+      // syllabus (a link page, a cover sheet). Sonnet costs five times an
+      // ordinary scan to say the same thing, so Gemini gets the last look.
+      // With a course code present, Sonnet still runs.
+      if (a.problems?.includes('missing_course_code') && a.problems.includes('no_assessments')) break
     }
   }
 

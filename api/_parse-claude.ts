@@ -33,10 +33,21 @@ const TOOL = 'record_syllabus'
 
 const INPUT_SCHEMA = toJsonSchema(SCHEMA) as Anthropic.Tool.InputSchema
 
-const SYSTEM = PROMPT.replace(
-  'Return ONLY the JSON object. No commentary, no markdown, no code fences.',
-  `Record the result by calling the ${TOOL} tool exactly once, with the JSON object as its input. Write nothing else.`,
-)
+/**
+ * Two rules added for Claude only (2026-10-26), after Haiku 5.5 returned the
+ * COMM 316 test as a bare date where the outline gives a 6-7 PM window, and
+ * called a Lessons 3-6 final "cumulative". Gemini's prompt is left as it was.
+ */
+const CLAUDE_RULES = `
+Additional rules:
+- TIMES: if the syllabus states a time or a time window for an assessment, due MUST include it as YYYY-MM-DDTHH:MM (24-hour, no timezone). Never return a bare date when a time is stated. For a window, use the END of the window: a test held 6 PM to 7 PM is due 19:00. A general statement such as "all deadlines are 11:59 p.m. unless otherwise indicated" is a stated time for the deliverables it covers. Use a bare date only when no time applies.
+- DESCRIPTIONS: state only what the syllabus says. Do not add characterizations it does not state: do not call an exam cumulative, comprehensive, open-book or anything else unless the syllabus says so.`
+
+const SYSTEM =
+  PROMPT.replace(
+    'Return ONLY the JSON object. No commentary, no markdown, no code fences.',
+    `Record the result by calling the ${TOOL} tool exactly once, with the JSON object as its input. Write nothing else.`,
+  ) + CLAUDE_RULES
 
 /** Why a call did not produce a usable extraction. `billing` = auth or credits: skip straight to Gemini. */
 export type ClaudeMiss = 'not_configured' | 'billing' | 'api' | 'timeout' | 'invalid'
