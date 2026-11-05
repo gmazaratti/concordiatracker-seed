@@ -6,7 +6,7 @@ import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { KIND_LABEL } from '@/lib/assessment'
 import { daysUntil, tbdLabel } from '@/lib/date'
-import { isOpen } from '@/lib/status'
+import { isFinished, isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import { MovedNote } from './MovedNote'
 import { ACADEMIC_META, type CalendarItem } from './calendar'
@@ -40,7 +40,7 @@ export function ItemRow({
 
   if (item.kind === 'assessment') {
     const a = item.assessment
-    const done = a.status === 'done'
+    const done = isFinished(a.status)
     const overdue = isOpen(a.status) && !!a.due && daysUntil(a.due) < 0
     return (
       <div className="flex items-start gap-3 px-3 py-2.5">

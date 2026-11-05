@@ -5,7 +5,16 @@ import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
-import { listPrograms, loadProgram, loadProgramChoice, programPicks, saveProgramChoice, type ProgramPick } from '@/lib/programs'
+import {
+  listPrograms,
+  loadMinorChoice,
+  loadProgram,
+  loadProgramChoice,
+  programPicks,
+  saveMinorChoice,
+  saveProgramChoice,
+  type ProgramPick,
+} from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
 
@@ -24,7 +33,10 @@ import { cn } from '@/lib/cn'
  * to the page it came from, so a student can check us, and so it is obvious
  * when it has gone stale.
  */
-export function ProgramProgress() {
+/** A minor is the same audit over a smaller programme: the component runs
+ *  twice on the page, once per `mode`, each with its own saved choice. */
+export function ProgramProgress({ mode = 'major' }: { mode?: 'major' | 'minor' } = {}) {
+  const minorMode = mode === 'minor'
   const { pastCourses, courses, assessments } = useAppData()
   const [programs, setPrograms] = useState<Program[] | null>(null)
   const [id, setId] = useState('')
@@ -52,13 +64,13 @@ export function ProgramProgress() {
   useEffect(() => {
     let alive = true
     void listPrograms()
-      .then((rows) => alive && setPrograms(rows))
+      .then((rows) => alive && setPrograms(rows.filter((p) => (p.degree === 'Minor') === minorMode)))
       .catch(() => alive && setPrograms([]))
     // The choice was never written anywhere: it lived in this component's state
     // and died with the page. That also meant the schedule generator, which
     // reads the saved programme, always saw nothing and told everyone to "pick
     // your programme in My programme first" — which they just had.
-    void loadProgramChoice().then((saved) => {
+    void (minorMode ? loadMinorChoice() : loadProgramChoice()).then((saved) => {
       if (alive && saved) {
         setId(saved)
         setLoading(true)
@@ -67,7 +79,7 @@ export function ProgramProgress() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [minorMode])
 
   // Loading is flipped on where the choice is made, not here: a setState in an
   // effect body runs during render and React (rightly) objects.
@@ -84,6 +96,13 @@ export function ProgramProgress() {
   }, [id])
 
   function choose(next: string) {
+    if (minorMode && next === '') {
+      setId('')
+      setProgram(null)
+      setLoading(false)
+      void saveMinorChoice(null).then((ok) => setUnsaved(!ok))
+      return
+    }
     setId(next)
     setProgram(null)
     setFailed(false)
@@ -91,7 +110,7 @@ export function ProgramProgress() {
     setUnsaved(false)
     // Fire and forget, but the answer is kept: a choice that silently failed to
     // save is one the student re-makes every visit without knowing why.
-    void saveProgramChoice(next).then((ok) => setUnsaved(!ok))
+    void (minorMode ? saveMinorChoice(next) : saveProgramChoice(next)).then((ok) => setUnsaved(!ok))
   }
 
   /**
@@ -150,9 +169,11 @@ export function ProgramProgress() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold text-fg">Your programme</h2>
+          <h2 className="text-[15px] font-semibold text-fg">{minorMode ? 'Your minor' : 'Your programme'}</h2>
           <p className="mt-0.5 text-[12.5px] text-subtle">
-            What the calendar asks for, against what you have done.
+            {minorMode
+              ? 'Optional. Track a minor the same way as your major.'
+              : 'What the calendar asks for, against what you have done.'}
           </p>
         </div>
         {programs !== null && programs.length > 0 && (
@@ -160,16 +181,19 @@ export function ProgramProgress() {
             <Select
               value={id}
               onChange={choose}
-              ariaLabel="Programme"
-              placeholder="Pick your programme"
+              ariaLabel={minorMode ? 'Minor' : 'Programme'}
+              placeholder={minorMode ? 'Pick a minor' : 'Pick your programme'}
               // Fifty-odd entries is past the point where scrolling is the
               // right interaction. Someone who knows they are in Finance
               // should type four letters.
               searchable
-              options={sortedPrograms.map((p) => ({
-                value: p.id,
-                label: `${p.name} (${p.degree})`,
-              }))}
+              options={[
+                ...(minorMode && id ? [{ value: '', label: 'No minor' }] : []),
+                ...sortedPrograms.map((p) => ({
+                  value: p.id,
+                  label: minorMode ? p.name : `${p.name} (${p.degree})`,
+                })),
+              ]}
             />
           </div>
         )}
@@ -184,7 +208,9 @@ export function ProgramProgress() {
 
       {!id && programs !== null && programs.length > 0 && (
         <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
-          Pick your programme and this will show what you have cleared and what is left.
+          {minorMode
+            ? 'Doing a minor? Pick it and this shows what you have cleared and what is left.'
+            : 'Pick your programme and this will show what you have cleared and what is left.'}
         </p>
       )}
 
@@ -306,7 +332,7 @@ export function ProgramProgress() {
                     />
                   </div>
                   <ul className="mt-3 grid gap-1 sm:grid-cols-2">
-                    {[...done, ...remaining].map((course) => {
+                    {(group.kind === 'all' ? [...done, ...remaining] : done).map((course) => {
                       const isDone = done.includes(course)
                       const taking = !isDone && inProgress.has(normalizeCode(course.code))
                       return (
@@ -357,6 +383,24 @@ export function ProgramProgress() {
                       )
                     })}
                   </ul>
+                  {/* "N credits chosen from": the passed ones above, the
+                      list folded away (it can run to sixty courses). */}
+                  {group.kind === 'credits' && remaining.length > 0 && (
+                    <details className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2">
+                      <summary className="cursor-pointer text-[12px] font-medium text-muted">
+                        Choose from {remaining.length} courses
+                      </summary>
+                      {group.rule && <p className="mt-2 text-[12px] leading-relaxed text-subtle">{group.rule}</p>}
+                      <ul className="mt-2 grid gap-x-3 gap-y-1 sm:grid-cols-2">
+                        {remaining.map((course) => (
+                          <li key={course.code} className="text-[12px] text-muted">
+                            <span className="font-medium text-fg">{course.code}</span> {course.title}{' '}
+                            <span className="text-subtle">({course.credits})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </>
               ) : (
                 <div className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2.5">

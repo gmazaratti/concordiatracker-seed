@@ -65,7 +65,12 @@ export function PlannerPage() {
   const panel = (
     <>
       {tab === 'record' && <MyRecordPanel />}
-      {tab === 'program' && <ProgramProgress />}
+      {tab === 'program' && (
+        <div className="space-y-10">
+          <ProgramProgress />
+          <ProgramProgress mode="minor" />
+        </div>
+      )}
       {tab === 'radar' && <RadarPage />}
       {tab === 'money' && <MoneyPage />}
       {tab === 'seats' && <SeatWatchPanel />}

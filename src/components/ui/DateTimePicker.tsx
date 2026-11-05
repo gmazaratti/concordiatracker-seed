@@ -4,11 +4,9 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDueDateTime, noDateLabel, tbdLabel } from '@/lib/date'
 import { cn } from '@/lib/cn'
 import { haptic } from '@/lib/haptics'
-import { Select } from './Select'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const MIN_STEPS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 const pad = (n: number) => String(n).padStart(2, '0')
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const sameDay = (a: Date, b: Date) => ymd(a) === ymd(b)
@@ -97,7 +95,6 @@ export function DateTimePicker({
 
   const hour12 = ((selected.getHours() + 11) % 12) + 1
   const ampm = selected.getHours() < 12 ? 'AM' : 'PM'
-  const minuteOptions = [...new Set([...MIN_STEPS, selected.getMinutes()])].sort((a, b) => a - b)
 
   const openMenu = () => {
     const el = triggerRef.current
@@ -251,25 +248,31 @@ export function DateTimePicker({
             {/* Time */}
             <div className="mt-2 flex items-center gap-2 border-t border-border pt-2.5">
               <span className="text-[11px] font-medium tracking-wide text-subtle uppercase">Time</span>
+              <button
+                type="button"
+                onClick={() => setTime(11, 59, 'PM')}
+                className="shrink-0 whitespace-nowrap rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:border-accent hover:text-fg"
+              >
+                11:59 PM
+              </button>
               <div className="ml-auto flex items-center gap-1.5">
-                <Select
+                {/* TYPED, not picked from a list: a 5-minute list cannot say
+                    11:59, and that is the most common deadline there is. */}
+                <NumberBox
                   ariaLabel="Hour"
-                  size="sm"
-                  tone="control"
-                  className="w-[58px]"
-                  value={String(hour12)}
-                  onChange={(v) => setTime(Number(v), selected.getMinutes(), ampm)}
-                  options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+                  value={hour12}
+                  min={1}
+                  max={12}
+                  onCommit={(h) => setTime(h, selected.getMinutes(), ampm)}
                 />
                 <span className="text-subtle">:</span>
-                <Select
+                <NumberBox
                   ariaLabel="Minute"
-                  size="sm"
-                  tone="control"
-                  className="w-[62px]"
-                  value={String(selected.getMinutes())}
-                  onChange={(v) => setTime(hour12, Number(v), ampm)}
-                  options={minuteOptions.map((m) => ({ value: String(m), label: pad(m) }))}
+                  value={selected.getMinutes()}
+                  min={0}
+                  max={59}
+                  pad
+                  onCommit={(m) => setTime(hour12, m, ampm)}
                 />
                 <div role="radiogroup" aria-label="AM or PM" className="flex gap-0.5 rounded-lg border border-border bg-canvas p-0.5">
                   {(['AM', 'PM'] as const).map((ap) => (
@@ -355,5 +358,59 @@ function NavBtn({ label, onClick, children }: { label: string; onClick: () => vo
     >
       {children}
     </button>
+  )
+}
+
+/**
+ * A small typed number (hour or minute). Keeps its own text while you type so
+ * "0" on the way to "05" is not snapped away, and commits on Enter or blur,
+ * clamped to the range. Arrow keys step it.
+ */
+function NumberBox({
+  value,
+  min,
+  max,
+  pad: padded = false,
+  ariaLabel,
+  onCommit,
+}: {
+  value: number
+  min: number
+  max: number
+  pad?: boolean
+  ariaLabel: string
+  onCommit: (n: number) => void
+}) {
+  const shown = padded ? String(value).padStart(2, '0') : String(value)
+  const [text, setText] = useState<string | null>(null)
+  const commit = () => {
+    if (text === null) return
+    const n = Number.parseInt(text, 10)
+    setText(null)
+    if (Number.isNaN(n)) return
+    onCommit(Math.min(max, Math.max(min, n)))
+  }
+  return (
+    <input
+      value={text ?? shown}
+      onChange={(e) => setText(e.target.value.replace(/\D/g, '').slice(0, 2))}
+      onFocus={(e) => e.currentTarget.select()}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          commit()
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault()
+          const step = e.key === 'ArrowUp' ? 1 : -1
+          const next = value + step
+          onCommit(next > max ? min : next < min ? max : next)
+        }
+      }}
+      inputMode="numeric"
+      aria-label={ariaLabel}
+      className="h-8 w-10 rounded-lg border border-border bg-canvas text-center text-[16px] text-fg tabular-nums outline-none focus:border-accent sm:text-[13px]"
+    />
   )
 }

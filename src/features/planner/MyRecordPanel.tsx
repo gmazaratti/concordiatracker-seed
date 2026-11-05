@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, ClipboardPaste, ListChecks, Loader2, Share2, ShieldCheck } from 'lucide-react'
+import { CalendarPlus, ClipboardPaste, ListChecks, Share2, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -10,8 +10,6 @@ import {
   saveAcademicProfile,
   summarizeRecord,
 } from '@/lib/academic-record'
-import { browseCourses, type CatalogCourse } from '@/lib/catalog'
-import { checkPrereq, describeTerm, normalizeCode, type Evaluation } from '@/lib/prereq'
 import { cn } from '@/lib/cn'
 import { GpaBreakdown } from './GpaBreakdown'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
@@ -23,6 +21,9 @@ import { ImportSemesterModal } from './ImportSemesterModal'
 import { PasteTranscriptModal } from './PasteTranscriptModal'
 import { RecordSheet } from './RecordSheet'
 import { useRecordSnapshot } from './useRecordSnapshot'
+import { Unlocks } from './Unlocks'
+import { CoopCard } from './CoopCard'
+import { useProgramForUser } from './useProgramForUser'
 
 /**
  * Your record, and what it opens up.
@@ -35,6 +36,7 @@ import { useRecordSnapshot } from './useRecordSnapshot'
  */
 export function MyRecordPanel() {
   const { pastCourses, assessments, user, setProgram } = useAppData()
+  const program = useProgramForUser()
   const [year, setYear] = useState<number | null>(null)
   const [minor, setMinor] = useState('')
   const [loaded, setLoaded] = useState(false)
@@ -289,6 +291,13 @@ export function MyRecordPanel() {
           />
         </div>
         <GpaBreakdown pastCourses={pastCourses} assessments={assessments} />
+        <CoopCard
+          pastCourses={pastCourses}
+          assessments={assessments}
+          gpa={shownGpa}
+          faculty={program?.faculty ?? user.school ?? null}
+          program={program?.name ?? user.program ?? null}
+        />
       </Step>
 
       <Step
@@ -302,6 +311,7 @@ export function MyRecordPanel() {
           completed={summary.completedCodes}
           subjects={summary.subjects}
           credits={summary.credits}
+          program={program}
         />
       </Step>
 
@@ -319,177 +329,6 @@ export function MyRecordPanel() {
             setImportTerm(null)
           }}
         />
-      )}
-    </div>
-  )
-}
-
-/**
- * What the record opens up.
- *
- * This reads Concordia's prerequisite prose properly (see lib/prereq.ts): ";"
- * is AND, " or " is OR, antirequisites exclude, and a credit floor is checked
- * against the credits you have. So it answers the actual question — can I take
- * this — rather than the weaker one it used to answer.
- *
- * Where it genuinely cannot decide, it says so instead of guessing. "Permission
- * of the Department" and "or equivalent" both hinge on something we cannot see,
- * and those land in their own group rather than being silently counted as a yes
- * or a no.
- */
-function Unlocks({
-  completed,
-  subjects,
-  credits,
-}: {
-  completed: string[]
-  subjects: string[]
-  credits: number
-}) {
-  const [rows, setRows] = useState<CatalogCourse[] | null>(null)
-  const scan = useMemo(() => subjects.slice(0, 6), [subjects])
-
-  useEffect(() => {
-    let alive = true
-    const run =
-      scan.length === 0
-        ? Promise.resolve({ rows: [] as CatalogCourse[], total: 0 })
-        : browseCourses({ subjects: scan, limit: 400 })
-    void run.then((r) => {
-      if (alive) setRows(r.rows)
-    })
-    return () => {
-      alive = false
-    }
-  }, [scan])
-
-  const record = useMemo(
-    () => ({ completed: new Set(completed.map(normalizeCode)), credits }),
-    [completed, credits],
-  )
-
-  const groups = useMemo(() => {
-    const done = new Set(completed.map(normalizeCode))
-    const ready: { c: CatalogCourse; e: Evaluation }[] = []
-    const close: { c: CatalogCourse; e: Evaluation }[] = []
-    const unsure: { c: CatalogCourse; e: Evaluation }[] = []
-    for (const c of rows ?? []) {
-      // Nothing you have already finished.
-      if (done.has(normalizeCode(c.subject + c.catalog))) continue
-      const e = checkPrereq(c.prerequisites, record, c.subject + c.catalog)
-      // A course with no prerequisite at all is true but not interesting: it
-      // was never locked, so listing it as "unlocked" is noise.
-      if (e.verdict === 'met' && e.unreadable) continue
-      if (e.verdict === 'blocked') continue
-      if (e.verdict === 'met') ready.push({ c, e })
-      else if (e.verdict === 'unknown') unsure.push({ c, e })
-      else if (e.missing.length === 1) close.push({ c, e })
-    }
-    return { ready, close, unsure }
-  }, [rows, record, completed])
-
-  if (rows === null) {
-    return (
-      <div className="grid place-items-center py-10">
-        <Loader2 className="size-5 animate-spin text-accent" aria-hidden />
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <p className="mb-3 text-[12.5px] text-subtle">
-        Reading the prerequisites for {scan.join(', ')} against your record.
-      </p>
-
-      <UnlockGroup
-        title="You meet the prerequisites"
-        empty="Nothing here yet."
-        rows={groups.ready}
-      />
-      <div className="mt-4">
-        <UnlockGroup title="One requirement away" empty="Nothing here yet." rows={groups.close} />
-      </div>
-      <div className="mt-4">
-        <UnlockGroup
-          title="Depends on something we cannot check"
-          empty="Nothing here yet."
-          rows={groups.unsure}
-        />
-      </div>
-
-      <p className="mt-3 text-[11.5px] leading-relaxed text-subtle">
-        Prerequisites are read from the calendar text. Departments can still make
-        exceptions, and course pages are the final word: check before you register.
-      </p>
-    </div>
-  )
-}
-
-function UnlockGroup({
-  title,
-  empty,
-  rows,
-}: {
-  title: string
-  empty: string
-  rows: { c: CatalogCourse; e: Evaluation }[]
-}) {
-  const [open, setOpen] = useState<string | null>(null)
-  return (
-    <div>
-      <h3 className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-fg">
-        {title}
-        <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle tabular-nums">
-          {rows.length}
-        </span>
-      </h3>
-      {rows.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-[12.5px] text-subtle">
-          {empty}
-        </p>
-      ) : (
-        <ul className="max-h-[40vh] divide-y divide-border overflow-y-auto rounded-xl border border-border bg-surface">
-          {rows.map(({ c, e }) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => setOpen(open === c.id ? null : c.id)}
-                aria-expanded={open === c.id}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 hover:bg-surface-2"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-x-2">
-                    <span className="text-[13px] font-semibold text-fg">
-                      {c.subject} {c.catalog}
-                    </span>
-                    <span className="truncate text-[12px] text-subtle">{c.title}</span>
-                  </span>
-                  {e.missing.length > 0 && (
-                    <span className="mt-0.5 block text-[11.5px] text-warning">
-                      Still need {e.missing.map(describeTerm).join('; ')}
-                    </span>
-                  )}
-                  {e.verdict === 'unknown' && e.notes.length > 0 && (
-                    <span className="mt-0.5 block truncate text-[11.5px] text-subtle">
-                      {e.notes[0]}
-                    </span>
-                  )}
-                </span>
-                {c.class_unit !== null && (
-                  <span className="shrink-0 text-[11.5px] text-subtle tabular-nums">
-                    {c.class_unit} cr
-                  </span>
-                )}
-              </button>
-              {open === c.id && (
-                <p className="border-t border-border/60 bg-canvas/40 px-4 py-2.5 text-[12.5px] leading-relaxed text-muted">
-                  {c.prerequisites || 'No prerequisite listed.'}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   )

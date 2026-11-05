@@ -174,7 +174,7 @@ export function CourseDetailPage() {
               top is what made the page feel like it moved instead of the
               content. Its own scrollbar, since the aside can outgrow the
               viewport on a course with a long breakdown. */}
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -186,7 +186,7 @@ export function CourseDetailPage() {
             <CourseNotesCard course={course} />
           </aside>
 
-          <main className="min-w-0 flex-1 lg:min-h-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5">
+          <main className="min-w-0 flex-1 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5">
             <div className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
               <CalendarClock size={22} className="mx-auto text-subtle" aria-hidden />
               <p className="mt-3 text-[15px] font-medium text-fg">Waiting for {course.term}</p>
@@ -219,7 +219,7 @@ export function CourseDetailPage() {
         />
       ) : manual ? (
         <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <CourseInfoPanel
               autoFill={autoFill}
               course={course}
@@ -238,7 +238,7 @@ export function CourseDetailPage() {
             )}
           </aside>
 
-          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             {/* EVERY course takes this branch — `createCourse` stamps origin
                 'manual' on all of them — so this is the only place an outline
                 can be brought into a course you already have. It used to live
@@ -297,7 +297,7 @@ export function CourseDetailPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <div data-tour="course-info">
               <CourseInfoPanel
                 autoFill={autoFill}
@@ -325,7 +325,7 @@ export function CourseDetailPage() {
             </div>
           </aside>
 
-          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
+          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
             <TeacherChangeCard items={courseAssessments.filter((a) => a.teacherPrev)} />
             {(coursePeerCorrections.length > 0 || moodleMismatches.length > 0) && (
               <div className="flex flex-col gap-2">

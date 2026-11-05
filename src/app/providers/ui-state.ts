@@ -88,6 +88,15 @@ export interface UiState {
    * between devices like the widget layout does.
    */
   chatThemes?: Record<string, string>
+  /** "Not today" on Today: assessment id -> local YYYY-MM-DD it comes back
+   *  (lib/snooze.ts). Hides the row only; the assignment is not changed. */
+  snoozed?: Record<string, string>
+  /** My record's "What that unlocks": subjects and course codes (normalised)
+   *  the student is not pursuing, so their unlocks stay out of the list. */
+  plannerHidden?: { subjects: string[]; courses: string[] }
+  /** Today's list sections the student folded away (overdue, thisweek, later,
+   *  undated, awaiting, or a course id when grouped by course). */
+  todayCollapsed?: string[]
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

@@ -148,7 +148,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               type="text"
               inputMode="decimal"
               value={gradeText}
-              placeholder="%"
+              placeholder="e.g. 85"
               title="Enter a percent (e.g. 82). Got a score like 15/20? Type it and we'll convert it."
               aria-label="Grade (percent, or a score like 15/20)"
               aria-invalid={gradeError !== null}
@@ -157,26 +157,25 @@ export function AssessmentDetailModal({ id }: { id: string }) {
                 if (e.key === 'Enter' && dirty) save()
               }}
               className={cn(
-                'w-[124px] rounded-lg border bg-surface-2 px-3 py-2 text-center text-[14px] font-medium text-fg tabular-nums focus-visible:outline-none',
+                'h-10 w-[96px] rounded-lg border bg-surface-2 px-2 text-center text-[16px] font-medium text-fg tabular-nums focus-visible:outline-none sm:text-[14px]',
                 gradeError ? 'border-danger' : 'border-border-strong',
               )}
             />
           </Field>
         </div>
 
-        <p className={cn('mt-2 text-[12px]', gradeError ? 'text-danger' : 'text-subtle')} role={gradeError ? 'alert' : undefined}>
-          {gradeError ? (
-            gradeError
-          ) : resolved ? (
-            <>
-              Resolves to{' '}
-              <span className="font-semibold text-fg">{Math.round(pct!)}%</span> ·{' '}
-              {resolved.letter} · {resolved.points.toFixed(1)} pts
-            </>
-          ) : (
-            'No grade yet: enter a percent like 82, or a score like 15/20.'
-          )}
-        </p>
+        {(gradeError || resolved) && (
+          <p className={cn('mt-1.5 text-right text-[12px]', gradeError ? 'text-danger' : 'text-subtle')} role={gradeError ? 'alert' : undefined}>
+            {gradeError ? (
+              gradeError
+            ) : (
+              <>
+                <span className="font-semibold text-fg">{Math.round(pct!)}%</span> · {resolved!.letter} ·{' '}
+                {resolved!.points.toFixed(1)} pts
+              </>
+            )}
+          </p>
+        )}
 
         <div className="mt-4">
           <Field label="Due date & time">
@@ -211,7 +210,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
           <Field label="Notes">
             <textarea
               value={notes}
-              rows={3}
+              rows={2}
               placeholder="Anything to remember about this one…"
               aria-label="Notes"
               onChange={(e) => setNotes(e.target.value)}

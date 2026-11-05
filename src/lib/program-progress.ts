@@ -182,7 +182,34 @@ export function computeProgress(
     }
   })
 
-  // Second pass: the mechanical elective rules, over whatever is unclaimed.
+  // Second pass, part one: "N credits chosen from this list". The calendar
+  // NAMES the courses, so this is as checkable as a required group: a passed
+  // course on the list counts, capped at what the group asks for. Runs before
+  // the patterns so a listed elective is not also counted as a generic one.
+  for (const g of groups) {
+    const list = g.group.courses
+    if (g.counted || g.group.pattern || list.length === 0) continue
+    const done: RequirementCourse[] = []
+    const remaining: RequirementCourse[] = []
+    for (const course of list) {
+      const key = normalizeCode(course.code)
+      if (have.has(key) && !claimed.has(key)) {
+        done.push(course)
+        claimed.add(key)
+      } else {
+        remaining.push(course)
+      }
+    }
+    g.done = done
+    g.remaining = remaining
+    g.earnedCredits = Math.min(
+      g.group.credits,
+      done.reduce((sum, c) => sum + c.credits, 0),
+    )
+    g.counted = true
+  }
+
+  // Second pass, part two: the mechanical elective rules, over whatever is unclaimed.
   for (const g of groups) {
     const pattern = g.group.pattern
     if (g.counted || !pattern) continue
@@ -217,4 +244,29 @@ export function computeProgress(
     unassignedCredits,
     percentNamed: requiredNamed === 0 ? 0 : Math.round((earnedNamed / requiredNamed) * 100),
   }
+}
+
+/**
+ * Which requirement group a course would count toward, by name, or null.
+ *
+ * Named courses first (a fact the calendar states), then mechanical patterns
+ * ("400-level MECH"). A group that is only prose never matches: that is a rule
+ * we do not interpret, so we do not claim a course counts toward it.
+ */
+export function groupFor(program: ProgramWithGroups | null, code: string): string | null {
+  if (!program) return null
+  const key = normalizeCode(code)
+  for (const g of program.groups) {
+    if (g.courses.some((c) => normalizeCode(c.code) === key)) return g.title
+  }
+  for (const g of program.groups) {
+    if (g.pattern && matchesPattern(code, g.pattern)) return g.title
+  }
+  return null
+}
+
+/** True when the programme names enough to filter on: at least one group with
+ *  courses or a mechanical pattern. Prose-only programmes cannot narrow anything. */
+export function canFilterBy(program: ProgramWithGroups | null): boolean {
+  return !!program && program.groups.some((g) => g.courses.length > 0 || !!g.pattern)
 }

@@ -14,6 +14,8 @@ import { useT } from '@/i18n/i18n'
 import type { T } from '@/i18n/i18n'
 import { DueRow } from './DueRow'
 import { TaskDueRow } from './TaskDueRow'
+import { SnoozedLine, TodayProgress } from './TodayProgress'
+import { useUiState } from '@/app/providers/ui-state'
 import { CustomizeToday } from './CustomizeToday'
 import { ModalShell } from '@/command/ModalShell'
 import { TaskEditor } from '@/features/calendar/TaskEditor'
@@ -170,12 +172,21 @@ export function DueList({
   compact = false,
   courseById,
   onResolve,
+  onSnooze,
+  snoozedCount,
+  onBringBack,
+  doneCount,
   onDelete,
   onUndo,
   onToggleMoodle,
   onToggleStep,
   onPrefsChange,
 }: {
+  onSnooze: (id: string) => void
+  snoozedCount: number
+  onBringBack: () => void
+  /** Ticked off this session (assessments and Moodle items alike). */
+  doneCount: number
   groups: DueGroups
   /** Rendered in the 272px side rail rather than the wide column: fewer rows
    *  before the fold and a shorter scroll window, since the card is a third
@@ -201,6 +212,15 @@ export function DueList({
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const [addingTask, setAddingTask] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // Folded sections follow you between devices, like the rest of Today.
+  const { uiState, patchUiState } = useUiState()
+  const collapsed = new Set(uiState.todayCollapsed ?? [])
+  const toggleCollapsed = (key: string) => {
+    const next = new Set(collapsed)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    patchUiState({ todayCollapsed: [...next] })
+  }
   // Long sections (a pile of overdue, say) collapse past this — the list stays
   // one calm screen and the rest sits behind "Show N more".
   const CAP = compact ? 3 : 5
@@ -267,6 +287,8 @@ export function DueList({
         </div>
       </div>
 
+      <TodayProgress done={doneCount} left={groups.overdue.length + groups.thisWeek.length} />
+
       {customizeOpen && <CustomizeToday prefs={prefs} onChange={onPrefsChange} />}
 
       {historyOpen && createPortal(<HistoryModal onClose={() => setHistoryOpen(false)} />, document.body)}
@@ -293,6 +315,9 @@ export function DueList({
             <Section
               key={section.key}
               label={section.label}
+              count={section.items.length}
+              collapsed={collapsed.has(section.key)}
+              onToggle={() => toggleCollapsed(section.key)}
               tone={section.tone}
               divider={i > 0}
               quiet={section.key === 'undated'}
@@ -315,6 +340,7 @@ export function DueList({
                     course={courseById(row.item.courseId)}
                     prefs={prefs}
                     onResolve={(status) => onResolve(row.id, status)}
+                    onSnooze={() => onSnooze(row.id)}
                     onDelete={() => onDelete(row.id)}
                   />
                 ) : (
@@ -348,15 +374,26 @@ export function DueList({
         })
       )}
 
+      <SnoozedLine count={snoozedCount} onBringBack={onBringBack} />
+
       <AwaitingGrade
         items={awaiting}
         courseById={courseById}
         icons={prefs.courseIcons ?? true}
         onMarkGraded={(id) => onResolve(id, 'done')}
+        onMarkNotDone={onUndo}
+        collapsed={collapsed.has('awaiting')}
+        onToggle={() => toggleCollapsed('awaiting')}
       />
 
       {completed.length > 0 && (
-        <CompletedToday items={completed} courseById={courseById} icons={prefs.courseIcons ?? true} onUndo={onUndo} />
+        <CompletedToday
+          items={completed}
+          courseById={courseById}
+          icons={prefs.courseIcons ?? true}
+          onUndo={onUndo}
+          onSeeAll={() => setHistoryOpen(true)}
+        />
       )}
     </Card>
   )
@@ -364,6 +401,9 @@ export function DueList({
 
 function Section({
   label,
+  count,
+  collapsed,
+  onToggle,
   tone,
   divider = false,
   quiet = false,
@@ -372,6 +412,9 @@ function Section({
   children,
 }: {
   label: React.ReactNode
+  count: number
+  collapsed: boolean
+  onToggle: () => void
   tone: 'danger' | 'muted'
   divider?: boolean
   /** The "No date yet" group: set apart from the dated timeline (a dashed
@@ -390,14 +433,25 @@ function Section({
           : divider && 'border-t border-border',
       )}
     >
-      <p
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
         className={cn(
-          'px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide uppercase',
+          'flex w-full items-center gap-1.5 px-4 pt-3 pb-1.5 text-left text-[11px] font-semibold tracking-wide uppercase transition-colors duration-150 hover:text-fg',
           tone === 'danger' ? 'text-danger' : 'text-subtle',
+          collapsed && 'pb-3',
         )}
       >
+        <ChevronDown
+          size={13}
+          className={cn('shrink-0 transition-transform duration-150', collapsed && '-rotate-90')}
+          aria-hidden
+        />
         {label}
-      </p>
+        {collapsed && <span className="font-normal normal-case tracking-normal">· {count}</span>}
+      </button>
+      {!collapsed && (
       <ul
         className={cn(
           'divide-y divide-border',
@@ -414,6 +468,7 @@ function Section({
       >
         {children}
       </ul>
+      )}
     </section>
   )
 }
@@ -438,14 +493,16 @@ function CompletedToday({
   courseById,
   icons,
   onUndo,
+  onSeeAll,
 }: {
   items: Assessment[]
   courseById: (id: string) => Course | undefined
   icons: boolean
   onUndo: (id: string) => void
+  onSeeAll: () => void
 }) {
   const t = useT()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   return (
     <div className="border-t border-border">
       <button
@@ -472,6 +529,15 @@ function CompletedToday({
               onUndo={() => onUndo(a.id)}
             />
           ))}
+          <li className="px-4 py-2">
+            <button
+              type="button"
+              onClick={onSeeAll}
+              className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+            >
+              {t('today.seeAllDone')}
+            </button>
+          </li>
         </ul>
       )}
     </div>

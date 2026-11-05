@@ -21,7 +21,7 @@ import { GradePromptCard } from './GradePromptCard'
  * card is the one thing on screen that knows it just happened.
  */
 export function GradePrompt() {
-  const { queue, saved } = useGradePrompts()
+  const { queue, saved, streak } = useGradePrompts()
   const { assessments, personalTasks, courses, setGrade, setStatus, toggleTask, addAssessments, removeAssessment } =
     useAppData()
   // What a Moodle grade created, so its Undo can take it back out.
@@ -50,6 +50,7 @@ export function GradePrompt() {
         promptKey={head}
         title={a.title}
         behind={behind}
+        streak={streak}
         gradeable
         onSave={(g) => {
           setGrade(a.id, g)
@@ -95,6 +96,7 @@ export function GradePrompt() {
         promptKey={head}
         title={existing.title}
         behind={behind}
+        streak={streak}
         gradeable
         onSave={(g) => {
           setGrade(existing.id, g)
@@ -139,6 +141,7 @@ export function GradePrompt() {
       promptKey={head}
       title={title}
       behind={behind}
+      streak={streak}
       gradeable={!!course}
       needsWeight
       knownWeight={known?.weight}

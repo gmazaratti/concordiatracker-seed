@@ -73,7 +73,10 @@ begin
           left join public.user_profile p on p.user_id = t.user_id
          where t.created_at > c.since
            and coalesce(p.is_internal, false) = false
-           and t.user_id is distinct from c.user_id)
+           and t.user_id is distinct from c.user_id
+           -- A check-in WE opened (db/personal_outreach.sql) is not news;
+           -- their reply to it is, and arrives as a reply below.
+           and coalesce(t.context->>'kind', '') <> 'outreach')
       else '[]'::jsonb end as new_tickets,
       (select coalesce(jsonb_agg(jsonb_build_object(
             'ok',     e.success,

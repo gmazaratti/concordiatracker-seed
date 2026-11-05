@@ -11,7 +11,8 @@ import {
 import { EmptyState, Loading, SearchBar } from '../admin-ui'
 import { TicketQueue } from './tickets/TicketQueue'
 import { TicketDetail } from './tickets/TicketDetail'
-import { MessagesSquare } from 'lucide-react'
+import { Heart, MessagesSquare } from 'lucide-react'
+import { PersonalMessage } from './tickets/PersonalMessage'
 
 const FILTERS: { id: TicketStatus | 'all'; label: string }[] = [
   { id: 'open', label: 'Open' },
@@ -39,6 +40,7 @@ export function TicketsTab() {
   const [people, setPeople] = useState<Map<string, TicketPerson>>(new Map())
   const [error, setError] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [composing, setComposing] = useState(false)
 
   // `load` only bumps a counter; the fetch runs in the effect after an await,
   // so nothing setStates synchronously in an effect body.
@@ -97,6 +99,13 @@ export function TicketsTab() {
         <div className="border-b border-border px-3.5 pt-3 pb-2.5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-[16px] font-bold text-fg">Support</h2>
+            <button
+              type="button"
+              onClick={() => setComposing(true)}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[12px] font-medium text-muted hover:border-accent hover:text-fg"
+            >
+              <Heart size={12} aria-hidden /> Personal message
+            </button>
             {counts.open > 0 && (
               <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[11.5px] font-semibold text-warning">
                 {counts.open} open
@@ -145,6 +154,8 @@ export function TicketsTab() {
           )}
         </div>
       </section>
+
+      {composing && <PersonalMessage onClose={() => setComposing(false)} onSent={load} />}
 
       {/* Conversation. */}
       <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !selected && 'hidden lg:flex')}>

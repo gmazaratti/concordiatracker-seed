@@ -54,6 +54,7 @@ export async function loadProgramChoice(): Promise<string | null> {
  */
 const FROM_ONBOARDING: Record<string, string> = {
   'computer-science-bcompsc': 'bcompsc',
+  'mechanical-engineering-beng': 'eng-mechanical',
   'accountancy-bcomm': 'bcomm-accountancy',
   'business-technology-management-bcomm': 'bcomm-btm',
   'economics-bcomm': 'bcomm-economics',
@@ -72,6 +73,31 @@ export async function saveProgramChoice(id: string): Promise<boolean> {
   const { error } = await supabase
     .from('user_profile')
     .update({ major_id: id })
+    .eq('user_id', auth.user.id)
+  return !error
+}
+
+/**
+ * The minor, kept beside the major in `user_profile.minor_id` (same curated
+ * registry). Null clears it. Same swallow-and-report contract as the major.
+ */
+export async function loadMinorChoice(): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return null
+  const { data } = await supabase
+    .from('user_profile')
+    .select('minor_id')
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+  return (data as { minor_id?: string | null } | null)?.minor_id ?? null
+}
+
+export async function saveMinorChoice(id: string | null): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return false
+  const { error } = await supabase
+    .from('user_profile')
+    .update({ minor_id: id })
     .eq('user_id', auth.user.id)
   return !error
 }

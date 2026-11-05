@@ -101,7 +101,10 @@ export function gradeTerms(assessments: Assessment[]): GradeTerm[] {
   const byKind = new Map<AssessmentKind, { weight: number; points: number }>()
   for (const a of assessments) {
     const percent = gradeToPercent(a.grade)
-    if (percent === null) continue
+    // A grade with no weight yet (a Moodle item you graded without knowing
+    // what it is worth) is recorded but counts for nothing until it has one,
+    // and must not turn its category into 0/0.
+    if (percent === null || !(a.weight > 0)) continue
     const acc = byKind.get(a.kind) ?? { weight: 0, points: 0 }
     acc.weight += a.weight
     acc.points += (percent * a.weight) / 100

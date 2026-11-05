@@ -23,6 +23,8 @@ import { SizePicker } from './widgets/SizePicker'
 import { WidgetBoard, WidgetZoneView } from './widgets/WidgetBoard'
 import { greetingKey, useTodosDue } from './today-helpers'
 import { useTodayLayout } from './useTodayLayout'
+import { useUiState } from '@/app/providers/ui-state'
+import { dayKey, isSnoozed, snoozeUntilTomorrow, unsnooze } from '@/lib/snooze'
 
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
@@ -54,7 +56,21 @@ export function TodayPage() {
   // Items the student resolved this session — surfaced under "Completed today".
   const [resolvedIds, setResolvedIds] = useState<string[]>([])
 
-  const groups = useMemo(() => groupDue(assessments), [assessments])
+  const { uiState, patchUiState } = useUiState()
+  // "Not today" hides a row until tomorrow. Read once per render; the day only
+  // matters to the minute, and a reload after midnight brings everything back.
+  const [today] = useState(() => dayKey(new Date()))
+  const snoozed = uiState.snoozed
+  const visible = useMemo(
+    () => assessments.filter((a) => !isSnoozed(snoozed, a.id, today)),
+    [assessments, snoozed, today],
+  )
+  const snoozedCount = assessments.length - visible.length
+  // Everything ticked off this session, of either kind: the reward bar counts
+  // what you actually did, not only what landed in "Completed today".
+  const [doneCount, setDoneCount] = useState(0)
+
+  const groups = useMemo(() => groupDue(visible), [visible])
 
   // Tasks written in Notes can be hidden from Today without leaving Notes.
   const todayTasks = useMemo(
@@ -90,6 +106,9 @@ export function TodayPage() {
     const wasAwaiting = assessments.find((a) => a.id === id)?.status === 'awaiting-grade'
     setResolvedIds((prev) => (prev.includes(id) ? prev : [id, ...prev]))
     setStatus(id, status)
+    if (status === 'done' || status === 'awaiting-grade') {
+      if (!wasAwaiting) setDoneCount((n) => n + 1)
+    }
     // Finished: a tick you can feel, then an offer to record the grade (a
     // small card, never a dialog).
     if (status === 'done') {
@@ -104,6 +123,7 @@ export function TodayPage() {
     const task = personalTasks.find((tk) => tk.id === id)
     toggleTask(id)
     if (task && !task.done) {
+      setDoneCount((n) => n + 1)
       haptic('success')
       askForTaskGrade(id)
     }
@@ -116,7 +136,15 @@ export function TodayPage() {
       steps: task.steps.map((s, n) => (n === index ? { ...s, done: !s.done } : s)),
     })
   }
+  function snooze(id: string) {
+    const item = assessments.find((a) => a.id === id)
+    const before = uiState.snoozed
+    patchUiState({ snoozed: snoozeUntilTomorrow(before, id, new Date()) })
+    haptic('tap')
+    if (item) flashUndo(t('today.pushedTomorrow', { title: item.title }), () => patchUiState({ snoozed: unsnooze(before, id) }))
+  }
   function undo(id: string) {
+    setDoneCount((n) => Math.max(0, n - 1))
     setResolvedIds((prev) => prev.filter((x) => x !== id))
     setStatus(id, 'not-started')
   }
@@ -144,6 +172,10 @@ export function TodayPage() {
       prefs={todayPrefs}
       courseById={courseById}
       onResolve={resolve}
+      onSnooze={snooze}
+      snoozedCount={snoozedCount}
+      onBringBack={() => patchUiState({ snoozed: unsnooze(uiState.snoozed) })}
+      doneCount={doneCount}
       onDelete={deleteItem}
       onUndo={undo}
       onToggleMoodle={toggleMoodle}

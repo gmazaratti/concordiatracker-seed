@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUpRight, Check, CircleDashed, Hourglass, Pencil, Trash2 } from 'lucide-react'
+import { ArrowUpRight, Check, CircleDashed, Hourglass, Moon, Pencil, Trash2 } from 'lucide-react'
 import { PendingSyncMark } from '@/components/PendingSyncMark'
 import type { Assessment, AssessmentStatus, Course } from '@/data/types'
 import type { TodayPrefs } from '@/app/providers/app-data'
@@ -27,8 +27,10 @@ export function DueRow({
   course,
   prefs,
   onResolve,
+  onSnooze,
   onDelete,
 }: {
+  onSnooze: () => void
   assessment: Assessment
   course: Course | undefined
   prefs: TodayPrefs
@@ -69,6 +71,12 @@ export function DueRow({
       onSelect: () => onResolve('awaiting-grade'),
     },
     {
+      id: 'later',
+      label: t('today.later'),
+      icon: Moon,
+      onSelect: onSnooze,
+    },
+    {
       id: 'open',
       label: t('today.openInCourse'),
       icon: ArrowUpRight,
@@ -96,9 +104,9 @@ export function DueRow({
    */
   // The tray fits three; "submitted" stays a menu-only action so the swipe
   // keeps its three (edit, open, delete) at full size.
-  const swipeActions: SwipeAction[] = menuItems.filter((m) => m.id !== 'awaiting').map((m) => ({
+  const swipeActions: SwipeAction[] = menuItems.filter((m) => m.id !== 'awaiting' && m.id !== 'open').map((m) => ({
     id: m.id,
-    label: m.id === 'open' ? t('today.openShort') : m.label,
+    label: m.label,
     icon: m.icon!,
     onSelect: m.onSelect,
     danger: m.danger,

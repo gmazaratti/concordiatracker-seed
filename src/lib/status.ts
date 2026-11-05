@@ -12,6 +12,16 @@ export function isOpen(status: AssessmentStatus): boolean {
   return OPEN.has(status)
 }
 
+/**
+ * Handed in, whatever happens next. "Waiting for a grade" and "done late" are
+ * FINISHED work, so every check mark reads them as ticked. Showing an empty
+ * circle for something already submitted is what made marking it "waiting for
+ * a grade" look like it had been unticked.
+ */
+export function isFinished(status: AssessmentStatus): boolean {
+  return status === 'done' || status === 'awaiting-grade' || status === 'late'
+}
+
 /** The lightweight transitions Today's quick-status control offers. */
 export const QUICK_STATUSES: AssessmentStatus[] = ['done', 'late', 'missed']
 

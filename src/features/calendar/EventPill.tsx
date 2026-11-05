@@ -2,7 +2,7 @@ import { CircleDashed } from 'lucide-react'
 import type { Course } from '@/data/types'
 import { courseColor } from '@/lib/course-color'
 import { daysUntil } from '@/lib/date'
-import { isOpen } from '@/lib/status'
+import { isFinished, isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import { ACADEMIC_META, type CalendarItem } from './calendar'
 
@@ -40,7 +40,7 @@ export function EventPill({
 
   if (item.kind === 'assessment') {
     const hex = course ? courseColor(course.color).hex : '#888'
-    done = item.assessment.status === 'done'
+    done = isFinished(item.assessment.status)
     dot = <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
     label = item.assessment.title
   } else if (item.kind === 'task') {

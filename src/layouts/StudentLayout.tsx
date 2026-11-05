@@ -29,6 +29,7 @@ import { LiveMessages } from '@/features/profile/LiveMessages'
 import { ThemePreviewBar } from '@/components/ThemePreviewBar'
 import { UpdatesLayer } from '@/features/updates/UpdatesLayer'
 import { SeatAlertLayer } from '@/features/seats/SeatAlertLayer'
+import { OutreachPopup } from '@/features/support/OutreachPopup'
 import { AdminMessageLayer } from '@/features/messages/AdminMessageLayer'
 import { InstallPrompt } from '@/components/InstallPrompt'
 import { AdminActivityToaster } from '@/features/admin/AdminActivityToaster'
@@ -181,6 +182,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       <ThemePreviewBar />
       <SurveyClaimLayer />
       <SeatAlertLayer />
+      <OutreachPopup />
       <AdminMessageLayer />
       <InstallPrompt />
       <GettingStartedChecklist />

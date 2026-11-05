@@ -8,7 +8,7 @@ import { DropdownMenu, type MenuItem } from '@/components/ui/DropdownMenu'
 import { PendingSyncMark } from '@/components/PendingSyncMark'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
-import { dueLabel, EDITOR_STATUSES, STATUS_META } from '@/lib/status'
+import { dueLabel, EDITOR_STATUSES, isFinished, STATUS_META } from '@/lib/status'
 import { examPeriodHint } from '@/lib/exam-period'
 import { activeLang } from '@/lib/date'
 import { KIND_LABEL } from '@/lib/assessment'
@@ -77,7 +77,7 @@ export function AssessmentRow({
     setStatus(assessment.id, next)
     if (next === 'done') haptic('success')
   }
-  const isDone = assessment.status === 'done'
+  const isDone = isFinished(assessment.status)
   function toggleDone() {
     changeStatus(isDone ? 'not-started' : 'done')
   }

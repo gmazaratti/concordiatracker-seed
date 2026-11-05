@@ -24,9 +24,16 @@ interface Snapshot {
   /** The item whose grade was just saved: kept on screen for its Undo even
    *  though it now HAS a grade, which would otherwise make it drop out. */
   saved: PromptKey | null
+  /** Things ticked off in one burst (each within a few seconds of the last).
+   *  The card shows it as "x3", so clearing several feels like a run. */
+  streak: number
 }
 
-let snap: Snapshot = { queue: [], saved: null }
+/** A tick this soon after the previous one continues the run. */
+const STREAK_MS = 6_000
+let lastPush = 0
+
+let snap: Snapshot = { queue: [], saved: null, streak: 0 }
 const subs = new Set<() => void>()
 const set = (next: Partial<Snapshot>) => {
   snap = { ...snap, ...next }
@@ -35,7 +42,10 @@ const set = (next: Partial<Snapshot>) => {
 
 function push(key: PromptKey) {
   if (snap.queue.includes(key)) return
-  set({ queue: [...snap.queue, key] })
+  const now = Date.now()
+  const streak = now - lastPush < STREAK_MS ? snap.streak + 1 : 1
+  lastPush = now
+  set({ queue: [...snap.queue, key], streak })
 }
 
 export function askForGrade(assessmentId: string): void {

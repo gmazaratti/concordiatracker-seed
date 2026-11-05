@@ -1,4 +1,7 @@
-import { Check, Hourglass, PenLine } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowUpRight, Check, ChevronDown, CircleCheck, Hourglass, PenLine, Undo2 } from 'lucide-react'
+import { cn } from '@/lib/cn'
+import { DropdownMenu } from '@/components/ui/DropdownMenu'
 import type { Assessment, Course } from '@/data/types'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseMark } from '@/components/CourseMark'
@@ -27,7 +30,14 @@ export function AwaitingGrade({
   courseById,
   icons,
   onMarkGraded,
+  onMarkNotDone,
+  collapsed,
+  onToggle,
 }: {
+  collapsed: boolean
+  onToggle: () => void
+  /** Take the tick back: it was not handed in after all. */
+  onMarkNotDone: (id: string) => void
   items: Assessment[]
   courseById: (id: string) => Course | undefined
   icons: boolean
@@ -35,14 +45,29 @@ export function AwaitingGrade({
 }) {
   const t = useT()
   const { openAssessment } = useQuickActions()
+  const navigate = useNavigate()
   if (items.length === 0) return null
   return (
     <section className="border-t border-border" aria-label={t('today.awaitingTitle')}>
-      <p className="flex items-center gap-1.5 px-3 pt-3 pb-1 text-[11.5px] font-semibold tracking-wide text-subtle uppercase">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={!collapsed}
+        className={cn(
+          'flex w-full items-center gap-1.5 px-4 pt-3 pb-1.5 text-left text-[11px] font-semibold tracking-wide text-subtle uppercase transition-colors duration-150 hover:text-fg',
+          collapsed && 'pb-3',
+        )}
+      >
+        <ChevronDown
+          size={13}
+          className={cn('shrink-0 transition-transform duration-150', collapsed && '-rotate-90')}
+          aria-hidden
+        />
         <Hourglass size={12} aria-hidden />
         {t('today.awaitingTitle')}
         <span className="font-normal normal-case tracking-normal">· {items.length}</span>
-      </p>
+      </button>
+      {!collapsed && (
       <ul className="divide-y divide-border/60">
         {items.map((a) => {
           const course = courseById(a.courseId)
@@ -51,7 +76,7 @@ export function AwaitingGrade({
               {/* A different mark from the round check: a filled check on a soft
                   accent disc says "handed in", not "finished". */}
               <span
-                className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-accent-soft text-accent"
+                className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-success text-accent-contrast"
                 title={t('today.awaitingBadge')}
               >
                 <Check size={12} strokeWidth={3} aria-hidden />
@@ -78,28 +103,46 @@ export function AwaitingGrade({
                   </span>
                 </span>
               </button>
-              <div className="flex shrink-0 flex-col items-stretch gap-1 sm:flex-row sm:items-center">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
                   onClick={() => askForGrade(a.id)}
-                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-border bg-surface px-2 py-1 text-[12px] font-medium text-fg transition-colors duration-150 hover:border-accent"
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1 text-[12px] font-medium text-fg transition-colors duration-150 hover:border-accent"
                 >
                   <PenLine size={12} aria-hidden />
                   {t('today.awaitingEnter')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onMarkGraded(a.id)}
-                  title={t('today.awaitingGradedHint')}
-                  className="rounded-lg px-2 py-1 text-[12px] text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-                >
-                  {t('today.awaitingGraded')}
-                </button>
+                <DropdownMenu
+                  ariaLabel={`More for ${a.title}`}
+                  items={[
+                    { id: 'grade', label: t('today.awaitingEnter'), icon: PenLine, onSelect: () => askForGrade(a.id) },
+                    {
+                      id: 'nograde',
+                      label: t('today.awaitingGraded'),
+                      icon: CircleCheck,
+                      onSelect: () => onMarkGraded(a.id),
+                    },
+                    {
+                      id: 'open',
+                      label: t('today.openInCourse'),
+                      icon: ArrowUpRight,
+                      onSelect: () => navigate(`/app/courses/${a.courseId}`, { state: { focus: a.id } }),
+                    },
+                    {
+                      id: 'undo',
+                      label: t('today.markNotDone'),
+                      icon: Undo2,
+                      separated: true,
+                      onSelect: () => onMarkNotDone(a.id),
+                    },
+                  ]}
+                />
               </div>
             </li>
           )
         })}
       </ul>
+      )}
     </section>
   )
 }

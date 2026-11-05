@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Bell, Plus, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Bell, ChevronRight, Plus, X } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import {
   leadLabel,
@@ -46,6 +46,26 @@ export function ReminderChips({
   const minutes = Math.round(Number(amount) * Number(unit))
   const customOk = Number(amount) > 0 && minutes >= 1 && minutes <= MAX_REMINDER_MINUTES && !taken.has(minutes)
 
+  // ONE LINE that scrolls sideways, with a fade + chevron on whichever edge has
+  // more, so it reads as scrollable. Measured, not assumed: the hints only show
+  // when the row actually overflows.
+  const rowRef = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
+  useEffect(() => {
+    const el = rowRef.current
+    if (!el) return
+    const measure = () =>
+      setEdges({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 })
+    measure()
+    el.addEventListener('scroll', measure, { passive: true })
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', measure)
+      ro.disconnect()
+    }
+  }, [value, defaults.length, full])
+
   function add(m: number) {
     if (taken.has(m) || full) return
     haptic('select')
@@ -56,22 +76,25 @@ export function ReminderChips({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="relative rounded-xl border border-border bg-canvas/60">
+      <div
+        ref={rowRef}
+        className="flex items-center gap-1.5 overflow-x-auto px-2.5 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {defaults.map((m) => (
           <span
             key={`d${m}`}
             title="From your default reminders in Settings"
-            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-2.5 text-[12px] text-subtle"
+            className="inline-flex min-h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-border px-2.5 text-[12px] text-muted"
           >
             <Bell size={11} aria-hidden />
             {leadLabel(m)}
-            <span className="text-[11px] uppercase tracking-wide">· default</span>
           </span>
         ))}
         {own.map((m) => (
           <span
             key={`o${m}`}
-            className="inline-flex min-h-8 items-center gap-1 rounded-full bg-accent-soft pl-2.5 text-[12px] font-medium text-accent"
+            className="inline-flex min-h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-accent-soft pl-2.5 text-[12px] font-medium text-accent"
           >
             {leadLabel(m)}
             <button
@@ -93,14 +116,31 @@ export function ReminderChips({
             onClick={() => setAdding((a) => !a)}
             aria-expanded={adding}
             className={cn(
-              'inline-flex min-h-8 items-center gap-1 rounded-full border border-dashed border-border-strong px-2.5 text-[12px] font-medium text-muted hover:text-fg',
+              'inline-flex min-h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-dashed border-border-strong px-2.5 text-[12px] font-medium text-muted hover:text-fg',
               adding && 'border-accent text-fg',
             )}
           >
-            <Plus size={12} aria-hidden /> Add reminder
+            <Plus size={12} aria-hidden /> Add
           </button>
         )}
       </div>
+      {edges.left && (
+        <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-8 rounded-l-xl bg-gradient-to-r from-surface to-transparent" />
+      )}
+      {edges.right && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 flex w-12 items-center justify-end rounded-r-xl bg-gradient-to-l from-surface via-surface/80 to-transparent pr-1.5 text-subtle"
+        >
+          <ChevronRight size={15} />
+        </div>
+      )}
+      </div>
+      {defaults.length > 0 && (
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-subtle">
+          <Bell size={10} aria-hidden /> = your defaults from Settings
+        </p>
+      )}
 
       {adding && (
         <div className="mt-2 rounded-lg border border-border bg-canvas p-2.5">
