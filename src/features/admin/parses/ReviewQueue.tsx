@@ -57,41 +57,45 @@ export function ReviewQueue({ onChanged }: { onChanged: () => void }) {
 
   return (
     <Panel title="Review queue" sub="Failed uploads with a kept file. Waiting students first.">
-      <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Review status">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={filter === f.id}
-            onClick={() => {
-              setRows(null)
-              setFilter(f.id)
-            }}
-            className={cn(
-              'rounded-full border px-2.5 py-1 text-[12px] font-medium',
-              filter === f.id ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:text-fg',
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-      {error ? (
-        <p className="text-[12.5px] text-danger">{error}</p>
-      ) : rows === null ? (
-        <p className="text-[12.5px] text-subtle">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="flex items-center gap-2 text-[12.5px] text-subtle">
-          <Inbox size={14} aria-hidden /> Nothing here.
-        </p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border">
-          {rows.map((r) => (
-            <ReviewItem key={r.id} r={r} onChanged={reload} />
+      {/* Panel does not pad its children, so the body carries the same 16px
+          inset as the header above it. */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="mb-1 flex flex-wrap gap-1.5" role="tablist" aria-label="Review status">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={filter === f.id}
+              onClick={() => {
+                setRows(null)
+                setFilter(f.id)
+              }}
+              className={cn(
+                'rounded-full border px-2.5 py-1 text-[12px] font-medium',
+                filter === f.id ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:text-fg',
+              )}
+            >
+              {f.label}
+            </button>
           ))}
-        </ul>
-      )}
+        </div>
+        {error ? (
+          <p className="text-[12.5px] text-danger">{error}</p>
+        ) : rows === null ? (
+          <p className="text-[12.5px] text-subtle">Loading…</p>
+        ) : rows.length === 0 ? (
+          <p className="flex items-center gap-2 text-[12.5px] text-subtle">
+            <Inbox size={14} aria-hidden /> Nothing here.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border">
+            {rows.map((r) => (
+              <ReviewItem key={r.id} r={r} onChanged={reload} />
+            ))}
+          </ul>
+        )}
+      </div>
     </Panel>
   )
 }
@@ -146,7 +150,11 @@ function ReviewItem({ r, onChanged }: { r: ReviewRow; onChanged: () => void }) {
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {r.has_file && (
-          <button type="button" className={btn} onClick={() => void openStoredFile(r.user_id, r.id).catch((e: Error) => setNote(e.message))}>
+          <button
+            type="button"
+            className={btn}
+            onClick={() => void openStoredFile(r.user_id, r.id).catch((e: Error) => setNote(e.message))}
+          >
             <FileText size={13} aria-hidden /> Open file
           </button>
         )}

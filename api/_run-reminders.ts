@@ -85,6 +85,11 @@ interface AdminDigest {
   /** Finished syllabus scans, successes and failures (already filtered by the
    *  admin's own preferences in the database). */
   new_scans?: { ok: boolean; file: string; course: string | null; items: number | null; error: string; who: string }[]
+  /** A student writing again on an existing ticket (db/admin_alerts_replies.sql). One push each. */
+  new_replies?: { case_id: string; subject: string; who: string; body: string }[]
+  /** Feature requests, bug reports and request comments, each named. When this
+   *  list is present it replaces the `features` / `bugs` counts in the digest. */
+  new_feedback?: { kind: 'request' | 'bug' | 'comment'; title: string; who: string; body?: string }[]
 }
 
 /** Digest body for everything EXCEPT signups, e.g. "1 feature request · 2 applications". */
@@ -563,14 +568,56 @@ export async function runReminders(req: any, res: any) {
             }),
           )
         }
-        // One consolidated digest for everything else.
-        const rest = d.features + d.bugs + d.applications
+        // A student answering on a ticket that already exists. These used to
+        // alert nobody, so a reply could sit unanswered for weeks.
+        for (const r of d.new_replies ?? []) {
+          await pushAll(
+            subs,
+            JSON.stringify({
+              title: `Reply on ${r.case_id}`,
+              body: `${r.who}: ${r.body || r.subject}`,
+              url: '/admin?tab=tickets',
+              tag: `ct-reply-${r.case_id}-${r.body.slice(0, 24)}`,
+            }),
+          )
+        }
+        // Requests, bugs and comments, named (capped like scan failures).
+        const feedback = d.new_feedback
+        if (feedback) {
+          for (const f of feedback.slice(0, 6)) {
+            const title =
+              f.kind === 'bug' ? 'New bug report' : f.kind === 'comment' ? 'New comment on a request' : 'New feature request'
+            await pushAll(
+              subs,
+              JSON.stringify({
+                title,
+                body: f.kind === 'comment' ? `${f.who} on "${f.title}": ${f.body ?? ''}` : `${f.who}: ${f.title}`,
+                url: f.kind === 'bug' ? '/admin?tab=bugs' : '/feedback',
+                tag: `ct-fb-${f.kind}-${f.who}-${f.title.slice(0, 24)}`,
+              }),
+            )
+          }
+          if (feedback.length > 6) {
+            await pushAll(
+              subs,
+              JSON.stringify({
+                title: `${feedback.length - 6} more requests and comments`,
+                body: 'Open Feedback to see them.',
+                url: '/feedback',
+                tag: 'ct-fb-more',
+              }),
+            )
+          }
+        }
+        // One consolidated digest for everything else. With the named
+        // feedback list present, requests and bugs are already covered.
+        const rest = (feedback ? 0 : d.features + d.bugs) + d.applications
         if (rest > 0) {
           await pushAll(
             subs,
             JSON.stringify({
               title: `${rest} new ${rest === 1 ? 'thing' : 'things'} to review`,
-              body: adminBody(d),
+              body: adminBody(feedback ? { ...d, features: 0, bugs: 0 } : d),
               url: '/app',
               tag: 'ct-admin-activity',
             }),
