@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ImageOff, X } from 'lucide-react'
+import { Download, ImageOff, X } from 'lucide-react'
 import { dmImageUrl } from '@/lib/dm-media'
 import { cn } from '@/lib/cn'
 
@@ -47,13 +47,44 @@ export function DmPhoto({ path, w, h, bare }: { path: string; w: number; h: numb
       </button>
       {open && url && createPortal(
         <div role="dialog" aria-label="Photo" onClick={() => setOpen(false)}
-          className="ct-animate-fade fixed inset-0 z-[110] grid place-items-center bg-black/90 p-4">
-          <img src={url} alt="Photo" className="max-h-full max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
-          <button type="button" aria-label="Close" onClick={() => setOpen(false)}
-            className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25">
-            <X size={18} aria-hidden />
-          </button>
+          className="ct-animate-fade fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4 sm:p-10">
+          {/* Sized to the SCREEN, not to a grid cell: max-h-full inside a grid
+              never resolved, so a tall photo opened bigger than the window. */}
+          <img src={url} alt="Photo" draggable={false}
+            className="h-auto max-h-[calc(100dvh-7rem)] w-auto max-w-[calc(100vw-2rem)] rounded-lg object-contain sm:max-w-[calc(100vw-5rem)]"
+            onClick={(e) => e.stopPropagation()} />
+          <div className="absolute top-4 right-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <button type="button" aria-label="Download photo" title="Download" onClick={() => void download(url, path)}
+              className="grid size-10 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25">
+              <Download size={18} aria-hidden />
+            </button>
+            <button type="button" aria-label="Close" onClick={() => setOpen(false)}
+              className="grid size-10 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25">
+              <X size={18} aria-hidden />
+            </button>
+          </div>
         </div>, document.body)}
     </>
   )
+}
+
+/** Save the photo. Fetched as a blob so the browser downloads it rather than
+ *  navigating to the signed link (a download attribute is ignored across
+ *  origins); falls back to opening it if the fetch is refused. */
+async function download(url: string, path: string): Promise<void> {
+  const name = path.split('/').pop() || 'photo.jpg'
+  try {
+    const blob = await fetch(url).then((r) => {
+      if (!r.ok) throw new Error(String(r.status))
+      return r.blob()
+    })
+    const href = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = href
+    a.download = name
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(href), 2_000)
+  } catch {
+    window.open(url, '_blank', 'noopener')
+  }
 }

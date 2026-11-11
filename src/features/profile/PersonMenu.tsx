@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Ban, Check, Flag, Link2, MessageSquare, MoreVertical, Rss, UserRound } from 'lucide-react'
+import { Ban, Check, Flag, Link2, MessageSquare, MoreVertical, Rss, UserRound, Archive, ArchiveRestore, Mail, MailOpen } from 'lucide-react'
 import { ReportSheet } from '@/components/ReportSheet'
 import { blockUser, haveIBlocked, unblockUser, unfollowUser } from '@/lib/social'
 import { cn } from '@/lib/cn'
@@ -35,18 +35,21 @@ export interface PersonTarget {
 const WIDTH = 210
 // Grows with the menu: the flip-up calculation uses it, and an undersized
 // estimate puts the last item off the bottom of the screen.
-const HEIGHT = 290
+const HEIGHT = 360
 
 export function PersonMenu({
   target,
   onMessage,
   onChanged,
   onClose,
+  thread,
 }: {
   target: PersonTarget
   onMessage?: () => void
   onChanged?: () => void
   onClose: () => void
+  /** On a conversation row: mark unread / archive. */
+  thread?: { unread: boolean; archived: boolean; onToggleUnread: () => void; onToggleArchive: () => void }
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
@@ -138,6 +141,26 @@ export function PersonMenu({
             onClose()
           }}
         />
+      )}
+      {thread && (
+        <>
+          <Item
+            icon={thread.unread ? MailOpen : Mail}
+            label={thread.unread ? 'Mark as read' : 'Mark as unread'}
+            onSelect={() => {
+              thread.onToggleUnread()
+              onClose()
+            }}
+          />
+          <Item
+            icon={thread.archived ? ArchiveRestore : Archive}
+            label={thread.archived ? 'Move back to inbox' : 'Archive conversation'}
+            onSelect={() => {
+              thread.onToggleArchive()
+              onClose()
+            }}
+          />
+        </>
       )}
       <Item
         icon={copied ? Check : Link2}

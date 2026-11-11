@@ -1,3 +1,4 @@
+import { useUiState } from '@/app/providers/ui-state'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
@@ -77,6 +78,12 @@ function PersonSeal({ handle, userId, size }: { handle: string; userId: string; 
   const badge = badgeForPerson(handle, orgNameByOwner[userId])
   if (!badge) return null
   return <VerifiedBadge size={size} tone={badge.tone} label={badge.label} />
+}
+
+/** A thread with a hand-made "unread" mark shows as one unread message. */
+function withMark(t: Thread | undefined, marked: boolean): Thread | undefined {
+  if (!t || !marked || t.unread > 0) return t
+  return { ...t, unread: 1 }
 }
 
 function ThreadLine({
@@ -198,6 +205,8 @@ export function PeoplePanel() {
   const [unreadOnOpen, setUnreadOnOpen] = useState(0)
   const [tick, setTick] = useState(0)
   const [menu, setMenu] = useState<PersonTarget | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const { uiState, patchUiState } = useUiState()
   // Filters the thread list only. This is not the Community search — that one
   // finds strangers; this one finds a conversation you already have, which is
   // a different question and belongs on the list it narrows.
@@ -320,6 +329,29 @@ export function PeoplePanel() {
    * something". Conversations that have never been used sort last, in their
    * existing order, rather than being hidden.
    */
+  // Hand-made marks (ui_state.threadMarks): unread, and archived until a
+  // newer message arrives.
+  const marks = uiState.threadMarks ?? {}
+  const markedUnread = new Set(marks.unread ?? [])
+  const archivedAt = marks.archived ?? {}
+  const isArchived = (userId: string) => {
+    const at = archivedAt[userId]
+    if (!at) return false
+    const last = byOther.get(userId)?.last_at
+    return !last || last <= at
+  }
+  const setMarks = (next: { unread?: string[]; archived?: Record<string, string> }) =>
+    patchUiState({ threadMarks: { ...marks, ...next } })
+  const toggleUnread = (userId: string) =>
+    setMarks({
+      unread: markedUnread.has(userId) ? [...markedUnread].filter((x) => x !== userId) : [...markedUnread, userId],
+    })
+  const toggleArchive = (userId: string) => {
+    const next = { ...archivedAt }
+    if (isArchived(userId)) delete next[userId]
+    else next[userId] = new Date().toISOString()
+    setMarks({ archived: next })
+  }
   const accepted = [...(friends ?? [])]
     .filter((f) => f.status === 'accepted' || f.status === 'request')
     .sort((a, b) => {
@@ -337,13 +369,15 @@ export function PeoplePanel() {
    * how a list ends up showing a row the empty-state line has already said
    * does not exist.
    */
+  const archivedCount = accepted.filter((f) => isArchived(f.user_id)).length
   const shownThreads = accepted.filter((f) => {
+    if (isArchived(f.user_id) !== showArchived) return false
     if (!matchesQuery(q, f.handle, f.name)) return false
     const t = byOther.get(f.user_id)
     return matchesFilters(
       {
         kind: 'user',
-        unread: t?.unread ?? 0,
+        unread: Math.max(t?.unread ?? 0, markedUnread.has(f.user_id) ? 1 : 0),
         lastFromMe: t?.last_at ? t.last_from_me : undefined,
         lastBody: t?.last_body,
         verified: !!badgeForPerson(f.handle, orgNameByOwner[f.user_id]),
@@ -469,6 +503,8 @@ export function PeoplePanel() {
     // Remembered BEFORE the row is marked read, because marking it read is
     // what destroys the only evidence of where you left off.
     setUnreadOnOpen(byOther.get(f.user_id)?.unread ?? 0)
+    // Opening a conversation you marked unread is reading it.
+    if (markedUnread.has(f.user_id)) toggleUnread(f.user_id)
     // Clear the badge optimistically, then tell the server. Waiting for the
     // round trip leaves a dot on the conversation you are looking at.
     if ((byOther.get(f.user_id)?.unread ?? 0) > 0) {
@@ -775,7 +811,7 @@ export function PeoplePanel() {
                         <Avatar friend={f} size={44} />
                         <ThreadLine
                           friend={f}
-                          thread={byOther.get(f.user_id)}
+                          thread={withMark(byOther.get(f.user_id), markedUnread.has(f.user_id))}
                           me={meId}
                           badge={badgeForPerson(f.handle, orgNameByOwner[f.user_id])}
                         />
@@ -783,6 +819,17 @@ export function PeoplePanel() {
                       <PersonMenuButton onOpen={(at) => setMenu(targetFor(f, at))} />
                     </li>
                   ))}
+                  {(archivedCount > 0 || showArchived) && (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => setShowArchived((v) => !v)}
+                        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[12.5px] text-subtle hover:text-fg"
+                      >
+                        {showArchived ? '← Back to inbox' : `Archived (${archivedCount})`}
+                      </button>
+                    </li>
+                  )}
                 </ul>
               )}
 
@@ -1004,6 +1051,23 @@ export function PeoplePanel() {
           }}
           onChanged={refresh}
           onClose={() => setMenu(null)}
+          thread={(() => {
+            const f = accepted.find((x) => x.handle === menu.handle)
+            if (!f) return undefined
+            return {
+              unread: markedUnread.has(f.user_id) || (byOther.get(f.user_id)?.unread ?? 0) > 0,
+              archived: isArchived(f.user_id),
+              onToggleUnread: () => {
+                const realUnread = (byOther.get(f.user_id)?.unread ?? 0) > 0
+                if (realUnread) {
+                  setThreads((prev) => prev.map((t) => (t.other === f.user_id ? { ...t, unread: 0 } : t)))
+                  void markThreadRead(f.user_id)
+                  if (markedUnread.has(f.user_id)) toggleUnread(f.user_id)
+                } else toggleUnread(f.user_id)
+              },
+              onToggleArchive: () => toggleArchive(f.user_id),
+            }
+          })()}
         />
       )}
     </div>

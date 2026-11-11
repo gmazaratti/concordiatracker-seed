@@ -211,7 +211,9 @@ export function EditProfileModal({
           </div>
         )}
 
-        <div className="mt-5 flex justify-end gap-2">
+        {/* Pinned to the bottom of the sheet: the form is long, and Save used to
+            scroll away with it. */}
+        <div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-5 flex justify-end gap-2 border-t border-border bg-surface px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:-mx-5 sm:-mb-5 sm:px-5 sm:pb-3">
           <button
             type="button"
             onClick={onClose}

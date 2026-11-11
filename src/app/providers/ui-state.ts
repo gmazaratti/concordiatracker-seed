@@ -97,6 +97,10 @@ export interface UiState {
   /** Today's list sections the student folded away (overdue, thisweek, later,
    *  undated, awaiting, or a course id when grouped by course). */
   todayCollapsed?: string[]
+  /** Messages: conversations marked unread by hand (user ids), and archived
+   *  ones (user id -> ISO time archived). An archived conversation comes back
+   *  by itself when a newer message arrives. */
+  threadMarks?: { unread?: string[]; archived?: Record<string, string> }
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as
