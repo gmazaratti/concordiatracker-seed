@@ -55,6 +55,29 @@ export function peekReturn(): string | null {
   }
 }
 
+/** The stored entry with when it was first followed (AuthIntentRedirect). */
+export function peekReturnEntry(): { path: string; followedAt?: number } | null {
+  const path = peekReturn()
+  if (!path) return null
+  try {
+    const v = JSON.parse(localStorage.getItem(KEY) ?? '{}') as { followedAt?: unknown }
+    return { path, followedAt: typeof v.followedAt === 'number' ? v.followedAt : undefined }
+  } catch {
+    return { path }
+  }
+}
+
+/** Record that the redirect happened, so it is not repeated (see AuthIntentRedirect). */
+export function markFollowed(): void {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (!raw) return
+    localStorage.setItem(KEY, JSON.stringify({ ...(JSON.parse(raw) as object), followedAt: Date.now() }))
+  } catch {
+    /* ignore */
+  }
+}
+
 export function clearReturn(): void {
   try {
     localStorage.removeItem(KEY)

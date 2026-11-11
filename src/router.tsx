@@ -204,7 +204,7 @@ export function AppRoutes() {
       {/* Feedback: feature-request board + private bug submission. Reached from the
           avatar menu and Today; not a sidebar tab. */}
       <Route path="/feedback" element={<FeedbackPage />} />
-      <Route path="/family" element={<FamilyPage />} />
+      <Route path="/family/*" element={<FamilyPage />} />
       <Route path="/family/join/:token" element={<FamilyJoinPage />} />
 
       {/* Public market-research survey: shareable, works signed-out. */}

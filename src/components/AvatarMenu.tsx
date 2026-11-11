@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
+  Eye,
   ArrowLeft,
   CalendarDays,
   Compass,
@@ -35,6 +36,7 @@ import { useCommunityData } from '@/app/providers/community-data'
 import { activityHref, onOwnProfile } from '@/features/community/sections'
 import { useTransitionClick } from '@/lib/view-transition'
 import { PURCHASES_HIDDEN } from '@/lib/store-policy'
+import { useIsGuardian } from '@/features/family/use-is-guardian'
 
 /** The people who built this — badged with a verification seal in the profile
  * block (cosmetic; admin rights are gated separately in the DB). Kept as
@@ -106,6 +108,7 @@ export function AvatarMenu({
   const { start } = useTour()
   const t = useT()
   const [open, setOpen] = useState(false)
+  const isGuardian = useIsGuardian()
   const ref = useRef<HTMLDivElement>(null)
   const location = useLocation()
   /* A link to the page you are already on is a dead entry in a short menu —
@@ -203,6 +206,12 @@ export function AvatarMenu({
           {isAdmin && (
             <MenuLink to="/teacher" icon={GraduationCap} onSelect={() => setOpen(false)}>
               {t('nav.teacherPortal')}
+            </MenuLink>
+          )}
+          {/* Someone shared their courses with you: the way back to that view. */}
+          {isGuardian && (
+            <MenuLink to="/family" icon={Eye} onSelect={() => setOpen(false)}>
+              Family view
             </MenuLink>
           )}
           {/* Visible to anyone who owns or helps run an org (not just admin). */}

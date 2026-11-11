@@ -84,37 +84,8 @@ export async function myGuardedStudents(): Promise<GuardedStudent[]> {
   return (data ?? []) as GuardedStudent[]
 }
 
-export interface GuardianView {
-  name: string
-  grades: boolean
-  schedule: boolean
-  courses: {
-    id: string
-    code: string
-    name: string
-    term: string | null
-    credits: number | null
-    time: string | null
-    location: string | null
-    color: string | null
-    final: number | null
-    archived: boolean
-  }[]
-  assessments: {
-    id: string
-    course: string
-    title: string
-    kind: string
-    weight: number
-    due: string | null
-    status: string | null
-    no_date: boolean | null
-    score: number | null
-    raw_score: number | null
-    raw_total: number | null
-  }[]
-  schedules: { name: string; term_code: string | null; sections: unknown }[]
-}
+/** Raw guardian_view payload; family-data.ts turns the rows into Course / Assessment. */
+export type GuardianView = Record<string, unknown>
 
 export async function guardianView(student: string): Promise<GuardianView> {
   const { data, error } = await supabase.rpc('guardian_view', { p_student: student })
