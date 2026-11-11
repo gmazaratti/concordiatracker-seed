@@ -40,7 +40,7 @@ export function ReleaseHero({ release }: { release: Release }) {
   const version = release.version.replace(/\.0$/, '')
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-3xl border border-accent/40 bg-surface">
+    <div className="relative overflow-hidden rounded-3xl border border-accent/40 bg-surface">
       {/* Light, not decoration for its own sake: two soft accent pools make
           the number read as lit from behind. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 size-72 rounded-full bg-accent/25 blur-3xl" />

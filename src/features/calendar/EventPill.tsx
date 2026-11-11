@@ -25,12 +25,15 @@ export function EventPill({
   course,
   className,
   dotOnly = false,
+  wrap = false,
 }: {
   item: CalendarItem
   course?: Course
   className?: string
   /** Narrow month cells: the marker only, with the title for screen readers. */
   dotOnly?: boolean
+  /** The week board: a taller chip whose title may run to three lines. */
+  wrap?: boolean
 }) {
   const overdue = isOverdue(item)
 
@@ -97,7 +100,10 @@ export function EventPill({
   return (
     <span
       className={cn(
-        'flex items-center gap-1.5 rounded-md py-[3px] pr-1.5 text-left text-[11.5px] leading-tight font-medium',
+        'flex gap-1.5 text-left font-medium',
+        wrap
+          ? 'items-start rounded-lg py-2 pr-2 text-[12.5px] leading-snug'
+          : 'items-center rounded-md py-[3px] pr-1.5 text-[11.5px] leading-tight',
         hexOf && !overdue ? 'pl-2' : 'pl-1.5',
         tone,
         overdue && 'shadow-[inset_3px_0_0_var(--ct-danger)] pl-2',
@@ -106,8 +112,11 @@ export function EventPill({
       )}
       style={wash}
     >
-      {!(hexOf && !overdue) && !overdue && dot}
-      <span className="truncate">{label}</span>
+      {!(hexOf && !overdue) && !overdue && <span className={cn('inline-flex shrink-0', wrap && 'mt-[3px]')}>{dot}</span>}
+      <span className={wrap ? 'line-clamp-3 min-w-0 break-words' : 'truncate'}>
+        {wrap && course && <span className="block text-[10.5px] font-bold tracking-[0.06em] uppercase opacity-70">{course.code}</span>}
+        {label}
+      </span>
     </span>
   )
 }

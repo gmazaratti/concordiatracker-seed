@@ -5,6 +5,7 @@ import { useQuickActions } from '@/app/providers/quick-actions'
 import { CourseChip } from '@/components/CourseChip'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { KIND_LABEL } from '@/lib/assessment'
+import { courseColor } from '@/lib/course-color'
 import { daysUntil, tbdLabel } from '@/lib/date'
 import { isFinished, isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
@@ -43,7 +44,11 @@ export function ItemRow({
     const done = isFinished(a.status)
     const overdue = isOpen(a.status) && !!a.due && daysUntil(a.due) < 0
     return (
-      <div className="flex items-start gap-3 px-3 py-2.5">
+      <div
+        className="flex items-start gap-3 px-4 py-3"
+        // The course's colour down the row's edge, as on the month's chips.
+        style={course ? { boxShadow: `inset 3px 0 0 ${courseColor(course.color).hex}` } : undefined}
+      >
         <button
           type="button"
           onClick={() => setStatus(a.id, done ? 'not-started' : 'done')}
@@ -66,7 +71,7 @@ export function ItemRow({
           }}
           className="min-w-0 flex-1 text-left"
         >
-          <p className={cn('truncate text-[14px] font-medium text-fg', done && 'text-muted line-through')}>
+          <p className={cn('truncate text-[14.5px] font-semibold text-fg', done && 'text-muted line-through')}>
             {a.title}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-subtle">
@@ -80,8 +85,8 @@ export function ItemRow({
 
         <span
           className={cn(
-            'shrink-0 pt-0.5 text-[11px] font-medium tabular-nums',
-            overdue ? 'text-danger' : 'text-subtle',
+            'shrink-0 pt-0.5 text-[12px] font-semibold tabular-nums',
+            overdue ? 'text-danger' : 'text-muted',
           )}
         >
           {overdue ? t('today.overdue') : a.due ? TIME.format(new Date(a.due)) : tbdLabel()}
@@ -93,7 +98,7 @@ export function ItemRow({
   if (item.kind === 'task') {
     const t = item.task
     return (
-      <div className="group flex items-start gap-3 px-3 py-2.5">
+      <div className="group flex items-start gap-3 px-4 py-3">
         <button
           type="button"
           onClick={() => toggleTask(t.id)}
@@ -169,7 +174,7 @@ export function ItemRow({
 
   if (item.kind === 'undated') {
     return (
-      <div className="flex items-start gap-3 px-3 py-2.5">
+      <div className="flex items-start gap-3 px-4 py-3">
         <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-warning/15 text-warning">
           <CircleDashed size={12} aria-hidden />
         </span>
@@ -190,7 +195,7 @@ export function ItemRow({
   const meta = ACADEMIC_META[e.kind]
   const Icon = meta.icon
   return (
-    <div className="flex items-start gap-3 px-3 py-2.5">
+    <div className="flex items-start gap-3 px-4 py-3">
       <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-info/15 text-info">
         <Icon size={12} aria-hidden />
       </span>

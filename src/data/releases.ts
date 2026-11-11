@@ -44,6 +44,28 @@ export interface Release {
 /** Newest first — index 0 is the current release. */
 const ALL_RELEASES: Release[] = [
   {
+    version: '2.4.0',
+    name: 'A Planner worth opening',
+    date: '2026-11-11',
+    changes: [
+      { kind: 'new', text: 'Resources in the Planner: every Concordia office, who to contact, the advisors for your faculty, and a search that understands plain questions.' },
+      { kind: 'new', text: 'Guides you can read like articles: what to do in first year, where to go, what to sign up for and the common mistakes.' },
+      { kind: 'new', text: 'A Monday email with what is due this week. You can turn it off in Settings.' },
+      { kind: 'new', text: 'Upload a course outline as a Word file, a photo or plain text, not only a PDF.' },
+      { kind: 'new', text: 'Family view: invite a parent to see your deadlines, read-only. Grades and your schedule stay hidden unless you turn them on.' },
+      { kind: 'new', text: 'Mark an assessment "Excused, no grade" and its weight moves where your outline says it should.' },
+      { kind: 'new', text: 'A Friends in class widget on Today, and @mentions in messages and comments.' },
+      { kind: 'new', text: 'Moodle has its own card in Courses, and each class page shows what came from Moodle.' },
+      { kind: 'new', text: 'A hands-on welcome for new accounts: you add a class, tick something off and enter a grade before you land on Today.' },
+      { kind: 'improved', text: 'Radar, My programme and My record are redesigned: a banner with the number that matters, then cards ordered by what needs you first.' },
+      { kind: 'improved', text: 'Schedule builder: one view at a time on a phone, larger class rows and a roomier week grid.' },
+      { kind: 'improved', text: 'Calendar: month, week and agenda views with course-coloured chips, a highlighted today and an Up next list.' },
+      { kind: 'improved', text: 'The update notes show each update as a card you can open, instead of one long list.' },
+      { kind: 'improved', text: 'Messages: photos fit the screen and can be saved, and a chat can be marked unread or archived.' },
+      { kind: 'fixed', text: 'Importing an outline into a class you already had could save nothing without saying so.' },
+    ],
+  },
+  {
     version: '2.3.0',
     name: 'Safer Community',
     date: '2026-10-11',
