@@ -34,6 +34,7 @@ const ConcordiaScheduleBuilderPage = lazy(() => import('@/features/landing/SeoLa
 const FamilyPage = lazy(() => import('@/features/family/FamilyPage').then((x) => ({ default: x.FamilyPage })))
 const FamilyJoinPage = lazy(() => import('@/features/family/FamilyPage').then((x) => ({ default: x.FamilyJoinPage })))
 const CoursesPage = lazy(() => import('@/features/courses/CoursesPage').then((x) => ({ default: x.CoursesPage })))
+const CoursesPreviewPage = lazy(() => import('@/features/courses/preview/CoursesPreviewPage').then((x) => ({ default: x.CoursesPreviewPage })))
 const CourseDetailPage = lazy(() => import('@/features/courses/CourseDetailPage').then((x) => ({ default: x.CourseDetailPage })))
 const BlueprintBrowserPage = lazy(() => import('@/features/courses/BlueprintBrowserPage').then((x) => ({ default: x.BlueprintBrowserPage })))
 const SyllabusUploadPage = lazy(() => import('@/features/courses/SyllabusUpload').then((x) => ({ default: x.SyllabusUploadPage })))
@@ -130,6 +131,8 @@ export function AppRoutes() {
         <Route path="courses/blueprints" element={<BlueprintBrowserPage />} />
         <Route path="courses/upload" element={<SyllabusUploadPage />} />
         <Route path="courses/moodle" element={<MoodlePage />} />
+        {/* A proposed look for Courses, not linked from anywhere. Before :courseId so the static segment wins. */}
+        <Route path="courses/preview" element={<CoursesPreviewPage />} />
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="planner" element={<PlannerPage />} />

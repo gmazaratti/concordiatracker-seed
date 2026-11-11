@@ -95,7 +95,7 @@ export function ReleaseCard({
 }) {
   const art = artFor(release, index)
   return (
-    <button type="button" onClick={onOpen} className={cn(shell, 'ct-res-in flex h-full flex-col')} style={{ animationDelay: `${Math.min(index, 9) * 40}ms` }}>
+    <button type="button" onClick={onOpen} className={cn(shell, 'ct-res-in flex h-full flex-col', index === 0 && 'ct-ring')} style={{ animationDelay: `${Math.min(index, 9) * 40}ms` }}>
       <ReleaseCover release={release} art={art} size={lead ? 'lg' : 'md'} className={lead ? 'aspect-[16/8] sm:aspect-[16/7]' : 'aspect-[16/9]'} />
       <span className="flex flex-1 flex-col px-4 pt-4 pb-3 pr-16">
         <span className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">

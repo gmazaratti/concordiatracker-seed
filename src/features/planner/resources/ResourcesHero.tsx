@@ -48,10 +48,9 @@ export function ResourcesHero({
         <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-white/80">
           Every office, the advisors behind them, and guides written for where you are in your degree.
         </p>
-        <label className="relative isolate mt-4 flex max-w-md items-center overflow-hidden gap-2.5 rounded-2xl border border-white/20 bg-white/[0.12] px-3.5 py-2.5 backdrop-blur-md transition-colors duration-150 focus-within:border-white/60 focus-within:bg-white/[0.18]">
+        <label style={{ ['--ct-ring' as string]: '#ffffff' }} className="ct-ring relative isolate mt-4 flex max-w-md items-center gap-2.5 rounded-2xl border border-white/20 bg-white/[0.12] px-3.5 py-2.5 backdrop-blur-md transition-colors duration-150 focus-within:border-white/60 focus-within:bg-white/[0.18]">
           <Search size={17} className="shrink-0 text-white/70" aria-hidden />
-          {/* A slow sheen across the field: it says "this is the thing to use". */}
-          <span aria-hidden className="ct-res-sheen pointer-events-none absolute inset-y-0 -z-10 w-1/3" />
+          {/* A light travelling round the outline: it says "this is the thing to use". */}
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
