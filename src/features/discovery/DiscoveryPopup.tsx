@@ -76,14 +76,14 @@ export function DiscoveryPopup() {
         leaving && 'ct-discover-out',
       )}
     >
-      <div className="flex items-start gap-3 p-4">
+      <div className="flex items-start gap-3 p-3.5">
         <span className="ct-discover-icon grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
           <NudgeIcon icon={shown.icon} size={19} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold tracking-[0.1em] text-accent uppercase">Did you know</p>
-          <p className="mt-0.5 pr-6 text-[15px] leading-snug font-semibold text-fg">{shown.title}</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{shown.body}</p>
+          {/* One line and a button. It used to carry a "Did you know" label
+              and a paragraph, which read as an ad and got closed unread. */}
+          <p className="pt-0.5 pr-6 text-[15px] leading-snug font-semibold text-fg">{shown.title}</p>
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             <button
               type="button"

@@ -277,16 +277,40 @@ export type WidgetSize = 's' | 'm' | 'l'
 export const SIZE_LABEL: Record<WidgetSize, string> = { s: 'Small', m: 'Medium', l: 'Wide' }
 const SIZE_ZONE: Record<WidgetSize, WidgetZone> = { s: 'rail', m: 'half', l: 'wide' }
 
-export function sizesFor(w: WidgetDef): WidgetSize[] {
-  return (['s', 'm', 'l'] as WidgetSize[]).filter((sz) => fitsZone(w, SIZE_ZONE[sz]))
+const ALL_SIZES: WidgetSize[] = ['s', 'm', 'l']
+
+/** The sizes a widget has its own layout for. */
+function designedSizes(w: WidgetDef): WidgetSize[] {
+  return ALL_SIZES.filter((sz) => fitsZone(w, SIZE_ZONE[sz]))
+}
+
+/**
+ * The sizes a card can be set to: all three, for every widget. A widget drawn
+ * at a size it has no layout of its own for uses its nearest one (`layoutFor`),
+ * so "this one cannot be resized" is never the answer.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function sizesFor(_w: WidgetDef): WidgetSize[] {
+  return ALL_SIZES
+}
+
+/** Which of the widget's own layouts to draw at a size: that size's if it has
+ *  one, else the largest smaller one, else its smallest. */
+export function layoutFor(w: WidgetDef, size: WidgetSize): WidgetZone {
+  const have = designedSizes(w)
+  if (have.length === 0) return 'rail'
+  if (have.includes(size)) return SIZE_ZONE[size]
+  const at = ALL_SIZES.indexOf(size)
+  const smaller = have.filter((sz) => ALL_SIZES.indexOf(sz) < at)
+  return SIZE_ZONE[smaller[smaller.length - 1] ?? have[0]]
 }
 
 /** The size a card is drawn at: the one chosen if it is allowed, else the
  *  largest allowed (a new card starts as big as it was designed to be). */
 export function sizeOf(w: WidgetDef, chosen: WidgetSize | undefined): WidgetSize {
-  const allowed = sizesFor(w)
-  if (chosen && allowed.includes(chosen)) return chosen
-  return allowed[allowed.length - 1] ?? 'l'
+  if (chosen) return chosen
+  const designed = designedSizes(w)
+  return designed[designed.length - 1] ?? 'l'
 }
 
 /** Which of the widget's own layouts to render for a size. */

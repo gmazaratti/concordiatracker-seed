@@ -58,6 +58,8 @@ eq('weak matches never pop up', popupFor(base, {}, 5, NOW), null)
 
 console.log('the card and the popup never share a day')
 eq('no card on a day a popup showed', cardFor({ ...lowGpa, pastCourses: 0 }, { popped: { 'what-if': '2026-10-14T13:00:00Z' }, lastPop: '2026-10-14T13:00:00Z' }, NOW), null)
+eq('closing a card rests the next one', cardFor({ ...lowGpa, pastCourses: 0 }, { cardRest: '2026-12-31T00:00:00Z' }, NOW), null)
+check('a rest that has passed lets the card back', cardFor({ ...lowGpa, pastCourses: 0 }, { cardRest: '2020-01-01T00:00:00Z' }, NOW) !== null)
 eq('the card is back the next day', cardFor({ ...lowGpa, pastCourses: 0 }, { popped: { 'what-if': '2026-10-13T09:00:00Z' }, lastPop: '2026-10-13T09:00:00Z' }, NOW)?.id, 'what-if')
 
 console.log(failures === 0 ? '\ndiscovery: all checks passed' : `\ndiscovery: ${failures} FAILED`)

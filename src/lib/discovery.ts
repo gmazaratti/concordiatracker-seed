@@ -43,7 +43,7 @@ export interface DiscoverySignals {
   ungradedCourse: { id: string; code: string } | null
   gpa: number | null
   /** The lowest-standing current course that has at least one grade. */
-  weakest: { id: string; code: string; percent: number } | null
+  weakest: { id: string; code: string; percent: number; needToPass?: number | null } | null
   upcomingDated: number
   hasReminders: boolean
   personalTasks: number
@@ -66,6 +66,9 @@ export interface DiscoveryState {
   /** id -> ISO time a popup showed it. A popup never repeats a feature. */
   popped?: Record<string, string>
   lastPop?: string
+  /** ISO time before which Today's card stays away. Set when a card is closed
+   *  or followed, so the next one arrives later instead of straight away. */
+  cardRest?: string
 }
 
 export type DiscoveryIcon =
@@ -111,9 +114,13 @@ export function candidates(s: DiscoverySignals): Nudge[] {
   if (s.weakest && s.weakest.percent < 65) {
     add({
       id: 'grade-needed', icon: 'target', score: 86,
-      title: `What do you need in ${s.weakest.code}?`,
-      body: `You are at ${Math.round(s.weakest.percent)}% so far. See the exact average you need on what is left to pass, or to hit the grade you want.`,
-      cta: 'Do the math', to: `/app/courses/${s.weakest.id}`,
+      // The number itself, not an offer to go and find it.
+      title:
+        typeof s.weakest.needToPass === 'number'
+          ? `${s.weakest.code}: you need ${Math.round(s.weakest.needToPass)}% on what is left to pass`
+          : `What do you need in ${s.weakest.code}?`,
+      body: `You are at ${Math.round(s.weakest.percent)}% so far. Pick the grade you want and see what it takes.`,
+      cta: 'Try other grades', to: `/app/courses/${s.weakest.id}`,
       reason: `standing below 65% in ${s.weakest.code}`,
     })
   } else if (s.gradedCount > 0 && s.weakest) {
@@ -298,5 +305,7 @@ export function popupFor(s: DiscoverySignals, state: DiscoveryState, visitDays: 
  */
 export function cardFor(s: DiscoverySignals, state: DiscoveryState, now: number): Nudge | null {
   if (state.lastPop && now - new Date(state.lastPop).getTime() < 18 * 3_600_000) return null
+  // Closed or followed one recently: the next waits, or they get closed in a row.
+  if (state.cardRest && new Date(state.cardRest).getTime() > now) return null
   return rank(s, state, now)[0] ?? null
 }

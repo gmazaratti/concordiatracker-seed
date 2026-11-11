@@ -2,10 +2,14 @@ import { useCallback, useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
 import { useFeatureUsage } from '@/app/feature-usage'
-import { coursePercent, currentGpa } from '@/lib/gpa'
+import { coursePercent, currentGpa, gradeNeeded } from '@/lib/gpa'
 import { cardFor, popupFor, type DiscoverySignals, type DiscoveryState, type Nudge } from '@/lib/discovery'
 
 const SNOOZE_MS = 3 * 86_400_000
+/** After a card is closed or followed, the next one waits this long. */
+const REST_MS = 20 * 3_600_000
+/** Concordia's lowest passing grade (D-). */
+const PASS = 50
 const UNMEASURED = new Set(['grade-needed', 'what-if'])
 
 /**
@@ -34,7 +38,10 @@ export function useDiscovery() {
       const list = byCourse.get(c.id) ?? []
       if (list.length === 0 && c.code && !emptyCourse) emptyCourse = { id: c.id, code: c.code }
       const pct = coursePercent(list)
-      if (pct !== null && (!weakest || pct < weakest.percent)) weakest = { id: c.id, code: c.code, percent: pct }
+      if (pct !== null && (!weakest || pct < weakest.percent)) {
+        const need = gradeNeeded(list, PASS)
+        weakest = { id: c.id, code: c.code, percent: pct, needToPass: need.kind === 'needed' ? need.percent : null }
+      }
       const waiting = list.some(
         (a) => !a.grade && (a.status === 'done' || a.status === 'late' || (a.due !== null && new Date(a.due).getTime() < now)),
       )
@@ -74,10 +81,14 @@ export function useDiscovery() {
     [patchUiState, uiState.discovery],
   )
   /** They followed the nudge. For features we cannot measure, that is "used". */
-  const tried = useCallback((id: string) => write((s) => ({ ...s, tried: [...new Set([...(s.tried ?? []), id])] })), [write])
+  const rest = () => new Date(Date.now() + REST_MS).toISOString()
+  const tried = useCallback(
+    (id: string) => write((s) => ({ ...s, tried: [...new Set([...(s.tried ?? []), id])], cardRest: rest() })),
+    [write],
+  )
   /** "Not now": the card comes back in three days. */
   const snooze = useCallback(
-    (id: string) => write((s) => ({ ...s, snoozed: { ...(s.snoozed ?? {}), [id]: new Date(Date.now() + SNOOZE_MS).toISOString() } })),
+    (id: string) => write((s) => ({ ...s, snoozed: { ...(s.snoozed ?? {}), [id]: new Date(Date.now() + SNOOZE_MS).toISOString() }, cardRest: rest() })),
     [write],
   )
   /** "Don't show this again." */

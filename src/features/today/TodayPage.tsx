@@ -11,8 +11,11 @@ import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { groupDue, PAIN_THRESHOLD } from './due'
 import { GlanceStrip } from './GlanceStrip'
-import { TodayHero } from './TodayHero'
-import { Link } from 'react-router-dom'
+import { TodayHero, type HeroItem } from './TodayHero'
+import { Link, useNavigate } from 'react-router-dom'
+import { KIND_LABEL } from '@/lib/assessment'
+import { courseColor } from '@/lib/course-color'
+import { byDue, daysUntil } from '@/lib/date'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
@@ -23,7 +26,7 @@ import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { useT, useI18n } from '@/i18n/i18n'
-import { SIZE_SPAN, WIDGETS_BY_ID, GLANCE_ID, DUE_ID, sizesFor, zoneForSize, type WidgetSize } from './widgets/registry'
+import { SIZE_SPAN, WIDGETS_BY_ID, GLANCE_ID, DUE_ID, sizesFor, layoutFor, type WidgetSize } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
 import { SizePicker } from './widgets/SizePicker'
 import { WidgetBoard, WidgetZoneView } from './widgets/WidgetBoard'
@@ -60,7 +63,8 @@ export function TodayPage({
     todayPrefs,
     updateTodayPrefs,
   } = useAppData()
-  const { flashUndo } = useQuickActions()
+  const { flashUndo, openAssessment } = useQuickActions()
+  const navigate = useNavigate()
   // Set by onboarding as it leaves (flow/ob-data → ARRIVE_KEY). Read once, then
   // cleared, so only that first landing plays the entrance.
   const [arriving] = useState(() => {
@@ -189,6 +193,29 @@ export function TodayPage({
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
   const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
+  // The lists behind the banner's two counts: assessments and tasks together,
+  // because the counts include both.
+  const heroItems = (list: Assessment[], maxDays: number): HeroItem[] => {
+    const out: HeroItem[] = list
+      .filter((a): a is Assessment & { due: string } => !!a.due)
+      .map((a) => {
+        const c = courseById(a.courseId)
+        return {
+          id: a.id,
+          title: a.title,
+          sub: [c?.code, KIND_LABEL[a.kind], `${a.weight}%`].filter(Boolean).join(' · '),
+          due: a.due,
+          hex: c ? courseColor(c.color).hex : undefined,
+          onOpen: () => openAssessment(a.id),
+        }
+      })
+    for (const tk of todosDue) {
+      if (daysUntil(tk.due) >= maxDays) continue
+      out.push({ id: tk.id, title: tk.title, sub: tk.source === 'moodle' ? 'From Moodle' : 'Your task', due: tk.due, onOpen: () => navigate('/app/calendar') })
+    }
+    return out.sort(byDue)
+  }
+
   const zoneById = (id: string) => zones.find((z) => z.id === id)!
 
   const dueList = (compact: boolean) => (
@@ -233,7 +260,8 @@ export function TodayPage({
     const size: WidgetSize = zone === 'rail' ? 's' : sizeFor(id)
     if (id === DUE_ID) return dueList(size === 's')
     if (id === GLANCE_ID) return glance
-    return WIDGETS_BY_ID.get(id)?.render(zoneForSize(size))
+    const def = WIDGETS_BY_ID.get(id)
+    return def?.render(layoutFor(def, size))
   }
 
   return (
@@ -256,8 +284,8 @@ export function TodayPage({
           <TodayHero
             date={dateLabel}
             greeting={`${t(greetingKey())}, ${firstName}`}
-            left={groups.count + todoCounts.near}
-            overdue={groups.overdue.length + todoCounts.overdue}
+            overdue={heroItems(groups.overdue, 0)}
+            week={heroItems(groups.active, 7)}
             next={groups.nextUp}
             nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
             gpa={shown(gpa)}
