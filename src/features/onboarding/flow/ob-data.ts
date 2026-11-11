@@ -1,12 +1,17 @@
 import { percentToGrade } from '@/lib/gpa'
 
-/** The sample outline every step builds on: four items, weights total 100. */
+/** The sample outline every step builds on: four items, weights total 100. `inDays` keeps the dates upcoming. */
 export const OUTLINE = [
-  { id: 'q1', kind: 'Quiz', title: 'Quiz 1', due: 'Sep 24', weight: 10 },
-  { id: 'a1', kind: 'Assignment', title: 'Case analysis', due: 'Oct 8', weight: 20 },
-  { id: 'mt', kind: 'Midterm', title: 'Midterm exam', due: 'Oct 27', weight: 30 },
-  { id: 'fe', kind: 'Final', title: 'Final exam', due: 'Dec 12', weight: 40 },
+  { id: 'q1', kind: 'Quiz', title: 'Quiz 1', inDays: 2, weight: 10 },
+  { id: 'a1', kind: 'Assignment', title: 'Case analysis', inDays: 5, weight: 20 },
+  { id: 'mt', kind: 'Midterm', title: 'Midterm exam', inDays: 9, weight: 30 },
+  { id: 'fe', kind: 'Final', title: 'Final exam', inDays: 30, weight: 40 },
 ] as const
+
+/** "Nov 13" / "13 nov." for a sample item, in the reader's language. */
+export function sampleDue(inDays: number, lang: string): string {
+  return new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-CA', { month: 'short', day: 'numeric' }).format(new Date(Date.now() + inDays * 86_400_000))
+}
 
 /** "17/20" or "85" -> a percentage, or null while it is not a grade yet. */
 export function readGrade(text: string): number | null {
@@ -77,13 +82,9 @@ export function overlaps(a: [number, number, number], b: [number, number, number
   return a[0] === b[0] && a[1] < b[2] && b[1] < a[2]
 }
 
-export const GOALS = [
-  { id: 'deadlines', label: 'Never miss a deadline', first: 'Scan your first outline' },
-  { id: 'gpa', label: 'Raise my GPA', first: 'Add past courses and see your real GPA' },
-  { id: 'plan', label: 'Plan my degree', first: 'Build next term in the schedule builder' },
-  { id: 'people', label: 'Find my people', first: 'Follow two clubs and see this week on campus' },
-  { id: 'parents', label: 'Keep my parents in the loop', first: 'Send a view-only family link' },
-] as const
+/** Goal ids; the words are in ob-i18n (goal.* and first.*). Order = the order shown. */
+export const GOALS = ['deadlines', 'gpa', 'plan', 'seats', 'notes', 'events', 'people', 'parents'] as const
+export type GoalId = (typeof GOALS)[number]
 
 /** Set when onboarding finishes; Today reads it once and plays its entrance. */
 export const ARRIVE_KEY = 'ct_arrive'

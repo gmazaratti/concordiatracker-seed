@@ -252,6 +252,9 @@ const GOAL_BOOST: Record<string, string[]> = {
   plan: ['programme', 'schedule', 'seat-watch'],
   people: ['clubs'],
   parents: ['family'],
+  seats: ['seat-watch', 'schedule'],
+  notes: ['notes'],
+  events: ['clubs'],
 }
 
 /** Candidates this person may still be shown, best first. */

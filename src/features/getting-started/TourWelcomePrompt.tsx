@@ -1,9 +1,10 @@
-import { Compass } from 'lucide-react'
+import { Clock, MousePointerClick, RotateCcw } from 'lucide-react'
 import { useUiState } from '@/app/providers/ui-state'
 import { useTour } from '@/features/tour/tour'
 import { TOUR_STEPS } from '@/features/tour/steps'
 import { ModalShell } from '@/command/ModalShell'
 import { Button } from '@/components/ui/Button'
+import { useOb } from '@/features/onboarding/flow/ob-i18n'
 
 /** A one-time centered welcome shown after onboarding: the tour is genuinely
  * useful but the "Take a tour" button is easy to miss, so this invites people in
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/Button'
 export function TourWelcomePrompt() {
   const { uiState, loaded, patchUiState } = useUiState()
   const { start } = useTour()
+  const t = useOb()
 
   if (!loaded || uiState.tourPromptSeen) return null
 
@@ -23,41 +25,52 @@ export function TourWelcomePrompt() {
   }
 
   return (
-    <ModalShell label="Welcome" onClose={dismiss}>
-      <div className="p-6 text-center sm:p-7">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-accent-soft text-accent">
-          <Compass size={26} aria-hidden />
-        </span>
-        <h2 className="mt-4 font-display text-[23px] leading-tight font-semibold text-fg">
-          You&rsquo;re new here 👋
-        </h2>
-        <p className="mx-auto mt-2.5 max-w-sm text-[14.5px] leading-relaxed text-muted">
-          Let me show you around: a quick, hands-on tour of everything you can do here. It takes
-          about two minutes, and you can start it anytime from your profile menu.
+    <ModalShell label={t('tour.title')} onClose={dismiss}>
+      <div className="p-6 sm:p-7">
+        <p className="text-[12px] font-semibold tracking-[0.16em] text-accent uppercase">{t('tour.eyebrow')}</p>
+        <h2 className="mt-2 font-display text-[24px] leading-tight font-semibold text-fg">{t('tour.title')}</h2>
+        <p className="mt-2.5 text-[14.5px] leading-relaxed text-muted">
+          {t('tour.body')}
         </p>
-        <div className="mt-6 flex flex-col items-center gap-2.5">
+        <ul className="mt-4 space-y-2">
+          {[
+            [Clock, t('tour.p1')],
+            [MousePointerClick, t('tour.p2')],
+            [RotateCcw, t('tour.p3')],
+          ].map(([Icon, text]) => {
+            const I = Icon as typeof Clock
+            return (
+              <li key={text as string} className="flex items-center gap-2.5 text-[13.5px] text-fg">
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+                  <I size={14} aria-hidden />
+                </span>
+                {text as string}
+              </li>
+            )
+          })}
+        </ul>
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
           <Button
             size="lg"
-            className="w-full sm:w-auto"
+            className="flex-1"
             onClick={() => {
               dismiss()
               start(TOUR_STEPS)
             }}
           >
-            Show me around
+            {t('tour.start')}
           </Button>
           <button
             type="button"
             onClick={maybeLater}
-            className="text-[13px] font-medium text-subtle transition-colors hover:text-fg"
+            className="h-11 flex-1 rounded-xl border border-border px-4 text-[14px] font-medium text-muted transition-colors duration-150 hover:text-fg"
           >
-            Maybe later
+            {t('tour.later')}
           </button>
-          <p className="text-[11.5px] text-subtle">
-            No rush: the <span className="font-medium text-muted">Getting started</span> checklist
-            stays in the corner whenever you want it.
-          </p>
         </div>
+        <p className="mt-3 text-center text-[12px] text-subtle">
+          {t('tour.foot')}
+        </p>
       </div>
     </ModalShell>
   )

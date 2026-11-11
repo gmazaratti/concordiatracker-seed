@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { term } from '@/data/mock'
 import { termRank } from '@/lib/term'
 import { cn } from '@/lib/cn'
+import { useOb } from './flow/ob-i18n'
 import { useT } from '@/i18n/i18n'
 import type { Assessment } from '@/data/types'
 
@@ -68,6 +69,7 @@ export function AddCourses({
   concordia?: boolean
 }) {
   const t = useT()
+  const ob = useOb()
   const { createCourse, addAssessments, courses } = useAppData()
   const [mode, setMode] = useState<Mode>('choose')
   const [added, setAdded] = useState<AddedCourse[]>([])
@@ -201,11 +203,12 @@ export function AddCourses({
       {has && <AddedList added={added} justAdded={justAdded} />}
 
       <p className="mt-5 text-center text-[11px] font-semibold tracking-[0.14em] text-subtle uppercase sm:mt-6">
-        Three ways to add a course
+        {ob('course.ways')}
       </p>
       <div className="mt-2.5 grid gap-2.5 sm:grid-cols-3">
         <ChoiceTile
           featured
+          tag={ob('course.fastest')}
           icon={FileText}
           label={t('courses.uploadSyllabus')}
           desc={t('courses.uploadSyllabusDesc')}
@@ -214,7 +217,7 @@ export function AddCourses({
         {concordia && (
           <ChoiceTile icon={Search} label={t('courses.findCourse')} desc={t('courses.findCourseDesc')} onClick={() => setMode('search')} />
         )}
-        <ChoiceTile icon={Pencil} label="Type it in" desc="Course code and name, deadlines later" onClick={() => setMode('manual')} />
+        <ChoiceTile icon={Pencil} label={ob('course.type')} desc={ob('course.typeDesc')} onClick={() => setMode('manual')} />
       </div>
     </div>
   )
@@ -626,6 +629,7 @@ function ChoiceTile({
   desc,
   onClick,
   featured = false,
+  tag,
 }: {
   icon: typeof FileText
   label: string
@@ -633,6 +637,7 @@ function ChoiceTile({
   onClick: () => void
   /** The fastest route: a light circles its border and it carries a tag. */
   featured?: boolean
+  tag?: string
 }) {
   return (
     <button
@@ -643,9 +648,9 @@ function ChoiceTile({
         featured ? 'ct-ob-beam border-accent/40' : 'border-border',
       )}
     >
-      {featured && (
+      {featured && tag && (
         <span className="absolute -top-2 right-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-contrast sm:right-auto sm:left-1/2 sm:-translate-x-1/2">
-          Fastest
+          {tag}
         </span>
       )}
       <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl sm:size-11', featured ? 'bg-accent text-accent-contrast' : 'bg-accent-soft text-accent')}>
