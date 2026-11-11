@@ -361,7 +361,7 @@ export function CourseDetailPage() {
  * Grades is the daily view (mark complete, enter marks). Setup is the
  * occasional one (type, date, weight, add, remove).
  */
-function ManualCourseAssessments({
+export function ManualCourseAssessments({
   courseId,
   assessments,
   focusId,

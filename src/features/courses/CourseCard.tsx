@@ -45,7 +45,7 @@ export function CourseCard({
   return (
     <Link
       to={to}
-      className="group relative block overflow-hidden rounded-xl border border-border bg-surface py-3.5 pr-4 pl-5 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
+      className="group relative block overflow-hidden rounded-2xl border border-border bg-surface py-3.5 pr-4 pl-5 transition-colors duration-150 hover:border-border-strong hover:bg-surface-2"
     >
       <span
         className="absolute inset-y-0 left-0 w-1.5"

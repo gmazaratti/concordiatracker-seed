@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { LayoutGrid, Plus, Rows3 } from 'lucide-react'
@@ -9,13 +9,14 @@ import { currentTermName, isFinishedTerm, isUpcomingTerm } from '@/features/plan
 import { coursePercent, currentGpa } from '@/lib/gpa'
 import { looksFinished } from '@/lib/leftover-course'
 import { isOpen } from '@/lib/status'
-import { daysUntil } from '@/lib/date'
+import { byDue, daysUntil } from '@/lib/date'
 import { useT } from '@/i18n/i18n'
 import { cn } from '@/lib/cn'
 import { useCourseOrder } from './useCourseOrder'
 import { CourseCard } from './CourseCard'
 import { CourseGridCard } from './CourseGridCard'
-import { TermGlance } from './TermGlance'
+import { CoursesHero } from './CoursesHero'
+import { CoursesRail } from './CoursesRail'
 import { PaywallCallout } from './Paywall'
 import { MoodleClassNudge, MoodleConnectCard } from './MoodleClassNudge'
 import { MoodleGridCard, MoodleListRow } from '@/features/moodle/MoodleCourseCard'
@@ -27,7 +28,13 @@ import { AddForTerm, UpcomingCourses } from './UpcomingTerms'
 /** Courses — the grade hub. The class list switches between a dense List (rows)
  * and a Google-Classroom Grid (colored cards); the choice sticks across SPA nav.
  * A term-standing rail sits alongside, in the same two-column language as Today. */
-export function CoursesPage() {
+export function CoursesPage({
+  detailBase = '/app/courses',
+}: {
+  /** Where a class opens. The preview route passes the preview detail page. */
+  detailBase?: string
+} = {}) {
+  const preview = detailBase !== '/app/courses'
   const t = useT()
   const { plan, courses, pastCourses, assessments, coursesView, setCoursesView } = useAppData()
   const [chooserOpen, setChooserOpen] = useState(false)
@@ -118,47 +125,57 @@ export function CoursesPage() {
     (c) => coursePercent(byCourse.get(c.id) ?? []) !== null,
   ).length
   const credits = courses.reduce((sum, c) => sum + c.credits, 0)
+  const overdue = open.filter((a) => !!a.due && daysUntil(a.due) < 0).length
+  const next = open
+    .filter((a) => !!a.due && daysUntil(a.due) >= 0)
+    .sort(byDue)
+    .slice(0, 5)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
-      <header className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[12px] text-subtle">
-            {tab === 'upcoming' ? 'Terms ahead' : term.name}
-          </p>
-          <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-            {t('courses.title')}
-          </h1>
-        </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          {tab === 'upcoming' && <AddForTerm />}
-          {!showPast && tab !== 'upcoming' && (
-            <ViewToggle view={coursesView} onChange={setCoursesView} />
-          )}
-          {/* Says what it DOES, and opens the chooser rather than committing to
-              one of the three ways in before asking which you want. It used to
-              read "Import syllabus" and jump straight to the blueprint browser,
-              which is a method name — nobody who simply wants to add a class
-              recognised it as the way to do that. Full width on a phone, where
-              it is the one thing on the screen you are most likely to want. */}
-          {tab !== 'upcoming' && (
-            <button
-              type="button"
-              onClick={() => setChooserOpen(true)}
-              data-coach="add-course"
-              data-tour="import-course"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3.5 py-2.5 text-[13.5px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover sm:flex-none sm:py-2 sm:text-[13px]"
-            >
-              <Plus size={16} aria-hidden />
-              {t('courses.addCourse')}
-            </button>
-          )}
-        </div>
-      </header>
+    <div className="mx-auto w-full max-w-[1600px] px-5 py-5 sm:px-6">
+      {preview && (
+        <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-dashed border-border-strong px-4 py-2.5 text-[13px] text-muted">
+          <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold tracking-[0.08em] text-accent-contrast uppercase">Preview</span>
+          Classes opened from here use the proposed class page. The live one is unchanged.
+          <Link to="/app/courses" className="ml-auto font-medium text-accent hover:underline">
+            Back to Courses
+          </Link>
+        </p>
+      )}
+      <CoursesHero
+        eyebrow={`${t('courses.title')} · ${tab === 'upcoming' ? 'Terms ahead' : term.name}`}
+        gpa={showGpa(gpa)}
+        classes={thisTerm.length}
+        credits={credits}
+        graded={coursesGraded}
+        open={open.length}
+        overdue={overdue}
+        actions={
+          <>
+            {tab === 'upcoming' && <AddForTerm />}
+            {!showPast && tab !== 'upcoming' && <ViewToggle view={coursesView} onChange={setCoursesView} />}
+            {/* Says what it DOES, and opens the chooser rather than committing to
+                one of the three ways in before asking which you want. Full width
+                on a phone, where it is the thing you are most likely to want. */}
+            {tab !== 'upcoming' && (
+              <button
+                type="button"
+                onClick={() => setChooserOpen(true)}
+                data-coach="add-course"
+                data-tour="import-course"
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-semibold text-black transition-colors duration-150 hover:bg-white/90 sm:flex-none"
+              >
+                <Plus size={16} aria-hidden />
+                {t('courses.addCourse')}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* This term ⇄ Past semesters. Stays inside Courses (the app keeps exactly
           four top-level destinations). */}
-      <div role="tablist" aria-label={t('courses.termsAria')} className="mb-4 flex gap-1 border-b border-border">
+      <div role="tablist" aria-label={t('courses.termsAria')} className="mt-5 mb-5 flex flex-wrap gap-2">
         {([
           { id: 'current', label: t('courses.thisTerm') },
           // Always offered, even empty. It used to appear only once it had
@@ -184,8 +201,8 @@ export function CoursesPage() {
               aria-selected={active}
               onClick={() => setTab(item.id)}
               className={cn(
-                'border-b-2 px-3.5 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
-                active ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg',
+                'rounded-full px-4 py-2 text-[13.5px] font-semibold whitespace-nowrap transition-colors duration-150',
+                active ? 'bg-fg text-canvas' : 'border border-border text-muted hover:border-border-strong hover:text-fg',
               )}
             >
               {item.label}
@@ -208,7 +225,7 @@ export function CoursesPage() {
 
       <div
         className={cn(
-          'flex flex-col gap-4 lg:flex-row lg:items-start',
+          'flex flex-col gap-5 lg:flex-row lg:items-start',
           tab !== 'current' && 'hidden',
         )}
       >
@@ -219,7 +236,7 @@ export function CoursesPage() {
           <MoodleClassNudge />
           <MoodleConnectCard />
           {coursesView === 'grid' ? (
-            <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 2xl:grid-cols-3">
               {shown.map((c) => (
                 <Draggable
                   key={c.id}
@@ -234,7 +251,7 @@ export function CoursesPage() {
                     setOverId(null)
                   }}
                 >
-                  <CourseGridCard course={c} assessments={byCourse.get(c.id) ?? []} />
+                  <CourseGridCard course={c} assessments={byCourse.get(c.id) ?? []} detailBase={detailBase} />
                 </Draggable>
               ))}
               {/* Moodle sits with the classes, in their shape, and opens like one. */}
@@ -268,17 +285,15 @@ export function CoursesPage() {
           )}
         </main>
 
-        <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">
-          <TermGlance
-            termName={term.name.split(' ')[0]}
+        <aside className="order-1 flex flex-col gap-4 lg:order-2 lg:w-[320px] lg:shrink-0">
+          <CoursesRail
             gpa={showGpa(gpa)}
-            credits={credits}
-            coursesGraded={coursesGraded}
-            coursesTotal={courses.length}
-            openItems={open.length}
             overallGpa={showGpa(overallGpa)}
+            credits={credits}
             overallCredits={overallCredits}
-            overdue={open.filter((a) => !!a.due && daysUntil(a.due) < 0).length}
+            next={next}
+            courses={courses}
+            detailBase={detailBase}
           />
           {plan === 'free' && <PaywallCallout />}
         </aside>
@@ -296,10 +311,10 @@ function AddCourseCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-5 text-center transition-colors duration-150 hover:border-accent/60 hover:bg-surface-2"
+      className="group flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border-strong px-4 py-6 text-center transition-colors duration-150 hover:border-accent/60 hover:bg-surface"
     >
-      <span className="grid size-10 place-items-center rounded-full bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-accent-soft group-hover:text-accent">
-        <Plus size={20} aria-hidden />
+      <span className="grid size-12 place-items-center rounded-full bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-accent group-hover:text-accent-contrast">
+        <Plus size={22} aria-hidden />
       </span>
       <span className="text-[13px] font-medium text-muted transition-colors duration-150 group-hover:text-fg">
         Add a course
@@ -314,7 +329,7 @@ function AddCourseRow({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center gap-2.5 rounded-xl border border-dashed border-border-strong bg-surface/40 px-4 py-3 text-left transition-colors duration-150 hover:border-accent/60 hover:bg-surface-2"
+      className="group flex items-center gap-2.5 rounded-2xl border border-dashed border-border-strong bg-surface/40 px-4 py-3 text-left transition-colors duration-150 hover:border-accent/60 hover:bg-surface-2"
     >
       <span className="grid size-7 place-items-center rounded-full bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-accent-soft group-hover:text-accent">
         <Plus size={16} aria-hidden />
@@ -344,7 +359,7 @@ function ViewToggle({
     <div
       role="radiogroup"
       aria-label={t('courses.layoutAria')}
-      className="flex gap-1 rounded-lg border border-border bg-surface p-1"
+      className="flex gap-1 rounded-full bg-white/15 p-1 backdrop-blur-md"
     >
       {VIEW_OPTIONS.map((opt) => {
         const active = view === opt.value
@@ -359,10 +374,8 @@ function ViewToggle({
             title={`${opt.label} view`}
             onClick={() => onChange(opt.value)}
             className={cn(
-              'grid size-7 place-items-center rounded-md transition-colors duration-150',
-              active
-                ? 'bg-surface-2 text-fg'
-                : 'text-subtle hover:text-fg',
+              'grid size-8 place-items-center rounded-full transition-colors duration-150',
+              active ? 'bg-white text-black' : 'text-white/75 hover:text-white',
             )}
           >
             <Icon size={15} aria-hidden />
@@ -433,7 +446,7 @@ function Draggable({
       className={cn(
         // h-full because THIS is the grid item now — without it the card
         // stretches to nothing and the row goes ragged again.
-        'h-full rounded-xl transition-[opacity,box-shadow] duration-150',
+        'h-full rounded-3xl transition-[opacity,box-shadow] duration-150',
         dragging && 'opacity-40',
         target && 'ring-2 ring-accent ring-offset-2 ring-offset-canvas',
       )}

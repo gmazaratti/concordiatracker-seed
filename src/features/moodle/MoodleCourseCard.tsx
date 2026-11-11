@@ -28,22 +28,22 @@ export function MoodleGridCard() {
   if (!m) return null
   const pct = (m.done / m.total) * 100
   return (
-    <Link to="/app/courses/moodle" className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow duration-150 hover:shadow-lg">
-      <MoodleBanner className="h-[86px]" />
-      <div className="flex flex-1 flex-col px-4 py-3">
+    <Link to="/app/courses/moodle" className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-surface transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong">
+      <MoodleBanner className="h-[128px]" />
+      <div className="flex flex-1 flex-col px-5 pt-4 pb-4">
         <div>
-          <span className="text-[22px] leading-none font-semibold text-fg">{m.open.length}</span>
-          <span className="ml-1.5 text-[12px] font-medium text-muted">coming up</span>
+          <span className="font-display text-[38px] leading-none font-bold text-fg tabular-nums">{m.open.length}</span>
+          <span className="ml-2 text-[14px] font-semibold text-muted">coming up</span>
         </div>
-        <div className="mt-2.5 min-h-[30px]">
-          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="mt-3.5 min-h-[34px]">
+          <div className="h-2 overflow-hidden rounded-full bg-surface-2">
             <div className="h-full rounded-full transition-[width] duration-200" style={{ width: `${pct}%`, backgroundColor: MOODLE_ORANGE }} />
           </div>
-          <p className="mt-1 text-[11px] text-subtle">
+          <p className="mt-1.5 text-[12px] text-subtle">
             {m.done} of {m.total} done · {m.classes} class{m.classes === 1 ? '' : 'es'}
           </p>
         </div>
-        <div className="mt-auto flex min-h-[1.6rem] items-center justify-between gap-2 border-t border-border/70 pt-2.5 text-[12px]">
+        <div className="mt-auto flex items-center justify-between gap-2.5 rounded-2xl bg-canvas/60 px-3.5 py-3 text-[13px]">
           {m.next ? (
             <>
               <span className="min-w-0 truncate text-muted">{stripMoodleTitle(m.next.title) || m.next.title}</span>
