@@ -1,30 +1,35 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ArrowUpRight, Check, Lightbulb } from 'lucide-react'
 import type { Block } from '@/data/guides'
 import { findResource } from '@/data/resource-guide'
 import { RESOURCE_GROUPS, type Resource } from '@/data/resources'
 import { tocId } from './guide-toc'
-import { GROUP_LOOK, groupOf } from './resource-icons'
+import { GROUP_LOOK, groupOf, wash } from './resource-icons'
 
 /**
- * The body of a guide, set as an article: headings, paragraphs and plain
- * lists. Nothing is numbered; a run of points reads as short titled
- * paragraphs. Offices named in the text are cards that open the same sheet as
+ * The body of a guide, set as an article whose parts look different from each
+ * other, so the eye has landmarks: a section opens with a coloured rule, a run
+ * of points is a stack of cards with a coloured edge, a list is ticked, and
+ * the two kinds of aside (in the app / careful) are filled panels. Nothing is
+ * numbered. Offices named in the text are cards that open the same sheet as
  * the directory, so reading about the Writing Centre is one tap from booking.
  */
 export function GuideBody({
   body,
+  hex,
   faculty,
   onOpen,
 }: {
   body: Block[]
+  /** The guide's own colour, used for its rules, edges and ticks. */
+  hex: string
   faculty: Resource['faculty'] | null
   onOpen: (r: Resource) => void
 }) {
   return (
     <div className="space-y-6">
       {body.map((b, i) => (
-        <BlockView key={i} b={b} i={i} first={i === 0} faculty={faculty} onOpen={onOpen} />
+        <BlockView key={i} b={b} i={i} first={i === 0} hex={hex} faculty={faculty} onOpen={onOpen} />
       ))}
     </div>
   )
@@ -36,6 +41,7 @@ function BlockView({
   b,
   i,
   first,
+  hex,
   faculty,
   onOpen,
 }: {
@@ -43,18 +49,34 @@ function BlockView({
   /** The block's place in the body: its heading ids come from it. */
   i: number
   first: boolean
+  hex: string
   faculty: Resource['faculty'] | null
   onOpen: (r: Resource) => void
 }) {
   if ('h' in b)
-    return <h2 id={tocId(i)} className="scroll-mt-20 pt-6 font-display text-[26px] leading-tight font-bold tracking-tight text-fg sm:text-[30px]">{b.h}</h2>
-  if ('p' in b) return <p className={first ? 'text-[19px] leading-[1.7] text-fg sm:text-[21px]' : prose}>{b.p}</p>
+    return (
+      <h2 id={tocId(i)} className="scroll-mt-20 pt-8 font-display text-[28px] leading-tight font-bold tracking-tight text-fg sm:text-[32px]">
+        <span aria-hidden className="mb-4 block h-1 w-12 rounded-full" style={{ backgroundColor: hex }} />
+        {b.h}
+      </h2>
+    )
+  if ('p' in b)
+    return first ? (
+      // The opening paragraph is the standfirst: larger, with the guide's colour beside it.
+      <p className="border-l-[3px] py-1 pl-5 text-[20px] leading-[1.6] font-medium text-fg sm:text-[22px]" style={{ borderColor: hex }}>
+        {b.p}
+      </p>
+    ) : (
+      <p className={prose}>{b.p}</p>
+    )
   if ('list' in b)
     return (
-      <ul className="space-y-3 pl-1">
+      <ul className="space-y-2.5 rounded-3xl border border-border bg-surface p-5 sm:p-6">
         {b.list.map((t) => (
-          <li key={t} className={`flex gap-4 ${prose}`}>
-            <span className="mt-[0.72em] h-px w-4 shrink-0 bg-border-strong" aria-hidden />
+          <li key={t} className="flex gap-3.5 text-[16px] leading-relaxed text-fg/90 sm:text-[17px]">
+            <span className="mt-1 grid size-5 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: hex }}>
+              <Check size={12} strokeWidth={3.5} aria-hidden />
+            </span>
             <span>{t}</span>
           </li>
         ))}
@@ -62,27 +84,42 @@ function BlockView({
     )
   if ('steps' in b)
     return (
-      <div className="space-y-7">
+      <div className="grid gap-3">
         {b.steps.map((s, j) => (
-          <section key={s.t} id={tocId(i, j)} className="scroll-mt-20">
-            <h3 className="font-display text-[20px] leading-snug font-semibold text-fg sm:text-[22px]">{s.t}</h3>
-            <p className={`mt-1.5 ${prose}`}>{s.d}</p>
+          <section
+            key={s.t}
+            id={tocId(i, j)}
+            className="relative scroll-mt-20 overflow-hidden rounded-3xl border border-border bg-surface py-5 pr-5 pl-7 sm:py-6 sm:pr-6 sm:pl-8"
+          >
+            <span aria-hidden className="absolute inset-y-0 left-0 w-1.5" style={{ backgroundColor: hex }} />
+            <h3 className="font-display text-[20px] leading-snug font-bold text-fg sm:text-[22px]">{s.t}</h3>
+            <p className="mt-1.5 text-[16px] leading-[1.7] text-fg/80 sm:text-[17px]">{s.d}</p>
           </section>
         ))}
       </div>
     )
   if ('tip' in b)
     return (
-      <aside className="border-l-2 border-accent py-1 pl-5">
-        <p className="text-[12px] font-semibold tracking-[0.12em] text-accent uppercase">In the app</p>
-        <p className="mt-1 text-[16px] leading-relaxed text-fg sm:text-[17px]">{b.tip}</p>
+      <aside className="flex gap-3.5 rounded-3xl bg-accent-soft p-5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-contrast">
+          <Lightbulb size={17} aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold tracking-[0.12em] text-accent uppercase">In the app</p>
+          <p className="mt-0.5 text-[16px] leading-relaxed text-fg">{b.tip}</p>
+        </div>
       </aside>
     )
   if ('warn' in b)
     return (
-      <aside className="border-l-2 border-warning py-1 pl-5">
-        <p className="text-[12px] font-semibold tracking-[0.12em] text-warning uppercase">Careful</p>
-        <p className="mt-1 text-[16px] leading-relaxed text-fg sm:text-[17px]">{b.warn}</p>
+      <aside className="flex gap-3.5 rounded-3xl border border-warning/40 bg-warning/[0.1] p-5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-warning text-black">
+          <AlertTriangle size={17} aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold tracking-[0.12em] text-warning uppercase">Careful</p>
+          <p className="mt-0.5 text-[16px] leading-relaxed text-fg">{b.warn}</p>
+        </div>
       </aside>
     )
   if ('app' in b)
@@ -102,19 +139,23 @@ function BlockView({
     <button
       type="button"
       onClick={() => onOpen(r)}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-border bg-surface p-4 text-left transition-colors duration-150 hover:border-border-strong"
+      className="group flex w-full items-center gap-4 rounded-3xl border border-transparent p-4 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong"
+      style={{ backgroundColor: wash(look.hex, 0.12) }}
     >
-      <span className="grid size-11 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: look.hex }}>
-        <Icon size={19} aria-hidden />
+      <span className="grid size-12 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: look.hex }}>
+        <Icon size={21} aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15.5px] font-semibold text-fg">{r.name}</span>
+        <span className="block text-[11.5px] font-bold tracking-[0.12em] uppercase" style={{ color: look.hex }}>
+          Who to contact
+        </span>
+        <span className="block text-[16.5px] font-semibold text-fg">{r.name}</span>
         <span className="block truncate text-[13.5px] text-muted">
           {[r.where, r.email].filter(Boolean).join(' · ') || 'Contact details and official page'}
         </span>
       </span>
       <ArrowUpRight
-        size={17}
+        size={18}
         className="shrink-0 text-subtle transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
         aria-hidden
       />

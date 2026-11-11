@@ -132,7 +132,7 @@ export function GuideReader({
           </header>
 
           <div className="pt-8 sm:pt-10">
-            <GuideBody body={g.body} faculty={faculty} onOpen={onOpen} />
+            <GuideBody body={g.body} hex={g.hex} faculty={faculty} onOpen={onOpen} />
 
             <footer className="mt-12 border-t border-border pt-6 text-[13px] leading-relaxed text-subtle">
               <p>

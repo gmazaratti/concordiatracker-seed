@@ -21,6 +21,11 @@ const ALL = RESOURCE_GROUPS.flatMap((g) =>
   g.items.map((r) => ({ r, hay: `${r.name} ${r.what} ${g.title} ${r.where ?? ''}`.toLowerCase() })),
 )
 const GUIDE_HAY = GUIDES.map((g) => ({ g, hay: `${g.title} ${g.dek} ${g.tag} ${JSON.stringify(g.body)}`.toLowerCase() }))
+/** Words that carry no meaning in a question, so "find me an advisor" searches for "advisor". */
+const FILLER = new Set(
+  'a an the me my i we to of for in on at is are do does can how what when where who which find show get need want about with and or'.split(' '),
+)
+
 const ADVISOR_COUNT = Object.values(ADVISORS).reduce((n, l) => n + l.people.length, 0)
 
 function savedStage(): Stage | null {
@@ -72,7 +77,10 @@ export function ResourcesPanel() {
   }
   const after = reading ? shelf[(shelf.findIndex((g) => g.slug === reading.slug) + 1) % shelf.length] : undefined
 
-  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  const typed = q.trim().toLowerCase().split(/[^a-z0-9àâçéèêëîïôûùüÿœ-]+/).filter(Boolean)
+  const meaning = typed.filter((w) => !FILLER.has(w)).map((w) => (w.length > 4 && w.endsWith('s') ? w.slice(0, -1) : w))
+  // A query made only of filler ("how do I") still searches on what was typed.
+  const words = meaning.length ? meaning : typed
   const hits = words.length ? ALL.filter(({ hay }) => words.every((w) => hay.includes(w))).map(({ r }) => r) : null
   const guideHits = words.length ? GUIDE_HAY.filter(({ hay }) => words.every((w) => hay.includes(w))).map(({ g }) => g) : []
   const openOffice = (f: NonNullable<Resource['faculty']>) => {

@@ -56,6 +56,8 @@ export function PlannerPage() {
   // The schedule builder and the prerequisite graph are the only sections that
   // want more than a reading column, so they are the only ones that get it.
   const wide = tab === 'schedule' || tab === 'tree'
+  /** Picture-led sections fill the page too; a reading column left half a wide screen empty. */
+  const roomy = tab === 'resources' || tab === 'radar'
   const items: NavItem<PlannerTab>[] = tabs.map((item) => ({
     id: item.id,
     label: t(item.labelKey),
@@ -120,7 +122,7 @@ export function PlannerPage() {
       <div
         className={cn(
           'min-w-0 transition-[max-width] duration-300 ease-out',
-          wide ? 'max-w-full' : 'max-w-5xl',
+          wide || roomy ? 'max-w-full' : 'max-w-5xl',
         )}
       >
         {panel}

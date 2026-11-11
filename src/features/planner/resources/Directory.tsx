@@ -151,7 +151,7 @@ export function TileGrid({
   onOpen: (r: Resource) => void
 }) {
   return (
-    <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {items.map((r, i) => {
         const look = GROUP_LOOK[RESOURCE_GROUPS.find((g) => g.items.includes(r))?.id ?? 'advising']
         const Icon = look.icon

@@ -64,7 +64,7 @@ export function AdvisorStrip({
         </div>
       </div>
 
-      <div key={faculty} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div key={faculty} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {people.map((a, i) => (
           <Person key={a.email} a={a} yours={isYours(a)} delay={i * 50} />
         ))}

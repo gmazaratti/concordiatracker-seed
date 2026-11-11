@@ -39,7 +39,7 @@ export function RadarHero({
             'linear-gradient(100deg, rgba(8,10,20,0.95) 0%, rgba(8,10,20,0.84) 40%, rgba(8,10,20,0.4) 75%, rgba(8,10,20,0.25) 100%), linear-gradient(0deg, rgba(8,10,20,0.7), transparent 45%)',
         }}
       />
-      <div className="px-5 pt-7 pb-6 sm:px-9 sm:pt-10 sm:pb-8 lg:max-w-[70%]">
+      <div className="px-5 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-6 lg:max-w-[66%] 2xl:pt-10 2xl:pb-8">
         <p className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.14em] text-white/75 uppercase">
           Radar
           <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10.5px] tracking-wide">Beta</span>
@@ -48,11 +48,11 @@ export function RadarHero({
           <span className={cn('mt-1 grid size-11 shrink-0 place-items-center rounded-full text-white sm:size-12', tone.bg)}>
             <Icon size={22} aria-hidden />
           </span>
-          <h2 className="font-display text-[28px] leading-[1.08] font-bold tracking-tight text-balance sm:text-[40px]">
+          <h2 className="font-display text-[26px] leading-[1.08] font-bold tracking-tight text-balance sm:text-[32px] 2xl:text-[40px]">
             {headline}
           </h2>
         </div>
-        <p className="mt-3.5 max-w-xl text-[14.5px] leading-relaxed text-white/80">
+        <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-white/80">
           An automatic check on your semester. It adds every course together and looks for what is coming but not yet
           obvious: too much of your grade in one week, a drop deadline about to close, a course the marks can no longer
           save.
@@ -62,7 +62,7 @@ export function RadarHero({
             Showing the term without {simulated.join(', ')}
           </p>
         )}
-        <ul className="mt-5 flex flex-wrap gap-2 text-[12.5px] font-medium">
+        <ul className="mt-4 flex flex-wrap gap-2 text-[12.5px] font-medium">
           <Stat icon={ListChecks} n={counts.checks} label="checks ran" />
           <Stat icon={TriangleAlert} n={counts.found} label="found something" hot={counts.found > 0} />
           <Stat icon={CheckCircle2} n={counts.clear} label="clear" />
