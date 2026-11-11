@@ -2377,3 +2377,12 @@ html:has(
 .ct-today-arrive > *:nth-child(2) { animation-delay: 320ms; }
 .ct-today-arrive > *:nth-child(3) { animation-delay: 440ms; }
 .ct-today-arrive > *:nth-child(n + 4) { animation-delay: 560ms; }
+
+/* Starter-task dot on a tab: a slow ring that keeps asking, never flashes.
+   Stops (with the dot) the moment the task is done. */
+@keyframes ct-starter-ping {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct-accent) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.ct-starter-dot { animation: ct-starter-ping 2.4s ease-out infinite; }

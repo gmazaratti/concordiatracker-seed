@@ -1,32 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useUiState } from '@/app/providers/ui-state'
-import { useAuth } from '@/app/providers/auth'
-import { supabase } from '@/lib/supabase'
+import { useFeatureUsage } from '@/app/feature-usage'
 import { coursePercent, currentGpa } from '@/lib/gpa'
-import { cardFor, popupFor, type DiscoverySignals, type DiscoveryState, type FeatureUsage, type Nudge } from '@/lib/discovery'
-
-/** One read per account per session: usage only changes when they use something. */
-const usageCache = new Map<string, FeatureUsage>()
-
-function useFeatureUsage(): FeatureUsage | null {
-  const { user } = useAuth()
-  const uid = user?.id ?? null
-  const [usage, setUsage] = useState<FeatureUsage | null>(uid ? (usageCache.get(uid) ?? null) : null)
-  useEffect(() => {
-    if (!uid || usageCache.has(uid)) return
-    let alive = true
-    void supabase.rpc('my_feature_usage').then(({ data, error }) => {
-      if (!alive || error || !data) return
-      usageCache.set(uid, data as FeatureUsage)
-      setUsage(data as FeatureUsage)
-    })
-    return () => {
-      alive = false
-    }
-  }, [uid])
-  return usage
-}
+import { cardFor, popupFor, type DiscoverySignals, type DiscoveryState, type Nudge } from '@/lib/discovery'
 
 const SNOOZE_MS = 3 * 86_400_000
 const UNMEASURED = new Set(['grade-needed', 'what-if'])

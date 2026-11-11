@@ -4,6 +4,7 @@ import { useTransitionClick } from '@/lib/view-transition'
 import { ChevronLeft, Inbox, Settings } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
+import { useStarterTasks } from '@/app/useStarterTasks'
 import { useT } from '@/i18n/i18n'
 import { NotificationsBell } from './NotificationsBell'
 import { useSettings } from '@/app/providers/settings'
@@ -29,6 +30,7 @@ const COLLAPSE_KEY = 'ct_sidebar_collapsed'
 export function Sidebar() {
   const { uiState } = useUiState()
   const badges = useNavBadges()
+  const tasks = useStarterTasks()
   const t = useT()
   const transition = useTransitionClick()
   // The planner's sections nest under it while you are in there, so the page
@@ -116,7 +118,7 @@ export function Sidebar() {
             to={to}
             end={end}
             onClick={transition(to, 'tab')}
-            title={collapsed ? t(labelKey) : undefined}
+            title={collapsed ? (tasks[to] ? `${t(labelKey)}: ${tasks[to]!.label}` : t(labelKey)) : undefined}
             className={({ isActive }) =>
               cn(
                 'group relative flex items-center gap-3 rounded-lg py-2 text-sm transition-colors duration-150',
@@ -144,17 +146,28 @@ export function Sidebar() {
                     <span className="sr-only">{t(labelKey)}</span>
                     {/* A badge still has to be visible when the label is not -
                         it is the whole reason you would glance at the rail. */}
-                    {badges[to] && (
+                    {(badges[to] || tasks[to]) && (
                       <span
-                        className="absolute top-1 right-1 size-2 rounded-full bg-accent"
+                        className={cn('absolute top-1 right-1 size-2 rounded-full bg-accent', !badges[to] && 'ct-starter-dot')}
                         aria-hidden
                       />
                     )}
                   </>
                 ) : (
                   <>
-                    <span className="flex-1">{t(labelKey)}</span>
-                    {badges[to] && <NavBadge badge={badges[to]!} />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block">{t(labelKey)}</span>
+                      {/* A first task, until it is done: the one thing on this tab
+                          a new account has not found yet. */}
+                      {tasks[to] && (
+                        <span className="block truncate text-[11.5px] font-medium text-accent">{tasks[to]!.label}</span>
+                      )}
+                    </span>
+                    {badges[to] ? (
+                      <NavBadge badge={badges[to]!} />
+                    ) : (
+                      tasks[to] && <span className="ct-starter-dot size-2 shrink-0 rounded-full bg-accent" aria-label={tasks[to]!.label} />
+                    )}
                   </>
                 )}
               </>

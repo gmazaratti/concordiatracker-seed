@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { STUDENT_NAV } from '@/app/navigation'
 import { useNavBadges } from '@/app/useNavBadges'
+import { useStarterTasks } from '@/app/useStarterTasks'
 import { useUnreadMessages } from '@/app/usePeopleBadge'
 import { useAppData } from '@/app/providers/app-data'
 import { PersonAvatar } from '@/features/community/PersonAvatar'
@@ -44,6 +45,7 @@ const GLASS: React.CSSProperties = {
 
 export function MobileNav() {
   const badges = useNavBadges()
+  const tasks = useStarterTasks()
   const unread = useUnreadMessages()
   const { user } = useAppData()
   const t = useT()
@@ -61,8 +63,8 @@ export function MobileNav() {
     return {
       key: to,
       to,
-      label: t(labelKey) + (badge ? `, ${badge.label}` : ''),
-      dot: !!badge || (to === '/app/community' && unread > 0),
+      label: t(labelKey) + (badge ? `, ${badge.label}` : tasks[to] ? `, ${tasks[to]!.label}` : ''),
+      dot: !!badge || !!tasks[to] || (to === '/app/community' && unread > 0),
       render: (on) => <Icon size={24} strokeWidth={on ? 2.4 : 1.9} aria-hidden />,
     }
   })
