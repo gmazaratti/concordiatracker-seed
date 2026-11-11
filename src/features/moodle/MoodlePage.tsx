@@ -69,7 +69,6 @@ export function MoodlePage() {
           </button>
         </div>
       ) : (
-        {/* Stretched, so the cards in a row share one height. */}
         <div className="mt-5 grid items-stretch gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {entries.map(([courseId, items]) => {
             const c = courses.find((x) => x.id === courseId)
