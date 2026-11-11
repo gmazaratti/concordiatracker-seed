@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { askForGrade, askForTaskGrade } from '@/lib/grade-prompt'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { haptic } from '@/lib/haptics'
@@ -224,7 +225,11 @@ export function TodayPage() {
   return (
     <div className={cn('mx-auto w-full max-w-5xl px-5 py-5 sm:px-6', arriving && 'ct-today-arrive')}>
       {/* Straight from onboarding: the accent curtain it left with fades off Today. */}
-      {arriving && <div className="ct-arrive-veil pointer-events-none fixed inset-0 z-[60] bg-accent" aria-hidden />}
+      {/* PORTALLED to <body>, never a child of this div: `.ct-today-arrive > *`
+          gives every direct child the rise-in animation, and as a child the
+          veil took that instead of its own fade. It started invisible (so the
+          dashboard flashed), then rose to solid green and stayed there. */}
+      {arriving && createPortal(<div className="ct-arrive-veil pointer-events-none fixed inset-0 z-[60] bg-accent" aria-hidden />, document.body)}
       <header className="mb-3">
         <p className="text-[12px] text-subtle">
           {new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', {

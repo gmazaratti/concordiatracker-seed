@@ -2368,8 +2368,11 @@ html:has(
 @keyframes ct-ob-curtain { from { clip-path: circle(0% at 50% 100%); } to { clip-path: circle(150% at 50% 100%); } }
 .ct-ob-curtain { animation: ct-ob-curtain 560ms cubic-bezier(0.65, 0, 0.35, 1) forwards; }
 @keyframes ct-arrive-veil { from { opacity: 1; } to { opacity: 0; } }
-.ct-arrive-veil { animation: ct-arrive-veil 700ms ease-out 120ms forwards; }
-.ct-today-arrive > * { animation: ct-ob-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+/* The veil must END invisible whatever happens to the animation (reduced
+   motion, a browser that drops it): opacity 0 is its resting state and the
+   keyframes only describe the way there. */
+.ct-arrive-veil { opacity: 0; animation: ct-arrive-veil 700ms ease-out 120ms backwards; }
+.ct-today-arrive > *:not(.ct-arrive-veil) { animation: ct-ob-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
 .ct-today-arrive > *:nth-child(1) { animation-delay: 200ms; }
 .ct-today-arrive > *:nth-child(2) { animation-delay: 320ms; }
 .ct-today-arrive > *:nth-child(3) { animation-delay: 440ms; }

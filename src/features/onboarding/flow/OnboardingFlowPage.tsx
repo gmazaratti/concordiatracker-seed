@@ -75,6 +75,7 @@ export function OnboardingFlowPage() {
   const [fixed, setFixed] = useState(false)
   const [followed, setFollowed] = useState(false)
   const [goals, setGoals] = useState<Set<string>>(new Set())
+  const [skipWarn, setSkipWarn] = useState(false)
 
   // Prefill once the profile resolves (adjust-during-render, runs once).
   if (!decided && onboardingCompleted !== null) {
@@ -177,9 +178,14 @@ export function OnboardingFlowPage() {
 
   const advance = useCallback(() => {
     if (!unlocked) return
+    if (step === 'course' && !answered.course && !skipWarn) {
+      setSkipWarn(true)
+      return
+    }
+    setSkipWarn(false)
     if (last) void finish()
     else go(i + 1)
-  }, [unlocked, last, finish, go, i])
+  }, [unlocked, last, finish, go, i, step, answered.course, skipWarn])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -351,6 +357,25 @@ export function OnboardingFlowPage() {
         </div>
         {error && <p className="mt-2 text-center text-[12.5px] text-danger sm:hidden">{error}</p>}
       </footer>
+
+      {skipWarn && step === 'course' && (
+        <div className="fixed inset-0 z-[55] grid place-items-end bg-black/60 p-4 sm:place-items-center" role="alertdialog" aria-modal="true" aria-labelledby="ob-skip-title">
+          <div className="ct-ob-rise w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl">
+            <p id="ob-skip-title" className="text-[17px] font-semibold text-fg">Add a course first?</p>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-muted">
+              We strongly recommend adding at least one course before you continue. Without one, Today has nothing to show you and there is no GPA to track.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+              <button type="button" autoFocus onClick={() => setSkipWarn(false)} className="h-11 flex-1 rounded-xl bg-accent px-4 text-[14px] font-bold text-accent-contrast">
+                Add a course
+              </button>
+              <button type="button" onClick={advance} className="h-11 flex-1 rounded-xl border border-border px-4 text-[14px] font-medium text-muted transition-colors duration-150 hover:text-fg">
+                Skip anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* The exit: the accent colour sweeps up from the button and Today rises out of it. */}
       {leaving && <div className="ct-ob-curtain fixed inset-0 z-[60] bg-accent" aria-hidden />}
