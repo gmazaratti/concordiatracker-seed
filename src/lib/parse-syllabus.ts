@@ -87,7 +87,9 @@ export async function requestParseReview(eventId: string): Promise<boolean> {
  *  between us and the server hung. Never an endless spinner. */
 const CLIENT_TIMEOUT_MS = 90_000
 
-export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
+/** `backup` asks the server to skip the first model and use the fallback one,
+ *  for a file the first one keeps failing on. */
+export async function parseSyllabusPdf(file: File, opts: { backup?: boolean } = {}): Promise<ParsedSyllabus> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -106,6 +108,7 @@ export async function parseSyllabusPdf(file: File): Promise<ParsedSyllabus> {
         'Content-Type': file.type || 'application/pdf',
         // A label for the admin record of this parse; the server never uses it as a path.
         'x-file-name': encodeURIComponent(file.name.slice(0, 200)),
+        ...(opts.backup ? { 'x-engine': 'backup' } : {}),
       },
       body: file,
     })
@@ -195,4 +198,35 @@ export async function loadParseRetry(eventId: string): Promise<ParsedSyllabus | 
   const r = data as Partial<ParsedSyllabus>
   if (!r.course || !Array.isArray(r.assessments)) return null
   return r as ParsedSyllabus
+}
+
+/**
+ * "Send it to support": the syllabus we could not read, handed to a person.
+ *
+ * The file goes into the same private bucket failed uploads are kept in, under
+ * the student's own folder (the only path the bucket accepts from them), and a
+ * support ticket is opened carrying its path. An admin opens the file from the
+ * ticket, adds the class, and the reply reaches the student by email and in
+ * Messages. Returns the case number.
+ */
+export async function sendSyllabusToSupport(file: File, reason: string): Promise<string> {
+  const { data: me } = await supabase.auth.getUser()
+  if (!me.user) throw new Error('Sign in again to send this.')
+  const ext = (/\.([a-z0-9]{2,5})$/i.exec(file.name)?.[1] ?? 'pdf').toLowerCase()
+  const path = `${me.user.id}/support-${crypto.randomUUID()}.${ext}`
+  const up = await supabase.storage.from('parse-failures').upload(path, file, {
+    contentType: file.type || 'application/octet-stream',
+    upsert: false,
+  })
+  if (up.error) throw new Error('That file could not be attached. Try a PDF or Word file under 4 MB.')
+  const { data, error } = await supabase.rpc('submit_ticket', {
+    p_subject: `Please add my syllabus: ${file.name.slice(0, 120)}`,
+    p_body: `The uploader could not read this syllabus${reason ? ` ("${reason.slice(0, 200)}")` : ''}. The file is attached to this ticket. Could you add it to my courses?`,
+    p_category: 'bug',
+    p_source: 'app',
+    p_context: { page: window.location.pathname, kind: 'syllabus', file_path: path, file_name: file.name.slice(0, 200) },
+  })
+  if (error) throw error
+  const row = (Array.isArray(data) ? data[0] : data) as { case_id: string } | undefined
+  return row?.case_id ?? ''
 }

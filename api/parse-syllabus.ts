@@ -296,7 +296,9 @@ export async function POST(req: Request): Promise<Response> {
    * call it, what it costs them, and how a failure is worded to a person
    * mid-upload.
    */
-  const parsed = await extractOutline(buf, mimeType, PARSE_BUDGET_MS)
+  // "Try the other AI" on the failure screen: skip straight to the fallback.
+  const backup = req.headers.get('x-engine') === 'backup'
+  const parsed = await extractOutline(buf, mimeType, PARSE_BUDGET_MS, { backup })
 
   if (!parsed.ok) {
     const kept = await release(parsed.detail ?? parsed.failure ?? 'unknown', parsed.how)

@@ -132,10 +132,11 @@ function usageState(u: ParseUsage): {
  * `unverified`; nothing is saved until you confirm. */
 /** What the uploader takes. The server decides from the bytes either way; this
  *  only keeps an obviously wrong file from making the round trip. */
-const ACCEPTED = /\.(pdf|docx|jpe?g|png|webp|txt)$/i
+const ACCEPTED = /\.(pdf|docx?|jpe?g|png|webp|txt)$/i
 const ACCEPTED_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
   'image/jpeg',
   'image/png',
   'image/webp',
@@ -239,12 +240,10 @@ export function SyllabusUploadPage({
   }, [retryId])
 
 
-  async function handleFile(file: File) {
+  async function handleFile(file: File, opts: { backup?: boolean } = {}) {
     if (!ACCEPTED.test(file.name) && !ACCEPTED_TYPES.includes(file.type)) {
       setError(
-        /\.doc$/i.test(file.name)
-          ? 'That is an old Word .doc file. Save it as .docx or PDF and upload that.'
-          : /\.hei[cf]$/i.test(file.name)
+        /\.hei[cf]$/i.test(file.name)
             ? 'That photo format (HEIC) is not supported. Take a screenshot or export it as JPG.'
             : 'Upload the outline as a PDF, a Word file (.docx), or a photo.',
       )
@@ -262,7 +261,7 @@ export function SyllabusUploadPage({
     setError('')
     setFailure({ eventId: null, reviewable: false })
     try {
-      const parsed = await parseSyllabusPdf(file)
+      const parsed = await parseSyllabusPdf(file, opts)
       applyParsed(parsed)
       void getParseUsage().then(setUsage) // a successful parse consumed one
     } catch (e) {
@@ -474,6 +473,10 @@ export function SyllabusUploadPage({
           onRetrySame={() => {
             if (lastFile) void handleFile(lastFile)
           }}
+          onTryBackup={() => {
+            if (lastFile) void handleFile(lastFile, { backup: true })
+          }}
+          file={lastFile}
           onChooseAnother={() => {
             setError('')
             setPhase('idle')
@@ -640,11 +643,11 @@ function DropZone({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
     >
       <UploadCloud size={32} className="text-accent" aria-hidden />
       <span className="text-[15px] font-medium text-fg">Drop your syllabus here</span>
-      <span className="text-[12px] text-subtle">or click to browse · PDF, Word (.docx) or a photo, up to {MAX_MB} MB</span>
+      <span className="text-[12px] text-subtle">or click to browse · PDF, Word or a photo, up to {MAX_MB} MB</span>
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.txt,text/plain"
+        accept="application/pdf,.pdf,.docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.txt,text/plain"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0]

@@ -6,7 +6,7 @@
  * the reader is checked against the same container Word writes.
  */
 import { deflateRawSync } from 'node:zlib'
-import { sniffUpload, docxText } from './_upload-kind.ts'
+import { sniffUpload, docxText, docText } from './_upload-kind.ts'
 
 let fail = 0
 const check = (name, ok) => {
@@ -80,8 +80,18 @@ check('pdf', sniffUpload(new TextEncoder().encode('%PDF-1.7\n...')).kind === 'pd
 check('jpeg', sniffUpload(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0])).kind === 'image')
 check('png', sniffUpload(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a])).kind === 'image')
 check('webp', sniffUpload(new TextEncoder().encode('RIFF\0\0\0\0WEBPVP8 ')).kind === 'image')
-const doc = sniffUpload(new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1]))
-check('old .doc is refused with a reason', doc.kind === 'unsupported' && /docx/i.test(doc.why))
+check('old .doc is recognised', sniffUpload(new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1])).kind === 'doc')
+{
+  // A .doc holds its text as 8-bit runs among binary; only the prose survives.
+  const enc = new TextEncoder()
+  const junk = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 1, 2])
+  const body = enc.encode('Midterm exam worth 30 percent, due October 7')
+  const both = new Uint8Array(junk.length + body.length + 3)
+  both.set(junk)
+  both.set(body, junk.length)
+  const t = docText(both)
+  check('.doc text recovered without the binary', t.includes('Midterm exam worth 30 percent') && !t.includes('ÿ'))
+}
 const heic = sniffUpload(new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]))
 check('heic is refused with a reason', heic.kind === 'unsupported' && /HEIC/.test(heic.why))
 check('plain text', sniffUpload(new TextEncoder().encode('ENGL 244\nMidterm 30% due Oct 7\n')).kind === 'text')

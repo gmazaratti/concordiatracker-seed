@@ -26,7 +26,7 @@
 import { askClaude, CLAUDE_ESCALATE, CLAUDE_FIRST, type ClaudeAttempt, type ClaudeInput } from './_parse-claude.js'
 import { extractWithGemini, MODEL_TIMEOUT_MS, type ParseResult } from './_parse-core.js'
 import { cleanParse } from './_parse-guard.js'
-import { docxText, sniffUpload } from './_upload-kind.js'
+import { docText, docxText, sniffUpload } from './_upload-kind.js'
 
 /** Time Gemini always keeps for itself, so falling back can still finish. */
 const GEMINI_RESERVE_MS = 15_000
@@ -55,6 +55,8 @@ export async function extractOutline(
   buf: ArrayBuffer,
   mimeType: string,
   budgetMs: number = MODEL_TIMEOUT_MS,
+  /** `backup`: the student asked for the other AI, so Claude is skipped. */
+  opts: { backup?: boolean } = {},
 ): Promise<ParseResult> {
   const started = Date.now()
   const left = () => budgetMs - (Date.now() - started)
@@ -70,6 +72,7 @@ export async function extractOutline(
   void mimeType
   let text: string | undefined
   if (sniffed.kind === 'docx') text = docxText(new Uint8Array(buf))
+  if (sniffed.kind === 'doc') text = docText(new Uint8Array(buf))
   if (sniffed.kind === 'text') text = new TextDecoder().decode(buf)
   if (text !== undefined && text.trim().length < 40) {
     return { ok: false, course: {}, assessments: [], how: `${sniffed.kind}:empty`, failure: 'unreadable', detail: 'no readable text in the file' }
@@ -82,7 +85,7 @@ export async function extractOutline(
         : { kind: 'pdf', buf }
   const tag = text !== undefined ? `${sniffed.kind}:${text.length}ch` : `${sniffed.kind}:${buf.byteLength}b`
 
-  {
+  if (!opts.backup) {
     for (const model of [CLAUDE_FIRST, CLAUDE_ESCALATE]) {
       const room = Math.min(model === CLAUDE_FIRST ? 22_000 : 28_000, left() - GEMINI_RESERVE_MS)
       if (room < 6_000) break

@@ -1,0 +1,1 @@
+npx supabase db query -f "$1" --remote ${2:---read-only} 2>&1 | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{let j;try{j=JSON.parse(s.slice(s.indexOf('\n{')+1))}catch(e){console.log(s);return};console.log(JSON.stringify(j.rows?(j.rows.length==1&&j.rows[0].r!==undefined?j.rows[0].r:j.rows):j,null,1))})"

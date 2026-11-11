@@ -7,8 +7,9 @@
  *   docx   a Word file: we unzip it and pull the text out ourselves
  *   text   plain text (.txt / .md), passed through as text
  *
- * The old binary .doc format is NOT read: it is a different, undocumented-in-
- * practice container, and the honest answer is "save it as .docx or PDF".
+ *   doc    an old Word .doc: its text is recovered from the raw file (below).
+ *          Good enough for a model to read a grade breakdown; not a faithful
+ *          rendering, which nothing here needs.
  *
  * No dependencies: a .docx is a zip, and Node already ships the one piece of a
  * zip reader that is hard (raw DEFLATE). The rest is reading a directory.
@@ -20,6 +21,7 @@ export type UploadKind =
   | { kind: 'image'; mime: 'image/jpeg' | 'image/png' | 'image/webp'; ext: 'jpg' | 'png' | 'webp' }
   | { kind: 'docx'; mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; ext: 'docx' }
   | { kind: 'text'; mime: 'text/plain'; ext: 'txt' }
+  | { kind: 'doc'; mime: 'application/msword'; ext: 'doc' }
 
 export type Sniffed = UploadKind | { kind: 'unsupported'; why: string }
 
@@ -40,9 +42,7 @@ export function sniffUpload(b: Uint8Array): Sniffed {
       ? { kind: 'docx', mime: DOCX_MIME, ext: 'docx' }
       : { kind: 'unsupported', why: 'That zip file is not a Word document.' }
   }
-  if (starts(b, [0xd0, 0xcf, 0x11, 0xe0])) {
-    return { kind: 'unsupported', why: 'That is an old Word .doc file. Save it as .docx or PDF and upload that.' }
-  }
+  if (starts(b, [0xd0, 0xcf, 0x11, 0xe0])) return { kind: 'doc', mime: 'application/msword', ext: 'doc' }
   // HEIC/HEIF (iPhone photos): ftyp box at byte 4.
   if (starts(b, [0x66, 0x74, 0x79, 0x70], 4)) {
     return { kind: 'unsupported', why: 'That photo format (HEIC) is not supported. Take a screenshot or export it as JPG.' }
@@ -146,6 +146,58 @@ export function docxText(b: Uint8Array): string {
       return ENTITIES[code.toLowerCase()] ?? m
     })
     .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+/**
+ * The readable text of an old binary Word .doc.
+ *
+ * A .doc keeps its text in the WordDocument stream as either 8-bit (cp1252)
+ * or UTF-16LE runs. Rather than parse the piece table, this pulls every run of
+ * printable characters at least 4 long out of both readings and keeps the
+ * reading that produced more letters. Formatting and stray binary fragments
+ * may survive as noise; the model reading it copes, and the alternative was
+ * refusing the file.
+ */
+export function docText(b: Uint8Array): string {
+  const isText = (c: number) => c === 9 || c === 10 || c === 13 || (c >= 32 && c < 127) || (c >= 160 && c <= 255)
+  const narrow: string[] = []
+  let run = ''
+  for (let i = 0; i < b.length; i++) {
+    const c = b[i]
+    if (isText(c)) run += String.fromCharCode(c)
+    else {
+      if (run.length >= 4) narrow.push(run)
+      run = ''
+    }
+  }
+  if (run.length >= 4) narrow.push(run)
+
+  const wide: string[] = []
+  run = ''
+  for (let i = 0; i + 1 < b.length; i += 2) {
+    const c = b[i] | (b[i + 1] << 8)
+    const ok = c === 9 || c === 10 || c === 13 || (c >= 32 && c < 0xd800 && c !== 0x7f)
+    if (ok) run += String.fromCharCode(c)
+    else {
+      if (run.length >= 4) wide.push(run)
+      run = ''
+    }
+  }
+  if (run.length >= 4) wide.push(run)
+
+  const letterCount = (s: string) => s.replace(/[^A-Za-z\u00C0-\u00FE\u0100-\u017F]/g, '').length
+  // A real run of prose is mostly letters; binary fragments that happen to be
+  // printable ("\u00FF\u00FF\u00FF\u00FF", "\u00B0?N_m") are not, and are dropped.
+  const prose = (parts: string[]) => parts.filter((r) => /[A-Za-z]{2}/.test(r) && letterCount(r) / r.length > 0.45)
+  const n = prose(narrow)
+  const w = prose(wide)
+  const letters = (parts: string[]) => letterCount(parts.join(''))
+  const best = letters(w) > letters(n) ? w : n
+  return best
+    .join('\n')
+    .replace(/\r/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }

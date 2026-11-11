@@ -4,6 +4,7 @@ import type { AdminTicket, TicketPerson, TicketStatus } from '@/lib/tickets'
 import { formatDueDateTime } from '@/lib/date'
 import { TicketThread } from '@/features/support/TicketThread'
 import { StatusSwitch, TicketAvatar } from './ticket-ui'
+import { TicketAttachment } from './TicketAttachment'
 
 /**
  * One ticket: the customer card on top with the status beside it, the
@@ -72,6 +73,7 @@ export function TicketDetail({
             <span className="tabular-nums">{ticket.case_id}</span> · {ticket.category} · opened{' '}
             {formatDueDateTime(ticket.created_at)}
           </p>
+          <TicketAttachment ticketId={ticket.id} />
         </div>
       </header>
       <div className="flex min-h-[420px] flex-1 flex-col lg:min-h-0">
