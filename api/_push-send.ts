@@ -32,10 +32,11 @@ import {
 export type { PushMessage } from './_apns.js'
 
 /** The columns every sender selects. */
-export const SUB_COLS = 'id,endpoint,kind,p256dh,auth,device_token,apns_env'
+export const SUB_COLS = 'id,user_id,endpoint,kind,p256dh,auth,device_token,apns_env'
 
 export interface PushTarget {
   id?: string
+  user_id?: string
   endpoint: string
   kind?: 'web' | 'apns' | null
   p256dh?: string | null
@@ -206,4 +207,61 @@ export async function sendLiveActivityStart(
     if (outcome === 'error') return { status: 'error' }
   }
   return { status: 'gone' }
+}
+
+/**
+ * What a push was for, read off its tag (every sender sets one). Stored on
+ * push_log so the admin Push page can compare open rates by kind.
+ */
+export function pushKind(tag: string | undefined): string {
+  const t = tag ?? ''
+  if (t.startsWith('ct-admin-activity')) return 'admin_alert'
+  if (t.startsWith('ct-admin-')) return 'admin'
+  if (t.startsWith('ct-reminder-')) return 'reminder'
+  if (t.startsWith('ct-due-')) return 'assignment'
+  if (t.startsWith('ct-trial-')) return 'trial'
+  if (t.startsWith('ct-seat-')) return 'seat'
+  if (t.startsWith('ct-bell-')) return 'bell'
+  if (/^ct-(signup|org|ticket|scanfail|scan|reply|fb)-/.test(t)) return 'admin_alert'
+  if (t === 'ct-test') return 'test'
+  return 'other'
+}
+
+/** Add ?pn=<log id> to an in-app path so opening it can be counted. */
+export function withPushId(url: string | undefined, id: string): string {
+  const u = url && url.startsWith('/') ? url : '/app'
+  const [path, hash = ''] = u.split('#')
+  return `${path}${path.includes('?') ? '&' : '?'}pn=${id}${hash ? `#${hash}` : ''}`
+}
+
+/**
+ * Write one push_log row before sending (so the link can carry its id), and
+ * fill in how many devices took it afterwards. Never throws: a push that could
+ * not be logged still goes out, just without tracking.
+ */
+export async function logPush(
+  supabaseUrl: string,
+  serviceKey: string,
+  row: { user_id: string; kind: string; title: string; body?: string | null; url?: string | null; devices: number; sent_by?: string | null },
+): Promise<string | null> {
+  try {
+    const r = await fetch(`${supabaseUrl}/rest/v1/push_log`, {
+      method: 'POST',
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify({ ...row, title: row.title.slice(0, 200), body: row.body ?? null, url: row.url ?? null, sent_by: row.sent_by ?? null }),
+    })
+    if (!r.ok) return null
+    const rows = (await r.json()) as { id: string }[]
+    return rows[0]?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function setPushDelivered(supabaseUrl: string, serviceKey: string, id: string, delivered: number): Promise<void> {
+  await fetch(`${supabaseUrl}/rest/v1/push_log?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ delivered }),
+  }).catch(() => {})
 }

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Activity,
   TrendingUp,
+  BellRing,
   ArrowLeft,
   Ban,
   ChevronDown,
@@ -42,6 +43,7 @@ import { SurveyResultsTab } from './tabs/SurveyResultsTab'
 import { SocialTab } from './tabs/SocialTab'
 import { ParsesTab } from './parses/ParsesTab'
 import { ProductTab } from './product/ProductTab'
+import { PushTab } from './push/PushTab'
 import { AppVersionTab } from './tabs/AppVersionTab'
 import { cn } from '@/lib/cn'
 
@@ -57,6 +59,7 @@ const TABS = [
   { id: 'portals', label: 'Portals', icon: Building2 },
   { id: 'traffic', label: 'Traffic', icon: Activity },
   { id: 'product', label: 'Product', icon: TrendingUp },
+  { id: 'push', label: 'Push', icon: BellRing },
   { id: 'attribution', label: 'Attribution', icon: Compass },
   { id: 'survey', label: 'Survey', icon: ClipboardList },
   { id: 'links', label: 'Links & Vanity', icon: Link2 },
@@ -138,6 +141,7 @@ export function AdminConsole() {
         {current === 'portals' && <PortalsTab />}
         {current === 'traffic' && <TrafficTab />}
         {current === 'product' && <ProductTab />}
+        {current === 'push' && <PushTab />}
         {current === 'attribution' && <AttributionTab />}
         {current === 'survey' && <SurveyResultsTab />}
         {current === 'links' && <VanityTab />}

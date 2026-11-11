@@ -15,7 +15,7 @@
  * marks them sent so they never repeat. Expired endpoints (404/410) are pruned.
  */
 import { runWeeklyDigest } from './_weekly-digest.js'
-import { SUB_COLS, closePush, sendLiveActivityStart, sendPush, type PushMessage, type PushTarget } from './_push-send.js'
+import { SUB_COLS, closePush, logPush, pushKind, sendLiveActivityStart, sendPush, setPushDelivered, withPushId, type PushMessage, type PushTarget } from './_push-send.js'
 import { courseColor } from '../src/lib/course-color.js'
 import type { ApnsEnv } from './_apns.js'
 import { runBellPushes } from './_bell-push.js'
@@ -183,6 +183,8 @@ export async function runReminders(req: any, res: any) {
   }
 
   const svc = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
+  const logKey: string = serviceKey
+  const logUrl: string = supabaseUrl
 
   // Due, un-sent reminders.
   const now = new Date().toISOString()
@@ -230,15 +232,28 @@ export async function runReminders(req: any, res: any) {
    */
   async function deliver(subs: SubRow[], payload: string, opts?: { webOnly?: boolean }): Promise<number> {
     const msg = JSON.parse(payload) as PushMessage
+    const targets = subs.filter((s) => !(opts?.webOnly && s.kind === 'apns'))
+    const userId = targets.find((s) => s.user_id)?.user_id
+    const logId = userId
+      ? await logPush(logUrl, logKey, {
+          user_id: userId,
+          kind: pushKind(msg.tag),
+          title: msg.title,
+          body: msg.body,
+          url: msg.url,
+          devices: targets.length,
+        })
+      : null
+    if (logId) msg.url = withPushId(msg.url, logId)
     let ok = 0
-    for (const s of subs) {
-      if (opts?.webOnly && s.kind === 'apns') continue
+    for (const s of targets) {
       const r = await sendPush(s, msg)
       if (r.status === 'ok') {
         ok++
         if ('env' in r && r.env && s.id) envFix.set(s.id, r.env)
       } else if (r.status === 'gone') stale.add(s.endpoint)
     }
+    if (logId) await setPushDelivered(logUrl, logKey, logId, ok)
     return ok
   }
 
