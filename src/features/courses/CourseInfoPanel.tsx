@@ -21,6 +21,7 @@ export function CourseInfoPanel({
   totalAssessments,
   editableIdentity = false,
   autoFill = false,
+  bare = false,
 }: {
   course: Course
   totalAssessments: number
@@ -30,6 +31,8 @@ export function CourseInfoPanel({
   /** Manual courses: also let the code + name be edited here (seeded courses get
    * those from the catalog, so they're read-only on the banner). */
   editableIdentity?: boolean
+  /** The page already titles this card and shows it whole: no header, no collapse. */
+  bare?: boolean
 }) {
   const { updateCourse } = useAppData()
   const [open, setOpen] = useState(false)
@@ -49,31 +52,30 @@ export function CourseInfoPanel({
     patch({ ta: { name: '', email: '', ...course.ta, ...p } })
 
   return (
-    <Card className="overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 border-b border-border px-3.5 py-2.5 text-left lg:cursor-default"
-        style={{ backgroundColor: withAlpha(hex, 0.12) }}
-      >
-        <span
-          className="text-[11px] font-semibold tracking-wide uppercase"
-          style={{ color: hex }}
+    <Card className="overflow-hidden rounded-3xl">
+      {!bare && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="flex w-full items-center justify-between gap-2 border-b border-border px-5 py-3.5 text-left lg:cursor-default"
+          style={{ backgroundColor: withAlpha(hex, 0.12) }}
         >
-          Class details
-        </span>
-        <ChevronDown
-          size={15}
-          aria-hidden
-          className={cn(
-            'shrink-0 text-subtle transition-transform duration-150 lg:hidden',
-            open && 'rotate-180',
-          )}
-        />
-      </button>
+          <span className="font-display text-[15.5px] font-semibold" style={{ color: hex }}>
+            Class details
+          </span>
+          <ChevronDown
+            size={15}
+            aria-hidden
+            className={cn(
+              'shrink-0 text-subtle transition-transform duration-150 lg:hidden',
+              open && 'rotate-180',
+            )}
+          />
+        </button>
+      )}
 
-      <div className={cn('lg:block', open ? 'block' : 'hidden')}>
+      <div className={cn('lg:block', open || bare ? 'block' : 'hidden')}>
         <dl className="divide-y divide-border/70">
           {editableIdentity && (
             <>
@@ -143,9 +145,7 @@ export function CourseInfoPanel({
                 where a waitlisted seat may never arrive. */}
             <Select
               value={course.enrollment ?? 'registered'}
-              onChange={(v) =>
-                patch({ enrollment: v as NonNullable<Course['enrollment']> })
-              }
+              onChange={(v) => patch({ enrollment: v as NonNullable<Course['enrollment']> })}
               ariaLabel="Enrolment status"
               size="sm"
               options={[
@@ -163,9 +163,7 @@ export function CourseInfoPanel({
                 blank we have never asked about is not an answer. */}
             <Select
               value={course.delivery ?? ''}
-              onChange={(v) =>
-                patch({ delivery: (v || undefined) as Course['delivery'] })
-              }
+              onChange={(v) => patch({ delivery: (v || undefined) as Course['delivery'] })}
               ariaLabel="How this class is delivered"
               size="sm"
               placeholder="Not set"
@@ -251,9 +249,7 @@ export function CourseInfoPanel({
           </Row>
 
           <Row label="Assessments">
-            <span className="text-[13px] text-fg tabular-nums">
-              {totalAssessments}
-            </span>
+            <span className="text-[13px] text-fg tabular-nums">{totalAssessments}</span>
           </Row>
 
           <TrackingRow code={course.code} />
@@ -279,7 +275,7 @@ export function CourseInfoPanel({
         <button
           type="button"
           onClick={() => setReporting(true)}
-          className="mt-2 inline-flex items-center gap-1.5 px-3.5 pb-1 text-[11.5px] text-subtle transition-colors duration-150 hover:text-warning"
+          className="mt-2 inline-flex items-center gap-1.5 px-5 pb-1 text-[11.5px] text-subtle transition-colors duration-150 hover:text-warning"
         >
           <Flag size={11} aria-hidden />
           Something here is wrong
@@ -340,8 +336,8 @@ function TrackingRow({ code }: { code: string }) {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[88px_1fr] items-start gap-3 px-3.5 py-2.5">
-      <dt className="pt-0.5 text-[12px] text-subtle">{label}</dt>
+    <div className="grid grid-cols-[92px_1fr] items-start gap-3 px-5 py-3">
+      <dt className="pt-0.5 text-[13px] text-muted">{label}</dt>
       <dd className="min-w-0 space-y-0.5">{children}</dd>
     </div>
   )

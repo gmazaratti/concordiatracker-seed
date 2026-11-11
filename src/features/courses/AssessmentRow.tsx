@@ -101,7 +101,7 @@ export function AssessmentRow({
     <div
       id={`assess-${assessment.id}`}
       className={cn(
-        'group px-3 py-2 transition-colors duration-150',
+        'group px-4 py-3 transition-colors duration-150 sm:px-5',
         dirty && 'bg-accent-soft/40',
         highlighted && 'ct-highlight',
       )}
@@ -114,7 +114,7 @@ export function AssessmentRow({
             title={isDone ? 'Mark not done' : 'Mark done'}
             aria-label={isDone ? `Mark "${assessment.title}" not done` : `Mark "${assessment.title}" done`}
             className={cn(
-              'grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-150 active:scale-90',
+              'grid size-[22px] shrink-0 place-items-center rounded-full border transition-colors duration-150 active:scale-90',
               isDone
                 ? 'border-transparent bg-success text-accent-contrast'
                 : 'border-border-strong text-transparent hover:border-accent hover:bg-accent-soft hover:text-accent',
@@ -127,15 +127,15 @@ export function AssessmentRow({
               "Examen final" as "Exame…", which is a worse trade than a few
               pixels of alignment. It still has a floor, so the titles beside it
               stay in a column. */}
-          <span className="min-w-[74px] shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-center text-[11px] font-medium whitespace-nowrap text-muted">
+          <span className="min-w-[84px] shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-center text-[11.5px] font-semibold whitespace-nowrap text-muted">
             {KIND_LABEL[assessment.kind]}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-x-1.5">
-              <span className="truncate text-[13px] text-fg">{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
-              <span className="shrink-0 text-[11px] text-subtle">{assessment.weight}%</span>
+              <span className="truncate text-[14.5px] font-medium text-fg">{assessment.title || <span className="text-subtle italic">Untitled</span>}</span>
+              <span className="shrink-0 text-[12.5px] font-medium text-muted tabular-nums">{assessment.weight}%</span>
             </div>
-            <div className="mt-0.5 flex items-center gap-x-2 text-[11px]">
+            <div className="mt-0.5 flex items-center gap-x-2 text-[12.5px]">
               {examHint ? (
                 <span className="text-subtle italic">{examHint}</span>
               ) : (
@@ -228,7 +228,7 @@ export function AssessmentRow({
               )}
             />
 
-            <span className="w-10 shrink-0 text-right text-[12px] leading-tight font-medium tabular-nums">
+            <span className="w-11 shrink-0 text-right text-[13.5px] leading-tight font-semibold tabular-nums">
               {resolved ? (
                 <>
                   <span className="block text-fg">{Math.round(draftPct!)}%</span>

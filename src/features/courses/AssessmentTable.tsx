@@ -46,8 +46,8 @@ export function AssessmentTable({
   }, [focusId])
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-2 py-2">
+    <Card className="overflow-hidden rounded-3xl">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <div className="flex items-center gap-1" role="tablist" aria-label="Course view">
           <TabButton active={tab === 'grades'} onClick={() => setTab('grades')}>
             Grades
@@ -61,7 +61,7 @@ export function AssessmentTable({
             )}
           </TabButton>
         </div>
-        <span className="px-2 text-[11px] text-subtle">
+        <span className="px-2 text-[12.5px] text-muted">
           {assessments.length} {assessments.length === 1 ? 'item' : 'items'}
         </span>
       </div>
@@ -78,7 +78,7 @@ export function AssessmentTable({
       </div>
       {undated.length > 0 && (
         <section className="border-t border-dashed border-border-strong bg-surface-2/30">
-          <p className="px-4 pt-3 pb-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+          <p className="px-5 pt-3.5 pb-1.5 text-[11.5px] font-semibold tracking-wide text-subtle uppercase">
             No date yet
           </p>
           <div className="divide-y divide-border">
@@ -113,7 +113,7 @@ function TabButton({
       aria-selected={active}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors duration-150',
+        'inline-flex items-center rounded-full px-4 py-1.5 text-[13.5px] font-semibold transition-colors duration-150',
         active
           ? 'bg-surface-2 text-fg'
           : 'text-subtle hover:bg-surface-2/60 hover:text-muted',

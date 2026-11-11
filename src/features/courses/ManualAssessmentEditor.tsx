@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 
 const KIND_OPTIONS = Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label }))
 const inputCls =
-  'w-full rounded-md border border-border bg-surface-2 px-2.5 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
+  'w-full rounded-xl border border-border bg-surface-2 px-3 py-2 text-[13.5px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none'
 
 /**
  * A weight as typed, or why it is not one. It used to be CLAMPED — typing 150
@@ -38,11 +38,11 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
   const total = rows.reduce((sum, a) => sum + (Number.isFinite(a.weight) ? a.weight : 0), 0)
 
   return (
-    <Card className="p-4">
+    <Card className="rounded-3xl p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[14px] font-semibold text-fg">Assessments</h2>
+        <h2 className="font-display text-[15.5px] font-semibold text-fg">Add, remove or change</h2>
         <span
-          className="inline-flex items-center gap-1.5 text-[11px] text-prov-unverified"
+          className="inline-flex items-center gap-1.5 text-[12px] text-prov-unverified"
           title="Dates you enter are self-entered: unverified until classmates corroborate them."
         >
           <ShieldQuestion size={13} aria-hidden />
@@ -51,7 +51,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border-strong bg-surface/50 px-4 py-8 text-center text-[13px] text-subtle">
+        <p className="rounded-2xl border border-dashed border-border-strong px-4 py-8 text-center text-[13.5px] text-muted">
           No assessments yet: add your first below, then fill in the dates and weights.
         </p>
       ) : (
@@ -74,7 +74,7 @@ export function ManualAssessmentEditor({ courseId }: { courseId: string }) {
         <button
           type="button"
           onClick={() => addBlankAssessment(courseId)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-[13.5px] font-semibold text-muted transition-colors duration-150 hover:border-accent/50 hover:text-accent"
         >
           <Plus size={15} aria-hidden />
           Add assessment

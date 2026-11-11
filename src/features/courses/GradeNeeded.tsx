@@ -13,17 +13,17 @@ export function GradeNeeded({ assessments }: { assessments: Assessment[] }) {
   const result = gradeNeeded(assessments, target)
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
-        <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
+    <Card className="overflow-hidden rounded-3xl">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <p className="font-display text-[15.5px] font-semibold text-fg">
           {t('courses.gradeNeeded')}
         </p>
-        <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-success uppercase">
+        <span className="rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-bold tracking-[0.06em] text-success uppercase">
           {t('courses.freeTag')}
         </span>
       </div>
-      <div className="px-3.5 py-3">
-        <div className="flex items-center justify-between gap-2 text-[12px] text-subtle">
+      <div className="px-5 py-4">
+        <div className="flex items-center justify-between gap-2 text-[13.5px] text-muted">
           {t('courses.toFinishWith')}
           <Select
             ariaLabel={t('courses.targetGradeAria')}
@@ -31,7 +31,7 @@ export function GradeNeeded({ assessments }: { assessments: Assessment[] }) {
             onChange={(v) => setTarget(Number(v))}
             size="sm"
             tone="control"
-            className="w-[120px]"
+            className="w-[132px]"
             options={GRADE_TARGETS.map((g) => ({
               value: String(g.min),
               label: `${g.letter} (${g.min}%+)`,
@@ -39,7 +39,7 @@ export function GradeNeeded({ assessments }: { assessments: Assessment[] }) {
           />
         </div>
 
-        <div className="mt-3 rounded-lg bg-surface-2 px-3 py-2.5 text-[13px]">
+        <div className="mt-4 rounded-2xl bg-canvas/60 px-4 py-3.5 text-[14.5px] leading-relaxed">
           <ResultLine result={result} />
         </div>
       </div>
@@ -66,7 +66,7 @@ function ResultLine({ result }: { result: ReturnType<typeof gradeNeeded> }) {
   return (
     <span className="text-fg">
       {t('courses.youNeed')}{' '}
-      <span className="font-semibold text-accent">
+      <span className="font-display text-[20px] font-bold text-accent tabular-nums">
         {Math.round(result.percent)}%
       </span>{' '}
       {t('courses.onAverageAcross')}{' '}

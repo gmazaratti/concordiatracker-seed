@@ -57,36 +57,36 @@ export function GradeBreakdown({
       : (standing.gradedWeight / standing.totalWeight) * 100
 
   return (
-    <Card className="overflow-hidden">
-      <p className="border-b border-border px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+    <Card className="overflow-hidden rounded-3xl">
+      <p className="border-b border-border px-5 py-3.5 font-display text-[15.5px] font-semibold text-fg">
         Grade breakdown
       </p>
 
-      <div className="px-3.5 py-3">
+      <div className="px-5 py-4">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[12px] text-subtle">Graded so far</span>
-          <span className="text-[12px] font-medium text-fg">
+          <span className="text-[13.5px] text-muted">Graded so far</span>
+          <span className="text-[13.5px] font-semibold text-fg">
             {Math.round(gradedPct)}% of the grade
           </span>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
           <div
             className="h-full rounded-full transition-[width] duration-200"
             style={{ width: `${gradedPct}%`, backgroundColor: hex }}
           />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-          <div className="rounded-lg bg-surface-2 px-2 py-2">
-            <div className="text-[15px] font-semibold text-fg">
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl bg-canvas/60 px-3.5 py-3">
+            <div className="font-display text-[22px] leading-tight font-bold text-fg tabular-nums">
               {standing.gradedWeight}%
             </div>
-            <div className="text-[11px] text-subtle">locked in</div>
+            <div className="text-[12px] text-muted">locked in</div>
           </div>
-          <div className="rounded-lg bg-surface-2 px-2 py-2">
-            <div className="text-[15px] font-semibold text-fg">
+          <div className="rounded-2xl bg-canvas/60 px-3.5 py-3">
+            <div className="font-display text-[22px] leading-tight font-bold text-fg tabular-nums">
               {standing.remainingWeight}%
             </div>
-            <div className="text-[11px] text-subtle">still to play for</div>
+            <div className="text-[12px] text-muted">still to play for</div>
           </div>
         </div>
       </div>
@@ -95,17 +95,17 @@ export function GradeBreakdown({
         {rows.map((r) => (
           <li
             key={r.kind}
-            className="flex items-center justify-between gap-3 border-b border-border/60 px-3.5 py-2 last:border-b-0"
+            className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-3 last:border-b-0"
           >
-            <span className="flex items-center gap-2 text-[13px] text-fg">
+            <span className="flex items-center gap-2.5 text-[14px] font-medium text-fg">
               <span
-                className="size-2 shrink-0 rounded-full"
+                className="size-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: hex }}
                 aria-hidden
               />
               {KIND_LABEL[r.kind]}
             </span>
-            <span className="flex items-center gap-2 text-[12px] tabular-nums">
+            <span className="flex items-center gap-2.5 text-[13.5px] tabular-nums">
               {r.average !== null && (
                 <span className="font-medium text-muted">
                   {Math.round(r.average)}%
@@ -141,7 +141,7 @@ function HowCalculated({ assessments }: { assessments: Assessment[] }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center gap-1.5 px-3.5 py-2.5 text-[12px] text-subtle transition-colors hover:text-fg"
+        className="flex w-full items-center gap-1.5 px-5 py-3.5 text-[13px] text-muted transition-colors hover:text-fg"
       >
         <Info size={13} aria-hidden />
         How is this calculated?
@@ -153,14 +153,14 @@ function HowCalculated({ assessments }: { assessments: Assessment[] }) {
       </button>
 
       {open && (
-        <div className="space-y-3 px-3.5 pb-3.5 text-[12px] leading-relaxed text-muted">
+        <div className="space-y-3 px-5 pb-4 text-[13px] leading-relaxed text-muted">
           <p>
             Your grade is a <span className="font-medium text-fg">weighted average</span>:
             each category counts in proportion to its weight, divided by the weight
             graded so far.
           </p>
 
-          <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+          <div className="rounded-2xl bg-canvas/60 px-4 py-3">
             <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
               The method
             </p>
@@ -174,7 +174,7 @@ function HowCalculated({ assessments }: { assessments: Assessment[] }) {
               Nothing is graded yet: enter a grade and the worked-out math appears here.
             </p>
           ) : (
-            <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+            <div className="rounded-2xl bg-canvas/60 px-4 py-3">
               <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
                 Your numbers
               </p>

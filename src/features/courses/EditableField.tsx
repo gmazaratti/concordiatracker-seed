@@ -50,7 +50,7 @@ export function EditableField({
           }
         }}
         className={cn(
-          'w-full rounded-md border border-accent bg-surface-2 px-1.5 py-0.5 text-[13px] text-fg focus-visible:outline-none',
+          'w-full rounded-md border border-accent bg-surface-2 px-1.5 py-0.5 text-[14px] text-fg focus-visible:outline-none',
           className,
         )}
       />
@@ -66,7 +66,7 @@ export function EditableField({
       }}
       title="Click to edit"
       className={cn(
-        '-mx-1.5 block w-full truncate rounded-md px-1.5 py-0.5 text-left text-[13px] text-fg transition-colors hover:bg-surface-2',
+        '-mx-1.5 block w-full truncate rounded-md px-1.5 py-0.5 text-left text-[14px] text-fg transition-colors hover:bg-surface-2',
         value.trim() === '' && 'text-subtle italic',
         className,
       )}

@@ -240,7 +240,7 @@ export function CourseDetailPage() {
             >
               <h2 className={cn(H2, 'hidden items-center lg:flex lg:min-h-10')}>Class details</h2>
               <div data-tour="course-info">
-                <CourseInfoPanel autoFill={autoFill} course={course} totalAssessments={mine.length} editableIdentity={manual} />
+                <CourseInfoPanel bare autoFill={autoFill} course={course} totalAssessments={mine.length} editableIdentity={manual} />
               </div>
               <SectionDeadlinesCard course={course} />
               <SyllabusFileCard course={course} />

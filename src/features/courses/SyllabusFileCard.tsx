@@ -36,21 +36,21 @@ export function SyllabusFileCard({ course }: { course: Course }) {
   const latest = files[0]
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-3xl">
         <button
           type="button"
           onClick={() => void show(latest)}
-          className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition-colors duration-150 hover:bg-surface-2"
+          className="flex w-full items-center gap-3 px-5 py-4 text-left transition-colors duration-150 hover:bg-surface-2"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-danger/10 text-danger">
+          <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-danger/10 text-danger">
             <FileText size={17} aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold text-fg">Syllabus</span>
-            <span className="block truncate text-[12px] text-subtle">{latest.name}</span>
+            <span className="block font-display text-[15.5px] font-semibold text-fg">Syllabus</span>
+            <span className="block truncate text-[13px] text-muted">{latest.name}</span>
           </span>
         </button>
-        {failed && <p className="px-3.5 pb-2.5 text-[12px] text-danger">It could not be opened. Try again in a moment.</p>}
+        {failed && <p className="px-5 pb-2.5 text-[12px] text-danger">It could not be opened. Try again in a moment.</p>}
       </Card>
 
       {open && (

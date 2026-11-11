@@ -41,19 +41,19 @@ export function GpaWhatIf({
   const delta = projGpa !== null && nowGpa !== null ? projGpa - nowGpa : null
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
-        <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
+    <Card className="overflow-hidden rounded-3xl">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+        <p className="font-display text-[15.5px] font-semibold text-fg">
           {t('courses.gpaWhatIf')}
         </p>
-        <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-accent uppercase">
+        <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-bold tracking-[0.06em] text-accent uppercase">
           {t('courses.semesterTag')}
         </span>
       </div>
 
-      <div className="px-3.5 py-3">
+      <div className="px-5 py-4">
         {allGraded ? (
-          <p className="text-[13px] text-muted">
+          <p className="text-[14px] leading-relaxed text-muted">
             {t('courses.everythingGradedA')}{' '}
             <span className="font-semibold text-fg">
               {Math.round(standing.currentPercent ?? 0)}%
@@ -65,11 +65,11 @@ export function GpaWhatIf({
             <div className="flex items-baseline justify-between">
               <label
                 htmlFor={`whatif-${courseId}`}
-                className="text-[12px] text-subtle"
+                className="text-[13.5px] text-muted"
               >
                 {t('courses.assumeRemaining')}
               </label>
-              <span className="text-[15px] font-semibold text-accent tabular-nums">
+              <span className="font-display text-[20px] font-bold text-accent tabular-nums">
                 {assumed}%
               </span>
             </div>
@@ -89,7 +89,7 @@ export function GpaWhatIf({
               }}
             />
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
               <Stat label={t('courses.finishesAt')}>
                 <span className="text-fg">{Math.round(projectedPct ?? 0)}%</span>
                 {projGrade && (
@@ -110,7 +110,7 @@ export function GpaWhatIf({
               </Stat>
             </div>
             {nowGpa !== null && (
-              <p className="mt-2 text-[11px] text-subtle">
+              <p className="mt-3 text-[12px] leading-relaxed text-subtle">
                 {t('courses.currentTermGpa', {
                   gpa: nowGpa.toFixed(2),
                   weight: standing.remainingWeight,
@@ -132,9 +132,9 @@ function Stat({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg bg-surface-2 px-2.5 py-2">
-      <div className="text-[11px] text-subtle">{label}</div>
-      <div className="mt-0.5 text-[15px] font-semibold tabular-nums">{children}</div>
+    <div className="rounded-2xl bg-canvas/60 px-3.5 py-3">
+      <div className="text-[12px] text-muted">{label}</div>
+      <div className="mt-0.5 font-display text-[20px] leading-tight font-bold tabular-nums">{children}</div>
     </div>
   )
 }

@@ -23,11 +23,11 @@ export function MoodleCourseSection({ course }: { course: Course }) {
   if (items.length === 0) return null
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
+    <Card className="overflow-hidden rounded-3xl">
+      <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
         <MoodleMark className="size-5 text-[10px]" />
-        <p className="flex-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">From Moodle</p>
-        <span className="text-[11.5px] text-subtle">
+        <p className="flex-1 font-display text-[15.5px] font-semibold text-fg">From Moodle</p>
+        <span className="text-[12.5px] text-muted">
           {items.length} item{items.length === 1 ? '' : 's'}
         </span>
       </div>
