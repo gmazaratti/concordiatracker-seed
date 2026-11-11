@@ -1,3 +1,4 @@
+import { reportWriteError, writeErrorText } from '@/lib/write-errors'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppDataContext,
@@ -432,6 +433,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           return copy
         })
         data = (await supabase.from('assignments').insert(stripped).select('*')).data
+      }
+      // A refusal is SAID, not swallowed: this used to drop every insert error,
+      // so an import that saved nothing looked like it had worked.
+      if (!data && first.error && !missingColumn(first.error)) {
+        console.error('[addAssessments]', first.error)
+        reportWriteError('Those assessments did not save', writeErrorText(first.error))
       }
       // Returned so a caller that needs the new ids (an undo) has them.
       const created = data ? (data as AssignmentRow[]).map(assessmentFromRow) : []

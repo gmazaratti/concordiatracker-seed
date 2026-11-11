@@ -252,7 +252,11 @@ export function assessmentToInsert(a: Assessment, userId: string): Record<string
     weight: a.weight,
     notes: a.notes,
     description: a.description ?? null,
-    ...(a.noDate ? { no_date: true } : {}),
+    // ALWAYS present. Only setting it on the no-date rows made a batch with a
+    // "Participation" (no date needed) among dated items carry different keys,
+    // which PostgREST refuses whole (PGRST102): syllabus imports into an
+    // existing course saved nothing, silently.
+    no_date: !!a.noDate,
     provenance_status: a.provenance.status,
     provenance_confirmations: a.provenance.confirmations ?? 0,
     // Always present (null when unlinked): PostgREST refuses a batch insert
