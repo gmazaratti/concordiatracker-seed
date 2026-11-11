@@ -5,12 +5,12 @@ import { courseStanding, percentToGrade } from '@/lib/gpa'
 import { courseColor } from '@/lib/course-color'
 import { courseBanner, courseIcon } from '@/lib/course-style'
 import { relativeDueLabel } from '@/lib/date'
-import { CourseStylePicker } from '../CourseStylePicker'
-import { CODE_PILL } from '../code-pill'
-import { courseStats } from '../course-stats'
+import { CourseStylePicker } from './CourseStylePicker'
+import { CODE_PILL } from './code-pill'
+import { courseStats } from './course-stats'
 
 /**
- * PREVIEW. The banner of a class page: the class's own colour or gradient with
+ * The banner of a class page: the class's own colour or gradient with
  * its icon as a watermark, who teaches it and when it meets under the title,
  * the grade set large on the right, and a strip of the four facts you check
  * most (how much is graded, what is open, what is late, what is next).

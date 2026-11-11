@@ -3,14 +3,14 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { CalendarClock, ListChecks, Loader2, Pencil, Upload } from 'lucide-react'
 import type { Assessment, Course } from '@/data/types'
 import { useAppData } from '@/app/providers/app-data'
-import { courseStanding } from '@/lib/gpa'
+import { useQuickActions } from '@/app/providers/quick-actions'
 import { cn } from '@/lib/cn'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { MoodleMismatchCard } from './MoodleMismatch'
 import { MoodleCourseSection } from '@/features/moodle/MoodleCourseSection'
 import { TeacherChangeCard } from './TeacherChangeCard'
 import { findMoodleMismatches } from '@/lib/moodle-match'
-import { CourseHeader } from './CourseHeader'
+import { DetailHero } from './DetailHero'
 import { CourseInfoPanel } from './CourseInfoPanel'
 import { SectionDeadlinesCard } from './SectionDeadlinesCard'
 import { SyllabusFileCard } from './SyllabusFileCard'
@@ -27,10 +27,24 @@ import { SyllabusUploadPage } from './SyllabusUpload'
 import { ModalShell } from '@/command/ModalShell'
 import { currentTermName, isUpcomingTerm } from '@/features/planner/past-terms'
 
-/** Course detail — the grade workspace. An empty course leads with the syllabus
- * parse-reveal (the hero); a populated one is a two-column editor: a LEFT panel
- * (class details + grade breakdown + grade-needed FREE + GPA what-if PAID) beside
- * the assignment list, stacked on mobile in Today's layout language. */
+type Pane = 'work' | 'grade' | 'class'
+const PANES: { id: Pane; label: string }[] = [
+  { id: 'work', label: 'Assessments' },
+  { id: 'grade', label: 'Your grade' },
+  { id: 'class', label: 'Class details' },
+]
+const H2 = 'font-display text-[22px] font-semibold tracking-tight text-fg'
+
+/**
+ * A class page. A banner (the class's colour, its grade, and four facts, the
+ * last of which is what is due next), then two columns: a pinned rail of class
+ * details on the left, and on the right the assessment list with the grade
+ * tools under it. The grade tools are under the list, not in the rail, so a
+ * class with four assessments does not leave half the page empty.
+ *
+ * On a phone the three parts are tabs, so the list is not buried under the
+ * details.
+ */
 export function CourseDetailPage() {
   const { courseId } = useParams()
   const location = useLocation()
@@ -49,31 +63,23 @@ export function CourseDetailPage() {
   const focusId = state?.focus ?? (new URLSearchParams(location.search).get('focus') || undefined)
   const importItems = state?.importItems
   const importDetails = state?.importDetails
-  const {
-    plan,
-    courses,
-    assessments,
-    dataLoading,
-    courseById,
-    addAssessments,
-    updateCourse,
-    peerCorrections,
-    personalTasks,
-  } = useAppData()
+  const { plan, courses, assessments, dataLoading, courseById, addAssessments, updateCourse, peerCorrections, personalTasks } =
+    useAppData()
+  const { openAssessment } = useQuickActions()
   const navigate = useNavigate()
   const course = courseId ? courseById(courseId) : undefined
-  /** Opt-in for the rare student who has next term's syllabus already. Hoisted
-   *  above the early returns below, because hooks cannot follow them. */
+  // Every hook sits above the early returns below: hooks cannot follow them.
+  /** Opt-in for the rare student who has next term's syllabus already. */
   const [outlineEarly, setOutlineEarly] = useState(false)
-  // Above the `dataLoading` / `!course` early returns, like its neighbour —
-  // rules-of-hooks, and the same trap that caught `outlineEarly`.
   /** Adding a second outline to a course that already has one. */
   const [importing, setImporting] = useState(false)
   // Read once, on mount. Kept in state rather than off `location.state` on every
-  // render so closing the picker sticks — the router entry is not rewritten.
+  // render so closing the picker sticks: the router entry is not rewritten.
   const [autoFill] = useState(() => !!state?.autofill)
+  const [pane, setPane] = useState<Pane>('work')
+  const [mode, setMode] = useState<'grades' | 'setup'>('grades')
 
-  // On a hard refresh the data is still loading — wait for it before deciding the
+  // On a hard refresh the data is still loading. Wait for it before deciding the
   // course doesn't exist, otherwise we'd redirect away from a perfectly valid course.
   if (dataLoading) {
     return (
@@ -84,27 +90,25 @@ export function CourseDetailPage() {
   }
   if (!course) return <Navigate to="/app/courses" replace />
 
-  const courseAssessments = assessments.filter((a) => a.courseId === course.id)
-  const courseAssessmentIds = new Set(courseAssessments.map((a) => a.id))
-  const coursePeerCorrections = peerCorrections.filter((c) =>
-    courseAssessmentIds.has(c.assessmentId),
-  )
+  const mine = assessments.filter((a) => a.courseId === course.id)
+  const ids = new Set(mine.map((a) => a.id))
+  const corrections = peerCorrections.filter((c) => ids.has(c.assessmentId))
   // Derived live from what is already loaded rather than stored: the
   // disagreement stops existing the moment either side is corrected, so a
   // saved copy of it could only go stale.
-  const moodleMismatches = findMoodleMismatches(personalTasks, assessments, courses).filter((m) =>
-    courseAssessmentIds.has(m.assessmentId),
-  )
-  const standing = courseStanding(courseAssessments)
-  const empty = courseAssessments.length === 0
+  const mismatches = findMoodleMismatches(personalTasks, assessments, courses).filter((m) => ids.has(m.assessmentId))
+  const empty = mine.length === 0
+  // In practice every course: `createCourse` stamps origin 'manual' on all of them.
   const manual = course.origin === 'manual'
-  const courseId2 = course.id
+  const id = course.id
+  // A class with nothing in it has no grades to enter, so setup is the view.
+  const view = manual && empty ? 'setup' : mode
 
   /**
    * A term that has not started yet.
    *
    * These courses get the class details and nothing else. Outlines are published
-   * in the first week, so there is nothing real to enter — and a blueprint from
+   * in the first week, so there is nothing real to enter, and a blueprint from
    * a previous term would hand you dates that are confidently wrong, which is
    * worse than an empty page because you would plan around them. The rare
    * student who genuinely has the syllabus early can say so; everyone else is
@@ -112,311 +116,228 @@ export function CourseDetailPage() {
    */
   const upcoming = !!course.term && isUpcomingTerm(course.term) && course.term !== currentTermName()
   const holding = upcoming && empty && !outlineEarly && !importItems
-
-  // The parse-reveal plays whenever there are in-flight import items (a blueprint
-  // import or the "Upload a syllabus" sample) — even onto a manual course.
-  const revealItems = importItems ?? null
+  const panes = holding ? PANES.filter((p) => p.id !== 'grade') : PANES
 
   function completeImport(items: Assessment[]) {
-    // Stamp THIS course's id on every item — the blueprint/sample items carry the
+    // Stamp THIS course's id on every item: the blueprint/sample items carry the
     // source's id (or a code), so without this they'd attach to the wrong course.
-    addAssessments(items.map((i) => ({ ...i, courseId: courseId2 })))
+    addAssessments(items.map((i) => ({ ...i, courseId: id })))
     // The outline's own page-one details, if it carried any and the fields are
     // still blank. Written after the assessments so a failure here cannot cost
     // the import that actually matters.
-    if (importDetails && Object.keys(importDetails).length > 0) {
-      updateCourse(courseId2, importDetails)
-    }
+    if (importDetails && Object.keys(importDetails).length > 0) updateCourse(id, importDetails)
     // Clear the import state so the reveal doesn't replay on the next render.
-    if (importItems) {
-      navigate(location.pathname, {
-        replace: true,
-        state: focusId ? { focus: focusId } : null,
-      })
-    }
+    if (importItems) navigate(location.pathname, { replace: true, state: focusId ? { focus: focusId } : null })
   }
 
   return (
-    <div className="ct-fixed-page mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-5 sm:px-6 lg:h-full lg:min-h-0 lg:overflow-hidden">
-      {/* The banner does not move, and on a wide screen neither does the page.
-          An earlier attempt at this clipped the assessment column instead of
-          scrolling it — it had `overflow-hidden` on the row and no
-          `overflow-y-auto` or `min-h-0` on the columns themselves, so the
-          taller one was simply cut off. Both columns own a scroll region now,
-          and each needs `min-h-0` because a flex child's default `min-height:
-          auto` refuses to shrink below its content and the overflow never
-          engages. Below `lg` this is all off: one column, one page scroll.
-          Losing the banner is how you end up entering a mark on the wrong
-          course. */}
-      <div className="lg:shrink-0">
-        <CourseHeader
-          course={course}
-          currentPercent={standing.currentPercent}
-          onImport={() => setImporting(true)}
-        />
-      </div>
-
+    <div className="mx-auto w-full max-w-[1600px] space-y-5 px-5 py-5 sm:px-6">
+      <DetailHero course={course} assessments={mine} backTo="/app/courses" onImport={() => setImporting(true)} onOpen={openAssessment} />
       <CourseAnnouncements courseCode={course.code} />
 
       {importing && (
-        <ModalShell
-          label={`Import an outline into ${course.code}`}
-          onClose={() => setImporting(false)}
-          widthClass="sm:max-w-2xl"
-        >
+        <ModalShell label={`Import an outline into ${course.code}`} onClose={() => setImporting(false)} widthClass="sm:max-w-2xl">
           <SyllabusUploadPage intoCourseId={course.id} onDone={() => setImporting(false)} />
         </ModalShell>
       )}
 
-      {holding ? (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
-          {/* Sticks on desktop: the class details and the grade maths are what
-              you read the assessment list AGAINST, and scrolling them off the
-              top is what made the page feel like it moved instead of the
-              content. Its own scrollbar, since the aside can outgrow the
-              viewport on a course with a long breakdown. */}
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            <CourseInfoPanel
-              autoFill={autoFill}
-              course={course}
-              totalAssessments={0}
-              editableIdentity={manual}
-            />
-            <SectionDeadlinesCard course={course} />
-            <SyllabusFileCard course={course} />
-            <CourseNotesCard course={course} />
-            <MoodleCourseSection course={course} />
-          </aside>
-
-          <main className="min-w-0 flex-1 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5">
-            <div className="rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
-              <CalendarClock size={22} className="mx-auto text-subtle" aria-hidden />
-              <p className="mt-3 text-[15px] font-medium text-fg">Waiting for {course.term}</p>
-              <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-subtle">
-                This class is saved and out of the way until the term begins. Assignments and dates
-                come from the outline, which your professor publishes in the first week, so nothing
-                worth entering exists yet.
-              </p>
-              <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-subtle">
-                You can still fill in the class details on the left whenever you like.
-              </p>
-              {/* Deliberately quiet. It is the right door for a handful of
-                  people and a wrong turn for everyone else. */}
-              <button
-                type="button"
-                onClick={() => setOutlineEarly(true)}
-                className="mt-4 text-[12px] text-subtle underline underline-offset-2 transition-colors duration-150 hover:text-fg"
-              >
-                I already have the outline
-              </button>
-            </div>
-          </main>
-        </div>
-      ) : revealItems ? (
-        <SyllabusParseReveal
-          course={course}
-          items={revealItems}
-          onComplete={completeImport}
-          autoStart={!!importItems}
-        />
-      ) : manual ? (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            <CourseInfoPanel
-              autoFill={autoFill}
-              course={course}
-              totalAssessments={courseAssessments.length}
-              editableIdentity
-            />
-            <SectionDeadlinesCard course={course} />
-            <SyllabusFileCard course={course} />
-            <CourseNotesCard course={course} />
-            <MoodleCourseSection course={course} />
-            {!empty && <GradeBreakdown assessments={courseAssessments} color={course.color} />}
-            {!empty && <GradeNeeded assessments={courseAssessments} />}
-            {!empty && (
-              <PaywallLock locked={plan === 'free'} feature="GPA prediction">
-                <GpaWhatIf courses={courses} assessments={assessments} courseId={course.id} />
-              </PaywallLock>
-            )}
-          </aside>
-
-          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            {/* EVERY course takes this branch — `createCourse` stamps origin
-                'manual' on all of them — so this is the only place an outline
-                can be brought into a course you already have. It used to live
-                solely in the branch below, which no real course reaches, so a
-                student who had RELI 230 and then got its outline had no way to
-                upload it. */}
-            {empty ? (
-              <div className="rounded-xl border border-accent/40 bg-accent-soft/60 px-4 py-4">
-                <p className="text-[14px] font-medium text-fg">Got the outline for {course.code || 'this class'}?</p>
-                <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
-                  Upload the PDF and we read the assessments, dates and weights into this course. You
-                  review everything before it is added.
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setImporting(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-                  >
-                    <Upload size={14} aria-hidden />
-                    Upload the outline
-                  </button>
-                  <Link
-                    to={`/app/courses/blueprints?course=${course.id}`}
-                    className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-                  >
-                    or find a classmate&rsquo;s blueprint
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-            <ManualCourseAssessments
-              courseId={course.id}
-              assessments={courseAssessments}
-              focusId={focusId}
-            />
-          </main>
-        </div>
-      ) : empty ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border-strong bg-surface/50 px-6 py-12 text-center">
-          <p className="text-[13px] text-subtle">No assessments yet for {course.code}.</p>
-          <button
-            type="button"
-            onClick={() => setImporting(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-accent-contrast shadow-sm transition-colors duration-150 hover:bg-accent-hover"
-          >
-            <Upload size={15} aria-hidden />
-            Upload the outline
-          </button>
-          <Link
-            to={`/app/courses/blueprints?course=${course.id}`}
-            className="text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-          >
-            or find a classmate&rsquo;s blueprint
-          </Link>
-        </div>
+      {importItems ? (
+        // The parse-reveal plays whenever there are in-flight import items (a
+        // blueprint import or an uploaded outline), onto any course.
+        <SyllabusParseReveal course={course} items={importItems} onComplete={completeImport} autoStart />
       ) : (
-        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:items-stretch">
-          <aside className="flex flex-col gap-3 lg:min-h-0 lg:w-[300px] lg:shrink-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            <div data-tour="course-info">
-              <CourseInfoPanel
-                autoFill={autoFill}
-                course={course}
-                totalAssessments={courseAssessments.length}
-              />
-            </div>
-            <SectionDeadlinesCard course={course} />
-            <SyllabusFileCard course={course} />
-            <CourseNotesCard course={course} />
-            <div data-tour="breakdown">
-              <GradeBreakdown assessments={courseAssessments} color={course.color} />
-            </div>
-            <div data-tour="grade-needed">
-              <GradeNeeded assessments={courseAssessments} />
-            </div>
-            <div data-tour="gpa-predict">
-              <PaywallLock locked={plan === 'free'} feature="GPA prediction">
-                <GpaWhatIf
-                  courses={courses}
-                  assessments={assessments}
-                  courseId={course.id}
-                />
-              </PaywallLock>
-            </div>
-          </aside>
+        <>
+          {/* Phones: one part at a time. From lg up all of them are on screen. */}
+          <div role="tablist" aria-label="Parts of this class" className="flex gap-2 overflow-x-auto lg:hidden">
+            {panes.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                role="tab"
+                aria-selected={pane === p.id}
+                onClick={() => setPane(p.id)}
+                className={cn(
+                  'rounded-full px-4 py-2 text-[13.5px] font-semibold whitespace-nowrap transition-colors duration-150',
+                  pane === p.id ? 'bg-fg text-canvas' : 'border border-border text-muted',
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-          <main className="flex min-w-0 flex-1 flex-col gap-3 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5 lg:*:shrink-0">
-            <TeacherChangeCard items={courseAssessments.filter((a) => a.teacherPrev)} />
-            {(coursePeerCorrections.length > 0 || moodleMismatches.length > 0) && (
-              <div className="flex flex-col gap-2">
-                {moodleMismatches.map((m) => (
-                  <MoodleMismatchCard key={m.assessmentId} mismatch={m} />
-                ))}
-                {coursePeerCorrections.map((c) => (
-                  <PeerSuggestion key={c.assessmentId} correction={c} />
-                ))}
+          <div className="grid items-start gap-x-5 gap-y-8 lg:grid-cols-[360px_minmax(0,1fr)]">
+            {/* lg:pt-[10px] matches the rail's own top padding (ct-scroll-fade),
+                and the heading rows are the same height, so the two headings
+                and the two first cards start on the same lines. */}
+            <main className={cn('min-w-0 space-y-8 lg:order-2 lg:pt-[10px]', pane === 'class' && 'hidden lg:block')}>
+              <div className={cn('space-y-3', pane !== 'work' && 'hidden lg:block')}>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:min-h-10">
+                  <h2 className={cn(H2, 'hidden lg:block')}>Assessments</h2>
+                  {manual && !empty && <ModeSwitch view={view} onChange={setMode} />}
+                </div>
+                {holding ? (
+                  <Waiting term={course.term} onHaveOutline={() => setOutlineEarly(true)} />
+                ) : (
+                  <>
+                    <TeacherChangeCard items={mine.filter((a) => a.teacherPrev)} />
+                    {mismatches.map((m) => (
+                      <MoodleMismatchCard key={m.assessmentId} mismatch={m} />
+                    ))}
+                    {corrections.map((c) => (
+                      <PeerSuggestion key={c.assessmentId} correction={c} />
+                    ))}
+                    {empty && <OutlinePrompt course={course} onUpload={() => setImporting(true)} />}
+                    {manual && view === 'setup' ? (
+                      <ManualAssessmentEditor courseId={course.id} />
+                    ) : (
+                      !empty && <AssessmentTable assessments={mine} focusId={focusId} />
+                    )}
+                  </>
+                )}
+                <MoodleCourseSection course={course} />
               </div>
-            )}
-            <AssessmentTable assessments={courseAssessments} focusId={focusId} />
-            <MoodleCourseSection course={course} />
-          </main>
-        </div>
+
+              {!holding && (
+                <section className={cn('space-y-3', pane !== 'grade' && 'hidden lg:block')}>
+                  <h2 className={cn(H2, 'hidden lg:block')}>Your grade</h2>
+                  {empty ? (
+                    <p className="rounded-3xl border border-dashed border-border-strong px-5 py-6 text-[14px] leading-relaxed text-muted">
+                      Your breakdown, the grade you need and the what-if appear once this class has assessments.
+                    </p>
+                  ) : (
+                    // One height per row: each card stretches to the tallest beside it.
+                    <div className="grid items-stretch gap-4 *:h-full md:grid-cols-2 2xl:grid-cols-3 [&>*>*]:h-full">
+                      <div data-tour="breakdown">
+                        <GradeBreakdown assessments={mine} color={course.color} />
+                      </div>
+                      <div data-tour="grade-needed">
+                        <GradeNeeded assessments={mine} />
+                      </div>
+                      <div
+                        data-tour="gpa-predict"
+                        // Locked, the card sits two wrappers deeper (the lock, then its blurred copy).
+                        className={cn(plan === 'free' && '[&>*>[aria-hidden]]:h-full [&>*>[aria-hidden]>*]:h-full')}
+                      >
+                        <PaywallLock locked={plan === 'free'} feature="GPA prediction">
+                          <GpaWhatIf courses={courses} assessments={assessments} courseId={course.id} />
+                        </PaywallLock>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+            </main>
+
+            {/* The side rail: everything about the class in one place. It stays
+                put while the assessment list scrolls, and scrolls on its own (no
+                visible bar; the edges fade) when it is taller than the screen. */}
+            <aside
+              className={cn(
+                'ct-scroll-fade ct-no-scrollbar min-w-0 space-y-3 lg:sticky lg:top-4 lg:order-1 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto',
+                pane !== 'class' && 'hidden lg:block',
+              )}
+            >
+              <h2 className={cn(H2, 'hidden items-center lg:flex lg:min-h-10')}>Class details</h2>
+              <div data-tour="course-info">
+                <CourseInfoPanel autoFill={autoFill} course={course} totalAssessments={mine.length} editableIdentity={manual} />
+              </div>
+              <SectionDeadlinesCard course={course} />
+              <SyllabusFileCard course={course} />
+              <CourseNotesCard course={course} />
+            </aside>
+          </div>
+        </>
       )}
     </div>
   )
 }
 
 /**
- * The main column for a course you are grading.
- *
- * TWO VIEWS OF THE SAME ROWS, and only ever one at a time. It used to render
- * BOTH — the structure editor above the grade table — so four assessments
- * appeared as eight, and the control that swapped them said "Done editing",
- * which reads as a save button on a form that has no save. Two lists of the
- * same thing is the confusion; a labelled switch between them is the fix.
- *
- * Grades is the daily view (mark complete, enter marks). Setup is the
- * occasional one (type, date, weight, add, remove).
+ * Two views of the same rows, only ever one at a time, and each side says what
+ * you do there: "Grades / Edit" left people unsure which one takes a mark.
  */
-export function ManualCourseAssessments({
-  courseId,
-  assessments,
-  focusId,
-}: {
-  courseId: string
-  assessments: Assessment[]
-  focusId?: string
-}) {
-  const empty = assessments.length === 0
-  // A course with nothing in it has no grades to show, so setup IS the view.
-  const [view, setView] = useState<'grades' | 'setup'>(empty ? 'setup' : 'grades')
-
+function ModeSwitch({ view, onChange }: { view: 'grades' | 'setup'; onChange: (v: 'grades' | 'setup') => void }) {
+  const tabs = [
+    { id: 'grades', label: 'Enter grades', icon: ListChecks, hint: 'Tick what you handed in and type your mark on each row' },
+    { id: 'setup', label: 'Add or change assessments', icon: Pencil, hint: 'Add or remove assessments, change a type, date or weight. Your marks are kept.' },
+  ] as const
   return (
-    <div className="flex flex-col gap-3">
-      {!empty && (
-        <div
-          role="tablist"
-          aria-label="Assessment view"
-          data-tour="assess-editor"
-          className="flex w-fit gap-0.5 rounded-lg border border-border bg-surface p-0.5"
-        >
-          {([
-            { id: 'grades', label: 'Grades', icon: ListChecks },
-            { id: 'setup', label: 'Edit', icon: Pencil },
-          ] as const).map((tab) => {
-            const Icon = tab.icon
-            const on = view === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setView(tab.id)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
-                  on ? 'bg-accent-soft text-fg' : 'text-muted hover:text-fg',
-                )}
-              >
-                <Icon size={13} aria-hidden className={cn('shrink-0', on && 'text-accent')} />
-                {tab.label}
-              </button>
-            )
-          })}
-          <span className="self-center px-2 text-[11.5px] text-subtle">
-            {view === 'setup' ? 'type · date · weight' : 'mark complete · enter marks'}
-          </span>
-        </div>
-      )}
+    <div
+      role="tablist"
+      aria-label="What you are doing with this list"
+      data-tour="assess-editor"
+      className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-border bg-surface p-1"
+    >
+      {tabs.map((tab) => {
+        const on = view === tab.id
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            title={tab.hint}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition-colors duration-150',
+              on ? 'bg-fg text-canvas' : 'text-muted hover:text-fg',
+            )}
+          >
+            <tab.icon size={14} aria-hidden className="shrink-0" />
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
-      {view === 'setup' ? (
-        <ManualAssessmentEditor courseId={courseId} />
-      ) : (
-        <AssessmentTable assessments={assessments} focusId={focusId} />
-      )}
+function OutlinePrompt({ course, onUpload }: { course: Course; onUpload: () => void }) {
+  return (
+    <div className="rounded-3xl border border-accent/40 bg-accent-soft/60 p-5 sm:p-6">
+      <p className="font-display text-[18px] font-semibold text-fg">Got the outline for {course.code || 'this class'}?</p>
+      <p className="mt-1 max-w-xl text-[13.5px] leading-relaxed text-muted">
+        Upload it and we read the assessments, dates and weights into this class. You review everything before it is
+        added.
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onUpload}
+          className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+        >
+          <Upload size={15} aria-hidden /> Upload the outline
+        </button>
+        <Link to={`/app/courses/blueprints?course=${course.id}`} className="text-[13px] font-medium text-muted hover:text-fg">
+          or find a classmate&rsquo;s blueprint
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+function Waiting({ term, onHaveOutline }: { term: string; onHaveOutline: () => void }) {
+  return (
+    <div className="rounded-3xl border border-dashed border-border-strong px-6 py-12 text-center">
+      <CalendarClock size={22} className="mx-auto text-subtle" aria-hidden />
+      <p className="mt-3 font-display text-[18px] font-semibold text-fg">Waiting for {term}</p>
+      <p className="mx-auto mt-1 max-w-md text-[13.5px] leading-relaxed text-muted">
+        This class is saved and out of the way until the term begins. Assignments and dates come from the outline, which
+        your professor publishes in the first week, so nothing worth entering exists yet.
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-subtle">
+        You can still fill in the class details whenever you like.
+      </p>
+      {/* Deliberately quiet. It is the right door for a handful of people and a
+          wrong turn for everyone else. */}
+      <button
+        type="button"
+        onClick={onHaveOutline}
+        className="mt-4 text-[12.5px] text-subtle underline underline-offset-2 transition-colors duration-150 hover:text-fg"
+      >
+        I already have the outline
+      </button>
     </div>
   )
 }
