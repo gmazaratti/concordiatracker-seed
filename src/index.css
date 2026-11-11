@@ -2257,8 +2257,8 @@ html:has(
   from { background-position: 220% 0; }
   to   { background-position: -120% 0; }
 }
-.ct-discover-pop { animation: ct-discover-in 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
-.ct-discover-pop.ct-discover-out { animation: ct-discover-out 240ms ease-in forwards; }
+.ct-discover-pop { animation: ct-discover-drop 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.ct-discover-pop.ct-discover-out { animation: ct-discover-lift 260ms ease-in forwards; }
 .ct-discover-icon { animation: ct-discover-icon 480ms cubic-bezier(0.34, 1.56, 0.64, 1) 180ms backwards; }
 .ct-discover-sheen {
   background: linear-gradient(90deg, transparent 0%, var(--ct-accent) 50%, transparent 100%) no-repeat;
@@ -2297,3 +2297,48 @@ html:has(
 /* The live dot on the Today discovery card: three slow pings, then still. */
 @keyframes ct-discover-ping { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.6); opacity: 0; } }
 .ct-discover-ping { animation: ct-discover-ping 1.8s ease-out 3 forwards; opacity: 0; }
+
+/* The discovery popup arrives like a phone notification: it drops in from the
+   top edge, settles with a small overshoot, and lifts back out when closed. */
+@keyframes ct-discover-drop {
+  from { opacity: 0; transform: translateY(-130%); }
+  65%  { opacity: 1; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes ct-discover-lift {
+  to { opacity: 0; transform: translateY(-130%); }
+}
+
+/* A point of light travelling round the popup's outline, so the eye finds it
+   without anything flashing. The angle is a registered property so it can be
+   animated; a browser without @property just shows a still accent edge. The
+   ring is a masked pseudo-element: only the 1.5px border band is painted. */
+@property --ct-beam {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ct-beam-spin { to { --ct-beam: 360deg; } }
+.ct-beam::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--ct-beam),
+    transparent 0deg,
+    transparent 200deg,
+    color-mix(in srgb, var(--ct-accent) 55%, transparent) 265deg,
+    var(--ct-accent) 320deg,
+    #ffffff 345deg,
+    var(--ct-accent) 355deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: ct-beam-spin 3.6s linear infinite;
+  pointer-events: none;
+}
+.ct-beam { box-shadow: 0 18px 50px -18px color-mix(in srgb, var(--ct-accent) 55%, transparent), 0 10px 30px -12px rgba(0, 0, 0, 0.6); }

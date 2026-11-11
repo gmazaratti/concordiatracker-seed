@@ -12,8 +12,8 @@ const EXIT_MS = 240
 /**
  * The occasional "did you know" popup.
  *
- * Designed to be noticed, not to interrupt: it slides up in a corner a few
- * seconds after you land, takes no focus, blocks nothing, and never appears on
+ * Designed to be noticed, not to interrupt: it drops in at the top centre, like
+ * a phone notification, a few seconds after you land, takes no focus, blocks nothing, and never appears on
  * your first day or twice in a day (rules in lib/discovery.ts, popupFor). It
  * waits while any dialog is open, and it is recorded as shown the moment it
  * appears, so a reload never replays it.
@@ -28,6 +28,7 @@ export function DiscoveryPopup() {
   const [shown, setShown] = useState<Nudge | null>(null)
   const [leaving, setLeaving] = useState(false)
   const done = useRef(false)
+  const swipeY = useRef<number | null>(null)
 
   const waiting = !shown && !!popup && pathname.startsWith('/app')
   useEffect(() => {
@@ -57,16 +58,24 @@ export function DiscoveryPopup() {
 
   return (
     <aside
+      onPointerDown={(e) => {
+        if (e.pointerType === 'touch') swipeY.current = e.clientY
+      }}
+      onPointerUp={(e) => {
+        // Flick it up and away, the way a phone notification is dismissed.
+        if (swipeY.current !== null && swipeY.current - e.clientY > 36) close()
+        swipeY.current = null
+      }}
       role="status"
       aria-live="polite"
       aria-label="A feature you have not tried"
       className={cn(
-        'ct-discover-pop fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto max-w-[400px] overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-2xl',
-        'md:inset-x-auto md:right-5 md:bottom-5 md:mx-0 md:w-[360px]',
+        // Top centre on every screen, like a phone notification. Centred with
+        // auto margins, not a translate: the entrance animates `transform`.
+        'ct-discover-pop ct-beam fixed inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-40 mx-auto max-w-[440px] overflow-hidden rounded-2xl border border-accent/25 bg-surface md:top-5',
         leaving && 'ct-discover-out',
       )}
     >
-      <span className="ct-discover-sheen pointer-events-none absolute inset-x-0 top-0 h-[2px]" aria-hidden />
       <div className="flex items-start gap-3 p-4">
         <span className="ct-discover-icon grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
           <NudgeIcon icon={shown.icon} size={19} />
