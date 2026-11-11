@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { Check, Eye, Lock } from 'lucide-react'
-import type { Assessment, Course } from '@/data/types'
-import { courseColor } from '@/lib/course-color'
-import { currentGpa, percentToGrade } from '@/lib/gpa'
-import { gradeToPercent } from '@/lib/grade'
-import { relativeDueLabel } from '@/lib/date'
+import type { Assessment } from '@/data/types'
+import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
-import { KIND_LABEL } from '@/lib/assessment'
-import { cn } from '@/lib/cn'
+import { Group } from './FamilyRows'
+import { dueLabel, splitTitle } from './family-format'
 import type { FamilyData } from './family-data'
 
 const DAY = 86_400_000
@@ -49,21 +46,29 @@ export function FamilyToday({ data }: { data: FamilyData }) {
           <section className="overflow-hidden rounded-xl border border-border bg-surface">
             <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
               <p className="text-[13px] font-semibold text-fg">Due</p>
-              <p className="text-[12px] text-subtle">{overdue.length + week.length + later.length} items</p>
+              <p className="text-[12px] text-subtle">{week.length} this week</p>
             </div>
             {overdue.length + week.length + later.length === 0 ? (
               <p className="px-4 py-10 text-center text-[14px] text-subtle">Nothing due right now.</p>
             ) : (
               <>
-                <Group now={now} label="Overdue" tone="danger" items={overdue} course={course} grades={data.grades} />
+                {/* Due soonest first: what is coming matters more to a parent than
+                    a backlog that may simply not have been ticked off. */}
                 <Group now={now} label="This week" items={week} course={course} grades={data.grades} />
-                <Group now={now} label="Coming up" items={later} course={course} grades={data.grades} />
+                <Group now={now} label="Coming up" items={later} course={course} grades={data.grades} limit={4} />
+                <Group
+                  now={now}
+                  label="Past due"
+                  hint="Not marked done yet. It may be handed in."
+                  tone="danger"
+                  items={[...overdue].reverse()}
+                  course={course}
+                  grades={data.grades}
+                  limit={3}
+                />
               </>
             )}
           </section>
-          {overdue.length > 0 && (
-            <p className="mt-2 px-1 text-[12px] text-subtle">Overdue means not ticked off yet. It may simply be handed in and not marked.</p>
-          )}
           {doneToday.length > 0 && (
             <p className="mt-3 px-1 text-[12.5px] text-muted">
               <Check size={13} className="mr-1 inline text-success" aria-hidden />
@@ -80,14 +85,24 @@ export function FamilyToday({ data }: { data: FamilyData }) {
                 {data.grades ? (termGpa !== null ? termGpa.toFixed(2) : '—') : <Hidden />}
                 {data.grades && cumGpa !== null && <span className="block text-[11px] font-normal text-subtle">Cumulative {cumGpa.toFixed(2)}</span>}
               </Row>
-              <Row label="Overdue">
+              <Row label="Past due">
                 <span className={overdue.length ? 'text-danger' : ''}>{overdue.length}</span>
               </Row>
               <Row label="Due this week">{week.length}</Row>
-              <Row label="Next up">
-                {next ? relativeDueLabel(next.due) : '—'}
-                {next && <span className="block truncate text-[11px] font-normal text-subtle">{course(next.courseId)?.code} · {next.title}</span>}
-              </Row>
+              <div className="border-t border-border/60 pt-3">
+                <dt className="text-muted">Next up</dt>
+                {next ? (
+                  <dd className="mt-1 min-w-0">
+                    <span className="block truncate font-semibold text-fg">{splitTitle(next.title).name}</span>
+                    <span className="mt-0.5 flex items-center justify-between gap-2 text-[12px] text-subtle">
+                      <span className="truncate">{course(next.courseId)?.code}</span>
+                      <span className="shrink-0 font-medium text-warning">{dueLabel(next.due, now).text}</span>
+                    </span>
+                  </dd>
+                ) : (
+                  <dd className="mt-1 text-subtle">Nothing coming up</dd>
+                )}
+              </div>
               <Row label="This term">
                 {data.courses.length} course{data.courses.length === 1 ? '' : 's'}
                 <span className="block text-[11px] font-normal text-subtle">{credits} credits</span>
@@ -121,63 +136,8 @@ function Hidden() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-semibold text-fg">{children}</dd>
-    </div>
-  )
-}
-
-/** A due-list section, rows shaped like Today's DueRow but read-only. */
-export function Group({
-  label,
-  tone,
-  items,
-  course,
-  grades,
-  now,
-}: {
-  label: string
-  tone?: 'danger'
-  items: Assessment[]
-  course: (id: string) => Course | undefined
-  grades: boolean
-  now: number
-}) {
-  if (items.length === 0) return null
-  return (
-    <div>
-      <p className={cn('px-4 pt-3 pb-1 text-[11px] font-semibold tracking-wide uppercase', tone === 'danger' ? 'text-danger' : 'text-subtle')}>{label}</p>
-      <ul className="divide-y divide-border/60">
-        {items.map((a) => {
-          const c = course(a.courseId)
-          const due = relativeDueLabel(a.due)
-          const urgent = a.due && new Date(a.due).getTime() < now + DAY
-          const pct = grades ? gradeToPercent(a.grade) : null
-          return (
-            <li key={a.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className={cn('grid size-[18px] shrink-0 place-items-center rounded-full border-2', isOpen(a.status) ? 'border-border-strong' : 'border-accent bg-accent text-accent-contrast')} aria-hidden>
-                {!isOpen(a.status) && <Check size={10} strokeWidth={3.5} />}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-medium text-fg">{a.title}</span>
-                <span className="flex items-center gap-1.5 text-[12px] text-subtle">
-                  {c && <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: courseColor(c.color).hex }} aria-hidden />}
-                  <span className="truncate">
-                    {c?.code} · {KIND_LABEL[a.kind]} · {a.weight}%
-                  </span>
-                </span>
-              </span>
-              {pct !== null ? (
-                <span className="shrink-0 text-[13px] font-semibold text-fg">
-                  {Math.round(pct)}% {percentToGrade(pct).letter}
-                </span>
-              ) : (
-                <span className={cn('w-[104px] shrink-0 text-right text-[13px] font-semibold', tone === 'danger' ? 'text-danger' : urgent ? 'text-warning' : 'text-fg')}>{due}</span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+      <dt className="shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 text-right font-semibold text-fg">{children}</dd>
     </div>
   )
 }

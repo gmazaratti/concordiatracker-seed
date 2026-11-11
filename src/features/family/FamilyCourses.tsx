@@ -8,7 +8,7 @@ import { isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import type { FamilyData } from './family-data'
 import { useByCourse } from './family-data'
-import { Group } from './FamilyToday'
+import { Group } from './FamilyRows'
 
 /** The student's classes as the app's grid cards, read-only. */
 export function FamilyCourses({ data }: { data: FamilyData }) {
@@ -113,7 +113,17 @@ export function FamilyCourse({ data }: { data: FamilyData }) {
           {items.length === 0 ? (
             <p className="px-4 py-8 text-center text-[13px] text-subtle">No assessments yet.</p>
           ) : (
-            <Group now={now} label="All" items={items} course={() => c} grades={data.grades} />
+            <>
+              <Group now={now} label="Coming up" items={items.filter((a) => !a.due || new Date(a.due).getTime() >= now)} course={() => c} grades={data.grades} limit={8} />
+              <Group
+                now={now}
+                label="Earlier"
+                items={items.filter((a) => a.due && new Date(a.due).getTime() < now).reverse()}
+                course={() => c}
+                grades={data.grades}
+                limit={4}
+              />
+            </>
           )}
         </section>
       </div>
