@@ -20,11 +20,14 @@ export function DetailHero({
   assessments,
   backTo,
   onImport,
+  onOpen,
 }: {
   course: Course
   assessments: Assessment[]
   backTo: string
   onImport: () => void
+  /** Opens an assessment's editor: the "next due" cell is a way into it. */
+  onOpen: (id: string) => void
 }) {
   const standing = courseStanding(assessments)
   const stats = courseStats(assessments)
@@ -105,15 +108,34 @@ export function DetailHero({
         <Fact
           label={stats.nextDue ? stats.nextDue.title : 'Next due'}
           value={stats.nextDue ? relativeDueLabel(stats.nextDue.due).replace(/^Due /, '') : 'Nothing'}
+          onClick={stats.nextDue ? () => onOpen(stats.nextDue!.id) : undefined}
         />
       </dl>
     </header>
   )
 }
 
-function Fact({ label, value, bar, alert }: { label: string; value: string; bar?: number; alert?: boolean }) {
+function Fact({
+  label,
+  value,
+  bar,
+  alert,
+  onClick,
+}: {
+  label: string
+  value: string
+  bar?: number
+  alert?: boolean
+  onClick?: () => void
+}) {
   return (
-    <div className="min-w-0 bg-black/35 px-5 py-3.5 backdrop-blur-md sm:px-6">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick()) : undefined}
+      className={`min-w-0 bg-black/35 px-5 py-3.5 backdrop-blur-md sm:px-6 ${onClick ? 'cursor-pointer transition-colors duration-150 hover:bg-black/20 focus-visible:bg-black/20 focus-visible:outline-none' : ''}`}
+    >
       <dd className={`truncate font-display text-[22px] leading-tight font-bold tabular-nums first-letter:uppercase ${alert ? 'text-[#ff8a8a]' : ''}`}>
         {value}
       </dd>

@@ -7,11 +7,7 @@ import { ModalShell } from '@/command/ModalShell'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { MoodleCourseSection } from '@/features/moodle/MoodleCourseSection'
 import { CourseNotesCard } from '@/features/notes/CourseNotesCard'
-import { KIND_LABEL } from '@/lib/assessment'
-import { courseColor } from '@/lib/course-color'
-import { byDue, daysUntil, relativeDueLabel } from '@/lib/date'
 import { findMoodleMismatches } from '@/lib/moodle-match'
-import { isOpen } from '@/lib/status'
 import { cn } from '@/lib/cn'
 import { AssessmentTable } from '../AssessmentTable'
 import { CourseAnnouncements } from '../CourseAnnouncements'
@@ -41,7 +37,7 @@ const PANES: { id: Pane; label: string }[] = [
  *
  * A proposed class page: the same tools as the live one (the assessment list,
  * the grade breakdown, grade needed, the what-if, the class details), arranged
- * as a banner, a "coming up" row, and three titled parts. On a wide screen the
+ * as a banner (whose last cell is what is due next) and three titled parts. On a wide screen the
  * class details and the grade are a pinned rail on the left of the assessments; on a phone the
  * three parts are tabs, so the list is not buried under the details.
  */
@@ -67,13 +63,8 @@ export function CourseDetailPreviewPage() {
   const mine = assessments.filter((a) => a.courseId === course.id)
   const ids = new Set(mine.map((a) => a.id))
   const empty = mine.length === 0
-  const hex = courseColor(course.color).hex
   const corrections = peerCorrections.filter((c) => ids.has(c.assessmentId))
   const mismatches = findMoodleMismatches(personalTasks, assessments, courses).filter((m) => ids.has(m.assessmentId))
-  const comingUp = mine
-    .filter((a) => isOpen(a.status) && !!a.due)
-    .sort(byDue)
-    .slice(0, 3)
 
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-5 px-5 py-5 sm:px-6">
@@ -85,46 +76,8 @@ export function CourseDetailPreviewPage() {
         </Link>
       </p>
 
-      <DetailHero course={course} assessments={mine} backTo="/app/courses/preview" onImport={() => setImporting(true)} />
+      <DetailHero course={course} assessments={mine} backTo="/app/courses/preview" onImport={() => setImporting(true)} onOpen={openAssessment} />
       <CourseAnnouncements courseCode={course.code} />
-
-      {comingUp.length > 0 && (
-        <section>
-          <h2 className="font-display text-[22px] font-semibold tracking-tight text-fg">Coming up</h2>
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {comingUp.map((a, i) => {
-              const late = daysUntil(a.due!) < 0
-              const d = new Date(a.due!)
-              return (
-                <li key={a.id} className="ct-res-in" style={{ animationDelay: `${i * 45}ms` }}>
-                  <button
-                    type="button"
-                    onClick={() => openAssessment(a.id)}
-                    className="flex w-full items-center gap-3.5 rounded-3xl border border-border bg-surface p-3.5 text-left transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong"
-                    style={{ boxShadow: `inset 4px 0 0 ${late ? 'var(--ct-danger)' : hex}` }}
-                  >
-                    <span className={cn('flex w-14 shrink-0 flex-col items-center rounded-2xl py-2', late ? 'bg-danger/15 text-danger' : 'bg-canvas/70 text-fg')}>
-                      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase opacity-70">
-                        {d.toLocaleDateString(undefined, { month: 'short' })}
-                      </span>
-                      <span className="font-display text-[22px] leading-none font-bold tabular-nums">{d.getDate()}</span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-fg">{a.title}</span>
-                      <span className="block truncate text-[12.5px] text-muted">
-                        {KIND_LABEL[a.kind]} · worth {a.weight}%
-                      </span>
-                    </span>
-                    <span className={cn('shrink-0 text-[12.5px] font-semibold', late ? 'text-danger' : 'text-muted')}>
-                      {relativeDueLabel(a.due)}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      )}
 
       {/* Phones: one part at a time. From lg up all three are on screen. */}
       <div role="tablist" aria-label="Parts of this class" className="flex gap-2 overflow-x-auto lg:hidden">
