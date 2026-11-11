@@ -187,7 +187,8 @@ export function CourseDetailPreviewPage() {
                 Your breakdown, the grade you need and the what-if appear once this class has assessments.
               </p>
             ) : (
-              <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {/* One height per row: each card stretches to the tallest beside it (through the paywall wrapper too). */}
+              <div className="grid items-stretch gap-4 *:h-full md:grid-cols-2 2xl:grid-cols-3 [&>*>[aria-hidden]]:h-full [&>*>[aria-hidden]>*]:h-full">
                 <GradeBreakdown assessments={mine} color={course.color} />
                 <GradeNeeded assessments={mine} />
                 <PaywallLock locked={plan === 'free'} feature="GPA prediction">
