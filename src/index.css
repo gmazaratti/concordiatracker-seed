@@ -1133,6 +1133,21 @@ html[data-reduce-motion] *::after {
   border: 0;
 }
 
+/* A larger thumb and track where the slider is the main control (GPA what-if). */
+.ct-range-lg {
+  height: 6px;
+}
+.ct-range-lg::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 3px var(--ct-surface);
+}
+.ct-range-lg::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 0 3px var(--ct-surface);
+}
+
 .ct-range:focus-visible {
   box-shadow: 0 0 0 3px var(--ct-accent-ring);
 }

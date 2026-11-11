@@ -80,7 +80,13 @@ export function GpaWhatIf({
               max={100}
               value={assumed}
               onChange={(e) => setAssumed(Number(e.target.value))}
-              className="mt-2 w-full accent-[var(--ct-accent)]"
+              // The themed slider (.ct-range): the native one drew a white
+              // track. Filled in the accent up to the value, the rest in the
+              // theme's border colour, so it matches every theme.
+              className="ct-range ct-range-lg mt-3 w-full"
+              style={{
+                background: `linear-gradient(to right, var(--ct-accent) 0%, var(--ct-accent) ${assumed}%, var(--ct-border-strong) ${assumed}%, var(--ct-border-strong) 100%)`,
+              }}
             />
 
             <div className="mt-3 grid grid-cols-2 gap-2">
