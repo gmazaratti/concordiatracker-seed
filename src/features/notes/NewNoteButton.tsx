@@ -43,11 +43,11 @@ export function NewNoteButton({
     })),
   ]
   return (
-    <div className="flex items-stretch overflow-hidden rounded-lg bg-accent text-accent-contrast">
+    <div className="flex items-stretch overflow-hidden rounded-full bg-accent text-accent-contrast">
       <button
         type="button"
         onClick={() => (taskFirst ? onNewTask() : onNew(null))}
-        className="inline-flex h-8 items-center gap-1.5 pr-2 pl-2.5 text-[13px] font-semibold transition-colors duration-150 hover:bg-accent-hover"
+        className="inline-flex h-10 items-center gap-1.5 pr-2.5 pl-4 text-[13.5px] font-semibold transition-colors duration-150 hover:bg-accent-hover"
       >
         <Plus size={15} aria-hidden />
         {taskFirst ? 'New task' : 'New note'}
@@ -57,7 +57,7 @@ export function NewNoteButton({
         ariaLabel="New from a template"
         icon={ChevronDown}
         items={items}
-        triggerClassName="h-8 w-7 rounded-none text-accent-contrast hover:bg-accent-hover hover:text-accent-contrast"
+        triggerClassName="h-10 w-9 rounded-none text-accent-contrast hover:bg-accent-hover hover:text-accent-contrast"
       />
     </div>
   )

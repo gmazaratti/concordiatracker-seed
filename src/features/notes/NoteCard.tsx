@@ -49,7 +49,7 @@ export function NoteCard({
       }}
       {...dragProps}
       className={cn(
-        'group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-surface text-left',
+        'group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-3xl border border-border bg-surface text-left',
         'transition-[transform,box-shadow,border-color,opacity] duration-200 ease-out',
         'hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg focus-visible:outline-2 focus-visible:outline-accent',
         dragging && 'opacity-40',

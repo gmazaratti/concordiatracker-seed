@@ -66,7 +66,7 @@ export function FolderCard({
       }}
       {...dragProps}
       className={cn(
-        'group relative flex h-full w-full flex-col gap-3 rounded-2xl border border-border bg-surface p-4 text-left',
+        'group relative flex h-full w-full flex-col gap-3 rounded-3xl border border-border bg-surface p-5 text-left',
         'transition-[transform,box-shadow,border-color,opacity] duration-200 ease-out',
         'hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg focus-visible:outline-2 focus-visible:outline-accent',
         drop === 'into' && 'scale-[1.03] border-accent shadow-lg ring-2 ring-accent/50',
@@ -77,7 +77,7 @@ export function FolderCard({
       {drop === 'after' && <span className="absolute inset-y-3 -right-2 w-1 rounded-full bg-accent" aria-hidden />}
       <span className="flex items-start justify-between">
         <span
-          className="grid size-12 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+          className="grid size-12 place-items-center rounded-2xl transition-transform duration-200 group-hover:scale-105"
           style={{ background: withAlpha(hex, 0.16), color: hex }}
         >
           <Icon size={24} aria-hidden />
@@ -88,10 +88,10 @@ export function FolderCard({
         </span>
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[15px] font-semibold text-fg">{name}</span>
-        {subtitle && <span className="block truncate text-[12.5px] text-muted">{subtitle}</span>}
+        <span className="block truncate font-display text-[17px] font-semibold text-fg">{name}</span>
+        {subtitle && <span className="block truncate text-[13px] text-muted">{subtitle}</span>}
       </span>
-      <span className="mt-auto flex items-center gap-2 text-[12px] text-subtle">
+      <span className="mt-auto flex items-center gap-2 text-[12.5px] text-muted">
         <span>
           {folders > 0 && `${folders} ${folders === 1 ? 'folder' : 'folders'} · `}
           {count} {count === 1 ? noun[0] : noun[1]}
