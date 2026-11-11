@@ -10,8 +10,7 @@ import {
   SlidersHorizontal,
   UserRound,
   X,
-  type LucideIcon,
-} from 'lucide-react'
+  type LucideIcon, Users } from 'lucide-react'
 import { useSettings, type SettingsSection } from '@/app/providers/settings'
 import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { useT } from '@/i18n/i18n'
@@ -22,6 +21,7 @@ import { AccountSection } from './sections/AccountSection'
 import { CalendarSyncSection } from './sections/CalendarSyncSection'
 import { MoodleSection } from './sections/MoodleSection'
 import { PrivacySection } from './sections/PrivacySection'
+import { FamilySection } from './sections/FamilySection'
 import { BillingSection } from './sections/BillingSection'
 import { UsageSection } from './sections/UsageSection'
 import { DeveloperSection } from './sections/DeveloperSection'
@@ -120,6 +120,7 @@ const SECTIONS: {
   { id: 'calendarSync', labelKey: 'settings.calendarSync', icon: CalendarSync, store: 'pro' },
   { id: 'moodle', labelKey: 'settings.moodle', icon: GraduationCap },
   { id: 'privacy', labelKey: 'settings.privacy', icon: ShieldCheck },
+  { id: 'family', labelKey: 'settings.family', icon: Users },
   { id: 'devices', labelKey: 'settings.devices', icon: MonitorSmartphone },
   { id: 'billing', labelKey: 'settings.billing', icon: CreditCard },
   { id: 'usage', labelKey: 'settings.usage', icon: Gauge, store: 'never' },
@@ -132,6 +133,7 @@ const CONTENT: Record<SettingsSection, () => React.ReactNode> = {
   calendarSync: CalendarSyncSection,
   moodle: MoodleSection,
   privacy: PrivacySection,
+  family: FamilySection,
   billing: PURCHASES_HIDDEN ? IapBillingSection : BillingSection,
   usage: UsageSection,
   devices: DevicesSection,

@@ -128,6 +128,7 @@ export const fr: Partial<Record<Key, string>> = {
   'settings.moodle': 'Moodle',
   'settings.calendarSync': 'Sync calendrier',
   'settings.privacy': 'Confidentialité',
+  'settings.family': 'Famille',
   'settings.billing': 'Facturation',
   'settings.usage': 'Utilisation',
   'settings.developer': 'Développeur',

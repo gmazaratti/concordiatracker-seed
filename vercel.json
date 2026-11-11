@@ -57,6 +57,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/family/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/join/:path*",
       "destination": "/index.html"
     },
@@ -81,7 +85,7 @@
       "destination": "/prerendered/dev-original-landing.html"
     },
     {
-      "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|survey|onboarding|demo|reset-password)",
+      "source": "/:page(app|teacher|organizer|organizers|orgs|clubs|admin|feedback|family|survey|onboarding|demo|reset-password)",
       "destination": "/index.html"
     },
     {

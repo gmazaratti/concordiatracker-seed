@@ -122,6 +122,7 @@ export const en = {
   'settings.moodle': 'Moodle',
   'settings.calendarSync': 'Calendar sync',
   'settings.privacy': 'Privacy',
+  'settings.family': 'Family',
   'settings.billing': 'Billing',
   'settings.usage': 'Usage',
   'settings.developer': 'Developer',

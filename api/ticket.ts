@@ -17,6 +17,7 @@
 
 import { fail } from './_respond.js'
 import { notifyTicketReply } from './_ticket-email.js'
+import { sendEmail } from './_email.js'
 
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const MAX_PER_WINDOW = 3
@@ -60,7 +61,9 @@ async function rpc(name: string, body: unknown): Promise<Response> {
 }
 
 interface Body {
-  action?: 'submit' | 'check' | 'reply' | 'notify'
+  action?: 'submit' | 'check' | 'reply' | 'notify' | 'guardian-invite'
+  /** For 'guardian-invite': the family-access invite to email. */
+  linkId?: string
   subject?: string
   message?: string
   category?: string
@@ -103,6 +106,55 @@ export default async function handler(req: any, res: any) {
      * same way api/admin.ts does it, so an admin list kept in one place
      * cannot disagree with a copy kept in another.
      */
+    /*
+     * 'guardian-invite' — email a family-access invite (db/guardians.sql).
+     * Only the STUDENT who made the invite can send it, only to the address
+     * they typed, only while it is unused. Lives here for the function cap.
+     */
+    if (body.action === 'guardian-invite') {
+      const auth: string = req.headers?.authorization ?? ''
+      const jwt = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+      const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL
+      const anon = process.env.VITE_SUPABASE_ANON_KEY
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!jwt || !url || !anon || !svcKey) {
+        fail(res, 401, 'Sign in first.')
+        return
+      }
+      const who = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anon, Authorization: `Bearer ${jwt}` } })
+      const uid = who.ok ? ((await who.json()) as { id?: string }).id : null
+      if (!uid) {
+        fail(res, 401, 'Sign in first.')
+        return
+      }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const rows = (await fetch(
+        `${url}/rest/v1/guardian_links?id=eq.${encodeURIComponent(String(body.linkId ?? ''))}&select=student,invite_email,token,status,expires_at,label`,
+        { headers: svc },
+      ).then((r) => (r.ok ? r.json() : []))) as { student: string; invite_email: string | null; token: string; status: string; expires_at: string; label: string | null }[]
+      const link = rows[0]
+      if (!link || link.student !== uid || !link.invite_email || link.status !== 'pending' || link.expires_at < new Date().toISOString()) {
+        res.status(200).json({ sent: false })
+        return
+      }
+      const prof = (await fetch(`${url}/rest/v1/user_profile?user_id=eq.${uid}&select=name`, { headers: svc }).then((r) => (r.ok ? r.json() : []))) as { name: string | null }[]
+      const name = prof[0]?.name?.trim() || 'A student'
+      const sent = await sendEmail({
+        to: link.invite_email,
+        template: 'guardian_invite',
+        subject: `${name} shared their courses with you`,
+        heading: `${name} invited you to see their courses`,
+        paragraphs: [
+          `${name} uses ConcordiaTracker to keep track of their classes at Concordia, and invited you to see their courses and deadlines.`,
+          'It is view only: you cannot change anything, and they choose what is shared. Open the link below and sign in (or create a free account) to accept.',
+        ],
+        button: { label: 'Accept the invite', href: `https://concordiatracker.com/family/join/${link.token}` },
+        footnote: 'The link works once and expires in 14 days. If you were not expecting this, you can ignore it.',
+      })
+      res.status(200).json({ sent })
+      return
+    }
+
     if (body.action === 'notify') {
       const auth: string = req.headers?.authorization ?? ''
       const jwt = auth.startsWith('Bearer ') ? auth.slice(7) : ''

@@ -127,6 +127,8 @@ const appRoutes = [
   '/join/tok123',
   '/admin',
   '/feedback',
+  '/family',
+  '/family/join/abc123',
   '/survey',
   '/onboarding',
   '/demo',

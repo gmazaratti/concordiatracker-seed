@@ -12,6 +12,7 @@ const SECTIONS: SettingsSection[] = [
   'account',
   'calendarSync',
   'moodle',
+  'family',
   'privacy',
   'devices',
   'billing',

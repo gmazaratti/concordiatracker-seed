@@ -7,6 +7,7 @@ export type SettingsSection =
   | 'calendarSync'
   | 'moodle'
   | 'privacy'
+  | 'family'
   | 'billing'
   | 'usage'
   | 'devices'
