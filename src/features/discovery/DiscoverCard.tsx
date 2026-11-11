@@ -10,7 +10,7 @@ import { NudgeIcon } from './NudgeIcon'
  *
  * It is the loudest thing in the rail ON PURPOSE. The first version matched the
  * panels around it and nobody would have clicked it: an accent wash, a filled
- * icon, a live dot and a full-width button say "this one is for you, do it".
+ * icon and a full-width button say "this one is for you, do it".
  * It never shares a day with the popup, so loud here is not loud twice.
  */
 export function DiscoverCard() {
@@ -34,13 +34,7 @@ export function DiscoverCard() {
       >
         <X size={14} aria-hidden />
       </button>
-      <p className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.12em] text-accent uppercase">
-        <span className="relative flex size-2">
-          <span className="ct-discover-ping absolute inline-flex size-full rounded-full bg-accent" />
-          <span className="relative inline-flex size-2 rounded-full bg-accent" />
-        </span>
-        Picked for you
-      </p>
+      <p className="text-[11px] font-bold tracking-[0.12em] text-accent uppercase">Picked for you</p>
       <div className="mt-2.5 flex items-start gap-3">
         <span className="ct-discover-icon grid size-11 shrink-0 place-items-center rounded-xl bg-accent text-accent-contrast shadow-lg">
           <NudgeIcon icon={card.icon} size={21} />
