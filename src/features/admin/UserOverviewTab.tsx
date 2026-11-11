@@ -18,6 +18,7 @@ import { Stat } from './admin-ui'
 import { ModalShell } from '@/command/ModalShell'
 import { cn } from '@/lib/cn'
 import { UserMessagePanel } from './UserMessagePanel'
+import { UserPushPanel } from './UserPushPanel'
 import { UserExtras } from './UserExtras'
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -266,6 +267,7 @@ export function OverviewTab({
       </div>
 
       <UserMessagePanel userId={user.user_id} name={user.name} />
+      <UserPushPanel userId={user.user_id} />
 
       {/* Notes stay exactly as they were — a scratchpad, not an audit trail. */}
       <div className="rounded-lg border border-border bg-surface p-3">

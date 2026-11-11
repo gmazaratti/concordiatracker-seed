@@ -308,6 +308,8 @@ export default async function handler(req: any, res: any) {
         url?: string
       }
       const ids = [...new Set((body.userIds ?? []).filter((x) => /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 200)
+      const me = await fetch(`${url}/auth/v1/user`, { headers: { apikey: anon, Authorization: `Bearer ${jwt}` } })
+      const callerId = me.ok ? (((await me.json()) as { id?: string }).id ?? null) : null
       const title = String(body.title ?? '').trim().slice(0, 80)
       const text = String(body.body ?? '').trim().slice(0, 240)
       const link = String(body.url ?? '').trim()
@@ -323,13 +325,29 @@ export default async function handler(req: any, res: any) {
         const subs = (await fetch(`${url}/rest/v1/push_subscriptions?select=${SUB_COLS}&user_id=eq.${id}`, { headers: svc }).then((r) =>
           r.ok ? r.json() : [],
         )) as (PushTarget & { id: string })[]
+        // One log row per person, so an open can be traced back to this send:
+        // the link carries ?pn=<id>, and opening it marks the row.
+        const logged = (await fetch(`${url}/rest/v1/push_log`, {
+          method: 'POST',
+          headers: { ...svc, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({ user_id: id, kind: 'admin', title, body: text || null, url: path, sent_by: callerId, devices: subs.length }),
+        }).then((r) => (r.ok ? r.json() : []))) as { id: string }[]
+        const logId = logged[0]?.id
+        const tracked = logId ? `${path}${path.includes('?') ? '&' : '?'}pn=${logId}` : path
         let delivered = 0
         for (const s of subs) {
-          const r = await sendPush(s, { title, body: text || undefined, url: path, tag: `ct-admin-${Date.now()}` })
+          const r = await sendPush(s, { title, body: text || undefined, url: tracked, tag: `ct-admin-${Date.now()}` })
           if (r.status === 'ok') delivered++
           if (r.status === 'gone') {
             await fetch(`${url}/rest/v1/push_subscriptions?id=eq.${s.id}`, { method: 'DELETE', headers: svc }).catch(() => {})
           }
+        }
+        if (logId) {
+          await fetch(`${url}/rest/v1/push_log?id=eq.${logId}`, {
+            method: 'PATCH',
+            headers: { ...svc, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ delivered }),
+          }).catch(() => {})
         }
         results.push({ userId: id, devices: subs.length, delivered })
       }

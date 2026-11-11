@@ -2,14 +2,10 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BellRing, X } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
-import { supabase } from '@/lib/supabase'
+import { adminPushStats, sendAdminPush, type PushResult, type PushStats } from '@/lib/admin-push'
 import { findUsers, type FoundUser } from '@/features/admin/invites/club-invites'
 
-interface Result {
-  userId: string
-  devices: number
-  delivered: number
-}
+type Result = PushResult
 
 /**
  * Send a custom push notification to people you pick (api/admin.ts, push).
@@ -27,6 +23,10 @@ export function PushComposer({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [results, setResults] = useState<Result[] | null>(null)
   const [error, setError] = useState('')
+  const [stats, setStats] = useState<PushStats | null>(null)
+  useEffect(() => {
+    void adminPushStats().then(setStats)
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -44,19 +44,10 @@ export function PushComposer({ onClose }: { onClose: () => void }) {
   async function send() {
     setBusy(true)
     setError('')
-    const { data } = await supabase.auth.getSession()
-    const jwt = data.session?.access_token
     try {
-      const res = await fetch('/api/admin?action=push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
-        body: JSON.stringify({ userIds: picked.map((p) => p.user_id), title, body, url: link }),
-      })
-      const json = (await res.json()) as { results?: Result[]; error?: string; message?: string }
-      if (!res.ok) setError(json.message ?? json.error ?? 'That did not send.')
-      else setResults(json.results ?? [])
-    } catch {
-      setError('The server did not answer.')
+      setResults(await sendAdminPush(picked.map((p) => p.user_id), title, body, link))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That did not send.')
     }
     setBusy(false)
   }
@@ -76,6 +67,24 @@ export function PushComposer({ onClose }: { onClose: () => void }) {
         <p className="mt-1 text-[12.5px] text-subtle">
           Goes to the phones and browsers of the people you pick, if they turned notifications on. Logged with its text.
         </p>
+        {stats && stats.sent > 0 && (
+          <div className="mt-3 rounded-lg border border-border bg-canvas px-3 py-2 text-[12px]">
+            <p className="text-fg">
+              Opened {stats.opened} of {stats.sent} delivered ({Math.round((stats.opened / stats.sent) * 100)}%).{' '}
+              <span className="text-subtle">{stats.with_devices} people have notifications on.</span>
+            </p>
+            <ul className="mt-1.5 max-h-28 space-y-0.5 overflow-y-auto text-[11.5px] text-subtle">
+              {stats.sends.map((x, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="min-w-0 flex-1 truncate text-muted">{x.title}</span>
+                  <span className="shrink-0">
+                    {x.opened}/{x.delivered} opened
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {results ? (
           <div className="mt-4">

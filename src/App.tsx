@@ -8,6 +8,7 @@ import { AppProviders } from '@/app/providers/AppProviders'
 import { AppRoutes } from '@/router'
 import { RouteAnalytics } from '@/app/RouteAnalytics'
 import { AuthIntentRedirect } from '@/app/AuthIntentRedirect'
+import { PushOpenTracker } from '@/app/PushOpenTracker'
 import { NativeBridge } from '@/app/NativeBridge'
 import { ForceUpdateGate } from '@/app/ForceUpdateGate'
 import { isNative } from '@/lib/native'
@@ -32,6 +33,7 @@ export default function App() {
         <BrowserRouter>
           <RouteAnalytics />
           <AuthIntentRedirect />
+          <PushOpenTracker />
           <NativeBridge />
           <AppRoutes />
           <ForceUpdateGate />
