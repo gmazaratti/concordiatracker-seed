@@ -21,6 +21,7 @@ import { sendEmail } from './_email.js'
 import { extractOutline } from './_parse-route.js'
 import { deleteAccount } from './_delete-account.js'
 import { getStripe } from './_stripe.js'
+import { closePush, sendPush, SUB_COLS, type PushTarget } from './_push-send.js'
 
 export const config = { maxDuration: 60 }
 
@@ -283,6 +284,71 @@ export default async function handler(req: any, res: any) {
      * like every other send: `sendEmail` never throws, and a bounced email
      * must not make a successful approval look failed.
      */
+    // A custom push notification to the people an admin picked. HUMAN admins
+    // only (an agent token must not be able to buzz students' phones), at most
+    // 200 people a send, and each send goes in the audit log with its text.
+    if (action === 'push') {
+      if (req.method !== 'POST') {
+        fail(res, 405, 'POST to send a push.')
+        return
+      }
+      const human = await fetch(`${url}/rest/v1/rpc/ct_admin_write`, {
+        method: 'POST',
+        headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+      if (!human.ok || (await human.text()).trim() !== 'true') {
+        fail(res, 403, 'Only a person, not an agent token, can send a push.')
+        return
+      }
+      const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {}) as {
+        userIds?: string[]
+        title?: string
+        body?: string
+        url?: string
+      }
+      const ids = [...new Set((body.userIds ?? []).filter((x) => /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 200)
+      const title = String(body.title ?? '').trim().slice(0, 80)
+      const text = String(body.body ?? '').trim().slice(0, 240)
+      const link = String(body.url ?? '').trim()
+      if (ids.length === 0 || !title) {
+        fail(res, 400, 'Pick at least one person and write a title.', { code: 'bad_request' })
+        return
+      }
+      // Only in-app paths, so a push can never open somewhere else.
+      const path = link.startsWith('/') && !link.startsWith('//') ? link.slice(0, 200) : '/app'
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}` }
+      const results: { userId: string; devices: number; delivered: number }[] = []
+      for (const id of ids) {
+        const subs = (await fetch(`${url}/rest/v1/push_subscriptions?select=${SUB_COLS}&user_id=eq.${id}`, { headers: svc }).then((r) =>
+          r.ok ? r.json() : [],
+        )) as (PushTarget & { id: string })[]
+        let delivered = 0
+        for (const s of subs) {
+          const r = await sendPush(s, { title, body: text || undefined, url: path, tag: `ct-admin-${Date.now()}` })
+          if (r.status === 'ok') delivered++
+          if (r.status === 'gone') {
+            await fetch(`${url}/rest/v1/push_subscriptions?id=eq.${s.id}`, { method: 'DELETE', headers: svc }).catch(() => {})
+          }
+        }
+        results.push({ userId: id, devices: subs.length, delivered })
+      }
+      closePush()
+      await fetch(`${url}/rest/v1/rpc/log_admin_action`, {
+        method: 'POST',
+        headers: { apikey: anon, Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p_action: 'push.send',
+          p_target: ids.length === 1 ? ids[0] : null,
+          p_reason: `${title}${text ? ` · ${text}` : ''}`.slice(0, 500),
+          p_old: null,
+          p_new: { recipients: ids.length, delivered: results.filter((r) => r.delivered > 0).length, url: path },
+        }),
+      }).catch(() => {})
+      res.status(200).json({ results })
+      return
+    }
+
     // Product news to everyone who switched "Product updates" on (and only
     // them: it is promotional mail). Body is the admin's own text, one
     // paragraph per blank-line-separated block.

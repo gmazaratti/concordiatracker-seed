@@ -11,10 +11,11 @@ import {
 import { EmptyState, Loading, SearchBar } from '../admin-ui'
 import { TicketQueue } from './tickets/TicketQueue'
 import { TicketDetail } from './tickets/TicketDetail'
-import { Heart, Mail, MessageSquareReply, MessagesSquare } from 'lucide-react'
+import { BellRing, Heart, Mail, MessageSquareReply, MessagesSquare } from 'lucide-react'
 import { PersonalMessage } from './tickets/PersonalMessage'
 import { ProductUpdateEmail } from './tickets/ProductUpdateEmail'
 import { NoteReplies } from './tickets/NoteReplies'
+import { PushComposer } from './tickets/PushComposer'
 
 const FILTERS: { id: TicketStatus | 'all'; label: string }[] = [
   { id: 'open', label: 'Open' },
@@ -45,6 +46,7 @@ export function TicketsTab() {
   const [composing, setComposing] = useState(false)
   const [emailing, setEmailing] = useState(false)
   const [repliesOpen, setRepliesOpen] = useState(false)
+  const [pushing, setPushing] = useState(false)
 
   // `load` only bumps a counter; the fetch runs in the effect after an await,
   // so nothing setStates synchronously in an effect body.
@@ -127,6 +129,14 @@ export function TicketsTab() {
             >
               <MessageSquareReply size={12} aria-hidden /> Replies
             </button>
+            <button
+              type="button"
+              onClick={() => setPushing(true)}
+              title="Send a push notification to people you pick"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[12px] font-medium text-muted hover:border-accent hover:text-fg"
+            >
+              <BellRing size={12} aria-hidden /> Push
+            </button>
             {counts.open > 0 && (
               <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[11.5px] font-semibold text-warning">
                 {counts.open} open
@@ -179,6 +189,7 @@ export function TicketsTab() {
       {composing && <PersonalMessage onClose={() => setComposing(false)} onSent={load} />}
       {emailing && <ProductUpdateEmail onClose={() => setEmailing(false)} />}
       {repliesOpen && <NoteReplies onClose={() => setRepliesOpen(false)} />}
+      {pushing && <PushComposer onClose={() => setPushing(false)} />}
 
       {/* Conversation. */}
       <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col', !selected && 'hidden lg:flex')}>
