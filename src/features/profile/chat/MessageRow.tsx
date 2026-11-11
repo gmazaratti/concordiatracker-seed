@@ -1,3 +1,4 @@
+import { MentionText } from './Mentions'
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, CheckCheck, Clock3, Plus } from 'lucide-react'
@@ -125,7 +126,9 @@ export function MessageRow({
               )}
               style={bubbleStyle}
             >
-              <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]">{m.body}</p>
+              <p className="text-[15px] leading-[1.35] break-words whitespace-pre-wrap lg:text-[14px]">
+                <MentionText body={m.body} mine={mine} />
+              </p>
               {m.attachment && <AttachmentEmbed attachment={m.attachment} mine={mine} sender={m.sender} />}
             </div>
           ) : (

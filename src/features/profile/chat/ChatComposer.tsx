@@ -1,3 +1,7 @@
+import { useImperativeHandle, useRef, useState } from 'react'
+import { insertMention, mentionAt } from '@/lib/mentions'
+import { MentionPicker } from './Mentions'
+import { mentionLabel, useMentionOptions, type MentionOption } from './mention-options'
 import { forwardRef } from 'react'
 import { ImagePlus, Loader2, Plus, Reply, Send, X } from 'lucide-react'
 import { EmojiButton } from '@/components/ui/EmojiButton'
@@ -46,6 +50,27 @@ export const ChatComposer = forwardRef<
     error: string | null
   }
 >(function ChatComposer(p, ref) {
+  // @mentions: track the caret, offer people and screens for the "@word" at it.
+  const inner = useRef<HTMLTextAreaElement>(null)
+  useImperativeHandle(ref, () => inner.current as HTMLTextAreaElement)
+  const [caret, setCaret] = useState(0)
+  const [active, setActive] = useState(0)
+  const [dismissed, setDismissed] = useState<number | null>(null)
+  const at = mentionAt(p.body, caret)
+  const query = at && dismissed !== at.start ? at.query : null
+  const options = useMentionOptions(query)
+  const pick = (o: MentionOption) => {
+    const r = insertMention(p.body, caret, mentionLabel(o))
+    p.onBody(r.text)
+    setActive(0)
+    window.requestAnimationFrame(() => {
+      const el = inner.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(r.caret, r.caret)
+      setCaret(r.caret)
+    })
+  }
   return (
     <form
       onSubmit={(e) => {
@@ -78,7 +103,8 @@ export const ChatComposer = forwardRef<
         </div>
       )}
 
-      <div className="flex items-end gap-1.5 sm:gap-2">
+      <div className="relative flex items-end gap-1.5 sm:gap-2">
+        <MentionPicker options={options} active={Math.min(active, options.length - 1)} onPick={pick} />
         <button
           type="button"
           onClick={p.onAttach}
@@ -97,10 +123,34 @@ export const ChatComposer = forwardRef<
         <div className="flex min-h-10 min-w-0 flex-1 items-end gap-1 rounded-[20px] border border-border bg-canvas py-1 pr-1 pl-1.5 transition-colors duration-150 focus-within:border-accent sm:min-h-[42px]">
           <EmojiButton onPick={p.onEmoji} className="size-8 self-center rounded-full" />
           <textarea
-            ref={ref}
+            ref={inner}
             value={p.body}
-            onChange={(e) => p.onBody(e.target.value)}
+            onChange={(e) => {
+              p.onBody(e.target.value)
+              setCaret(e.target.selectionStart ?? e.target.value.length)
+              setActive(0)
+            }}
+            onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
+              if (options.length > 0) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                  e.preventDefault()
+                  const n = options.length
+                  setActive((i) => (e.key === 'ArrowDown' ? (i + 1) % n : (i - 1 + n) % n))
+                  return
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault()
+                  pick(options[Math.min(active, options.length - 1)])
+                  return
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setDismissed(at?.start ?? null)
+                  return
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 p.onSubmit()
