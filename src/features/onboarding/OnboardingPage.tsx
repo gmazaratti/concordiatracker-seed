@@ -6,7 +6,6 @@ import { useAuth } from '@/app/providers/auth'
 import { Button } from '@/components/ui/Button'
 import { DoneSlide, WelcomeSlide } from './OnboardingSlides'
 import { HeardAboutSlide } from './HeardAboutSlide'
-import { HowItWorksSlide } from './HowItWorksSlide'
 import { AddCourses } from './AddCourses'
 import { MoodleStep } from './MoodleStep'
 import { CommunityStep } from './CommunityStep'
@@ -34,10 +33,11 @@ const STEP_HEARD = 5
 // get past is a wall.
 const STEP_MOODLE = 6
 const STEP_COURSE = 7
-const STEP_HOW = 8
-const STEP_COMMUNITY = 9
-const STEP_DONE = 10
-const TOTAL = 11
+// "Here's the gist" (three feature cards) was removed 2026-11-10: people read
+// it as something they had to do, not something to click past.
+const STEP_COMMUNITY = 8
+const STEP_DONE = 9
+const TOTAL = 10
 
 export function OnboardingPage() {
   const t = useT()
@@ -267,8 +267,6 @@ export function OnboardingPage() {
                   />
                 }
               />
-            ) : step === STEP_HOW ? (
-              <HowItWorksSlide />
             ) : step === STEP_COMMUNITY ? (
               <CommunityStep />
             ) : (

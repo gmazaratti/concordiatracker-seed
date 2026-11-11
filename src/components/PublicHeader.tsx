@@ -65,6 +65,7 @@ export function PublicHeader({
   const sections = anchors ?? [
     { href: '#how', label: t('landing.howItWorks') },
     { href: '#pricing', label: t('landing.pricing') },
+    { href: '#parents', label: t('landing.forParents') },
   ]
   return (
     <header

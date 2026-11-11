@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { useT } from '@/i18n/i18n'
 import { AppPreview } from '@/features/landing/AppPreview'
 import { PricingSection } from '@/features/landing/PricingSection'
+import { ParentsSection } from '@/features/landing/ParentsSection'
 import { StackedCards } from './StackedCards'
 import { RecordlyFaq, RecordlyFooter } from './RecordlyFaqFooter'
 import { RecordlyTiles } from './RecordlyTiles'
@@ -60,6 +61,7 @@ export function RecordlyPage() {
         height={HEADER_H}
         anchors={[
           { href: '#features', label: 'Features' },
+          { href: '#parents', label: t('landing.forParents') },
           { href: '/faq', label: 'FAQ' },
         ]}
       />
@@ -141,6 +143,11 @@ export function RecordlyPage() {
           </div>
 
           <RecordlyTiles />
+
+          {/* For parents: family access, before pricing. */}
+          <div className="-mx-4 mt-32">
+            <ParentsSection />
+          </div>
 
           {/* Pricing, straight above the FAQ, as on the main page. */}
           <div className="-mx-4 mt-32">

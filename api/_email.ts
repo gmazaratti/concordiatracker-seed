@@ -61,6 +61,10 @@ export interface EmailOptions {
   /** Deadlines as calendar rows (a day chip, the course, the title, the time). */
   agenda?: { day: string; date: string; course: string; title: string; time: string; urgent?: boolean }[]
   agendaLabel?: string
+  /** More agenda sections under the first, e.g. your events, suggested events. */
+  sections?: { label: string; note?: string; items: NonNullable<EmailOptions['agenda']> }[]
+  /** One highlighted line with a red dot, e.g. "You have 3 unread notifications". */
+  notice?: { text: string; link?: { label: string; href: string } }
   factsLabel?: string
   /** Signed by Alex, e.g. "Good luck this week,". For mail that should read like a person sent it. */
   signoff?: string
@@ -114,7 +118,7 @@ export function renderEmail(o: EmailOptions): string {
       </tr>
     </table>`
 
-  const agenda = (o.agenda ?? [])
+  const agendaRows = (list: NonNullable<EmailOptions['agenda']>) => list
     .map(
       (a, i) => `
       <tr>
@@ -132,6 +136,7 @@ export function renderEmail(o: EmailOptions): string {
       </tr>`,
     )
     .join('')
+  const agenda = agendaRows(o.agenda ?? [])
 
   const factRows = (o.facts ?? [])
     .map(
@@ -143,20 +148,10 @@ export function renderEmail(o: EmailOptions): string {
     )
     .join('')
 
+  // Reads like the end of a letter: the closing line at body size, then the
+  // name on its own line. No avatar or job card, which made it look like an ad.
   const signoff = o.signoff
-    ? `
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
-        <tr>
-          <td valign="middle" style="padding-right:12px;">
-            <img src="${SITE}/icon-192.png" width="38" height="38" alt="" style="display:block;width:38px;height:38px;border:0;border-radius:50%;" />
-          </td>
-          <td valign="middle" style="font-family:${FONT};">
-            <div style="font-size:15px;color:${BRAND.body};">${esc(o.signoff)}</div>
-            <div style="font-size:15px;font-weight:700;color:${BRAND.ink};">Alex</div>
-            <div style="font-size:12px;color:${BRAND.subtle};">Builds ConcordiaTracker</div>
-          </td>
-        </tr>
-      </table>`
+    ? `<p style="margin:30px 0 0;font-family:${FONT};font-size:16px;line-height:1.65;color:${BRAND.body};">${esc(o.signoff)}<br><span style="color:${BRAND.ink};font-weight:600;">- Alex, Founder</span></p>`
     : ''
 
   return `<!doctype html>
@@ -210,6 +205,25 @@ export function renderEmail(o: EmailOptions): string {
           .join('')}
 
         ${agenda ? `${rule(o.agendaLabel ?? 'Coming up')}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${agenda}</table>` : ''}
+
+        ${(o.sections ?? [])
+          .filter((x) => x.items.length)
+          .map(
+            (x) =>
+              `${rule(x.label)}${x.note ? `<p style="margin:0 0 8px;font-family:${FONT};font-size:13px;color:${BRAND.subtle};">${esc(x.note)}</p>` : ''}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${agendaRows(x.items)}</table>`,
+          )
+          .join('')}
+
+        ${
+          o.notice
+            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 0;background:${BRAND.tint};border:1px solid ${BRAND.line};border-radius:12px;">
+                 <tr><td style="padding:13px 16px;font-family:${FONT};font-size:14px;color:${BRAND.ink};">
+                   <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#dc2626;vertical-align:middle;margin-right:8px;"></span>${esc(o.notice.text)}
+                   ${o.notice.link ? ` <a href="${esc(o.notice.link.href)}" style="color:${BRAND.accent};font-weight:700;text-decoration:none;">${esc(o.notice.link.label)}</a>` : ''}
+                 </td></tr>
+               </table>`
+            : ''
+        }
 
         ${factRows ? `${rule(o.factsLabel ?? 'Details')}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${factRows}</table>` : ''}
 
@@ -268,7 +282,13 @@ function renderText(o: EmailOptions): string {
     for (const x of o.agenda) lines.push(`${x.day} ${x.date}  ${x.course}  ${x.title}  (${x.time})`)
   }
   if (o.button) lines.push('', `${o.button.label}: ${o.button.href}`)
-  if (o.signoff) lines.push('', o.signoff, 'Alex, ConcordiaTracker')
+  for (const x of o.sections ?? []) {
+    if (!x.items.length) continue
+    lines.push('', x.label.toUpperCase())
+    for (const i of x.items) lines.push(`${i.day} ${i.date}  ${i.course}  ${i.title}  (${i.time})`)
+  }
+  if (o.notice) lines.push('', o.notice.text + (o.notice.link ? ` ${o.notice.link.href}` : ''))
+  if (o.signoff) lines.push('', o.signoff, '- Alex, Founder')
   if (o.ps) lines.push('', `P.S. ${o.ps}`)
   if (o.footnote) lines.push('', o.footnote)
   // Plain hyphens, not an em dash: em dashes in email copy read as machine-

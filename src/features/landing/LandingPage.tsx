@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { AppPreview } from './AppPreview'
 import { ParseShowcase } from './ParseShowcase'
 import { PricingSection } from './PricingSection'
+import { ParentsSection } from './ParentsSection'
 import { usePageMeta } from '@/app/hooks/usePageMeta'
 import { FaqSection, type Faq } from './SeoLandingPages'
 import { useT, type T } from '@/i18n/i18n'
@@ -193,6 +194,9 @@ export function LandingPage() {
 
       {/* ---- Parse + provenance (kept as-is) ---- */}
       <ParseShowcase />
+
+      {/* ---- For parents: family access ---- */}
+      <ParentsSection />
 
       {/* ---- Pricing ---- */}
       <PricingSection />

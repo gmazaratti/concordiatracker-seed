@@ -1,4 +1,4 @@
-import { Check, MessagesSquare } from 'lucide-react'
+import { Check, MessagesSquare, Users } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { useT } from '@/i18n/i18n'
 
@@ -52,7 +52,16 @@ export function DoneSlide() {
       headline={t('onboarding.doneHead')}
       sub={t('onboarding.doneSub')}
       extra={
+        <>
         <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-left">
+          <Users size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+          <p className="text-[13px] leading-relaxed text-muted">
+            {t('onboarding.doneFamilyA')}
+            <span className="font-medium text-fg">{t('onboarding.doneFamilyPath')}</span>
+            {t('onboarding.doneFamilyB')}
+          </p>
+        </div>
+        <div className="mt-2 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-left">
           <MessagesSquare size={18} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <p className="text-[13px] leading-relaxed text-muted">
             {t('onboarding.doneFeedbackA')}
@@ -60,6 +69,7 @@ export function DoneSlide() {
             {t('onboarding.doneFeedbackB')}
           </p>
         </div>
+        </>
       }
     />
   )

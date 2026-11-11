@@ -15,6 +15,20 @@ interface Recipient {
   email: string
   name: string | null
 }
+interface DigestEvent {
+  id: string
+  title: string
+  start: string
+  location: string | null
+  org: string
+  followed?: boolean
+}
+interface Extras {
+  my_events: DigestEvent[]
+  suggested: DigestEvent[]
+  unread_notifications: number
+  unread_messages: number
+}
 interface Row {
   title: string
   date: string | null
@@ -23,6 +37,25 @@ interface Row {
 }
 
 const OPEN = new Set(['not-started', 'in-progress', 'extension', null as unknown as string])
+
+/** "7:30 p.m. · MB 1.210" for an event row. */
+function eventTime(e: DigestEvent, now: number): string {
+  const t = agendaParts(e.start, now).time.replace(/^Due /, '')
+  return e.location ? `${t} · ${e.location}` : t
+}
+
+/** "You have 2 unread notifications and 1 unread message." */
+function unreadNotice(n: number, m: number): { text: string; link: { label: string; href: string } } | undefined {
+  if (n + m === 0) return undefined
+  const parts = [
+    n ? `${n} unread notification${n === 1 ? '' : 's'}` : '',
+    m ? `${m} unread message${m === 1 ? '' : 's'}` : '',
+  ].filter(Boolean)
+  return {
+    text: `You have ${parts.join(' and ')}.`,
+    link: m && !n ? { label: 'Read them', href: 'https://concordiatracker.com/app/community?c=messages' } : { label: 'See them', href: 'https://concordiatracker.com/app?activity=1' },
+  }
+}
 
 export async function runWeeklyDigest(ctx: { supabaseUrl: string; svc: Record<string, string> }): Promise<number> {
   const { supabaseUrl, svc } = ctx
@@ -56,7 +89,20 @@ export async function runWeeklyDigest(ctx: { supabaseUrl: string; svc: Record<st
     const nowIso = new Date(now).toISOString()
     const overdue = rows.filter((r) => r.date && r.date < nowIso)
     const upcoming = rows.filter((r) => r.date && r.date >= nowIso)
-    if (upcoming.length === 0 && overdue.length === 0) continue
+    const extras = await fetch(`${supabaseUrl}/rest/v1/rpc/digest_extras`, {
+      method: 'POST',
+      headers: { ...svc, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_user: p.user_id }),
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<Extras>) : null))
+      .catch(() => null)
+    const myEvents = extras?.my_events ?? []
+    const suggested = extras?.suggested ?? []
+    const unreadN = extras?.unread_notifications ?? 0
+    const unreadM = extras?.unread_messages ?? 0
+    // Someone with nothing due, no events and nothing unread gets no email:
+    // an empty digest is noise.
+    if (upcoming.length === 0 && overdue.length === 0 && myEvents.length === 0 && unreadN + unreadM === 0) continue
 
     const first = p.name?.trim().split(/\s+/)[0]
     const items = upcoming.map((r) => ({
@@ -87,6 +133,18 @@ export async function runWeeklyDigest(ctx: { supabaseUrl: string; svc: Record<st
       paragraphs,
       agendaLabel: 'This week',
       agenda: items.slice(0, 12).map((i) => ({ ...agendaParts(i.due, now), course: i.course ?? 'Task', title: i.title })),
+      sections: [
+        {
+          label: 'Your events',
+          items: myEvents.map((e) => ({ ...agendaParts(e.start, now), course: e.org, title: e.title, time: eventTime(e, now) })),
+        },
+        {
+          label: 'You might like',
+          note: suggested.some((e) => e.followed) ? 'From clubs you follow.' : 'Popular on campus this week.',
+          items: suggested.map((e) => ({ ...agendaParts(e.start, now), course: e.org, title: e.title, time: eventTime(e, now) })),
+        },
+      ],
+      notice: unreadNotice(unreadN, unreadM),
       button: { label: 'Open Today', href: 'https://concordiatracker.com/app' },
       signoff: 'Good luck this week,',
       ps: digestPs(now),
