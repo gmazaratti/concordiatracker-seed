@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useTour } from './tour'
+import { useI18n } from '@/i18n/i18n'
+import { PURCHASES_HIDDEN } from '@/lib/store-policy'
+import { TOUR_CHROME, TOUR_FR, TOUR_FR_STORE_GRADE } from './steps-fr'
 
 interface Box {
   top: number
@@ -30,6 +33,8 @@ const reduceMotion = () =>
  */
 export function TourOverlay() {
   const { active, step, index, total, next, back, end } = useTour()
+  const { lang } = useI18n()
+  const ui = TOUR_CHROME[lang === 'fr' ? 'fr' : 'en']
   const [box, setBox] = useState<Box | null>(null)
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   const scrolledFor = useRef<string | null>(null)
@@ -113,6 +118,12 @@ export function TourOverlay() {
   const progress = Math.round(((index + 1) / total) * 100)
   const last = index + 1 === total
 
+  // French copy by step id (steps-fr.ts); anything missing stays English.
+  const copy =
+    lang === 'fr' && step
+      ? (PURCHASES_HIDDEN && step.id === 'course-grade-needed' ? TOUR_FR_STORE_GRADE : TOUR_FR[step.id]) ?? step
+      : step
+
   return createPortal(
     <div className="fixed inset-0 z-[70]">
       {box ? (
@@ -139,13 +150,13 @@ export function TourOverlay() {
           doesn't teleport across the screen step to step. */}
       <aside
         role="dialog"
-        aria-label={step.title}
+        aria-label={copy.title}
         className="ct-animate-pop fixed inset-x-0 bottom-0 z-[71] mx-auto flex w-full max-w-2xl flex-col rounded-t-2xl border-t border-border bg-surface px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:bottom-5 sm:left-1/2 sm:w-[min(94vw,600px)] sm:-translate-x-1/2 sm:rounded-2xl sm:border sm:px-6"
       >
         {/* Progress + skip */}
         <div className="flex items-center gap-3">
           <p className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-            Step {index + 1} of {total}
+            {ui.step.replace('{n}', String(index + 1)).replace('{total}', String(total))}
           </p>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
             <div
@@ -156,7 +167,7 @@ export function TourOverlay() {
           <button
             type="button"
             onClick={end}
-            aria-label="Skip tour"
+            aria-label={ui.skip}
             className="grid size-7 shrink-0 place-items-center rounded-md text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
           >
             <X size={16} aria-hidden />
@@ -165,12 +176,12 @@ export function TourOverlay() {
 
         <div className="py-3.5">
           <h2 className="font-display text-[20px] leading-tight font-semibold text-fg">
-            {step.title}
+            {copy.title}
           </h2>
-          <p className="mt-2 text-[14px] leading-relaxed text-muted">{step.body}</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">{copy.body}</p>
           {step.type === 'action' && box && (
             <p className="mt-2.5 text-[13px] font-medium text-accent">
-              Try it on the highlighted item: or hit Next to continue.
+              {ui.tryIt}
             </p>
           )}
         </div>
@@ -182,14 +193,14 @@ export function TourOverlay() {
             onClick={index === 0 ? end : back}
             className="rounded-lg px-3.5 py-2 text-[13.5px] font-medium text-subtle transition-colors hover:bg-surface-2 hover:text-fg"
           >
-            {index === 0 ? 'Skip tour' : 'Back'}
+            {index === 0 ? ui.skip : ui.back}
           </button>
           <button
             type="button"
             onClick={next}
             className="rounded-lg bg-accent px-6 py-2 text-[14px] font-semibold text-accent-contrast shadow-sm transition-colors hover:bg-accent-hover"
           >
-            {last ? 'Finish' : 'Next'}
+            {last ? ui.finish : ui.next}
           </button>
         </div>
       </aside>

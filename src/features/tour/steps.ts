@@ -113,7 +113,7 @@ const ALL_STEPS: TourStep[] = [
     route: '/app/community',
     type: 'read',
     title: 'What’s on campus',
-    body: 'Follow clubs and orgs to get their events. Community is a calm, read-only events feed: never a social network.',
+    body: 'Follow clubs and associations to get their events in your feed, and message your classmates.',
   },
   {
     id: 'community-add',
@@ -127,7 +127,7 @@ const ALL_STEPS: TourStep[] = [
     id: 'done',
     route: '/app',
     type: 'read',
-    title: 'That’s the tour 🎉',
+    title: 'That’s the tour',
     body: 'The DEMO course is gone now: back to your real stuff. The “Getting started” card tracks your first steps, and you can replay this anytime from the menu.',
   },
 ]

@@ -233,6 +233,7 @@ function ManualCourse({
   onBack: () => void
   onAdd: (code: string, name: string) => Promise<void>
 }) {
+  const ob = useOb()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -251,14 +252,14 @@ function ManualCourse({
     <div className="mx-auto flex w-full max-w-md flex-col">
       <BackBtn onClick={onBack} />
       <h2 className="mt-3 text-center font-display text-[21px] leading-tight font-semibold text-fg sm:text-[26px]">
-        Add a course
+        {ob('add.title')}
       </h2>
       <input
         autoFocus
         value={code}
         onChange={(e) => setCode(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void submit()}
-        placeholder="Course code (e.g. MATH 133)"
+        placeholder={ob('add.code')}
         maxLength={20}
         className="mt-5 w-full rounded-xl border border-border bg-surface px-4 py-3 text-[16px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
       />
@@ -266,7 +267,7 @@ function ManualCourse({
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void submit()}
-        placeholder="Course name (optional)"
+        placeholder={ob('add.name')}
         maxLength={90}
         className="mt-3 w-full rounded-xl border border-border bg-surface px-4 py-3 text-[16px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
       />
@@ -277,7 +278,7 @@ function ManualCourse({
         className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-[14px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover disabled:opacity-50"
       >
         {busy ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Check size={15} aria-hidden />}
-        Add course
+        {ob('add.submit')}
       </button>
     </div>
   )
@@ -285,6 +286,7 @@ function ManualCourse({
 
 /** The running list of courses added so far (the most recent one highlighted). */
 function AddedList({ added, justAdded }: { added: AddedCourse[]; justAdded: string | null }) {
+  const ob = useOb()
   return (
     <ul className="mt-5 space-y-2">
       {added.map((a) => (
@@ -301,7 +303,7 @@ function AddedList({ added, justAdded }: { added: AddedCourse[]; justAdded: stri
           <span className="min-w-0 flex-1">
             <span className="text-[13px] font-semibold text-fg">{a.code}</span>
             <span className="block text-[12px] text-subtle">
-              {a.already ? 'Already on your Today' : `${a.count} deadline${a.count === 1 ? '' : 's'} added`}
+              {a.already ? ob('add.already') : a.count === 1 ? ob('add.count1') : ob('add.countN', { n: a.count })}
             </span>
           </span>
         </li>
@@ -475,6 +477,7 @@ function PickSection({
   onBack: () => void
   onParseInstead: () => void
 }) {
+  const ob = useOb()
   const t = useT()
   const [list, setList] = useState<Blueprint[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -553,7 +556,7 @@ function PickSection({
           })
         ) : (
           <p className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-[13px] text-subtle">
-            No outline for this course this term.
+            {ob('add.noOutline')}
           </p>
         )}
       </div>
@@ -563,7 +566,7 @@ function PickSection({
         onClick={onParseInstead}
         className="mt-5 inline-flex w-full items-center justify-center gap-1.5 text-[13px] font-medium text-muted transition-colors duration-150 hover:text-fg"
       >
-        I don't see my section: upload a syllabus instead
+        {ob('add.noSection')}
         <ArrowRight size={14} aria-hidden />
       </button>
     </div>
@@ -664,10 +667,11 @@ function ChoiceTile({
   )
 }
 
-function BackBtn({ onClick, label = 'Other options' }: { onClick: () => void; label?: string }) {
+function BackBtn({ onClick, label }: { onClick: () => void; label?: string }) {
+  const ob = useOb()
   return (
     <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-[12px] font-medium text-subtle transition-colors duration-150 hover:text-fg">
-      <ArrowLeft size={14} aria-hidden /> {label}
+      <ArrowLeft size={14} aria-hidden /> {label ?? ob('add.other')}
     </button>
   )
 }
