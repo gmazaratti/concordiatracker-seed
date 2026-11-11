@@ -8,6 +8,7 @@ import {
   Radar as RadarIcon,
   Target,
   Wallet,
+  LifeBuoy,
   type LucideIcon,
 } from 'lucide-react'
 import type { Key } from '@/i18n/en'
@@ -45,6 +46,7 @@ export type PlannerTab =
   | 'tree'
   | 'schedule'
   | 'money'
+  | 'resources'
 
 /** Phase headings. Naming the phases is what turns nine sections into one
  *  sequence you move through rather than nine unrelated tabs. */
@@ -74,6 +76,7 @@ export const PLANNER_TABS: {
   // used occasionally and deliberately, and that is Planner's mode rather than
   // Today's. Folding it in also settles the mobile bar, full at six slots.
   { id: 'radar', labelKey: 'planner.tab.radar', icon: RadarIcon, phase: 'know' },
+  { id: 'resources', labelKey: 'planner.tab.resources', icon: LifeBuoy, phase: 'know' },
 
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, phase: 'explore' },
   { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, phase: 'explore' },

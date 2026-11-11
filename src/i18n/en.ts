@@ -610,6 +610,7 @@ export const en = {
   'planner.tab.record': 'My record',
   'planner.tab.program': 'My programme',
   'planner.tab.radar': 'Radar',
+  'planner.tab.resources': 'Resources',
   'planner.tab.money': 'Money',
   'planner.tab.seats': 'Seat watch',
   'planner.tab.directory': 'Course directory',

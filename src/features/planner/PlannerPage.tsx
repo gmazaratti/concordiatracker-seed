@@ -9,6 +9,7 @@ import { SavedCoursesPanel } from './SavedCoursesPanel'
 import { ScheduleBuilder } from './ScheduleBuilder'
 import { PrereqTree } from './PrereqTree'
 import { ProgramProgress } from './ProgramProgress'
+import { ResourcesPanel } from './ResourcesPanel'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
@@ -73,6 +74,7 @@ export function PlannerPage() {
       )}
       {tab === 'radar' && <RadarPage />}
       {tab === 'money' && <MoneyPage />}
+      {tab === 'resources' && <ResourcesPanel />}
       {tab === 'seats' && <SeatWatchPanel />}
       {tab === 'directory' && <CourseDirectory />}
       {tab === 'saved' && <SavedCoursesPanel />}

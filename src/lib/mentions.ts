@@ -19,6 +19,7 @@ export const CHANNELS: Channel[] = [
   { name: 'Planner', path: '/app/planner', hint: 'Plan next term' },
   { name: 'Schedule', path: '/app/planner?tab=schedule', hint: 'Schedule builder' },
   { name: 'Radar', path: '/app/planner?tab=radar', hint: 'What the term will throw at you' },
+  { name: 'Resources', path: '/app/planner?tab=resources', hint: 'Advisors and campus help' },
   { name: 'Notes', path: '/app/notes', hint: 'Your notes' },
   { name: 'Feed', path: '/app/community', hint: 'Clubs and posts' },
   { name: 'Events', path: '/app/community?c=events', hint: 'What is on campus' },

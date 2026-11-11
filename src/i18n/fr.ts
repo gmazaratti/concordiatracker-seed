@@ -618,6 +618,7 @@ export const fr: Partial<Record<Key, string>> = {
   'planner.tab.record': 'Mon dossier',
   'planner.tab.program': 'Mon programme',
   'planner.tab.radar': 'Radar',
+  'planner.tab.resources': 'Ressources',
   'planner.tab.money': 'Coûts',
   'planner.tab.seats': 'Veille de places',
   'planner.tab.directory': 'Répertoire des cours',
