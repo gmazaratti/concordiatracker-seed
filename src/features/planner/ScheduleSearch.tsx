@@ -167,12 +167,12 @@ export function ScheduleSearch({
         <button
           type="button"
           onClick={reset}
-          className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-canvas px-2.5 py-2 text-left text-[12.5px] transition-colors duration-150 hover:border-border-strong"
+          className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-canvas px-2.5 py-2 text-left text-[14px] transition-colors duration-150 hover:border-border-strong"
         >
           <ArrowLeft size={13} className="shrink-0 text-subtle" aria-hidden />
           <span className="min-w-0 flex-1">
             <span className="block font-semibold text-fg">{code}</span>
-            {chosen.title && <span className="block truncate text-[11px] text-subtle">{chosen.title}</span>}
+            {chosen.title && <span className="block truncate text-[12.5px] text-subtle">{chosen.title}</span>}
           </span>
         </button>
       ) : (
@@ -215,7 +215,7 @@ export function ScheduleSearch({
       {suggesting && matches !== null && (
         <ul className="mt-2 divide-y divide-border overflow-hidden rounded-lg border border-border">
           {matches.length === 0 ? (
-            <li className="px-3 py-2.5 text-[12px] text-subtle">
+            <li className="px-3 py-2.5 text-[13px] text-subtle">
               No course in the calendar matches that.
             </li>
           ) : (
@@ -226,10 +226,10 @@ export function ScheduleSearch({
                   onClick={() => void choose(c)}
                   className="w-full px-3 py-2 text-left transition-colors duration-150 hover:bg-surface-2"
                 >
-                  <span className="block text-[12.5px] font-medium text-fg">
+                  <span className="block text-[14px] font-medium text-fg">
                     {c.subject} {c.catalog}
                   </span>
-                  <span className="block truncate text-[11.5px] text-subtle">{c.title}</span>
+                  <span className="block truncate text-[12.5px] text-subtle">{c.title}</span>
                 </button>
               </li>
             ))
@@ -242,7 +242,7 @@ export function ScheduleSearch({
           the shape the rows will take, so nothing jumps when they land. */}
       {loading && (
         <>
-          <p className="mt-2 flex items-center gap-1.5 text-[12px] text-subtle">
+          <p className="mt-2 flex items-center gap-1.5 text-[13px] text-subtle">
             <Loader2 size={13} className="animate-spin" aria-hidden />
             Looking up sections at Concordia…
           </p>
@@ -250,16 +250,16 @@ export function ScheduleSearch({
         </>
       )}
 
-      {error && <p className="mt-2 text-[12px] text-danger">{error}</p>}
+      {error && <p className="mt-2 text-[13px] text-danger">{error}</p>}
 
       {prereqNote && (
-        <p className={cn('mt-2 text-[11.5px]', blockedByPrereq ? 'text-danger' : 'text-warning')}>
+        <p className={cn('mt-2 text-[12.5px]', blockedByPrereq ? 'text-danger' : 'text-warning')}>
           {prereqNote}
         </p>
       )}
 
       {hiddenByFilter && (
-        <p className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11.5px] text-subtle">
+        <p className="mt-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[12.5px] text-subtle">
           Hidden by the eligibility filter. Turn it off to add this anyway.
         </p>
       )}
@@ -282,23 +282,23 @@ export function ScheduleSearch({
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[12.5px] font-medium text-fg">
+                    <span className="block text-[14px] font-medium text-fg">
                       {s.section} · {s.component}
                       {termCode ? '' : ` · ${termLabel(s.termCode)}`}
                     </span>
-                    <span className="block text-[11.5px] text-subtle">
+                    <span className="block text-[12.5px] text-subtle">
                       {s.meetingTimes ?? 'Time TBA'}
                       {s.location ? ` · ${s.location}` : ''}
                     </span>
                     {hits.length > 0 && (
-                      <span className="block text-[11px] text-warning">
+                      <span className="block text-[12.5px] text-warning">
                         Clashes with {hits.map((b) => b.label).join(', ')}
                       </span>
                     )}
                   </span>
                   <span
                     className={cn(
-                      'shrink-0 text-[11px] font-medium tabular-nums',
+                      'shrink-0 text-[12.5px] font-medium tabular-nums',
                       free !== null && free > 0 ? 'text-success' : 'text-warning',
                     )}
                   >
@@ -353,7 +353,7 @@ function EmptyTerm({
   return (
     <div className="mt-3 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
       {kind === 'unpublished' ? (
-        <p className="text-[11.5px] leading-relaxed text-muted">
+        <p className="text-[12.5px] leading-relaxed text-muted">
           Concordia has not published {termLabel(termCode)} sections for {code} to its open
           schedule feed yet
           {newest ? ` (the newest it has is ${termLabel(newest)})` : ''}. That usually means the
@@ -361,7 +361,7 @@ function EmptyTerm({
           registered, put your section in by hand.
         </p>
       ) : (
-        <p className="text-[11.5px] leading-relaxed text-muted">
+        <p className="text-[12.5px] leading-relaxed text-muted">
           {code} has no sections in {termLabel(termCode)}. Concordia lists it in{' '}
           {terms.map(termLabel).join(', ')}. Change the term at the top to see those.
         </p>

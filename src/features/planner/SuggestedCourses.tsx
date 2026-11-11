@@ -96,7 +96,7 @@ export function SuggestedCourses({
 
   if (suggestions === null) {
     return (
-      <div className="flex items-center gap-2 px-1 py-3 text-[12px] text-subtle">
+      <div className="flex items-center gap-2 px-1 py-3 text-[13px] text-subtle">
         <Loader2 size={13} className="animate-spin" aria-hidden />
         Working out what you still need…
       </div>
@@ -106,10 +106,10 @@ export function SuggestedCourses({
 
   return (
     <div className="mt-3 border-t border-border pt-3" onMouseLeave={() => onHover?.(null)}>
-      <p className="mb-1.5 px-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+      <p className="mb-1.5 px-1 text-[12.5px] font-semibold tracking-wide text-subtle uppercase">
         Nothing in mind?
       </p>
-      <p className="mb-2 px-1 text-[11.5px] leading-relaxed text-subtle">
+      <p className="mb-2 px-1 text-[12.5px] leading-relaxed text-subtle">
         Not advice, just what&rsquo;s still outstanding on {program.name}.
       </p>
       <ul className="space-y-0.5">
@@ -126,15 +126,15 @@ export function SuggestedCourses({
                 className="w-full rounded-lg px-2 py-1.5 text-left transition-colors duration-150 hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
               >
                 <span className="flex items-baseline gap-2">
-                  <span className="text-[12.5px] font-semibold text-fg">{s.code}</span>
-                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-muted">
+                  <span className="text-[14px] font-semibold text-fg">{s.code}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted">
                     {s.title}
                   </span>
                   {s.offered === false && (
-                    <span className="shrink-0 text-[11px] text-subtle">not offered</span>
+                    <span className="shrink-0 text-[12.5px] text-subtle">not offered</span>
                   )}
                 </span>
-                <span className={cn('mt-0.5 flex items-center gap-1 text-[11px]', m.tone)}>
+                <span className={cn('mt-0.5 flex items-center gap-1 text-[12.5px]', m.tone)}>
                   <Icon size={11} aria-hidden className="shrink-0" />
                   <span className="truncate">{s.because}</span>
                 </span>
@@ -147,7 +147,7 @@ export function SuggestedCourses({
         // The one line that keeps the heuristic honest. We read course codes out
         // of prerequisite prose; we do not read the "and", "or" or "one of"
         // between them, so this can only ever be a maybe.
-        <p className="mt-2 px-1 text-[11px] leading-relaxed text-subtle">
+        <p className="mt-2 px-1 text-[12.5px] leading-relaxed text-subtle">
           &ldquo;Maybe open to you&rdquo; means a prerequisite mentions a course you have passed.
           We don&rsquo;t read the rules between them, so check the calendar before you register.
         </p>

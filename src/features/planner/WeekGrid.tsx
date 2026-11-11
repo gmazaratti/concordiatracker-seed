@@ -25,7 +25,7 @@ import { gridBounds, toMinutes, type Block, type Conflict, type Placed } from '.
  * pixels — a 9-to-6 teaching day still fits on a laptop without scrolling,
  * which is the only measurement that matters here.
  */
-const PX_PER_MIN = 0.72
+const PX_PER_MIN = 0.9
 /** Blocks snap to half hours. Nobody is busy from 09:07. */
 const SNAP = 30
 /** Movement, in pixels, before a press counts as a drag rather than a click. */
@@ -112,20 +112,20 @@ export function WeekGrid({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface print:border-0">
+    <div className="overflow-hidden rounded-3xl border border-border bg-surface print:rounded-none print:border-0">
       <div className="overflow-x-auto">
-        <div className="min-w-[296px]">
-          <div className="grid grid-cols-[30px_repeat(5,minmax(0,1fr))] border-b border-border sm:grid-cols-[38px_repeat(5,minmax(0,1fr))]">
+        <div className="min-w-[320px] pr-2 pb-2 sm:pr-3 sm:pb-3">
+          <div className="grid grid-cols-[46px_repeat(5,minmax(0,1fr))] border-b border-border sm:grid-cols-[64px_repeat(5,minmax(0,1fr))]">
             <span />
             {days.map((d) => (
-              <span key={d} className="px-0.5 py-2 text-center text-[11px] font-medium text-subtle sm:px-1 sm:text-[11.5px]">
+              <span key={d} className="px-0.5 py-3 text-center text-[12px] font-semibold text-fg sm:px-1 sm:text-[13px]">
                 {names[d].slice(0, 3)}
               </span>
             ))}
           </div>
 
           <div
-            className="relative grid grid-cols-[30px_repeat(5,minmax(0,1fr))] sm:grid-cols-[38px_repeat(5,minmax(0,1fr))]"
+            className="relative grid grid-cols-[46px_repeat(5,minmax(0,1fr))] sm:grid-cols-[64px_repeat(5,minmax(0,1fr))]"
             // One extra row of height so the last hour label is not clipped in
             // half by its own centring, which is what was cutting 18:00 off.
             style={{ height: span * PX_PER_MIN + 18 }}
@@ -136,7 +136,7 @@ export function WeekGrid({
               {hours.map((m) => (
                 <span
                   key={m}
-                  className="absolute right-1 -translate-y-1/2 text-[9.5px] text-subtle tabular-nums sm:right-1.5 sm:text-[10.5px]"
+                  className="absolute right-2 -translate-y-1/2 text-[10.5px] text-subtle tabular-nums sm:right-3 sm:text-[12px]"
                   style={{ top: (m - start) * PX_PER_MIN + 9 }}
                 >
                   {hhmm(m)}
@@ -260,7 +260,7 @@ export function WeekGrid({
                         key={`${p.section.classNumber}-${i}`}
                         data-block-target="no"
                         className={cn(
-                          'absolute inset-x-0.5 overflow-hidden rounded px-1.5 py-1 text-[10.5px] leading-tight',
+                          'absolute inset-x-1 overflow-hidden rounded-lg px-1.5 py-1 text-[10.5px] leading-tight sm:px-2 sm:py-1.5 sm:text-[12px]',
                           clash && 'ring-2 ring-danger',
                           onSectionContext && 'cursor-context-menu',
                         )}
@@ -284,8 +284,8 @@ export function WeekGrid({
                             : undefined
                         }
                       >
-                        <span className="block truncate font-medium text-fg">{p.code}</span>
-                        <span className="block truncate text-subtle">
+                        <span className="block truncate font-semibold text-fg">{p.code}</span>
+                        <span className="block truncate text-muted">
                           {p.slot.start}–{p.slot.end}
                         </span>
                         {height > 40 && p.section.building && (
@@ -304,7 +304,7 @@ export function WeekGrid({
       </div>
 
       {onBlock && (
-        <p className="hidden border-t border-border px-3 py-1.5 text-[11px] text-subtle md:block print:hidden">
+        <p className="hidden border-t border-border px-4 py-2.5 text-[12.5px] text-muted md:block print:hidden">
           Drag on an empty column to block time you are not available; right-click a block to
           remove it, or a class for its options. You can also type one in Filters.
         </p>

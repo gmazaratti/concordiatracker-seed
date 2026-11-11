@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
+import { Segmented } from '@/features/settings/controls'
 import { useAppData } from '@/app/providers/app-data'
 import { loadAcademicProfile, summarizeRecord } from '@/lib/academic-record'
 import { normalizeCode } from '@/lib/prereq'
@@ -105,6 +106,10 @@ export function ScheduleBuilder() {
   const [saved, setSaved] = useState<SavedSchedule[]>([])
   const [currentId, setCurrentId] = useState<string | null>(null)
   const [name, setName] = useState('My schedule')
+  /** Which list the side rail shows when there is only room for one. */
+  const [rail, setRail] = useState<'find' | 'picked'>('find')
+  /** On a phone the builder is one thing at a time: the week, the search, or your classes. */
+  const [phone, setPhone] = useState<'week' | 'find' | 'picked'>('week')
   const [eligibleOnly, setEligibleOnly] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -481,18 +486,18 @@ export function ScheduleBuilder() {
           out, and what you can do with it. Term, eligibility and blocked time
           used to be three controls in three shapes in three places; they do one
           job between them, so they are one button now. */}
-      <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-3 print:hidden">
+      <div className="mb-4 flex flex-wrap items-end gap-x-4 gap-y-3 rounded-3xl border border-border bg-surface p-4 sm:p-5 print:hidden">
         {/* Labelled rather than left to be inferred. An unlabelled text box in
             a toolbar reads as a search field, which is what it was being taken
             for — and the schedule's name is the one thing on this page that is
             purely yours. */}
-        <span className="flex min-w-0 flex-1 items-center gap-1.5 sm:flex-none">
-          <span className="shrink-0 text-[11.5px] text-subtle">Title:</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-none">
+          <span className="px-2 text-[11.5px] font-semibold tracking-[0.1em] text-subtle uppercase">Schedule</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Schedule name"
-            className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 font-display text-[16px] font-semibold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:w-52"
+            className="min-w-0 rounded-xl border border-transparent bg-transparent px-2 py-1 font-display text-[22px] leading-tight font-bold text-fg hover:border-border focus:border-accent focus:bg-canvas focus:outline-none sm:w-64"
           />
         </span>
 
@@ -501,9 +506,9 @@ export function ScheduleBuilder() {
             decision, and everything else — search, generate, the week itself —
             is scoped by it. The chevron turns to point up while the list is
             open, so the control says whether it is expecting an answer. */}
-        <span className="flex shrink-0 items-center gap-1.5">
-          <span className="text-[11.5px] text-subtle">Term:</span>
-          <span className="w-36">
+        <span className="flex shrink-0 flex-col gap-1">
+          <span className="text-[11.5px] font-semibold tracking-[0.1em] text-subtle uppercase">Term</span>
+          <span className="w-40">
             <Select
               value={termCode}
               onChange={changeTerm}
@@ -514,7 +519,7 @@ export function ScheduleBuilder() {
           </span>
         </span>
 
-        <span className="ml-auto flex items-center gap-1.5">
+        <span className="-mx-1 flex w-full items-center gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] lg:mx-0 lg:ml-auto lg:w-auto lg:px-0 [&::-webkit-scrollbar]:hidden">
           {/* The one action on this page that MAKES something, so it is the one
               that is filled rather than outlined. It opens a dialog because its
               inputs are a short form, and a form living permanently in the left
@@ -526,7 +531,7 @@ export function ScheduleBuilder() {
           <button
             type="button"
             onClick={() => setGenerating(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[13.5px] font-semibold whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
             title="Build a timetable around what you still need and the times you have blocked"
           >
             <CalendarRange size={14} aria-hidden />
@@ -723,9 +728,42 @@ export function ScheduleBuilder() {
           something up, see what you have chosen, see what it does to your week.
           Picked used to sit UNDER find in a single rail, which meant the list
           you check while adding was the thing scrolled off the bottom. */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[248px_248px_minmax(0,1fr)] lg:items-stretch">
+      {/* A phone shows one of the three at a time. Cramming a search, a list
+          and a week into 375px is what made this unreadable. */}
+      <div className="mb-3 lg:hidden print:hidden">
+        <Segmented
+          ariaLabel="Schedule builder view"
+          value={phone}
+          onChange={(v) => {
+            setPhone(v)
+            if (v !== 'week') setRail(v)
+          }}
+          options={[
+            { value: 'week', label: 'Week' },
+            { value: 'find', label: 'Add courses' },
+            { value: 'picked', label: `My classes${picked.length ? ` (${picked.length})` : ''}` },
+          ]}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start 2xl:grid-cols-[340px_340px_minmax(0,1fr)]">
+        {/* The rail. On a laptop it holds one list with a switch above it; on a
+            wide screen `contents` dissolves it and both lists sit side by side. */}
+        <div className="min-w-0 space-y-3 2xl:contents print:hidden">
+          <div className="hidden lg:block 2xl:hidden">
+            <Segmented
+              ariaLabel="Side panel"
+              value={rail}
+              onChange={setRail}
+              options={[
+                { value: 'find', label: 'Add courses' },
+                { value: 'picked', label: `My classes${picked.length ? ` (${picked.length})` : ''}` },
+              ]}
+            />
+          </div>
+        <div className={cn('min-w-0', phone === 'find' ? 'block' : 'hidden', rail === 'find' ? 'lg:block' : 'lg:hidden', '2xl:block')}>
         <Pane
-          title="Find a course"
+          title="Add courses"
           scroll
           className="print:hidden"
           action={
@@ -761,9 +799,11 @@ export function ScheduleBuilder() {
             onHover={setGhostCode}
           />
         </Pane>
+        </div>
 
+        <div className={cn('min-w-0', phone === 'picked' ? 'block' : 'hidden', rail === 'picked' ? 'lg:block' : 'lg:hidden', '2xl:block')}>
         <Pane
-          title="In this schedule"
+          title="My classes"
           count={picked.length}
           scroll
           className="print:hidden"
@@ -777,7 +817,7 @@ export function ScheduleBuilder() {
                   checked={showCurrent}
                   onChange={setShowCurrent}
                   label={
-                    <span className="text-[11.5px] whitespace-nowrap text-subtle">
+                    <span className="text-[12.5px] whitespace-nowrap text-muted">
                       Show current
                     </span>
                   }
@@ -787,11 +827,11 @@ export function ScheduleBuilder() {
           }
         >
           {picked.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[12px] text-subtle">
-              Nothing added yet.
+            <p className="rounded-2xl border border-dashed border-border-strong px-4 py-8 text-center text-[13.5px] leading-relaxed text-muted">
+              Nothing added yet. Search for a course under Add courses, or press Generate.
             </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {picked.map((p) => {
                 const seats = seatSummary(p.section)
                 const isHidden = hidden.has(p.section.classNumber)
@@ -799,12 +839,12 @@ export function ScheduleBuilder() {
                 <li
                   key={p.section.classNumber}
                   className={cn(
-                    'flex items-start gap-2 rounded-lg border border-border bg-canvas px-2.5 py-2',
+                    'flex items-start gap-3 rounded-2xl border border-border bg-canvas/60 p-3',
                     isHidden && 'opacity-60',
                   )}
                 >
                   <span
-                    className="mt-1 size-2.5 shrink-0 rounded-full"
+                    className="mt-1.5 size-3 shrink-0 rounded-full"
                     style={{ backgroundColor: colourOf.get(p.code) }}
                     aria-hidden
                   />
@@ -820,14 +860,14 @@ export function ScheduleBuilder() {
                       title="Room, campus, seats and class number"
                       className="block w-full text-left"
                     >
-                      <span className="block truncate text-[12.5px] font-medium text-fg">
+                      <span className="block truncate text-[14.5px] font-semibold text-fg">
                         {p.code} {p.section.section}
                         {p.section.component ? ` · ${p.section.component}` : ''}
                       </span>
-                      <span className="block truncate text-[11px] text-subtle">
+                      <span className="mt-0.5 block truncate text-[13px] text-muted">
                         {p.section.meetingTimes || 'No scheduled time'}
                       </span>
-                      <span className="block truncate text-[11px] text-subtle">
+                      <span className="block truncate text-[12.5px] text-subtle">
                         {whereLine(p.section)}
                       </span>
                       {/* Seats, read when this section was added. The card
@@ -835,7 +875,7 @@ export function ScheduleBuilder() {
                       {seats && (
                         <span
                           className={cn(
-                            'mt-0.5 block truncate text-[11px]',
+                            'mt-0.5 block truncate text-[12.5px] font-medium',
                             seats.open > 0 ? 'text-success' : 'text-warning',
                           )}
                         >
@@ -844,11 +884,11 @@ export function ScheduleBuilder() {
                       )}
                     </button>
                     {isHidden && (
-                      <span className="mt-0.5 block text-[11px] text-subtle">
+                      <span className="mt-0.5 block text-[12.5px] text-subtle">
                         Hidden from the week
                       </span>
                     )}
-                    <span className="mt-1 block">
+                    <span className="mt-2 block">
                       <Select
                         value={p.state ?? 'planned'}
                         onChange={(next) =>
@@ -871,7 +911,7 @@ export function ScheduleBuilder() {
                       />
                     </span>
                   </span>
-                  <span className="flex shrink-0 flex-col gap-1">
+                  <span className="flex shrink-0 flex-col gap-0.5">
                     {/* Pinned courses survive every regeneration in the exact
                         slot shown here — the point of a pin is that the one
                         thing you have settled stops being reshuffled. */}
@@ -886,13 +926,13 @@ export function ScheduleBuilder() {
                           : 'Pin so it stays put when you regenerate'
                       }
                       className={cn(
-                        'grid size-6 place-items-center rounded transition-colors duration-150',
+                        'grid size-8 place-items-center rounded-full transition-colors duration-150',
                         pins.has(p.code)
                           ? 'bg-accent-soft text-accent'
                           : 'text-subtle hover:text-fg',
                       )}
                     >
-                      {pins.has(p.code) ? <Pin size={11} aria-hidden /> : <PinOff size={11} aria-hidden />}
+                      {pins.has(p.code) ? <Pin size={15} aria-hidden /> : <PinOff size={15} aria-hidden />}
                     </button>
                     {/* Off the grid, still in the schedule. The way to try the
                         Thursday section in the same hour as the Tuesday one
@@ -910,11 +950,11 @@ export function ScheduleBuilder() {
                           : 'Take it off the week without removing it'
                       }
                       className={cn(
-                        'grid size-6 place-items-center rounded transition-colors duration-150',
+                        'grid size-8 place-items-center rounded-full transition-colors duration-150',
                         isHidden ? 'bg-accent-soft text-accent' : 'text-subtle hover:text-fg',
                       )}
                     >
-                      {isHidden ? <EyeOff size={11} aria-hidden /> : <Eye size={11} aria-hidden />}
+                      {isHidden ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
                     </button>
                     <button
                       type="button"
@@ -924,9 +964,9 @@ export function ScheduleBuilder() {
                         )
                       }
                       aria-label={`Remove ${p.code}`}
-                      className="grid size-6 place-items-center rounded text-subtle transition-colors duration-150 hover:text-danger"
+                      className="grid size-8 place-items-center rounded-full text-subtle transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
                     >
-                      <Trash2 size={11} aria-hidden />
+                      <Trash2 size={15} aria-hidden />
                     </button>
                   </span>
                 </li>
@@ -935,8 +975,10 @@ export function ScheduleBuilder() {
             </ul>
           )}
         </Pane>
+        </div>
+        </div>
 
-        <div className="min-w-0 md:col-span-2 lg:col-span-1">
+        <div className={cn('min-w-0 lg:block print:block', phone === 'week' ? 'block' : 'hidden')}>
           {/* Print header. Hidden on screen, because on screen the name is
               already in the toolbar; on paper there is no toolbar and a sheet
               on a fridge should say what it is and where it came from. */}
@@ -1066,10 +1108,10 @@ export function ScheduleBuilder() {
               they are. */}
           <UnscheduledStrip picked={draft ? draftPicked : visiblePicked} colourOf={colourOf} />
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-subtle">
-            <span>{weeklyHours(placed)} hours a week</span>
+          <div className="mt-3 flex flex-wrap gap-2 text-[13px] text-muted">
+            <span className="rounded-full bg-surface px-3 py-1.5 font-medium text-fg">{weeklyHours(placed)} hours a week</span>
             {daysOff(placed).length > 0 && (
-              <span>Free: {daysOff(placed).map((d) => weekdayNames()[d]).join(', ')}</span>
+              <span className="rounded-full bg-surface px-3 py-1.5">Free: {daysOff(placed).map((d) => weekdayNames()[d]).join(', ')}</span>
             )}
           </div>
 
@@ -1131,7 +1173,7 @@ export function ScheduleBuilder() {
             </ul>
           )}
 
-          <p className="mt-3 text-[11px] text-subtle print:mt-4">
+          <p className="mt-3 text-[12px] text-subtle print:mt-4">
             A plan, not a registration. Seat counts were read when each section was added and can
             change; register in the Student Centre.
           </p>
@@ -1166,13 +1208,13 @@ function ToolbarButton({
       title={hint}
       aria-label={`${label}. ${hint}`}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13.5px] font-medium whitespace-nowrap transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50',
         highlight
           ? 'border-success/50 bg-success/10 text-success'
           : 'border-border text-muted hover:border-accent hover:text-fg',
       )}
     >
-      <Icon size={13} aria-hidden />
+      <Icon size={15} aria-hidden />
       {label}
     </button>
   )
@@ -1206,16 +1248,16 @@ function Pane({
   return (
     <section
       className={cn(
-        'min-w-0 rounded-xl border border-border bg-surface p-3',
-        scroll && 'flex flex-col lg:max-h-[calc(100svh-11rem)]',
+        'min-w-0 rounded-3xl border border-border bg-surface p-4',
+        scroll && 'flex flex-col lg:max-h-[calc(100svh-9rem)]',
         className,
       )}
     >
-      <div className="mb-2 flex shrink-0 items-center gap-1.5">
-        <h2 className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+      <div className="mb-3 flex shrink-0 items-center gap-2">
+        <h2 className="flex items-center gap-2 font-display text-[17px] font-semibold text-fg">
           {title}
           {count !== undefined && count > 0 && (
-            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-subtle">
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-semibold text-accent">
               {count}
             </span>
           )}

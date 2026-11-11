@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Check, ExternalLink, Info, Loader2, Users } from 'lucide-react'
+import { ExternalLink, Info, Loader2 } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { useAppData } from '@/app/providers/app-data'
 import { summarizeRecord } from '@/lib/academic-record'
@@ -17,6 +16,8 @@ import {
 } from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
+import { GroupCard } from './program/GroupCard'
+import { ProgramHero } from './program/ProgramHero'
 
 /**
  * Where you are in your degree.
@@ -165,60 +166,72 @@ export function ProgramProgress({ mode = 'major' }: { mode?: 'major' | 'minor' }
     [program, completed],
   )
 
+  const picker =
+    programs !== null && programs.length > 0 ? (
+      <Select
+        value={id}
+        onChange={choose}
+        ariaLabel={minorMode ? 'Minor' : 'Programme'}
+        placeholder={minorMode ? 'Pick a minor' : 'Pick your programme'}
+        // Fifty-odd entries is past the point where scrolling is the right
+        // interaction. Someone who knows they are in Finance should type four letters.
+        searchable
+        options={[
+          ...(minorMode && id ? [{ value: '', label: 'No minor' }] : []),
+          ...sortedPrograms.map((p) => ({
+            value: p.id,
+            label: minorMode ? p.name : `${p.name} (${p.degree})`,
+          })),
+        ]}
+      />
+    ) : null
+
+  /** Required courses that are on this term's schedule and not yet passed. */
+  const takingNow = progress
+    ? progress.groups.reduce(
+        (n, g) => n + (g.counted ? g.remaining.filter((c) => inProgress.has(normalizeCode(c.code))).length : 0),
+        0,
+      )
+    : 0
+
   return (
-    <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold text-fg">{minorMode ? 'Your minor' : 'Your programme'}</h2>
-          <p className="mt-0.5 text-[12.5px] text-subtle">
-            {minorMode
-              ? 'Optional. Track a minor the same way as your major.'
-              : 'What the calendar asks for, against what you have done.'}
-          </p>
-        </div>
-        {programs !== null && programs.length > 0 && (
-          <div className="w-full sm:w-72">
-            <Select
-              value={id}
-              onChange={choose}
-              ariaLabel={minorMode ? 'Minor' : 'Programme'}
-              placeholder={minorMode ? 'Pick a minor' : 'Pick your programme'}
-              // Fifty-odd entries is past the point where scrolling is the
-              // right interaction. Someone who knows they are in Finance
-              // should type four letters.
-              searchable
-              options={[
-                ...(minorMode && id ? [{ value: '', label: 'No minor' }] : []),
-                ...sortedPrograms.map((p) => ({
-                  value: p.id,
-                  label: minorMode ? p.name : `${p.name} (${p.degree})`,
-                })),
-              ]}
-            />
+    <div className="space-y-5">
+      {minorMode ? (
+        // The minor is the same audit, quieter: one banner per page is enough.
+        <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-8">
+          <div className="min-w-0">
+            <h2 className="font-display text-[22px] font-semibold tracking-tight text-fg">
+              {program ? program.name : 'Your minor'}
+            </h2>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {program && progress
+                ? `${progress.earnedNamed} of ${progress.requiredNamed} credits in the required courses`
+                : 'Optional. Track a minor the same way as your major.'}
+            </p>
           </div>
-        )}
-      </div>
+          {picker && <div className="w-full sm:w-80">{picker}</div>}
+        </div>
+      ) : (
+        <ProgramHero program={loading ? null : program} progress={loading ? null : progress} inProgress={takingNow} picker={picker} />
+      )}
 
       {programs !== null && programs.length === 0 && (
-        <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
-          No programmes have been added yet. Requirements are transcribed from the calendar by
-          hand, a programme at a time.
+        <p className="rounded-3xl border border-dashed border-border-strong px-5 py-10 text-center text-[14px] text-muted">
+          No programmes have been added yet. Requirements are transcribed from the calendar by hand, a programme at a
+          time.
         </p>
       )}
 
-      {!id && programs !== null && programs.length > 0 && (
-        <p className="mt-4 rounded-xl border border-dashed border-border px-5 py-10 text-center text-[13px] text-subtle">
-          {minorMode
-            ? 'Doing a minor? Pick it and this shows what you have cleared and what is left.'
-            : 'Pick your programme and this will show what you have cleared and what is left.'}
+      {minorMode && !id && programs !== null && programs.length > 0 && (
+        <p className="rounded-3xl border border-dashed border-border-strong px-5 py-8 text-center text-[14px] text-muted">
+          Doing a minor? Pick it and this shows what you have cleared and what is left.
         </p>
       )}
 
       {unsaved && (
-        <p className="mt-3 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-muted">
-          Showing this for now, but we could not save the choice. It will be gone when you
-          reload, and the schedule generator will not see it. That usually means a database
-          migration has not been run yet.
+        <p className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-[13px] leading-relaxed text-fg">
+          Showing this for now, but we could not save the choice. It will be gone when you reload, and the schedule
+          generator will not see it.
         </p>
       )}
 
@@ -229,263 +242,76 @@ export function ProgramProgress({ mode = 'major' }: { mode?: 'major' | 'minor' }
       )}
 
       {failed && (
-        <p className="mt-4 rounded-lg border border-border bg-surface-2 px-3.5 py-2.5 text-[12.5px] text-subtle">
-          Could not load the requirements. If this build is new, db/program_requirements.sql may
-          not have been run yet.
+        <p className="rounded-2xl border border-border bg-surface-2 px-4 py-3 text-[13px] text-muted">
+          Could not load the requirements. Try again in a moment.
         </p>
       )}
 
       {program && progress && !loading && (
-        <div className="mt-4 space-y-4">
-          {/* ── Headline ─────────────────────────────────────────────── */}
-          <section className="rounded-xl border border-border bg-surface p-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-[13px] font-semibold text-fg">
-                {program.name}{' '}
-                <span className="font-normal text-subtle">· {program.degree}</span>
-              </p>
-              <p className="text-[12px] text-subtle">
-                {program.total_credits} credits · {program.faculty}
-              </p>
-            </div>
-
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="font-display text-[24px] leading-none font-semibold text-fg">
-                {progress.earnedNamed}
-              </span>
-              <span className="text-[13px] text-muted">
-                of {progress.requiredNamed} credits in the required courses
-              </span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full bg-accent transition-[width] duration-500"
-                style={{ width: `${progress.percentNamed}%` }}
-              />
-            </div>
-
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Stat label="Credits passed, all told" value={progress.totalCompletedCredits} />
-              <Stat
-                label="Not claimed by a required course"
-                value={progress.unassignedCredits}
-                hint="These probably go toward your electives. Which ones count is a rule we do not try to read, so they are not added in above."
-              />
-            </div>
-          </section>
-
-          {/* ── Groups ───────────────────────────────────────────────── */}
-          {/* A programme we know the shape of but not the contents.
-              Saying so is the whole point: the alternative is an empty page
-              that reads as broken, or — far worse — a plausible list of
-              requirements nobody transcribed. Choosing it still does the job
-              that was actually blocked, since everything keyed off your
-              programme (the generator, the recommendations) now has an answer. */}
+        <>
+          {/* A programme we know the shape of but not the contents. Saying so
+              is the whole point: the alternative is an empty page that reads
+              as broken, or a plausible list of requirements nobody transcribed. */}
           {program.groups.length === 0 && (
-            <section className="rounded-xl border border-dashed border-border bg-surface/50 p-4">
-              <p className="flex items-start gap-2 text-[13px] font-medium text-fg">
-                <Info size={14} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+            <section className="rounded-3xl border border-dashed border-border-strong bg-surface/50 p-5 sm:p-6">
+              <p className="flex items-start gap-2.5 font-display text-[18px] font-semibold text-fg">
+                <Info size={18} className="mt-1 shrink-0 text-accent" aria-hidden />
                 Requirements for {program.name} are not transcribed yet
               </p>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
-                We have the degree and its {program.total_credits} credits, but not its course
-                lists. Those are copied from the calendar by hand, one programme at a time, because
-                a degree audit that guesses is worse than no degree audit: people plan a year
-                around it. Yours is on the list.
+              <p className="mt-2 text-[14px] leading-relaxed text-muted">
+                We have the degree and its {program.total_credits} credits, but not its course lists. Those are copied
+                from the calendar by hand, one programme at a time, because a degree audit that guesses is worse than
+                no degree audit: people plan a year around it. Yours is on the list.
               </p>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-subtle">
-                In the meantime this choice is saved, so the schedule builder and the course
-                recommendations know what you are in. Your{' '}
-                <span className="text-fg">{progress.totalCompletedCredits} credits passed</span> are
-                counted below.
+              <p className="mt-2 text-[13.5px] leading-relaxed text-subtle">
+                In the meantime this choice is saved, so the schedule builder and the course recommendations know what
+                you are in. Your <span className="text-fg">{progress.totalCompletedCredits} credits passed</span> are
+                counted.
               </p>
             </section>
           )}
 
-          {/* Three colours carrying three meanings, explained once. A tooltip
-              on each pill is the version nobody reads and nobody can read on
-              a phone, and the states are not guessable: amber for "on your
-              schedule" in particular looks like a warning until it is named. */}
-          <Legend />
+          {/* Three colours carrying three meanings, explained once. */}
+          {program.groups.length > 0 && <Legend />}
 
-          {progress.groups.map(({ group, done, remaining, earnedCredits, counted }) => (
-            <section key={group.id} className="rounded-xl border border-border bg-surface p-4">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h3 className="text-[13px] font-semibold text-fg">{group.title}</h3>
-                <p className="text-[12px] text-subtle">
-                  {counted ? (
-                    <>
-                      {earnedCredits} of {group.credits} credits
-                    </>
-                  ) : (
-                    <>{group.credits} credits</>
-                  )}
-                </p>
-              </div>
-
-              {counted ? (
-                <>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                    <div
-                      className="h-full rounded-full bg-accent"
-                      style={{ width: `${Math.round((earnedCredits / group.credits) * 100)}%` }}
-                    />
-                  </div>
-                  <ul className="mt-3 grid gap-1 sm:grid-cols-2">
-                    {(group.kind === 'all' ? [...done, ...remaining] : done).map((course) => {
-                      const isDone = done.includes(course)
-                      const taking = !isDone && inProgress.has(normalizeCode(course.code))
-                      return (
-                        <li
-                          key={course.code}
-                          title={
-                            isDone
-                              ? 'Passed'
-                              : taking
-                                ? 'On your schedule this term'
-                                : 'Not taken yet'
-                          }
-                          className={cn(
-                            'flex items-start gap-2 rounded-lg border px-2.5 py-1.5',
-                            isDone
-                              ? 'border-success/40 bg-success/10'
-                              : taking
-                                ? 'border-warning/40 bg-warning/10'
-                                : 'border-border bg-canvas',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border',
-                              isDone
-                                ? 'border-success bg-success'
-                                : taking
-                                  ? 'border-warning bg-warning'
-                                  : 'border-border-strong',
-                            )}
-                            aria-hidden
-                          >
-                            {isDone && <Check size={10} className="text-canvas" />}
-                            {taking && <Loader2 size={9} className="animate-spin text-canvas" />}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-[12.5px] font-medium text-fg">
-                              {course.code}
-                              <span className="ml-1.5 font-normal text-subtle">
-                                {course.credits}
-                              </span>
-                            </span>
-                            <span className="block text-[11.5px] leading-snug text-subtle">
-                              {course.title}
-                            </span>
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                  {/* "N credits chosen from": the passed ones above, the
-                      list folded away (it can run to sixty courses). */}
-                  {group.kind === 'credits' && remaining.length > 0 && (
-                    <details className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2">
-                      <summary className="cursor-pointer text-[12px] font-medium text-muted">
-                        Choose from {remaining.length} courses
-                      </summary>
-                      {group.rule && <p className="mt-2 text-[12px] leading-relaxed text-subtle">{group.rule}</p>}
-                      <ul className="mt-2 grid gap-x-3 gap-y-1 sm:grid-cols-2">
-                        {remaining.map((course) => (
-                          <li key={course.code} className="text-[12px] text-muted">
-                            <span className="font-medium text-fg">{course.code}</span> {course.title}{' '}
-                            <span className="text-subtle">({course.credits})</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </>
-              ) : (
-                <div className="mt-2 rounded-lg border border-border bg-canvas px-3 py-2.5">
-                  <p className="text-[12.5px] leading-relaxed text-muted">{group.rule}</p>
-                  <p className="mt-1.5 text-[11.5px] text-subtle">
-                    Not ticked off automatically. Which courses satisfy this depends on wording we
-                    will not guess at.
-                  </p>
-                  <Picks picks={picks} mine={held} />
-                </div>
-              )}
-
-              {group.note && (
-                <p className="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-subtle">
-                  <Info size={12} className="mt-0.5 shrink-0" aria-hidden />
-                  {group.note}
-                </p>
-              )}
-            </section>
+          {progress.groups.map(({ group, done, remaining, earnedCredits, counted }, i) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              done={done}
+              remaining={remaining}
+              earnedCredits={earnedCredits}
+              counted={counted}
+              inProgress={inProgress}
+              picks={picks}
+              held={held}
+              delay={Math.min(i, 6) * 50}
+            />
           ))}
 
           {/* ── Provenance ───────────────────────────────────────────── */}
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-subtle">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-subtle">
             <span>
-              Transcribed from the {program.calendar_year} undergraduate calendar. Always confirm
-              with an advisor before you register or apply to graduate.
+              Transcribed from the {program.calendar_year} undergraduate calendar. Always confirm with an advisor before
+              you register or apply to graduate.
             </span>
             <a
               href={program.source_url}
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center gap-1 text-accent transition-colors duration-150 hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-accent transition-colors duration-150 hover:underline"
             >
               Check the calendar
-              <ExternalLink size={11} aria-hidden />
+              <ExternalLink size={12} aria-hidden />
             </a>
           </p>
-        </div>
+        </>
       )}
     </div>
   )
 }
 
 /** What the three states mean, said once at the top rather than per pill. */
-/**
- * What other people in this programme are registered in.
- *
- * A FACT, PRESENTED AS ONE. It is not a reading of the rule above it and the
- * copy says so — those rules are prose with exclusion pairs, and the single
- * seeded rule that names any courses names them as an exclusion. This says
- * "these are common", never "these count". Hidden entirely below three
- * takers (the server enforces it too) and when everything popular is already
- * yours, because a suggestion list of things you have done is noise.
- */
-function Picks({ picks, mine }: { picks: ProgramPick[]; mine: Set<string> }) {
-  const fresh = picks.filter((p) => !mine.has(normalizeCode(p.code))).slice(0, 6)
-  if (fresh.length === 0) return null
-  return (
-    <div className="mt-3 border-t border-border pt-2.5">
-      <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-subtle">
-        <Users size={12} aria-hidden />
-        Common in your programme
-      </p>
-      <ul className="mt-1.5 flex flex-wrap gap-1.5">
-        {fresh.map((p) => (
-          <li key={p.code}>
-            <Link
-              to={`/app/planner?tab=directory&q=${encodeURIComponent(p.code)}`}
-              title={p.title ?? undefined}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1 text-[12px] text-fg transition-colors duration-150 hover:border-accent"
-            >
-              <span className="font-medium">{p.code}</span>
-              <span className="text-subtle">{p.takers}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-1.5 text-[11px] leading-relaxed text-subtle">
-        How many students in your programme have each one. Whether it satisfies the rule above is
-        still the rule's call, not ours.
-      </p>
-    </div>
-  )
-}
-
 function Legend() {
   const items: { cls: string; dot: string; label: string; hint: string }[] = [
     {
@@ -508,26 +334,17 @@ function Legend() {
     },
   ]
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border bg-surface/60 px-3.5 py-2.5">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl bg-surface/60 px-4 py-3">
       {items.map((i) => (
-        <span key={i.label} className="flex items-center gap-1.5 text-[12px]">
-          <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border', i.dot)} aria-hidden />
-          <span className="font-medium text-fg">{i.label}</span>
-          <span className="text-subtle">{i.hint}</span>
+        <span key={i.label} className="flex items-center gap-2 text-[13px]">
+          <span className={cn('grid size-[18px] shrink-0 place-items-center rounded-full border-2', i.dot)} aria-hidden />
+          <span className="font-semibold text-fg">{i.label}</span>
+          <span className="text-muted">{i.hint}</span>
         </span>
       ))}
-      <span className="ml-auto text-[11.5px] text-subtle">
+      <span className="text-[12.5px] text-subtle lg:ml-auto">
         A group with no tick boxes is a rule we will not guess at, so see its wording.
       </span>
-    </div>
-  )
-}
-
-function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-canvas px-3 py-2" title={hint}>
-      <p className="text-[16px] font-semibold text-fg tabular-nums">{value}</p>
-      <p className="mt-0.5 text-[11.5px] leading-snug text-subtle">{label}</p>
     </div>
   )
 }
