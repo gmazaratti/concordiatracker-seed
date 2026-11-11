@@ -2319,7 +2319,8 @@ html:has(
   initial-value: 0deg;
 }
 @keyframes ct-beam-spin { to { --ct-beam: 360deg; } }
-.ct-beam::before {
+.ct-beam::before,
+.ct-ob-beam::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -2342,3 +2343,8 @@ html:has(
   pointer-events: none;
 }
 .ct-beam { box-shadow: 0 18px 50px -18px color-mix(in srgb, var(--ct-accent) 55%, transparent), 0 10px 30px -12px rgba(0, 0, 0, 0.6); }
+
+/* The onboarding prototype's lock: the Continue button fills over 3 seconds
+   before it can be pressed, so a slide cannot be skipped by reflex. */
+@keyframes ct-ob-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.ct-ob-fill { transform-origin: left; animation: ct-ob-fill 3s linear forwards; }

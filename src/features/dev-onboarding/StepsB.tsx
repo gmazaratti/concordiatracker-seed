@@ -3,6 +3,7 @@ import { percentToGrade } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 import { PLAN, TARGETS, gpaWith, neededOnFinal, overlaps, readGrade, standing } from './ob-data'
 import { Stage, StageLabel, StepCopy } from './ObParts'
+import { beam } from './ob-beam'
 
 /* ── 4. Grades: where you stand, what you need ────────────────────────────── */
 
@@ -32,15 +33,14 @@ export function StepGrade({
   return (
     <>
       <StepCopy
-        label="Step 3 · Grades"
+        label="Grades"
         title="Know where you stand. Know what you need."
         sub="Type a grade the way it is written on the paper. The math for the rest of the term does itself."
-        hint="Change the grade or drag the slider"
-        done={touched}
       />
       <Stage>
         <StageLabel right="COMM 305">Quiz 1 · worth 10%</StageLabel>
         <div className="flex items-center gap-3">
+          <span className={cn('block rounded-xl', beam(!touched))}>
           <input
             value={quiz}
             onChange={(e) => setQuiz(e.target.value)}
@@ -52,6 +52,7 @@ export function StepGrade({
               pct === null && quiz.trim() ? 'border-danger' : 'border-border',
             )}
           />
+          </span>
           <p className="text-[14px] text-muted">
             {pct === null ? (
               'Try 17/20 or 85'
@@ -144,11 +145,9 @@ export function StepPlan({
   return (
     <>
       <StepCopy
-        label="Step 4 · Planner"
+        label="Planner"
         title="Build next term before seats run out."
-        sub="Pick courses and see them on one week. Conflicts are caught for you, and a full class can be watched until a seat opens."
-        hint="Tap the courses to add them"
-        done={picked.size > 1}
+        sub="Tap courses onto a week. Conflicts are caught for you, a full class can be watched until a seat opens, and the Planner also tracks your degree and your GPA."
       />
       <Stage>
         <div className="flex flex-wrap gap-1.5">
@@ -163,7 +162,7 @@ export function StepPlan({
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-all duration-200',
                   on ? 'border-transparent text-white' : 'border-border text-muted hover:text-fg',
-                  !on && picked.size <= 1 && 'ct-ob-pulse',
+                  beam(!on && picked.size <= 1 && c.id === 'fina'),
                 )}
                 style={on ? { backgroundColor: c.color } : undefined}
               >

@@ -1,7 +1,8 @@
-import { CalendarCheck, Check, GraduationCap, PartyPopper, Sparkles, Target, Users } from 'lucide-react'
+import { CalendarCheck, Check, GraduationCap, PartyPopper, Target, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { GOALS } from './ob-data'
 import { Stage, StageLabel, StepCopy } from './ObParts'
+import { beam } from './ob-beam'
 
 const GOAL_ICON = { deadlines: CalendarCheck, gpa: Target, plan: GraduationCap, people: PartyPopper, parents: Users } as const
 
@@ -12,11 +13,9 @@ export function StepGoals({ goals, toggle }: { goals: Set<string>; toggle: (id: 
   return (
     <>
       <StepCopy
-        label="Step 5 · Make it yours"
+        label="Make it yours"
         title="What do you want out of this?"
         sub="Pick as many as you like. We use it to decide what to show you first, so you are not left to find things on your own."
-        hint="Pick at least one"
-        done={goals.size > 0}
       />
       <Stage>
         <div className="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
@@ -31,6 +30,7 @@ export function StepGoals({ goals, toggle }: { goals: Set<string>; toggle: (id: 
                 onClick={() => toggle(g.id)}
                 className={cn(
                   'ct-ob-rise flex items-center gap-3 rounded-2xl border px-3 py-2 text-left transition-all duration-200 sm:px-3.5 sm:py-3',
+                  beam(goals.size === 0 && i === 0),
                   on ? 'border-accent bg-accent-soft' : 'border-border bg-canvas hover:border-border-strong',
                   i === GOALS.length - 1 && 'sm:col-span-2',
                 )}
@@ -72,16 +72,16 @@ export function StepDone({ name, did }: { name: string; did: { label: string; do
   return (
     <>
       <div>
-        <span className="ct-ob-pop relative mb-5 grid size-16 place-items-center rounded-2xl bg-accent text-accent-contrast">
-          <Sparkles size={30} aria-hidden />
-          <span className="ct-ob-ring pointer-events-none absolute inset-0 rounded-2xl border-2 border-accent" aria-hidden />
+        <span className="ct-ob-pop relative mb-5 grid size-16 place-items-center rounded-full bg-accent text-accent-contrast">
+          <Check size={32} strokeWidth={3} className="ct-ob-check" aria-hidden />
+          <span className="ct-ob-ring pointer-events-none absolute inset-0 rounded-full border-2 border-accent" aria-hidden />
         </span>
         <StepCopy
           label="All set"
           title={<>You are ready{first ? `, ${first}` : ''}.</>}
           sub={
             count >= 4
-              ? 'You just used the four things that matter most. The rest shows up when it is useful, one thing at a time.'
+              ? 'You just used the things that matter most. The rest shows up when it is useful, one thing at a time.'
               : 'That is the tour. Anything you skipped will come up again when it is useful, one thing at a time.'
           }
         />

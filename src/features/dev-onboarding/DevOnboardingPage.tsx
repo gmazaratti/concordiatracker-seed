@@ -4,11 +4,16 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { useNoIndex } from '@/app/hooks/useNoIndex'
 import { cn } from '@/lib/cn'
-import { StepHello, StepScan, StepTick } from './StepsA'
+import { StepHandle, StepHello } from './StepsA'
+import { StepOutline } from './StepOutline'
 import { StepGrade, StepPlan } from './StepsB'
 import { StepDone, StepGoals } from './StepsC'
+import { StepMoodle, StepSocial, StepTick } from './StepsD'
+import { TAKEN } from './ob-data'
 
-const TOTAL = 7
+const TOTAL = 10
+/** A slide cannot be skipped by reflex: Continue unlocks after this, or sooner if they try the step. */
+const HOLD_MS = 3000
 const toggled = (set: Set<string>, id: string) => {
   const next = new Set(set)
   if (next.has(id)) next.delete(id)
@@ -21,12 +26,13 @@ const toggled = (set: Set<string>, id: string) => {
  *
  * The live flow asks questions and then shows slides; measured 2026-11-10, the
  * typical student went on to use 4 of 14 features. This one teaches by doing:
- * one real action per screen (scan, tick, grade, plan), on a sample course, so
- * the features people never find are things they have already used once.
+ * one real action per screen, on a sample course, so the features people never
+ * find are things they have already used once.
  *
- * Two rules from what confused people before ("Here's the gist"):
- *   - what to do is said in words AND pulses on the thing itself
- *   - the big button always moves forward, whether or not they tried it
+ * How a step says "do this": a light circles the border of the ONE control
+ * that matters (ObParts → beam) and stops once it is used. No written hints.
+ * The big button fills for three seconds before it unlocks, unless the step
+ * was tried first, so nobody taps through on reflex.
  *
  * Nothing is saved; it is a sandbox on mock data. Theme locked to default dark.
  */
@@ -34,8 +40,12 @@ export function DevOnboardingPage() {
   useNoIndex()
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState<'right' | 'left'>('right')
+  const [held, setHeld] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [handle, setHandle] = useState('')
   const [scanned, setScanned] = useState(false)
+  const [added, setAdded] = useState<string[]>([])
+  const [moodle, setMoodle] = useState<'yes' | 'later' | null>(null)
   const [ticked, setTicked] = useState<Set<string>>(new Set())
   const [quiz, setQuiz] = useState('17/20')
   const [target, setTarget] = useState(80)
@@ -43,7 +53,30 @@ export function DevOnboardingPage() {
   const [gradeTouched, setGradeTouched] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set(['comm']))
   const [fixed, setFixed] = useState(false)
+  const [following, setFollowing] = useState<Set<string>>(new Set())
   const [goals, setGoals] = useState<Set<string>>(new Set())
+
+  const handleOk = handle.length >= 3 && !TAKEN.has(handle)
+  const tried = [
+    name.trim().length > 0,
+    handleOk,
+    scanned || added.length > 0,
+    moodle !== null,
+    ticked.size > 0,
+    gradeTouched,
+    picked.size > 1,
+    following.size > 0,
+    goals.size > 0,
+    false,
+  ][step]
+
+  // The hold: `held` is the step whose three seconds are up.
+  useEffect(() => {
+    const id = window.setTimeout(() => setHeld(step), HOLD_MS)
+    return () => window.clearTimeout(id)
+  }, [step])
+  const unlocked = tried || held === step
+  const last = step === TOTAL - 1
 
   const go = useCallback((to: number) => {
     setStep((cur) => {
@@ -53,23 +86,19 @@ export function DevOnboardingPage() {
     })
   }, [])
 
-  // Enter moves on (unless they are typing in a field that wants it), and the
-  // arrow keys step when focus is not in an input or on the slider.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement
       const typing = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA'
-      if (e.key === 'Enter' && el.tagName !== 'BUTTON') go(step + 1)
-      if (!typing && e.key === 'ArrowRight') go(step + 1)
+      const forward = (e.key === 'Enter' && el.tagName !== 'BUTTON') || (!typing && e.key === 'ArrowRight')
+      if (forward && unlocked) go(step + 1)
       if (!typing && e.key === 'ArrowLeft') go(step - 1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go, step])
+  }, [go, step, unlocked])
 
-  const tried = [true, scanned, ticked.size > 0, gradeTouched, picked.size > 1, goals.size > 0, true][step]
-  const last = step === TOTAL - 1
-  const label = last ? 'Open my Today' : step === 0 ? "Let's go" : tried ? 'Continue' : 'Skip this one'
+  const label = last ? 'Open my Today' : step === 0 ? "Let's go" : tried ? 'Continue' : 'Skip for now'
 
   return (
     <div data-theme="dark" className="fixed inset-0 flex h-[100dvh] flex-col overflow-hidden bg-canvas font-sans text-fg antialiased">
@@ -77,7 +106,7 @@ export function DevOnboardingPage() {
 
       <header className="relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2.5 px-5 pt-[calc(env(safe-area-inset-top)+12px)] pb-2 sm:pb-3">
         <Logo />
-        <div className="order-3 flex basis-full items-center gap-1.5 sm:order-none sm:flex-1 sm:basis-0" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={step + 1} aria-label="Progress">
+        <div className="order-3 flex basis-full items-center gap-1 sm:order-none sm:flex-1 sm:basis-0 sm:gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={TOTAL} aria-valuenow={step + 1} aria-label="Progress">
           {Array.from({ length: TOTAL }, (_, i) => (
             <span key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
               <span className={cn('block h-full rounded-full bg-accent transition-[width] duration-500 ease-out', i <= step ? 'w-full' : 'w-0')} />
@@ -98,9 +127,18 @@ export function DevOnboardingPage() {
           )}
         >
           {step === 0 && <StepHello name={name} setName={setName} />}
-          {step === 1 && <StepScan scanned={scanned} onScanned={() => setScanned(true)} />}
-          {step === 2 && <StepTick ticked={ticked} toggle={(id) => setTicked((s) => toggled(s, id))} />}
-          {step === 3 && (
+          {step === 1 && <StepHandle name={name} handle={handle} setHandle={setHandle} />}
+          {step === 2 && (
+            <StepOutline
+              scanned={scanned}
+              onScanned={() => setScanned(true)}
+              added={added}
+              addCourse={(code) => setAdded((a) => (a.includes(code) ? a : [...a, code]))}
+            />
+          )}
+          {step === 3 && <StepMoodle choice={moodle} setChoice={setMoodle} />}
+          {step === 4 && <StepTick ticked={ticked} toggle={(id) => setTicked((s) => toggled(s, id))} />}
+          {step === 5 && (
             <StepGrade
               quiz={quiz}
               setQuiz={(v) => (setQuiz(v), setGradeTouched(true))}
@@ -111,16 +149,19 @@ export function DevOnboardingPage() {
               touched={gradeTouched}
             />
           )}
-          {step === 4 && <StepPlan picked={picked} toggle={(id) => setPicked((s) => toggled(s, id))} fixed={fixed} onFix={() => setFixed(true)} />}
-          {step === 5 && <StepGoals goals={goals} toggle={(id) => setGoals((s) => toggled(s, id))} />}
-          {step === 6 && (
+          {step === 6 && <StepPlan picked={picked} toggle={(id) => setPicked((s) => toggled(s, id))} fixed={fixed} onFix={() => setFixed(true)} />}
+          {step === 7 && <StepSocial following={following} toggle={(id) => setFollowing((s) => toggled(s, id))} />}
+          {step === 8 && <StepGoals goals={goals} toggle={(id) => setGoals((s) => toggled(s, id))} />}
+          {step === 9 && (
             <StepDone
               name={name}
               did={[
-                { label: 'Scanned a course outline', done: scanned },
+                { label: `Claimed ${handleOk ? `@${handle}` : 'a handle'}`, done: handleOk },
+                { label: 'Added a course', done: scanned || added.length > 0 },
                 { label: 'Ticked off a deadline', done: ticked.size > 0 },
                 { label: 'Checked what you need on a final', done: gradeTouched },
                 { label: 'Built a week for next term', done: picked.size > 1 },
+                { label: 'Followed a club', done: following.size > 0 },
               ]}
             />
           )}
@@ -140,24 +181,38 @@ export function DevOnboardingPage() {
           </button>
           <p className="hidden flex-1 text-[13px] text-subtle sm:block">
             {step + 1} of {TOTAL}
-            {step > 0 && !last && !tried && ' · try it, or skip. Either works.'}
           </p>
           {last ? (
-            <Link to="/app" className="ct-ob-cta group inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-accent px-7 text-[15px] font-bold text-accent-contrast sm:flex-none">
-              {label}
-              <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+            <Link
+              to="/app"
+              aria-disabled={!unlocked}
+              onClick={(e) => !unlocked && e.preventDefault()}
+              className={cn(
+                'group relative inline-flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl px-7 text-[15px] font-bold sm:flex-none',
+                unlocked ? 'ct-ob-cta bg-accent text-accent-contrast' : 'cursor-default bg-surface-2 text-subtle',
+              )}
+            >
+              {!unlocked && <span key={step} className="ct-ob-fill absolute inset-0 bg-accent/25" aria-hidden />}
+              <span className="relative">{label}</span>
+              <ArrowRight size={17} className="relative transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
             </Link>
           ) : (
             <button
               type="button"
               onClick={() => go(step + 1)}
+              disabled={!unlocked}
               className={cn(
-                'group inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl px-7 text-[15px] font-bold transition-all duration-300 sm:flex-none',
-                tried ? 'ct-ob-cta bg-accent text-accent-contrast' : 'border border-border-strong text-fg hover:bg-surface-2',
+                'group relative inline-flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl px-7 text-[15px] font-bold transition-colors duration-300 sm:flex-none',
+                !unlocked
+                  ? 'cursor-default bg-surface-2 text-subtle'
+                  : tried
+                    ? 'ct-ob-cta bg-accent text-accent-contrast'
+                    : 'border border-border-strong text-fg hover:bg-surface-2',
               )}
             >
-              {label}
-              <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+              {!unlocked && <span key={step} className="ct-ob-fill absolute inset-0 bg-accent/25" aria-hidden />}
+              <span className="relative">{label}</span>
+              <ArrowRight size={17} className="relative transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
             </button>
           )}
         </div>
