@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/app/providers/auth'
 import {
   buildPitch,
   claimUrl,
@@ -31,6 +32,10 @@ export function SurveyResult({
 }) {
   const navigate = useNavigate()
   const pitches = useMemo(() => buildPitch(answers), [answers])
+  // Signed in already: no "create an account" pitch, and the free week goes
+  // onto THIS account (redeem_survey_code extends an existing one).
+  const { user } = useAuth()
+  const signedIn = !!user
 
   return (
     <div>
@@ -49,7 +54,7 @@ export function SurveyResult({
       {/* The thank-you IS the offer. Placed above the personalised cards
           because a code shown after four paragraphs is a code nobody sees, and
           this one is the reason they will actually open the app tonight. */}
-      {code && <TrialOffer token={code} />}
+      {code && <TrialOffer token={code} signedIn={signedIn} />}
 
       {pitches.length > 0 && (
         <>
@@ -82,7 +87,7 @@ export function SurveyResult({
         </p>
       )}
 
-      {showSignup && (
+      {showSignup && !signedIn && (
         <div className="mt-6 rounded-2xl border border-accent/40 bg-accent-soft/40 p-5 text-center">
           <h2 className="font-display text-[19px] leading-tight font-semibold text-fg">
             Want to try it? It takes about a minute.
@@ -115,7 +120,7 @@ export function SurveyResult({
  * somebody puts a real term into this, and a payment wall at the door answers a
  * much less interesting question.
  */
-function TrialOffer({ token }: { token: string }) {
+function TrialOffer({ token, signedIn }: { token: string; signedIn: boolean }) {
   const navigate = useNavigate()
   return (
     <div className="mt-7 rounded-2xl border border-accent/50 bg-accent-soft/40 p-5 text-center">
@@ -123,8 +128,9 @@ function TrialOffer({ token }: { token: string }) {
         One week of Pro, on the house
       </p>
       <p className="mx-auto mt-1.5 max-w-sm text-[13.5px] leading-relaxed text-muted">
-        Make an account from here and everything unlocks for seven days. No card, nothing to
-        cancel, and it&rsquo;s already attached to this link.
+        {signedIn
+          ? 'Everything unlocks for seven days on your account. No card, nothing to cancel.'
+          : 'Make an account from here and everything unlocks for seven days. No card, nothing to cancel, and it’s already attached to this link.'}
       </p>
       <Button
         size="lg"
@@ -134,11 +140,11 @@ function TrialOffer({ token }: { token: string }) {
           navigate(claimUrl(token))
         }}
       >
-        Create my free account
+        {signedIn ? 'Add the free week to my account' : 'Create my free account'}
         <ArrowRight size={16} aria-hidden />
       </Button>
       <p className="mt-2.5 text-[11.5px] text-subtle">
-        Nothing to write down. Sign up from this page and the week is yours.
+        {signedIn ? 'It goes straight onto the account you are signed in with.' : 'Nothing to write down. Sign up from this page and the week is yours.'}
       </p>
     </div>
   )
