@@ -30,7 +30,7 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
 
   return (
     <div>
-      <div className="flex items-end gap-[3px]" role="list" aria-label="Weekly load">
+      <div className="flex items-end gap-1 sm:gap-1.5" role="list" aria-label="Weekly load">
         {weeks.map((week, i) => {
           const height = Math.max(2, Math.round((week.weight / peak) * 100))
           const tone =
@@ -44,12 +44,12 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
               onClick={() => setOpen(isOpen ? null : week.start)}
               aria-label={`Week of ${week.start}: ${Math.round(week.weight)} percent`}
               aria-expanded={isOpen}
-              className="group flex flex-1 flex-col items-center gap-1"
+              className="group relative flex min-w-0 flex-1 flex-col items-center pb-5"
             >
-              <span className="flex h-24 w-full items-end justify-center">
+              <span className="flex h-36 w-full items-end justify-center sm:h-44">
                 <span
                   className={cn(
-                    'w-full rounded-t-sm transition-all duration-200',
+                    'w-full rounded-t-md transition-all duration-200',
                     week.weight === 0 ? 'bg-border/60' : tone,
                     isOpen ? 'opacity-100' : 'opacity-80 group-hover:opacity-100',
                   )}
@@ -60,7 +60,7 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
                   without dropping the bars themselves. */}
               <span
                 className={cn(
-                  'text-[9.5px] tabular-nums',
+                  'absolute bottom-0 left-1/2 -translate-x-1/2 text-[9.5px] whitespace-nowrap tabular-nums sm:text-[11px]',
                   isOpen ? 'text-fg' : 'text-subtle',
                   i % 4 === 0 || isOpen ? 'opacity-100' : 'opacity-0',
                 )}
@@ -74,27 +74,27 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
 
       {/* Detail sits below rather than in a tooltip: this is a thing you read,
           not a thing you glance at, and a tooltip is unusable on a phone. */}
-      <div className="mt-2 min-h-[54px] rounded-lg border border-border bg-canvas px-3 py-2">
+      <div className="mt-3 min-h-[60px] rounded-2xl bg-canvas/70 px-4 py-3">
         {active ? (
           active.items.length === 0 ? (
-            <p className="text-[12px] text-subtle">
+            <p className="text-[13px] text-muted">
               Week of {formatMonthDay(parseDay(active.start))}: nothing due. Those exist too.
             </p>
           ) : (
             <>
-              <p className="text-[12px] font-medium text-fg">
+              <p className="text-[14px] font-semibold text-fg">
                 Week of {formatMonthDay(parseDay(active.start))} ·{' '}
                 <span className={active.weight >= HEAVY ? 'text-danger' : 'text-muted'}>
                   {Math.round(active.weight)}% of your grade
                 </span>
               </p>
-              <ul className="mt-1 space-y-0.5">
+              <ul className="mt-1.5 space-y-1">
                 {active.items.map((a) => {
                   const course = courses.find((c) => c.id === a.courseId)
                   return (
-                    <li key={a.id} className="flex items-center gap-1.5 text-[11.5px] text-subtle">
+                    <li key={a.id} className="flex items-center gap-2 text-[13px] text-muted">
                       <span
-                        className="size-1.5 shrink-0 rounded-full"
+                        className="size-2 shrink-0 rounded-full"
                         style={{ backgroundColor: colourOf.get(a.courseId) ?? '#888' }}
                         aria-hidden
                       />
@@ -109,8 +109,8 @@ export function TermStrip({ weeks }: { weeks: WeekLoad[] }) {
             </>
           )
         ) : (
-          <p className="text-[12px] text-subtle">
-            Each bar is a week, as tall as the share of your final grades landing in it. Tap one.
+          <p className="text-[13px] text-muted">
+            Tap a bar to see what is due that week. Red is a heavy week, amber a busy one.
           </p>
         )}
       </div>

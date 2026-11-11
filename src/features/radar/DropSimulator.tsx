@@ -33,13 +33,13 @@ export function DropSimulator({
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[13px] font-semibold text-fg">What if you dropped one?</h2>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h4 className="text-[16px] font-semibold text-fg">What if you dropped one?</h4>
         {simulating && (
           <button
             type="button"
             onClick={onReset}
-            className="inline-flex items-center gap-1 text-[11.5px] text-subtle transition-colors duration-150 hover:text-fg"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent transition-colors duration-150 hover:underline"
           >
             <RotateCcw size={11} aria-hidden />
             Back to your real term
@@ -58,7 +58,7 @@ export function DropSimulator({
               aria-pressed={off}
               title={off ? `Put ${course.code} back` : `See the term without ${course.code}`}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-medium transition-colors duration-150',
+                'inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[13.5px] font-medium transition-colors duration-150',
                 off
                   ? 'border-dashed border-border text-subtle line-through'
                   : 'border-border bg-canvas text-fg hover:border-accent',
@@ -75,7 +75,7 @@ export function DropSimulator({
         })}
       </div>
 
-      <p className="mt-2 text-[11.5px] leading-relaxed text-subtle">
+      <p className="mt-3 text-[13px] leading-relaxed text-muted">
         {simulating
           ? 'Everything above is now showing the term without it, including anything dropping it would cost you. Nothing has changed in your account.'
           : 'Switch one off to see the rest of the term without it. This changes nothing: it is a question, not an action.'}
