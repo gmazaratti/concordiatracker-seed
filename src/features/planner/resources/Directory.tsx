@@ -2,6 +2,8 @@ import { ArrowUpRight, CalendarCheck } from 'lucide-react'
 import { NEEDS, findResource } from '@/data/resource-guide'
 import { RESOURCE_GROUPS, type Resource } from '@/data/resources'
 import { cn } from '@/lib/cn'
+import { PHOTOS } from '@/data/resource-photos'
+import { GROUP_ART, NEED_PHOTO } from './guide-toc'
 import { GROUP_LOOK, NEED_ICON, wash } from './resource-icons'
 
 /** "I need..." shortcuts: eight plain-language doors, each opening one office. */
@@ -22,21 +24,28 @@ export function NeedGrid({ faculty, onOpen }: { faculty: Resource['faculty'] | n
               key={n.id}
               type="button"
               onClick={() => onOpen(r)}
-              className="ct-res-in group relative flex min-h-[104px] flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface p-3.5 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong active:scale-[0.98]"
-              style={{ animationDelay: `${i * 35}ms` }}
+              className="ct-res-in group relative isolate flex min-h-[132px] flex-col justify-between overflow-hidden rounded-2xl p-3.5 text-left text-white transition-transform duration-300 hover:-translate-y-1 active:scale-[0.98]"
+              style={{ animationDelay: `${i * 35}ms`, backgroundColor: look.hex }}
             >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -top-8 -right-8 size-24 rounded-full opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-                style={{ backgroundColor: wash(look.hex, 0.6) }}
+              <img
+                src={PHOTOS[NEED_PHOTO[n.id]].src}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 -z-20 size-full object-cover opacity-70 mix-blend-luminosity grayscale transition-transform duration-700 ease-out group-hover:scale-110"
               />
-              <span
-                className="relative grid size-11 place-items-center rounded-full text-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
-                style={{ backgroundColor: look.hex }}
-              >
-                <Icon size={20} aria-hidden />
+              <span aria-hidden className="absolute inset-0 -z-10 mix-blend-multiply" style={{ backgroundColor: look.hex, opacity: 0.6 }} />
+              <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+              <span className="grid size-10 place-items-center rounded-full bg-white/20 backdrop-blur-md transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                <Icon size={19} aria-hidden />
               </span>
-              <span className="relative mt-3 text-[13.5px] leading-snug font-semibold text-fg">{n.label}</span>
+              <span className="mt-3 flex items-end justify-between gap-2">
+                <span className="text-[14px] leading-snug font-semibold text-balance">{n.label}</span>
+                <ArrowUpRight
+                  size={15}
+                  className="mb-0.5 shrink-0 text-white/70 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white"
+                  aria-hidden
+                />
+              </span>
             </button>
           )
         })}
@@ -92,8 +101,43 @@ export function Directory({
           )
         })}
       </div>
-      <TileGrid key={active.id} items={items} mine={mine} onOpen={onOpen} />
+      <CategoryBanner key={active.id} id={active.id} title={active.title} count={items.length} />
+      <TileGrid key={`t-${active.id}`} items={items} mine={mine} onOpen={onOpen} />
     </section>
+  )
+}
+
+/** The open category, introduced by a photograph in its own colour. */
+function CategoryBanner({ id, title, count }: { id: string; title: string; count: number }) {
+  const look = GROUP_LOOK[id]
+  const art = GROUP_ART[id]
+  const Icon = look.icon
+  return (
+    <div
+      className="ct-res-in relative isolate mt-3 flex min-h-[150px] items-end overflow-hidden rounded-3xl p-5 text-white sm:min-h-[170px] sm:p-6"
+      style={{ backgroundColor: look.hex }}
+    >
+      <img
+        src={PHOTOS[art.photo].src}
+        alt=""
+        loading="lazy"
+        className="absolute inset-0 -z-20 size-full object-cover opacity-75 mix-blend-luminosity grayscale"
+      />
+      <span aria-hidden className="absolute inset-0 -z-10 mix-blend-multiply" style={{ backgroundColor: look.hex, opacity: 0.55 }} />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
+      <div className="flex min-w-0 items-end gap-4">
+        <span className="hidden size-12 shrink-0 place-items-center rounded-full bg-white/20 backdrop-blur-md sm:grid">
+          <Icon size={22} aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold tracking-[0.12em] text-white/75 uppercase">
+            {count} {count === 1 ? 'office' : 'offices'}
+          </p>
+          <p className="mt-0.5 font-display text-[24px] leading-tight font-bold text-balance sm:text-[28px]">{title}</p>
+          <p className="mt-1 max-w-xl text-[13.5px] leading-snug text-white/85">{art.blurb}</p>
+        </div>
+      </div>
+    </div>
   )
 }
 

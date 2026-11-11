@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import type { Block } from '@/data/guides'
 import { findResource } from '@/data/resource-guide'
 import { RESOURCE_GROUPS, type Resource } from '@/data/resources'
+import { tocId } from './guide-toc'
 import { GROUP_LOOK, groupOf } from './resource-icons'
 
 /**
@@ -23,7 +24,7 @@ export function GuideBody({
   return (
     <div className="space-y-6">
       {body.map((b, i) => (
-        <BlockView key={i} b={b} first={i === 0} faculty={faculty} onOpen={onOpen} />
+        <BlockView key={i} b={b} i={i} first={i === 0} faculty={faculty} onOpen={onOpen} />
       ))}
     </div>
   )
@@ -33,17 +34,20 @@ const prose = 'text-[17px] leading-[1.75] text-fg/85 sm:text-[18px]'
 
 function BlockView({
   b,
+  i,
   first,
   faculty,
   onOpen,
 }: {
   b: Block
+  /** The block's place in the body: its heading ids come from it. */
+  i: number
   first: boolean
   faculty: Resource['faculty'] | null
   onOpen: (r: Resource) => void
 }) {
   if ('h' in b)
-    return <h2 className="pt-6 font-display text-[26px] leading-tight font-bold tracking-tight text-fg sm:text-[30px]">{b.h}</h2>
+    return <h2 id={tocId(i)} className="scroll-mt-20 pt-6 font-display text-[26px] leading-tight font-bold tracking-tight text-fg sm:text-[30px]">{b.h}</h2>
   if ('p' in b) return <p className={first ? 'text-[19px] leading-[1.7] text-fg sm:text-[21px]' : prose}>{b.p}</p>
   if ('list' in b)
     return (
@@ -59,8 +63,8 @@ function BlockView({
   if ('steps' in b)
     return (
       <div className="space-y-7">
-        {b.steps.map((s) => (
-          <section key={s.t}>
+        {b.steps.map((s, j) => (
+          <section key={s.t} id={tocId(i, j)} className="scroll-mt-20">
             <h3 className="font-display text-[20px] leading-snug font-semibold text-fg sm:text-[22px]">{s.t}</h3>
             <p className={`mt-1.5 ${prose}`}>{s.d}</p>
           </section>
