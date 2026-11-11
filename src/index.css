@@ -2386,3 +2386,17 @@ html:has(
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 .ct-starter-dot { animation: ct-starter-ping 2.4s ease-out infinite; }
+
+/* Resources page: cards rise in one after another. `backwards`, never `both`:
+   these are leaves, but a settled transform is still the containing-block trap. */
+@keyframes ct-res-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.ct-res-in { animation: ct-res-in 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+/* The banner's lit windows breathe, slowly and out of step. */
+@keyframes ct-res-window {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 0.35; }
+}
+.ct-res-window { animation: ct-res-window 5.5s ease-in-out infinite; }
