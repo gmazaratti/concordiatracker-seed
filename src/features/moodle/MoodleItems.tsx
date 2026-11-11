@@ -11,7 +11,7 @@ export function MoodleRow({ task, pairedWith }: { task: CalendarTask; pairedWith
   const { toggleTask } = useAppData()
   const title = stripMoodleTitle(task.title) || task.title
   return (
-    <li className="flex items-start gap-2.5 px-3.5 py-2">
+    <li className="flex items-start gap-3 px-5 py-3">
       <button
         type="button"
         onClick={() => toggleTask(task.id)}
@@ -55,9 +55,11 @@ export function MoodleList({
   const [showPast, setShowPast] = useState(pastOpenDefault)
   const { upcoming, past } = splitByTime(items, now)
   return (
-    <div>
+    // A column that fills its card, so in a row of cards the "N earlier" line
+    // sits on the same bottom edge in each.
+    <div className="flex flex-1 flex-col">
       {upcoming.length === 0 ? (
-        <p className="px-3.5 py-2.5 text-[12.5px] text-subtle">Nothing coming up on Moodle.</p>
+        <p className="px-5 py-3.5 text-[13px] text-muted">Nothing coming up on Moodle.</p>
       ) : (
         <ul className="divide-y divide-border/60">
           {upcoming.map((t) => (
@@ -71,7 +73,7 @@ export function MoodleList({
             type="button"
             onClick={() => setShowPast((v) => !v)}
             aria-expanded={showPast}
-            className="flex w-full items-center gap-1.5 border-t border-border/60 px-3.5 py-2 text-left text-[12px] font-medium text-muted hover:text-fg"
+            className="mt-auto flex w-full items-center gap-1.5 border-t border-border/60 px-5 py-3 text-left text-[13px] font-medium text-muted hover:text-fg"
           >
             <ChevronDown size={13} className={cn('transition-transform duration-200', showPast && 'rotate-180')} aria-hidden />
             {past.length} earlier

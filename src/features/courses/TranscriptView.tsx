@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { GraduationCap, Plus, Undo2 } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
-import { currentGpa, percentToGrade, termRecords } from '@/lib/gpa'
+import { currentGpa, percentToGrade, supersededCourseIds, termRecords } from '@/lib/gpa'
+import { summarizeRecord } from '@/lib/record-summary'
 import { sortTermsDesc } from '@/lib/term'
 import { COURSE_COLORS } from '@/lib/course-color'
 import { Button } from '@/components/ui/Button'
@@ -33,10 +34,11 @@ export function TranscriptView() {
   )
   const shown = useShownGpa()
   const cumulative = shown(useMemo(() => currentGpa(pastCourses, assessments), [pastCourses, assessments]))
-  const totalCredits = useMemo(
-    () => terms.reduce((sum, t) => sum + t.credits, 0),
-    [terms],
-  )
+  // Credits EARNED, by the same rule the GPA uses: a class you retook counts
+  // once (the latest attempt) and a fail earns nothing. Summing every row
+  // showed 60 for 57 credits of work.
+  const totalCredits = useMemo(() => summarizeRecord(pastCourses, assessments).credits, [pastCourses, assessments])
+  const retaken = useMemo(() => supersededCourseIds(pastCourses, assessments), [pastCourses, assessments])
 
   return (
     <div>
@@ -46,7 +48,7 @@ export function TranscriptView() {
           <p className="text-[13px] text-subtle">
             {pastCourses.length === 0
               ? 'Your completed terms will live here.'
-              : `${terms.length} term${terms.length === 1 ? '' : 's'} · ${totalCredits} credits`}
+              : `${terms.length} term${terms.length === 1 ? '' : 's'} · ${totalCredits} credits earned`}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
@@ -117,6 +119,9 @@ export function TranscriptView() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[13px] font-medium text-fg">{c.code || 'Untitled'}</p>
                           {c.title && <p className="truncate text-[11.5px] text-subtle">{c.title}</p>}
+                          {retaken.has(c.id) && (
+                            <p className="text-[11.5px] text-warning">Retaken later: this attempt does not count toward your credits or GPA</p>
+                          )}
                         </div>
                         <span className="shrink-0 text-[11.5px] text-subtle tabular-nums">{c.credits} cr</span>
                         <span className="w-14 shrink-0 text-right text-[12px] tabular-nums text-muted">

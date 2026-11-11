@@ -7,6 +7,7 @@ import type { CoursesView } from '@/app/providers/app-data'
 import { term } from '@/data/mock'
 import { currentTermName, isFinishedTerm, isUpcomingTerm } from '@/features/planner/past-terms'
 import { coursePercent, currentGpa } from '@/lib/gpa'
+import { summarizeRecord } from '@/lib/record-summary'
 import { looksFinished } from '@/lib/leftover-course'
 import { isOpen } from '@/lib/status'
 import { byDue, daysUntil } from '@/lib/date'
@@ -117,8 +118,9 @@ export function CoursesPage({
     [pastCourses, courses, assessments],
   )
   const overallCredits = useMemo(
-    () => [...pastCourses, ...courses].reduce((sum, c) => sum + c.credits, 0),
-    [pastCourses, courses],
+    // Past credits are credits earned (a retake counts once, a fail earns none).
+    () => summarizeRecord(pastCourses, assessments).credits + courses.reduce((sum, c) => sum + c.credits, 0),
+    [pastCourses, courses, assessments],
   )
   const open = assessments.filter((a) => isOpen(a.status))
   const coursesGraded = courses.filter(

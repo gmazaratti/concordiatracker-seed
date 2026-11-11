@@ -13,17 +13,21 @@ import { CourseGridCard } from './CourseGridCard'
  * their fall registration in July. This is that moment, so the term is the first
  * thing the control asks for rather than something to fix afterwards.
  */
-export function AddForTerm() {
+export function AddForTerm({ tone = 'banner' }: { /** On the photo banner, or on the page. */ tone?: 'banner' | 'page' } = {}) {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+        className={
+          tone === 'banner'
+            ? 'inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap text-black transition-colors duration-150 hover:bg-white/90 sm:flex-none'
+            : 'inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold whitespace-nowrap text-accent-contrast transition-colors duration-150 hover:bg-accent-hover'
+        }
       >
-        <Plus size={14} aria-hidden />
-        Add a class
+        <Plus size={16} aria-hidden />
+        {tone === 'banner' ? 'Add a class' : 'Add next term’s classes'}
       </button>
       {open && <AddUpcomingModal onClose={() => setOpen(false)} />}
     </>
@@ -46,14 +50,17 @@ export function UpcomingCourses({
 }) {
   if (courses.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
+      <div className="rounded-3xl border border-dashed border-border-strong px-6 py-14 text-center">
         <CalendarPlus size={22} className="mx-auto text-subtle" aria-hidden />
-        <p className="mt-3 text-[15px] font-medium text-fg">Nothing lined up yet</p>
-        <p className="mx-auto mt-1 max-w-md text-[13px] leading-relaxed text-subtle">
+        <p className="mt-3 font-display text-[20px] font-semibold text-fg">Nothing lined up yet</p>
+        <p className="mx-auto mt-1.5 max-w-md text-[14px] leading-relaxed text-muted">
           Already registered for next term? Add those classes and they will wait here until the
           term starts, without touching this term&rsquo;s deadlines or your GPA. Assignments come
           later, when the outlines are actually published.
         </p>
+        <div className="mt-5">
+          <AddForTerm tone="page" />
+        </div>
       </div>
     )
   }
@@ -73,13 +80,13 @@ export function UpcomingCourses({
     <div className="space-y-6">
       {ordered.map(([termName, list]) => (
         <section key={termName}>
-          <h2 className="mb-2.5 flex items-baseline gap-2 text-[13px] font-semibold text-fg">
+          <h2 className="mb-3 flex items-baseline gap-2 font-display text-[20px] font-semibold tracking-tight text-fg">
             {termName}
-            <span className="text-[12px] font-normal text-subtle">
+            <span className="font-sans text-[13px] font-normal text-muted">
               {list.length} class{list.length === 1 ? '' : 'es'}
             </span>
           </h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {list.map((c) => (
               <CourseGridCard key={c.id} course={c} assessments={byCourse.get(c.id) ?? []} />
             ))}
