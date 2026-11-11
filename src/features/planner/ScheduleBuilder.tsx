@@ -433,6 +433,32 @@ export function ScheduleBuilder() {
     window.setTimeout(() => setSavedFlash(false), 1800)
   }
 
+  /**
+   * SWITCHING TERM SWAPS THE SCHEDULE. A week of Fall classes is not a draft of
+   * Winter, so it used to sit on the grid under the new term's name. Each term
+   * keeps its own picks for this visit: switch back and they are still there.
+   * A saved schedule belongs to its term, so leaving it starts a new one.
+   */
+  const [byTerm, setByTerm] = useState<Record<string, { picked: PickedSection[]; blocks: TimeBlock[] }>>({})
+  const homeTerm = termCodeFor(currentTermName()) ?? ''
+  function changeTerm(next: string) {
+    if (next === termCode) return
+    setByTerm((m) => ({ ...m, [termCode]: { picked, blocks } }))
+    const kept = byTerm[next]
+    setTermCode(next)
+    setCurrentId(null)
+    setShareUrl(null)
+    setName(next === homeTerm ? 'My schedule' : 'New schedule')
+    if (kept) {
+      setPicked(kept.picked)
+      setBlocks(kept.blocks)
+    } else {
+      // The classes you are in belong to the current term only.
+      setPicked(next === homeTerm ? picked.filter((p) => p.state === 'enrolled') : [])
+      setBlocks([])
+    }
+  }
+
   function open(s: SavedSchedule) {
     setCurrentId(s.id)
     setName(s.name)
@@ -480,7 +506,7 @@ export function ScheduleBuilder() {
           <span className="w-36">
             <Select
               value={termCode}
-              onChange={setTermCode}
+              onChange={changeTerm}
               ariaLabel="Term"
               size="sm"
               options={termOptions.map((code) => ({ value: code, label: termLabel(code) }))}

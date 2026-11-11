@@ -34,11 +34,11 @@ export function WhatsNewToast() {
 
   return (
     <div
-      className="ct-toast-in fixed inset-x-3 top-[calc(4.5rem_+_env(safe-area-inset-top))] z-[60] md:inset-x-auto md:top-auto md:right-4 md:bottom-[calc(1rem+var(--ct-corner,0px))]"
+      className="ct-toast-in pointer-events-none fixed inset-x-0 top-[calc(0.75rem_+_env(safe-area-inset-top))] z-[60] flex justify-center px-3 md:inset-x-auto md:top-auto md:right-4 md:bottom-[calc(1rem+var(--ct-corner,0px))] md:justify-end md:px-0"
       role="status"
       aria-live="polite"
     >
-      <div className="flex max-w-[20rem] items-center gap-2 rounded-xl border border-border bg-surface-2 py-2 pr-2 pl-3 shadow-2xl">
+      <div className="pointer-events-auto flex w-full max-w-[22rem] items-center gap-2 rounded-xl border border-border bg-surface-2 py-2 pr-2 pl-3 shadow-2xl">
         <button
           type="button"
           onClick={openHistory}

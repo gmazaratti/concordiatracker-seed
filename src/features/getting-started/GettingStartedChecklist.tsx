@@ -57,7 +57,8 @@ export function GettingStartedChecklist() {
     const el = cardRef.current
     const main = document.getElementById('app-main')
     if (!el || !main) return
-    const apply = () => main.style.setProperty('--ct-float-pad', `${el.offsetHeight + 24}px`)
+    // Hidden on a phone (offsetHeight 0): reserve nothing there.
+    const apply = () => main.style.setProperty('--ct-float-pad', el.offsetHeight ? `${el.offsetHeight + 24}px` : '0px')
     apply()
     const ro = new ResizeObserver(apply)
     ro.observe(el)
@@ -145,7 +146,7 @@ export function GettingStartedChecklist() {
     <section
       ref={cardRef}
       className={cn(
-        'fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border bg-surface shadow-[var(--ct-shadow)] md:bottom-5',
+        'fixed right-4 bottom-5 z-30 hidden w-[300px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border bg-surface shadow-[var(--ct-shadow)] md:block',
         nudge ? 'ct-attention border-accent' : 'border-border',
       )}
       aria-label="Getting started"
