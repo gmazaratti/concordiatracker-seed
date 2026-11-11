@@ -19,7 +19,7 @@ export function isOpen(status: AssessmentStatus): boolean {
  * a grade" look like it had been unticked.
  */
 export function isFinished(status: AssessmentStatus): boolean {
-  return status === 'done' || status === 'awaiting-grade' || status === 'late'
+  return status === 'done' || status === 'awaiting-grade' || status === 'late' || status === 'excused'
 }
 
 /** The lightweight transitions Today's quick-status control offers. */
@@ -36,6 +36,7 @@ export const EDITOR_STATUSES: AssessmentStatus[] = [
   'awaiting-grade',
   'late',
   'missed',
+  'excused',
 ]
 
 /** Shared status vocabulary + colors so Today and Courses read identically.
@@ -51,6 +52,7 @@ const STATUS_LABEL_EN: Record<AssessmentStatus, string> = {
   missed: 'Missed',
   extension: 'Extension',
   'awaiting-grade': 'Awaiting grade',
+  excused: 'Excused, no grade',
 }
 
 const STATUS_LABEL_FR: Record<AssessmentStatus, string> = {
@@ -61,6 +63,7 @@ const STATUS_LABEL_FR: Record<AssessmentStatus, string> = {
   missed: 'Manqué',
   extension: 'Prolongation',
   'awaiting-grade': 'En attente de note',
+  excused: 'Exempté, sans note',
 }
 
 const STATUS_COLORS: Record<AssessmentStatus, { dot: string; text: string }> = {
@@ -71,6 +74,7 @@ const STATUS_COLORS: Record<AssessmentStatus, { dot: string; text: string }> = {
   missed: { dot: 'bg-danger', text: 'text-danger' },
   extension: { dot: 'bg-accent', text: 'text-accent' },
   'awaiting-grade': { dot: 'bg-accent', text: 'text-accent' },
+  excused: { dot: 'bg-subtle', text: 'text-muted' },
 }
 
 export const STATUS_META = {} as Record<

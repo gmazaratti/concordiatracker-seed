@@ -97,7 +97,28 @@ export interface GradeTerm {
  * truth for the weighted average: both `coursePercent` (which drives the header
  * grade + GPA) and the "How is this calculated?" panel read from this, so the
  * shown formula can never drift from the computed result. */
-export function gradeTerms(assessments: Assessment[]): GradeTerm[] {
+/**
+ * Excused assessments, resolved: an excused item's weight is 0, and when it
+ * names a `weightTo` in the same list, that item gains the weight (a skipped
+ * midterm whose 30% moves to the final). Without a target the weight simply
+ * leaves the course, so the grade is computed over what remains. Every grade
+ * function goes through this, so they cannot disagree about it.
+ */
+export function applyExcusals(assessments: Assessment[]): Assessment[] {
+  if (!assessments.some((a) => a.status === 'excused')) return assessments
+  const extra = new Map<string, number>()
+  for (const a of assessments) {
+    if (a.status !== 'excused' || !a.weightTo || a.weightTo === a.id) continue
+    if (!assessments.some((b) => b.id === a.weightTo && b.status !== 'excused')) continue
+    extra.set(a.weightTo, (extra.get(a.weightTo) ?? 0) + a.weight)
+  }
+  return assessments.map((a) =>
+    a.status === 'excused' ? { ...a, weight: 0 } : extra.has(a.id) ? { ...a, weight: a.weight + extra.get(a.id)! } : a,
+  )
+}
+
+export function gradeTerms(input: Assessment[]): GradeTerm[] {
+  const assessments = applyExcusals(input)
   const byKind = new Map<AssessmentKind, { weight: number; points: number }>()
   for (const a of assessments) {
     const percent = gradeToPercent(a.grade)
@@ -280,7 +301,8 @@ export interface CourseStanding {
 }
 
 /** Decompose a course into the pieces both calculators need. */
-export function courseStanding(assessments: Assessment[]): CourseStanding {
+export function courseStanding(input: Assessment[]): CourseStanding {
+  const assessments = applyExcusals(input)
   let gradedWeight = 0
   let earnedPoints = 0
   let totalWeight = 0

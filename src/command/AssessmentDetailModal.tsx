@@ -42,6 +42,8 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const [noDate, setNoDate] = useState(!!assessment?.noDate)
   const [notes, setNotes] = useState(assessment?.notes ?? '')
   const [reminders, setReminders] = useState<number[]>(assessment?.reminders ?? [])
+  // Excused: which assessment takes over this one's weight ('' = none).
+  const [weightTo, setWeightTo] = useState(assessment?.weightTo ?? '')
   const [prefs] = useReminderPrefs()
 
   if (!assessment || !course) return null
@@ -60,7 +62,12 @@ export function AssessmentDetailModal({ id }: { id: string }) {
   const noDateDirty = noDate !== !!assessment.noDate
   const notesDirty = notes !== assessment.notes
   const reminderDirty = reminders.join(',') !== (assessment.reminders ?? []).join(',')
-  const dirty = statusDirty || gradeDirty || dueDirty || noDateDirty || notesDirty || reminderDirty
+  const weightToDirty = (status === 'excused' ? weightTo : '') !== (assessment.weightTo ?? '')
+  const dirty = statusDirty || gradeDirty || dueDirty || noDateDirty || notesDirty || reminderDirty || weightToDirty
+  // Where the weight could go: the course's other assessments that will be graded.
+  const siblings = assessments.filter(
+    (a) => a.courseId === assessment.courseId && a.id !== assessment.id && a.status !== 'excused',
+  )
 
   function save() {
     if (!assessment || !course || !dirty || gradeError) return
@@ -72,6 +79,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
     if (noDateDirty) patch.noDate = noDate
     if (notesDirty) patch.notes = notes
     if (reminderDirty) patch.reminders = reminders
+    if (weightToDirty) patch.weightTo = status === 'excused' && weightTo ? weightTo : null
 
     closeTarget()
 
@@ -83,6 +91,7 @@ export function AssessmentDetailModal({ id }: { id: string }) {
         noDate: !!assessment.noDate,
         notes: assessment.notes,
         reminders: assessment.reminders ?? [],
+        weightTo: assessment.weightTo ?? null,
       }
       updateAssessment(assessment.id, patch)
       // Changing a date "broadcasts" the correction back to the section (mocked) —
@@ -176,6 +185,27 @@ export function AssessmentDetailModal({ id }: { id: string }) {
               </>
             )}
           </p>
+        )}
+
+        {status === 'excused' && (
+          <div className="mt-3 rounded-lg border border-border bg-surface-2/50 px-3 py-2.5">
+            <p className="text-[12.5px] text-fg">
+              No grade for this one. Its {assessment.weight}% can move to another assessment, like when a missed
+              midterm counts toward the final.
+            </p>
+            <div className="mt-2">
+              <Select
+                ariaLabel="Move its weight to"
+                value={weightTo}
+                onChange={setWeightTo}
+                tone="control"
+                options={[
+                  { value: '', label: 'Leave it out of the grade' },
+                  ...siblings.map((a) => ({ value: a.id, label: `Add to ${a.title} (${a.weight}% → ${a.weight + assessment.weight}%)` })),
+                ]}
+              />
+            </div>
+          </div>
         )}
 
         <div className="mt-4">

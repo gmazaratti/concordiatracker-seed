@@ -153,6 +153,8 @@ export interface AssignmentRow {
   description: string | null
   /** db/no_date.sql. Absent on a row read before that migration. */
   no_date?: boolean | null
+  /** db/excused.sql: an excused assessment's weight goes to this one. */
+  weight_to?: string | null
   status: string | null
   provenance_status: string | null
   provenance_confirmations: number | null
@@ -230,6 +232,7 @@ export function assessmentFromRow(r: AssignmentRow): Assessment {
     notes: r.notes ?? '',
     description: r.description ?? undefined,
     noDate: r.date ? false : !!r.no_date,
+    weightTo: r.weight_to ?? null,
     source:
       r.source_blueprint && r.source_item
         ? { blueprintId: r.source_blueprint, itemId: r.source_item }
@@ -257,6 +260,7 @@ export function assessmentToInsert(a: Assessment, userId: string): Record<string
     // which PostgREST refuses whole (PGRST102): syllabus imports into an
     // existing course saved nothing, silently.
     no_date: !!a.noDate,
+    weight_to: a.weightTo ?? null,
     provenance_status: a.provenance.status,
     provenance_confirmations: a.provenance.confirmations ?? 0,
     // Always present (null when unlinked): PostgREST refuses a batch insert
@@ -279,6 +283,7 @@ export function assessmentPatchToRow(patch: Partial<Assessment>): Record<string,
   if ('notes' in patch) row.notes = patch.notes
   if ('description' in patch) row.description = patch.description ?? null
   if ('noDate' in patch) row.no_date = !!patch.noDate
+  if ('weightTo' in patch) row.weight_to = patch.weightTo ?? null
   if ('teacherPrev' in patch) row.teacher_prev = patch.teacherPrev ?? null
   if ('reminders' in patch) row.reminders = patch.reminders ?? []
   if (patch.provenance) {

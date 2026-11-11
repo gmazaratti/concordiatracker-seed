@@ -65,6 +65,9 @@ export type AssessmentStatus =
   | 'missed'
   | 'extension'
   | 'awaiting-grade'
+  /** No grade will come: exempted, or the weight moved to another assessment
+   *  (a deferred midterm). Counts for nothing on its own; see `weightTo`. */
+  | 'excused'
 
 /** How a grade was entered. */
 export type GradeMode = 'percent' | 'raw'
@@ -116,6 +119,9 @@ export interface Assessment {
    * (the database enforces that too, db/no_date.sql).
    */
   noDate?: boolean
+  /** For an excused assessment: the one that takes over its weight (the
+   *  final, usually). Absent means the weight is simply left out. */
+  weightTo?: string | null
   /** Imported from a teacher-verified outline: which one, and which item in
    *  it, so a republish can reach this copy (db/teacher_features.sql). */
   source?: { blueprintId: string; itemId: string }

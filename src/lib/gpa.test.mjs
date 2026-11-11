@@ -22,7 +22,7 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'gpa.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: root },
 )
-const { parseFinalGrade, letterToPercent, percentToGrade, GRADE_LETTERS, isNotation } =
+const { parseFinalGrade, letterToPercent, percentToGrade, GRADE_LETTERS, isNotation, coursePercent, courseStanding } =
   await import(pathToFileURL(out).href)
 
 let failed = 0
@@ -68,6 +68,23 @@ console.log('\nthe band minimum, never a midpoint')
 check('A- maps to the floor of the A- band', letterToPercent('A-'), 80)
 check('an A- never scores as an A', percentToGrade(letterToPercent('A-')).letter, 'A-')
 check('an unknown letter is null', letterToPercent('E'), null)
+
+console.log('\nan excused assessment moves its weight, or drops out')
+{
+  const g = (p) => ({ mode: 'percent', percent: p, earned: null, total: null })
+  const a = (id, kind, weight, grade, extra = {}) => ({ id, kind, weight, grade, status: grade ? 'done' : 'not-started', title: id, ...extra })
+  const mid = a('mid', 'midterm', 30, null, { status: 'excused', weightTo: 'fin' })
+  const fin = a('fin', 'final', 50, g(80))
+  const hw = a('hw', 'assignment', 20, g(100))
+  // Final now worth 80: (80*80 + 100*20) / 100 = 84
+  check('weight moved to the final', Math.round(coursePercent([mid, fin, hw]) * 10) / 10, 84)
+  check('standing total stays 100', courseStanding([mid, fin, hw]).totalWeight, 100)
+  // No target: midterm drops, (80*50 + 100*20) / 70 = 85.7
+  const dropped = { ...mid, weightTo: null }
+  check('no target: left out', Math.round(coursePercent([dropped, fin, hw]) * 10) / 10, 85.7)
+  check('no target: total 70', courseStanding([dropped, fin, hw]).totalWeight, 70)
+  check('a graded excused item still counts for nothing', Math.round(coursePercent([{ ...mid, grade: g(10) }, fin, hw]) * 10) / 10, 84)
+}
 
 fs.unlinkSync(out)
 console.log(failed === 0 ? '\nAll checks passed.' : `\n${failed} check(s) FAILED.`)
