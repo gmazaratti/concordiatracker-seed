@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Course } from '@/data/types'
 import { Card } from '@/components/ui/Card'
 import { MoodleList } from './MoodleItems'
+import { MoodleMark } from './MoodleBrand'
 import { useMoodleGroups } from './moodle-groups'
 
 /**
@@ -24,9 +25,7 @@ export function MoodleCourseSection({ course }: { course: Course }) {
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
-        <span className="grid size-5 place-items-center rounded bg-[#f98012] text-[10px] font-bold text-white" aria-hidden>
-          M
-        </span>
+        <MoodleMark className="size-5 text-[10px]" />
         <p className="flex-1 text-[11px] font-semibold tracking-wide text-subtle uppercase">From Moodle</p>
         <span className="text-[11.5px] text-subtle">
           {items.length} item{items.length === 1 ? '' : 's'}

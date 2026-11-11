@@ -18,7 +18,7 @@ import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 import { MoodleClassNudge, MoodleConnectCard } from './MoodleClassNudge'
-import { MoodleOverviewCard } from '@/features/moodle/MoodleOverviewCard'
+import { MoodleGridCard, MoodleListRow } from '@/features/moodle/MoodleCourseCard'
 import { AddCourseChooser } from './AddCourseChooser'
 import { TranscriptView } from './TranscriptView'
 import { UnfiledPastCourses } from './UnfiledPastCourses'
@@ -237,6 +237,8 @@ export function CoursesPage() {
                   <CourseGridCard course={c} assessments={byCourse.get(c.id) ?? []} />
                 </Draggable>
               ))}
+              {/* Moodle sits with the classes, in their shape, and opens like one. */}
+              <MoodleGridCard />
               <AddCourseCard onClick={() => setChooserOpen(true)} />
             </div>
           ) : (
@@ -260,10 +262,10 @@ export function CoursesPage() {
                   <CourseCard course={c} assessments={byCourse.get(c.id) ?? []} />
                 </Draggable>
               ))}
+              <MoodleListRow />
               <AddCourseRow onClick={() => setChooserOpen(true)} />
             </div>
           )}
-          <MoodleOverviewCard />
         </main>
 
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">

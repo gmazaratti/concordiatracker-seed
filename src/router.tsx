@@ -59,6 +59,7 @@ const AppRequestsPage = lazy(() => import('@/features/feedback/AppRequestsPage')
 const OnboardingPage = lazy(() =>
   import('@/features/onboarding/flow/OnboardingFlowPage').then((x) => ({ default: x.OnboardingFlowPage })),
 )
+const MoodlePage = lazy(() => import('@/features/moodle/MoodlePage').then((x) => ({ default: x.MoodlePage })))
 const OldOnboardingPage = lazy(() => import('@/features/onboarding/OnboardingPage').then((x) => ({ default: x.OnboardingPage })))
 const OrganizerHome = lazy(() => import('@/features/organizer/OrganizerHome').then((x) => ({ default: x.OrganizerHome })))
 const OrganizerEvents = lazy(() => import('@/features/organizer/OrganizerEvents').then((x) => ({ default: x.OrganizerEvents })))
@@ -128,6 +129,7 @@ export function AppRoutes() {
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/blueprints" element={<BlueprintBrowserPage />} />
         <Route path="courses/upload" element={<SyllabusUploadPage />} />
+        <Route path="courses/moodle" element={<MoodlePage />} />
         <Route path="courses/:courseId" element={<CourseDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="planner" element={<PlannerPage />} />
