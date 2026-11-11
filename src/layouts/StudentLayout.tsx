@@ -23,6 +23,7 @@ import { useWallpaper } from '@/features/wallpaper/useWallpaper'
 import { WriteErrorToast } from '@/components/WriteErrorToast'
 import { SupportLayer } from '@/features/support/SupportLayer'
 import { NotificationToast } from '@/features/community/NotificationToast'
+import { DiscoveryPopup } from '@/features/discovery/DiscoveryPopup'
 import { ActivityLayer } from '@/features/community/ActivityLayer'
 import { markTabRendered, tabKey } from '@/lib/view-transition'
 import { LiveMessages } from '@/features/profile/LiveMessages'
@@ -175,6 +176,7 @@ export function StudentLayout({ children }: { children?: React.ReactNode } = {})
       {/* Mounted on the shell, not in Community: the point is that it finds
           you on whatever page you land on. */}
       <NotificationToast />
+      <DiscoveryPopup />
       <ActivityLayer />
       {/* One inbox subscription for the whole app: a message can land while
           you are anywhere, and the list that cares is usually not on screen. */}

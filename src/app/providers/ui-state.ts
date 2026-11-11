@@ -101,6 +101,8 @@ export interface UiState {
    *  ones (user id -> ISO time archived). An archived conversation comes back
    *  by itself when a newer message arrives. */
   threadMarks?: { unread?: string[]; archived?: Record<string, string> }
+  /** Feature discovery (lib/discovery.ts): what was dismissed, tried, snoozed, popped. */
+  discovery?: import('@/lib/discovery').DiscoveryState
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

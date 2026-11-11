@@ -74,6 +74,9 @@ const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage')
 const DemoReel = lazy(() => import('@/features/demo/DemoReel').then((x) => ({ default: x.DemoReel })))
 const OriginalLanding = lazy(() => import('@/features/landing/OriginalLanding').then((x) => ({ default: x.OriginalLanding })))
 const DevLandingPage = lazy(() => import('@/features/dev-landing/DevLandingPage').then((x) => ({ default: x.DevLandingPage })))
+const DevOnboardingPage = lazy(() =>
+  import('@/features/dev-onboarding/DevOnboardingPage').then((x) => ({ default: x.DevOnboardingPage })),
+)
 const DevLoginPage = lazy(() => import('@/features/dev-login/DevLoginPage').then((x) => ({ default: x.DevLoginPage })))
 const FaqPage = lazy(() => import('@/features/faq/FaqPage').then((x) => ({ default: x.FaqPage })))
 const UserProfilePage = lazy(() => import('@/features/profile/UserProfilePage').then((x) => ({ default: x.UserProfilePage })))
@@ -234,6 +237,7 @@ export function AppRoutes() {
           path; this covers the dev server and in-app navigation. */}
       <Route path="/dev/landing/2" element={<Navigate to="/" replace />} />
       <Route path="/dev/login" element={<DevLoginPage />} />
+      <Route path="/dev/onboarding" element={<DevOnboardingPage />} />
 
       {/* Public user profile: concordiatracker.com/@handle (anyone can view).
           Dynamic single-segment, so every static route above wins; the component

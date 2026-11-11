@@ -77,7 +77,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/dev/:page(landing|login)",
+      "source": "/dev/:page(landing|login|onboarding)",
       "destination": "/index.html"
     },
     {

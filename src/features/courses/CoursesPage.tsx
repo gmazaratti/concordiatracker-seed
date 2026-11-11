@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { LayoutGrid, Plus, Rows3 } from 'lucide-react'
@@ -30,7 +31,17 @@ export function CoursesPage() {
   const t = useT()
   const { plan, courses, pastCourses, assessments, coursesView, setCoursesView } = useAppData()
   const [chooserOpen, setChooserOpen] = useState(false)
-  const [tab, setTab] = useState<'current' | 'upcoming' | 'past'>('current')
+  // `?tab=past` opens straight on a tab (the discovery nudges link here).
+  // Followed when the address changes, never fought once the student clicks.
+  const [params] = useSearchParams()
+  const urlTab = params.get('tab')
+  const fromUrl = urlTab === 'past' || urlTab === 'upcoming' ? urlTab : null
+  const [tab, setTab] = useState<'current' | 'upcoming' | 'past'>(fromUrl ?? 'current')
+  const [seenUrlTab, setSeenUrlTab] = useState(fromUrl)
+  if (fromUrl !== seenUrlTab) {
+    setSeenUrlTab(fromUrl)
+    if (fromUrl) setTab(fromUrl)
+  }
   const showPast = tab === 'past'
   const { sort: sortByOrder, move: moveCourse } = useCourseOrder()
   /** The card being dragged, and the one it is currently over. */

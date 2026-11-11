@@ -13,6 +13,7 @@ import { GlanceStrip } from './GlanceStrip'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
+import { DiscoverCard } from '@/features/discovery/DiscoverCard'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
@@ -261,6 +262,7 @@ export function TodayPage() {
         </main>
 
         <aside className="flex flex-col gap-3 lg:w-[272px] lg:shrink-0">
+          {!editing && <DiscoverCard />}
           {/* User-chosen widgets, in their order. The glance panel and the due
               list are rendered here rather than by the registry because they
               need the term totals and the write handlers computed above. */}
