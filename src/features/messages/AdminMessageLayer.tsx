@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, Loader2, Send, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/app/providers/auth'
 import { formatTime } from '@/lib/date'
 import { cn } from '@/lib/cn'
 
@@ -62,6 +63,21 @@ export function AdminMessageLayer() {
       alive = false
     }
   }, [polls])
+
+  // LIVE: a note lands the moment it is sent (db/realtime_social.sql puts the
+  // table in the publication; select-own means only your own rows arrive).
+  // The 90s check below stays as the fallback for a dropped socket.
+  const { user } = useAuth()
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`admin_notes_${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_messages', filter: `recipient=eq.${user.id}` }, () => poll())
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [user, poll])
 
   useEffect(() => {
     const onFocus = () => document.visibilityState === 'visible' && poll()

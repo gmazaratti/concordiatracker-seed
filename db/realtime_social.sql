@@ -9,6 +9,10 @@ begin
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'schedule_grants') then
     alter publication supabase_realtime add table public.schedule_grants;
   end if;
+  -- Admin notes land on the student's screen the moment they are sent.
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'admin_messages') then
+    alter publication supabase_realtime add table public.admin_messages;
+  end if;
   if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'user_follows') then
     alter publication supabase_realtime add table public.user_follows;
   end if;

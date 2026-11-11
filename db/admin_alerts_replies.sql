@@ -113,6 +113,17 @@ begin
            and m.author_id is distinct from c.user_id
            and exists (select 1 from public.ticket_messages m0
                         where m0.ticket_id = m.ticket_id and m0.created_at < m.created_at))
+        -- Replies to an admin's direct note (admin_messages) count too: they
+        -- were only visible inside that one person's admin panel.
+        || (select coalesce(jsonb_agg(jsonb_build_object(
+              'case_id', 'Note',
+              'subject', left(am.body, 80),
+              'who',     coalesce(up.name, up.email, 'Someone'),
+              'body',    left(am.reply, 140)
+            ) order by am.replied_at), '[]'::jsonb)
+            from public.admin_messages am
+            left join public.user_profile up on up.user_id = am.recipient
+           where am.replied_at > c.since and am.reply is not null)
       else '[]'::jsonb end as new_replies,
       -- Requests, bugs and request comments, each named. Staff comments and
       -- anything an admin wrote are not news to an admin.
