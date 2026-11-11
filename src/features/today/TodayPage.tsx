@@ -14,6 +14,8 @@ import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
 import { DiscoverCard } from '@/features/discovery/DiscoverCard'
+import { ARRIVE_KEY } from '@/features/onboarding/flow/ob-data'
+import { cn } from '@/lib/cn'
 import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
@@ -49,6 +51,17 @@ export function TodayPage() {
     updateTodayPrefs,
   } = useAppData()
   const { flashUndo } = useQuickActions()
+  // Set by onboarding as it leaves (flow/ob-data → ARRIVE_KEY). Read once, then
+  // cleared, so only that first landing plays the entrance.
+  const [arriving] = useState(() => {
+    try {
+      const on = sessionStorage.getItem(ARRIVE_KEY) === '1'
+      if (on) sessionStorage.removeItem(ARRIVE_KEY)
+      return on
+    } catch {
+      return false
+    }
+  })
   const { widgets, mainWidgets, setZone, zones, sizeFor, setSize, railSizes, growFromRail } =
     useTodayLayout()
   // Edit mode is explicit rather than long-press-only: widgets contain links,
@@ -209,7 +222,9 @@ export function TodayPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
+    <div className={cn('mx-auto w-full max-w-5xl px-5 py-5 sm:px-6', arriving && 'ct-today-arrive')}>
+      {/* Straight from onboarding: the accent curtain it left with fades off Today. */}
+      {arriving && <div className="ct-arrive-veil pointer-events-none fixed inset-0 z-[60] bg-accent" aria-hidden />}
       <header className="mb-3">
         <p className="text-[12px] text-subtle">
           {new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', {

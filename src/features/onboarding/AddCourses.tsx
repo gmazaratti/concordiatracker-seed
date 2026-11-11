@@ -200,19 +200,21 @@ export function AddCourses({
 
       {has && <AddedList added={added} justAdded={justAdded} />}
 
-      <div className={cn('grid gap-3 sm:grid-cols-2', has ? 'mt-5' : 'mt-5 sm:mt-6')}>
+      <p className="mt-5 text-center text-[11px] font-semibold tracking-[0.14em] text-subtle uppercase sm:mt-6">
+        Three ways to add a course
+      </p>
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-3">
         <ChoiceTile
-          icon={concordia ? Search : Pencil}
-          label={concordia ? t('courses.findCourse') : 'Type it in'}
-          desc={concordia ? t('courses.findCourseDesc') : 'Course code and name'}
-          onClick={() => setMode(concordia ? 'search' : 'manual')}
-        />
-        <ChoiceTile
+          featured
           icon={FileText}
           label={t('courses.uploadSyllabus')}
           desc={t('courses.uploadSyllabusDesc')}
           onClick={() => setMode('pdf')}
         />
+        {concordia && (
+          <ChoiceTile icon={Search} label={t('courses.findCourse')} desc={t('courses.findCourseDesc')} onClick={() => setMode('search')} />
+        )}
+        <ChoiceTile icon={Pencil} label="Type it in" desc="Course code and name, deadlines later" onClick={() => setMode('manual')} />
       </div>
     </div>
   )
@@ -618,14 +620,35 @@ function BlueprintPick({
   )
 }
 
-function ChoiceTile({ icon: Icon, label, desc, onClick }: { icon: typeof FileText; label: string; desc: string; onClick: () => void }) {
+function ChoiceTile({
+  icon: Icon,
+  label,
+  desc,
+  onClick,
+  featured = false,
+}: {
+  icon: typeof FileText
+  label: string
+  desc: string
+  onClick: () => void
+  /** The fastest route: a light circles its border and it carries a tag. */
+  featured?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5 text-left transition-colors duration-150 hover:border-accent sm:flex-col sm:gap-2.5 sm:px-5 sm:py-6 sm:text-center"
+      className={cn(
+        'relative flex flex-row items-center gap-3 rounded-2xl border bg-surface px-4 py-3.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:border-accent sm:flex-col sm:gap-2.5 sm:px-4 sm:py-6 sm:text-center',
+        featured ? 'ct-ob-beam border-accent/40' : 'border-border',
+      )}
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent sm:size-11">
+      {featured && (
+        <span className="absolute -top-2 right-3 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-contrast sm:right-auto sm:left-1/2 sm:-translate-x-1/2">
+          Fastest
+        </span>
+      )}
+      <span className={cn('grid size-10 shrink-0 place-items-center rounded-xl sm:size-11', featured ? 'bg-accent text-accent-contrast' : 'bg-accent-soft text-accent')}>
         <Icon size={20} aria-hidden />
       </span>
       <span className="min-w-0">

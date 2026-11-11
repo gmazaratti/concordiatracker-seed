@@ -52,6 +52,8 @@ export interface DiscoverySignals {
   desktop: boolean
   /** 0-11. Registration months raise the planning features. */
   month: number
+  /** Goals picked in onboarding (deadlines, gpa, plan, people, parents). */
+  goals?: string[]
 }
 
 export interface DiscoveryState {
@@ -243,11 +245,22 @@ export function candidates(s: DiscoverySignals): Nudge[] {
   return out
 }
 
+/** What each onboarding goal leans toward. A match adds to the score; it never invents a nudge. */
+const GOAL_BOOST: Record<string, string[]> = {
+  deadlines: ['scan', 'reminders', 'moodle', 'calendar-sync'],
+  gpa: ['past', 'what-if', 'grade-needed'],
+  plan: ['programme', 'schedule', 'seat-watch'],
+  people: ['clubs'],
+  parents: ['family'],
+}
+
 /** Candidates this person may still be shown, best first. */
 export function rank(s: DiscoverySignals, state: DiscoveryState, now: number): Nudge[] {
   const dismissed = new Set(state.dismissed ?? [])
   const tried = new Set(state.tried ?? [])
+  const wanted = new Set((s.goals ?? []).flatMap((g) => GOAL_BOOST[g] ?? []))
   return candidates(s)
+    .map((n) => (wanted.has(n.id) ? { ...n, score: n.score + 15, reason: `${n.reason}; matches a goal they picked` } : n))
     .filter((n) => !dismissed.has(n.id) && !tried.has(n.id))
     .filter((n) => {
       const until = state.snoozed?.[n.id]

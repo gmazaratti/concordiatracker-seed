@@ -342,7 +342,7 @@ export const fr: Partial<Record<Key, string>> = {
   'onboarding.campusSkip': 'Passer: montrez-moi seulement les événements',
   'courses.addYours': 'Ajoutez vos cours',
   'courses.addAnother': 'Ajouter un autre cours ?',
-  'courses.addYoursSub': 'Importez-en autant que vous voulez. Deux façons de faire: choisissez celle qui convient à votre cours.',
+  'courses.addYoursSub': 'Ajoutez-en autant que vous voulez. Vous pouvez téléverser plusieurs plans de cours, un après l’autre.',
   'courses.addAnotherSub': 'Ajoutez-en autant que vous voulez: ils aboutissent tous dans Aujourd’hui. Ou continuez quand vous êtes prêt.',
   'courses.findCourse': 'Trouver votre cours',
   'courses.findCourseDesc': 'Cherchez votre cours et importez un plan déjà prêt: chaque échéance et chaque pondération se remplit instantanément.',

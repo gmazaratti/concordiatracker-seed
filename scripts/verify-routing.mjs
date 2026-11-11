@@ -135,6 +135,7 @@ const appRoutes = [
   '/dev/landing',
   '/dev/login',
   '/dev/onboarding',
+  '/dev/onboarding-old',
   '/e/ev-techfair',
   '/reset-password',
   '/s/sometoken',

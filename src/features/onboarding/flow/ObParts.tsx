@@ -41,7 +41,7 @@ export function StepCopy({
 export function Stage({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={cn('ct-ob-rise relative w-full rounded-3xl border border-border bg-surface p-4 shadow-2xl sm:p-5', className)}
+      className={cn('ct-ob-rise relative w-full rounded-2xl border border-border bg-surface p-3.5 shadow-2xl sm:rounded-3xl sm:p-5', className)}
       style={{ '--d': '140ms' } as React.CSSProperties}
     >
       {children}

@@ -80,8 +80,9 @@ export function useDiscovery() {
       atConcordia: user.atConcordia,
       desktop,
       month: new Date(now).getMonth(),
+      goals: uiState.goals,
     }
-  }, [courses, pastCourses, assessments, personalTasks, plan, user.atConcordia, usage, uiState.assignmentReminders, now, desktop])
+  }, [courses, pastCourses, assessments, personalTasks, plan, user.atConcordia, usage, uiState.assignmentReminders, uiState.goals, now, desktop])
 
   const ready = loaded && !dataLoading
   const state = useMemo<DiscoveryState>(() => uiState.discovery ?? {}, [uiState.discovery])

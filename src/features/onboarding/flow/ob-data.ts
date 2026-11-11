@@ -85,24 +85,5 @@ export const GOALS = [
   { id: 'parents', label: 'Keep my parents in the loop', first: 'Send a view-only family link' },
 ] as const
 
-/** Handles that are "taken" in the prototype, so the unavailable state can be seen. */
-export const TAKEN = new Set(['alex', 'sam', 'admin', 'concordia'])
-
-export function cleanHandle(raw: string): string {
-  return raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20)
-}
-
-export const CATALOGUE = [
-  { code: 'COMM 305', title: 'Managerial Accounting', credits: 3 },
-  { code: 'COMM 225', title: 'Production and Operations Management', credits: 3 },
-  { code: 'FINA 210', title: 'Introduction to Real Estate', credits: 3 },
-  { code: 'RELI 230', title: 'Religion and Film', credits: 3 },
-  { code: 'MATH 208', title: 'Fundamental Mathematics I', credits: 3 },
-  { code: 'COMP 248', title: 'Object-Oriented Programming I', credits: 3.5 },
-] as const
-
-export const CLUBS = [
-  { id: 'casa', name: 'CASA JMSB', handle: '@casajmsb', color: '#9b2335', glyph: 'CJ', event: 'Stock Pitch Competition', when: 'Thu · 4:30 PM · MB 1.210' },
-  { id: 'hack', name: 'HackConcordia', handle: '@hackconcordia', color: '#2f6fce', glyph: 'HC', event: 'Intro to APIs workshop', when: 'Wed · 6:00 PM · H 920' },
-  { id: 'reggies', name: "Reggie's", handle: '@reggiesmtl', color: '#c98a1e', glyph: 'RG', event: 'Thursday night', when: 'Thu · 8:00 PM · Hall building' },
-] as const
+/** Set when onboarding finishes; Today reads it once and plays its entrance. */
+export const ARRIVE_KEY = 'ct_arrive'

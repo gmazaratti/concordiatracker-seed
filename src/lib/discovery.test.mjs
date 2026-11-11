@@ -30,6 +30,11 @@ eq('registration month promotes the schedule builder', top({ ...base, month: 10,
 check('outside registration the schedule builder is a low priority', rank({ ...base, month: 9, usage: { ...usedAll, schedule: false } }, {}, NOW)[0].score < 50)
 eq('a student who uses everything hears nothing urgent', rank(base, {}, NOW).filter((n) => n.score >= 50).map((n) => n.id), [])
 
+const noClubs = { ...base, usage: { ...usedAll, clubs: false } }
+check('without a goal, clubs is not the top suggestion', top(noClubs) !== 'clubs')
+eq('picking "find my people" in onboarding puts clubs first', top({ ...noClubs, goals: ['people'] }), 'clubs')
+check('a goal never invents a nudge for something already used', !rank({ ...base, goals: ['parents'] }, {}, NOW).some((n) => n.id === 'family'))
+
 console.log('what is never offered')
 check('Concordia-only features are hidden from other schools', !candidates({ ...base, usage: usedNone, atConcordia: false }).some((n) => ['moodle', 'schedule', 'seat-watch', 'programme'].includes(n.id)))
 check('Notes is not offered on a phone', !candidates({ ...base, usage: usedNone, desktop: false }).some((n) => n.id === 'notes'))

@@ -15,9 +15,11 @@ export function StepGoals({ goals, toggle }: { goals: Set<string>; toggle: (id: 
       <StepCopy
         label="Make it yours"
         title="What do you want out of this?"
-        sub="Pick as many as you like. We use it to decide what to show you first, so you are not left to find things on your own."
+        sub="We use this to decide what to show you first, so you are not left to find things on your own."
+        note="Pick at least one to continue."
       />
       <Stage>
+        <StageLabel right={goals.size ? `${goals.size} picked` : undefined}>Select all that apply</StageLabel>
         <div className="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
           {GOALS.map((g, i) => {
             const on = goals.has(g.id)
@@ -64,6 +66,14 @@ export function StepGoals({ goals, toggle }: { goals: Set<string>; toggle: (id: 
   )
 }
 
+/** A fixed fan of pieces: same burst every time, no randomness at render. */
+const COLORS = ['var(--ct-accent)', '#e0a23c', '#5b8def', '#c96aa8', '#4fb39a', '#ffffff']
+const CONFETTI = Array.from({ length: 22 }, (_, i) => {
+  const angle = (i / 22) * Math.PI * 2
+  const reach = 90 + ((i * 37) % 70)
+  return { color: COLORS[i % COLORS.length], x: Math.round(Math.cos(angle) * reach), y: Math.round(Math.sin(angle) * reach - 40), r: (i * 67) % 360, d: (i % 5) * 35 }
+})
+
 /* ── 7. Done ──────────────────────────────────────────────────────────────── */
 
 export function StepDone({ name, did }: { name: string; did: { label: string; done: boolean }[] }) {
@@ -72,12 +82,17 @@ export function StepDone({ name, did }: { name: string; did: { label: string; do
   return (
     <>
       <div>
+        <span className="pointer-events-none relative block h-0" aria-hidden>
+          {CONFETTI.map((c, i) => (
+            <span key={i} className="ct-ob-confetti absolute top-8 left-8 block h-2.5 w-1.5 rounded-[2px]" style={{ backgroundColor: c.color, '--x': `${c.x}px`, '--y': `${c.y}px`, '--r': `${c.r}deg`, '--d': `${c.d}ms` } as React.CSSProperties} />
+          ))}
+        </span>
         <span className="ct-ob-pop relative mb-5 grid size-16 place-items-center rounded-full bg-accent text-accent-contrast">
           <Check size={32} strokeWidth={3} className="ct-ob-check" aria-hidden />
           <span className="ct-ob-ring pointer-events-none absolute inset-0 rounded-full border-2 border-accent" aria-hidden />
         </span>
         <StepCopy
-          label="All set"
+          label="You did it"
           title={<>You are ready{first ? `, ${first}` : ''}.</>}
           sub={
             count >= 4

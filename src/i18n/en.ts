@@ -335,7 +335,7 @@ export const en = {
   'onboarding.campusSkip': 'Skip: just show me events',
   'courses.addYours': 'Add your courses',
   'courses.addAnother': 'Add another course?',
-  'courses.addYoursSub': 'Import as many as you want. Two ways in: pick whichever fits your class.',
+  'courses.addYoursSub': 'Add as many as you want. You can upload several outlines, one after another.',
   'courses.addAnotherSub': 'Stack as many as you like: they all land on Today. Or continue when you’re set.',
   'courses.findCourse': 'Find your course',
   'courses.findCourseDesc': 'Search your class and import a ready-made outline: every deadline and weight fills in instantly.',

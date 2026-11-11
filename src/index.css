@@ -2348,3 +2348,29 @@ html:has(
    before it can be pressed, so a slide cannot be skipped by reflex. */
 @keyframes ct-ob-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .ct-ob-fill { transform-origin: left; animation: ct-ob-fill 3s linear forwards; }
+
+/* Onboarding: clubs land one after another, small to big with a bounce; the
+   finish throws one burst of confetti; Today then rises in piece by piece. */
+@keyframes ct-ob-drop {
+  0%   { opacity: 0; transform: scale(0.55) translateY(-14px); }
+  60%  { opacity: 1; transform: scale(1.05) translateY(0); }
+  80%  { transform: scale(0.98); }
+  100% { opacity: 1; transform: none; }
+}
+.ct-ob-drop { animation: ct-ob-drop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0ms) backwards; }
+@keyframes ct-ob-confetti {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(0.4); }
+  12%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 70px)) rotate(var(--r)) scale(1); }
+}
+.ct-ob-confetti { opacity: 0; animation: ct-ob-confetti 1500ms cubic-bezier(0.16, 0.8, 0.3, 1) var(--d, 0ms) forwards; }
+@keyframes ct-ob-curtain { from { clip-path: circle(0% at 50% 100%); } to { clip-path: circle(150% at 50% 100%); } }
+.ct-ob-curtain { animation: ct-ob-curtain 560ms cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+@keyframes ct-arrive-veil { from { opacity: 1; } to { opacity: 0; } }
+.ct-arrive-veil { animation: ct-arrive-veil 700ms ease-out 120ms forwards; }
+.ct-today-arrive > * { animation: ct-ob-rise 620ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.ct-today-arrive > *:nth-child(1) { animation-delay: 200ms; }
+.ct-today-arrive > *:nth-child(2) { animation-delay: 320ms; }
+.ct-today-arrive > *:nth-child(3) { animation-delay: 440ms; }
+.ct-today-arrive > *:nth-child(n + 4) { animation-delay: 560ms; }
