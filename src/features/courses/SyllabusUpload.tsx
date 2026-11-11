@@ -130,6 +130,18 @@ function usageState(u: ParseUsage): {
 /** The real AI syllabus parser: drag-drop a PDF → Gemini extraction (server-side)
  * → review what was found → commit into a new course. Parsed dates are tagged
  * `unverified`; nothing is saved until you confirm. */
+/** What the uploader takes. The server decides from the bytes either way; this
+ *  only keeps an obviously wrong file from making the round trip. */
+const ACCEPTED = /\.(pdf|docx|jpe?g|png|webp|txt)$/i
+const ACCEPTED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain',
+]
+
 export function SyllabusUploadPage({
   intoCourseId,
   onDone,
@@ -228,8 +240,14 @@ export function SyllabusUploadPage({
 
 
   async function handleFile(file: File) {
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setError('Please choose a PDF file.')
+    if (!ACCEPTED.test(file.name) && !ACCEPTED_TYPES.includes(file.type)) {
+      setError(
+        /\.doc$/i.test(file.name)
+          ? 'That is an old Word .doc file. Save it as .docx or PDF and upload that.'
+          : /\.hei[cf]$/i.test(file.name)
+            ? 'That photo format (HEIC) is not supported. Take a screenshot or export it as JPG.'
+            : 'Upload the outline as a PDF, a Word file (.docx), or a photo.',
+      )
       setPhase('error')
       return
     }
@@ -425,7 +443,7 @@ export function SyllabusUploadPage({
             <Sparkles size={18} className="text-accent" aria-hidden /> Upload a syllabus
           </h1>
           <p className="mt-1 text-[13px] text-muted">
-            Drop your syllabus PDF: we’ll pull out the course details and every assessment for you to review.
+            Drop your syllabus (PDF, Word or a photo): we’ll pull out the course details and every assessment for you to review.
           </p>
         </>
       )}
@@ -621,12 +639,12 @@ function DropZone({ onFile, disabled }: { onFile: (f: File) => void; disabled?: 
       )}
     >
       <UploadCloud size={32} className="text-accent" aria-hidden />
-      <span className="text-[15px] font-medium text-fg">Drop your syllabus PDF here</span>
-      <span className="text-[12px] text-subtle">or click to browse · PDF up to {MAX_MB} MB</span>
+      <span className="text-[15px] font-medium text-fg">Drop your syllabus here</span>
+      <span className="text-[12px] text-subtle">or click to browse · PDF, Word (.docx) or a photo, up to {MAX_MB} MB</span>
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept="application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp,.txt,text/plain"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0]

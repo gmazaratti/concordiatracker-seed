@@ -35,7 +35,7 @@ export async function storeSyllabusFile(courseId: string, file: File): Promise<b
   const { data } = await localUser()
   const uid = data.user?.id
   if (!uid) return false
-  const ext = file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'bin'
+  const ext = (/\.(pdf|docx|jpe?g|png|webp|txt)$/i.exec(file.name)?.[1] ?? 'bin').toLowerCase()
   const path = `${uid}/${courseId}/${crypto.randomUUID()}.${ext}`
   const up = await supabase.storage.from('course-files').upload(path, file, {
     contentType: file.type || 'application/pdf',

@@ -23,9 +23,10 @@
  * Same signature and result as before, so every caller and every error state
  * is unchanged.
  */
-import { askClaude, CLAUDE_ESCALATE, CLAUDE_FIRST, type ClaudeAttempt } from './_parse-claude.js'
+import { askClaude, CLAUDE_ESCALATE, CLAUDE_FIRST, type ClaudeAttempt, type ClaudeInput } from './_parse-claude.js'
 import { extractWithGemini, MODEL_TIMEOUT_MS, type ParseResult } from './_parse-core.js'
 import { cleanParse } from './_parse-guard.js'
+import { docxText, sniffUpload } from './_upload-kind.js'
 
 /** Time Gemini always keeps for itself, so falling back can still finish. */
 const GEMINI_RESERVE_MS = 15_000
@@ -59,12 +60,33 @@ export async function extractOutline(
   const left = () => budgetMs - (Date.now() - started)
   const attempts: ClaudeAttempt[] = []
 
-  // Claude reads PDFs only; anything else (never expected here) goes to Gemini.
-  if (mimeType === 'application/pdf') {
+  // WHAT IT IS comes from the bytes, not from `mimeType` (kept for the old
+  // signature). A Word or text file is turned into text here, once, and both
+  // models read that text; a PDF or a photo goes to them as the file itself.
+  const sniffed = sniffUpload(new Uint8Array(buf))
+  if (sniffed.kind === 'unsupported') {
+    return { ok: false, course: {}, assessments: [], how: 'unsupported', failure: 'unreadable', detail: sniffed.why }
+  }
+  void mimeType
+  let text: string | undefined
+  if (sniffed.kind === 'docx') text = docxText(new Uint8Array(buf))
+  if (sniffed.kind === 'text') text = new TextDecoder().decode(buf)
+  if (text !== undefined && text.trim().length < 40) {
+    return { ok: false, course: {}, assessments: [], how: `${sniffed.kind}:empty`, failure: 'unreadable', detail: 'no readable text in the file' }
+  }
+  const input: ClaudeInput =
+    text !== undefined
+      ? { kind: 'text', text }
+      : sniffed.kind === 'image'
+        ? { kind: 'image', buf, mime: sniffed.mime }
+        : { kind: 'pdf', buf }
+  const tag = text !== undefined ? `${sniffed.kind}:${text.length}ch` : `${sniffed.kind}:${buf.byteLength}b`
+
+  {
     for (const model of [CLAUDE_FIRST, CLAUDE_ESCALATE]) {
       const room = Math.min(model === CLAUDE_FIRST ? 22_000 : 28_000, left() - GEMINI_RESERVE_MS)
       if (room < 6_000) break
-      const a = await askClaude(model, buf, room)
+      const a = await askClaude(model, input, room)
       attempts.push(a)
       if (a.ok && a.raw) {
         const clean = cleanParse(a.raw)
@@ -73,7 +95,7 @@ export async function extractOutline(
           ok: true,
           course: clean.course,
           assessments: clean.assessments,
-          how: `${SHORT_NAME[model]}:pdf:${buf.byteLength}b`,
+          how: `${SHORT_NAME[model]}:${tag}`,
           retried: attempts.length > 1,
           warnings: clean.warnings,
         }
@@ -93,7 +115,7 @@ export async function extractOutline(
     }
   }
 
-  const gemini = await extractWithGemini(buf, mimeType, Math.max(4_000, left()))
+  const gemini = await extractWithGemini(buf, sniffed.mime, Math.max(4_000, left()), text)
   logAttempts(attempts, gemini.ok ? 'gemini' : `gemini-failed:${gemini.failure}`)
   if (attempts.length === 0) return gemini
   return {

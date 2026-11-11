@@ -23,7 +23,8 @@
  */
 import { MAX_BYTES } from './_parse-core.js'
 import { extractOutline } from './_parse-route.js'
-import { isPdf, MAX_PAGES, pdfPageCount } from './_parse-guard.js'
+import { MAX_PAGES, pdfPageCount } from './_parse-guard.js'
+import { sniffUpload } from './_upload-kind.js'
 
 export const config = { maxDuration: 60 }
 
@@ -58,11 +59,12 @@ async function keepFailedFile(
   url: string,
   anon: string,
   token: string,
+  mime = 'application/pdf',
 ): Promise<string | null> {
   try {
     const r = await fetch(`${url}/storage/v1/object/parse-failures/${path}`, {
       method: 'POST',
-      headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
+      headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': mime, 'x-upsert': 'true' },
       body: bytes,
     })
     return r.ok ? path : null
@@ -197,18 +199,19 @@ export async function POST(req: Request): Promise<Response> {
   const buf = await req.arrayBuffer()
   if (buf.byteLength === 0) return json({ error: 'No file received.' }, 400)
   if (buf.byteLength > MAX_BYTES) return json({ error: 'That file is too large (max 4 MB).' }, 413)
-  // PDF is the one format supported, decided by the file's own first bytes —
-  // the Content-Type header is whatever the client chose to send, and it used
-  // to be handed to the model as the file's type.
+  // WHAT IT IS is decided by the file's own first bytes (api/_upload-kind.ts):
+  // PDF, a Word .docx, a photo/screenshot, or plain text. The Content-Type
+  // header is whatever the client chose to send, so it is never trusted.
   const bytes = new Uint8Array(buf)
-  if (!isPdf(bytes)) return json({ error: 'That is not a PDF. Upload the outline as a PDF file.' }, 415)
-  if (pdfPageCount(bytes) > MAX_PAGES) {
+  const kind = sniffUpload(bytes)
+  if (kind.kind === 'unsupported') return json({ error: kind.why }, 415)
+  if (kind.kind === 'pdf' && pdfPageCount(bytes) > MAX_PAGES) {
     return json(
       { error: `That PDF has more than ${MAX_PAGES} pages. Upload just the course outline.` },
       413,
     )
   }
-  const mimeType = 'application/pdf'
+  const mimeType = kind.mime
 
   // 3. Rate limit (cooldown, hourly, monthly/daily caps), enforced in the DB — this is the
   //    only path to Gemini, so a user can't spam it or starve the shared quota.
@@ -253,7 +256,7 @@ export async function POST(req: Request): Promise<Response> {
     // Keep the file, so an admin can retry it (deleted after 30 days by the
     // daily cron). Stored with the STUDENT'S token, under their own folder —
     // the bucket refuses any other path — so nothing here needs a service key.
-    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.pdf`, supabaseUrl, supabaseAnon, token) : null
+    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.${kind.ext}`, supabaseUrl, supabaseAnon, token, kind.mime) : null
     // Record the reason FIRST. `cancel_parse` used to delete the row, which
     // threw away the only evidence of what went wrong — a 32% failure rate
     // that was impossible to diagnose. It now marks the row refunded instead,
@@ -340,7 +343,7 @@ export async function POST(req: Request): Promise<Response> {
        can open what a student uploaded and fix a parse that "worked" but read
        it wrong. Same private folder, same daily cleanup (_parse-cleanup.ts),
        same privacy-policy wording. A failure to store is not a failed parse. */
-    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.pdf`, supabaseUrl, supabaseAnon, token) : null
+    const filePath = uid ? await keepFailedFile(buf, `${uid}/${slot.event_id}.${kind.ext}`, supabaseUrl, supabaseAnon, token, kind.mime) : null
     await callRpc(
       'finish_parse',
       {
