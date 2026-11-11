@@ -15,6 +15,7 @@ import { useI18n, LANGS, type Lang } from '@/i18n/i18n'
 import { getReduceMotion, setReduceMotion } from '@/lib/reduce-motion'
 import { OrgPostSwitch } from './OrgPostSwitch'
 import { MessageAlertSwitch } from './MessageAlertSwitch'
+import { EmailSwitches } from './EmailSwitches'
 import { useAppData } from '@/app/providers/app-data'
 import { PURCHASES_HIDDEN } from '@/lib/store-policy'
 
@@ -28,8 +29,6 @@ export function GeneralSection() {
   // page is already in rather than resetting to off on every open.
   const [reducedMotion, setReducedMotion] = useState(getReduceMotion)
   const [weekStartMon, setWeekStartMon] = useState(true)
-  const [weeklyDigest, setWeeklyDigest] = useState(false)
-  const [productUpdates, setProductUpdates] = useState(false)
   const { isAdmin } = useIsAdmin()
   const [demoGpa, setDemoGpa] = useState(demoGpaEnabled)
   const { lang, setLang, t } = useI18n()
@@ -79,12 +78,7 @@ export function GeneralSection() {
       </Group>
 
       <Group label={t('settings.email')}>
-        <Row label="Weekly digest email" description="A Monday summary of the week ahead.">
-          <Switch checked={weeklyDigest} onChange={setWeeklyDigest} label="Weekly digest email" />
-        </Row>
-        <Row label="Product updates" description="Occasional notes on what's new.">
-          <Switch checked={productUpdates} onChange={setProductUpdates} label="Product updates" />
-        </Row>
+        <EmailSwitches />
       </Group>
 
       {/* Yours only. Deliberately visible rather than silent: a demo aid nobody

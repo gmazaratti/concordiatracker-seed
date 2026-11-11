@@ -14,6 +14,7 @@
  * to each owner's devices using the service-role key (cross-user read), then
  * marks them sent so they never repeat. Expired endpoints (404/410) are pruned.
  */
+import { runWeeklyDigest } from './_weekly-digest.js'
 import { SUB_COLS, closePush, sendLiveActivityStart, sendPush, type PushMessage, type PushTarget } from './_push-send.js'
 import { courseColor } from '../src/lib/course-color.js'
 import type { ApnsEnv } from './_apns.js'
@@ -638,6 +639,14 @@ export async function runReminders(req: any, res: any) {
     /* the bell is best-effort — never block reminders */
   }
 
+  // The Monday digest email (only does anything on a Monday morning).
+  let digestSent = 0
+  try {
+    digestSent = await runWeeklyDigest({ supabaseUrl, svc })
+  } catch {
+    /* best-effort, like everything above */
+  }
+
   for (const [id, env] of envFix) {
     await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?id=eq.${id}`, {
       method: 'PATCH',
@@ -655,5 +664,5 @@ export async function runReminders(req: any, res: any) {
     )
   }
 
-  res.status(200).json({ processed: processedIds.length, sent, assignmentSent, liveStarted, trialSent, seatSent, adminSent, bellSent })
+  res.status(200).json({ processed: processedIds.length, sent, assignmentSent, liveStarted, trialSent, seatSent, adminSent, bellSent, digestSent })
 }

@@ -283,6 +283,55 @@ export default async function handler(req: any, res: any) {
      * like every other send: `sendEmail` never throws, and a bounced email
      * must not make a successful approval look failed.
      */
+    // Product news to everyone who switched "Product updates" on (and only
+    // them: it is promotional mail). Body is the admin's own text, one
+    // paragraph per blank-line-separated block.
+    if (action === 'product-update') {
+      const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body ?? {}) as {
+        subject?: string
+        heading?: string
+        text?: string
+        dryRun?: boolean
+      }
+      const subject = String(body.subject ?? '').trim().slice(0, 140)
+      const heading = String(body.heading ?? subject).trim().slice(0, 140)
+      const paragraphs = String(body.text ?? '')
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .slice(0, 12)
+      if (subject.length < 3 || paragraphs.length === 0) {
+        fail(res, 400, 'A subject and some text are needed.', { code: 'bad_request' })
+        return
+      }
+      const svc = { apikey: svcKey, Authorization: `Bearer ${svcKey}`, 'Content-Type': 'application/json' }
+      const people = (await fetch(`${url}/rest/v1/rpc/product_update_recipients`, {
+        method: 'POST',
+        headers: svc,
+        body: '{}',
+      }).then((r) => (r.ok ? r.json() : []))) as { user_id: string; email: string }[]
+      if (body.dryRun) {
+        res.status(200).json({ recipients: people.length })
+        return
+      }
+      let sent = 0
+      for (const p of people) {
+        const ok = await sendEmail({
+          to: p.email,
+          userId: p.user_id,
+          template: 'product_update',
+          subject,
+          heading,
+          paragraphs,
+          button: { label: 'Open ConcordiaTracker', href: 'https://concordiatracker.com/app' },
+          footnote: 'You get these because Product updates is on. Turn it off in Settings, General.',
+        })
+        if (ok) sent++
+      }
+      res.status(200).json({ recipients: people.length, sent })
+      return
+    }
+
     if (action === 'org-approved') {
       const id = String(req.query?.id ?? '').trim()
       if (!id) {
