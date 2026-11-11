@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus, ClipboardPaste, ListChecks, Share2, ShieldCheck } from 'lucide-react'
+import { CalendarPlus, ClipboardPaste, ListChecks, Lock, Plus, Share2, ShieldCheck } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { Select } from '@/components/ui/Select'
 import { ProgramPicker } from '@/components/ui/ProgramPicker'
@@ -14,7 +14,7 @@ import { cn } from '@/lib/cn'
 import { GpaBreakdown } from './GpaBreakdown'
 import { useShownGpa } from '@/app/hooks/useShownGpa'
 import { PastCourseRow } from './PastCourseRow'
-import { Step } from './Step'
+import { RecordHero } from './record/RecordHero'
 import { YEARS } from './past-terms'
 import { PastCourseEntry } from './PastCourseEntry'
 import { ImportSemesterModal } from './ImportSemesterModal'
@@ -28,11 +28,10 @@ import { useProgramForUser } from './useProgramForUser'
 /**
  * Your record, and what it opens up.
  *
- * Presented as steps rather than four equal sections, because the sections all
- * carried the same weight and there was nowhere obvious to look. A finished step
- * recedes to a tick, the one you are on is the only thing with contrast, and a
- * step that cannot run yet says what would unlock it instead of showing an empty
- * result and letting you wonder whether it is broken.
+ * A banner with the number people open this page for, then four titled parts:
+ * about you, what you have finished (one card per term), where that leaves you,
+ * and what it unlocks. A part with nothing to work from says what it is waiting
+ * for instead of showing an empty result.
  */
 export function MyRecordPanel() {
   const { pastCourses, assessments, user, setProgram } = useAppData()
@@ -80,40 +79,49 @@ export function MyRecordPanel() {
   const knowsWhere = year !== null && !!user.program
   const hasHistory = pastCourses.length > 0
 
-  return (
-    <div>
-      {/* Export sits at the TOP, not buried under step four. A record you can
-          only read inside the app is a record that has to be retyped into
-          every advising form and every scholarship application — and the
-          moment you want it is the moment you are looking at it. Hidden until
-          there is something to export, because a button that produces an empty
-          sheet is worse than no button. */}
+  // The page's actions live in the banner: the way in (paste, import) and the
+  // way out (export). Export is hidden until there is something to export.
+  const heroButton =
+    'inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap transition-colors duration-150'
+  const actions = (
+    <>
+      <button type="button" onClick={() => setPasting(true)} title="Paste your transcript and confirm what was read" className={cn(heroButton, 'bg-white text-black hover:bg-white/90')}>
+        <ClipboardPaste size={15} aria-hidden />
+        Paste my courses
+      </button>
+      <button type="button" onClick={() => setImporting(true)} title="Add a term one course at a time" className={cn(heroButton, 'bg-white/15 text-white backdrop-blur-md hover:bg-white/25')}>
+        <CalendarPlus size={15} aria-hidden />
+        Import a semester
+      </button>
       {hasHistory && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5">
-          <p className="min-w-0 text-[12.5px] text-subtle">
-            {summary.credits} {summary.credits === 1 ? 'credit' : 'credits'} · {summary.courseCount}{' '}
-            {summary.courseCount === 1 ? 'course' : 'courses'}
-            {shownGpa === null ? '' : ` · GPA ${shownGpa.toFixed(2)}`}
-          </p>
-          <button
-            type="button"
-            onClick={() => setExporting(true)}
-            disabled={!snapshot}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg disabled:opacity-60"
-          >
-            <Share2 size={13} aria-hidden />
-            Export or share
-          </button>
-        </div>
+        <button type="button" onClick={() => setExporting(true)} disabled={!snapshot} className={cn(heroButton, 'bg-white/15 text-white backdrop-blur-md hover:bg-white/25 disabled:opacity-60')}>
+          <Share2 size={15} aria-hidden />
+          Export or share
+        </button>
       )}
+    </>
+  )
+  const terms = sortTermsDesc([...new Set(pastCourses.map((c) => c.term))])
 
-      <Step
-        n={1}
-        title="Where you are"
-        sub="Decides which subjects get scanned for what you can take next."
-        state={knowsWhere ? 'done' : 'active'}
+  return (
+    <div className="space-y-10 pb-4">
+      <RecordHero
+        gpa={shownGpa}
+        credits={summary.credits}
+        gradedCredits={summary.gradedCredits}
+        courses={summary.courseCount}
+        subjects={summary.subjects}
+        complete={recordComplete}
+        actions={actions}
+      />
+
+      {/* ── About you ────────────────────────────────────────────────── */}
+      <Section
+        title="About you"
+        sub="Your year and major decide which subjects are scanned for what you can take next."
+        badge={knowsWhere ? null : 'Start here'}
       >
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="ct-res-in grid gap-4 rounded-3xl border border-border bg-surface p-5 sm:grid-cols-2 sm:p-6 xl:grid-cols-[1fr_1fr_1.4fr]">
           <Field label="What year are you in right now?">
             <Select
               value={year === null ? '' : String(year)}
@@ -127,7 +135,6 @@ export function MyRecordPanel() {
               options={YEARS.map((y) => ({ value: String(y.value), label: y.label }))}
             />
           </Field>
-
           <Field label="Minor (optional)">
             <input
               value={minor}
@@ -135,11 +142,10 @@ export function MyRecordPanel() {
               onBlur={() => void saveAcademicProfile({ minor: minor.trim() || null })}
               placeholder="e.g. Economics"
               aria-label="Minor"
-              className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[13px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-border bg-canvas px-3 py-2 text-[14px] text-fg placeholder:text-subtle focus:border-accent focus:outline-none"
             />
           </Field>
-
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 xl:col-span-1">
             <Field label="Major">
               <ProgramPicker
                 size="sm"
@@ -149,175 +155,141 @@ export function MyRecordPanel() {
             </Field>
           </div>
         </div>
-      </Step>
+      </Section>
 
-      <Step
-        n={2}
+      {/* ── Finished courses ─────────────────────────────────────────── */}
+      <Section
         title="What you have finished"
         sub="Grades are optional. Without one a course still counts for credits and prerequisites, it just does not move your GPA."
-        state={hasHistory ? 'done' : 'active'}
       >
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-subtle">Add one class, or bring in a whole term at once.</p>
-          <span className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setPasting(true)}
-              title="Paste your transcript and confirm what was read"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-            >
-              <ClipboardPaste size={13} aria-hidden />
-              Paste my courses
-            </button>
-            <button
-              type="button"
-              onClick={() => setImporting(true)}
-              title="Add a term one course at a time"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-            >
-              <CalendarPlus size={13} aria-hidden />
-              Import a semester
-            </button>
-          </span>
+        <div className="ct-res-in rounded-3xl border border-border bg-surface p-5 sm:p-6">
+          <p className="mb-3 text-[14px] font-semibold text-fg">Add one class</p>
+          <PastCourseEntry />
         </div>
-        <PastCourseEntry />
+
         {hasHistory && (
-          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-            {sortTermsDesc([...new Set(pastCourses.map((c) => c.term))]).flatMap((term) => [
-              <li
-                key={`h-${term}`}
-                className="flex items-center justify-between gap-2 bg-surface-2 px-4 py-1.5"
-              >
-                <span className="text-[11px] font-semibold tracking-wide text-subtle uppercase">
-                  {term}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setImportTerm(term)}
-                  className="text-[11px] font-medium text-subtle transition-colors duration-150 hover:text-accent"
+          // One card per term, newest first, two across on a wide screen: a
+          // single long list made every term look like part of the one before.
+          <div className="mt-4 grid items-start gap-4 xl:grid-cols-2">
+            {terms.map((term, i) => {
+              const rows = pastCourses.filter((c) => c.term === term)
+              const credits = rows.reduce((n, c) => n + (c.credits ?? 0), 0)
+              return (
+                <div
+                  key={term}
+                  className="ct-res-in overflow-hidden rounded-3xl border border-border bg-surface"
+                  style={{ animationDelay: `${Math.min(i, 6) * 45}ms` }}
                 >
-                  + Add a class
-                </button>
-              </li>,
-              ...pastCourses
-                .filter((c) => c.term === term)
-                .map((c) => (
-                  <PastCourseRow key={c.id} course={c} superseded={superseded.has(c.id)} />
-                )),
-            ])}
-          </ul>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/70 bg-surface-2/50 px-5 py-3.5">
+                    <div className="min-w-0">
+                      <p className="font-display text-[18px] leading-tight font-semibold text-fg">{term}</p>
+                      <p className="text-[12.5px] text-muted">
+                        {rows.length} {rows.length === 1 ? 'course' : 'courses'} · {credits} credits
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setImportTerm(term)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
+                    >
+                      <Plus size={13} aria-hidden /> Add a class
+                    </button>
+                  </div>
+                  <ul className="divide-y divide-border/70">
+                    {rows.map((c) => (
+                      <PastCourseRow key={c.id} course={c} superseded={superseded.has(c.id)} />
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
         )}
+
         {hasHistory && (
           <div
             className={cn(
-              'mt-3 rounded-xl border p-3.5 transition-colors duration-200',
-              recordComplete ? 'border-accent/50 bg-accent-soft' : 'border-border bg-surface',
+              'ct-res-in mt-4 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-3xl border p-5 transition-colors duration-200 sm:p-6',
+              recordComplete ? 'border-accent/50 bg-accent-soft' : 'border-warning/40 bg-warning/[0.08]',
             )}
           >
-            <div className="flex items-start gap-3">
-              <span
-                className={cn(
-                  'mt-0.5 grid size-8 shrink-0 place-items-center rounded-full',
-                  recordComplete ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-subtle',
-                )}
-              >
-                {recordComplete ? <ShieldCheck size={16} aria-hidden /> : <ListChecks size={16} aria-hidden />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-semibold text-fg">
-                  {recordComplete
-                    ? 'Your record is marked complete'
-                    : 'Is this every course you have finished?'}
-                </p>
-                <p className="mt-0.5 text-[12.5px] leading-relaxed text-subtle">
-                  {recordComplete
-                    ? 'Prerequisites are checked against it, so the course directory marks what you have met in green and what you have not in red.'
-                    : 'Say yes and the course directory will mark prerequisites you have met in green and the ones you have not in red. Until then it shows the requirement without a verdict, because calling a course out of reach when a term is simply missing is worse than saying nothing.'}
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {recordComplete ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecordComplete(false)
-                        void saveAcademicProfile({ recordComplete: false })
-                      }}
-                      className="rounded-lg border border-border bg-surface px-3 py-1.5 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:text-fg"
-                    >
-                      Something is missing
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRecordComplete(true)
-                        void saveAcademicProfile({ recordComplete: true })
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-1.5 text-[12.5px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-                    >
-                      <ShieldCheck size={13} aria-hidden />
-                      Yes, that is everything
-                    </button>
-                  )}
-                </div>
-              </div>
+            <span
+              className={cn(
+                'grid size-12 shrink-0 place-items-center rounded-full',
+                recordComplete ? 'bg-accent text-accent-contrast' : 'bg-warning text-black',
+              )}
+            >
+              {recordComplete ? <ShieldCheck size={22} aria-hidden /> : <ListChecks size={22} aria-hidden />}
+            </span>
+            <div className="min-w-0 flex-1 basis-64">
+              <p className="font-display text-[18px] leading-snug font-semibold text-fg">
+                {recordComplete ? 'Your record is marked complete' : 'Is this every course you have finished?'}
+              </p>
+              <p className="mt-1 max-w-2xl text-[13.5px] leading-relaxed text-muted">
+                {recordComplete
+                  ? 'Prerequisites are checked against it, so the course directory marks what you have met in green and what you have not in red.'
+                  : 'Say yes and the course directory will mark prerequisites you have met in green and the ones you have not in red. Until then it shows the requirement without a verdict, because calling a course out of reach when a term is simply missing is worse than saying nothing.'}
+              </p>
             </div>
+            {recordComplete ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRecordComplete(false)
+                  void saveAcademicProfile({ recordComplete: false })
+                }}
+                className="rounded-full border border-border bg-surface px-4 py-2.5 text-[13.5px] font-medium text-fg transition-colors duration-150 hover:border-border-strong"
+              >
+                Something is missing
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setRecordComplete(true)
+                  void saveAcademicProfile({ recordComplete: true })
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+              >
+                <ShieldCheck size={15} aria-hidden />
+                Yes, that is everything
+              </button>
+            )}
           </div>
         )}
-      </Step>
+      </Section>
 
-      <Step
-        n={3}
-        title="Where that leaves you"
-        state={hasHistory ? 'active' : 'locked'}
-        lockedReason="Add a finished course above and your credits, GPA and subjects appear here."
-      >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Credits done" value={String(summary.credits)} />
-          <Stat label="Courses" value={String(summary.courseCount)} />
-          <Stat
-            label="GPA"
-            value={shownGpa === null ? '\u2014' : shownGpa.toFixed(2)}
-            note={
-              shownGpa === null
-                ? 'Add a grade to see it'
-                : `over ${summary.gradedCredits} graded credits`
-            }
-          />
-          <Stat
-            label="Subjects"
-            value={String(summary.subjects.length)}
-            note={summary.subjects.slice(0, 3).join(' \u00b7 ')}
-          />
-        </div>
-        <GpaBreakdown pastCourses={pastCourses} assessments={assessments} />
-        <CoopCard
-          pastCourses={pastCourses}
-          assessments={assessments}
-          gpa={shownGpa}
-          faculty={program?.faculty ?? user.school ?? null}
-          program={program?.name ?? user.program ?? null}
-        />
-      </Step>
+      {/* ── Where that leaves you ────────────────────────────────────── */}
+      <Section title="Where that leaves you" sub="How your GPA is built, and where you stand for co-op.">
+        {hasHistory ? (
+          <div className="space-y-4">
+            <GpaBreakdown pastCourses={pastCourses} assessments={assessments} />
+            <CoopCard
+              pastCourses={pastCourses}
+              assessments={assessments}
+              gpa={shownGpa}
+              faculty={program?.faculty ?? user.school ?? null}
+              program={program?.name ?? user.program ?? null}
+            />
+          </div>
+        ) : (
+          <Waiting>Add a finished course above and your GPA and standing appear here.</Waiting>
+        )}
+      </Section>
 
-      <Step
-        n={4}
-        title="What that unlocks"
-        state={hasHistory ? 'active' : 'locked'}
-        lockedReason="Once we know what you have finished, this reads the prerequisites for your subjects and tells you what you can take."
-        last
-      >
-        <Unlocks
-          completed={summary.completedCodes}
-          subjects={summary.subjects}
-          credits={summary.credits}
-          program={program}
-        />
-      </Step>
+      {/* ── What that unlocks ────────────────────────────────────────── */}
+      <Section title="What that unlocks" sub="Courses whose prerequisites you have now met.">
+        {hasHistory ? (
+          <Unlocks completed={summary.completedCodes} subjects={summary.subjects} credits={summary.credits} program={program} />
+        ) : (
+          <Waiting>
+            Once we know what you have finished, this reads the prerequisites for your subjects and tells you what you
+            can take.
+          </Waiting>
+        )}
+      </Section>
 
-      {exporting && snapshot && (
-        <RecordSheet snapshot={snapshot} own onClose={() => setExporting(false)} />
-      )}
+      {exporting && snapshot && <RecordSheet snapshot={snapshot} own onClose={() => setExporting(false)} />}
 
       {pasting && <PasteTranscriptModal onClose={() => setPasting(false)} />}
 
@@ -334,23 +306,45 @@ export function MyRecordPanel() {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** A titled part of the page. The badge marks the one to do first. */
+function Section({
+  title,
+  sub,
+  badge,
+  children,
+}: {
+  title: string
+  sub?: string
+  badge?: string | null
+  children: React.ReactNode
+}) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-[12px] text-subtle">{label}</span>
-      {children}
-    </label>
+    <section>
+      <h3 className="flex flex-wrap items-center gap-2.5 font-display text-[22px] font-semibold tracking-tight text-fg">
+        {title}
+        {badge && <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11.5px] font-semibold text-accent-contrast">{badge}</span>}
+      </h3>
+      {sub && <p className="mt-0.5 max-w-3xl text-[13px] text-muted">{sub}</p>}
+      <div className="mt-4">{children}</div>
+    </section>
   )
 }
 
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
+/** What a section says while it has nothing to work from. */
+function Waiting({ children }: { children: React.ReactNode }) {
   return (
-    <div className={cn('rounded-xl border border-border bg-surface px-3.5 py-3')}>
-      <p className="text-[11px] tracking-wide text-subtle uppercase">{label}</p>
-      <p className="mt-0.5 font-display text-[22px] leading-none font-semibold text-fg tabular-nums">
-        {value}
-      </p>
-      {note && <p className="mt-1 text-[11px] leading-snug text-subtle">{note}</p>}
-    </div>
+    <p className="flex items-center gap-3 rounded-3xl border border-dashed border-border-strong px-5 py-6 text-[14px] leading-relaxed text-muted">
+      <Lock size={17} className="shrink-0 text-subtle" aria-hidden />
+      {children}
+    </p>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-muted">{label}</span>
+      {children}
+    </label>
   )
 }

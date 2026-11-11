@@ -11,7 +11,7 @@ import {
 } from './calendar'
 import { EventPill } from './EventPill'
 
-const MAX_PILLS = 3
+const MAX_PILLS = 4
 /** Markers are 6px, so a phone cell holds twice what a label would. */
 const MAX_DOTS = 6
 
@@ -35,12 +35,12 @@ export function MonthView({
   const month = view.getMonth()
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface">
-      <div className="grid grid-cols-7 border-b border-border bg-surface-2/40">
+    <div className="overflow-hidden rounded-3xl border border-border bg-surface">
+      <div className="grid grid-cols-7 border-b border-border">
         {WEEKDAYS().map((d) => (
           <div
             key={d}
-            className="px-2 py-2 text-center text-[11px] font-semibold tracking-wide text-subtle uppercase"
+            className="px-2 py-3 text-center text-[12px] font-semibold tracking-[0.08em] text-muted uppercase"
           >
             <span className="hidden sm:inline">{d}</span>
             <span className="sm:hidden">{d[0]}</span>
@@ -54,6 +54,7 @@ export function MonthView({
           const inMonth = day.getMonth() === month
           const isToday = sameDay(day, today)
           const extra = items.length - MAX_PILLS
+          const weekend = day.getDay() === 0 || day.getDay() === 6
 
           return (
             <button
@@ -62,13 +63,14 @@ export function MonthView({
               onClick={() => onOpenDay(day)}
               aria-label={`${day.toDateString()}, ${items.length} item${items.length === 1 ? '' : 's'}`}
               className={cn(
-                'flex min-h-[64px] flex-col gap-1 border-r border-b border-border p-1 sm:min-h-[88px] sm:p-1.5 text-left transition-colors duration-150 last:border-r-0 hover:bg-surface-2/40 focus-visible:bg-surface-2/60 focus-visible:outline-none [&:nth-child(7n)]:border-r-0',
-                !inMonth && 'bg-canvas/40',
+                'flex min-h-[68px] flex-col gap-1.5 border-r border-b border-border/70 p-1 text-left transition-colors duration-150 last:border-r-0 hover:bg-surface-2/50 focus-visible:bg-surface-2/60 focus-visible:outline-none sm:min-h-[124px] sm:p-2 xl:min-h-[136px] [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0',
+                !inMonth ? 'bg-canvas/50' : weekend && 'bg-canvas/25',
+                isToday && 'bg-accent-soft shadow-[inset_0_0_0_2px_var(--ct-accent)]',
               )}
             >
               <span
                 className={cn(
-                  'grid size-6 shrink-0 place-items-center justify-self-start rounded-full text-[12px] font-medium tabular-nums',
+                  'grid size-7 shrink-0 place-items-center justify-self-start rounded-full text-[13px] font-semibold tabular-nums',
                   isToday
                     ? 'bg-accent text-accent-contrast'
                     : inMonth
@@ -99,7 +101,7 @@ export function MonthView({
                 )}
               </span>
 
-              <span className="hidden min-h-0 flex-col gap-0.5 sm:flex">
+              <span className="hidden min-h-0 flex-col gap-1 sm:flex">
                 {items.slice(0, MAX_PILLS).map((item) => (
                   <EventPill
                     key={item.id}
@@ -108,7 +110,7 @@ export function MonthView({
                   />
                 ))}
                 {extra > 0 && (
-                  <span className="px-1 text-[11px] font-medium text-subtle">+{extra} more</span>
+                  <span className="px-1.5 text-[11.5px] font-semibold text-muted">+{extra} more</span>
                 )}
               </span>
             </button>

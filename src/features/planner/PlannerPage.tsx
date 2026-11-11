@@ -57,7 +57,7 @@ export function PlannerPage() {
   // want more than a reading column, so they are the only ones that get it.
   const wide = tab === 'schedule' || tab === 'tree'
   /** Picture-led sections fill the page too; a reading column left half a wide screen empty. */
-  const roomy = tab === 'resources' || tab === 'radar' || tab === 'program'
+  const roomy = tab === 'resources' || tab === 'radar' || tab === 'program' || tab === 'record'
   const items: NavItem<PlannerTab>[] = tabs.map((item) => ({
     id: item.id,
     label: t(item.labelKey),

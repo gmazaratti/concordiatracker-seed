@@ -35,6 +35,7 @@ export function GroupCard({
   picks,
   held,
   delay,
+  compact,
 }: {
   group: Group
   done: ReqCourse[]
@@ -45,11 +46,16 @@ export function GroupCard({
   picks: ProgramPick[]
   held: Set<string>
   delay: number
+  /** A short list: half the row on a wide screen, and tiles two across. */
+  compact?: boolean
 }) {
   const pct = counted && group.credits > 0 ? Math.min(100, Math.round((earnedCredits / group.credits) * 100)) : 0
   const complete = counted && pct >= 100
   return (
-    <section className="ct-res-in rounded-3xl border border-border bg-surface p-5 sm:p-6" style={{ animationDelay: `${delay}ms` }}>
+    <section
+      className={cn('ct-res-in rounded-3xl border border-border bg-surface p-5 sm:p-6', !compact && 'xl:col-span-2')}
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-center gap-4">
         {counted ? (
           <Ring pct={pct} complete={complete} />
@@ -64,26 +70,29 @@ export function GroupCard({
             {counted ? (
               <>
                 <span className="font-semibold text-fg tabular-nums">{earnedCredits}</span> of {group.credits} credits
-                {group.kind === 'all' && remaining.length > 0 && (
-                  <span className="text-subtle">
-                    {' '}
-                    · {remaining.length} {remaining.length === 1 ? 'course' : 'courses'} left
-                  </span>
-                )}
               </>
             ) : (
               <>{group.credits} credits, by the calendar's rule</>
             )}
           </p>
         </div>
-        {complete && (
+        {complete ? (
           <span className="hidden rounded-full bg-success px-3 py-1 text-[12px] font-semibold text-white sm:inline-block">Complete</span>
+        ) : (
+          counted &&
+          group.kind === 'all' &&
+          remaining.length > 0 && (
+            // What is left is the part to act on, so it is the loudest thing in the header.
+            <span className="shrink-0 rounded-full bg-warning/15 px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap text-warning">
+              {remaining.length} to go
+            </span>
+          )
         )}
       </div>
 
       {counted ? (
         <>
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className={cn('mt-5 grid gap-2 sm:grid-cols-2', !compact && 'xl:grid-cols-3')}>
             {(group.kind === 'all' ? [...done, ...remaining] : done).map((course) => {
               const isDone = done.includes(course)
               const taking = !isDone && inProgress.has(normalizeCode(course.code))

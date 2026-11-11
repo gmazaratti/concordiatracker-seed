@@ -16,6 +16,7 @@ import {
 } from '@/lib/programs'
 import { computeProgress, type Program, type ProgramWithGroups } from '@/lib/program-progress'
 import { cn } from '@/lib/cn'
+import { ChoiceGroups } from './program/ChoiceGroups'
 import { GroupCard } from './program/GroupCard'
 import { ProgramHero } from './program/ProgramHero'
 
@@ -274,20 +275,36 @@ export function ProgramProgress({ mode = 'major' }: { mode?: 'major' | 'minor' }
           {/* Three colours carrying three meanings, explained once. */}
           {program.groups.length > 0 && <Legend />}
 
-          {progress.groups.map(({ group, done, remaining, earnedCredits, counted }, i) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              done={done}
-              remaining={remaining}
-              earnedCredits={earnedCredits}
-              counted={counted}
-              inProgress={inProgress}
-              picks={picks}
-              held={held}
-              delay={Math.min(i, 6) * 50}
-            />
-          ))}
+          {/* Lists first: the groups we can tick off. A short one (a single
+              capstone course) takes half the row instead of a full-width card
+              holding one tile. */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            {progress.groups
+              .filter((g) => g.counted)
+              .map(({ group, done, remaining, earnedCredits, counted }, i) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  done={done}
+                  remaining={remaining}
+                  earnedCredits={earnedCredits}
+                  counted={counted}
+                  inProgress={inProgress}
+                  picks={picks}
+                  held={held}
+                  delay={Math.min(i, 6) * 50}
+                  compact={done.length + (group.kind === 'all' ? remaining.length : 0) <= 4}
+                />
+              ))}
+          </div>
+
+          {/* Then the rules, together, so they stop reading as empty cards. */}
+          <ChoiceGroups
+            groups={progress.groups.filter((g) => !g.counted).map((g) => g.group)}
+            unassigned={progress.unassignedCredits}
+            picks={picks}
+            held={held}
+          />
 
           {/* ── Provenance ───────────────────────────────────────────── */}
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-subtle">

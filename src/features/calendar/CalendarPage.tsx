@@ -16,6 +16,7 @@ import { WeekView } from './WeekView'
 import { AgendaView } from './AgendaView'
 import { DayDetailModal } from './DayDetailModal'
 import { CalendarRail } from './CalendarRail'
+import { UpNext } from './UpNext'
 
 
 
@@ -89,13 +90,16 @@ export function CalendarPage() {
     view === 'month' ? `${MONTHS()[cursor.getMonth()]} ${cursor.getFullYear()}` : weekLabel(cursor)
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-5 sm:px-6">
-      <header className="mb-4">
+    <div className="mx-auto w-full max-w-[1600px] px-5 py-5 sm:px-6">
+      <header className="mb-5">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] text-subtle">{term.name}</p>
-            <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-              {t('calendar.title')}
+            <p className="text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">
+              {t('calendar.title')} · {term.name}
+            </p>
+            {/* The period is the page's title: on a calendar, "November 2026" is the thing you are looking at. */}
+            <h1 className="mt-1 font-display text-[30px] leading-tight font-bold tracking-tight text-fg sm:text-[38px]">
+              {view === 'agenda' ? t('calendar.agenda') : periodLabel}
             </h1>
           </div>
           <Segmented
@@ -111,30 +115,27 @@ export function CalendarPage() {
         </div>
 
         {view !== 'agenda' && (
-          <div className="mt-3 flex items-center gap-1.5">
+          <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
               onClick={() => step(-1)}
               aria-label={view === 'month' ? t('calendar.prevMonth') : t('calendar.prevWeek')}
-              className="grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              className="grid size-10 place-items-center rounded-full border border-border text-muted transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
             >
-              <ChevronLeft size={17} aria-hidden />
+              <ChevronLeft size={18} aria-hidden />
             </button>
-            <span className="min-w-[7.5rem] text-center text-[14px] font-medium text-fg">
-              {periodLabel}
-            </span>
             <button
               type="button"
               onClick={() => step(1)}
               aria-label={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextWeek')}
-              className="grid size-7 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              className="grid size-10 place-items-center rounded-full border border-border text-muted transition-colors duration-150 hover:border-border-strong hover:bg-surface-2 hover:text-fg"
             >
-              <ChevronRight size={17} aria-hidden />
+              <ChevronRight size={18} aria-hidden />
             </button>
             <button
               type="button"
               onClick={() => setCursor(new Date())}
-              className="ml-1 rounded-md border border-border px-2.5 py-1 text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+              className="rounded-full bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
             >
               {t('calendar.today')}
             </button>
@@ -142,7 +143,7 @@ export function CalendarPage() {
         )}
       </header>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         <main className="order-2 min-w-0 flex-1 lg:order-1">
           {view === 'month' && (
             <MonthView
@@ -168,7 +169,11 @@ export function CalendarPage() {
           )}
         </main>
 
-        <aside className="order-1 lg:order-2 lg:w-[272px] lg:shrink-0">
+        <aside className="order-1 space-y-4 lg:order-2 lg:w-[320px] lg:shrink-0">
+          {/* Not on the agenda view: that view already IS the list of what is next. */}
+          {view !== 'agenda' && (
+            <UpNext source={source} prefs={calendarPrefs} courseById={courseById} onOpenDay={setOpenDay} />
+          )}
           <CalendarRail />
         </aside>
       </div>

@@ -39,7 +39,7 @@ export function WeekView({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+    <div className="overflow-x-auto rounded-3xl border border-border bg-surface">
       <div className="grid min-w-[640px] grid-cols-7">
         {days.map((day) => {
           const items = dayItems(day, source, prefs)

@@ -37,9 +37,12 @@ export function EventPill({
   let dot: React.ReactNode
   let label: string
   let done = false
+  /** A course's colour, for the chip's wash and edge. */
+  let hexOf: string | null = null
 
   if (item.kind === 'assessment') {
     const hex = course ? courseColor(course.color).hex : '#888'
+    hexOf = hex
     done = isFinished(item.assessment.status)
     dot = <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: hex }} aria-hidden />
     label = item.assessment.title
@@ -78,16 +81,32 @@ export function EventPill({
     )
   }
 
+  // A filled chip rather than a dot and grey text: an assignment wears its
+  // course's colour (wash plus a solid edge), the university's dates are blue,
+  // undated work is amber, and red is still only for overdue.
+  const tone = overdue
+    ? 'bg-danger/15 text-danger'
+    : item.kind === 'academic'
+      ? 'bg-info/[0.13] text-info'
+      : item.kind === 'undated'
+        ? 'bg-warning/[0.14] text-warning'
+        : item.kind === 'task'
+          ? 'bg-surface-2 text-fg/85'
+          : 'text-fg'
+  const wash = !overdue && hexOf ? { backgroundColor: `${hexOf}2b`, boxShadow: `inset 3px 0 0 ${hexOf}` } : undefined
   return (
     <span
       className={cn(
-        'flex items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] leading-tight',
-        overdue ? 'text-danger' : item.kind === 'academic' ? 'text-info' : 'text-muted',
-        done && 'text-subtle line-through',
+        'flex items-center gap-1.5 rounded-md py-[3px] pr-1.5 text-left text-[11.5px] leading-tight font-medium',
+        hexOf && !overdue ? 'pl-2' : 'pl-1.5',
+        tone,
+        overdue && 'shadow-[inset_3px_0_0_var(--ct-danger)] pl-2',
+        done && 'line-through opacity-50',
         className,
       )}
+      style={wash}
     >
-      {dot}
+      {!(hexOf && !overdue) && !overdue && dot}
       <span className="truncate">{label}</span>
     </span>
   )
