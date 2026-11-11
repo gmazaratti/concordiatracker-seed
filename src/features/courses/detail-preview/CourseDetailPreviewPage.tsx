@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
-import { Loader2, Upload } from 'lucide-react'
+import { ListChecks, Loader2, Pencil, Upload } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
 import { ModalShell } from '@/command/ModalShell'
@@ -11,11 +11,11 @@ import { findMoodleMismatches } from '@/lib/moodle-match'
 import { cn } from '@/lib/cn'
 import { AssessmentTable } from '../AssessmentTable'
 import { CourseAnnouncements } from '../CourseAnnouncements'
-import { ManualCourseAssessments } from '../CourseDetailPage'
 import { CourseInfoPanel } from '../CourseInfoPanel'
 import { GpaWhatIf } from '../GpaWhatIf'
 import { GradeBreakdown } from '../GradeBreakdown'
 import { GradeNeeded } from '../GradeNeeded'
+import { ManualAssessmentEditor } from '../ManualAssessmentEditor'
 import { MoodleMismatchCard } from '../MoodleMismatch'
 import { PaywallLock } from '../Paywall'
 import { SectionDeadlinesCard } from '../SectionDeadlinesCard'
@@ -48,6 +48,7 @@ export function CourseDetailPreviewPage() {
   const { openAssessment } = useQuickActions()
   const [importing, setImporting] = useState(false)
   const [pane, setPane] = useState<Pane>('work')
+  const [mode, setMode] = useState<'grades' | 'setup'>('grades')
   const focusId = (location.state as { focus?: string } | null)?.focus
 
   if (dataLoading) {
@@ -63,6 +64,9 @@ export function CourseDetailPreviewPage() {
   const mine = assessments.filter((a) => a.courseId === course.id)
   const ids = new Set(mine.map((a) => a.id))
   const empty = mine.length === 0
+  const manual = course.origin === 'manual'
+  // A class with nothing in it has no grades to enter, so setup is the view.
+  const view = manual && empty ? 'setup' : mode
   const corrections = peerCorrections.filter((c) => ids.has(c.assessmentId))
   const mismatches = findMoodleMismatches(personalTasks, assessments, courses).filter((m) => ids.has(m.assessmentId))
 
@@ -99,8 +103,40 @@ export function CourseDetailPreviewPage() {
       </div>
 
       <div className="grid items-start gap-x-5 gap-y-8 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <main className={cn('min-w-0 space-y-3 lg:order-2', pane !== 'work' && 'hidden lg:block')}>
-          <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Assessments</h2>
+        {/* lg:pt-[10px] matches the rail's own top padding (ct-scroll-fade), and
+            every part's heading row is the same height, so the two headings and
+            the two first cards start on the same lines. */}
+        <main className={cn('min-w-0 space-y-3 lg:order-2 lg:pt-[10px]', pane !== 'work' && 'hidden lg:block')}>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:min-h-10">
+            <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Assessments</h2>
+            {manual && !empty && (
+              <div role="tablist" aria-label="What you are doing with this list" className="flex gap-1 rounded-full border border-border bg-surface p-1">
+                {([
+                  { id: 'grades', label: 'Enter grades', icon: ListChecks },
+                  { id: 'setup', label: 'Add or change assessments', icon: Pencil },
+                ] as const).map((tab) => {
+                  const on = view === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setMode(tab.id)}
+                      title={tab.id === 'grades' ? 'Tick what you handed in and type your mark on each row' : 'Add or remove assessments, change a type, date or weight. Your marks are kept.'}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition-colors duration-150',
+                        on ? 'bg-fg text-canvas' : 'text-muted hover:text-fg',
+                      )}
+                    >
+                      <tab.icon size={14} aria-hidden className="shrink-0" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
           <TeacherChangeCard items={mine.filter((a) => a.teacherPrev)} />
           {mismatches.map((m) => (
             <MoodleMismatchCard key={m.assessmentId} mismatch={m} />
@@ -129,8 +165,12 @@ export function CourseDetailPreviewPage() {
               </div>
             </div>
           )}
-          {course.origin === 'manual' ? (
-            <ManualCourseAssessments courseId={course.id} assessments={mine} focusId={focusId} />
+          {manual ? (
+            view === 'setup' ? (
+              <ManualAssessmentEditor courseId={course.id} />
+            ) : (
+              <AssessmentTable assessments={mine} focusId={focusId} />
+            )
           ) : (
             !empty && <AssessmentTable assessments={mine} focusId={focusId} />
           )}
@@ -142,14 +182,14 @@ export function CourseDetailPreviewPage() {
             list scrolls, with its own scroll when it is taller than the screen. */}
         <aside className="ct-scroll-fade min-w-0 space-y-8 lg:sticky lg:top-4 lg:order-1 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:pr-1.5">
           <section className={cn('space-y-3', pane !== 'class' && 'hidden lg:block')}>
-            <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Class details</h2>
-            <CourseInfoPanel course={course} totalAssessments={mine.length} editableIdentity={course.origin === 'manual'} />
+            <h2 className="hidden items-center font-display text-[22px] font-semibold tracking-tight text-fg lg:flex lg:min-h-10">Class details</h2>
+            <CourseInfoPanel course={course} totalAssessments={mine.length} editableIdentity={manual} />
             <SectionDeadlinesCard course={course} />
             <SyllabusFileCard course={course} />
             <CourseNotesCard course={course} />
           </section>
           <section className={cn('space-y-3', pane !== 'grade' && 'hidden lg:block')}>
-            <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Your grade</h2>
+            <h2 className="hidden items-center font-display text-[22px] font-semibold tracking-tight text-fg lg:flex lg:min-h-10">Your grade</h2>
             {empty ? (
               <p className="rounded-3xl border border-dashed border-border-strong px-5 py-6 text-[14px] leading-relaxed text-muted">
                 Your breakdown, the grade you need and the what-if appear once this class has assessments.
