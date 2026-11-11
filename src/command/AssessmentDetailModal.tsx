@@ -102,9 +102,10 @@ export function AssessmentDetailModal({ id }: { id: string }) {
 
   return (
     <ModalShell label={`Edit ${assessment.title}`} onClose={closeTarget}>
-      <div className="h-1.5" style={{ backgroundColor: hex }} aria-hidden />
-      <div className="px-5 py-4">
-        <div className="flex items-center gap-2">
+      {/* The course colour as a slim left rule rather than a band across the
+          top, which ran under the sheet's grabber and close button. */}
+      <div className="border-l-4 px-5 pt-4 pb-0" style={{ borderLeftColor: hex }}>
+        <div className="flex items-center gap-2 pr-9">
           <CourseChip code={course.code} color={course.color} />
           <span className="truncate text-[12px] text-subtle">{course.title}</span>
         </div>
@@ -221,7 +222,9 @@ export function AssessmentDetailModal({ id }: { id: string }) {
 
         <AssessmentNativeActions assessment={assessment} course={course} />
 
-        <div className="mt-5 flex items-center justify-between gap-3">
+        {/* Pinned to the bottom of the sheet: on a phone Save used to sit below
+            the fold, under the notes. */}
+        <div className="sticky bottom-0 z-10 -mx-5 mt-5 flex items-center justify-between gap-3 border-t border-border bg-surface px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
           <button
             type="button"
             onClick={openInCourse}
