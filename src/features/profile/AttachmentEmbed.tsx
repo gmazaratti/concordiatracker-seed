@@ -1,22 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookOpen,
   CalendarPlus,
   GraduationCap,
   CalendarRange,
-  ChevronLeft,
   Clock,
-  Download,
   ExternalLink,
   FileText,
   MapPin,
   PartyPopper,
-  X,
 } from 'lucide-react'
-import { createPortal } from 'react-dom'
 import { ModalShell } from '@/command/ModalShell'
-import { useModalDismiss } from '@/app/hooks/useModalDismiss'
 import { useCommunity } from '@/features/community/useCommunity'
 import { useAppData } from '@/app/providers/app-data'
 import { EventMedia } from '@/features/community/EventMedia'
@@ -27,9 +22,9 @@ import { courseColor } from '@/lib/course-color'
 import type { Attachment, SharedClass } from '@/lib/social'
 import { cn } from '@/lib/cn'
 import { RecordSheet } from '@/features/planner/RecordSheet'
-import { colorForCodes, drawSchedule } from './schedule-image'
-import { themeSheet } from './sheet-palette'
 import { ScheduleRequestCard } from './ScheduleRequestCard'
+import { SchedulePreview } from './SchedulePreview'
+import { colorForCodes } from './schedule-image'
 import { DmPhoto } from './chat/DmPhoto'
 
 /**
@@ -302,155 +297,6 @@ function MiniWeek({ classes }: { classes: SharedClass[] }) {
   )
 }
 
-/**
- * The whole week, big, with the two things you actually do with someone else's
- * schedule: look at it, and keep a picture of it.
- *
- * Importing is deliberately NOT the headline. Somebody else's timetable is not
- * yours to adopt wholesale, and the reason people screenshot these is to glance
- * at them later.
- */
-export function SchedulePreview({
-  attachment,
-  mine,
-  onClose,
-}: {
-  attachment: Extract<Attachment, { kind: 'schedule' }>
-  /** Your own schedule — enables "open in the builder", which cannot open a
-   *  row you are not allowed to read. */
-  mine: boolean
-  onClose: () => void
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  // Memoised so the draw effect does not re-run on every render.
-  const classes = useMemo(() => attachment.classes ?? [], [attachment.classes])
-  const sent = useMemo(
-    () => (attachment.sentAt ? new Date(attachment.sentAt) : null),
-    [attachment.sentAt],
-  )
-  // Full-screen, so Esc / focus trap / scroll lock come from the same helper
-  // every other overlay uses rather than being reinvented here.
-  const { ref, onKeyDown } = useModalDismiss<HTMLDivElement>(onClose)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    drawSchedule(canvas, classes, {
-      title: attachment.name,
-      subtitle: sent
-        ? `As of ${sent.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`
-        : 'Shared on ConcordiaTracker',
-      colorOf: colorForCodes(classes.map((c) => c.code)),
-      // Your theme, not a white sheet. What you save is then exactly what you
-      // were shown — a Save button that quietly produces a different picture
-      // is a worse surprise than a dark PNG.
-      palette: themeSheet(),
-    })
-  }, [attachment.name, classes, sent])
-
-  function save() {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const link = document.createElement('a')
-    link.download = `${attachment.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
-  }
-
-  return createPortal(
-    <div
-      ref={ref}
-      onKeyDown={onKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-label={attachment.name}
-      tabIndex={-1}
-      className="safe-y fixed inset-0 z-[80] flex flex-col bg-canvas"
-    >
-      {/* A sticky bar with the way out in it. The previous version was a
-          centred dialog wider than its own box, so the close control ended up
-          off-screen and there was no way back except the browser. */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-        >
-          <ChevronLeft size={16} aria-hidden />
-          Back
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-medium text-fg">{attachment.name}</p>
-          <p className="truncate text-[11.5px] text-subtle">
-            {classes.length} class{classes.length === 1 ? '' : 'es'}
-            {attachment.hours ? ` · ${attachment.hours} hours a week` : ''}
-            {sent
-              ? ` · as it was on ${sent.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
-              : ''}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="grid size-9 shrink-0 place-items-center rounded-lg text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
-        >
-          <X size={18} aria-hidden />
-        </button>
-      </header>
-
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-4xl px-4 py-5">
-          {/* The canvas is drawn at a fixed 900px and scaled DOWN to fit, so a
-              phone gets the whole week rather than a horizontal scrollbar. */}
-          <div className="overflow-hidden rounded-xl border border-border bg-surface p-2">
-            <canvas ref={canvasRef} className="block h-auto w-full" />
-          </div>
-
-          <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
-            {classes.map((c, i) => (
-              <li
-                key={`${c.code}-${i}`}
-                className="flex items-baseline gap-2 rounded-lg border border-border bg-surface px-3 py-2"
-              >
-                <span className="text-[12.5px] font-semibold text-fg">{c.code}</span>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] text-subtle">
-                  {c.meets || 'No set time'}
-                  {c.room ? ` · ${c.room}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <footer className="flex shrink-0 flex-wrap gap-2 border-t border-border px-4 py-3">
-        <button
-          type="button"
-          onClick={save}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
-        >
-          <Download size={14} aria-hidden />
-          Save as image
-        </button>
-        {/* Only on your OWN: "open in the builder" cannot open a row you are
-            not allowed to read. */}
-        {mine && (
-          <Link
-            to="/app/planner?tab=schedule"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[13px] text-muted transition-colors duration-150 hover:border-accent hover:text-fg"
-          >
-            <CalendarRange size={14} aria-hidden />
-            Open in schedule builder
-          </Link>
-        )}
-      </footer>
-    </div>,
-    document.body,
-  )
-}
-
 function CourseActions({
   attachment,
   onClose,
@@ -574,3 +420,4 @@ function Row({
     </Link>
   )
 }
+

@@ -88,9 +88,13 @@ export function ProfileHeader({
 
   useEffect(() => {
     let alive = true
-    void profileSocial(handle).then((s) => alive && setSocial(s))
+    const load = () => void profileSocial(handle).then((s) => alive && setSocial(s))
+    load()
+    // Follower counts move live when somebody follows (SocialLiveLayer).
+    window.addEventListener('ct:social-changed', load)
     return () => {
       alive = false
+      window.removeEventListener('ct:social-changed', load)
     }
   }, [handle])
 

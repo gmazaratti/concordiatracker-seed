@@ -1,5 +1,6 @@
-import { BarChart3, Bike, Bus, Clock, Library, TrainFront, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bike, Bus, Clock, Library, TrainFront, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, Users, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
+import { FriendsInClassWidget } from './FriendsInClassWidget'
 import { LibraryWidget } from './LibraryWidget'
 import { ShuttleWidget } from './ShuttleWidget'
 import { BixiWidget } from './BixiWidget'
@@ -105,6 +106,14 @@ export const WIDGETS: WidgetDef[] = [
     zones: ['rail', 'half', 'wide'],
     render: (zone) => <NextClassWidget zone={zone} />,
     availableWhen: (ctx) => ctx.courseCount > 0,
+  },
+  {
+    id: 'friends-in-class',
+    name: 'Friends in class',
+    description: 'Which friends are in class right now, and when the others are free. Only people who share their schedule with you.',
+    icon: Users,
+    zones: ['rail', 'half', 'wide'],
+    render: (zone) => <FriendsInClassWidget zone={zone} />,
   },
   {
     id: 'radar',

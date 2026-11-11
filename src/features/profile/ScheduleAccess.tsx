@@ -8,7 +8,9 @@ import {
   type FriendCourse,
 } from '@/lib/social'
 import { cn } from '@/lib/cn'
-import { SchedulePreview } from './AttachmentEmbed'
+import { useAuth } from '@/app/providers/auth'
+import { onSocialChange } from '@/lib/social-live'
+import { SchedulePreview } from './SchedulePreview'
 
 /**
  * Somebody else's timetable: view it, or ask for it.
@@ -55,6 +57,28 @@ export function ScheduleAccess({
     setAsked(null)
   }
 
+  // Re-checked live: when they tap Allow (a grant row arrives), when you come
+  // back to the tab, and on focus. It used to need a refresh.
+  const { user } = useAuth()
+  const [recheck, setRecheck] = useState(0)
+  useEffect(() => {
+    if (!user) return
+    const bump = () => setRecheck((n) => n + 1)
+    const off = onSocialChange(user.id, (t) => {
+      if (t === 'schedule_grants') bump()
+    })
+    const onVis = () => {
+      if (document.visibilityState === 'visible') bump()
+    }
+    window.addEventListener('focus', bump)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      off()
+      window.removeEventListener('focus', bump)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [user])
+
   useEffect(() => {
     let alive = true
     void canSeeSchedule(handle).then(async (ok) => {
@@ -70,7 +94,7 @@ export function ScheduleAccess({
     return () => {
       alive = false
     }
-  }, [handle])
+  }, [handle, recheck])
 
   async function ask() {
     if (asking) return

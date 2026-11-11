@@ -96,11 +96,22 @@ export function imageSize(classes: SharedClass[]): { width: number; height: numb
   return { width: 900, height: PAD * 2 + HEADER + 26 + hours * ROW_H + 30 }
 }
 
+/** Where each class block was drawn, in the canvas's 900px coordinates, so a
+ *  tap on the picture can say which class it hit. */
+export interface ScheduleHit {
+  code: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export function drawSchedule(
   canvas: HTMLCanvasElement,
   classes: SharedClass[],
   opts: DrawOptions,
-): void {
+): ScheduleHit[] {
+  const hits: ScheduleHit[] = []
   const { start, end } = weekBounds(classes)
   const hours = Math.max(1, Math.round((end - start) / 60))
   const { width, height } = imageSize(classes)
@@ -113,7 +124,7 @@ export function drawSchedule(
   canvas.style.width = `${width}px`
   canvas.style.height = `${height}px`
   const ctx = canvas.getContext('2d')
-  if (!ctx) return
+  if (!ctx) return hits
   ctx.scale(dpr, dpr)
 
   // The sheet used to be light REGARDLESS of the theme, on the reasoning that
@@ -181,6 +192,7 @@ export function drawSchedule(
       const x = gridLeft + colW * day + 3
       const w = colW - 6
       const hex = opts.colorOf(c.code)
+      hits.push({ code: c.code, x, y: top, w, h })
 
       // A 13% wash on a light sheet disappears on a dark one, so the block
       // fill is stronger when the paper is dark.
@@ -206,6 +218,7 @@ export function drawSchedule(
   ctx.fillStyle = pal.inkFaint
   ctx.font = '400 10.5px Inter, system-ui, sans-serif'
   ctx.fillText('concordiatracker.com', PAD, height - PAD + 8)
+  return hits
 }
 
 /** Truncate to fit, with an ellipsis — a class code running under the next

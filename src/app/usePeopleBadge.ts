@@ -45,9 +45,12 @@ function usePeopleCount(): number | null {
     load()
     const onVisible = () => document.visibilityState === 'visible' && load()
     document.addEventListener('visibilitychange', onVisible)
+    // A new follower arrives live (lib/social-live, via SocialLiveLayer).
+    window.addEventListener('ct:social-changed', load)
     return () => {
       alive = false
       document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('ct:social-changed', load)
     }
   }, [])
 
