@@ -404,11 +404,13 @@ export default async function handler(req: any, res: any) {
           to: p.email,
           userId: p.user_id,
           template: 'product_update',
+          unsubscribe: 'product',
+          eyebrow: 'Product update',
           subject,
           heading,
           paragraphs,
           button: { label: 'Open ConcordiaTracker', href: 'https://concordiatracker.com/app' },
-          footnote: 'You get these because Product updates is on. Turn it off in Settings, General.',
+          footnote: 'You get these because you turned on product updates.',
         })
         if (ok) sent++
       }

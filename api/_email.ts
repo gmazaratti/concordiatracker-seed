@@ -17,7 +17,10 @@
  * renders through Word, which has no flexbox, no grid, and no external CSS.
  */
 
+import { unsubUrl, type EmailList } from './_unsubscribe.js'
+
 const RESEND_ENDPOINT = 'https://api.resend.com/emails'
+const CONTACT = 'concordiatracker@gmail.com'
 
 /** Brand tokens, duplicated here on purpose: an email cannot read a CSS custom
  *  property, and the values must not shift under a theme. */
@@ -27,7 +30,8 @@ const BRAND = {
   body: '#43474e',
   subtle: '#767b85',
   line: '#e3e5e8',
-  canvas: '#f5f6f4',
+  canvas: '#f2f4f1',
+  tint: '#f6f8f5',
   card: '#ffffff',
 }
 
@@ -50,6 +54,24 @@ export interface EmailOptions {
   template: string
   /** The recipient's account, when there is one. Stored with the event only if they have not opted out of analytics. */
   userId?: string | null
+  /** A small label at the top right, e.g. "Weekly digest · Nov 16". */
+  eyebrow?: string
+  /** The inbox preview line. Defaults to the first paragraph. */
+  preheader?: string
+  /** Deadlines as calendar rows (a day chip, the course, the title, the time). */
+  agenda?: { day: string; date: string; course: string; title: string; time: string; urgent?: boolean }[]
+  agendaLabel?: string
+  factsLabel?: string
+  /** Signed by Alex, e.g. "Good luck this week,". For mail that should read like a person sent it. */
+  signoff?: string
+  /** A short postscript under the sign-off. */
+  ps?: string
+  /**
+   * Marks a subscription email (CASL): adds a no-sign-in unsubscribe link in
+   * the footer and the List-Unsubscribe headers Gmail turns into its own
+   * button. Needs userId. Never set it on account email.
+   */
+  unsubscribe?: EmailList
   /** The big line at the top of the card. Keep it a statement, not a greeting. */
   heading: string
   /** Body paragraphs, plain strings. Rendered in order. */
@@ -76,81 +98,155 @@ const SITE = 'https://concordiatracker.com'
  * looking like it came from a different company.
  */
 export function renderEmail(o: EmailOptions): string {
+  const unsub = o.unsubscribe && o.userId ? unsubUrl(o.userId, o.unsubscribe) : null
+  const link = `color:${BRAND.subtle};text-decoration:underline;`
+  const postal = process.env.EMAIL_POSTAL_ADDRESS?.trim()
+  // Invisible filler after the preheader, so the inbox preview stops at our
+  // sentence instead of running on into the footer text.
+  const filler = '&#8199;&#847;'.repeat(60)
+
+  /** A small label with a hairline running off to the right: the section break. */
+  const rule = (label: string) => `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 12px;">
+      <tr>
+        <td style="white-space:nowrap;padding-right:12px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${BRAND.subtle};">${esc(label)}</td>
+        <td width="100%" style="border-bottom:1px solid ${BRAND.line};font-size:0;line-height:0;">&nbsp;</td>
+      </tr>
+    </table>`
+
+  const agenda = (o.agenda ?? [])
+    .map(
+      (a, i) => `
+      <tr>
+        <td width="54" valign="top" style="padding:${i ? '12px' : '2px'} 0 12px;${i ? `border-top:1px dashed ${BRAND.line};` : ''}">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:46px;border:1px solid ${BRAND.line};border-radius:9px;background:${BRAND.card};">
+            <tr><td align="center" style="padding:3px 0 1px;font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${a.urgent ? '#c2410c' : BRAND.accent};border-bottom:1px solid ${BRAND.line};">${esc(a.day)}</td></tr>
+            <tr><td align="center" style="padding:3px 0 4px;font-family:${FONT};font-size:19px;font-weight:700;color:${BRAND.ink};">${esc(a.date)}</td></tr>
+          </table>
+        </td>
+        <td valign="top" style="padding:${i ? '13px' : '3px'} 0 12px 4px;${i ? `border-top:1px dashed ${BRAND.line};` : ''}font-family:${FONT};">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;color:${BRAND.accent};">${esc(a.course)}</div>
+          <div style="font-size:15px;font-weight:600;color:${BRAND.ink};line-height:1.35;">${esc(a.title)}</div>
+          <div style="font-size:13px;color:${a.urgent ? '#c2410c' : BRAND.subtle};">${esc(a.time)}</div>
+        </td>
+      </tr>`,
+    )
+    .join('')
+
   const factRows = (o.facts ?? [])
     .map(
-      (f) => `
+      (f, i) => `
         <tr>
-          <td style="padding:7px 0;font-size:14px;color:${BRAND.subtle};">${esc(f.label)}</td>
-          <td style="padding:7px 0;font-size:14px;color:${BRAND.ink};font-weight:600;text-align:right;">${esc(f.value)}</td>
+          <td style="padding:10px 0;${i ? `border-top:1px dashed ${BRAND.line};` : ''}font-family:${FONT};font-size:14px;color:${BRAND.subtle};">${esc(f.label)}</td>
+          <td style="padding:10px 0;${i ? `border-top:1px dashed ${BRAND.line};` : ''}font-family:${FONT};font-size:14px;color:${BRAND.ink};font-weight:600;text-align:right;">${esc(f.value)}</td>
         </tr>`,
     )
     .join('')
+
+  const signoff = o.signoff
+    ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+        <tr>
+          <td valign="middle" style="padding-right:12px;">
+            <img src="${SITE}/icon-192.png" width="38" height="38" alt="" style="display:block;width:38px;height:38px;border:0;border-radius:50%;" />
+          </td>
+          <td valign="middle" style="font-family:${FONT};">
+            <div style="font-size:15px;color:${BRAND.body};">${esc(o.signoff)}</div>
+            <div style="font-size:15px;font-weight:700;color:${BRAND.ink};">Alex</div>
+            <div style="font-size:12px;color:${BRAND.subtle};">Builds ConcordiaTracker</div>
+          </td>
+        </tr>
+      </table>`
+    : ''
 
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <title>${esc(o.subject)}</title>
+<style>
+  @media (max-width:520px){
+    .ct-pad{padding:28px 22px !important}
+    .ct-h1{font-size:24px !important}
+    .ct-btn,.ct-btn td{width:100% !important}
+    .ct-btn a{display:block !important;text-align:center !important}
+  }
+</style>
 </head>
-<body style="margin:0;padding:0;background:${BRAND.canvas};">
-<!-- Preheader: the grey line the inbox shows next to the subject. Left to the
-     first paragraph rather than invented, so it can never contradict the body. -->
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(o.paragraphs[0] ?? '')}</div>
+<body style="margin:0;padding:0;background:${BRAND.canvas};-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${esc(o.preheader ?? o.paragraphs[0] ?? '')}${filler}</div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${BRAND.canvas};">
-  <tr><td align="center" style="padding:32px 16px;">
+  <tr><td align="center" style="padding:32px 14px 28px;">
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
 
-      <tr><td style="padding:0 4px 18px;">
-        <a href="${SITE}" style="text-decoration:none;font-family:${FONT};font-size:17px;font-weight:700;color:${BRAND.ink};letter-spacing:-0.01em;">
-          <img src="${SITE}/icon-192.png" width="26" height="26" alt="" style="display:inline-block;width:26px;height:26px;border:0;border-radius:7px;vertical-align:middle;margin-right:9px;" /><span style="vertical-align:middle;">ConcordiaTracker</span>
-        </a>
+      <tr><td style="padding:0 6px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td>
+            <a href="${SITE}" style="text-decoration:none;font-family:${FONT};font-size:17px;font-weight:700;color:${BRAND.ink};letter-spacing:-0.01em;">
+              <img src="${SITE}/icon-192.png" width="28" height="28" alt="" style="display:inline-block;width:28px;height:28px;border:0;border-radius:8px;vertical-align:middle;margin-right:9px;" /><span style="vertical-align:middle;">ConcordiaTracker</span>
+            </a>
+          </td>
+          ${
+            o.eyebrow
+              ? `<td align="right" style="font-family:${FONT};font-size:12px;color:${BRAND.subtle};white-space:nowrap;">${esc(o.eyebrow)}</td>`
+              : ''
+          }
+        </tr></table>
       </td></tr>
 
-      <tr><td style="background:${BRAND.card};border:1px solid ${BRAND.line};border-radius:14px;padding:30px 28px;">
-        <h1 style="margin:0 0 14px;font-family:${FONT};font-size:21px;line-height:1.3;font-weight:600;color:${BRAND.ink};letter-spacing:-0.01em;">
+      <tr><td class="ct-pad" style="background:${BRAND.card};border:1px solid ${BRAND.line};border-radius:20px;padding:36px 38px 34px;">
+        <h1 class="ct-h1" style="margin:0 0 14px;font-family:${FONT};font-size:27px;line-height:1.2;font-weight:800;color:${BRAND.ink};letter-spacing:-0.025em;">
           ${esc(o.heading)}
         </h1>
         ${o.paragraphs
           .map(
             (p) =>
-              `<p style="margin:0 0 13px;font-family:${FONT};font-size:15px;line-height:1.6;color:${BRAND.body};">${esc(p)}</p>`,
+              `<p style="margin:0 0 14px;font-family:${FONT};font-size:16px;line-height:1.65;color:${BRAND.body};">${esc(p)}</p>`,
           )
           .join('')}
 
-        ${
-          factRows
-            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:18px 0 4px;border-top:1px solid ${BRAND.line};border-bottom:1px solid ${BRAND.line};font-family:${FONT};">${factRows}</table>`
-            : ''
-        }
+        ${agenda ? `${rule(o.agendaLabel ?? 'Coming up')}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${agenda}</table>` : ''}
+
+        ${factRows ? `${rule(o.factsLabel ?? 'Details')}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${factRows}</table>` : ''}
 
         ${
           o.button
-            ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 0;">
-                 <tr><td style="border-radius:9px;background:${BRAND.accent};">
-                   <a href="${esc(o.button.href)}" style="display:inline-block;padding:11px 22px;font-family:${FONT};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:9px;">${esc(o.button.label)}</a>
+            ? `<table role="presentation" class="ct-btn" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+                 <tr><td style="border-radius:999px;background:${BRAND.ink};">
+                   <a href="${esc(o.button.href)}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:999px;">${esc(o.button.label)}</a>
                  </td></tr>
                </table>`
             : ''
         }
 
+        ${signoff}
+
+        ${
+          o.ps
+            ? `<p style="margin:26px 0 0;padding:14px 16px;background:${BRAND.tint};border-radius:12px;font-family:${FONT};font-size:14px;line-height:1.6;color:${BRAND.body};"><strong style="color:${BRAND.ink};">P.S.</strong> ${esc(o.ps)}</p>`
+            : ''
+        }
+
         ${
           o.footnote
-            ? `<p style="margin:18px 0 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${BRAND.subtle};">${esc(o.footnote)}</p>`
+            ? `<p style="margin:22px 0 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${BRAND.subtle};">${esc(o.footnote)}</p>`
             : ''
         }
       </td></tr>
 
-      <tr><td style="padding:18px 4px 0;font-family:${FONT};font-size:12px;line-height:1.7;color:${BRAND.subtle};">
-        <a href="${SITE}/privacy" style="color:${BRAND.subtle};text-decoration:underline;">Privacy</a>
+      <tr><td align="center" style="padding:22px 12px 0;font-family:${FONT};font-size:12px;line-height:1.8;color:${BRAND.subtle};">
+        ${unsub ? `You are getting this because it is on in your settings. <a href="${esc(unsub)}" style="${link}">Unsubscribe</a><br>` : ''}
+        <a href="${SITE}/privacy" style="${link}">Privacy</a>
         &nbsp;·&nbsp;
-        <a href="${SITE}/terms" style="color:${BRAND.subtle};text-decoration:underline;">Terms</a>
+        <a href="${SITE}/terms" style="${link}">Terms</a>
         &nbsp;·&nbsp;
-        <a href="${SITE}/docs/support" style="color:${BRAND.subtle};text-decoration:underline;">Support</a>
+        <a href="mailto:${CONTACT}" style="${link}">${CONTACT}</a>
         <br>
-        ConcordiaTracker is not affiliated with Concordia University.
+        ConcordiaTracker${postal ? `, ${esc(postal)}` : ''}. Made in Montreal. Not affiliated with Concordia University.
       </td></tr>
 
     </table>
@@ -167,11 +263,19 @@ function renderText(o: EmailOptions): string {
     lines.push('')
     for (const f of o.facts) lines.push(`${f.label}: ${f.value}`)
   }
+  if (o.agenda?.length) {
+    lines.push('')
+    for (const x of o.agenda) lines.push(`${x.day} ${x.date}  ${x.course}  ${x.title}  (${x.time})`)
+  }
   if (o.button) lines.push('', `${o.button.label}: ${o.button.href}`)
+  if (o.signoff) lines.push('', o.signoff, 'Alex, ConcordiaTracker')
+  if (o.ps) lines.push('', `P.S. ${o.ps}`)
   if (o.footnote) lines.push('', o.footnote)
   // Plain hyphens, not an em dash: em dashes in email copy read as machine-
   // written to a lot of people, and the separator is the one that ships.
-  lines.push('', '--', 'ConcordiaTracker is not affiliated with Concordia University.', SITE)
+  const unsub = o.unsubscribe && o.userId ? unsubUrl(o.userId, o.unsubscribe) : null
+  if (unsub) lines.push('', `Unsubscribe: ${unsub}`)
+  lines.push('', '--', 'ConcordiaTracker is not affiliated with Concordia University.', SITE, CONTACT)
   return lines.join('\n')
 }
 
@@ -188,6 +292,16 @@ export function emailTags(o: Pick<EmailOptions, 'template' | 'userId'>): { name:
   const tags = [{ name: 'template', value: typeof o.template === 'string' && /^[a-z0-9_]{1,40}$/.test(o.template) ? o.template : 'other' }]
   if (o.userId && /^[0-9a-f-]{36}$/i.test(o.userId)) tags.push({ name: 'uid', value: o.userId })
   return tags
+}
+
+/** RFC 8058 one-click headers, so Gmail and Apple Mail show their own Unsubscribe. */
+function unsubHeader(o: EmailOptions): Record<string, string> | null {
+  const url = o.unsubscribe && o.userId ? unsubUrl(o.userId, o.unsubscribe) : null
+  if (!url) return null
+  return {
+    'List-Unsubscribe': `<${url}>, <mailto:${CONTACT}?subject=unsubscribe>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  }
 }
 
 export async function sendEmail(o: EmailOptions): Promise<boolean> {
@@ -213,6 +327,7 @@ export async function sendEmail(o: EmailOptions): Promise<boolean> {
         text: o.text ?? renderText(o),
         reply_to: process.env.EMAIL_REPLY_TO ?? 'concordiatracker@gmail.com',
         tags: emailTags(o),
+        ...(unsubHeader(o) ? { headers: unsubHeader(o) } : {}),
       }),
     })
     if (!res.ok) {

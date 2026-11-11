@@ -17,6 +17,7 @@ import { CourseGridCard } from './CourseGridCard'
 import { TermGlance } from './TermGlance'
 import { PaywallCallout } from './Paywall'
 import { MoodleClassNudge, MoodleConnectCard } from './MoodleClassNudge'
+import { MoodleOverviewCard } from '@/features/moodle/MoodleOverviewCard'
 import { AddCourseChooser } from './AddCourseChooser'
 import { TranscriptView } from './TranscriptView'
 import { UnfiledPastCourses } from './UnfiledPastCourses'
@@ -251,6 +252,7 @@ export function CoursesPage() {
               <AddCourseRow onClick={() => setChooserOpen(true)} />
             </div>
           )}
+          <MoodleOverviewCard />
         </main>
 
         <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:w-[272px] lg:shrink-0">

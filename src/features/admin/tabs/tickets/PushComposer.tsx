@@ -4,6 +4,7 @@ import { BellRing, X } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { adminPushStats, sendAdminPush, type PushResult, type PushStats } from '@/lib/admin-push'
 import { findUsers, type FoundUser } from '@/features/admin/invites/club-invites'
+import { supabase } from '@/lib/supabase'
 
 type Result = PushResult
 
@@ -48,6 +49,23 @@ export function PushComposer({ onClose }: { onClose: () => void }) {
       setResults(await sendAdminPush(picked.map((p) => p.user_id), title, body, link))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That did not send.')
+    }
+    setBusy(false)
+  }
+
+  // A preview on your own phone first: the exact title, text and link the
+  // people you picked will get. Logged like any send, as a push to you.
+  const [testNote, setTestNote] = useState('')
+  async function sendTest() {
+    setBusy(true)
+    setTestNote('')
+    try {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) throw new Error('Sign in first.')
+      const [r] = await sendAdminPush([data.user.id], title, body, link)
+      setTestNote(r && r.delivered > 0 ? `Sent to ${r.delivered} of your device${r.delivered === 1 ? '' : 's'}.` : 'None of your devices took it. Turn notifications on first.')
+    } catch (e) {
+      setTestNote(e instanceof Error ? e.message : 'That did not send.')
     }
     setBusy(false)
   }
@@ -153,9 +171,18 @@ export function PushComposer({ onClose }: { onClose: () => void }) {
             <label className="mt-3 block text-[12px] font-medium text-muted">Opens (a page in the app)</label>
             <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="/app" className={`${field} mt-1`} />
             {error && <p className="mt-2 text-[12.5px] text-danger">{error}</p>}
+            {testNote && <p className="mt-2 text-[12.5px] text-muted">{testNote}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-[13px] text-muted hover:text-fg">
                 Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy || !title.trim()}
+                onClick={() => void sendTest()}
+                className="rounded-lg border border-border px-3 py-2 text-[13px] text-muted hover:text-fg disabled:opacity-40"
+              >
+                Send a test to me
               </button>
               <button
                 type="button"

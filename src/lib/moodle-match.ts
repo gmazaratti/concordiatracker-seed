@@ -300,3 +300,32 @@ export function coursesFromMoodle(tasks: MoodleTask[]): MoodleCourseHint[] {
   }
   return [...found.values()].sort((a, b) => a.code.localeCompare(b.code))
 }
+
+/**
+ * Which course a synced Moodle item belongs to, from the course code in its
+ * own text (Moodle's CATEGORIES line, kept in the note, and often the title).
+ * Courses are tried in the order given, so pass current ones first: a code you
+ * also took last year belongs to this year's class. Null when nothing matches;
+ * a title alone is never enough.
+ */
+export function moodleCourseId(task: MoodleTask, courses: MatchableCourse[]): string | null {
+  const codes = new Set(codesIn(`${task.title} ${task.note ?? ''}`))
+  if (codes.size === 0) return null
+  for (const c of courses) {
+    if (codesIn(c.code).some((code) => codes.has(code))) return c.id
+  }
+  return null
+}
+
+/** Every synced Moodle item grouped by course id ('' = not tied to a class). */
+export function moodleByCourse<T extends MoodleTask>(tasks: T[], courses: MatchableCourse[]): Map<string, T[]> {
+  const out = new Map<string, T[]>()
+  for (const t of tasks) {
+    if (t.source !== 'moodle') continue
+    const id = moodleCourseId(t, courses) ?? ''
+    const list = out.get(id)
+    if (list) list.push(t)
+    else out.set(id, [t])
+  }
+  return out
+}

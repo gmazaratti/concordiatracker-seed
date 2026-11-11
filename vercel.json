@@ -145,6 +145,10 @@
       "destination": "/api/stripe-billing?a=checkout"
     },
     {
+      "source": "/api/unsubscribe",
+      "destination": "/api/ticket?unsub=1"
+    },
+    {
       "source": "/api/email-events",
       "destination": "/api/stripe-webhook?source=resend"
     },

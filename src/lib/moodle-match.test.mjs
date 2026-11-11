@@ -18,7 +18,7 @@ execSync(
   `npx esbuild --bundle "${path.join(here, 'moodle-match.ts')}" --format=esm "--alias:@=./src" --outfile="${out}"`,
   { stdio: 'pipe', cwd: path.join(here, '..', '..') },
 )
-const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches, pairMoodleToAssessments, coveredTaskIds, coursesFromMoodle } = await import(
+const { stripMoodleTitle, codesIn, titlesMatch, findMoodleMismatches, pairMoodleToAssessments, coveredTaskIds, coursesFromMoodle, moodleCourseId, moodleByCourse } = await import(
   pathToFileURL(out).href
 )
 
@@ -224,6 +224,29 @@ eq(
   coursesFromMoodle([{ id: 'a', title: 't', due: '2026-10-01T00:00:00Z', note: 'ENGL-251', source: 'moodle' }])[0],
   { code: 'ENGL 251', termCode: undefined, section: undefined, events: 1 },
 )
+
+console.log('moodleCourseId / moodleByCourse')
+{
+  const cs = [
+    { id: 'reli', code: 'RELI 230' },
+    { id: 'reli-old', code: 'RELI 230' },
+    { id: 'fina', code: 'FINA 210' },
+  ]
+  const t = (id, title, note, source = 'moodle') => ({ id, title, due: '2026-11-20T04:59:00Z', note, source })
+  eq('the code in CATEGORIES picks the course', moodleCourseId(t('1', 'Forum post 3 is due', 'RELI-230-2262-AA'), cs), 'reli')
+  eq('the first listed course wins (current before past)', moodleCourseId(t('2', 'RELI 230 Reading is due', ''), cs), 'reli')
+  eq('no code means no course, never a guess', moodleCourseId(t('3', 'Assignment 2 is due', 'Help centre'), cs), null)
+  eq('a code you do not take is not a course', moodleCourseId(t('4', 'x', 'COMP-248-2262-A'), cs), null)
+  const g = moodleByCourse(
+    [t('1', 'a', 'RELI-230'), t('2', 'b', 'FINA-210'), t('3', 'c', 'nothing'), t('5', 'mine', 'RELI-230', null)],
+    cs,
+  )
+  eq(
+    'grouped by course, unlinked under the empty key, hand-typed tasks left out',
+    [...g.entries()].map(([k, v]) => [k, v.map((x) => x.id)]),
+    [['reli', ['1']], ['fina', ['2']], ['', ['3']]],
+  )
+}
 
 console.log(failures === 0 ? '\nmoodle-match: all checks passed' : `\nmoodle-match: ${failures} FAILED`)
 process.exit(failures === 0 ? 0 : 1)

@@ -8,6 +8,7 @@
  * empty digest is noise.
  */
 import { sendEmail } from './_email.js'
+import { agendaParts, digestPreheader, digestPs, digestSubject } from './_digest-copy.js'
 
 interface Recipient {
   user_id: string
@@ -22,17 +23,6 @@ interface Row {
 }
 
 const OPEN = new Set(['not-started', 'in-progress', 'extension', null as unknown as string])
-
-function when(iso: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Montreal',
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(iso))
-}
 
 export async function runWeeklyDigest(ctx: { supabaseUrl: string; svc: Record<string, string> }): Promise<number> {
   const { supabaseUrl, svc } = ctx
@@ -69,29 +59,38 @@ export async function runWeeklyDigest(ctx: { supabaseUrl: string; svc: Record<st
     if (upcoming.length === 0 && overdue.length === 0) continue
 
     const first = p.name?.trim().split(/\s+/)[0]
+    const items = upcoming.map((r) => ({
+      course: (r.course_id && codes.get(r.course_id)) || null,
+      title: r.title,
+      due: r.date as string,
+    }))
     const paragraphs = [
-      upcoming.length
-        ? `${first ? `${first}, you` : 'You'} have ${upcoming.length} thing${upcoming.length === 1 ? '' : 's'} due in the next 7 days.`
-        : 'Nothing new is due in the next 7 days.',
+      items.length
+        ? `${first ? `Morning ${first}. ` : ''}You have ${items.length} thing${items.length === 1 ? '' : 's'} due in the next 7 days. Here is the whole week, soonest first.`
+        : `${first ? `Morning ${first}. ` : ''}Nothing new is due in the next 7 days.`,
     ]
     if (overdue.length) {
       paragraphs.push(
         `${overdue.length} ${overdue.length === 1 ? 'item is' : 'items are'} past due and still open. If you already handed ${overdue.length === 1 ? 'it' : 'them'} in, tick ${overdue.length === 1 ? 'it' : 'them'} off on Today.`,
       )
     }
+    const weekOf = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montreal', month: 'short', day: 'numeric' }).format(new Date(now))
     const ok = await sendEmail({
       to: p.email,
       userId: p.user_id,
       template: 'weekly_digest',
-      subject: upcoming.length ? `Your week: ${upcoming.length} due` : 'Your week ahead',
-      heading: 'Your week ahead',
+      unsubscribe: 'digest',
+      eyebrow: `Week of ${weekOf}`,
+      subject: digestSubject(items, overdue.length, now),
+      preheader: digestPreheader(items, overdue.length),
+      heading: items.length ? 'Your week ahead' : 'A quiet week',
       paragraphs,
-      facts: upcoming.slice(0, 12).map((r) => ({
-        label: `${(r.course_id && codes.get(r.course_id)) || 'Task'} · ${r.title}`,
-        value: when(r.date as string),
-      })),
+      agendaLabel: 'This week',
+      agenda: items.slice(0, 12).map((i) => ({ ...agendaParts(i.due, now), course: i.course ?? 'Task', title: i.title })),
       button: { label: 'Open Today', href: 'https://concordiatracker.com/app' },
-      footnote: 'You get this every Monday. Turn it off in Settings, General, Weekly digest email.',
+      signoff: 'Good luck this week,',
+      ps: digestPs(now),
+      footnote: 'You get this every Monday morning.',
     })
     if (ok) sent++
   }

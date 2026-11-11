@@ -18,6 +18,7 @@
 import { fail } from './_respond.js'
 import { notifyTicketReply } from './_ticket-email.js'
 import { sendEmail } from './_email.js'
+import { handleUnsubscribe } from './_unsubscribe.js'
 
 const WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const MAX_PER_WINDOW = 3
@@ -80,6 +81,12 @@ interface Body {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
+  // One-click unsubscribe (api/_unsubscribe.ts), routed here to stay under
+  // the function cap. Handles its own GET page and POST.
+  if (req.query?.unsub) {
+    await handleUnsubscribe(req, res)
+    return
+  }
   // The docs are served from the same origin, so no CORS dance is needed.
   if (req.method !== 'POST') {
     fail(res, 405, 'Method not allowed')

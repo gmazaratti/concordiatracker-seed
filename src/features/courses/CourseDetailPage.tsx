@@ -7,6 +7,7 @@ import { courseStanding } from '@/lib/gpa'
 import { cn } from '@/lib/cn'
 import { PeerSuggestion } from '@/components/PeerSuggestion'
 import { MoodleMismatchCard } from './MoodleMismatch'
+import { MoodleCourseSection } from '@/features/moodle/MoodleCourseSection'
 import { TeacherChangeCard } from './TeacherChangeCard'
 import { findMoodleMismatches } from '@/lib/moodle-match'
 import { CourseHeader } from './CourseHeader'
@@ -184,6 +185,7 @@ export function CourseDetailPage() {
             <SectionDeadlinesCard course={course} />
             <SyllabusFileCard course={course} />
             <CourseNotesCard course={course} />
+            <MoodleCourseSection course={course} />
           </aside>
 
           <main className="min-w-0 flex-1 lg:min-h-0 ct-float-clear ct-scroll-fade lg:overflow-y-auto lg:pr-1.5">
@@ -229,6 +231,7 @@ export function CourseDetailPage() {
             <SectionDeadlinesCard course={course} />
             <SyllabusFileCard course={course} />
             <CourseNotesCard course={course} />
+            <MoodleCourseSection course={course} />
             {!empty && <GradeBreakdown assessments={courseAssessments} color={course.color} />}
             {!empty && <GradeNeeded assessments={courseAssessments} />}
             {!empty && (
@@ -338,6 +341,7 @@ export function CourseDetailPage() {
               </div>
             )}
             <AssessmentTable assessments={courseAssessments} focusId={focusId} />
+            <MoodleCourseSection course={course} />
           </main>
         </div>
       )}
