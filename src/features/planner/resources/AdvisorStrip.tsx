@@ -37,7 +37,7 @@ export function AdvisorStrip({
     <section aria-labelledby="res-advisors">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h3 id="res-advisors" className="font-display text-[20px] font-semibold tracking-tight text-fg">
+          <h3 id="res-advisors" className="font-display text-[22px] font-semibold tracking-tight text-fg">
             {faculty === mine ? 'Your advisors' : 'Advisors'}
           </h3>
           <p className="mt-0.5 max-w-xl text-[13px] text-muted">{list.note}</p>

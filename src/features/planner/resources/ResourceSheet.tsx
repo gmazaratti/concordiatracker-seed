@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CalendarCheck, Check, Clock, Copy, ExternalLink, Mail, MapPin, Phone, Users } from 'lucide-react'
 import { ModalShell } from '@/command/ModalShell'
 import { RESOURCE_GROUPS, type Resource } from '@/data/resources'
-import { GROUP_LOOK, groupOf, wash } from './resource-icons'
+import { GROUP_LOOK, groupOf } from './resource-icons'
 
 /**
  * One office, in full. The directory shows names and one line each; everything
@@ -17,8 +17,8 @@ export function ResourceSheet({ r, onClose }: { r: Resource; onClose: () => void
       <div className="p-5">
         <div className="flex items-start gap-3 pr-8">
           <span
-            className="grid size-11 shrink-0 place-items-center rounded-2xl"
-            style={{ backgroundColor: wash(look.hex, 0.18), color: look.hex }}
+            className="grid size-11 shrink-0 place-items-center rounded-full text-white"
+            style={{ backgroundColor: look.hex }}
           >
             <Icon size={20} aria-hidden />
           </span>

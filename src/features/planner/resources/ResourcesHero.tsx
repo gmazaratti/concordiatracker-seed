@@ -1,118 +1,88 @@
-import { Search, ShieldAlert, X } from 'lucide-react'
+import { BookOpenText, Building2, Search, ShieldAlert, Users, X } from 'lucide-react'
+import { PHOTOS } from '@/data/resource-photos'
 
 /**
- * The banner: what this page is for, the search, and the one number that
- * should never be more than a glance away. The skyline is drawn, not a photo
- * (we have no licensed campus photography), and takes its colours from the
- * theme so it sits in every palette.
+ * The banner: a real photograph of the Hall Building plaza, the search, and the
+ * one number that should never be more than a glance away. It commits to one
+ * look (white type over a darkened photo) in every theme, because the picture
+ * does not change with the palette and the text has to stay readable on it.
  */
 export function ResourcesHero({
   q,
   setQ,
-  count,
   firstName,
+  counts,
 }: {
   q: string
   setQ: (v: string) => void
-  count: number
   firstName: string
+  counts: { offices: number; advisors: number; guides: number }
 }) {
   return (
-    <header className="ct-res-in relative overflow-hidden rounded-3xl border border-border bg-surface">
+    <header className="ct-res-in relative isolate overflow-hidden rounded-3xl bg-[#0b0d16] text-white">
+      <img
+        src={PHOTOS.plaza.src}
+        alt={PHOTOS.plaza.alt}
+        className="ct-res-kenburns absolute inset-0 -z-20 size-full object-cover object-[60%_35%]"
+      />
+      {/* Darkened toward the text; the photo keeps its own muted greys. */}
       <div
         aria-hidden
-        className="absolute inset-0"
+        className="absolute inset-0 -z-10"
         style={{
           background:
-            'radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--ct-accent) 26%, transparent), transparent 58%), radial-gradient(90% 120% at 0% 100%, color-mix(in srgb, var(--ct-info) 14%, transparent), transparent 60%)',
+            'linear-gradient(100deg, rgba(8,10,20,0.94) 0%, rgba(8,10,20,0.82) 38%, rgba(8,10,20,0.28) 72%, rgba(8,10,20,0.12) 100%), linear-gradient(0deg, rgba(8,10,20,0.75), transparent 45%)',
         }}
       />
-      <Skyline />
-      <div className="relative px-5 pt-6 pb-5 sm:px-8 sm:pt-9 sm:pb-7 lg:max-w-[62%]">
-        <p className="text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">Concordia, sorted</p>
-        <h2 className="mt-2 font-display text-[28px] leading-[1.08] font-bold tracking-tight text-balance text-fg sm:text-[38px]">
+      <div className="px-5 pt-7 pb-5 sm:px-9 sm:pt-11 sm:pb-8 lg:max-w-[66%]">
+        <p className="text-[12px] font-semibold tracking-[0.14em] text-white/75 uppercase">Concordia, sorted</p>
+        <h2 className="mt-2 font-display text-[30px] leading-[1.06] font-bold tracking-tight text-balance sm:text-[44px]">
           {firstName ? `${firstName}, who do you need to talk to?` : 'Who do you need to talk to?'}
         </h2>
-        <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-muted">
-          {count} offices and the people behind them. Pick what you need and get the right door, a real email and a way
-          to book.
+        <p className="mt-3 max-w-md text-[14.5px] leading-relaxed text-white/80">
+          Every office, the advisors behind them, and guides written for where you are in your degree.
         </p>
-        <label className="mt-5 flex max-w-md items-center gap-2.5 rounded-2xl border border-border-strong bg-canvas/80 px-3.5 py-2.5 shadow-sm backdrop-blur transition-colors duration-150 focus-within:border-accent">
-          <Search size={17} className="shrink-0 text-subtle" aria-hidden />
+        <label className="mt-5 flex max-w-md items-center gap-2.5 rounded-2xl border border-white/20 bg-white/[0.12] px-3.5 py-3 backdrop-blur-md transition-colors duration-150 focus-within:border-white/60 focus-within:bg-white/[0.18]">
+          <Search size={17} className="shrink-0 text-white/70" aria-hidden />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Try fees, writing, co-op, accommodations"
-            aria-label="Search resources"
-            className="min-w-0 flex-1 bg-transparent text-[16px] text-fg outline-none placeholder:text-subtle sm:text-[14px]"
+            placeholder="Try fees, shuttle, co-op, drop a course"
+            aria-label="Search resources and guides"
+            className="min-w-0 flex-1 bg-transparent text-[16px] text-white outline-none placeholder:text-white/55 sm:text-[14.5px]"
           />
           {q && (
             <button
               type="button"
               onClick={() => setQ('')}
               aria-label="Clear search"
-              className="grid size-6 shrink-0 place-items-center rounded-full text-subtle hover:bg-surface-2 hover:text-fg"
+              className="grid size-6 shrink-0 place-items-center rounded-full text-white/70 hover:bg-white/15 hover:text-white"
             >
               <X size={14} aria-hidden />
             </button>
           )}
         </label>
-        <p className="mt-4 inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-muted">
-          <ShieldAlert size={14} className="text-danger" aria-hidden />
-          Campus emergency, any hour:
-          <span className="font-semibold text-fg select-all">514-848-3717</span>
-        </p>
+        <ul className="mt-5 flex flex-wrap gap-2 text-[12.5px] font-medium">
+          <Stat icon={Building2} n={counts.offices} label="offices" />
+          <Stat icon={Users} n={counts.advisors} label="advisors" />
+          <Stat icon={BookOpenText} n={counts.guides} label="guides" />
+        </ul>
       </div>
+      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 border-t border-white/10 bg-black/30 px-5 py-2.5 text-[12.5px] text-white/80 backdrop-blur-sm sm:px-9">
+        <ShieldAlert size={14} className="text-[#ff8f8f]" aria-hidden />
+        Campus emergency, any hour:
+        <span className="font-semibold text-white select-all">514-848-3717</span>
+      </p>
     </header>
   )
 }
 
-/** Lit windows on four buildings. Decorative; hidden on small screens. */
-function Skyline() {
-  const towers = [
-    { x: 40, w: 88, h: 150, cols: 4, rows: 7 },
-    { x: 142, w: 120, h: 214, cols: 5, rows: 10 },
-    { x: 276, w: 76, h: 118, cols: 3, rows: 5 },
-    { x: 366, w: 104, h: 178, cols: 4, rows: 8 },
-  ]
-  // A fixed pattern, so the same windows are lit on every render.
-  const lit = (t: number, c: number, r: number) => (t * 7 + c * 3 + r * 5) % 4 === 0
+function Stat({ icon: Icon, n, label }: { icon: typeof Users; n: number; label: string }) {
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 500 240"
-      preserveAspectRatio="xMaxYMax meet"
-      className="pointer-events-none absolute right-0 bottom-0 hidden h-[92%] w-[46%] lg:block"
-    >
-      {towers.map((t, ti) => {
-        const top = 240 - t.h
-        const gx = (t.w - 16) / t.cols
-        const gy = (t.h - 22) / t.rows
-        return (
-          <g key={t.x}>
-            <rect x={t.x} y={top} width={t.w} height={t.h} rx="6" fill="var(--ct-surface-2)" stroke="var(--ct-border-strong)" />
-            {Array.from({ length: t.cols * t.rows }, (_, i) => {
-              const c = i % t.cols
-              const r = Math.floor(i / t.cols)
-              const on = lit(ti, c, r)
-              return (
-                <rect
-                  key={i}
-                  x={t.x + 8 + c * gx + 2}
-                  y={top + 12 + r * gy}
-                  width={gx - 6}
-                  height={gy - 7}
-                  rx="2"
-                  fill={on ? 'var(--ct-accent)' : 'var(--ct-border)'}
-                  opacity={on ? 0.85 : 0.7}
-                  className={on ? 'ct-res-window' : undefined}
-                  style={on ? { animationDelay: `${((ti + c + r) % 5) * 0.7}s` } : undefined}
-                />
-              )
-            })}
-          </g>
-        )
-      })}
-    </svg>
+    <li className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.12] px-3 py-1.5 backdrop-blur-md">
+      <Icon size={13} className="text-white/70" aria-hidden />
+      <span className="font-semibold tabular-nums">{n}</span>
+      <span className="text-white/75">{label}</span>
+    </li>
   )
 }

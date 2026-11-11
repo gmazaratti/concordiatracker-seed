@@ -173,6 +173,8 @@ export const NEEDS: Need[] = [
   { id: 'access', label: 'Exam accommodations', resource: 'Access Centre for Students with Disabilities', group: 'health' },
   { id: 'money', label: 'Bursaries and aid', resource: 'Financial Aid and Awards', group: 'money' },
   { id: 'dispute', label: 'A dispute or a charge', resource: 'CSU Advocacy Centre', group: 'help' },
+  { id: 'shuttle', label: 'Get to the other campus', resource: 'Shuttle bus', group: 'new' },
+  { id: 'jobs', label: 'A job or co-op', resource: 'Career Planning', group: 'learning' },
 ]
 
 const ALL = RESOURCE_GROUPS.flatMap((g) => g.items)

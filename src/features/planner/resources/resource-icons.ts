@@ -1,6 +1,8 @@
 import {
   Accessibility,
   BookOpen,
+  Briefcase,
+  Bus,
   Compass,
   FileText,
   GraduationCap,
@@ -20,13 +22,13 @@ import {
  * read. Same idea as course colours.
  */
 export const GROUP_LOOK: Record<string, { icon: LucideIcon; hex: string; short: string }> = {
-  advising: { icon: GraduationCap, hex: '#7c9cf5', short: 'Advising' },
-  records: { icon: FileText, hex: '#e0a458', short: 'Registration and fees' },
-  learning: { icon: BookOpen, hex: '#5fb6a8', short: 'Learning and careers' },
-  health: { icon: HeartPulse, hex: '#e58aa0', short: 'Health and access' },
-  money: { icon: Wallet, hex: '#8fb39a', short: 'Money and international' },
-  help: { icon: Scale, hex: '#b59be6', short: 'Problems and disputes' },
-  new: { icon: Compass, hex: '#6fb4dd', short: 'New here' },
+  advising: { icon: GraduationCap, hex: '#4f7df0', short: 'Advising' },
+  records: { icon: FileText, hex: '#f0932b', short: 'Registration and fees' },
+  learning: { icon: BookOpen, hex: '#12a594', short: 'Learning and careers' },
+  health: { icon: HeartPulse, hex: '#e5487d', short: 'Health and access' },
+  money: { icon: Wallet, hex: '#2fa35a', short: 'Money and international' },
+  help: { icon: Scale, hex: '#8a5cd6', short: 'Problems and disputes' },
+  new: { icon: Compass, hex: '#1c9cd8', short: 'New here' },
 }
 
 export const NEED_ICON: Record<string, LucideIcon> = {
@@ -38,6 +40,8 @@ export const NEED_ICON: Record<string, LucideIcon> = {
   access: Accessibility,
   money: HandCoins,
   dispute: Scale,
+  shuttle: Bus,
+  jobs: Briefcase,
 }
 
 /** A 12% wash of a hex, for icon tiles. */

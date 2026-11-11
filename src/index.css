@@ -2400,3 +2400,21 @@ html:has(
   50%      { opacity: 0.35; }
 }
 .ct-res-window { animation: ct-res-window 5.5s ease-in-out infinite; }
+/* The banner photo drifts very slowly, so the page never looks frozen. */
+@keyframes ct-res-kenburns {
+  from { transform: scale(1.02); }
+  to   { transform: scale(1.1) translate(-1.5%, -1%); }
+}
+.ct-res-kenburns { animation: ct-res-kenburns 28s ease-in-out infinite alternate; }
+/* A guide opens as a full page: the page grows out of the card's place and
+   the article rises into it. `backwards`, so no transform is left behind. */
+@keyframes ct-guide-open {
+  from { opacity: 0; transform: scale(0.965); border-radius: 28px; }
+  to   { opacity: 1; transform: none; border-radius: 0; }
+}
+.ct-guide-open { animation: ct-guide-open 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards; transform-origin: 50% 40%; }
+@keyframes ct-guide-body {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: none; }
+}
+.ct-guide-body { animation: ct-guide-body 560ms 120ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }

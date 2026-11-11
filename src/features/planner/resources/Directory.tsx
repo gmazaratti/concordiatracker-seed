@@ -8,10 +8,10 @@ import { GROUP_LOOK, NEED_ICON, wash } from './resource-icons'
 export function NeedGrid({ faculty, onOpen }: { faculty: Resource['faculty'] | null; onOpen: (r: Resource) => void }) {
   return (
     <section aria-labelledby="res-needs">
-      <h3 id="res-needs" className="font-display text-[20px] font-semibold tracking-tight text-fg">
+      <h3 id="res-needs" className="font-display text-[22px] font-semibold tracking-tight text-fg">
         I need
       </h3>
-      <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
         {NEEDS.map((n, i) => {
           const r = findResource(n.resource, faculty)
           if (!r) return null
@@ -28,13 +28,13 @@ export function NeedGrid({ faculty, onOpen }: { faculty: Resource['faculty'] | n
               <span
                 aria-hidden
                 className="pointer-events-none absolute -top-8 -right-8 size-24 rounded-full opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100"
-                style={{ backgroundColor: wash(look.hex, 0.5) }}
+                style={{ backgroundColor: wash(look.hex, 0.6) }}
               />
               <span
-                className="relative grid size-9 place-items-center rounded-xl"
-                style={{ backgroundColor: wash(look.hex, 0.16), color: look.hex }}
+                className="relative grid size-11 place-items-center rounded-full text-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"
+                style={{ backgroundColor: look.hex }}
               >
-                <Icon size={18} aria-hidden />
+                <Icon size={20} aria-hidden />
               </span>
               <span className="relative mt-3 text-[13.5px] leading-snug font-semibold text-fg">{n.label}</span>
             </button>
@@ -65,13 +65,12 @@ export function Directory({
   const items = [...active.items].sort((a, b) => Number(!!mine && b.faculty === mine) - Number(!!mine && a.faculty === mine))
   return (
     <section aria-labelledby="res-dir">
-      <h3 id="res-dir" className="font-display text-[20px] font-semibold tracking-tight text-fg">
+      <h3 id="res-dir" className="font-display text-[22px] font-semibold tracking-tight text-fg">
         Every office
       </h3>
       <div role="tablist" aria-label="Category" className="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible">
         {RESOURCE_GROUPS.map((g) => {
           const look = GROUP_LOOK[g.id]
-          const Icon = look.icon
           const on = g.id === active.id
           return (
             <button
@@ -84,9 +83,9 @@ export function Directory({
                 'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-150',
                 on ? 'border-transparent text-fg' : 'border-border text-muted hover:border-border-strong hover:text-fg',
               )}
-              style={on ? { backgroundColor: wash(look.hex, 0.2) } : undefined}
+              style={on ? { backgroundColor: wash(look.hex, 0.26) } : undefined}
             >
-              <Icon size={14} style={{ color: look.hex }} aria-hidden />
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: look.hex }} aria-hidden />
               {look.short}
               <span className="text-[11.5px] text-subtle tabular-nums">{g.items.length}</span>
             </button>
@@ -125,10 +124,10 @@ export function TileGrid({
             style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
           >
             <span
-              className="grid size-9 shrink-0 place-items-center rounded-xl"
-              style={{ backgroundColor: wash(look.hex, 0.16), color: look.hex }}
+              className="grid size-10 shrink-0 place-items-center rounded-full text-white"
+              style={{ backgroundColor: look.hex }}
             >
-              <Icon size={17} aria-hidden />
+              <Icon size={18} aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-start gap-1.5">
