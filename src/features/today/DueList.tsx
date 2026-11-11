@@ -238,9 +238,9 @@ export function DueList({
   const shownTotal = sections.reduce((n, sec) => n + sec.items.length, 0)
 
   return (
-    <Card className="overflow-hidden">
+    <Card data-tcard className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-[13px] font-semibold tracking-wide text-fg uppercase">{t('today.due')}</h2>
+        <h2 data-thead className="text-[13px] font-semibold tracking-wide text-fg uppercase">{t('today.due')}</h2>
         <div className="flex items-center gap-1.5">
           {shownTotal > 0 && (
             <span className="text-[12px] text-subtle">

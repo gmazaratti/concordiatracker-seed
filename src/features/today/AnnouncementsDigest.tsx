@@ -31,8 +31,8 @@ export function AnnouncementsDigest() {
     .sort((a, b) => a.an.postedDaysAgo - b.an.postedDaysAgo)
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border/60 bg-surface/50">
-      <p className="border-b border-border/60 px-4 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+    <section data-tcard className="overflow-hidden rounded-xl border border-border/60 bg-surface/50">
+      <p data-thead className="border-b border-border/60 px-4 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         Announcements
       </p>
 

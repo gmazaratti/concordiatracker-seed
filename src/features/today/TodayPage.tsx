@@ -11,6 +11,8 @@ import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { groupDue, PAIN_THRESHOLD } from './due'
 import { GlanceStrip } from './GlanceStrip'
+import { TodayHero } from './TodayHero'
+import { Link } from 'react-router-dom'
 import { DueList } from './DueList'
 import { PainNudge } from './PainNudge'
 import { PeerNudge } from './PeerNudge'
@@ -32,7 +34,14 @@ import { dayKey, isSnoozed, snoozeUntilTomorrow, unsnooze } from '@/lib/snooze'
 
 /** Today — one calm, informative screen: a glance strip, the optional pain-moment
  * nudge, and the scannable Due list at its heart. */
-export function TodayPage() {
+export function TodayPage({
+  preview = false,
+}: {
+  /** The proposed look, at /app/today/preview: a banner, a wider page and the
+   *  new card style (scoped by `.ct-today-next` in index.css). Same data, same
+   *  handlers, so everything on it works. */
+  preview?: boolean
+} = {}) {
   const t = useT()
   const { lang } = useI18n()
   const {
@@ -172,6 +181,11 @@ export function TodayPage() {
   }
 
   const firstName = user.name.split(' ')[0]
+  const dateLabel = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date())
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
   const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
@@ -223,25 +237,42 @@ export function TodayPage() {
   }
 
   return (
-    <div className={cn('mx-auto w-full max-w-5xl px-5 py-5 sm:px-6', arriving && 'ct-today-arrive')}>
+    <div className={cn('mx-auto w-full px-5 py-5 sm:px-6', preview ? 'ct-today-next max-w-[1600px]' : 'max-w-5xl', arriving && 'ct-today-arrive')}>
       {/* Straight from onboarding: the accent curtain it left with fades off Today. */}
       {/* PORTALLED to <body>, never a child of this div: `.ct-today-arrive > *`
           gives every direct child the rise-in animation, and as a child the
           veil took that instead of its own fade. It started invisible (so the
           dashboard flashed), then rose to solid green and stayed there. */}
       {arriving && createPortal(<div className="ct-arrive-veil pointer-events-none fixed inset-0 z-[60] bg-accent" aria-hidden />, document.body)}
+      {preview ? (
+        <>
+          <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-dashed border-border-strong px-4 py-2.5 text-[13px] text-muted">
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold tracking-[0.08em] text-accent-contrast uppercase">Preview</span>
+            A proposed look for Today. Everything on it works on your real account.
+            <Link to="/app" className="ml-auto font-medium text-accent hover:underline">
+              Back to Today
+            </Link>
+          </p>
+          <TodayHero
+            date={dateLabel}
+            greeting={`${t(greetingKey())}, ${firstName}`}
+            left={groups.count + todoCounts.near}
+            overdue={groups.overdue.length + todoCounts.overdue}
+            next={groups.nextUp}
+            nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+            gpa={shown(gpa)}
+          />
+        </>
+      ) : (
       <header className="mb-3">
         <p className="text-[12px] text-subtle">
-          {new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          }).format(new Date())}
+          {dateLabel}
         </p>
         <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
           {t(greetingKey())}, {firstName}
         </h1>
       </header>
+      )}
 
       {/* Admin-only platform activity inbox (renders nothing for everyone else) */}
       <AdminActivityCard />
@@ -281,7 +312,7 @@ export function TodayPage() {
           <AnnouncementsDigest />
         </main>
 
-        <aside className="flex flex-col gap-3 lg:w-[272px] lg:shrink-0">
+        <aside className={cn('flex flex-col gap-3 lg:shrink-0', preview ? 'lg:w-[340px]' : 'lg:w-[272px]')}>
           {!editing && <DiscoverCard />}
           {/* User-chosen widgets, in their order. The glance panel and the due
               list are rendered here rather than by the registry because they

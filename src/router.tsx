@@ -126,6 +126,8 @@ export function AppRoutes() {
       {/* Student app context */}
       <Route path="/app" element={<StudentLayout />}>
         <Route index element={<TodayPage />} />
+        {/* A proposed look for Today, not linked from anywhere. */}
+        <Route path="today/preview" element={<TodayPage preview />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/blueprints" element={<BlueprintBrowserPage />} />
         <Route path="courses/upload" element={<SyllabusUploadPage />} />

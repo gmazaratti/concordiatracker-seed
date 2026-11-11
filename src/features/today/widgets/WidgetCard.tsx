@@ -24,6 +24,7 @@ export function WidgetCard({
 }) {
   return (
     <section
+      data-tcard
       className={cn(
         'flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-surface/50',
         className,
@@ -31,7 +32,7 @@ export function WidgetCard({
     >
       <div className="flex items-center gap-2 border-b border-border/60 px-3.5 py-2.5">
         {Icon && <Icon size={13} className="shrink-0 text-subtle" aria-hidden />}
-        <h2 className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-wide text-subtle uppercase">
+        <h2 data-thead className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-wide text-subtle uppercase">
           {title}
         </h2>
         {action}

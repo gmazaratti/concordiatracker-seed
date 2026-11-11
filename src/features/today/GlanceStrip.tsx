@@ -39,9 +39,10 @@ export function GlanceStrip(data: GlanceData) {
   return (
     <div
       data-tour="glance"
+      data-tcard
       className="overflow-hidden rounded-xl border border-border/60 bg-surface/50"
     >
-      <p className="border-b border-border/60 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
+      <p data-thead className="border-b border-border/60 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide text-subtle uppercase">
         {t('today.atAGlance')}
       </p>
 
