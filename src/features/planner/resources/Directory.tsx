@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarCheck } from 'lucide-react'
+import { ArrowUpRight, CalendarCheck, Mail, MapPin, Phone } from 'lucide-react'
 import { NEEDS, findResource } from '@/data/resource-guide'
 import { RESOURCE_GROUPS, type Resource } from '@/data/resources'
 import { cn } from '@/lib/cn'
@@ -162,41 +162,55 @@ export function TileGrid({
             type="button"
             onClick={() => onOpen(r)}
             className={cn(
-              'ct-res-in group flex items-start gap-3 rounded-2xl border bg-surface p-3.5 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5',
-              yours ? 'border-accent/60' : 'border-border hover:border-border-strong',
+              'ct-res-in group relative flex h-full min-h-[168px] flex-col overflow-hidden rounded-3xl border p-5 text-left transition-[border-color,transform] duration-200 hover:-translate-y-1',
+              yours ? 'border-accent/60' : 'border-transparent hover:border-border-strong',
             )}
-            style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
+            style={{ animationDelay: `${Math.min(i, 8) * 35}ms`, backgroundColor: wash(look.hex, 0.1) }}
           >
+            {/* A soft glow of the category colour, so the card is tinted rather than flat. */}
             <span
-              className="grid size-10 shrink-0 place-items-center rounded-full text-white"
-              style={{ backgroundColor: look.hex }}
-            >
-              <Icon size={18} aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-start gap-1.5">
-                <span className="min-w-0 flex-1 text-[14px] leading-snug font-semibold text-fg">{r.name}</span>
-                <ArrowUpRight
-                  size={15}
-                  className="mt-0.5 shrink-0 text-subtle transition-[transform,color] duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
-                  aria-hidden
-                />
+              aria-hidden
+              className="pointer-events-none absolute -top-14 -right-14 size-40 rounded-full blur-3xl transition-opacity duration-300 group-hover:opacity-100"
+              style={{ backgroundColor: wash(look.hex, 0.3), opacity: 0.7 }}
+            />
+            <span className="relative flex items-start justify-between gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: look.hex }}>
+                <Icon size={20} aria-hidden />
               </span>
-              <span className="mt-0.5 line-clamp-2 block text-[12.5px] leading-snug text-muted">{r.what}</span>
-              {(yours || r.bookUrl) && (
-                <span className="mt-1.5 flex flex-wrap gap-1.5 text-[11px] font-semibold">
-                  {yours && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-accent">Your faculty</span>}
-                  {r.bookUrl && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-muted">
-                      <CalendarCheck size={10} aria-hidden /> Bookable
-                    </span>
-                  )}
+              {yours && <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-contrast">Your faculty</span>}
+            </span>
+            <span className="relative mt-4 block font-display text-[17px] leading-snug font-semibold text-balance text-fg">{r.name}</span>
+            <span className="relative mt-1.5 line-clamp-3 block text-[13.5px] leading-relaxed text-muted">{r.what}</span>
+            {/* What you will find inside, as small marks, with the way in on the right. */}
+            <span className="relative mt-auto flex items-center gap-1.5 pt-4 text-muted">
+              {r.bookUrl && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-canvas/60 px-2 py-1 text-[11.5px] font-semibold text-fg">
+                  <CalendarCheck size={12} aria-hidden /> Book
                 </span>
               )}
+              {r.email && <Mark icon={Mail} label="Email" />}
+              {r.phone && <Mark icon={Phone} label="Phone" />}
+              {r.where && <Mark icon={MapPin} label="Location" />}
+              <span
+                className="ml-auto grid size-8 place-items-center rounded-full bg-canvas/60 text-fg transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                aria-hidden
+              >
+                <ArrowUpRight size={15} />
+              </span>
             </span>
           </button>
         )
       })}
     </div>
+  )
+}
+
+/** A small mark for one kind of contact detail the office has. */
+function Mark({ icon: Icon, label }: { icon: typeof Mail; label: string }) {
+  return (
+    <span className="grid size-7 place-items-center rounded-full bg-canvas/60" title={label}>
+      <Icon size={13} aria-hidden />
+      <span className="sr-only">{label}</span>
+    </span>
   )
 }

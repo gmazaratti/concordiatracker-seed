@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
 import type { Guide } from '@/data/guides'
 import { PHOTOS } from '@/data/resource-photos'
@@ -12,6 +12,30 @@ import { cn } from '@/lib/cn'
 export function GuideShelf({ guides, onRead, lead }: { guides: Guide[]; onRead: (slug: string) => void; lead: string }) {
   const row = useRef<HTMLDivElement>(null)
   const nudge = (dir: 1 | -1) => row.current?.scrollBy({ left: dir * 320, behavior: 'smooth' })
+  // Which sides have more cards off screen. A card cut off by the edge fades
+  // out there instead of ending on a hard line, and the fade goes away at the
+  // end of the row, so it never dims a card that is fully in view.
+  const [more, setMore] = useState({ left: false, right: false })
+  useEffect(() => {
+    const el = row.current
+    if (!el) return
+    const update = () => {
+      const left = el.scrollLeft > 4
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+      setMore((m) => (m.left === left && m.right === right ? m : { left, right }))
+    }
+    const first = window.setTimeout(update, 0)
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      window.clearTimeout(first)
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  }, [guides.length])
+  const FADE = 72
+  const mask = `linear-gradient(to right, ${more.left ? 'transparent' : '#000'} 0, #000 ${FADE}px, #000 calc(100% - ${FADE}px), ${more.right ? 'transparent' : '#000'} 100%)`
   return (
     <section aria-labelledby="res-guides">
       <div className="flex items-end justify-between gap-3">
@@ -32,6 +56,7 @@ export function GuideShelf({ guides, onRead, lead }: { guides: Guide[]; onRead: 
       </div>
       <div
         ref={row}
+        style={{ maskImage: mask, WebkitMaskImage: mask }}
         className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-1 sm:px-1 [&::-webkit-scrollbar]:hidden"
       >
         {guides.map((g, i) => (
