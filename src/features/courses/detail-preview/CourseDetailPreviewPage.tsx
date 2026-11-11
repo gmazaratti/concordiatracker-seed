@@ -106,7 +106,8 @@ export function CourseDetailPreviewPage() {
         {/* lg:pt-[10px] matches the rail's own top padding (ct-scroll-fade), and
             every part's heading row is the same height, so the two headings and
             the two first cards start on the same lines. */}
-        <main className={cn('min-w-0 space-y-3 lg:order-2 lg:pt-[10px]', pane !== 'work' && 'hidden lg:block')}>
+        <main className={cn('min-w-0 space-y-8 lg:order-2 lg:pt-[10px]', pane === 'class' && 'hidden lg:block')}>
+          <div className={cn('space-y-3', pane !== 'work' && 'hidden lg:block')}>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:min-h-10">
             <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Assessments</h2>
             {manual && !empty && (
@@ -175,34 +176,39 @@ export function CourseDetailPreviewPage() {
             !empty && <AssessmentTable assessments={mine} focusId={focusId} />
           )}
           <MoodleCourseSection course={course} />
+          </div>
+
+          {/* Under the list, not in the rail: a class with four assessments
+              leaves this space empty otherwise, and the rail stays short. */}
+          <section className={cn('space-y-3', pane !== 'grade' && 'hidden lg:block')}>
+            <h2 className="hidden font-display text-[22px] font-semibold tracking-tight text-fg lg:block">Your grade</h2>
+            {empty ? (
+              <p className="rounded-3xl border border-dashed border-border-strong px-5 py-6 text-[14px] leading-relaxed text-muted">
+                Your breakdown, the grade you need and the what-if appear once this class has assessments.
+              </p>
+            ) : (
+              <div className="grid items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                <GradeBreakdown assessments={mine} color={course.color} />
+                <GradeNeeded assessments={mine} />
+                <PaywallLock locked={plan === 'free'} feature="GPA prediction">
+                  <GpaWhatIf courses={courses} assessments={assessments} courseId={course.id} />
+                </PaywallLock>
+              </div>
+            )}
+          </section>
         </main>
 
         {/* The side rail, on the left as on the live page: everything about the
-            class and the grade in one place. It stays put while the assessment
-            list scrolls, with its own scroll when it is taller than the screen. */}
-        <aside className="ct-scroll-fade min-w-0 space-y-8 lg:sticky lg:top-4 lg:order-1 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:pr-1.5">
+            class in one place. It stays put while the assessment list scrolls,
+            and scrolls on its own (no visible bar; the edges fade) when it is
+            taller than the screen. */}
+        <aside className="ct-scroll-fade ct-no-scrollbar min-w-0 space-y-8 lg:sticky lg:top-4 lg:order-1 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto">
           <section className={cn('space-y-3', pane !== 'class' && 'hidden lg:block')}>
             <h2 className="hidden items-center font-display text-[22px] font-semibold tracking-tight text-fg lg:flex lg:min-h-10">Class details</h2>
             <CourseInfoPanel course={course} totalAssessments={mine.length} editableIdentity={manual} />
             <SectionDeadlinesCard course={course} />
             <SyllabusFileCard course={course} />
             <CourseNotesCard course={course} />
-          </section>
-          <section className={cn('space-y-3', pane !== 'grade' && 'hidden lg:block')}>
-            <h2 className="hidden items-center font-display text-[22px] font-semibold tracking-tight text-fg lg:flex lg:min-h-10">Your grade</h2>
-            {empty ? (
-              <p className="rounded-3xl border border-dashed border-border-strong px-5 py-6 text-[14px] leading-relaxed text-muted">
-                Your breakdown, the grade you need and the what-if appear once this class has assessments.
-              </p>
-            ) : (
-              <>
-                <GradeBreakdown assessments={mine} color={course.color} />
-                <GradeNeeded assessments={mine} />
-                <PaywallLock locked={plan === 'free'} feature="GPA prediction">
-                  <GpaWhatIf courses={courses} assessments={assessments} courseId={course.id} />
-                </PaywallLock>
-              </>
-            )}
           </section>
         </aside>
       </div>
