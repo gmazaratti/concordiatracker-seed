@@ -1,4 +1,4 @@
-import { BarChart3, Bike, Bus, Clock, Library, TrainFront, CalendarClock, CloudSun, Flame, GraduationCap, Gauge, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, Users, type LucideIcon } from 'lucide-react'
+import { BarChart3, Bike, Bus, Clock, Library, TrainFront, CalendarClock, CloudSun, Flame, GraduationCap, LayoutGrid, ListChecks, Target, Timer, Bell, BellRing, Radar as RadarIcon, Users, type LucideIcon } from 'lucide-react'
 import { NextClassWidget } from './NextClass'
 import { FriendsInClassWidget } from './FriendsInClassWidget'
 import { LibraryWidget } from './LibraryWidget'
@@ -71,24 +71,11 @@ export interface WidgetContext {
   courseCount: number
 }
 
-/** The glance panel is a widget like any other — it just happens to be the one
- * most people keep. Rendering is injected by TodayPage since it needs the term
- * totals already computed there. */
-export const GLANCE_ID = 'glance'
-
 /** The due list, as a board item. Rendering is injected by TodayPage — it owns
  * the grouping, the completed-today set and every write. */
 export const DUE_ID = 'due'
 
 export const WIDGETS: WidgetDef[] = [
-  {
-    id: GLANCE_ID,
-    name: 'At a glance',
-    description: 'GPA, overdue count, what is due this week, and term progress.',
-    icon: Gauge,
-    zones: ['rail', 'half', 'wide'],
-    render: () => null, // supplied by TodayPage: see renderWidget there
-  },
   {
     id: DUE_ID,
     name: 'Due',
@@ -244,7 +231,7 @@ export const WIDGETS_BY_ID = new Map(WIDGETS.map((w) => [w.id, w]))
 
 /** What a new account sees. Deliberately short — an empty rail invites adding,
  * a full one invites nothing. */
-export const DEFAULT_WIDGETS = [GLANCE_ID, 'next-class']
+export const DEFAULT_WIDGETS = ['next-class']
 
 /**
  * The wide column. One list, in order, with the due list somewhere in it.

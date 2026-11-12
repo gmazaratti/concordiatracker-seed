@@ -26,7 +26,7 @@ const ALL_STEPS: TourStep[] = [
     route: '/app',
     type: 'read',
     title: 'Today is your launchpad',
-    body: 'This panel is your at-a-glance: current GPA, what’s due this week, and what’s coming next: so the first thing you see each day is what actually matters.',
+    body: 'This banner is your at-a-glance: what’s overdue, what’s left this week, what’s next, and your term GPA. Tap any of them to open it.',
   },
   {
     id: 'today-done',

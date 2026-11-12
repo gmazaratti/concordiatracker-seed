@@ -2425,10 +2425,10 @@ html:has(
 .ct-guide-body { animation: ct-guide-body 560ms 120ms cubic-bezier(0.22, 1, 0.36, 1) backwards; }
 
 
-/* -- Today, proposed look (/app/today/preview) -------------------------------
-   Scoped restyle of the cards Today shares with the live page, so the preview
-   can show the new look without touching it. Unlayered, so it wins over the
-   utilities on those elements. Fold into the components if this is approved. */
+/* -- Today's card style ------------------------------------------------------
+   The rounded cards and display-face headings on Today, applied to every card
+   on the page from one place. Unlayered, so it wins over the utilities on
+   those elements. */
 .ct-today-next [data-tcard] {
   border-radius: 1.5rem;
   border-color: var(--ct-border);

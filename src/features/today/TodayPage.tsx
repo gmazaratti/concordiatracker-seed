@@ -5,14 +5,12 @@ import { haptic } from '@/lib/haptics'
 import { useMemo, useState } from 'react'
 import { useAppData } from '@/app/providers/app-data'
 import { useQuickActions } from '@/app/providers/quick-actions'
-import { term } from '@/data/mock'
 import type { Assessment, AssessmentStatus } from '@/data/types'
 import { currentGpa } from '@/lib/gpa'
 import { isOpen } from '@/lib/status'
 import { groupDue, PAIN_THRESHOLD } from './due'
-import { GlanceStrip } from './GlanceStrip'
 import { TodayHero, type HeroItem } from './TodayHero'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { KIND_LABEL } from '@/lib/assessment'
 import { courseColor } from '@/lib/course-color'
 import { byDue, daysUntil } from '@/lib/date'
@@ -26,7 +24,7 @@ import { AnnouncementsDigest } from './AnnouncementsDigest'
 import { FeedbackPrompt } from '@/features/feedback/FeedbackPrompt'
 import { AdminActivityCard } from '@/features/admin/AdminActivityCard'
 import { useT, useI18n } from '@/i18n/i18n'
-import { SIZE_SPAN, WIDGETS_BY_ID, GLANCE_ID, DUE_ID, sizesFor, layoutFor, type WidgetSize } from './widgets/registry'
+import { SIZE_SPAN, WIDGETS_BY_ID, DUE_ID, sizesFor, layoutFor, type WidgetSize } from './widgets/registry'
 import { AddWidgetButton } from './widgets/AddWidgetButton'
 import { SizePicker } from './widgets/SizePicker'
 import { WidgetBoard, WidgetZoneView } from './widgets/WidgetBoard'
@@ -35,23 +33,15 @@ import { useTodayLayout } from './useTodayLayout'
 import { useUiState } from '@/app/providers/ui-state'
 import { dayKey, isSnoozed, snoozeUntilTomorrow, unsnooze } from '@/lib/snooze'
 
-/** Today — one calm, informative screen: a glance strip, the optional pain-moment
- * nudge, and the scannable Due list at its heart. */
-export function TodayPage({
-  preview = false,
-}: {
-  /** The proposed look, at /app/today/preview: a banner, a wider page and the
-   *  new card style (scoped by `.ct-today-next` in index.css). Same data, same
-   *  handlers, so everything on it works. */
-  preview?: boolean
-} = {}) {
+/** Today: a banner that says what is late, what is left and what is next, then
+ * the scannable Due list at its heart with your widgets around it. */
+export function TodayPage() {
   const t = useT()
   const { lang } = useI18n()
   const {
     user,
     plan,
     courses,
-    pastCourses,
     assessments,
     personalTasks,
     toggleTask,
@@ -105,16 +95,10 @@ export function TodayPage({
     () => (todayPrefs.showNoteTasks === false ? personalTasks.filter((tk) => !tk.noteId) : personalTasks),
     [personalTasks, todayPrefs.showNoteTasks],
   )
-  const { todosDue, todoCounts } = useTodosDue(todayTasks, assessments, courses)
+  const { todosDue } = useTodosDue(todayTasks, assessments, courses)
 
   const shown = useShownGpa()
   const gpa = useMemo(() => currentGpa(courses, assessments), [courses, assessments])
-  // Cumulative across FINISHED terms — the sub-line under this term's GPA.
-  const cumulativeGpa = useMemo(
-    () => (pastCourses.length ? currentGpa(pastCourses, assessments) : null),
-    [pastCourses, assessments],
-  )
-
   // Submitted-but-ungraded work shows in its own section, so it is left out of
   // "Completed today" rather than appearing twice.
   const completed = resolvedIds
@@ -191,7 +175,6 @@ export function TodayPage({
     day: 'numeric',
   }).format(new Date())
   const showPain = plan === 'free' && groups.count >= PAIN_THRESHOLD
-  const credits = courses.reduce((sum, c) => sum + c.credits, 0)
 
   // The lists behind the banner's two counts: assessments and tasks together,
   // because the counts include both.
@@ -240,67 +223,31 @@ export function TodayPage({
     />
   )
 
-  const glance = (
-    <GlanceStrip
-      term={term}
-      gpa={shown(gpa)}
-      overdue={groups.overdue.length + todoCounts.overdue}
-      itemsLeft={groups.count + todoCounts.near}
-      nextUp={groups.nextUp}
-      nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
-      doneToday={completed.length}
-      courseCount={courses.length}
-      credits={credits}
-      cumulativeGpa={shown(cumulativeGpa)}
-    />
-  )
-
-  /** Both zones render the same three special cases; only the size differs. */
+  /** Both zones render the same special case; only the size differs. */
   const renderIn = (zone: 'main' | 'rail') => (id: string) => {
     const size: WidgetSize = zone === 'rail' ? 's' : sizeFor(id)
     if (id === DUE_ID) return dueList(size === 's')
-    if (id === GLANCE_ID) return glance
     const def = WIDGETS_BY_ID.get(id)
     return def?.render(layoutFor(def, size))
   }
 
   return (
-    <div className={cn('mx-auto w-full px-5 py-5 sm:px-6', preview ? 'ct-today-next max-w-[1600px]' : 'max-w-5xl', arriving && 'ct-today-arrive')}>
+    <div className={cn('mx-auto w-full px-5 py-5 sm:px-6', 'ct-today-next max-w-[1600px]', arriving && 'ct-today-arrive')}>
       {/* Straight from onboarding: the accent curtain it left with fades off Today. */}
       {/* PORTALLED to <body>, never a child of this div: `.ct-today-arrive > *`
           gives every direct child the rise-in animation, and as a child the
           veil took that instead of its own fade. It started invisible (so the
           dashboard flashed), then rose to solid green and stayed there. */}
       {arriving && createPortal(<div className="ct-arrive-veil pointer-events-none fixed inset-0 z-[60] bg-accent" aria-hidden />, document.body)}
-      {preview ? (
-        <>
-          <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-dashed border-border-strong px-4 py-2.5 text-[13px] text-muted">
-            <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold tracking-[0.08em] text-accent-contrast uppercase">Preview</span>
-            A proposed look for Today. Everything on it works on your real account.
-            <Link to="/app" className="ml-auto font-medium text-accent hover:underline">
-              Back to Today
-            </Link>
-          </p>
-          <TodayHero
-            date={dateLabel}
-            greeting={`${t(greetingKey())}, ${firstName}`}
-            overdue={heroItems(groups.overdue, 0)}
-            week={heroItems(groups.active, 7)}
-            next={groups.nextUp}
-            nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
-            gpa={shown(gpa)}
-          />
-        </>
-      ) : (
-      <header className="mb-3">
-        <p className="text-[12px] text-subtle">
-          {dateLabel}
-        </p>
-        <h1 className="mt-0.5 font-display text-[26px] leading-tight font-medium text-fg">
-          {t(greetingKey())}, {firstName}
-        </h1>
-      </header>
-      )}
+      <TodayHero
+        date={dateLabel}
+        greeting={`${t(greetingKey())}, ${firstName}`}
+        overdue={heroItems(groups.overdue, 0)}
+        week={heroItems(groups.active, 7)}
+        next={groups.nextUp}
+        nextCourse={groups.nextUp ? courseById(groups.nextUp.courseId) : undefined}
+        gpa={shown(gpa)}
+      />
 
       {/* Admin-only platform activity inbox (renders nothing for everyone else) */}
       <AdminActivityCard />
@@ -340,11 +287,10 @@ export function TodayPage({
           <AnnouncementsDigest />
         </main>
 
-        <aside className={cn('flex flex-col gap-3 lg:shrink-0', preview ? 'lg:w-[340px]' : 'lg:w-[272px]')}>
+        <aside className={"flex flex-col gap-3 lg:w-[340px] lg:shrink-0"}>
           {!editing && <DiscoverCard />}
-          {/* User-chosen widgets, in their order. The glance panel and the due
-              list are rendered here rather than by the registry because they
-              need the term totals and the write handlers computed above. */}
+          {/* User-chosen widgets, in their order. The due list is rendered here rather than
+              by the registry because it needs the write handlers above. */}
           <WidgetZoneView
             zone={zoneById('rail')}
             emptyHint="Drop a widget here"

@@ -23,7 +23,7 @@ const CHIP = 'inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1
 const GLASS = 'bg-white/[0.12] backdrop-blur-md hover:bg-white/[0.22]'
 
 /**
- * PREVIEW. The banner on Today, in the same family as Courses and the Planner:
+ * The banner on Today, in the same family as Courses and the Planner:
  * a campus photo under a dark wash, the greeting as the headline, and the three
  * things you open Today to learn as chips (what is late, what is left, what is
  * next), with the term GPA beside them.
@@ -53,7 +53,7 @@ export function TodayHero({
   const items = list === 'overdue' ? overdue : week
 
   return (
-    <header className="ct-res-in relative isolate mb-5 overflow-hidden rounded-3xl bg-[#0b0d16] text-white">
+    <header data-tour="glance" className="ct-res-in relative isolate mb-5 overflow-hidden rounded-3xl bg-[#0b0d16] text-white">
       <img src={PHOTOS.quad.src} alt={PHOTOS.quad.alt} className="ct-res-kenburns absolute inset-0 -z-20 size-full object-cover grayscale" />
       <div
         aria-hidden

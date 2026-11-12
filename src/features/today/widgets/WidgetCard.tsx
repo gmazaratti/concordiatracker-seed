@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn'
 /**
  * The shared frame every Today widget sits in.
  *
- * Matches GlanceStrip's recessed treatment (`bg-surface/50`) rather than a solid
+ * Uses a recessed treatment (`bg-surface/50`) rather than a solid
  * Card on purpose: the due list is the only solid surface on this screen, and it
  * stays the thing your eye lands on no matter how many widgets are added.
  */
