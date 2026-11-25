@@ -105,6 +105,9 @@ export interface UiState {
   goals?: string[]
   /** Feature discovery (lib/discovery.ts): what was dismissed, tried, snoozed, popped. */
   discovery?: import('@/lib/discovery').DiscoveryState
+  /** Today's Friends in class card: your own order (user ids), who is hidden,
+   *  and whether the list follows your order or puts people in class first. */
+  friendsCard?: { order?: string[]; hidden?: string[]; sort?: 'live' | 'mine' }
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as
