@@ -10,6 +10,7 @@ import { ScheduleBuilder } from './ScheduleBuilder'
 import { PrereqTree } from './PrereqTree'
 import { ProgramProgress } from './ProgramProgress'
 import { ResourcesPanel } from './ResourcesPanel'
+import { SequencePanel } from './sequence/SequencePanel'
 import { RadarPage } from '@/features/radar/RadarPage'
 import { MoneyPage } from '@/features/money/MoneyPage'
 import { PlannerDrawer, PlannerDrawerButton } from './PlannerDrawer'
@@ -57,7 +58,7 @@ export function PlannerPage() {
   // want more than a reading column, so they are the only ones that get it.
   const wide = tab === 'schedule' || tab === 'tree'
   /** Picture-led sections fill the page too; a reading column left half a wide screen empty. */
-  const roomy = tab === 'resources' || tab === 'radar' || tab === 'program' || tab === 'record'
+  const roomy = tab === 'resources' || tab === 'radar' || tab === 'program' || tab === 'record' || tab === 'sequence'
   const items: NavItem<PlannerTab>[] = tabs.map((item) => ({
     id: item.id,
     label: t(item.labelKey),
@@ -81,6 +82,7 @@ export function PlannerPage() {
       {tab === 'directory' && <CourseDirectory />}
       {tab === 'saved' && <SavedCoursesPanel />}
       {tab === 'tree' && <PrereqTree />}
+      {tab === 'sequence' && <SequencePanel />}
       {tab === 'schedule' && <ScheduleBuilder />}
     </>
   )

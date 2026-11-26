@@ -9,6 +9,7 @@ import {
   Target,
   Wallet,
   LifeBuoy,
+  Route,
   type LucideIcon,
 } from 'lucide-react'
 import type { Key } from '@/i18n/en'
@@ -47,6 +48,7 @@ export type PlannerTab =
   | 'schedule'
   | 'money'
   | 'resources'
+  | 'sequence'
 
 /** Phase headings. Naming the phases is what turns nine sections into one
  *  sequence you move through rather than nine unrelated tabs. */
@@ -81,6 +83,7 @@ export const PLANNER_TABS: {
   { id: 'directory', labelKey: 'planner.tab.directory', icon: BookOpen, phase: 'explore' },
   { id: 'tree', labelKey: 'planner.tab.tree', icon: GitBranch, phase: 'explore' },
   { id: 'saved', labelKey: 'planner.tab.saved', icon: Bookmark, phase: 'explore' },
+  { id: 'sequence', labelKey: 'planner.tab.sequence', icon: Route, phase: 'explore' },
 
   { id: 'schedule', labelKey: 'planner.tab.schedule', icon: CalendarRange, phase: 'commit' },
   { id: 'seats', labelKey: 'planner.tab.seats', icon: Bell, phase: 'commit' },

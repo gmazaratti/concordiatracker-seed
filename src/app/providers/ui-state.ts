@@ -108,6 +108,8 @@ export interface UiState {
   /** Today's Friends in class card: your own order (user ids), who is hidden,
    *  and whether the list follows your order or puts people in class first. */
   friendsCard?: { order?: string[]; hidden?: string[]; sort?: 'live' | 'mine' }
+  /** Planner, Course sequence: the coming terms and what is planned in each. */
+  coursePlan?: import('@/lib/course-plan').CoursePlan
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

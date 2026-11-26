@@ -11,7 +11,7 @@
     "docs": "node docs-src/build.mjs",
     "postbuild": "node docs-src/build.mjs && node scripts/stamp-sw.mjs && node scripts/stamp-aasa.mjs",
     "db:verify": "node db/verify.mjs",
-    "test:prereq": "node src/lib/prereq.test.mjs",
+    "test:prereq": "node src/lib/prereq.test.mjs && node src/lib/course-plan.test.mjs",
     "test:carousel": "node src/features/community/posts/carousel.test.mjs",
     "test:biolinks": "node src/lib/bio-links.test.mjs",
     "test:seenfeed": "node src/lib/seen-feed.test.mjs",
