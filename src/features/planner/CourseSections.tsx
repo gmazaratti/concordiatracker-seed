@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, Loader2, MapPin } from 'lucide-react'
 import { findSections, type SectionOption } from '@/lib/seats'
 import {
@@ -16,7 +16,16 @@ import { cn } from '@/lib/cn'
  * per course, and firing one for every result in a list of ten would be rude to
  * them and slow for us. A student expands one course at a time anyway.
  */
-export function CourseSections({ subject, catalog }: { subject: string; catalog: string }) {
+export function CourseSections({
+  subject,
+  catalog,
+  autoLoad = false,
+}: {
+  subject: string
+  catalog: string
+  /** Ask Concordia as soon as this appears (a panel about ONE course). */
+  autoLoad?: boolean
+}) {
   const [sections, setSections] = useState<SectionOption[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +44,14 @@ export function CourseSections({ subject, catalog }: { subject: string; catalog:
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!autoLoad) return
+    const id = window.setTimeout(() => void load(), 0)
+    return () => window.clearTimeout(id)
+    // One course per mount: the panel is keyed by course.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (sections === null) {
     return (

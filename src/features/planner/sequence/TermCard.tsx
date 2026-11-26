@@ -40,6 +40,7 @@ export function TermCard({
   onWork,
   onDropCourse,
   onFix,
+  onOpen,
   onRemoveTerm,
 }: {
   index: number
@@ -58,6 +59,8 @@ export function TermCard({
   onDropCourse: (from: number, code: string) => void
   /** Put a missing prerequisite into the term before this one. */
   onFix: (code: string) => void
+  /** Open the details panel for a course. */
+  onOpen: (code: string) => void
   onRemoveTerm: () => void
 }) {
   const [over, setOver] = useState(false)
@@ -134,13 +137,18 @@ export function TermCard({
                   <Icon size={15} aria-hidden />
                   <span className="sr-only">{mark.label}</span>
                 </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] leading-snug text-fg">
-                    <span className="font-semibold">{c.code}</span>
+                <button
+                  type="button"
+                  onClick={() => onOpen(c.code)}
+                  title="See details"
+                  className="group min-w-0 flex-1 text-left"
+                >
+                  <span className="block text-[13px] leading-snug text-fg">
+                    <span className="font-semibold group-hover:underline">{c.code}</span>
                     <span className="ml-1.5 text-[11.5px] text-subtle tabular-nums">{c.credits} cr</span>
-                  </p>
-                  {c.title && <p className="truncate text-[12px] text-subtle">{c.title}</p>}
-                </div>
+                  </span>
+                  {c.title && <span className="block truncate text-[12px] text-subtle">{c.title}</span>}
+                </button>
                 {c.locked ? (
                   <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 text-[11.5px] text-subtle" title="Already in your Courses for this term">
                     <Lock size={11} aria-hidden /> In Courses

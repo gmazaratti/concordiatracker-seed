@@ -26,6 +26,14 @@ export function useCoursePlan() {
         if (terms[i] && !terms[i].courses.some((c) => planKey(c.code) === planKey(course.code))) terms[i].courses.push(course)
         return terms
       }),
+    /** Several at once, in one save (a loop of single adds would each start from the same old plan). */
+    addMany: (items: { index: number; course: PlanCourse }[]) =>
+      edit((terms) => {
+        for (const { index, course } of items) {
+          if (terms[index] && !terms[index].courses.some((c) => planKey(c.code) === planKey(course.code))) terms[index].courses.push(course)
+        }
+        return terms
+      }),
     remove: (i: number, code: string) =>
       edit((terms) => {
         terms[i].courses = terms[i].courses.filter((c) => planKey(c.code) !== planKey(code))

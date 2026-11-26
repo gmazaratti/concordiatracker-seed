@@ -1,6 +1,6 @@
 // node src/lib/course-plan.test.mjs
 import { parsePrereq } from './prereq.ts'
-import { checkPlan, nextTerm, termsAfter, rollForward, planKey, displayCode, planCredits } from './course-plan.ts'
+import { autoPlace, checkPlan, nextTerm, termsAfter, rollForward, planKey, displayCode, planCredits } from './course-plan.ts'
 
 let failed = 0
 const check = (name, ok, detail = '') => {
@@ -72,6 +72,20 @@ const v = (plan, i, code) => checkPlan(plan, base, pre).get(`${i}:${planKey(code
   check('past terms drop off', r.terms[0].term === 'Winter 2027' && r.terms[0].courses[0].code === 'KEEP 1')
   check('reaches as far as the furthest planned term', r.terms.at(-1).term === 'Fall 2028' && r.terms.at(-1).work === true)
   check('an empty plan gets four terms', rollForward({ terms: [] }, 'Fall 2026').terms.length === 4)
+}
+
+{
+  const plan = { terms: [{ term: 'Winter 2027', courses: [] }, { term: 'Summer 2027', work: true, courses: [] }, { term: 'Fall 2027', courses: [] }] }
+  const r = autoPlace(plan, [c('COMM 308'), c('COMM 217'), c('COMM 220'), c('COMM 225'), c('COMM 401')], base, pre)
+  const at = (code) => r.placed.find((x) => x.course.code === code)?.index
+  check('prerequisite goes first', at('COMM 217') === 0)
+  check('dependent course waits a term and skips the work term', at('COMM 308') === 2, String(at('COMM 308')))
+  check('concurrent one can share its term', at('COMM 220') <= 2)
+  check('a course whose need is in progress goes in the first term', at('COMM 225') === 0)
+  check('credit floor: 45 + 9 in Winter = 54, under 60 by Fall, so it is left', r.left.some((x) => x.code === 'COMM 401'), JSON.stringify(r))
+  const full = autoPlace({ terms: [{ term: 'Winter 2027', courses: [c('A 1', 12)] }] }, [c('B 1'), c('B 2')], base, pre)
+  check('respects the credit cap', full.placed.length === 1 && full.left.length === 1)
+  check('does not re-add what is planned or done', autoPlace({ terms: [{ term: 'Winter 2027', courses: [c('B 1')] }] }, [c('B 1'), c('COMM 210')], base, pre).placed.length === 0)
 }
 
 if (failed) {

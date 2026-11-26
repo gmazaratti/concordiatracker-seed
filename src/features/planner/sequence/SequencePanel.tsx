@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Briefcase, GraduationCap, ListChecks, Plus, TriangleAlert } from 'lucide-react'
+import { Briefcase, GraduationCap, Lightbulb, ListChecks, Plus, TriangleAlert } from 'lucide-react'
 import { useAppData } from '@/app/providers/app-data'
 import { PHOTOS } from '@/data/resource-photos'
 import { summarizeRecord } from '@/lib/academic-record'
@@ -7,6 +7,8 @@ import { coursesByCodes } from '@/lib/catalog'
 import { checkPlan, planCredits, planKey, termCredits, type CoursePlan } from '@/lib/course-plan'
 import { parsePrereq, type Prereq } from '@/lib/prereq'
 import { termRank } from '@/lib/term'
+import { CourseDetail } from './CourseDetail'
+import { RecommendCard } from './RecommendCard'
 import { TermCard, type ShownCourse } from './TermCard'
 import { useCoursePlan } from './useCoursePlan'
 
@@ -23,7 +25,10 @@ import { useCoursePlan } from './useCoursePlan'
  */
 export function SequencePanel() {
   const { courses, pastCourses, assessments } = useAppData()
-  const { plan, current, add, remove, move, setWork, addTerm, removeLastTerm } = useCoursePlan()
+  const { plan, current, add, addMany, remove, move, setWork, addTerm, removeLastTerm } = useCoursePlan()
+  const [recommending, setRecommending] = useState(false)
+  /** The course whose details are open: its term index (-1 = taking it now) and code. */
+  const [open, setOpen] = useState<{ index: number; code: string } | null>(null)
   const [prereqs, setPrereqs] = useState<Map<string, Prereq>>(new Map())
 
   const now = termRank(current)
@@ -76,6 +81,15 @@ export function SequencePanel() {
     add(i - 1, { code, title: row?.title ?? '', credits: row?.class_unit ?? 3 })
   }
 
+  const openCourse = open
+    ? open.index < 0
+      ? taking.filter((c) => planKey(c.code) === planKey(open.code)).map((c) => ({ code: c.code, title: c.title, credits: c.credits, locked: true }))[0]
+      : shown[open.index]?.courses.find((c) => planKey(c.code) === planKey(open.code))
+    : undefined
+  /** Everything that comes before the open course's term, for colouring its prerequisites. */
+  const beforeOpen = new Set<string>([...base.completed, ...base.inProgress])
+  if (open && open.index > 0) for (const t of shown.slice(0, open.index)) for (const c of t.courses) beforeOpen.add(planKey(c.code))
+
   return (
     <div className="space-y-5">
       <header className="ct-res-in relative isolate overflow-hidden rounded-3xl bg-[#0b0d16] text-white">
@@ -96,6 +110,13 @@ export function SequencePanel() {
           <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-white/80">
             Add courses to each term. A course placed before its prerequisite is flagged, and any term can be a work term.
           </p>
+          <button
+            type="button"
+            onClick={() => setRecommending(true)}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-[13.5px] font-semibold text-accent-contrast transition-colors duration-150 hover:bg-accent-hover"
+          >
+            <Lightbulb size={15} aria-hidden /> Recommend courses
+          </button>
           <ul className="mt-4 flex flex-wrap gap-2 text-[12.5px] font-medium">
             <Chip icon={GraduationCap} n={base.credits} label="credits finished" />
             <Chip icon={ListChecks} n={planned} label="credits planned" />
@@ -105,6 +126,10 @@ export function SequencePanel() {
         </div>
       </header>
 
+      {recommending && (
+        <RecommendCard plan={{ terms: shown }} base={base} onAdd={add} onAddAll={addMany} onClose={() => setRecommending(false)} />
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         <section className="flex flex-col rounded-3xl border border-border/60 bg-surface/50 p-4">
           <h3 className="font-display text-[17px] leading-tight font-semibold text-fg">{current}</h3>
@@ -112,12 +137,14 @@ export function SequencePanel() {
           <ul className="mt-3 space-y-1.5">
             {taking.length === 0 && <li className="rounded-xl bg-canvas px-3 py-4 text-center text-[12.5px] text-subtle">No classes in Courses this term.</li>}
             {taking.map((c) => (
-              <li key={c.id} className="rounded-xl bg-canvas px-3 py-2.5">
-                <p className="text-[13px] text-fg">
-                  <span className="font-semibold">{c.code}</span>
-                  <span className="ml-1.5 text-[11.5px] text-subtle tabular-nums">{c.credits} cr</span>
-                </p>
-                {c.title && <p className="truncate text-[12px] text-subtle">{c.title}</p>}
+              <li key={c.id}>
+                <button type="button" onClick={() => setOpen({ index: -1, code: c.code })} title="See details" className="group block w-full rounded-xl bg-canvas px-3 py-2.5 text-left">
+                  <span className="block text-[13px] text-fg">
+                    <span className="font-semibold group-hover:underline">{c.code}</span>
+                    <span className="ml-1.5 text-[11.5px] text-subtle tabular-nums">{c.credits} cr</span>
+                  </span>
+                  {c.title && <span className="block truncate text-[12px] text-subtle">{c.title}</span>}
+                </button>
               </li>
             ))}
           </ul>
@@ -142,6 +169,7 @@ export function SequencePanel() {
             onWork={(work) => setWork(i, work)}
             onDropCourse={(from, code) => move(from, code, i)}
             onFix={(code) => void fix(i, code)}
+            onOpen={(code) => setOpen({ index: i, code })}
             onRemoveTerm={removeLastTerm}
           />
         ))}
@@ -154,6 +182,21 @@ export function SequencePanel() {
           <Plus size={15} aria-hidden /> Add a term
         </button>
       </div>
+
+      {open && openCourse && (
+        <CourseDetail
+          key={`${open.index}:${open.code}`}
+          course={openCourse}
+          term={open.index < 0 ? null : shown[open.index].term}
+          check={checks.get(`${open.index}:${planKey(open.code)}`)}
+          before={beforeOpen}
+          credits={base.credits + base.inProgressCredits}
+          terms={open.index < 0 ? [] : shown.map((t) => t.term)}
+          onMove={(term) => move(open.index, open.code, shown.findIndex((t) => t.term === term))}
+          onRemove={() => remove(open.index, open.code)}
+          onClose={() => setOpen(null)}
+        />
+      )}
 
       <p className="max-w-3xl text-[12px] leading-relaxed text-subtle">
         This is your own sketch. It does not register you for anything, and it cannot tell which term a course will be offered in, because

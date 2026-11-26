@@ -193,3 +193,67 @@ export function checkPlan(
   })
   return out
 }
+
+/**
+ * Spread a list of courses over the coming terms, in the order given.
+ *
+ * A course goes in the first term where everything it needs comes earlier (or
+ * alongside, where the calendar allows that) and the term still has room. Work
+ * terms are skipped. Courses already in the plan are left where they are.
+ * Whatever cannot be placed is returned, not forced in.
+ */
+export function autoPlace(
+  plan: CoursePlan,
+  candidates: PlanCourse[],
+  base: { completed: Set<string>; inProgress: Set<string>; credits: number; inProgressCredits?: number },
+  prereqs: Map<string, Prereq>,
+  maxCredits = 15,
+): { placed: { index: number; course: PlanCourse }[]; left: PlanCourse[] } {
+  const before = new Set<string>([...base.completed, ...base.inProgress])
+  const planned = new Set(plan.terms.flatMap((t) => t.courses.map((c) => planKey(c.code))))
+  let remaining = candidates.filter((c, i, all) => {
+    const k = planKey(c.code)
+    return !before.has(k) && !planned.has(k) && all.findIndex((x) => planKey(x.code) === k) === i
+  })
+  let total = base.credits + (base.inProgressCredits ?? 0)
+  const placed: { index: number; course: PlanCourse }[] = []
+
+  plan.terms.forEach((t, index) => {
+    const here = new Set(t.courses.map((c) => planKey(c.code)))
+    let credits = termCredits(t)
+    const fits = (c: PlanCourse) => {
+      if (credits + c.credits > maxCredits) return false
+      const p = prereqs.get(planKey(c.code))
+      if (!p) return true
+      if (p.antirequisites.some((a) => before.has(a) || here.has(a))) return false
+      if (p.minCredits !== null && total < p.minCredits) return false
+      return p.terms.every((term) => {
+        const codes = term.alternatives.map((a) => a.code).filter((x): x is string => x !== null)
+        return (
+          codes.some((x) => before.has(x)) ||
+          (term.concurrent && codes.some((x) => here.has(x))) ||
+          term.alternatives.some((a) => a.code === null)
+        )
+      })
+    }
+    if (!t.work) {
+      // Again after each pass: something placed this term can satisfy a
+      // "previously or concurrently" for the next one.
+      for (let changed = true; changed; ) {
+        changed = false
+        for (const c of remaining) {
+          if (!fits(c)) continue
+          placed.push({ index, course: c })
+          here.add(planKey(c.code))
+          credits += c.credits
+          remaining = remaining.filter((x) => x !== c)
+          changed = true
+          break
+        }
+      }
+    }
+    for (const k of here) before.add(k)
+    total += credits
+  })
+  return { placed, left: remaining }
+}

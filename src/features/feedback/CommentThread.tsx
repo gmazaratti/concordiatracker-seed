@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
+import { Link2, Eye, EyeOff, MoreHorizontal, Plus, Trash2 } from 'lucide-react'
 import { Avatar, Markdown, StaffBadge, TierChip, VerifiedCheck } from './feedback-ui'
 import { founderRole } from './founders'
 import { authorLabel, timeAgo, type Comment } from './feedback-data'
@@ -35,6 +35,16 @@ export function CommentComposer({
         placeholder="Write a comment…"
         className="min-w-0 flex-1 bg-transparent text-[13px] text-fg placeholder:text-subtle focus:outline-none"
       />
+      {/* Drops in the link pattern with "here" as the words; swap the address for the real one. */}
+      <button
+        type="button"
+        onClick={() => setBody((b) => `${b}${b && !b.endsWith(' ') ? ' ' : ''}[here](https://)`)}
+        aria-label="Add a link"
+        title="Add a link: [words to click](https://address)"
+        className="grid size-8 shrink-0 place-items-center rounded-full text-subtle transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+      >
+        <Link2 size={15} aria-hidden />
+      </button>
       <button
         type="button"
         onClick={submit}

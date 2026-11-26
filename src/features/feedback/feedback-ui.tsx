@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { BadgeCheck } from 'lucide-react'
 import { founderRole } from './founders'
 import { cn } from '@/lib/cn'
@@ -66,7 +67,11 @@ export function StaffBadge() {
   )
 }
 
-const INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g
+/** [label](https://… or /path). Only web links and paths on this site: anything else stays plain text. */
+const LINK = /^\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]*)\)$/
+const OWN_SITE = /^https?:\/\/(www\.)?concordiatracker\.com(?=\/|$)/i
+const INLINE = /(\[[^\]]+\]\((?:https?:\/\/[^\s)]+|\/[^\s)]*)\)|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g
+const LINK_CLASS = 'font-medium text-accent underline underline-offset-2 hover:text-accent-hover'
 function renderInline(text: string, base: string): React.ReactNode[] {
   const out: React.ReactNode[] = []
   let last = 0
@@ -76,7 +81,22 @@ function renderInline(text: string, base: string): React.ReactNode[] {
   while ((m = INLINE.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index))
     const tok = m[0]
-    if (tok.startsWith('**')) out.push(<strong key={`${base}-${i}`}>{tok.slice(2, -2)}</strong>)
+    const link = LINK.exec(tok)
+    if (link) {
+      // A link to this site opens inside the app; anything else in a new tab.
+      const path = link[2].startsWith('/') ? link[2] : OWN_SITE.test(link[2]) ? link[2].replace(OWN_SITE, '') || '/' : null
+      out.push(
+        path ? (
+          <Link key={`${base}-${i}`} to={path} className={LINK_CLASS}>
+            {link[1]}
+          </Link>
+        ) : (
+          <a key={`${base}-${i}`} href={link[2]} target="_blank" rel="noreferrer noopener" className={LINK_CLASS}>
+            {link[1]}
+          </a>
+        ),
+      )
+    } else if (tok.startsWith('**')) out.push(<strong key={`${base}-${i}`}>{tok.slice(2, -2)}</strong>)
     else if (tok.startsWith('~~')) out.push(<s key={`${base}-${i}`}>{tok.slice(2, -2)}</s>)
     else out.push(<em key={`${base}-${i}`}>{tok.slice(1, -1)}</em>)
     last = m.index + tok.length
@@ -86,7 +106,7 @@ function renderInline(text: string, base: string): React.ReactNode[] {
   return out
 }
 
-/** Lightweight, XSS-safe markdown: **bold**, *italic*, ~~strike~~, line breaks. */
+/** Lightweight, XSS-safe markdown: **bold**, *italic*, ~~strike~~, [links](https://…), line breaks. */
 export function Markdown({ text, className }: { text: string; className?: string }) {
   const lines = text.split('\n')
   return (
