@@ -110,6 +110,8 @@ export interface UiState {
   friendsCard?: { order?: string[]; hidden?: string[]; sort?: 'live' | 'mine' }
   /** Planner, Course sequence: the coming terms and what is planned in each. */
   coursePlan?: import('@/lib/course-plan').CoursePlan
+  /** Course sequence, Recommend: areas you are into or not (subject codes) and the most credits per term. */
+  planPrefs?: { like?: string[]; avoid?: string[]; max?: number }
 }
 
 /** Local calendar day as YYYY-MM-DD (not UTC — a late-night session counts as

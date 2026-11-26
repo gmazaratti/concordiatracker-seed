@@ -8,7 +8,7 @@ import { checkPlan, planCredits, planKey, termCredits, type CoursePlan } from '@
 import { parsePrereq, type Prereq } from '@/lib/prereq'
 import { termRank } from '@/lib/term'
 import { CourseDetail } from './CourseDetail'
-import { RecommendCard } from './RecommendCard'
+import { RecommendCard } from './recommend/RecommendCard'
 import { TermCard, type ShownCourse } from './TermCard'
 import { useCoursePlan } from './useCoursePlan'
 
@@ -131,7 +131,7 @@ export function SequencePanel() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        <section className="flex flex-col rounded-3xl border border-border/60 bg-surface/50 p-4">
+        <section className="flex min-w-0 flex-col rounded-3xl border border-border/60 bg-surface/50 p-4">
           <h3 className="font-display text-[17px] leading-tight font-semibold text-fg">{current}</h3>
           <p className="mt-0.5 text-[12px] text-subtle tabular-nums">Now · {base.inProgressCredits} credits</p>
           <ul className="mt-3 space-y-1.5">

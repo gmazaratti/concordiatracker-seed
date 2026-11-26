@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowRight, Ban, Briefcase, Check, CircleHelp, Lock, Repeat, TriangleAlert, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, Ban, CalendarRange, Briefcase, Check, CircleHelp, Lock, Repeat, TriangleAlert, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { planKey, type PlanCheck, type PlanCourse, type PlanVerdict } from '@/lib/course-plan'
 import { AddPlanCourse } from './AddPlanCourse'
@@ -82,7 +83,7 @@ export function TermCard({
         onDropCourse(Number(from), code)
       }}
       className={cn(
-        'flex flex-col rounded-3xl border bg-surface p-4 transition-colors duration-150',
+        'flex min-w-0 flex-col rounded-3xl border bg-surface p-4 transition-colors duration-150',
         over ? 'border-accent' : work ? 'border-info/40' : 'border-border',
       )}
     >
@@ -197,6 +198,14 @@ export function TermCard({
       <div className="mt-3">
         <AddPlanCourse term={term} onAdd={onAdd} />
       </div>
+      {courses.length > 0 && (
+        <Link
+          to={`/app/planner?tab=schedule&term=${encodeURIComponent(term)}`}
+          className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-[12.5px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-fg"
+        >
+          <CalendarRange size={13} aria-hidden /> Build this term&rsquo;s schedule
+        </Link>
+      )}
     </section>
   )
 }

@@ -257,3 +257,16 @@ export function autoPlace(
   })
   return { placed, left: remaining }
 }
+
+/**
+ * What a course still needs that is not in `known`, as readable alternatives
+ * ("COMM 217", "MECH 221 or MIAE 221"). Empty when nothing is missing or the
+ * missing part is something we cannot check.
+ */
+export function missingPrereqs(code: string, prereqs: Map<string, Prereq>, known: Set<string>): string[] {
+  const p = prereqs.get(planKey(code))
+  if (!p) return []
+  return p.terms
+    .filter((t) => !t.alternatives.some((a) => a.code === null || known.has(a.code)))
+    .map(names)
+}

@@ -73,6 +73,7 @@ import { UnscheduledStrip } from './UnscheduledStrip'
 import { ScheduleTips } from './ScheduleTips'
 import { currentTermName, laterTerms } from './past-terms'
 import { SavedCoursesButton } from './SavedCoursesPicker'
+import { PlanStrip } from './PlanStrip'
 import { siteOrigin } from '@/lib/site-origin'
 
 /**
@@ -100,7 +101,10 @@ export function ScheduleBuilder() {
    * knowable without asking Concordia anything, so it is the default, and the
    * control is always there.
    */
-  const [termCode, setTermCode] = useState(() => termCodeFor(currentTermName()) ?? '')
+  // `?term=Winter 2027` opens the builder on that term (the Course sequence links here).
+  const [termCode, setTermCode] = useState(
+    () => termCodeFor(new URLSearchParams(window.location.search).get('term') ?? '') ?? termCodeFor(currentTermName()) ?? '',
+  )
   /** Terms Concordia actually returned sections for, merged into the list below. */
   const [terms, setTerms] = useState<string[]>([])
   const [saved, setSaved] = useState<SavedSchedule[]>([])
@@ -779,6 +783,7 @@ export function ScheduleBuilder() {
             </span>
           }
         >
+          <PlanStrip termCode={termCode} picked={new Set(picked.map((p) => normalizeCode(p.code)))} onPick={setSeedQuery} />
           <ScheduleSearch
             key={seedQuery}
             initialQuery={seedQuery}
